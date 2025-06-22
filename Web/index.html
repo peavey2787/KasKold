@@ -70,12 +70,27 @@
 <body>
   <!-- React App Container -->
   <div id="kaspa-wallet-app">
-    <div style="padding: 20px; text-align: center; background: #f8f9fa; border: 1px solid #dee2e6; margin: 20px; border-radius: 8px;">
-      <h4>Loading...</h4>
-      <p>If you see this message for more than a few seconds, there may be a JavaScript error.</p>
-      <p><small>This fallback content will be replaced when React loads successfully.</small></p>
+    <div id="fallback-content" style="padding: 20px; text-align: center; background: #f8f9fa; border: 1px solid #dee2e6; margin: 20px; border-radius: 8px;">
+      <h4>Loading Kaspa Wallet...</h4>
+      <div style="margin: 20px 0;">
+        <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #70C7BA; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+      </div>
+      <p>Initializing wallet application...</p>
+      <p><small>If this takes more than 10 seconds, check the browser console for errors.</small></p>
+      <div id="diagnostic-info" style="display: none; margin-top: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; text-align: left;">
+        <h5>Diagnostic Information:</h5>
+        <div id="diagnostic-details"></div>
+        <button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px; background: #70C7BA; color: white; border: none; border-radius: 4px; cursor: pointer;">Reload Page</button>
+      </div>
     </div>
   </div>
+  
+  <style>
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
 
   <!-- Local Bootstrap JS -->
   <script src="./libs/bootstrap.bundle.min.js"></script>
@@ -86,26 +101,106 @@
   <!-- React Components -->
   <script type="module" src="./js/components/WalletApp.js"></script>
   
-  <!-- CSS Loading Detection -->
+  <!-- Enhanced Loading Detection -->
   <script>
-    // Check if main CSS loaded properly
+    // Enhanced debugging for live hosting issues
     document.addEventListener('DOMContentLoaded', () => {
-      // Test if CSS custom properties are available
+      console.log('=== KASPA WALLET DEBUG INFO ===');
+      console.log('Current URL:', window.location.href);
+      console.log('User Agent:', navigator.userAgent);
+      console.log('Document Ready Time:', new Date().toISOString());
+      
+      // Test CSS loading
       const testElement = document.createElement('div');
       testElement.style.cssText = 'color: var(--brand-primary);';
       document.body.appendChild(testElement);
-      
       const computedColor = getComputedStyle(testElement).color;
       document.body.removeChild(testElement);
       
-      // If CSS didn't load, log a warning
       if (computedColor === 'var(--brand-primary)' || computedColor === '') {
-        console.warn('Main CSS (styles/main.css) may not have loaded properly. Using fallback styles.');
-        console.log('Please ensure styles/main.css is uploaded to your web server.');
+        console.warn('❌ CSS may not have loaded properly');
       } else {
-        console.log('CSS loaded successfully');
+        console.log('✅ CSS loaded successfully');
       }
+      
+      // Test React availability
+      if (typeof React !== 'undefined') {
+        console.log('✅ React is available:', React.version);
+      } else {
+        console.error('❌ React is not available - check if react.development.js loaded');
+      }
+      
+      if (typeof ReactDOM !== 'undefined') {
+        console.log('✅ ReactDOM is available');
+      } else {
+        console.error('❌ ReactDOM is not available - check if react-dom.development.js loaded');
+      }
+      
+      // Test if we can create a basic React element
+      try {
+        if (typeof React !== 'undefined') {
+          const testElement = React.createElement('div', null, 'Test');
+          console.log('✅ React.createElement works');
+        }
+      } catch (error) {
+        console.error('❌ React.createElement failed:', error);
+      }
+      
+      // Check for module script support
+      if ('noModule' in HTMLScriptElement.prototype) {
+        console.log('✅ ES6 modules supported');
+      } else {
+        console.error('❌ ES6 modules not supported - browser may be too old');
+      }
+      
+      console.log('=== END DEBUG INFO ===');
     });
+    
+    // Monitor for JavaScript errors
+    window.addEventListener('error', (event) => {
+      console.error('❌ JavaScript Error:', {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        error: event.error
+      });
+    });
+    
+         // Monitor for unhandled promise rejections
+     window.addEventListener('unhandledrejection', (event) => {
+       console.error('❌ Unhandled Promise Rejection:', event.reason);
+     });
+     
+     // Show diagnostic info if React doesn't load within 10 seconds
+     setTimeout(() => {
+       const fallbackContent = document.getElementById('fallback-content');
+       if (fallbackContent && fallbackContent.parentNode) {
+         // React hasn't replaced the fallback content, show diagnostic info
+         const diagnosticInfo = document.getElementById('diagnostic-info');
+         const diagnosticDetails = document.getElementById('diagnostic-details');
+         
+         if (diagnosticInfo && diagnosticDetails) {
+           let details = '<strong>Possible Issues:</strong><br>';
+           
+           if (typeof React === 'undefined') {
+             details += '• React library not loaded (check if libs/react.development.js exists)<br>';
+           }
+           if (typeof ReactDOM === 'undefined') {
+             details += '• ReactDOM library not loaded (check if libs/react-dom.development.js exists)<br>';
+           }
+           
+           details += '• JavaScript files may not be uploaded to server<br>';
+           details += '• Server may not be serving .js files with correct MIME type<br>';
+           details += '• Check browser console for specific error messages<br>';
+           details += '<br><strong>Current URL:</strong> ' + window.location.href + '<br>';
+           details += '<strong>Time:</strong> ' + new Date().toLocaleString();
+           
+           diagnosticDetails.innerHTML = details;
+           diagnosticInfo.style.display = 'block';
+         }
+       }
+     }, 10000); // 10 seconds
   </script>
 
   <!-- Main App Initialization -->
