@@ -1,5 +1,12 @@
 const { useState, useRef } = React;
 
+// Utility function to resolve kaspa module paths
+const getKaspaModulePath = (modulePath) => {
+  // Use new URL constructor to resolve path relative to the document base
+  const baseUrl = new URL(document.baseURI || window.location.href);
+  return new URL(`kaspa/js/${modulePath}`, baseUrl).href;
+};
+
 export function MessageSigning({ walletState, onNavigate, addNotification }) {
   const [message, setMessage] = useState('');
   const [unsignedMessageData, setUnsignedMessageData] = useState(null);
@@ -62,7 +69,7 @@ export function MessageSigning({ walletState, onNavigate, addNotification }) {
     setIsLoading(true);
 
     try {
-      const { createUnsignedMessage } = await import(`../../kaspa/js/message-signing.js?v=${Date.now()}`);
+      const { createUnsignedMessage } = await import(`${getKaspaModulePath('message-signing.js')}?v=${Date.now()}`);
       
       const messageData = {
         message: message.trim(),
@@ -103,7 +110,7 @@ export function MessageSigning({ walletState, onNavigate, addNotification }) {
     setIsLoading(true);
 
     try {
-      const { signMessage } = await import(`../../kaspa/js/message-signing.js?v=${Date.now()}`);
+      const { signMessage } = await import(`${getKaspaModulePath('message-signing.js')}?v=${Date.now()}`);
       
       const result = await signMessage(
         unsignedMessageData.message,
@@ -130,7 +137,7 @@ export function MessageSigning({ walletState, onNavigate, addNotification }) {
   // Generate QR code
   const generateQRCode = async (messageData, type = 'unsigned') => {
     try {
-      const { generateUnsignedMessageQR, generateSignedMessageQR } = await import('../../kaspa/js/qr-manager.js');
+      const { generateUnsignedMessageQR, generateSignedMessageQR } = await import(getKaspaModulePath('qr-manager.js'));
       
       let qrResult;
       if (type === 'signed') {
@@ -247,7 +254,7 @@ export function MessageSigning({ walletState, onNavigate, addNotification }) {
     if (files.length === 0) return;
 
     try {
-      const { readQRFromImage, readMultiPartQRFromImages } = await import('../../kaspa/js/qr-manager.js');
+      const { readQRFromImage, readMultiPartQRFromImages } = await import(getKaspaModulePath('qr-manager.js'));
       
       let result;
       if (files.length === 1) {
@@ -306,7 +313,7 @@ export function MessageSigning({ walletState, onNavigate, addNotification }) {
     setIsScanning(true);
     
     try {
-      const { openCameraQRScanner } = await import('../../kaspa/js/qr-manager.js');
+      const { openCameraQRScanner } = await import(getKaspaModulePath('qr-manager.js'));
       
       await openCameraQRScanner(async (qrResult) => {
         try {

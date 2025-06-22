@@ -1,5 +1,12 @@
 const { useState, useEffect, useRef } = React;
 
+// Utility function to resolve kaspa module paths
+const getKaspaModulePath = (modulePath) => {
+  // Use new URL constructor to resolve path relative to the document base
+  const baseUrl = new URL(document.baseURI || window.location.href);
+  return new URL(`kaspa/js/${modulePath}`, baseUrl).href;
+};
+
 export function TransactionManager({ walletState, onNavigate, addNotification, onGenerateChangeAddress, onMarkAddressUsed }) {
   const [amount, setAmount] = useState('');
   const [toAddress, setToAddress] = useState('');
@@ -29,7 +36,7 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
 
   const setupTransactionHandlers = async () => {
     try {
-      const { setupTransactionEventHandlers } = await import('../../kaspa/js/init.js');
+      const { setupTransactionEventHandlers } = await import(getKaspaModulePath('init.js'));
       setupTransactionEventHandlers();
     } catch (error) {
       console.error('Failed to set up transaction handlers:', error);
@@ -40,7 +47,7 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
   // Validate address for current network
   const validateAddressForNetwork = async (address, network) => {
     try {
-      const { getKaspa, isInitialized } = await import('../../kaspa/js/init.js');
+      const { getKaspa, isInitialized } = await import(getKaspaModulePath('init.js'));
       
       if (!isInitialized()) {
         throw new Error('Kaspa WASM not initialized');
@@ -116,7 +123,7 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
 
 
       // Use the existing transaction creation logic from transaction-create.js
-      const { createTransaction } = await import('../../kaspa/js/transaction-create.js');
+      const { createTransaction } = await import(getKaspaModulePath('transaction-create.js'));
       
       const transaction = await createTransaction(
         walletState.address,
@@ -168,7 +175,7 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
     try {
 
 
-      const { signTransaction } = await import('../../kaspa/js/transaction-sign.js');
+      const { signTransaction } = await import(getKaspaModulePath('transaction-sign.js'));
       
       let result;
       
@@ -233,7 +240,7 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
     try {
 
 
-      const { submitTransaction } = await import('../../kaspa/js/transaction-submit.js');
+      const { submitTransaction } = await import(getKaspaModulePath('transaction-submit.js'));
       
       const result = await submitTransaction(signedTransactionData, walletState.network);
 
@@ -297,7 +304,7 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         qrFunction = 'generateUnsignedTransactionQR';
       }
       
-      const { [qrFunction]: generateQR } = await import('../../kaspa/js/qr-manager.js');
+      const { [qrFunction]: generateQR } = await import(getKaspaModulePath('qr-manager.js'));
       
       // Convert BigInt values to strings before generating QR code
       const serializedTxData = convertBigIntToString(txData);
@@ -468,7 +475,7 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
     try {
       // If multiple files, try multi-part QR processing
       if (files.length > 1) {
-        const { readMultiPartQRFromImages } = await import('../../kaspa/js/qr-manager.js');
+        const { readMultiPartQRFromImages } = await import(getKaspaModulePath('qr-manager.js'));
         
         const result = await readMultiPartQRFromImages(files);
         
@@ -529,7 +536,7 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
 
       // Single QR processing (original logic)
       const file = files[0];
-      const { readQRFromImage, validateTransactionQRData } = await import('../../kaspa/js/qr-manager.js');
+      const { readQRFromImage, validateTransactionQRData } = await import(getKaspaModulePath('qr-manager.js'));
       
       const qrResult = await readQRFromImage(file);
       
@@ -602,7 +609,7 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
     setIsScanning(true);
     
     try {
-      const { openCameraQRScanner } = await import('../../kaspa/js/qr-manager.js');
+      const { openCameraQRScanner } = await import(getKaspaModulePath('qr-manager.js'));
       
       await openCameraQRScanner(async (qrResult) => {
         try {

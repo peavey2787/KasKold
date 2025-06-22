@@ -1,5 +1,12 @@
 const { useState, useEffect } = React;
 
+// Utility function to resolve kaspa module paths
+const getKaspaModulePath = (modulePath) => {
+  // Use new URL constructor to resolve path relative to the document base
+  const baseUrl = new URL(document.baseURI || window.location.href);
+  return new URL(`kaspa/js/${modulePath}`, baseUrl).href;
+};
+
 export function WalletSettings({ walletState, onNavigate, addNotification, onGenerateNewAddress, sessionManager }) {
   const [walletLabel, setWalletLabel] = useState(walletState.currentWallet?.name || '');
   const [currentPassword, setCurrentPassword] = useState('');
@@ -81,7 +88,7 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
     setValidationErrors({});
 
     try {
-      const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
+      const { WalletStorage } = await import(getKaspaModulePath('wallet-storage.js'));
       const walletStorage = new WalletStorage();
       
       // Generate wallet ID from address and network to ensure consistency
@@ -125,7 +132,7 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
     setValidationErrors({});
 
     try {
-      const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
+      const { WalletStorage } = await import(getKaspaModulePath('wallet-storage.js'));
       const walletStorage = new WalletStorage();
       
       // Generate wallet ID from address and network to ensure consistency
@@ -187,7 +194,7 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
 
     // If not available in state, try to decrypt and check if wallet has mnemonic
     try {
-      const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
+      const { WalletStorage } = await import(getKaspaModulePath('wallet-storage.js'));
       const walletStorage = new WalletStorage();
       
       // Generate wallet ID from address and network to ensure consistency
@@ -222,7 +229,7 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
     setIsScanningAddresses(true);
 
     try {
-      const { getKaspa } = await import('../../kaspa/js/init.js');
+      const { getKaspa } = await import(getKaspaModulePath('init.js'));
       const kaspa = getKaspa();
       const { Mnemonic, XPrv, NewAddressKind } = kaspa;
 
@@ -311,7 +318,7 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
     setValidationErrors({});
 
     try {
-      const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
+      const { WalletStorage } = await import(getKaspaModulePath('wallet-storage.js'));
       const walletStorage = new WalletStorage();
       
       // Generate wallet ID from address and network to ensure consistency

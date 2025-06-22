@@ -1,5 +1,12 @@
 const { useState, useEffect } = React;
 
+// Utility function to resolve kaspa module paths
+const getKaspaModulePath = (modulePath) => {
+  // Use new URL constructor to resolve path relative to the document base
+  const baseUrl = new URL(document.baseURI || window.location.href);
+  return new URL(`kaspa/js/${modulePath}`, baseUrl).href;
+};
+
 export function WalletDashboard({ walletState, onNavigate, addNotification, onGenerateNewAddress, onUpdateBalance, onMarkAddressUsed }) {
   const [balance, setBalance] = useState(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
@@ -22,7 +29,7 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
         
         // For HD wallets, check balance for all addresses
         const allAddresses = walletState.hdWallet.getAllAddresses();
-        const { checkAddressBalance } = await import('../../kaspa/js/wallet-balance.js');
+        const { checkAddressBalance } = await import(getKaspaModulePath('wallet-balance.js'));
         
         let totalBalance = 0n;
         let hasBalanceUpdates = false;
@@ -53,7 +60,7 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
         
       } else {
         // For single address wallets
-        const { checkAddressBalance } = await import('../../kaspa/js/wallet-balance.js');
+        const { checkAddressBalance } = await import(getKaspaModulePath('wallet-balance.js'));
         
         const balanceResult = await checkAddressBalance(walletState.address, walletState.network);
 
@@ -150,7 +157,7 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
 
     try {
       // Use cache-busting parameter to ensure fresh import
-      const { generateQRCode } = await import(`../../kaspa/js/qr-manager.js?v=${Date.now()}`);
+      const { generateQRCode } = await import(`${getKaspaModulePath('qr-manager.js')}?v=${Date.now()}`);
       
       const qrResult = await generateQRCode(walletState.address, {
         width: 300,
