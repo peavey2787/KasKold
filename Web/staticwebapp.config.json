@@ -1,0 +1,19 @@
+{
+  "routes": [
+    {
+      "route": "/api/kaspa/*",
+      "allowedRoles": ["anonymous"],
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization"
+      }
+    }
+  ],
+  "platformErrorOverrides": [
+    {
+      "errorType": "NotFound",
+      "serve": "/index.html"
+    }
+  ]
+}
