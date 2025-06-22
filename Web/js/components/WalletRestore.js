@@ -1,12 +1,5 @@
 const { useState, useEffect } = React;
 
-// Utility function to resolve kaspa module paths
-const getKaspaModulePath = (modulePath) => {
-  // Use new URL constructor to resolve path relative to the document base
-  const baseUrl = new URL(document.baseURI || window.location.href);
-  return new URL(`kaspa/js/${modulePath}`, baseUrl).href;
-};
-
 export function WalletRestore({ onNavigate, onWalletRestored, addNotification, network: propNetwork = 'mainnet' }) {
   const [restoreMethod, setRestoreMethod] = useState('mnemonic'); // 'mnemonic' or 'privateKey'
   const [mnemonicPhrase, setMnemonicPhrase] = useState('');
@@ -113,7 +106,7 @@ export function WalletRestore({ onNavigate, onWalletRestored, addNotification, n
 
       if (restoreMethod === 'mnemonic') {
         // Import restoration functions
-        const { restoreWalletFromMnemonic, validateMnemonic } = await import(getKaspaModulePath('wallet-restore.js'));
+        const { restoreWalletFromMnemonic, validateMnemonic } = await import('../../kaspa/js/wallet-restore.js');
         
         // Validate mnemonic first
         const mnemonicValidation = validateMnemonic(mnemonicPhrase);
@@ -130,7 +123,7 @@ export function WalletRestore({ onNavigate, onWalletRestored, addNotification, n
         );
       } else {
         // Import restoration functions
-        const { restoreWalletFromPrivateKey, validatePrivateKey } = await import(getKaspaModulePath('wallet-restore.js'));
+        const { restoreWalletFromPrivateKey, validatePrivateKey } = await import('../../kaspa/js/wallet-restore.js');
         
         // Validate private key first
         const privateKeyValidation = validatePrivateKey(privateKey);
@@ -184,7 +177,7 @@ export function WalletRestore({ onNavigate, onWalletRestored, addNotification, n
 
     try {
       // Save the restored wallet
-      const { WalletStorage } = await import(getKaspaModulePath('wallet-storage.js'));
+      const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
       const walletStorage = new WalletStorage();
 
       const walletId = await walletStorage.saveWallet(restoredWalletData, password);
@@ -245,7 +238,7 @@ export function WalletRestore({ onNavigate, onWalletRestored, addNotification, n
     if (!mnemonicPhrase.trim()) return;
 
     try {
-      const { validateMnemonic } = await import(getKaspaModulePath('wallet-restore.js'));
+      const { validateMnemonic } = await import('../../kaspa/js/wallet-restore.js');
       const validation = validateMnemonic(mnemonicPhrase);
       
       if (!validation.isValid) {
@@ -270,7 +263,7 @@ export function WalletRestore({ onNavigate, onWalletRestored, addNotification, n
     if (!privateKey.trim()) return;
 
     try {
-      const { validatePrivateKey } = await import(getKaspaModulePath('wallet-restore.js'));
+      const { validatePrivateKey } = await import('../../kaspa/js/wallet-restore.js');
       const validation = validatePrivateKey(privateKey);
       
       if (!validation.isValid) {

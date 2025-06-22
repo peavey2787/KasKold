@@ -1,12 +1,5 @@
 const { useState, useEffect } = React;
 
-// Utility function to resolve kaspa module paths
-const getKaspaModulePath = (modulePath) => {
-  // Use new URL constructor to resolve path relative to the document base
-  const baseUrl = new URL(document.baseURI || window.location.href);
-  return new URL(`kaspa/js/${modulePath}`, baseUrl).href;
-};
-
 export function WalletLogin({ onNavigate, onWalletLogin, addNotification }) {
   const [wallets, setWallets] = useState([]);
   const [selectedWallet, setSelectedWallet] = useState('');
@@ -20,7 +13,7 @@ export function WalletLogin({ onNavigate, onWalletLogin, addNotification }) {
 
   const loadWallets = async () => {
     try {
-      const { WalletStorage } = await import(getKaspaModulePath('wallet-storage.js'));
+      const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
       const walletStorage = new WalletStorage();
       const savedWallets = await walletStorage.getAllWallets();
       setWallets(savedWallets || []);
@@ -45,7 +38,7 @@ export function WalletLogin({ onNavigate, onWalletLogin, addNotification }) {
     setIsLoading(true);
     
     try {
-      const { WalletStorage } = await import(getKaspaModulePath('wallet-storage.js'));
+      const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
       const walletStorage = new WalletStorage();
       
       const wallet = wallets.find(w => w.id === selectedWallet);
@@ -80,7 +73,7 @@ export function WalletLogin({ onNavigate, onWalletLogin, addNotification }) {
     }
 
     try {
-      const { WalletStorage } = await import(getKaspaModulePath('wallet-storage.js'));
+      const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
       const walletStorage = new WalletStorage();
       await walletStorage.deleteWallet(walletId);
       await loadWallets();

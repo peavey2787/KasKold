@@ -1,12 +1,5 @@
 const { useState, useEffect } = React;
 
-// Utility function to resolve kaspa module paths
-const getKaspaModulePath = (modulePath) => {
-  // Use new URL constructor to resolve path relative to the document base
-  const baseUrl = new URL(document.baseURI || window.location.href);
-  return new URL(`kaspa/js/${modulePath}`, baseUrl).href;
-};
-
 export function WalletCreation({ onNavigate, onWalletCreated, addNotification, network = 'mainnet' }) {
   const [currentStep, setCurrentStep] = useState(1);
   const [walletData, setWalletData] = useState(null);
@@ -33,7 +26,7 @@ export function WalletCreation({ onNavigate, onWalletCreated, addNotification, n
     setIsGenerating(true);
     
     try {
-      const { generateWallet } = await import(getKaspaModulePath('wallet-generator.js'));
+      const { generateWallet } = await import('../../kaspa/js/wallet-generator.js');
       
       const generatedWallet = generateWallet(selectedNetwork, DEFAULT_DERIVATION_PATH);
       
@@ -64,7 +57,7 @@ export function WalletCreation({ onNavigate, onWalletCreated, addNotification, n
     setIsSaving(true);
     
     try {
-      const { WalletStorage } = await import(getKaspaModulePath('wallet-storage.js'));
+      const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
       const walletStorage = new WalletStorage();
       
       const walletToSave = {

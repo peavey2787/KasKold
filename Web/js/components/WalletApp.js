@@ -13,13 +13,6 @@ import { ToastContainer } from './ToastContainer.js';
 
 const { useState, useEffect, useRef } = React;
 
-// Utility function to resolve kaspa module paths
-const getKaspaModulePath = (modulePath) => {
-  // Use new URL constructor to resolve path relative to the document base
-  const baseUrl = new URL(document.baseURI || window.location.href);
-  return new URL(`kaspa/js/${modulePath}`, baseUrl).href;
-};
-
 // Main Wallet Application Component
 export function WalletApp() {
   const [currentView, setCurrentView] = useState('loading'); // Start with loading state
@@ -66,7 +59,7 @@ export function WalletApp() {
     try {
       // Check if this is an HD wallet and restore HD wallet manager
       if (savedSession.isHDWallet && savedSession.currentWallet?.mnemonic) {
-        const { HDWalletManager } = await import(getKaspaModulePath('hd-wallet-manager.js'));
+        const { HDWalletManager } = await import('../../kaspa/js/hd-wallet-manager.js');
         const hdWallet = new HDWalletManager(
           savedSession.currentWallet.mnemonic, 
           savedSession.network, 
@@ -144,8 +137,8 @@ export function WalletApp() {
     
     try {
       // Import and initialize Kaspa modules
-      const { initKaspa } = await import(getKaspaModulePath('init.js'));
-      const { WalletStorage } = await import(getKaspaModulePath('wallet-storage.js'));
+      const { initKaspa } = await import('../../kaspa/js/init.js');
+      const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
       
       // Initialize Kaspa WASM (check if already initialized globally)
       if (!kaspaInitialized.current && !window.kaspaInitialized) {
@@ -223,7 +216,7 @@ export function WalletApp() {
       
       if (isHDWallet) {
         // Initialize HD wallet manager
-        const { HDWalletManager } = await import(getKaspaModulePath('hd-wallet-manager.js'));
+        const { HDWalletManager } = await import('../../kaspa/js/hd-wallet-manager.js');
         const hdWallet = new HDWalletManager(wallet.mnemonic, wallet.network, wallet.derivationPath);
         await hdWallet.initialize();
         
