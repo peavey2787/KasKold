@@ -97,7 +97,7 @@ export function WalletApp() {
       const savedTheme = localStorage.getItem('kaspa_theme') || 'dark';
       setTheme(savedTheme);
       
-      // Initialize session manager for quick check - use relative path since it's in the same parent directory
+      // Initialize session manager for quick check
       if (!sessionManager.current) {
         const { SessionManager } = await import('../session-manager.js');
         sessionManager.current = new SessionManager();
@@ -136,7 +136,7 @@ export function WalletApp() {
     initializationInProgress.current = true;
     
     try {
-      // Import and initialize Kaspa modules using simple relative paths
+      // Import and initialize Kaspa modules
       const { initKaspa } = await import('../../kaspa/js/init.js');
       const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
       
@@ -167,18 +167,7 @@ export function WalletApp() {
     } catch (error) {
       console.error('React WalletApp: Failed to initialize Kaspa wallet:', error);
       console.error('React WalletApp: Error stack:', error.stack);
-      
-      // More detailed error reporting for debugging
-      let errorMessage = 'Failed to initialize wallet system: ' + error.message;
-      if (error.message.includes('Failed to fetch dynamically imported module')) {
-        errorMessage += '\n\nThis usually means the kaspa folder is missing from your web server. Please ensure all files are uploaded correctly.';
-        
-        // Add debugging info
-        console.error('Current location:', window.location.href);
-        console.error('Attempted import path for init.js should be:', new URL('../../kaspa/js/init.js', window.location.href).href);
-      }
-      
-      addNotification(errorMessage, 'error');
+      addNotification('Failed to initialize wallet system: ' + error.message, 'error');
       setIsCheckingSession(false);
       setCurrentView('welcome');
     } finally {

@@ -23,47 +23,6 @@
   
   <!-- Custom CSS -->
   <link href="./styles/main.css" rel="stylesheet">
-  
-  <!-- Inline CSS fallback with essential styling -->
-  <style>
-    /* Essential fallback styles if main.css fails to load */
-    :root {
-      --brand-primary: #70C7BA;
-      --brand-secondary: #5AB3A5;
-      --bg-primary: #ffffff;
-      --bg-secondary: #f8f9fa;
-      --bg-card: #ffffff;
-      --text-primary: #212529;
-      --border-color: #dee2e6;
-      --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    }
-    
-    [data-bs-theme="dark"] {
-      --bg-primary: #0d1117;
-      --bg-secondary: #161b22;
-      --bg-card: #21262d;
-      --text-primary: #70C7BA;
-      --border-color: #30363d;
-    }
-    
-    body {
-      background-color: var(--bg-primary);
-      color: var(--text-primary);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    }
-    
-    .card {
-      background-color: var(--bg-card);
-      border: 1px solid var(--border-color);
-      box-shadow: var(--shadow);
-    }
-    
-    .btn-primary {
-      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
-      border: none;
-      color: white;
-    }
-  </style>
 </head>
 <body>
   <!-- React App Container -->
@@ -78,17 +37,12 @@
   <!-- React Components -->
   <script type="module" src="./js/components/WalletApp.js"></script>
   
-    <!-- Simple CSS Check -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log('CSS and React loading check...');
-    });
-  </script>
-
   <!-- Main App Initialization -->
   <script type="module">
+    // Initialize the React app
     import { WalletApp } from './js/components/WalletApp.js';
     
+    // Wait for DOM to be ready
     document.addEventListener('DOMContentLoaded', () => {
       const container = document.getElementById('kaspa-wallet-app');
       const root = ReactDOM.createRoot(container);

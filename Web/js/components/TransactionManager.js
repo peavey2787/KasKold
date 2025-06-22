@@ -113,6 +113,8 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         changeAddress = changeAddressInfo?.address;
       }
 
+
+
       // Use the existing transaction creation logic from transaction-create.js
       const { createTransaction } = await import('../../kaspa/js/transaction-create.js');
       
@@ -126,6 +128,8 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
           hdWallet: walletState.hdWallet
         }
       );
+
+
 
       if (transaction && transaction.success) {
         // The transaction data is in the transaction object itself, not nested under 'data'
@@ -162,6 +166,8 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
     setIsSigning(true);
 
     try {
+
+
       const { signTransaction } = await import('../../kaspa/js/transaction-sign.js');
       
       let result;
@@ -189,6 +195,8 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         
         result = await signTransaction(transactionData, walletState.currentWallet.privateKey);
       }
+
+
 
       if (result && result.success) {
         // Create signed transaction data structure
@@ -223,9 +231,13 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
     setIsSubmitting(true);
 
     try {
+
+
       const { submitTransaction } = await import('../../kaspa/js/transaction-submit.js');
       
       const result = await submitTransaction(signedTransactionData, walletState.network);
+
+
 
       if (result && result.success) {
         // Create submitted transaction data structure
@@ -664,6 +676,8 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
       setIsScanning(false);
     }
   };
+
+
 
   const handleResetTransaction = () => {
     // Reset all transaction states

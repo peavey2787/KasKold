@@ -62,7 +62,7 @@ export function MessageSigning({ walletState, onNavigate, addNotification }) {
     setIsLoading(true);
 
     try {
-      const { createUnsignedMessage } = await import('../../kaspa/js/message-signing.js');
+      const { createUnsignedMessage } = await import(`../../kaspa/js/message-signing.js?v=${Date.now()}`);
       
       const messageData = {
         message: message.trim(),
@@ -103,7 +103,7 @@ export function MessageSigning({ walletState, onNavigate, addNotification }) {
     setIsLoading(true);
 
     try {
-      const { signMessage } = await import('../../kaspa/js/message-signing.js');
+      const { signMessage } = await import(`../../kaspa/js/message-signing.js?v=${Date.now()}`);
       
       const result = await signMessage(
         unsignedMessageData.message,

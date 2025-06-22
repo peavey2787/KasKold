@@ -1,7 +1,5 @@
 const { useState, useEffect } = React;
 
-
-
 export function WalletRestore({ onNavigate, onWalletRestored, addNotification, network: propNetwork = 'mainnet' }) {
   const [restoreMethod, setRestoreMethod] = useState('mnemonic'); // 'mnemonic' or 'privateKey'
   const [mnemonicPhrase, setMnemonicPhrase] = useState('');

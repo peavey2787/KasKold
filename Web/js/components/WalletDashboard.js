@@ -1,7 +1,5 @@
 const { useState, useEffect } = React;
 
-
-
 export function WalletDashboard({ walletState, onNavigate, addNotification, onGenerateNewAddress, onUpdateBalance, onMarkAddressUsed }) {
   const [balance, setBalance] = useState(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
@@ -24,7 +22,7 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
         
         // For HD wallets, check balance for all addresses
         const allAddresses = walletState.hdWallet.getAllAddresses();
-        const { checkAddressBalance } = await import(getKaspaImportPath('wallet-balance.js'));
+        const { checkAddressBalance } = await import('../../kaspa/js/wallet-balance.js');
         
         let totalBalance = 0n;
         let hasBalanceUpdates = false;
@@ -150,9 +148,9 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       return;
     }
 
-          try {
-        // Use cache-busting parameter to ensure fresh import
-        const { generateQRCode } = await import('../../kaspa/js/qr-manager.js' + `?v=${Date.now()}`);
+    try {
+      // Use cache-busting parameter to ensure fresh import
+      const { generateQRCode } = await import(`../../kaspa/js/qr-manager.js?v=${Date.now()}`);
       
       const qrResult = await generateQRCode(walletState.address, {
         width: 300,
