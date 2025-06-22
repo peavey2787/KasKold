@@ -1,5 +1,5 @@
 // Kaspa WASM Initialization Module
-import * as kaspa from '../../kaspa-wasm32-sdk/web/kaspa/kaspa.js';
+import * as kaspa from '/kaspa-wasm32-sdk/web/kaspa/kaspa.js';
 import { NETWORK_TYPES, DEFAULT_DERIVATION_PATH, generateWallet } from './wallet-generator.js';
 import { calculateAccurateTransactionFee } from './fee-calculator.js';
 import { createTransaction, createTransactionWithManualFee, exportTransaction } from './transaction-create.js';
