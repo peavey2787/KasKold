@@ -1,0 +1,513 @@
+<div class="section">
+    <h2>🔧 Script Builder & Signing</h2>
+    
+    <!-- Status Display -->
+    <div id="script-status" class="status"></div>
+    
+    <!-- Current Script Info -->
+    <div class="subsection">
+        <h3>📋 Current Script Status</h3>
+        <div class="form-group">
+            <label>ScriptBuilder Status:</label>
+            <span id="current-script-status" class="script-info">None</span>
+        </div>
+        <div class="form-group">
+            <label>P2SH Address:</label>
+            <span id="current-script-address" class="script-info">No P2SH address</span>
+        </div>
+        <div class="button-group">
+            <button onclick="scriptBuilder.exportScriptData()" class="btn success">📥 Export Script Data</button>
+            <button onclick="scriptBuilder.clearScriptData()" class="btn danger">🗑️ Clear</button>
+        </div>
+    </div>
+
+    <!-- Script Creation -->
+    <div class="subsection">
+        <h3>🆕 Create New Script</h3>
+        <p>Start building a new script with ScriptBuilder.</p>
+        <div class="button-group">
+            <button onclick="scriptBuilder.createScriptBuilder()" class="btn primary">🆕 Create ScriptBuilder</button>
+        </div>
+    </div>
+
+    <!-- Import Script Data -->
+    <div class="subsection">
+        <h3>📤 Import Script Data</h3>
+        <div class="form-group">
+            <label for="script-import-file">Select Script Data File:</label>
+            <input type="file" id="script-import-file" accept=".json" onchange="handleScriptImport(this)">
+        </div>
+    </div>
+
+    <!-- Add Opcodes -->
+    <div class="subsection">
+        <h3>⚙️ Add Opcodes</h3>
+        <p>Add opcodes to your script. Common opcodes: OpTrue (always spendable), OpFalse, OpDup, etc.</p>
+        <div class="form-group">
+            <label for="opcode-select">Select Opcode:</label>
+            <select id="opcode-select">
+                <option value="">Select an opcode...</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="manual-opcode">Or enter opcode manually:</label>
+            <input type="text" id="manual-opcode" placeholder="e.g., OpTrue, OpFalse, OpDup">
+        </div>
+        <div class="button-group">
+            <button onclick="addSelectedOpcode()" class="btn primary">➕ Add Selected Opcode</button>
+            <button onclick="addManualOpcode()" class="btn primary">➕ Add Manual Opcode</button>
+        </div>
+    </div>
+
+    <!-- Add Data -->
+    <div class="subsection">
+        <h3>📊 Add Data</h3>
+        <p>Add raw data to your script (hex format).</p>
+        <div class="form-group">
+            <label for="script-data">Data (hex):</label>
+            <input type="text" id="script-data" placeholder="Enter hex data (e.g., 0x1234abcd or 1234abcd)">
+        </div>
+        <div class="button-group">
+            <button onclick="addScriptData()" class="btn primary">📊 Add Data</button>
+        </div>
+    </div>
+
+    <!-- P2SH Script Generation -->
+    <div class="subsection">
+        <h3>🏠 Generate P2SH Address</h3>
+        <p>Create a Pay-to-Script-Hash address from your current script.</p>
+        <div class="form-group">
+            <label for="p2sh-network">Network Type:</label>
+            <select id="p2sh-network">
+                <option value="mainnet">Mainnet</option>
+                <option value="testnet-10">Testnet-10</option>
+                <option value="testnet-11">Testnet-11</option>
+                <option value="devnet">Devnet</option>
+                <option value="simnet">Simnet</option>
+            </select>
+        </div>
+        <div class="button-group">
+            <button onclick="generateP2SH()" class="btn primary">🏠 Generate P2SH Address</button>
+        </div>
+    </div>
+
+    <!-- Signature Script Creation -->
+    <div class="subsection">
+        <h3>✍️ Create Signature Script</h3>
+        <p>Create a signature script for P2SH unlocking.</p>
+        <div class="form-group">
+            <label for="signature-data">Signature (optional):</label>
+            <input type="text" id="signature-data" placeholder="Enter signature data (leave empty for unlock script template)">
+        </div>
+        <div class="button-group">
+            <button onclick="createSigScript()" class="btn primary">✍️ Create Signature Script</button>
+        </div>
+    </div>
+
+    <!-- Script Hash Signing -->
+    <div class="subsection">
+        <h3>🔐 Sign Script Hash</h3>
+        <p>Sign a script hash with a private key.</p>
+        <div class="form-group">
+            <label for="script-hash">Script Hash:</label>
+            <input type="text" id="script-hash" placeholder="Enter script hash to sign">
+        </div>
+        <div class="form-group">
+            <label for="signing-private-key">Private Key (hex):</label>
+            <input type="password" id="signing-private-key" placeholder="Enter private key">
+        </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="use-current-wallet-key"> Use current wallet private key
+            </label>
+        </div>
+        <div class="form-group">
+            <label>Signature Result:</label>
+            <textarea id="signature-result" rows="3" readonly placeholder="Signature will appear here..."></textarea>
+        </div>
+        <div class="button-group">
+            <button onclick="signHash()" class="btn primary">🔐 Sign Script Hash</button>
+            <button onclick="copySignature()" class="btn secondary">📋 Copy Signature</button>
+        </div>
+    </div>
+
+    <!-- Quick Templates -->
+    <div class="subsection">
+        <h3>📄 Quick Script Templates</h3>
+        <p>Pre-built script templates for common use cases.</p>
+        <div class="button-group">
+            <button onclick="createOpTrueScript()" class="btn secondary">✅ OpTrue Script (Always Spendable)</button>
+            <button onclick="createOpFalseScript()" class="btn secondary">❌ OpFalse Script (Never Spendable)</button>
+        </div>
+    </div>
+
+    <!-- Script History -->
+    <div class="subsection">
+        <h3>📜 Script History</h3>
+        <div id="script-history-list" class="history-list">
+            <p>No script history available.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.script-info {
+    font-family: monospace;
+    background: #f5f5f5;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.history-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+}
+
+.script-history-entry {
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    background: #fafafa;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.history-action {
+    color: #007cba;
+    font-weight: bold;
+}
+
+.history-timestamp {
+    font-size: 0.8em;
+    color: #888;
+}
+
+.history-data {
+    font-size: 0.9em;
+    color: #555;
+}
+
+.history-data div {
+    margin-bottom: 5px;
+}
+
+.subsection {
+    margin-bottom: 25px;
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fafafa;
+}
+
+.subsection h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 2px solid #007cba;
+    padding-bottom: 5px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.form-group input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.btn {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: none;
+    display: inline-block;
+    transition: background-color 0.3s;
+}
+
+.btn.primary {
+    background-color: #007cba;
+    color: white;
+}
+
+.btn.primary:hover {
+    background-color: #005a87;
+}
+
+.btn.secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn.secondary:hover {
+    background-color: #545b62;
+}
+
+.btn.success {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn.success:hover {
+    background-color: #1e7e34;
+}
+
+.btn.danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn.danger:hover {
+    background-color: #c82333;
+}
+
+.status {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.status.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.status.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+</style>
+
+<script>
+// Script Builder UI Helper Functions
+
+function handleScriptImport(fileInput) {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const fileContent = e.target.result;
+            scriptBuilder.importScriptData(fileContent);
+        } catch (error) {
+            scriptBuilder.updateScriptStatus(`Error importing script data: ${error.message}`, 'error');
+        }
+    };
+    reader.readAsText(file);
+}
+
+function addSelectedOpcode() {
+    const select = document.getElementById('opcode-select');
+    const opcode = select.value;
+    
+    if (!opcode) {
+        scriptBuilder.updateScriptStatus('Please select an opcode', 'error');
+        return;
+    }
+    
+    try {
+        scriptBuilder.addOpcode(opcode);
+        select.value = ''; // Reset selection
+    } catch (error) {
+        scriptBuilder.updateScriptStatus(`Error adding opcode: ${error.message}`, 'error');
+    }
+}
+
+function addManualOpcode() {
+    const input = document.getElementById('manual-opcode');
+    const opcode = input.value.trim();
+    
+    if (!opcode) {
+        scriptBuilder.updateScriptStatus('Please enter an opcode', 'error');
+        return;
+    }
+    
+    try {
+        scriptBuilder.addOpcode(opcode);
+        input.value = ''; // Clear input
+    } catch (error) {
+        scriptBuilder.updateScriptStatus(`Error adding opcode: ${error.message}`, 'error');
+    }
+}
+
+function addScriptData() {
+    const input = document.getElementById('script-data');
+    const data = input.value.trim();
+    
+    if (!data) {
+        scriptBuilder.updateScriptStatus('Please enter data', 'error');
+        return;
+    }
+    
+    try {
+        scriptBuilder.addData(data);
+        input.value = ''; // Clear input
+    } catch (error) {
+        scriptBuilder.updateScriptStatus(`Error adding data: ${error.message}`, 'error');
+    }
+}
+
+function generateP2SH() {
+    const networkSelect = document.getElementById('p2sh-network');
+    const networkType = networkSelect.value;
+    
+    try {
+        scriptBuilder.createP2SHScript(networkType);
+    } catch (error) {
+        scriptBuilder.updateScriptStatus(`Error generating P2SH: ${error.message}`, 'error');
+    }
+}
+
+function createSigScript() {
+    const input = document.getElementById('signature-data');
+    const signature = input.value.trim();
+    
+    try {
+        const result = scriptBuilder.createSignatureScript(signature);
+        scriptBuilder.updateScriptStatus(`Signature script created: ${result}`, 'info');
+    } catch (error) {
+        scriptBuilder.updateScriptStatus(`Error creating signature script: ${error.message}`, 'error');
+    }
+}
+
+async function signHash() {
+    const hashInput = document.getElementById('script-hash');
+    const keyInput = document.getElementById('signing-private-key');
+    const useCurrentKey = document.getElementById('use-current-wallet-key').checked;
+    const resultTextarea = document.getElementById('signature-result');
+    
+    const scriptHash = hashInput.value.trim();
+    let privateKey;
+    
+    if (!scriptHash) {
+        scriptBuilder.updateScriptStatus('Please enter a script hash', 'error');
+        return;
+    }
+    
+    if (useCurrentKey) {
+        // Get current wallet private key
+        const currentWallet = getCurrentWallet();
+        if (!currentWallet || !currentWallet.privateKey) {
+            scriptBuilder.updateScriptStatus('No current wallet available. Generate or restore a wallet first.', 'error');
+            return;
+        }
+        privateKey = currentWallet.privateKey;
+    } else {
+        privateKey = keyInput.value.trim();
+        if (!privateKey) {
+            scriptBuilder.updateScriptStatus('Please enter a private key', 'error');
+            return;
+        }
+    }
+    
+    try {
+        const signature = await scriptBuilder.signScriptHash(scriptHash, privateKey);
+        resultTextarea.value = signature;
+        
+        // Clear private key input if not using current wallet
+        if (!useCurrentKey) {
+            keyInput.value = '';
+        }
+    } catch (error) {
+        scriptBuilder.updateScriptStatus(`Error signing script hash: ${error.message}`, 'error');
+    }
+}
+
+function copySignature() {
+    const textarea = document.getElementById('signature-result');
+    if (!textarea.value) {
+        scriptBuilder.updateScriptStatus('No signature to copy', 'error');
+        return;
+    }
+    
+    navigator.clipboard.writeText(textarea.value).then(() => {
+        scriptBuilder.updateScriptStatus('Signature copied to clipboard!', 'success');
+    }).catch(() => {
+        // Fallback for older browsers
+        textarea.select();
+        document.execCommand('copy');
+        scriptBuilder.updateScriptStatus('Signature copied to clipboard!', 'success');
+    });
+}
+
+// Quick template functions
+function createOpTrueScript() {
+    try {
+        // Create new script builder first
+        scriptBuilder.createScriptBuilder();
+        // Add OpTrue opcode
+        scriptBuilder.addOpcode('OpTrue');
+        scriptBuilder.updateScriptStatus('OpTrue script template created', 'success');
+    } catch (error) {
+        scriptBuilder.updateScriptStatus(`Error creating OpTrue script: ${error.message}`, 'error');
+    }
+}
+
+function createOpFalseScript() {
+    try {
+        // Create new script builder first
+        scriptBuilder.createScriptBuilder();
+        // Add OpFalse opcode
+        scriptBuilder.addOpcode('OpFalse');
+        scriptBuilder.updateScriptStatus('OpFalse script template created', 'success');
+    } catch (error) {
+        scriptBuilder.updateScriptStatus(`Error creating OpFalse script: ${error.message}`, 'error');
+    }
+}
+
+// Helper function to get current wallet (should be available from wallet management)
+function getCurrentWallet() {
+    // This function should return the current wallet object
+    // Implementation depends on the existing wallet management system
+    if (typeof getWalletInfo === 'function') {
+        return getWalletInfo();
+    }
+    return null;
+}
+</script> 

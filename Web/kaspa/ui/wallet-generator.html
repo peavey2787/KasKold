@@ -1,0 +1,39 @@
+<!-- Wallet Generator Section -->
+<div class="section">
+  <h2>Wallet Generator</h2>
+  
+  <!-- Derivation Path -->
+  <div class="derivation-container">
+    <label for="derivationPath">Derivation Path:</label>
+    <input type="text" id="derivationPath" value="m/44'/111111'/0'/0/0" />
+    <button id="resetDerivationPath">Reset to Default</button>
+    <button id="derivationPathWarning">⚠️ Info</button>
+  </div>
+  
+  <!-- Passphrase -->
+  <div>
+    <label for="passphrase">Enter passphrase (optional):</label>
+    <input type="text" id="passphrase" placeholder="Optional passphrase" />
+  </div>
+  
+  <!-- Generate Button -->
+  <button id="generateWallet">Generate Wallet</button>
+  
+  <!-- Wallet Info Display -->
+  <div id="walletInfo">
+    <p><strong>Mnemonic:</strong> <span id="mnemonic">—</span></p>
+    <p><strong>Public Address:</strong> <span id="publicAddress">—</span></p>
+    <p><strong>Private Key:</strong> <span id="privateKey">—</span></p>
+    
+    <!-- Testnet Faucet Link (hidden by default) -->
+    <div id="testnetFaucetLink" style="display: none; margin-top: 1em; padding: 0.5em; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 3px;">
+      <p><strong>🚰 Get Test KAS:</strong></p>
+      <a id="faucetLink" href="#" target="_blank" style="display: inline-block; padding: 0.5em 1em; background: #28a745; color: white; text-decoration: none; border-radius: 3px; font-weight: bold;">
+        Get Free Test KAS from Faucet
+      </a>
+      <p style="font-size: 0.85em; color: #856404; margin-top: 0.5em;">
+        Click above to get free test KAS to fund your testnet wallet for testing transactions.
+      </p>
+    </div>
+  </div>
+</div> 

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Kaspa Kold - Cold Storage Wallet</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- Local Bootstrap CSS -->
+  <link href="./libs/bootstrap.min.css" rel="stylesheet">
+  <!-- Local Bootstrap Icons -->
+  <link href="./libs/bootstrap-icons.css" rel="stylesheet">
+  
+  <!-- Local React CDN (Development) -->
+  <script crossorigin src="./libs/react.development.js"></script>
+  <script crossorigin src="./libs/react-dom.development.js"></script>
+  
+  <!-- Local QR Code Libraries -->
+  <script src="./libs/jsQR.js"></script>
+  <script src="./libs/qrcode-generator.min.js"></script>
+  
+  <!-- Local LocalForage for encrypted storage -->
+  <script src="./libs/localforage.min.js"></script>
+  
+  <!-- Custom CSS -->
+  <link href="./styles/main.css" rel="stylesheet">
+</head>
+<body>
+  <!-- React App Container -->
+  <div id="kaspa-wallet-app"></div>
+
+  <!-- Local Bootstrap JS -->
+  <script src="./libs/bootstrap.bundle.min.js"></script>
+  
+  <!-- Kaspa WASM SDK -->
+  <script type="module" src="./kaspa-wasm32-sdk/web/kaspa/kaspa.js"></script>
+  
+  <!-- React Components -->
+  <script type="module" src="./js/components/WalletApp.js"></script>
+  
+  <!-- Main App Initialization -->
+  <script type="module">
+    // Initialize the React app
+    import { WalletApp } from './js/components/WalletApp.js';
+    
+    // Wait for DOM to be ready
+    document.addEventListener('DOMContentLoaded', () => {
+      const container = document.getElementById('kaspa-wallet-app');
+      const root = ReactDOM.createRoot(container);
+      root.render(React.createElement(WalletApp));
+    });
+  </script>
+</body>
+</html> 

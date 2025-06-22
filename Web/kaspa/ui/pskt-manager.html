@@ -1,0 +1,527 @@
+<div class="section">
+    <h2>🔗 PSKT Manager (Partially Signed Kaspa Transaction)</h2>
+    
+    <!-- Status Display -->
+    <div id="pskt-status" class="status"></div>
+    
+    <!-- Current PSKT Info -->
+    <div class="subsection">
+        <h3>📋 Current PSKT Status</h3>
+        <div class="form-group">
+            <label>Current Role:</label>
+            <span id="current-pskt-role" class="pskt-info">None</span>
+        </div>
+        <div class="form-group">
+            <label>PSKT ID:</label>
+            <span id="current-pskt-id" class="pskt-info">No PSKT</span>
+        </div>
+        <div class="form-group">
+            <label>Serialized PSKT:</label>
+            <textarea id="current-pskt-serialized" rows="4" readonly placeholder="No PSKT data available"></textarea>
+        </div>
+        <div class="button-group">
+            <button onclick="psktManager.calculatePSKTMass()" class="btn secondary">📊 Calculate Mass</button>
+            <button onclick="psktManager.exportPSKTData()" class="btn success">📥 Export PSKT</button>
+            <button onclick="psktManager.clearPSKTData()" class="btn danger">🗑️ Clear</button>
+        </div>
+    </div>
+
+    <!-- PSKT Creation -->
+    <div class="subsection">
+        <h3>🆕 Create New PSKT</h3>
+        <p>Start a new PSKT workflow by creating a PSKT in CREATOR role.</p>
+        <div class="button-group">
+            <button onclick="psktManager.createPSKT()" class="btn primary">🆕 Create PSKT</button>
+        </div>
+    </div>
+
+    <!-- Import PSKT -->
+    <div class="subsection">
+        <h3>📤 Import PSKT</h3>
+        <div class="form-group">
+            <label for="pskt-import-file">Select PSKT File:</label>
+            <input type="file" id="pskt-import-file" accept=".json" onchange="handlePSKTImport(this)">
+        </div>
+    </div>
+
+    <!-- PSKT Construction -->
+    <div class="subsection">
+        <h3>🔧 PSKT Construction</h3>
+        <p>Add inputs and outputs to the PSKT (requires CREATOR or CONSTRUCTOR role).</p>
+        
+        <!-- Add Input -->
+        <div class="form-group">
+            <h4>Add Input (UTXO)</h4>
+            <label for="pskt-input-txid">Transaction ID:</label>
+            <input type="text" id="pskt-input-txid" placeholder="Enter transaction ID">
+        </div>
+        <div class="form-group">
+            <label for="pskt-input-index">Output Index:</label>
+            <input type="number" id="pskt-input-index" value="0" min="0">
+        </div>
+        <div class="button-group">
+            <button onclick="addPSKTInput()" class="btn primary">➕ Add Input</button>
+        </div>
+
+        <!-- Add Output -->
+        <div class="form-group">
+            <h4>Add Output</h4>
+            <label for="pskt-output-address">Recipient Address:</label>
+            <input type="text" id="pskt-output-address" placeholder="Enter Kaspa address">
+        </div>
+        <div class="form-group">
+            <label for="pskt-output-amount">Amount (sompi):</label>
+            <input type="number" id="pskt-output-amount" placeholder="Enter amount in sompi" min="0">
+        </div>
+        <div class="button-group">
+            <button onclick="addPSKTOutput()" class="btn primary">➕ Add Output</button>
+        </div>
+    </div>
+
+    <!-- PSKT Update -->
+    <div class="subsection">
+        <h3>🔄 PSKT Update</h3>
+        <p>Update PSKT properties (converts to UPDATER role).</p>
+        <div class="form-group">
+            <label for="pskt-sequence">Sequence Number:</label>
+            <input type="number" id="pskt-sequence" value="4294967295" placeholder="Enter sequence number">
+        </div>
+        <div class="form-group">
+            <label for="pskt-input-index-update">Input Index:</label>
+            <input type="number" id="pskt-input-index-update" value="0" min="0">
+        </div>
+        <div class="button-group">
+            <button onclick="updatePSKTSequence()" class="btn primary">🔄 Update Sequence</button>
+        </div>
+    </div>
+
+    <!-- PSKT Signing -->
+    <div class="subsection">
+        <h3>✍️ PSKT Signing</h3>
+        <p>Sign the PSKT (converts to SIGNER role).</p>
+        <div class="form-group">
+            <label for="pskt-signing-key">Private Key (hex):</label>
+            <input type="password" id="pskt-signing-key" placeholder="Enter private key">
+        </div>
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="pskt-use-current-key"> Use current wallet private key
+            </label>
+        </div>
+        <div class="button-group">
+            <button onclick="signCurrentPSKT()" class="btn primary">✍️ Sign PSKT</button>
+        </div>
+    </div>
+
+    <!-- PSKT Combining -->
+    <div class="subsection">
+        <h3>🔗 PSKT Combining</h3>
+        <p>Combine multiple PSKTs (converts to COMBINER role).</p>
+        <div class="form-group">
+            <label for="pskt-combine-file1">First PSKT File:</label>
+            <input type="file" id="pskt-combine-file1" accept=".json">
+        </div>
+        <div class="form-group">
+            <label for="pskt-combine-file2">Second PSKT File:</label>
+            <input type="file" id="pskt-combine-file2" accept=".json">
+        </div>
+        <div class="button-group">
+            <button onclick="combinePSKTFiles()" class="btn primary">🔗 Combine PSKTs</button>
+        </div>
+    </div>
+
+    <!-- PSKT Finalization -->
+    <div class="subsection">
+        <h3>🏁 PSKT Finalization</h3>
+        <p>Finalize the PSKT (converts to FINALIZER role).</p>
+        <div class="button-group">
+            <button onclick="psktManager.finalizePSKT()" class="btn primary">🏁 Finalize PSKT</button>
+        </div>
+    </div>
+
+    <!-- Transaction Extraction -->
+    <div class="subsection">
+        <h3>📤 Transaction Extraction</h3>
+        <p>Extract the final transaction from the PSKT (converts to EXTRACTOR role).</p>
+        <div class="button-group">
+            <button onclick="psktManager.extractTransaction()" class="btn primary">📤 Extract Transaction</button>
+        </div>
+    </div>
+
+    <!-- PSKT History -->
+    <div class="subsection">
+        <h3>📜 PSKT History</h3>
+        <div id="pskt-history-list" class="history-list">
+            <p>No PSKT history available.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.pskt-info {
+    font-family: monospace;
+    background: #f5f5f5;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.history-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+}
+
+.pskt-history-entry {
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    background: #fafafa;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.history-role {
+    background: #007cba;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+}
+
+.history-action {
+    color: #666;
+}
+
+.history-timestamp {
+    font-size: 0.8em;
+    color: #888;
+}
+
+.history-data textarea {
+    width: 100%;
+    font-family: monospace;
+    font-size: 0.8em;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 5px;
+    background: #f9f9f9;
+}
+
+.subsection {
+    margin-bottom: 25px;
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fafafa;
+}
+
+.subsection h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 2px solid #007cba;
+    padding-bottom: 5px;
+}
+
+.subsection h4 {
+    margin: 15px 0 8px 0;
+    color: #555;
+    font-size: 1.1em;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="number"],
+.form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.form-group input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.btn {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    text-decoration: none;
+    display: inline-block;
+    transition: background-color 0.3s;
+}
+
+.btn.primary {
+    background-color: #007cba;
+    color: white;
+}
+
+.btn.primary:hover {
+    background-color: #005a87;
+}
+
+.btn.secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn.secondary:hover {
+    background-color: #545b62;
+}
+
+.btn.success {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn.success:hover {
+    background-color: #1e7e34;
+}
+
+.btn.danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn.danger:hover {
+    background-color: #c82333;
+}
+
+.status {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.status.info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.status.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+</style>
+
+<script>
+// PSKT UI Helper Functions
+
+function handlePSKTImport(fileInput) {
+    const file = fileInput.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const fileContent = e.target.result;
+            psktManager.importPSKTData(fileContent);
+        } catch (error) {
+            psktManager.updatePSKTStatus(`Error importing PSKT: ${error.message}`, 'error');
+        }
+    };
+    reader.readAsText(file);
+}
+
+async function addPSKTInput() {
+    const txid = document.getElementById('pskt-input-txid').value.trim();
+    const index = parseInt(document.getElementById('pskt-input-index').value);
+
+    if (!txid) {
+        psktManager.updatePSKTStatus('Transaction ID is required', 'error');
+        return;
+    }
+
+    if (isNaN(index) || index < 0) {
+        psktManager.updatePSKTStatus('Valid output index is required', 'error');
+        return;
+    }
+
+    try {
+        const utxoData = {
+            transactionId: txid,
+            index: index
+        };
+        
+        await psktManager.addInputToPSKT(utxoData);
+        
+        // Clear form
+        document.getElementById('pskt-input-txid').value = '';
+        document.getElementById('pskt-input-index').value = '0';
+    } catch (error) {
+        psktManager.updatePSKTStatus(`Error adding input: ${error.message}`, 'error');
+    }
+}
+
+async function addPSKTOutput() {
+    const address = document.getElementById('pskt-output-address').value.trim();
+    const amount = document.getElementById('pskt-output-amount').value.trim();
+
+    if (!address) {
+        psktManager.updatePSKTStatus('Recipient address is required', 'error');
+        return;
+    }
+
+    if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+        psktManager.updatePSKTStatus('Valid amount is required', 'error');
+        return;
+    }
+
+    try {
+        const outputData = {
+            address: address,
+            amount: amount
+        };
+        
+        await psktManager.addOutputToPSKT(outputData);
+        
+        // Clear form
+        document.getElementById('pskt-output-address').value = '';
+        document.getElementById('pskt-output-amount').value = '';
+    } catch (error) {
+        psktManager.updatePSKTStatus(`Error adding output: ${error.message}`, 'error');
+    }
+}
+
+async function updatePSKTSequence() {
+    const sequence = document.getElementById('pskt-sequence').value.trim();
+    const inputIndex = parseInt(document.getElementById('pskt-input-index-update').value);
+
+    if (!sequence || isNaN(sequence)) {
+        psktManager.updatePSKTStatus('Valid sequence number is required', 'error');
+        return;
+    }
+
+    if (isNaN(inputIndex) || inputIndex < 0) {
+        psktManager.updatePSKTStatus('Valid input index is required', 'error');
+        return;
+    }
+
+    try {
+        await psktManager.updatePSKT(sequence, inputIndex);
+    } catch (error) {
+        psktManager.updatePSKTStatus(`Error updating PSKT: ${error.message}`, 'error');
+    }
+}
+
+async function signCurrentPSKT() {
+    const useCurrentKey = document.getElementById('pskt-use-current-key').checked;
+    let privateKey;
+
+    if (useCurrentKey) {
+        // Get current wallet private key
+        const currentWallet = getCurrentWallet();
+        if (!currentWallet || !currentWallet.privateKey) {
+            psktManager.updatePSKTStatus('No current wallet available. Generate or restore a wallet first.', 'error');
+            return;
+        }
+        privateKey = currentWallet.privateKey;
+    } else {
+        privateKey = document.getElementById('pskt-signing-key').value.trim();
+        if (!privateKey) {
+            psktManager.updatePSKTStatus('Private key is required', 'error');
+            return;
+        }
+    }
+
+    try {
+        await psktManager.signPSKT(privateKey);
+        
+        // Clear form if not using current key
+        if (!useCurrentKey) {
+            document.getElementById('pskt-signing-key').value = '';
+        }
+    } catch (error) {
+        psktManager.updatePSKTStatus(`Error signing PSKT: ${error.message}`, 'error');
+    }
+}
+
+async function combinePSKTFiles() {
+    const file1 = document.getElementById('pskt-combine-file1').files[0];
+    const file2 = document.getElementById('pskt-combine-file2').files[0];
+
+    if (!file1 || !file2) {
+        psktManager.updatePSKTStatus('Both PSKT files are required for combining', 'error');
+        return;
+    }
+
+    try {
+        const readFile = (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        };
+
+        const content1 = await readFile(file1);
+        const content2 = await readFile(file2);
+
+        const data1 = JSON.parse(content1);
+        const data2 = JSON.parse(content2);
+
+        if (data1.type !== 'kaspa-pskt' || data2.type !== 'kaspa-pskt') {
+            throw new Error('Invalid PSKT file format');
+        }
+
+        await psktManager.combinePSKTs(data1.serialized, data2.serialized);
+        
+        // Clear file inputs
+        document.getElementById('pskt-combine-file1').value = '';
+        document.getElementById('pskt-combine-file2').value = '';
+    } catch (error) {
+        psktManager.updatePSKTStatus(`Error combining PSKTs: ${error.message}`, 'error');
+    }
+}
+
+// Helper function to get current wallet (should be available from wallet management)
+function getCurrentWallet() {
+    // This function should return the current wallet object
+    // Implementation depends on the existing wallet management system
+    if (typeof getWalletInfo === 'function') {
+        return getWalletInfo();
+    }
+    return null;
+}
+</script> 

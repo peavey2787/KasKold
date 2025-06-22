@@ -1,0 +1,31 @@
+<!-- Wallet Balance Section -->
+<div class="section">
+    <h2>Wallet Balance</h2>
+    
+    <!-- Current Wallet Display -->
+    <div id="balance-wallet-info" style="margin-bottom: 20px; padding: 15px; background: #e8f4f8; border-radius: 5px; display: none;">
+        <h3>Current Wallet</h3>
+        <p><strong>Address:</strong> <span id="balance-wallet-address">No wallet selected</span></p>
+        <p><strong>Network:</strong> <span id="balance-wallet-network">—</span></p>
+    </div>
+    
+    <!-- Balance Information -->
+    <div id="balanceInfo" style="margin: 1em 0; padding: 0.5em; background: #e8f5e8; border-radius: 3px;">
+        <p><strong>Available Balance:</strong> <span id="availableBalance">Select a wallet first</span></p>
+        <button id="checkBalance" disabled>🔍 Check Balance</button>
+        
+        <!-- Explorer Link (hidden by default) -->
+        <div id="explorerLink" style="display: none; margin-top: 0.5em; padding: 0.5em; background: #f0f8ff; border-radius: 3px;">
+            <p><strong>View Details:</strong></p>
+            <a id="kasExplorerLink" href="#" target="_blank" style="display: inline-block; padding: 0.5em 1em; background: #007bff; color: white; text-decoration: none; border-radius: 3px; font-weight: bold;">
+                📊 View on kas.fyi Explorer
+            </a>
+            <p style="font-size: 0.85em; color: #666; margin-top: 0.5em;">
+                Click above to view complete transaction history, UTXOs, and address details on the kas.fyi blockchain explorer.
+            </p>
+        </div>
+    </div>
+    
+    <!-- Balance Status Messages -->
+    <div id="balance-status" class="status-container"></div>
+</div> 

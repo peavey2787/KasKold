@@ -1,0 +1,119 @@
+<!-- Message Signing Section -->
+<div class="section">
+  <h2>Message Signing & Verification</h2>
+  
+  <!-- Current Wallet Display -->
+  <div id="current-wallet-info-msg" style="margin-bottom: 20px; padding: 15px; background: #e8f4f8; border-radius: 5px; display: none;">
+    <h3>Current Wallet</h3>
+    <p><strong>Address:</strong> <span id="current-wallet-address-msg">No wallet selected</span></p>
+    <p><strong>Network:</strong> <span id="current-wallet-network-msg">—</span></p>
+  </div>
+  
+  <!-- Message Input -->
+  <div style="margin-bottom: 15px;">
+    <label for="messageToSign"><strong>Message to Sign/Verify:</strong></label>
+    <textarea id="messageToSign" placeholder="Enter your message here..." rows="4" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace;"></textarea>
+    <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
+      Characters: <span id="messageCharCount">0</span>
+    </div>
+  </div>
+  
+  <!-- Signing Section -->
+  <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+    <h3>Message Signing</h3>
+    
+    <!-- Signing Step Buttons -->
+    <div style="margin: 1em 0;">
+      <button id="signMessage">1. Sign Message</button>
+      <button id="downloadUnsignedMessage">📥 Download Unsigned</button>
+      <button id="uploadUnsignedMessage">📤 Upload Unsigned</button>
+      <button id="downloadSignedMessage" disabled>📥 Download Signed</button>
+      <button id="uploadSignedMessage">📤 Upload Signed</button>
+    </div>
+    
+    <!-- QR Code Buttons -->
+    <div style="margin: 1em 0; padding: 10px; background: #e8f4f8; border-radius: 5px;">
+      <h4 style="margin: 0 0 10px 0;">QR Code Options:</h4>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button id="generateUnsignedQR">📱 Generate Unsigned QR</button>
+        <button id="downloadUnsignedQR" disabled>📥 Download Unsigned QR</button>
+        <button id="uploadQRImage">📤 Upload QR Image</button>
+        <button id="scanMessageQR">📷 Scan QR</button>
+        <button id="generateSignedQR" disabled>📱 Generate Signed QR</button>
+        <button id="downloadSignedQR" disabled>📥 Download Signed QR</button>
+        <div style="font-size: 0.8em; color: #666; margin-top: 5px;">
+          📷 Camera scanner requires HTTPS (or localhost for development)
+        </div>
+      </div>
+    </div>
+    
+    <!-- Hidden file input elements for signing -->
+    <input type="file" id="unsignedMessageFileInput" accept=".json" style="display: none;" />
+    <input type="file" id="signedMessageFileInput" accept=".json" style="display: none;" />
+    <input type="file" id="qrImageFileInput" accept="image/*" style="display: none;" />
+    
+    <!-- QR Code Display Area -->
+    <div id="qrDisplayArea" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+      <h4>QR Code:</h4>
+      <div id="qrContainer"></div>
+      <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+        <p><strong>QR Type:</strong> <span id="qrType">—</span></p>
+        <p><strong>Data Size:</strong> <span id="qrDataSize">—</span> characters</p>
+      </div>
+    </div>
+    
+    <!-- Signing Results Display -->
+    <div id="signingInfo" style="margin-top: 15px;">
+      <p><strong>Signing ID:</strong> <span id="signingId">—</span></p>
+      <p><strong>Status:</strong> <span id="signingStatus">—</span></p>
+      <p><strong>Signature:</strong> <span id="messageSignature" style="word-break: break-all; font-family: monospace; font-size: 0.9em;">—</span></p>
+      <p><strong>Error:</strong> <span id="signingError">—</span></p>
+    </div>
+  </div>
+  
+  <!-- Verification Section -->
+  <div style="margin-bottom: 20px; padding: 15px; background: #f0f8f0; border-radius: 5px;">
+    <h3>Message Verification</h3>
+    
+    <!-- Verification Input Fields -->
+    <div style="margin-bottom: 10px;">
+      <label for="signatureToVerify"><strong>Signature:</strong></label>
+      <textarea id="signatureToVerify" placeholder="Enter signature to verify..." rows="2" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 0.9em;"></textarea>
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+      <label for="signerAddress"><strong>Signer Public Key:</strong></label>
+      <input type="text" id="signerAddress" placeholder="Public key in hexadecimal format" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace;" />
+    </div>
+    
+    <!-- Verification Step Buttons -->
+    <div style="margin: 1em 0;">
+      <button id="verifyMessage">🔍 Verify Signature</button>
+      <button id="downloadVerificationResult" disabled>📥 Download Result</button>
+      <button id="uploadVerificationResult">📤 Upload Result</button>
+      <button id="useSigningData">📋 Use Current Signing Data</button>
+    </div>
+    
+    <!-- Hidden file input for verification -->
+    <input type="file" id="verificationResultFileInput" accept=".json" style="display: none;" />
+    
+    <!-- Verification Results Display -->
+    <div id="verificationInfo" style="margin-top: 15px;">
+      <p><strong>Verification ID:</strong> <span id="verificationId">—</span></p>
+      <p><strong>Status:</strong> <span id="verificationStatus">—</span></p>
+      <p><strong>Result:</strong> <span id="verificationResult">—</span></p>
+      <p><strong>Error:</strong> <span id="verificationError">—</span></p>
+    </div>
+  </div>
+  
+  <!-- Quick Actions -->
+  <div style="margin-top: 20px; padding: 10px; background: #fff3cd; border-radius: 5px;">
+    <h4>Quick Actions</h4>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <button id="clearMessage">🗑️ Clear Message</button>
+      <button id="clearSignature">🗑️ Clear Signature</button>
+      <button id="clearVerification">🗑️ Clear Verification</button>
+      <button id="copySignature" disabled>📋 Copy Signature</button>
+    </div>
+  </div>
+</div> 

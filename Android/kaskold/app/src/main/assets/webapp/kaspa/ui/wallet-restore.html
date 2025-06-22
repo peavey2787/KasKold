@@ -1,0 +1,374 @@
+<!-- Wallet Restoration UI Component -->
+<div class="section">
+    <h2>Restore Wallet</h2>
+    
+    <!-- Restoration Method Tabs -->
+    <div class="tab-container">
+        <div class="tabs">
+            <button type="button" class="tab-button active" onclick="switchRestoreTab('mnemonic')">
+                Restore from Mnemonic
+            </button>
+            <button type="button" class="tab-button" onclick="switchRestoreTab('privatekey')">
+                Import Private Key
+            </button>
+        </div>
+    </div>
+
+    <!-- Mnemonic Restoration Tab -->
+    <div id="mnemonic-restore-tab" class="tab-content active">
+        <form id="mnemonic-restore-form">
+            <div class="form-group">
+                <label for="mnemonic-phrase">Mnemonic Phrase (12, 15, 18, 21, or 24 words):</label>
+                <textarea 
+                    id="mnemonic-phrase" 
+                    name="mnemonic-phrase" 
+                    rows="3" 
+                    placeholder="Enter your mnemonic phrase here (e.g., word1 word2 word3...)"
+                    spellcheck="false"
+                    autocomplete="off"
+                ></textarea>
+                <small class="form-hint">Separate words with spaces. Make sure words are in correct order.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="mnemonic-passphrase">Passphrase (Optional):</label>
+                <input 
+                    type="password" 
+                    id="mnemonic-passphrase" 
+                    name="mnemonic-passphrase" 
+                    placeholder="Enter passphrase if used during wallet creation"
+                    autocomplete="off"
+                >
+                <small class="form-hint">Only needed if you used a passphrase when creating the wallet.</small>
+            </div>
+
+            <!-- Network selection removed - using global network selector at top of page -->
+
+            <div class="form-group">
+                <label for="restore-derivation-path">
+                    Derivation Path:
+                    <button type="button" class="info-button" onclick="showDerivationInfo('restore')">ℹ</button>
+                </label>
+                <input 
+                    type="text" 
+                    id="restore-derivation-path" 
+                    name="restore-derivation-path" 
+                    value="m/44'/111111'/0'/0/0"
+                    readonly
+                >
+                <div class="button-group">
+                    <button type="button" onclick="enableDerivationEdit('restore')" class="edit-button">Edit</button>
+                    <button type="button" onclick="resetDerivationPath('restore')" class="reset-button">Reset</button>
+                </div>
+                <small class="form-hint">Standard Kaspa derivation path. Edit only if you know what you're doing.</small>
+            </div>
+
+            <div class="form-group">
+                <button type="button" onclick="validateMnemonicInput()" class="validate-button">
+                    Validate Mnemonic
+                </button>
+                <button type="button" onclick="restoreFromMnemonic()" class="primary-button">
+                    Restore Wallet
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Private Key Import Tab -->
+    <div id="privatekey-restore-tab" class="tab-content">
+        <form id="privatekey-restore-form">
+            <div class="form-group">
+                <label for="private-key-input">Private Key:</label>
+                <textarea 
+                    id="private-key-input" 
+                    name="private-key-input" 
+                    rows="2" 
+                    placeholder="Enter your private key here"
+                    spellcheck="false"
+                    autocomplete="off"
+                ></textarea>
+                <small class="form-hint">Enter the private key exactly as it was exported.</small>
+            </div>
+
+            <!-- Network selection removed - using global network selector at top of page -->
+
+            <div class="form-group">
+                <button type="button" onclick="restoreFromPrivateKey()" class="primary-button">
+                    Import Wallet
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Restoration Results -->
+    <div id="restore-results" class="results-container" style="display: none;">
+        <h3>Wallet Restored Successfully!</h3>
+        
+        <div class="result-item">
+            <label>Restored From:</label>
+            <span id="restored-from-method"></span>
+        </div>
+
+        <div class="result-item">
+            <label>Network:</label>
+            <span id="restored-network"></span>
+        </div>
+
+        <div class="result-item">
+            <label>Public Address:</label>
+            <div class="copyable-field">
+                <input type="text" id="restored-address" readonly>
+                <button onclick="copyToClipboard('restored-address')" class="copy-button">Copy</button>
+            </div>
+        </div>
+
+        <div id="restored-derivation-info" class="result-item" style="display: none;">
+            <label>Derivation Path:</label>
+            <span id="restored-derivation-path"></span>
+        </div>
+
+        <div class="result-item">
+            <label>Private Key:</label>
+            <div class="copyable-field">
+                <input type="password" id="restored-private-key" readonly>
+                <button onclick="toggleVisibility('restored-private-key')" class="toggle-button">Show</button>
+                <button onclick="copyToClipboard('restored-private-key')" class="copy-button">Copy</button>
+            </div>
+        </div>
+
+        <div id="restored-mnemonic-info" class="result-item" style="display: none;">
+            <label>Mnemonic Phrase:</label>
+            <div class="copyable-field">
+                <textarea id="restored-mnemonic" readonly rows="2"></textarea>
+                <button onclick="copyToClipboard('restored-mnemonic')" class="copy-button">Copy</button>
+            </div>
+        </div>
+
+        <!-- Testnet Faucet Link (hidden by default) -->
+        <div id="restoredTestnetFaucetLink" style="display: none; margin-top: 1em; padding: 0.5em; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 3px;">
+            <p><strong>🚰 Get Test KAS:</strong></p>
+            <a id="restoredFaucetLink" href="#" target="_blank" style="display: inline-block; padding: 0.5em 1em; background: #28a745; color: white; text-decoration: none; border-radius: 3px; font-weight: bold;">
+                Get Free Test KAS from Faucet
+            </a>
+            <p style="font-size: 0.85em; color: #856404; margin-top: 0.5em;">
+                Click above to get free test KAS to fund your testnet wallet for testing transactions.
+            </p>
+        </div>
+
+        <div class="button-group">
+            <button onclick="downloadWalletInfo('restored')" class="download-button">
+                Download Wallet Info
+            </button>
+            <button onclick="clearRestoreResults()" class="clear-button">
+                Clear Results
+            </button>
+        </div>
+    </div>
+
+    <!-- Status Messages -->
+    <div id="restore-status" class="status-container"></div>
+</div>
+
+<style>
+.tab-container {
+    margin-bottom: 20px;
+}
+
+.tabs {
+    display: flex;
+    border-bottom: 2px solid #ddd;
+}
+
+.tab-button {
+    background: none;
+    border: none;
+    padding: 12px 24px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+    background-color: #f5f5f5;
+}
+
+.tab-button.active {
+    border-bottom-color: #007cba;
+    color: #007cba;
+    font-weight: bold;
+}
+
+.tab-content {
+    display: none;
+    padding: 20px 0;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-hint {
+    display: block;
+    color: #666;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+.info-button {
+    background: #007cba;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 5px;
+}
+
+.button-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.validate-button {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.primary-button {
+    background-color: #007cba;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.edit-button, .reset-button {
+    background-color: #ffc107;
+    color: #212529;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.reset-button {
+    background-color: #dc3545;
+    color: white;
+}
+
+.results-container {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.result-item {
+    margin-bottom: 15px;
+}
+
+.result-item label {
+    display: inline-block;
+    width: 150px;
+    font-weight: bold;
+}
+
+.copyable-field {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 5px;
+}
+
+.copyable-field input,
+.copyable-field textarea {
+    flex: 1;
+    font-family: monospace;
+    font-size: 12px;
+}
+
+.copy-button, .toggle-button, .download-button, .clear-button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.toggle-button {
+    background-color: #17a2b8;
+}
+
+.download-button {
+    background-color: #007cba;
+}
+
+.clear-button {
+    background-color: #6c757d;
+}
+
+.status-container {
+    margin-top: 20px;
+    padding: 10px;
+    border-radius: 4px;
+    min-height: 20px;
+}
+
+.status-container.success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.status-container.error {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.status-container.info {
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+}
+</style> 

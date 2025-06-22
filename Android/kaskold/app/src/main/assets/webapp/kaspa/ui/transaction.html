@@ -1,0 +1,154 @@
+<!-- Transaction Section -->
+<div class="section">
+  <h2>Transaction Manager</h2>
+  
+  <!-- Current Wallet Display -->
+  <div id="current-wallet-info" style="margin-bottom: 20px; padding: 15px; background: #e8f4f8; border-radius: 5px; display: none;">
+    <h3>Current Wallet</h3>
+    <p><strong>Address:</strong> <span id="current-wallet-address">No wallet selected</span></p>
+    <p><strong>Balance:</strong> <span id="current-wallet-balance">—</span></p>
+    <p><strong>Network:</strong> <span id="current-wallet-network">—</span></p>
+  </div>
+  
+  <!-- Transaction Input Fields -->
+  <div>
+    <label for="toAddress">To Address:</label>
+    <input type="text" id="toAddress" placeholder="Destination address" />
+  </div>
+  
+  <div>
+    <label for="amount">Amount (in KAS):</label>
+    <input type="number" id="amount" placeholder="Amount to send in KAS (min: 0.2)" step="0.1" min="0.2" />
+  </div>
+
+  <!-- Manual Fee Input (hidden by default, shown when offline) -->
+  <div id="manualFeeInput" style="display: none; margin: 1em 0; padding: 0.5em; background: #fffbf0; border-radius: 3px; border: 1px solid #ffd700;">
+    <p style="color: #b8860b; font-weight: bold; margin: 0 0 10px 0;">
+      🔌 Offline Mode Detected - Manual Fee Entry Required
+    </p>
+    <label for="manualFee">Manual Fee (in KAS):</label>
+    <input type="number" id="manualFee" placeholder="Enter fee amount in KAS" step="0.00000001" min="0.00001" />
+    <p style="font-size: 0.9em; color: #666; margin: 5px 0 0 0;">
+      💡 Typical fees: Low: 0.001 KAS, Normal: 0.01 KAS, High: 0.1 KAS
+    </p>
+  </div>
+
+  <!-- Fee Information -->
+  <div id="feeInfo" style="margin: 1em 0; padding: 0.5em; background: #f5f5f5; border-radius: 3px;">
+    <p><strong>Estimated Fee:</strong> <span id="estimatedFee">Calculate fee first</span></p>
+    <p><strong>Total Cost:</strong> <span id="totalCost">—</span></p>
+    
+    <!-- Fee Selection Options (hidden until fees are calculated) -->
+    <div id="feeOptions" style="display: none; margin-top: 10px; padding: 10px; background: #e8f4f8; border-radius: 3px;">
+      <p><strong>Select Fee Priority:</strong></p>
+      <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
+        <label style="display: flex; align-items: center; gap: 5px;">
+          <input type="radio" name="feeSelection" value="slow" />
+          <span>🐌 Slow: <span id="slowFeeDisplay">—</span></span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 5px;">
+          <input type="radio" name="feeSelection" value="normal" checked />
+          <span>⚡ Normal: <span id="normalFeeDisplay">—</span></span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 5px;">
+          <input type="radio" name="feeSelection" value="fast" />
+          <span>🚀 Fast: <span id="fastFeeDisplay">—</span></span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 5px; flex-wrap: wrap;">
+          <input type="radio" name="feeSelection" value="custom" />
+          <span>🎯 Custom:</span>
+          <input type="number" id="customFeeInput" placeholder="0.01" step="0.001" min="0" 
+                 style="width: 100px; font-size: 0.9em;" disabled />
+          <span style="font-size: 0.9em;">KAS</span>
+          <div id="customFeeWarning" style="display: none; color: #dc3545; font-size: 0.8em; font-weight: bold; margin-left: 5px;">
+            ⚠️ Fee too low - transaction may not confirm
+          </div>
+        </label>
+      </div>
+      <p style="font-size: 0.85em; color: #666; margin: 8px 0 0 0;">
+        💡 Tip: Higher fees typically result in faster transaction confirmation
+      </p>
+    </div>
+  </div>
+  
+  <!-- Transaction Step Buttons -->
+  <div style="margin: 1em 0;">
+    <button id="calculateFee">1. Calculate Fee</button>
+    <button id="createTransaction" disabled>2. Create Transaction</button>
+    <button id="downloadUnsigned" disabled>📥 Download Unsigned</button>
+    <button id="uploadUnsigned">📤 Upload Unsigned</button>
+    <button id="signTransaction" disabled>3. Sign Transaction</button>
+    <button id="downloadSigned" disabled>📥 Download Signed</button>
+    <button id="uploadSigned">📤 Upload Signed</button>
+    <button id="submitTransaction" disabled>4. Submit Transaction</button>
+    <button id="downloadSubmitted" disabled>📥 Download Submitted</button>
+    <button id="uploadSubmitted">📤 Upload Submitted</button>
+    <button id="checkStatus" disabled>🔍 Check Status</button>
+  </div>
+
+  <!-- QR Code Buttons -->
+  <div style="margin: 1em 0; padding: 10px; background: #e8f4f8; border-radius: 5px;">
+    <h4 style="margin: 0 0 10px 0;">Transaction QR Codes:</h4>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+      <!-- Unsigned Transaction QR -->
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <span style="font-weight: bold; font-size: 0.9em;">Unsigned:</span>
+        <button id="generateUnsignedTxQR" disabled>📱 Generate QR</button>
+        <button id="downloadUnsignedTxQR" disabled>📥 Download QR</button>
+        <button id="uploadUnsignedTxQR">📤 Upload QR</button>
+        <button id="scanUnsignedTxQR">📷 Scan QR</button>
+      </div>
+      
+      <!-- Signed Transaction QR -->
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <span style="font-weight: bold; font-size: 0.9em;">Signed:</span>
+        <button id="generateSignedTxQR" disabled>📱 Generate QR</button>
+        <button id="downloadSignedTxQR" disabled>📥 Download QR</button>
+        <button id="uploadSignedTxQR">📤 Upload QR</button>
+        <button id="scanSignedTxQR">📷 Scan QR</button>
+        <div style="font-size: 0.8em; color: #666; margin-top: 2px;">
+          💡 For multi-part QRs, select all parts at once or use camera scanner<br>
+          📷 Camera scanner requires HTTPS (or localhost for development)
+        </div>
+      </div>
+      
+      <!-- Submitted Transaction QR -->
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <span style="font-weight: bold; font-size: 0.9em;">Submitted:</span>
+        <button id="generateSubmittedTxQR" disabled>📱 Generate QR</button>
+        <button id="downloadSubmittedTxQR" disabled>📥 Download QR</button>
+        <button id="uploadSubmittedTxQR">📤 Upload QR</button>
+        <button id="scanSubmittedTxQR">📷 Scan QR</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Hidden file input elements -->
+  <input type="file" id="unsignedFileInput" accept=".json" style="display: none;" />
+  <input type="file" id="signedFileInput" accept=".json" style="display: none;" />
+  <input type="file" id="submittedFileInput" accept=".json" style="display: none;" />
+  
+  <!-- QR Image file inputs -->
+  <input type="file" id="unsignedTxQRInput" accept="image/*" style="display: none;" />
+  <input type="file" id="signedTxQRInput" accept="image/*" multiple style="display: none;" />
+  <input type="file" id="submittedTxQRInput" accept="image/*" style="display: none;" />
+  
+  <!-- Transaction QR Display Area -->
+  <div id="transactionQRDisplayArea" style="display: none; margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+    <h4>Transaction QR Code:</h4>
+    <div id="transactionQRContainer"></div>
+    <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
+      <p><strong>QR Type:</strong> <span id="transactionQRType">—</span></p>
+      <p><strong>Data Size:</strong> <span id="transactionQRDataSize">—</span> characters</p>
+    </div>
+  </div>
+  
+  <!-- Transaction Info Display -->
+  <div id="transactionInfo">
+    <p><strong>Transaction ID:</strong> <span id="transactionId">—</span></p>
+    <p><strong>Status:</strong> <span id="transactionStatus">—</span></p>
+    <p><strong>Details:</strong> <span id="transactionDetails">—</span></p>
+    <p><strong>Error:</strong> <span id="transactionError">—</span></p>
+  </div>
+</div>
+ 
