@@ -15,8 +15,6 @@ const { useState, useEffect, useRef } = React;
 
 // Main Wallet Application Component
 export function WalletApp() {
-  console.log('WalletApp component initializing...');
-  
   const [currentView, setCurrentView] = useState('loading'); // Start with loading state
   const [walletState, setWalletState] = useState({
     isLoggedIn: false,
@@ -404,8 +402,6 @@ export function WalletApp() {
     }
   };
 
-  console.log('WalletApp render - currentView:', currentView, 'isCheckingSession:', isCheckingSession);
-  
   return React.createElement('div', { className: 'wallet-app' },
     // Header Navigation
     React.createElement(WalletHeader, {
@@ -445,9 +441,6 @@ export function WalletApp() {
               React.createElement('h4', { className: 'card-title mb-3' }, 'Starting Kaspa Wallet'),
               React.createElement('p', { className: 'text-muted mb-0' },
                 isCheckingSession ? 'Checking for previous session...' : 'Initializing wallet system...'
-              ),
-              React.createElement('small', { className: 'text-muted d-block mt-2' },
-                `Debug: currentView=${currentView}, isCheckingSession=${isCheckingSession}`
               )
             )
           )
@@ -522,35 +515,7 @@ export function WalletApp() {
         addNotification,
         onGenerateNewAddress: generateNewReceiveAddress,
         sessionManager: sessionManager.current
-      }),
-
-      // Debug fallback - show if no view matches
-      !['loading', 'welcome', 'wallet-creation', 'wallet-login', 'wallet-restore', 'wallet-dashboard', 'transaction', 'message-signing', 'script-builder', 'wallet-settings'].includes(currentView) && 
-      !isCheckingSession && React.createElement('div', { 
-        className: 'row justify-content-center',
-        style: { minHeight: '60vh' }
-      },
-        React.createElement('div', { className: 'col-md-8' },
-          React.createElement('div', { 
-            className: 'alert alert-warning',
-            role: 'alert'
-          },
-            React.createElement('h4', { className: 'alert-heading' }, 'Debug: Unknown View State'),
-            React.createElement('p', null, `Current view: "${currentView}"`),
-            React.createElement('p', null, `isCheckingSession: ${isCheckingSession}`),
-            React.createElement('p', null, `walletState.isLoggedIn: ${walletState.isLoggedIn}`),
-            React.createElement('hr'),
-            React.createElement('p', { className: 'mb-0' }, 'The application is running but no matching view was found.'),
-            React.createElement('button', {
-              className: 'btn btn-primary mt-2',
-              onClick: () => {
-                console.log('Forcing navigation to welcome...');
-                setCurrentView('welcome');
-              }
-            }, 'Go to Welcome Screen')
-          )
-        )
-      )
+      })
     ),
 
     // Toast Notifications

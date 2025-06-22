@@ -23,8 +23,6 @@
   
   <!-- Custom CSS -->
   <link href="./styles/main.css" rel="stylesheet">
-  <!-- Fallback CSS path for different server configurations -->
-  <link href="styles/main.css" rel="stylesheet">
   
   <!-- Inline CSS fallback with essential styling -->
   <style>
@@ -69,28 +67,7 @@
 </head>
 <body>
   <!-- React App Container -->
-  <div id="kaspa-wallet-app">
-    <div id="fallback-content" style="padding: 20px; text-align: center; background: #f8f9fa; border: 1px solid #dee2e6; margin: 20px; border-radius: 8px;">
-      <h4>Loading Kaspa Wallet...</h4>
-      <div style="margin: 20px 0;">
-        <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #70C7BA; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto;"></div>
-      </div>
-      <p>Initializing wallet application...</p>
-      <p><small>If this takes more than 10 seconds, check the browser console for errors.</small></p>
-      <div id="diagnostic-info" style="display: none; margin-top: 20px; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; text-align: left;">
-        <h5>Diagnostic Information:</h5>
-        <div id="diagnostic-details"></div>
-        <button onclick="location.reload()" style="margin-top: 10px; padding: 8px 16px; background: #70C7BA; color: white; border: none; border-radius: 4px; cursor: pointer;">Reload Page</button>
-      </div>
-    </div>
-  </div>
-  
-  <style>
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  </style>
+  <div id="kaspa-wallet-app"></div>
 
   <!-- Local Bootstrap JS -->
   <script src="./libs/bootstrap.bundle.min.js"></script>
@@ -101,173 +78,22 @@
   <!-- React Components -->
   <script type="module" src="./js/components/WalletApp.js"></script>
   
-  <!-- Enhanced Loading Detection -->
+    <!-- Simple CSS Check -->
   <script>
-    // Enhanced debugging for live hosting issues
     document.addEventListener('DOMContentLoaded', () => {
-      console.log('=== KASPA WALLET DEBUG INFO ===');
-      console.log('Current URL:', window.location.href);
-      console.log('User Agent:', navigator.userAgent);
-      console.log('Document Ready Time:', new Date().toISOString());
-      
-      // Test CSS loading
-      const testElement = document.createElement('div');
-      testElement.style.cssText = 'color: var(--brand-primary);';
-      document.body.appendChild(testElement);
-      const computedColor = getComputedStyle(testElement).color;
-      document.body.removeChild(testElement);
-      
-      if (computedColor === 'var(--brand-primary)' || computedColor === '') {
-        console.warn('❌ CSS may not have loaded properly');
-      } else {
-        console.log('✅ CSS loaded successfully');
-      }
-      
-      // Test React availability
-      if (typeof React !== 'undefined') {
-        console.log('✅ React is available:', React.version);
-      } else {
-        console.error('❌ React is not available - check if react.development.js loaded');
-      }
-      
-      if (typeof ReactDOM !== 'undefined') {
-        console.log('✅ ReactDOM is available');
-      } else {
-        console.error('❌ ReactDOM is not available - check if react-dom.development.js loaded');
-      }
-      
-      // Test if we can create a basic React element
-      try {
-        if (typeof React !== 'undefined') {
-          const testElement = React.createElement('div', null, 'Test');
-          console.log('✅ React.createElement works');
-        }
-      } catch (error) {
-        console.error('❌ React.createElement failed:', error);
-      }
-      
-      // Check for module script support
-      if ('noModule' in HTMLScriptElement.prototype) {
-        console.log('✅ ES6 modules supported');
-      } else {
-        console.error('❌ ES6 modules not supported - browser may be too old');
-      }
-      
-      console.log('=== END DEBUG INFO ===');
+      console.log('CSS and React loading check...');
     });
-    
-    // Monitor for JavaScript errors
-    window.addEventListener('error', (event) => {
-      console.error('❌ JavaScript Error:', {
-        message: event.message,
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno,
-        error: event.error
-      });
-    });
-    
-         // Monitor for unhandled promise rejections
-     window.addEventListener('unhandledrejection', (event) => {
-       console.error('❌ Unhandled Promise Rejection:', event.reason);
-     });
-     
-     // Show diagnostic info if React doesn't load within 10 seconds
-     setTimeout(() => {
-       const fallbackContent = document.getElementById('fallback-content');
-       if (fallbackContent && fallbackContent.parentNode) {
-         // React hasn't replaced the fallback content, show diagnostic info
-         const diagnosticInfo = document.getElementById('diagnostic-info');
-         const diagnosticDetails = document.getElementById('diagnostic-details');
-         
-         if (diagnosticInfo && diagnosticDetails) {
-           let details = '<strong>Possible Issues:</strong><br>';
-           
-           if (typeof React === 'undefined') {
-             details += '• React library not loaded (check if libs/react.development.js exists)<br>';
-           }
-           if (typeof ReactDOM === 'undefined') {
-             details += '• ReactDOM library not loaded (check if libs/react-dom.development.js exists)<br>';
-           }
-           
-           details += '• JavaScript files may not be uploaded to server<br>';
-           details += '• Server may not be serving .js files with correct MIME type<br>';
-           details += '• Check browser console for specific error messages<br>';
-           details += '<br><strong>Current URL:</strong> ' + window.location.href + '<br>';
-           details += '<strong>Time:</strong> ' + new Date().toLocaleString();
-           
-           diagnosticDetails.innerHTML = details;
-           diagnosticInfo.style.display = 'block';
-         }
-       }
-     }, 10000); // 10 seconds
   </script>
 
   <!-- Main App Initialization -->
   <script type="module">
-    console.log('Starting app initialization...');
+    import { WalletApp } from './js/components/WalletApp.js';
     
-    try {
-      // Initialize the React app
-      console.log('Importing WalletApp component...');
-      const { WalletApp } = await import('./js/components/WalletApp.js');
-      console.log('WalletApp imported successfully:', WalletApp);
-      
-      // Wait for DOM to be ready
-      document.addEventListener('DOMContentLoaded', () => {
-        console.log('DOM ready, initializing React...');
-        
-        try {
-          const container = document.getElementById('kaspa-wallet-app');
-          console.log('Container found:', container);
-          
-          if (!container) {
-            throw new Error('Container element not found');
-          }
-          
-          console.log('Creating React root...');
-          const root = ReactDOM.createRoot(container);
-          console.log('React root created, rendering WalletApp...');
-          
-          root.render(React.createElement(WalletApp));
-          console.log('WalletApp rendered successfully');
-          
-        } catch (renderError) {
-          console.error('Error during React rendering:', renderError);
-          console.error('Error stack:', renderError.stack);
-          
-          // Show error message in the container
-          const container = document.getElementById('kaspa-wallet-app');
-          if (container) {
-            container.innerHTML = `
-              <div style="padding: 20px; background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 8px; margin: 20px;">
-                <h4>Application Error</h4>
-                <p><strong>Error:</strong> ${renderError.message}</p>
-                <p>Please check the browser console for more details.</p>
-              </div>
-            `;
-          }
-        }
-      });
-      
-    } catch (importError) {
-      console.error('Error importing WalletApp:', importError);
-      console.error('Import error stack:', importError.stack);
-      
-      // Show import error
-      document.addEventListener('DOMContentLoaded', () => {
-        const container = document.getElementById('kaspa-wallet-app');
-        if (container) {
-          container.innerHTML = `
-            <div style="padding: 20px; background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 8px; margin: 20px;">
-              <h4>Import Error</h4>
-              <p><strong>Error:</strong> ${importError.message}</p>
-              <p>Failed to load the main application component. Please check that all files are uploaded correctly.</p>
-            </div>
-          `;
-        }
-      });
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+      const container = document.getElementById('kaspa-wallet-app');
+      const root = ReactDOM.createRoot(container);
+      root.render(React.createElement(WalletApp));
+    });
   </script>
 </body>
 </html> 
