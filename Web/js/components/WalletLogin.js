@@ -1,5 +1,7 @@
 const { useState, useEffect } = React;
 
+
+
 export function WalletLogin({ onNavigate, onWalletLogin, addNotification }) {
   const [wallets, setWallets] = useState([]);
   const [selectedWallet, setSelectedWallet] = useState('');
@@ -88,8 +90,6 @@ export function WalletLogin({ onNavigate, onWalletLogin, addNotification }) {
       addNotification('Failed to delete wallet', 'error');
     }
   };
-
-
 
   return React.createElement('section', { className: 'py-4' },
     React.createElement('div', { className: 'row justify-content-center' },

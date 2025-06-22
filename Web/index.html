@@ -23,10 +23,59 @@
   
   <!-- Custom CSS -->
   <link href="./styles/main.css" rel="stylesheet">
+  <!-- Fallback CSS path for different server configurations -->
+  <link href="styles/main.css" rel="stylesheet">
+  
+  <!-- Inline CSS fallback with essential styling -->
+  <style>
+    /* Essential fallback styles if main.css fails to load */
+    :root {
+      --brand-primary: #70C7BA;
+      --brand-secondary: #5AB3A5;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-card: #ffffff;
+      --text-primary: #212529;
+      --border-color: #dee2e6;
+      --shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    
+    [data-bs-theme="dark"] {
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-card: #21262d;
+      --text-primary: #70C7BA;
+      --border-color: #30363d;
+    }
+    
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+      border: none;
+      color: white;
+    }
+  </style>
 </head>
 <body>
   <!-- React App Container -->
-  <div id="kaspa-wallet-app"></div>
+  <div id="kaspa-wallet-app">
+    <div style="padding: 20px; text-align: center; background: #f8f9fa; border: 1px solid #dee2e6; margin: 20px; border-radius: 8px;">
+      <h4>Loading...</h4>
+      <p>If you see this message for more than a few seconds, there may be a JavaScript error.</p>
+      <p><small>This fallback content will be replaced when React loads successfully.</small></p>
+    </div>
+  </div>
 
   <!-- Local Bootstrap JS -->
   <script src="./libs/bootstrap.bundle.min.js"></script>
@@ -37,17 +86,93 @@
   <!-- React Components -->
   <script type="module" src="./js/components/WalletApp.js"></script>
   
+  <!-- CSS Loading Detection -->
+  <script>
+    // Check if main CSS loaded properly
+    document.addEventListener('DOMContentLoaded', () => {
+      // Test if CSS custom properties are available
+      const testElement = document.createElement('div');
+      testElement.style.cssText = 'color: var(--brand-primary);';
+      document.body.appendChild(testElement);
+      
+      const computedColor = getComputedStyle(testElement).color;
+      document.body.removeChild(testElement);
+      
+      // If CSS didn't load, log a warning
+      if (computedColor === 'var(--brand-primary)' || computedColor === '') {
+        console.warn('Main CSS (styles/main.css) may not have loaded properly. Using fallback styles.');
+        console.log('Please ensure styles/main.css is uploaded to your web server.');
+      } else {
+        console.log('CSS loaded successfully');
+      }
+    });
+  </script>
+
   <!-- Main App Initialization -->
   <script type="module">
-    // Initialize the React app
-    import { WalletApp } from './js/components/WalletApp.js';
+    console.log('Starting app initialization...');
     
-    // Wait for DOM to be ready
-    document.addEventListener('DOMContentLoaded', () => {
-      const container = document.getElementById('kaspa-wallet-app');
-      const root = ReactDOM.createRoot(container);
-      root.render(React.createElement(WalletApp));
-    });
+    try {
+      // Initialize the React app
+      console.log('Importing WalletApp component...');
+      const { WalletApp } = await import('./js/components/WalletApp.js');
+      console.log('WalletApp imported successfully:', WalletApp);
+      
+      // Wait for DOM to be ready
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log('DOM ready, initializing React...');
+        
+        try {
+          const container = document.getElementById('kaspa-wallet-app');
+          console.log('Container found:', container);
+          
+          if (!container) {
+            throw new Error('Container element not found');
+          }
+          
+          console.log('Creating React root...');
+          const root = ReactDOM.createRoot(container);
+          console.log('React root created, rendering WalletApp...');
+          
+          root.render(React.createElement(WalletApp));
+          console.log('WalletApp rendered successfully');
+          
+        } catch (renderError) {
+          console.error('Error during React rendering:', renderError);
+          console.error('Error stack:', renderError.stack);
+          
+          // Show error message in the container
+          const container = document.getElementById('kaspa-wallet-app');
+          if (container) {
+            container.innerHTML = `
+              <div style="padding: 20px; background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 8px; margin: 20px;">
+                <h4>Application Error</h4>
+                <p><strong>Error:</strong> ${renderError.message}</p>
+                <p>Please check the browser console for more details.</p>
+              </div>
+            `;
+          }
+        }
+      });
+      
+    } catch (importError) {
+      console.error('Error importing WalletApp:', importError);
+      console.error('Import error stack:', importError.stack);
+      
+      // Show import error
+      document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('kaspa-wallet-app');
+        if (container) {
+          container.innerHTML = `
+            <div style="padding: 20px; background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 8px; margin: 20px;">
+              <h4>Import Error</h4>
+              <p><strong>Error:</strong> ${importError.message}</p>
+              <p>Failed to load the main application component. Please check that all files are uploaded correctly.</p>
+            </div>
+          `;
+        }
+      });
+    }
   </script>
 </body>
 </html> 

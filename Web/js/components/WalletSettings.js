@@ -1,20 +1,30 @@
 const { useState, useEffect } = React;
 
+
+
 export function WalletSettings({ walletState, onNavigate, addNotification, onGenerateNewAddress, sessionManager }) {
   const [walletLabel, setWalletLabel] = useState(walletState.currentWallet?.name || '');
+  const [originalWalletLabel, setOriginalWalletLabel] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [sessionTimeout, setSessionTimeout] = useState(30);
+  const [autoLogoutEnabled, setAutoLogoutEnabled] = useState(true);
+  const [persistSession, setPersistSession] = useState(true);
+  const [isLoadingMnemonic, setIsLoadingMnemonic] = useState(false);
+  const [showMnemonic, setShowMnemonic] = useState(false);
+  const [mnemonic, setMnemonic] = useState('');
+  const [mnemonicAvailable, setMnemonicAvailable] = useState(false);
+  const [isScanningAddresses, setIsScanningAddresses] = useState(false);
+  const [addressScanResults, setAddressScanResults] = useState(null);
   const [isUpdatingLabel, setIsUpdatingLabel] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [isScanningAddresses, setIsScanningAddresses] = useState(false);
   const [isGeneratingAddress, setIsGeneratingAddress] = useState(false);
   const [scannedAddresses, setScannedAddresses] = useState([]);
   const [generatedAddresses, setGeneratedAddresses] = useState([]);
   const [scanRange, setScanRange] = useState({ start: 0, end: 10 });
   const [addressType, setAddressType] = useState('receive'); // 'receive' or 'change'
   const [validationErrors, setValidationErrors] = useState({});
-  const [showMnemonic, setShowMnemonic] = useState(false);
   const [mnemonicPassword, setMnemonicPassword] = useState('');
   const [isRevealingMnemonic, setIsRevealingMnemonic] = useState(false);
   const [revealedMnemonic, setRevealedMnemonic] = useState('');
@@ -114,7 +124,7 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
     if (!currentPassword) errors.currentPassword = 'Current password is required';
     if (!newPassword) errors.newPassword = 'New password is required';
     if (newPassword.length < 8) errors.newPassword = 'Password must be at least 8 characters';
-    if (newPassword !== confirmPassword) errors.confirmPassword = 'Passwords do not match';
+    if (newPassword !== confirmNewPassword) errors.confirmNewPassword = 'Passwords do not match';
 
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
@@ -164,7 +174,7 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
       addNotification('Password changed successfully', 'success');
       setCurrentPassword('');
       setNewPassword('');
-      setConfirmPassword('');
+      setConfirmNewPassword('');
       
     } catch (error) {
       console.error('Password change error:', error);
@@ -543,14 +553,14 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
                     React.createElement('label', { className: 'form-label' }, 'Confirm New Password'),
                     React.createElement('input', {
                       type: 'password',
-                      className: `form-control ${validationErrors.confirmPassword ? 'is-invalid' : ''}`,
-                      value: confirmPassword,
-                      onChange: (e) => setConfirmPassword(e.target.value),
+                      className: `form-control ${validationErrors.confirmNewPassword ? 'is-invalid' : ''}`,
+                      value: confirmNewPassword,
+                      onChange: (e) => setConfirmNewPassword(e.target.value),
                       placeholder: 'Confirm new password...'
                     }),
-                    validationErrors.confirmPassword && React.createElement('div', {
+                    validationErrors.confirmNewPassword && React.createElement('div', {
                       className: 'invalid-feedback'
-                    }, validationErrors.confirmPassword)
+                    }, validationErrors.confirmNewPassword)
                   ),
                   React.createElement('button', {
                     type: 'submit',
