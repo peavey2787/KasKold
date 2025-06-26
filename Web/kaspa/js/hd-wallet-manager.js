@@ -115,10 +115,10 @@ export class HDWalletManager {
      * Get the current active change address
      * @returns {string} Current change address
      */
-    getCurrentChangeAddress() {
+    async getCurrentChangeAddress() {
         if (this.addresses.change.size === 0) {
             // Generate first change address if none exists
-            this.generateNextChangeAddress();
+            await this.generateNextChangeAddress();
         }
         
         const latestIndex = this.currentChangeIndex - 1;
@@ -364,6 +364,119 @@ export class HDWalletManager {
         // Re-initialize kaspa objects
         await this.initialize();
     }
-}
 
-export default HDWalletManager; 
+    /**
+     * Discover addresses with balances by scanning a range of indices
+     * @param {string} type - 'receive' or 'change'
+     * @param {number} startIndex - Starting index to scan from
+     * @param {number} maxGap - Maximum gap of empty addresses before stopping
+     * @returns {Promise<Array>} Array of discovered addresses with balances
+     */
+    async discoverAddressesWithBalance(type, startIndex = 0, maxGap = 20) {
+        const { checkAddressBalance } = await import('./wallet-balance.js');
+        const discoveredAddresses = [];
+        let consecutiveEmpty = 0;
+        let currentIndex = startIndex;
+        
+        console.log(`Starting ${type} address discovery from index ${startIndex} with max gap ${maxGap}`);
+        
+        while (consecutiveEmpty < maxGap) {
+            try {
+                // Generate address at current index
+                const addressInfo = await this.generateAddress(type, currentIndex);
+                
+                // Check if this address has balance
+                const balanceResult = await checkAddressBalance(addressInfo.address, this.network);
+                
+                if (balanceResult.success && balanceResult.balance.kas > 0) {
+                    console.log(`Found balance in ${type} address ${currentIndex}: ${addressInfo.address} (${balanceResult.balance.kas} KAS)`);
+                    
+                    const balanceInSompi = BigInt(Math.round(balanceResult.balance.kas * 100000000));
+                    
+                    // Add to discovered addresses
+                    discoveredAddresses.push({
+                        ...addressInfo,
+                        balance: balanceInSompi,
+                        utxos: balanceResult.utxos || []
+                    });
+                    
+                    // Add to the wallet's address tracking
+                    const addressMap = type === 'receive' ? this.addresses.receive : this.addresses.change;
+                    addressMap.set(currentIndex, {
+                        ...addressInfo,
+                        used: true,
+                        balance: balanceInSompi,
+                        utxos: balanceResult.utxos || []
+                    });
+                    
+                    // Update current index counters
+                    if (type === 'receive' && currentIndex >= this.currentReceiveIndex) {
+                        this.currentReceiveIndex = currentIndex + 1;
+                    } else if (type === 'change' && currentIndex >= this.currentChangeIndex) {
+                        this.currentChangeIndex = currentIndex + 1;
+                    }
+                    
+                    consecutiveEmpty = 0; // Reset gap counter
+                } else {
+                    consecutiveEmpty++;
+                }
+                
+                currentIndex++;
+                
+            } catch (error) {
+                console.warn(`Error checking ${type} address at index ${currentIndex}:`, error);
+                consecutiveEmpty++;
+                currentIndex++;
+            }
+        }
+        
+        // Recalculate total balance after discovery
+        this.recalculateTotalBalance();
+        
+        console.log(`${type} address discovery complete. Found ${discoveredAddresses.length} addresses with balance.`);
+        return discoveredAddresses;
+    }
+
+    /**
+     * Perform comprehensive wallet discovery to find all used addresses
+     * @param {number} maxGap - Maximum gap of empty addresses before stopping (default: 20)
+     * @returns {Promise<Object>} Discovery results
+     */
+    async performWalletDiscovery(maxGap = 20) {
+        console.log('Starting comprehensive HD wallet discovery...');
+        
+        const discoveryResults = {
+            receiveAddresses: [],
+            changeAddresses: [],
+            totalBalance: 0n,
+            addressesFound: 0
+        };
+        
+        try {
+            // Discover receive addresses
+            console.log('Discovering receive addresses...');
+            const receiveAddresses = await this.discoverAddressesWithBalance('receive', 0, maxGap);
+            discoveryResults.receiveAddresses = receiveAddresses;
+            
+            // Discover change addresses
+            console.log('Discovering change addresses...');
+            const changeAddresses = await this.discoverAddressesWithBalance('change', 0, maxGap);
+            discoveryResults.changeAddresses = changeAddresses;
+            
+            // Calculate totals
+            discoveryResults.addressesFound = receiveAddresses.length + changeAddresses.length;
+            discoveryResults.totalBalance = this.getTotalBalance();
+            
+            console.log(`Wallet discovery complete:`);
+            console.log(`- Receive addresses with balance: ${receiveAddresses.length}`);
+            console.log(`- Change addresses with balance: ${changeAddresses.length}`);
+            console.log(`- Total balance: ${Number(discoveryResults.totalBalance) / 100000000} KAS`);
+            
+            return discoveryResults;
+            
+        } catch (error) {
+            console.error('Wallet discovery failed:', error);
+            throw error;
+        }
+    }
+} 

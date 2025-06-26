@@ -21,6 +21,8 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
   const [walletHasMnemonic, setWalletHasMnemonic] = useState(null); // null = checking, true/false = result
   const [sessionSettings, setSessionSettings] = useState({ timeoutMinutes: 0, autoSave: true });
   const [isUpdatingSession, setIsUpdatingSession] = useState(false);
+  const [autoDiscoveryEnabled, setAutoDiscoveryEnabled] = useState(true);
+  const [isCompoundingUTXOs, setIsCompoundingUTXOs] = useState(false);
 
   // Password strength calculation
   const calculatePasswordStrength = (password) => {
@@ -52,7 +54,7 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
     }
   }, [walletState.currentWallet]);
 
-  // Load session settings on component mount
+  // Load session settings and auto-discovery setting on component mount
   useEffect(() => {
     const loadSessionSettings = () => {
       try {
@@ -65,7 +67,19 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
       }
     };
     
+    const loadAutoDiscoverySetting = () => {
+      try {
+        const saved = localStorage.getItem('kaspa_auto_discovery_enabled');
+        if (saved !== null) {
+          setAutoDiscoveryEnabled(JSON.parse(saved));
+        }
+      } catch (error) {
+        console.error('Failed to load auto-discovery setting:', error);
+      }
+    };
+    
     loadSessionSettings();
+    loadAutoDiscoverySetting();
   }, [sessionManager]);
 
   // Update wallet label
@@ -380,8 +394,7 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
         }
       } else {
         sessionManager.stopTimeout();
-        sessionManager.clearSession(); // Clear existing session if timeout disabled
-        addNotification('Session timeout disabled - you will be logged out on page refresh', 'info');
+        addNotification('Session timeout disabled - sessions will persist indefinitely', 'info');
       }
       
     } catch (error) {
@@ -389,6 +402,42 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
       addNotification('Failed to update session settings: ' + error.message, 'error');
     } finally {
       setIsUpdatingSession(false);
+    }
+  };
+
+  // Handle auto-discovery setting change
+  const handleAutoDiscoveryChange = (enabled) => {
+    setAutoDiscoveryEnabled(enabled);
+    try {
+      localStorage.setItem('kaspa_auto_discovery_enabled', JSON.stringify(enabled));
+      addNotification(`Auto-discovery ${enabled ? 'enabled' : 'disabled'}`, 'success');
+    } catch (error) {
+      console.error('Failed to save auto-discovery setting:', error);
+      addNotification('Failed to save auto-discovery setting', 'error');
+    }
+  };
+
+  // Handle compound UTXOs
+  const handleCompoundUTXOs = async () => {
+    if (!walletState.isHDWallet) {
+      addNotification('Compound UTXOs is only available for HD wallets', 'error');
+      return;
+    }
+
+    setIsCompoundingUTXOs(true);
+
+    try {
+             // Navigate to transaction manager with compound mode
+       onNavigate('transaction', { 
+         mode: 'compound',
+         sourceAddress: walletState.address 
+       });
+      addNotification('Opening transaction manager for UTXO compounding...', 'info');
+    } catch (error) {
+      console.error('Failed to initiate UTXO compounding:', error);
+      addNotification('Failed to open compound UTXOs: ' + error.message, 'error');
+    } finally {
+      setIsCompoundingUTXOs(false);
     }
   };
 
@@ -630,6 +679,67 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
                       'Update Session Settings'
                     )
                   )
+                )
+              )
+            ),
+
+            // Auto-Discovery Setting
+            React.createElement('div', { className: 'card mb-4' },
+              React.createElement('div', { className: 'card-header' },
+                React.createElement('h6', { className: 'card-title mb-0' },
+                  React.createElement('i', { className: 'bi bi-magic me-2' }),
+                  'Auto-Discovery'
+                )
+              ),
+              React.createElement('div', { className: 'card-body' },
+                React.createElement('div', { className: 'form-check form-switch' },
+                  React.createElement('input', {
+                    type: 'checkbox',
+                    className: 'form-check-input',
+                    id: 'autoDiscovery',
+                    checked: autoDiscoveryEnabled,
+                    onChange: (e) => handleAutoDiscoveryChange(e.target.checked)
+                  }),
+                  React.createElement('label', { className: 'form-check-label', htmlFor: 'autoDiscovery' },
+                    'Automatically discover wallet balance on login'
+                  )
+                ),
+                React.createElement('div', { className: 'form-text mt-2' },
+                  autoDiscoveryEnabled ? 
+                    'Your wallet will automatically scan for balances when you log in. This may take a few seconds.' :
+                    'Balance discovery is disabled. You can manually check your balance from the dashboard.'
+                )
+              )
+            ),
+
+            // Compound UTXOs
+            walletState.isHDWallet && React.createElement('div', { className: 'card mb-4' },
+              React.createElement('div', { className: 'card-header' },
+                React.createElement('h6', { className: 'card-title mb-0' },
+                  React.createElement('i', { className: 'bi bi-arrow-down-up me-2' }),
+                  'UTXO Management'
+                )
+              ),
+              React.createElement('div', { className: 'card-body' },
+                React.createElement('p', { className: 'card-text' },
+                  'Consolidate multiple UTXOs into a single UTXO to reduce future transaction fees. This is useful when you have many small UTXOs.'
+                ),
+                React.createElement('button', {
+                  type: 'button',
+                  className: `btn btn-warning ${isCompoundingUTXOs ? 'disabled' : ''}`,
+                  disabled: isCompoundingUTXOs,
+                  onClick: handleCompoundUTXOs
+                },
+                  isCompoundingUTXOs ? React.createElement('span', null,
+                    React.createElement('span', { className: 'spinner-border spinner-border-sm me-2' }),
+                    'Opening...'
+                  ) : React.createElement('span', null,
+                    React.createElement('i', { className: 'bi bi-arrow-down-up me-2' }),
+                    'Compound UTXOs'
+                  )
+                ),
+                React.createElement('div', { className: 'form-text mt-2' },
+                  'This will open the transaction manager where you can create a compound transaction.'
                 )
               )
             ),

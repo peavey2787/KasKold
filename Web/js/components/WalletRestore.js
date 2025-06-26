@@ -145,7 +145,7 @@ export function WalletRestore({ onNavigate, onWalletRestored, addNotification, n
         address: restorationResult.publicAddress,
         network: restorationResult.networkType,
         mnemonic: restorationResult.mnemonic,
-        derivationPath: restorationResult.derivationPath,
+        derivationPath: restorationResult.mnemonic ? "m/44'/111111'/0'" : restorationResult.derivationPath, // ✅ Use account-level path for mnemonic, keep original for private key
         restoredFrom: restoreMethod
       });
 

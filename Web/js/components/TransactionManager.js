@@ -1,7 +1,19 @@
 const { useState, useEffect, useRef } = React;
 
-export function TransactionManager({ walletState, onNavigate, addNotification, onGenerateChangeAddress, onMarkAddressUsed }) {
-  const [amount, setAmount] = useState('');
+// Import transaction constants
+import { 
+  DEFAULT_TRANSACTION_AMOUNT, 
+  MIN_TRANSACTION_AMOUNT, 
+  MAX_TRANSACTION_AMOUNT,
+  MAX_UTXOS_PER_TRANSACTION,
+  UTXO_CONSOLIDATION_THRESHOLD 
+} from '../../kaspa/js/constants.js';
+
+// Import centralized serialization utilities
+import { convertBigIntToString, convertStringToBigInt, serializeWasmObject } from '../../kaspa/js/serialization-utils.js';
+
+export function TransactionManager({ walletState, onNavigate, addNotification, onGenerateChangeAddress, onGenerateNewAddress, onMarkAddressUsed, cachedUTXOs, onClearCachedUTXOs, navigationData }) {
+  const [amount, setAmount] = useState(DEFAULT_TRANSACTION_AMOUNT.toString());
   const [toAddress, setToAddress] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
@@ -15,9 +27,26 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
   const [showUploadArea, setShowUploadArea] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [multiPartQRs, setMultiPartQRs] = useState([]);
+  const [useOfflineMode, setUseOfflineMode] = useState(false);
   const transactionHandlersSetup = useRef(false);
   const fileInputRef = useRef();
   const qrInputRef = useRef();
+
+  // Error boundary-like error handling
+  useEffect(() => {
+    const handleError = (error, errorInfo) => {
+      console.error('TransactionManager error:', error, errorInfo);
+      addNotification('A component error occurred. Please try refreshing the page.', 'error');
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleError);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleError);
+    };
+  }, [addNotification]);
 
   useEffect(() => {
     // Set up transaction event handlers from init.js when component mounts
@@ -26,6 +55,22 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
       transactionHandlersSetup.current = true;
     }
   }, []);
+
+  // Handle pre-filled data from navigation
+  useEffect(() => {
+    if (navigationData && navigationData.type === 'compound-utxos') {
+      setAmount(navigationData.amount || '');
+      setToAddress(navigationData.toAddress || '');
+      setUseOfflineMode(true); // Enable offline mode for compound transactions
+      
+      if (navigationData.showInfo) {
+        addNotification(
+          `Compound transaction prepared: ${navigationData.inputCount} UTXOs → 1 UTXO. This will reduce transaction fees for future sends.`,
+          'info'
+        );
+      }
+    }
+  }, [navigationData]);
 
   const setupTransactionHandlers = async () => {
     try {
@@ -89,6 +134,23 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
       return;
     }
 
+    // Validate transaction amount
+    const transactionAmount = parseFloat(amount);
+    if (isNaN(transactionAmount) || transactionAmount <= 0) {
+      addNotification('Please enter a valid amount', 'error');
+      return;
+    }
+
+    if (transactionAmount < MIN_TRANSACTION_AMOUNT) {
+      addNotification(`Minimum transaction amount is ${MIN_TRANSACTION_AMOUNT} KAS`, 'error');
+      return;
+    }
+
+    if (transactionAmount > MAX_TRANSACTION_AMOUNT) {
+      addNotification(`Maximum transaction amount is ${MAX_TRANSACTION_AMOUNT} KAS`, 'error');
+      return;
+    }
+
     if (!walletState.currentWallet) {
       addNotification('No wallet selected', 'error');
       return;
@@ -96,7 +158,9 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
 
     // Validate address for current network (use network from header dropdown)
     const currentNetwork = walletState.network;
+    
     const addressValidation = await validateAddressForNetwork(toAddress.trim(), currentNetwork);
+    
     if (!addressValidation.isValid) {
       addNotification(addressValidation.error, 'error');
       return;
@@ -107,27 +171,103 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
     try {
       let changeAddress = null;
       
-      // For HD wallets, generate a new change address
+      // Always generate a new change address for HD wallets (best practice for privacy)
       if (walletState.isHDWallet && onGenerateChangeAddress) {
-        const changeAddressInfo = await onGenerateChangeAddress();
-        changeAddress = changeAddressInfo?.address;
+        try {
+          const changeAddressInfo = await onGenerateChangeAddress();
+          changeAddress = changeAddressInfo?.address;
+          
+          if (!changeAddress) {
+            addNotification('Warning: Could not generate new change address', 'warning');
+          } else {
+            addNotification('New change address generated for enhanced privacy', 'info');
+          }
+        } catch (changeAddressError) {
+          addNotification('Warning: Failed to generate new change address - trying alternative method', 'warning');
+          
+          // Try to get change address directly from HD wallet
+          try {
+            if (walletState.hdWallet && walletState.hdWallet.getCurrentChangeAddress) {
+              changeAddress = await walletState.hdWallet.getCurrentChangeAddress();
+            } else {
+              throw new Error('HD wallet change address method not available');
+            }
+          } catch (fallbackError) {
+            // Final fallback to using the main address as change address
+            changeAddress = walletState.address;
+            console.log('Using main address as final fallback for change address');
+          }
+        }
+      } else if (walletState.isHDWallet && !onGenerateChangeAddress) {
+        addNotification('Warning: HD wallet without change address generation capability', 'warning');
+        changeAddress = walletState.address;
+      } else {
+        // For single-address wallets, use the main address (no choice)
+        changeAddress = walletState.address;
       }
 
-
-
-      // Use the existing transaction creation logic from transaction-create.js
-      const { createTransaction } = await import('../../kaspa/js/transaction-create.js');
+      let transaction;
       
-      const transaction = await createTransaction(
-        walletState.address,
-        addressValidation.address,
-        parseFloat(amount),
-        currentNetwork,
-        { 
-          changeAddress: changeAddress,
-          hdWallet: walletState.hdWallet
+      if (useOfflineMode && cachedUTXOs) {
+        // Use offline transaction creation with cached UTXOs
+        const { createOfflineTransaction, validateCachedUTXOs } = await import('../../kaspa/js/transaction-create-offline.js');
+        
+        // Validate cached UTXOs first
+        const validation = validateCachedUTXOs(cachedUTXOs, currentNetwork);
+        if (!validation.valid) {
+          throw new Error(validation.error);
         }
-      );
+        
+        // Show warning if UTXOs are old
+        if (validation.warning) {
+          addNotification(validation.warning, 'warning');
+        }
+        
+        transaction = await createOfflineTransaction(
+          walletState.address,
+          addressValidation.address,
+          parseFloat(amount),
+          currentNetwork,
+          cachedUTXOs,
+          { 
+            changeAddress: changeAddress
+          }
+        );
+        
+        if (transaction.success) {
+          addNotification('Transaction created offline using cached UTXOs', 'success');
+        }
+      } else {
+        
+        let createTransaction;
+        try {
+          const module = await import('../../kaspa/js/transaction-create.js?t=' + Date.now());   
+          createTransaction = module.createTransaction;
+        } catch (importError) {
+          console.error('Failed to import transaction-create module:', importError);
+          throw new Error('Failed to import transaction creation module: ' + importError.message);
+        }        
+        
+        try {
+          transaction = await createTransaction(
+            walletState.address,
+            addressValidation.address,
+            parseFloat(amount),
+            currentNetwork,
+            { 
+              changeAddress: changeAddress,
+              hdWallet: walletState.hdWallet
+            }
+          );
+        } catch (funcError) {
+          console.error('Error calling createTransaction:', funcError);          
+          throw funcError;
+        }
+        
+        if (transaction.success) {
+          addNotification('Transaction created successfully', 'success');
+        }
+      }
 
 
 
@@ -136,7 +276,6 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         setTransactionData(transaction);
         setSignedTransactionData(null); // Clear any previous signed transaction
         await generateQRCode(transaction, 'unsigned');
-        addNotification('Transaction created successfully', 'success');
       } else if (transaction && transaction.error) {
         throw new Error(transaction.error);
       } else if (transaction && transaction.transactionId) {
@@ -144,14 +283,19 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         setTransactionData(transaction);
         setSignedTransactionData(null); // Clear any previous signed transaction
         await generateQRCode(transaction, 'unsigned');
-        addNotification('Transaction created successfully', 'success');
       } else {
         throw new Error('Transaction creation failed - no valid response received');
       }
       
     } catch (error) {
       console.error('Transaction creation failed:', error);
-      addNotification('Transaction creation failed: ' + error.message, 'error');
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        error: error
+      });
+      addNotification('Transaction creation failed: ' + (error.message || 'Unknown error'), 'error');
     } finally {
       setIsCreating(false);
     }
@@ -168,24 +312,156 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
     try {
 
 
-      const { signTransaction } = await import('../../kaspa/js/transaction-sign.js');
+      const { signTransaction } = await import('../../kaspa/js/transaction-sign.js?t=' + Date.now());
       
       let result;
       
       if (walletState.isHDWallet && walletState.hdWallet) {
-        // For HD wallets, we need to get private keys for all input addresses
-        const inputAddresses = transactionData.inputs?.map(input => input.address) || [];
+        // Extract input addresses from the transaction data
+        let inputAddresses = [];
+        
+        if (transactionData.summary?.utxos && Array.isArray(transactionData.summary.utxos)) {
+          inputAddresses = [...new Set(transactionData.summary.utxos.map(utxo => utxo.address))];
+        } else if (transactionData.inputs && Array.isArray(transactionData.inputs)) {
+          inputAddresses = [...new Set(transactionData.inputs.map(input => input.previous_outpoint.address))];
+        }
+        
+        // For uploaded transactions, we might need to use current wallet addresses instead
+        if (inputAddresses.length === 0 || transactionData.isUploaded) {
+          console.log('🔄 Using current wallet addresses for uploaded/reconstructed transaction');
+          const allWalletAddresses = walletState.hdWallet.getAllAddresses();
+          
+          if (!Array.isArray(allWalletAddresses)) {
+            throw new Error('HD wallet getAllAddresses() did not return an array');
+          }
+          
+          const addressesWithBalance = allWalletAddresses
+            .filter(addr => addr.balance > 0n)
+            .map(addr => addr.address);
+          
+          if (addressesWithBalance.length === 0) {
+            // If no addresses with balance, use all addresses
+            inputAddresses = allWalletAddresses.map(addr => addr.address);
+            console.log('⚠️ No addresses with balance found, using all addresses:', inputAddresses);
+          } else {
+            inputAddresses = addressesWithBalance;
+            console.log('✅ Using addresses with balance:', inputAddresses);
+          }
+        } else {
+          console.log('Using input addresses from transaction:', inputAddresses);
+        }
+        
         const privateKeys = {};
+        
+        // Get all addresses with their private keys from HD wallet
+        const allAddresses = walletState.hdWallet.getAllAddresses();
+        
+        if (!Array.isArray(allAddresses)) {
+          throw new Error('HD wallet getAllAddresses() did not return an array');
+        }
+        
+        console.log('Available addresses in HD wallet:', allAddresses.map(addr => ({ 
+          address: addr.address, 
+          hasPrivateKey: !!addr.privateKey,
+          balance: addr.balance?.toString() || '0'
+        })));
         
         for (const address of inputAddresses) {
           try {
-            privateKeys[address] = walletState.hdWallet.getPrivateKeyForAddress(address);
+            // Find the address info object that contains the private key
+            const addressInfo = allAddresses.find(addr => addr.address === address);
+            
+            if (addressInfo && addressInfo.privateKey) {
+              privateKeys[address] = addressInfo.privateKey;
+            } else {
+              console.warn('Could not find private key for address:', address);
+            }
           } catch (error) {
-            console.warn('Could not get private key for address:', error.message);
+            console.warn('Could not get private key for address:', address, error.message);
           }
         }
         
-        result = await signTransaction(transactionData, privateKeys);
+        // Also add any addresses with private keys that have balance, even if not in inputAddresses
+        for (const addressInfo of allAddresses) {
+          if (addressInfo.privateKey && addressInfo.balance > 0n && !privateKeys[addressInfo.address]) {
+            console.log('➕ Adding address with balance to available keys:', addressInfo.address);
+            privateKeys[addressInfo.address] = addressInfo.privateKey;
+          }
+        }
+        
+        // Check if we have any valid private keys
+        const validPrivateKeys = Object.keys(privateKeys);
+        if (validPrivateKeys.length === 0) {
+          throw new Error('No valid private keys found for transaction signing. Please ensure your HD wallet has addresses with private keys and funds.');
+        }
+        
+        console.log(`Found private keys for ${validPrivateKeys.length} addresses:`, validPrivateKeys);
+        
+        // Add diagnostic check for uploaded transactions
+        if (transactionData.isUploaded) {
+          console.log('🔍 DIAGNOSTIC: Checking wallet status for uploaded transaction signing...');
+          
+          // Check each address for UTXOs via wallet state
+          for (const address of validPrivateKeys) {
+            const addressInfo = allAddresses.find(addr => addr.address === address);
+            if (addressInfo) {
+              console.log(`📊 Address ${address}:`, {
+                balance: addressInfo.balance?.toString() || '0',
+                hasPrivateKey: !!addressInfo.privateKey,
+                utxoCount: addressInfo.utxos?.length || 0
+              });
+            }
+          }
+          
+          // Check if we have cached UTXOs available
+          if (cachedUTXOs) {
+            console.log('💾 Cached UTXOs available:', {
+              count: cachedUTXOs.count,
+              timestamp: new Date(cachedUTXOs.timestamp).toLocaleString(),
+              addresses: (cachedUTXOs.utxos && Array.isArray(cachedUTXOs.utxos)) ? [...new Set(cachedUTXOs.utxos.map(u => u.address))] : []
+            });
+          } else {
+            console.log('❌ No cached UTXOs available - this may cause network lookup');
+          }
+          
+          addNotification('Signing uploaded transaction - checking for available UTXOs...', 'info');
+        }
+        
+        // Check if this is an uploaded transaction that needs special handling
+        if (transactionData.isUploaded && transactionData.serializedPendingTransaction) {
+          console.log('🔄 Signing uploaded transaction with serialized pending transaction data');
+          
+          // For uploaded transactions, we need to reconstruct the pending transaction
+          // Try to restore the WASM pending transaction object
+          try {
+            const { getKaspa } = await import('../../kaspa/js/init.js');
+            const kaspa = getKaspa();
+            
+            // If we have the serialized pending transaction, try to reconstruct it
+            if (transactionData.originalTransactionData?.pendingTransaction) {
+              const pendingTxData = transactionData.originalTransactionData.pendingTransaction;
+              
+              // Create a modified transaction data structure for signing
+              const signingTransactionData = {
+                ...transactionData,
+                pendingTransaction: pendingTxData,
+                // Include any additional data needed for signing
+                summary: transactionData.originalTransactionData?.summary
+              };
+              
+              result = await signTransaction(signingTransactionData, privateKeys);
+            } else {
+              // Fallback to original method
+              result = await signTransaction(transactionData, privateKeys);
+            }
+          } catch (reconstructError) {
+            console.warn('Could not reconstruct WASM transaction, using original data:', reconstructError);
+            result = await signTransaction(transactionData, privateKeys);
+          }
+        } else {
+          // Normal transaction signing
+          result = await signTransaction(transactionData, privateKeys);
+        }
       } else {
         // For single address wallets
         if (!walletState.currentWallet || !walletState.currentWallet.privateKey) {
@@ -196,17 +472,31 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         result = await signTransaction(transactionData, walletState.currentWallet.privateKey);
       }
 
-
-
       if (result && result.success) {
-        // Create signed transaction data structure
+        // Create comprehensive signed transaction data structure
+        let serializedTransaction = null;
+        
+        // Serialize the signed transaction using centralized utilities
+        if (result.signedTransaction) {
+          try {
+            console.log('✅ Serializing signed transaction using centralized utilities');
+            serializedTransaction = serializeWasmObject(result.signedTransaction);
+          } catch (serializeError) {
+            console.warn('⚠️ Could not serialize signed transaction:', serializeError);
+          }
+        }
+        
         const signedTxData = {
           ...transactionData, // Include original transaction data
           ...result, // Include signing result
           status: 'signed',
-          signedAt: new Date().toISOString()
+          signedAt: new Date().toISOString(),
+          // Ensure we have serialized transaction data for submission
+          serializedTransaction: serializedTransaction
         };
 
+        console.log('🔍 Created signed transaction data with fields:', Object.keys(signedTxData));
+        
         setSignedTransactionData(signedTxData);
         await generateQRCode(signedTxData, 'signed');
         addNotification('Transaction signed successfully', 'success');
@@ -216,6 +506,25 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
 
     } catch (error) {
       console.error('Transaction signing failed:', error);
+      
+      // Check if this is a UTXO-related error for uploaded transactions
+      if (transactionData?.isUploaded && error.message.includes('No UTXOs found')) {
+        // Offer to refresh wallet state
+        const shouldRefresh = confirm(
+          'No UTXOs found for transaction signing. This might be because:\n\n' +
+          '• The wallet needs to refresh its UTXO data\n' +
+          '• The transaction was created with different addresses\n' +
+          '• Network connectivity issues\n\n' +
+          'Would you like to go back to the wallet dashboard to refresh the wallet state and check for available funds?'
+        );
+        
+        if (shouldRefresh) {
+          addNotification('Redirecting to wallet dashboard to refresh UTXO data...', 'info');
+          onNavigate('wallet-dashboard');
+          return;
+        }
+      }
+      
       addNotification('Transaction signing failed: ' + error.message, 'error');
     } finally {
       setIsSigning(false);
@@ -247,25 +556,32 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
           status: 'submitted',
           submittedAt: new Date().toISOString()
         };
-
+        
         setSubmittedTransactionData(submittedTxData);
-        await generateQRCode(submittedTxData, 'submitted');
+        
+        // Safely generate QR code with defensive data handling
+        try {
+          await generateQRCode(submittedTxData, 'submitted');
+        } catch (qrError) {
+          console.error('QR generation failed for submitted transaction:', qrError);
+          addNotification('Transaction submitted successfully, but QR generation failed: ' + qrError.message, 'warning');
+        }
         
         // Mark addresses as used for HD wallets
         if (walletState.isHDWallet && onMarkAddressUsed) {
           // Mark input addresses as used
-          if (submittedTxData.inputs) {
+          if (Array.isArray(submittedTxData.inputs)) {
             submittedTxData.inputs.forEach(input => {
-              if (input.address) {
+              if (input && input.address) {
                 onMarkAddressUsed(input.address);
               }
             });
           }
           
           // Mark change address as used if it exists
-          if (submittedTxData.outputs) {
+          if (Array.isArray(submittedTxData.outputs)) {
             submittedTxData.outputs.forEach(output => {
-              if (output.address && output.address !== toAddress) {
+              if (output && output.address && output.address !== toAddress) {
                 // This is likely the change address
                 onMarkAddressUsed(output.address);
               }
@@ -274,6 +590,16 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         }
         
         addNotification('Transaction submitted successfully to the network', 'success');
+        
+        // Generate new receive address for enhanced privacy (HD wallets only)
+        if (walletState.isHDWallet && onGenerateNewAddress) {
+          try {
+            await onGenerateNewAddress();
+            addNotification('New receive address generated for enhanced privacy', 'info');
+          } catch (error) {
+            console.warn('Failed to generate new receive address:', error);
+          }
+        }
       } else {
         throw new Error(result?.error || 'Transaction submission failed');
       }
@@ -304,83 +630,134 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
       const qrResult = await generateQR(serializedTxData);
       
       if (qrResult.success) {
-        setQrCodeData({ ...qrResult, type });
+        // Handle both single and multi-part QR codes
+        let normalizedQRData;
+        
+        if (qrResult.isMultiPart) {
+          // For multi-part QRs, use the first part for display and store all parts
+          normalizedQRData = {
+            ...qrResult,
+            type,
+            qrDataURL: qrResult.qrParts[0].qrDataURL, // Show first part by default
+            size: qrResult.originalSize,
+            currentPart: 1,
+            displayPart: qrResult.qrParts[0]
+          };
+        } else {
+          // Single QR code
+          normalizedQRData = {
+            ...qrResult,
+            type,
+            isMultiPart: false,
+            totalParts: 1,
+            currentPart: 1
+          };
+        }
+        
+        setQrCodeData(normalizedQRData);
+        console.log('✅ QR code generated successfully:', normalizedQRData);
       } else {
         console.error('QR generation failed:', qrResult.error);
         addNotification('Failed to generate QR code: ' + qrResult.error, 'warning');
       }
     } catch (error) {
       console.error('QR generation error:', error);
-      addNotification('Failed to generate QR code', 'warning');
+      addNotification('Failed to generate QR code: ' + error.message, 'warning');
     }
   };
 
   const handleDownloadQR = () => {
-    if (!qrCodeData) return;
+    if (!qrCodeData) {
+      addNotification('No QR code available for download', 'error');
+      return;
+    }
     
     try {
       const transactionType = submittedTransactionData ? 'submitted' : signedTransactionData ? 'signed' : 'unsigned';
-      const txId = (submittedTransactionData || signedTransactionData || transactionData)?.transactionId;
-      const filename = `kaspa-${transactionType}-transaction-${txId}.png`;
+      const txId = (submittedTransactionData || signedTransactionData || transactionData)?.transactionId || 'unknown';
       
-      // Create download link
-      const link = document.createElement('a');
-      link.href = qrCodeData.qrDataURL;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      addNotification(`${transactionType} transaction QR code downloaded`, 'success');
+      if (qrCodeData.isMultiPart) {
+        // Download current displayed part for multi-part QRs
+        const currentPart = qrCodeData.currentPart || 1;
+        const currentQRPart = qrCodeData.qrParts[currentPart - 1];
+        
+        if (!currentQRPart || !currentQRPart.qrDataURL) {
+          addNotification('QR code data not available for download', 'error');
+          return;
+        }
+        
+        const filename = `kaspa-${transactionType}-transaction-${txId}-part${currentPart}of${qrCodeData.totalParts}.png`;
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.href = currentQRPart.qrDataURL;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        addNotification(`Downloaded part ${currentPart} of ${qrCodeData.totalParts} for ${transactionType} transaction QR`, 'success');
+      } else {
+        // Single QR code download
+        if (!qrCodeData.qrDataURL) {
+          addNotification('QR code data not available for download', 'error');
+          return;
+        }
+        
+        const filename = `kaspa-${transactionType}-transaction-${txId}.png`;
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.href = qrCodeData.qrDataURL;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        addNotification(`${transactionType} transaction QR code downloaded`, 'success');
+      }
     } catch (error) {
       console.error('Download failed:', error);
-      addNotification('Failed to download QR code', 'error');
+      addNotification('Failed to download QR code: ' + error.message, 'error');
     }
   };
 
-  const convertBigIntToString = (obj) => {
-    if (obj === null || obj === undefined) return obj;
-    
-    if (typeof obj === 'bigint') {
-      return obj.toString();
+  const handleDownloadAllQRParts = async () => {
+    if (!qrCodeData || !qrCodeData.isMultiPart) {
+      addNotification('No multi-part QR code available', 'error');
+      return;
     }
     
-    if (Array.isArray(obj)) {
-      return obj.map(convertBigIntToString);
-    }
-    
-    if (typeof obj === 'object') {
-      const converted = {};
-      for (const [key, value] of Object.entries(obj)) {
-        converted[key] = convertBigIntToString(value);
-      }
-      return converted;
-    }
-    
-    return obj;
-  };
-
-  const convertStringToBigInt = (obj, bigIntFields = ['amount', 'fee', 'value', 'satoshis']) => {
-    if (obj === null || obj === undefined) return obj;
-    
-    if (Array.isArray(obj)) {
-      return obj.map(item => convertStringToBigInt(item, bigIntFields));
-    }
-    
-    if (typeof obj === 'object') {
-      const converted = {};
-      for (const [key, value] of Object.entries(obj)) {
-        if (bigIntFields.includes(key) && typeof value === 'string' && /^\d+$/.test(value)) {
-          converted[key] = BigInt(value);
-        } else {
-          converted[key] = convertStringToBigInt(value, bigIntFields);
+    try {
+      const transactionType = submittedTransactionData ? 'submitted' : signedTransactionData ? 'signed' : 'unsigned';
+      const txId = (submittedTransactionData || signedTransactionData || transactionData)?.transactionId || 'unknown';
+      
+      // Download each part sequentially with a small delay
+      for (let i = 0; i < qrCodeData.qrParts.length; i++) {
+        const part = qrCodeData.qrParts[i];
+        const filename = `kaspa-${transactionType}-transaction-${txId}-part${i + 1}of${qrCodeData.totalParts}.png`;
+        
+        const link = document.createElement('a');
+        link.href = part.qrDataURL;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Small delay between downloads to avoid overwhelming the browser
+        if (i < qrCodeData.qrParts.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
-      return converted;
+      
+      addNotification(`Downloaded all ${qrCodeData.totalParts} parts of ${transactionType} transaction QR`, 'success');
+    } catch (error) {
+      console.error('Download all parts failed:', error);
+      addNotification('Failed to download all QR parts: ' + error.message, 'error');
     }
-    
-    return obj;
   };
+
+  // Conversion functions now imported from centralized utilities
 
   const handleDownloadJSON = () => {
     const currentTxData = submittedTransactionData || signedTransactionData || transactionData;
@@ -475,13 +852,13 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         if (result.success) {
           const qrData = result.qrData;
 
-          // Detect transaction type
+          // Detect transaction type (handle both single and multi-part QR formats)
           let transactionType = 'unknown';
-          if (qrData.type === 'kaspa-unsigned-transaction-qr') {
+          if (qrData.type === 'kaspa-unsigned-transaction-qr' || qrData.type === 'kaspa-unsigned-transaction-multipart-qr') {
             transactionType = 'unsigned';
-          } else if (qrData.type === 'kaspa-signed-transaction-qr') {
+          } else if (qrData.type === 'kaspa-signed-transaction-qr' || qrData.type === 'kaspa-signed-transaction-multipart-qr') {
             transactionType = 'signed';
-          } else if (qrData.type === 'kaspa-submitted-transaction-qr') {
+          } else if (qrData.type === 'kaspa-submitted-transaction-qr' || qrData.type === 'kaspa-submitted-transaction-multipart-qr') {
             transactionType = 'submitted';
           }
 
@@ -494,20 +871,32 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
 
           // Reset transaction progress states
           if (transactionType === 'unsigned') {
-            setTransactionData(processedQrData);
+            const uploadedTransactionData = {
+              ...processedQrData,
+              isUploaded: true
+            };
+            setTransactionData(uploadedTransactionData);
             setSignedTransactionData(null);
             setSubmittedTransactionData(null);
-            await generateQRCode(processedQrData, 'unsigned');
+            await generateQRCode(uploadedTransactionData, 'unsigned');
           } else if (transactionType === 'signed') {
             setTransactionData(null);
-            setSignedTransactionData(processedQrData);
+            const uploadedSignedData = {
+              ...processedQrData,
+              isUploaded: true
+            };
+            setSignedTransactionData(uploadedSignedData);
             setSubmittedTransactionData(null);
-            await generateQRCode(processedQrData, 'signed');
+            await generateQRCode(uploadedSignedData, 'signed');
           } else if (transactionType === 'submitted') {
             setTransactionData(null);
             setSignedTransactionData(null);
-            setSubmittedTransactionData(processedQrData);
-            await generateQRCode(processedQrData, 'submitted');
+            const uploadedSubmittedData = {
+              ...processedQrData,
+              isUploaded: true
+            };
+            setSubmittedTransactionData(uploadedSubmittedData);
+            await generateQRCode(uploadedSubmittedData, 'submitted');
           }
 
           setUploadedQrData({ 
@@ -545,13 +934,13 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         throw new Error('Invalid QR code data format');
       }
       
-      // Detect QR transaction type
+      // Detect QR transaction type (handle both single and multi-part QR formats)
       let transactionType = 'unknown';
-      if (qrData.type === 'kaspa-unsigned-transaction-qr') {
+      if (qrData.type === 'kaspa-unsigned-transaction-qr' || qrData.type === 'kaspa-unsigned-transaction-multipart-qr') {
         transactionType = 'unsigned';
-      } else if (qrData.type === 'kaspa-signed-transaction-qr') {
+      } else if (qrData.type === 'kaspa-signed-transaction-qr' || qrData.type === 'kaspa-signed-transaction-multipart-qr') {
         transactionType = 'signed';
-      } else if (qrData.type === 'kaspa-submitted-transaction-qr') {
+      } else if (qrData.type === 'kaspa-submitted-transaction-qr' || qrData.type === 'kaspa-submitted-transaction-multipart-qr') {
         transactionType = 'submitted';
       }
       
@@ -570,19 +959,30 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
       
       // Reset transaction progress states based on uploaded QR transaction type
       if (transactionType === 'unsigned') {
-        setTransactionData(processedQrData);
+        // Mark as uploaded and include serialized transaction data
+        const uploadedTransactionData = {
+          ...processedQrData,
+          isUploaded: true
+        };
+        setTransactionData(uploadedTransactionData);
         setSignedTransactionData(null);
         setSubmittedTransactionData(null);
         setQrCodeData({ qrDataURL: URL.createObjectURL(file), size: file.size, type: 'unsigned' });
       } else if (transactionType === 'signed') {
         setTransactionData(null); // Clear unsigned data
-        setSignedTransactionData(processedQrData);
+        setSignedTransactionData({
+          ...processedQrData,
+          isUploaded: true
+        });
         setSubmittedTransactionData(null);
         setQrCodeData({ qrDataURL: URL.createObjectURL(file), size: file.size, type: 'signed' });
       } else if (transactionType === 'submitted') {
         setTransactionData(null); // Clear unsigned data
         setSignedTransactionData(null); // Clear signed data
-        setSubmittedTransactionData(processedQrData);
+        setSubmittedTransactionData({
+          ...processedQrData,
+          isUploaded: true
+        });
         setQrCodeData({ qrDataURL: URL.createObjectURL(file), size: file.size, type: 'submitted' });
       }
       
@@ -612,13 +1012,13 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
 
           const qrData = qrResult.qrData;
 
-          // Detect transaction type
+          // Detect transaction type (handle both single and multi-part QR formats)
           let transactionType = 'unknown';
-          if (qrData.type === 'kaspa-unsigned-transaction-qr') {
+          if (qrData.type === 'kaspa-unsigned-transaction-qr' || qrData.type === 'kaspa-unsigned-transaction-multipart-qr') {
             transactionType = 'unsigned';
-          } else if (qrData.type === 'kaspa-signed-transaction-qr') {
+          } else if (qrData.type === 'kaspa-signed-transaction-qr' || qrData.type === 'kaspa-signed-transaction-multipart-qr') {
             transactionType = 'signed';
-          } else if (qrData.type === 'kaspa-submitted-transaction-qr') {
+          } else if (qrData.type === 'kaspa-submitted-transaction-qr' || qrData.type === 'kaspa-submitted-transaction-multipart-qr') {
             transactionType = 'submitted';
           }
 
@@ -631,20 +1031,32 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
 
           // Reset transaction progress states based on scanned QR transaction type
           if (transactionType === 'unsigned') {
-            setTransactionData(processedQrData);
+            const scannedTransactionData = {
+              ...processedQrData,
+              isUploaded: true
+            };
+            setTransactionData(scannedTransactionData);
             setSignedTransactionData(null);
             setSubmittedTransactionData(null);
-            await generateQRCode(processedQrData, 'unsigned');
+            await generateQRCode(scannedTransactionData, 'unsigned');
           } else if (transactionType === 'signed') {
             setTransactionData(null);
-            setSignedTransactionData(processedQrData);
+            const scannedSignedData = {
+              ...processedQrData,
+              isUploaded: true
+            };
+            setSignedTransactionData(scannedSignedData);
             setSubmittedTransactionData(null);
-            await generateQRCode(processedQrData, 'signed');
+            await generateQRCode(scannedSignedData, 'signed');
           } else if (transactionType === 'submitted') {
             setTransactionData(null);
             setSignedTransactionData(null);
-            setSubmittedTransactionData(processedQrData);
-            await generateQRCode(processedQrData, 'submitted');
+            const scannedSubmittedData = {
+              ...processedQrData,
+              isUploaded: true
+            };
+            setSubmittedTransactionData(scannedSubmittedData);
+            await generateQRCode(scannedSubmittedData, 'submitted');
           }
 
           // Clear file uploads since we scanned from camera
@@ -677,7 +1089,121 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
     }
   };
 
+  const handleScanRecipientAddress = async () => {
+    try {
+      setIsScanning(true);
+      
+      // Import QR manager
+      const { openCameraQRScanner } = await import('../../kaspa/js/qr-manager.js');
+      
+      // Open camera scanner with callback
+      await openCameraQRScanner(async (scanResult) => {
+        if (scanResult.success && scanResult.qrData) {
+          const qrData = scanResult.qrData;
+          
+          // Check if it's a simple address string
+          if (typeof qrData === 'string' && (qrData.startsWith('kaspa:') || qrData.startsWith('kaspatest:'))) {
+            setToAddress(qrData);
+            addNotification('Recipient address scanned successfully', 'success');
+            return;
+          }
+          
+          // Check if it's a Kaspa address QR (receiving address)
+          if (qrData.type === 'kaspa-address-qr' && qrData.address) {
+            setToAddress(qrData.address);
+            addNotification('Recipient address scanned successfully', 'success');
+            return;
+          }
+          
+          // Check if it's a payment request QR
+          if (qrData.type === 'kaspa-payment-request-qr' && qrData.address) {
+            setToAddress(qrData.address);
+            if (qrData.amount) {
+              setAmount(qrData.amount.toString());
+              addNotification(`Payment request scanned: ${qrData.amount} KAS to ${qrData.address}`, 'success');
+            } else {
+              addNotification('Recipient address scanned successfully', 'success');
+            }
+            return;
+          }
+          
+          // If we get here, it's not a recognized address format
+          addNotification('QR code does not contain a valid Kaspa address', 'warning');
+        } else {
+          addNotification('Failed to scan QR code: ' + (scanResult.error || 'Unknown error'), 'error');
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error opening camera scanner for recipient address:', error);
+      addNotification('Error opening camera scanner: ' + error.message, 'error');
+    } finally {
+      setIsScanning(false);
+    }
+  };
 
+  const handleUploadRecipientQR = () => {
+    // Create a file input element
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.multiple = false;
+    
+    fileInput.onchange = async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      try {
+        // Import QR reading function
+        const { readQRFromImage } = await import('../../kaspa/js/qr-manager.js');
+        
+        // Read QR code from uploaded image
+        const qrResult = await readQRFromImage(file);
+        
+        if (qrResult.success && qrResult.qrData) {
+          const qrData = qrResult.qrData;
+          
+          // Check if it's a simple address string
+          if (typeof qrData === 'string' && (qrData.startsWith('kaspa:') || qrData.startsWith('kaspatest:'))) {
+            setToAddress(qrData);
+            addNotification('Recipient address loaded from QR image', 'success');
+            return;
+          }
+          
+          // Check if it's a Kaspa address QR (receiving address)
+          if (qrData.type === 'kaspa-address-qr' && qrData.address) {
+            setToAddress(qrData.address);
+            addNotification('Recipient address loaded from QR image', 'success');
+            return;
+          }
+          
+          // Check if it's a payment request QR
+          if (qrData.type === 'kaspa-payment-request-qr' && qrData.address) {
+            setToAddress(qrData.address);
+            if (qrData.amount) {
+              setAmount(qrData.amount.toString());
+              addNotification(`Payment request loaded: ${qrData.amount} KAS to ${qrData.address}`, 'success');
+            } else {
+              addNotification('Recipient address loaded from QR image', 'success');
+            }
+            return;
+          }
+          
+          // If we get here, it's not a recognized address format
+          addNotification('QR image does not contain a valid Kaspa address', 'warning');
+        } else {
+          addNotification('Failed to read QR code from image: ' + (qrResult.error || 'Unknown error'), 'error');
+        }
+        
+      } catch (error) {
+        console.error('Error reading QR from uploaded image:', error);
+        addNotification('Error reading QR code: ' + error.message, 'error');
+      }
+    };
+    
+    // Trigger file selection
+    fileInput.click();
+  };
 
   const handleResetTransaction = () => {
     // Reset all transaction states
@@ -848,18 +1374,91 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
               )
             ),
             
+            // UTXO Status and Offline Mode Section
+            React.createElement('div', { className: 'mb-4 p-3 border rounded bg-light' },
+              React.createElement('div', { className: 'row align-items-center' },
+                React.createElement('div', { className: 'col-md-8' },
+                  React.createElement('h6', { className: 'mb-2' },
+                    React.createElement('i', { className: 'bi bi-database me-2' }),
+                    'Transaction Mode'
+                  ),
+                  cachedUTXOs ? 
+                    React.createElement('div', null,
+                      React.createElement('span', { className: 'badge bg-success me-2' },
+                        React.createElement('i', { className: 'bi bi-check-circle me-1' }),
+                        'UTXOs Available'
+                      ),
+                      React.createElement('small', { className: 'text-muted' },
+                        `${cachedUTXOs.count} UTXOs cached | Last updated: ${new Date(cachedUTXOs.timestamp).toLocaleString()}`
+                      ),
+                      cachedUTXOs.imported && React.createElement('span', { className: 'badge bg-info ms-2' }, 'Imported from QR')
+                    ) :
+                    React.createElement('div', null,
+                      React.createElement('span', { className: 'badge bg-warning me-2' },
+                        React.createElement('i', { className: 'bi bi-exclamation-triangle me-1' }),
+                        'No Cached UTXOs'
+                      ),
+                      React.createElement('small', { className: 'text-muted' },
+                        'Fetch UTXOs from the wallet dashboard to enable offline mode'
+                      )
+                    )
+                ),
+                React.createElement('div', { className: 'col-md-4 text-md-end' },
+                  React.createElement('div', { className: 'form-check form-switch' },
+                    React.createElement('input', {
+                      className: 'form-check-input',
+                      type: 'checkbox',
+                      id: 'offlineMode',
+                      checked: useOfflineMode,
+                      onChange: (e) => setUseOfflineMode(e.target.checked),
+                      disabled: !cachedUTXOs
+                    }),
+                    React.createElement('label', { className: 'form-check-label', htmlFor: 'offlineMode' },
+                      'Offline Mode'
+                    )
+                  ),
+                  useOfflineMode && React.createElement('small', { className: 'text-primary d-block mt-1' },
+                    'Using cached UTXOs'
+                  )
+                )
+              )
+            ),
+
             // Transaction creation form
             React.createElement('form', { onSubmit: handleCreateTransaction },
               React.createElement('div', { className: 'mb-3' },
                 React.createElement('label', { className: 'form-label' }, 'Recipient Address'),
-                React.createElement('input', {
-                  type: 'text',
-                  className: `form-control ${!toAddress && formErrors.some(e => e.includes('address')) ? 'is-invalid' : ''}`,
-                  value: toAddress,
-                  onChange: (e) => setToAddress(e.target.value),
-                  placeholder: `kaspa:qqkqkzjvr7zwxxmjxjkmxxdwju9kjs6e9u82uh59z07vgaks6gg62v8707g73`,
-                  required: true
-                }),
+                React.createElement('div', { className: 'input-group' },
+                  React.createElement('input', {
+                    type: 'text',
+                    className: `form-control ${!toAddress && formErrors.some(e => e.includes('address')) ? 'is-invalid' : ''}`,
+                    value: toAddress,
+                    onChange: (e) => setToAddress(e.target.value),
+                    placeholder: `kaspa:qqkqkzjvr7zwxxmjxjkmxxdwju9kjs6e9u82uh59z07vgaks6gg62v8707g73`,
+                    required: true
+                  }),
+                  React.createElement('button', {
+                    className: 'btn btn-outline-secondary',
+                    type: 'button',
+                    onClick: handleScanRecipientAddress,
+                    title: 'Scan QR code with camera',
+                    disabled: isScanning,
+                    style: { borderLeft: 'none' }
+                  },
+                    isScanning ? 
+                      React.createElement('span', { className: 'spinner-border spinner-border-sm' }) :
+                      React.createElement('i', { className: 'bi bi-camera' })
+                  ),
+                  React.createElement('button', {
+                    className: 'btn btn-outline-secondary',
+                    type: 'button',
+                    onClick: handleUploadRecipientQR,
+                    title: 'Upload QR code image',
+                    style: { borderLeft: 'none' }
+                  },
+                    React.createElement('i', { className: 'bi bi-upload' })
+                  )
+                ),
                 React.createElement('div', { className: 'form-text' },
                   `Enter a valid ${walletState.network} address (must start with "${walletState.network === 'mainnet' ? 'kaspa:' : 'kaspatest:'}"). Current network: `,
                   React.createElement('span', { className: 'badge bg-primary' }, walletState.network)
@@ -876,11 +1475,15 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
                   className: `form-control ${!amount && formErrors.some(e => e.includes('amount')) ? 'is-invalid' : ''}`,
                   value: amount,
                   onChange: (e) => setAmount(e.target.value),
-                  placeholder: '0.00',
+                  placeholder: DEFAULT_TRANSACTION_AMOUNT.toString(),
                   step: '0.00000001',
-                  min: '0',
+                  min: MIN_TRANSACTION_AMOUNT.toString(),
+                  max: MAX_TRANSACTION_AMOUNT.toString(),
                   required: true
                 }),
+                React.createElement('div', { className: 'form-text' },
+                  `Minimum: ${MIN_TRANSACTION_AMOUNT} KAS | Maximum: ${MAX_TRANSACTION_AMOUNT} KAS`
+                ),
                 formErrors.some(e => e.includes('amount')) && React.createElement('div', {
                   className: 'invalid-feedback'
                 }, 'Please enter a valid amount')
@@ -1008,7 +1611,10 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
           React.createElement('div', { className: 'card-header' },
             React.createElement('h6', { className: 'card-title mb-0' },
               React.createElement('i', { className: 'bi bi-qr-code me-2' }),
-              `${submittedTransactionData ? 'Submitted' : signedTransactionData ? 'Signed' : 'Unsigned'} Transaction QR Code`
+              `${submittedTransactionData ? 'Submitted' : signedTransactionData ? 'Signed' : 'Unsigned'} Transaction QR Code`,
+              qrCodeData.isMultiPart && React.createElement('span', { className: 'badge bg-info ms-2' },
+                `Multi-Part (${qrCodeData.totalParts} parts)`
+              )
             )
           ),
           React.createElement('div', { className: 'card-body' },
@@ -1021,8 +1627,53 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
                     className: 'img-fluid border rounded',
                     style: { maxWidth: '250px' }
                   }),
+                  qrCodeData?.isMultiPart && React.createElement('div', { className: 'mt-2' },
+                    React.createElement('div', { className: 'btn-group', role: 'group' },
+                      React.createElement('button', {
+                        className: 'btn btn-outline-primary btn-sm',
+                        onClick: () => {
+                          const newPart = Math.max(1, (qrCodeData?.currentPart || 1) - 1);
+                          const newQRPart = qrCodeData?.qrParts?.[newPart - 1];
+                          if (newQRPart) {
+                            setQrCodeData({
+                              ...qrCodeData,
+                              currentPart: newPart,
+                              qrDataURL: newQRPart.qrDataURL,
+                              displayPart: newQRPart
+                            });
+                          }
+                        },
+                        disabled: (qrCodeData?.currentPart || 1) <= 1
+                      },
+                        React.createElement('i', { className: 'bi bi-chevron-left' })
+                      ),
+                      React.createElement('span', { className: 'btn btn-outline-secondary btn-sm disabled' },
+                        `Part ${qrCodeData?.currentPart || 1} of ${qrCodeData?.totalParts || 1}`
+                      ),
+                      React.createElement('button', {
+                        className: 'btn btn-outline-primary btn-sm',
+                        onClick: () => {
+                          const newPart = Math.min(qrCodeData?.totalParts || 1, (qrCodeData?.currentPart || 1) + 1);
+                          const newQRPart = qrCodeData?.qrParts?.[newPart - 1];
+                          if (newQRPart) {
+                            setQrCodeData({
+                              ...qrCodeData,
+                              currentPart: newPart,
+                              qrDataURL: newQRPart.qrDataURL,
+                              displayPart: newQRPart
+                            });
+                          }
+                        },
+                        disabled: (qrCodeData?.currentPart || 1) >= (qrCodeData?.totalParts || 1)
+                      },
+                        React.createElement('i', { className: 'bi bi-chevron-right' })
+                      )
+                    )
+                  ),
                   React.createElement('p', { className: 'text-muted mt-2 small' },
-                    'Scan this QR code to import the transaction'
+                    qrCodeData.isMultiPart 
+                      ? `Scan all ${qrCodeData.totalParts} parts to import the complete transaction`
+                      : 'Scan this QR code to import the transaction'
                   )
                 )
               ),
@@ -1032,16 +1683,27 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
                   React.createElement('input', {
                     type: 'text',
                     className: 'form-control form-control-sm',
-                    value: transactionData.transactionId,
+                    value: transactionData?.transactionId || 'Unknown',
                     readOnly: true
                   })
                 ),
                 React.createElement('div', { className: 'mb-3' },
-                  React.createElement('label', { className: 'form-label small' }, 'QR Data Size'),
+                  React.createElement('label', { className: 'form-label small' }, 
+                    qrCodeData?.isMultiPart ? 'Total QR Data Size' : 'QR Data Size'
+                  ),
                   React.createElement('input', {
                     type: 'text',
                     className: 'form-control form-control-sm',
-                    value: `${qrCodeData.size} bytes`,
+                    value: `${qrCodeData?.size || 0} bytes`,
+                    readOnly: true
+                  })
+                ),
+                qrCodeData?.isMultiPart && React.createElement('div', { className: 'mb-3' },
+                  React.createElement('label', { className: 'form-label small' }, 'Current Part Size'),
+                  React.createElement('input', {
+                    type: 'text',
+                    className: 'form-control form-control-sm',
+                    value: `${qrCodeData?.displayPart?.size || qrCodeData?.qrParts?.[0]?.size || 0} bytes`,
                     readOnly: true
                   })
                 ),
@@ -1051,7 +1713,16 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
                     onClick: handleDownloadQR
                   },
                     React.createElement('i', { className: 'bi bi-download me-1' }),
-                    `Download ${submittedTransactionData ? 'Submitted' : signedTransactionData ? 'Signed' : 'Unsigned'} QR`
+                    qrCodeData.isMultiPart 
+                      ? `Download Part ${qrCodeData.currentPart}` 
+                      : `Download ${submittedTransactionData ? 'Submitted' : signedTransactionData ? 'Signed' : 'Unsigned'} QR`
+                  ),
+                  qrCodeData.isMultiPart && React.createElement('button', {
+                    className: 'btn btn-outline-success btn-sm',
+                    onClick: handleDownloadAllQRParts
+                  },
+                    React.createElement('i', { className: 'bi bi-download me-1' }),
+                    'Download All Parts'
                   ),
                   React.createElement('button', {
                     className: 'btn btn-outline-secondary btn-sm',
@@ -1120,16 +1791,21 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
             React.createElement('div', { className: 'small' },
               React.createElement('strong', null, 'Type: '),
               React.createElement('span', { 
-                className: `badge bg-${uploadedFile?.type === 'unsigned' || uploadedQrData?.type === 'unsigned' ? 'warning' : 
-                                  uploadedFile?.type === 'signed' || uploadedQrData?.type === 'signed' ? 'success' : 'info'}`
-              }, uploadedFile?.type || uploadedQrData?.type),
+                className: `badge bg-${(uploadedFile?.type === 'unsigned' || uploadedQrData?.type === 'unsigned') ? 'warning' : 
+                                  (uploadedFile?.type === 'signed' || uploadedQrData?.type === 'signed') ? 'success' : 'info'}`
+              }, uploadedFile?.type || uploadedQrData?.type || 'Unknown'),
               React.createElement('br'),
               React.createElement('strong', null, 'Source: '),
-              uploadedFile ? 'JSON file' : 'QR code',
+              uploadedFile ? 'JSON file' : 
+              uploadedQrData?.source === 'camera' ? 'Camera scan' :
+              uploadedQrData?.source === 'multipart-files' ? 'Multi-part upload' : 'QR code',
               React.createElement('br'),
               React.createElement('strong', null, 'File: '),
               React.createElement('span', { className: 'text-break' }, 
-                uploadedFile?.file.name || uploadedQrData?.file.name
+                (uploadedFile?.file?.name) || 
+                (uploadedQrData?.file?.name) || 
+                (uploadedQrData?.files ? `${uploadedQrData.files.length} files` : 
+                 uploadedQrData?.source === 'camera' ? 'Camera scan' : 'Unknown')
               )
             )
           )

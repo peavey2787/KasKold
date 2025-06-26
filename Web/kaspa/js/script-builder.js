@@ -7,7 +7,6 @@ let scriptHistory = [];
 
 // Initialize Script Builder
 async function initializeScriptBuilder() {
-    console.log('Script Builder initialized');
     updateScriptDisplay();
 }
 
@@ -359,7 +358,6 @@ function updateScriptStatus(message, type = 'info') {
             }, 5000);
         }
     }
-    console.log(`Script Status [${type}]: ${message}`);
 }
 
 // Update script display

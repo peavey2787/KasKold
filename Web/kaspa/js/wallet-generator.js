@@ -1,20 +1,13 @@
 // Kaspa Wallet Generator Module
 import { getKaspa, isInitialized } from './init.js';
+import { DEFAULT_ACCOUNT_PATH, DEFAULT_ADDRESS_PATH, NETWORKS } from './constants.js';
 
-// Network types configuration
-const NETWORK_TYPES = {
-    MAINNET: 'mainnet',
-    TESTNET_10: 'testnet-10',
-    TESTNET_11: 'testnet-11',
-    DEVNET: 'devnet',
-    SIMNET: 'simnet'
-};
-
-// Default derivation path
-const DEFAULT_DERIVATION_PATH = "m/44'/111111'/0'/0/0";
+// Legacy aliases for backward compatibility
+const NETWORK_TYPES = NETWORKS;
+const ACCOUNT_PATH = DEFAULT_ACCOUNT_PATH;
 
 // Generate a new wallet
-function generateWallet(networkType, derivationPath, passphrase = null) {
+function generateWallet(networkType, derivationPath = DEFAULT_ADDRESS_PATH, passphrase = null) {
     if (!isInitialized()) {
         throw new Error('Kaspa WASM not initialized. Call initKaspa() first.');
     }
@@ -33,7 +26,11 @@ function generateWallet(networkType, derivationPath, passphrase = null) {
     // Generate the hierarchical extended private key (xPrv) from the seed
     const xPrv = new XPrv(seed);
     
-    // Derive along the specified derivation path
+    // First derive to the account level to get the xpub
+    const accountXPrv = xPrv.derivePath(ACCOUNT_PATH);
+    const xpub = accountXPrv.toXPub();
+    
+    // Then derive to the full path for the first address
     const derivedXPrv = xPrv.derivePath(derivationPath);
     const privateKey = derivedXPrv.toPrivateKey();
     
@@ -45,9 +42,10 @@ function generateWallet(networkType, derivationPath, passphrase = null) {
         publicAddress: publicAddress,
         privateKey: privateKey.toString(),
         networkType: networkType,
-        derivationPath: derivationPath
+        derivationPath: ACCOUNT_PATH, // ✅ Store account-level path for HD wallet compatibility
+        xpub: xpub.toString(),
+        accountPath: ACCOUNT_PATH
     };
-    
     
     return walletData;
 }
@@ -55,6 +53,7 @@ function generateWallet(networkType, derivationPath, passphrase = null) {
 // Export functions and constants
 export {
     NETWORK_TYPES,
-    DEFAULT_DERIVATION_PATH,
+    DEFAULT_ADDRESS_PATH,
+    ACCOUNT_PATH,
     generateWallet
 }; 

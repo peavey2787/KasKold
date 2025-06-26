@@ -13,16 +13,26 @@ export function WalletLogin({ onNavigate, onWalletLogin, addNotification }) {
 
   const loadWallets = async () => {
     try {
+      console.log('🔍 WALLET LOGIN: Starting to load wallets...');
       const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
       const walletStorage = new WalletStorage();
+      
+      console.log('🔍 WALLET LOGIN: WalletStorage imported and instantiated');
+      
       const savedWallets = await walletStorage.getAllWallets();
+      console.log('🔍 WALLET LOGIN: getAllWallets result:', savedWallets);
+      console.log('🔍 WALLET LOGIN: Number of wallets found:', savedWallets ? savedWallets.length : 0);
+      
       setWallets(savedWallets || []);
       
       if (savedWallets && savedWallets.length > 0) {
         setSelectedWallet(savedWallets[0].id);
+        console.log('🔍 WALLET LOGIN: Selected first wallet:', savedWallets[0].id);
+      } else {
+        console.log('🔍 WALLET LOGIN: No wallets found, showing empty state');
       }
     } catch (error) {
-      console.error('Failed to load wallets:', error);
+      console.error('🔍 WALLET LOGIN: Failed to load wallets:', error);
       addNotification('Failed to load wallets', 'error');
     }
   };

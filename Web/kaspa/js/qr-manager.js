@@ -1,5 +1,6 @@
 // Kaspa QR Code Manager Module
 import { getKaspa, isInitialized } from './init.js';
+import { serializeWasmObject, convertBigIntToString, createQRTransactionData } from './serialization-utils.js';
 
 // QR Code generation using qrcode-generator library (will be loaded dynamically)
 let qrCodeLib = null;
@@ -197,7 +198,7 @@ async function generateUnsignedMessageQR(messageData) {
         if (!qrCodeLib) {
             throw new Error('QR code generation library not loaded');
         }
-        console.log('QR DEBUG: Generating QR code with qrcode-generator library...');
+
         // Generate QR code as data URL using our custom function
         const qrDataURL = generateQRCodeDataURL(qrString);
                  
@@ -230,7 +231,7 @@ async function generateSignedMessageQR(signedData) {
         if (!signedData.message || !signedData.signature) {
             throw new Error('Message and signature are required for QR generation');
         }
-         console.log('QR DEBUG: Creating QR data structure...');
+
         // Create QR data structure for signed message
         const qrData = {
             type: 'kaspa-signed-message-qr',
@@ -312,17 +313,44 @@ async function readQRFromImage(imageFile) {
                         throw new Error('No QR code found in the image');
                     }
                     
-                    // Parse QR data
+                    // Parse QR data - handle both JSON and plain text
                     let qrData;
+                    
+                    // First, try to parse as JSON (for structured Kaspa QR codes)
                     try {
                         qrData = JSON.parse(qrResult.data);
+                        
+                        // Validate QR data structure for JSON QR codes
+                        if (!qrData.type || !qrData.type.startsWith('kaspa-')) {
+                            throw new Error('QR code is not a valid Kaspa QR code');
+                        }
+                        
                     } catch (parseError) {
-                        throw new Error('QR code does not contain valid JSON data');
-                    }
-                    
-                    // Validate QR data structure
-                    if (!qrData.type || !qrData.type.startsWith('kaspa-')) {
-                        throw new Error('QR code is not a valid Kaspa QR code');
+                        // If JSON parsing fails, try to parse as generic JSON that might contain xpub
+                        const rawData = qrResult.data.trim();
+                        
+                        // Try to parse as JSON one more time to check for xpub field
+                        try {
+                            const jsonData = JSON.parse(rawData);
+                            if (jsonData.xpub && (jsonData.xpub.startsWith('xpub') || jsonData.xpub.startsWith('tpub') || jsonData.xpub.startsWith('kpub') || jsonData.xpub.startsWith('ktpub'))) {
+                                // It's a JSON object with xpub field - extract the xpub string
+                                qrData = jsonData.xpub;
+                            } else {
+                                throw new Error('JSON does not contain valid xpub field');
+                            }
+                        } catch (secondParseError) {
+                            // Not valid JSON, check if it's a plain string
+                            if (rawData.startsWith('kaspa:') || rawData.startsWith('kaspatest:')) {
+                                // It's a plain address string
+                                qrData = rawData;
+                            } else if (rawData.startsWith('xpub') || rawData.startsWith('tpub') || rawData.startsWith('kpub') || rawData.startsWith('ktpub')) {
+                                // It's a plain extended public key string (including Kaspa kpub format)
+                                qrData = rawData;
+                            } else {
+                                // Not JSON, not a Kaspa address, and not an extended public key
+                                throw new Error('QR code does not contain valid Kaspa data (expected JSON format, Kaspa address, or extended public key)');
+                            }
+                        }
                     }
                     
                     resolve({
@@ -523,39 +551,213 @@ async function generateUnsignedTransactionQR(transactionData) {
             throw new Error('Transaction ID is required for QR generation');
         }
         
-        // Create QR data structure for unsigned transaction
-        const qrData = {
-            type: 'kaspa-unsigned-transaction-qr',
-            version: '1.0',
-            transactionId: transactionData.transactionId,
+        // Serialize the pending transaction using centralized utilities
+        let serializedPendingTransaction = null;
+        if (transactionData.pendingTransaction) {
+            try {
+                console.log("🔄 Serializing pending transaction using centralized utilities");
+                const rawSerialized = serializeWasmObject(transactionData.pendingTransaction);
+                serializedPendingTransaction = convertBigIntToString(rawSerialized);
+                console.log("✅ Successfully serialized pending transaction for QR");
+            } catch (serializeError) {
+                console.error("❌ CRITICAL ERROR: Failed to serialize pending transaction for QR:", serializeError);
+                console.warn("⚠️ Continuing QR generation without serialized transaction data");
+                serializedPendingTransaction = null;
+            }
+        }
+        
+        // For offline signing support, we need to extract and include comprehensive UTXO data
+        let inputUtxos = [];
+        let inputs = [];
+        let outputs = [];
+        
+        // Try to extract input/output data from the pending transaction
+        if (serializedPendingTransaction) {
+            if (serializedPendingTransaction.transaction) {
+                inputs = serializedPendingTransaction.transaction.inputs || [];
+                outputs = serializedPendingTransaction.transaction.outputs || [];
+            }
+        }
+        
+        // Extract UTXO data from multiple sources for comprehensive offline support
+        // Priority 1: Use preserved UTXO entries from transaction creation
+        if (transactionData.utxoEntries && Array.isArray(transactionData.utxoEntries)) {
+            inputUtxos = transactionData.utxoEntries;
+            console.log(`📦 Found ${inputUtxos.length} preserved UTXO entries (BEST for offline)`);
+        } 
+        // Priority 2: Extract from transaction summary
+        else if (transactionData.summary && Array.isArray(transactionData.summary.utxos)) {
+            inputUtxos = transactionData.summary.utxos;
+            console.log(`📦 Found ${inputUtxos.length} UTXOs in transaction summary`);
+        } 
+        // Priority 3: Try to extract UTXOs from WASM summary object
+        else if (transactionData.summary && transactionData.summary.__wbg_ptr) {
+            try {
+                const summaryData = serializeWasmObject(transactionData.summary);
+                if (summaryData.utxos && Array.isArray(summaryData.utxos)) {
+                    inputUtxos = summaryData.utxos;
+                    console.log(`📦 Extracted ${inputUtxos.length} UTXOs from WASM summary`);
+                }
+            } catch (e) {
+                console.warn('Could not extract UTXOs from WASM summary:', e);
+            }
+        }
+        
+        // If we still don't have UTXOs but have inputs, try to get UTXO data from inputs
+        if (inputUtxos.length === 0 && inputs.length > 0) {
+            inputUtxos = inputs.map((input, index) => {
+                console.log(`🔍 Processing input ${index}:`, {
+                    keys: Object.keys(input),
+                    hasUtxo: !!input.utxo,
+                    hasPreviousOutpoint: !!input.previousOutpoint,
+                    hasPrevious_outpoint: !!input.previous_outpoint
+                });
+                
+                if (input.utxo) {
+                    // Input already has a complete UTXO object
+                    console.log(`✅ Using complete UTXO from input ${index}`);
+                    return input.utxo;
+                } else if (input.previousOutpoint) {
+                    // Extract outpoint data from input.previousOutpoint
+                    const utxo = {
+                        outpoint: {
+                            transactionId: input.previousOutpoint.transactionId || input.previousOutpoint.txId || input.previousOutpoint.id,
+                            index: input.previousOutpoint.index !== undefined ? input.previousOutpoint.index : 0
+                        },
+                        address: input.address || input.previousOutpoint?.address,
+                        amount: input.amount || input.previousOutpoint?.amount,
+                        scriptPublicKey: input.scriptPublicKey || input.previousOutpoint?.scriptPublicKey,
+                        blockDaaScore: input.blockDaaScore || input.previousOutpoint?.blockDaaScore || '0',
+                        isCoinbase: input.isCoinbase || input.previousOutpoint?.isCoinbase || false
+                    };
+                    
+                    console.log(`✅ Constructed UTXO from input ${index} previousOutpoint:`, {
+                        hasOutpoint: !!utxo.outpoint,
+                        outpointKeys: utxo.outpoint ? Object.keys(utxo.outpoint) : [],
+                        hasTransactionId: !!utxo.outpoint?.transactionId,
+                        hasIndex: utxo.outpoint?.index !== undefined,
+                        indexValue: utxo.outpoint?.index
+                    });
+                    
+                    return utxo;
+                } else if (input.previous_outpoint) {
+                    // Legacy format - try to extract what we can
+                    console.warn(`⚠️ Using legacy previous_outpoint format for input ${index}`);
+                    const utxo = {
+                        outpoint: {
+                            transactionId: input.previous_outpoint.transactionId || input.previous_outpoint.txId || input.previous_outpoint.id,
+                            index: input.previous_outpoint.index !== undefined ? input.previous_outpoint.index : 0
+                        },
+                        address: input.previous_outpoint.address,
+                        amount: input.previous_outpoint.amount,
+                        scriptPublicKey: input.previous_outpoint.scriptPublicKey,
+                        blockDaaScore: input.previous_outpoint.blockDaaScore || '0',
+                        isCoinbase: input.previous_outpoint.isCoinbase || false
+                    };
+                    
+                    return utxo;
+                } else {
+                    console.error(`❌ Could not extract UTXO data from input ${index}:`, Object.keys(input));
+                    return null;
+                }
+            }).filter(utxo => utxo !== null);
+            
+            if (inputUtxos.length > 0) {
+                console.log(`📦 Extracted ${inputUtxos.length} UTXOs from transaction inputs`);
+                // Log first UTXO structure for debugging
+                console.log('🔍 First extracted UTXO structure:', {
+                    keys: Object.keys(inputUtxos[0]),
+                    outpoint: inputUtxos[0].outpoint,
+                    hasTransactionId: !!inputUtxos[0].outpoint?.transactionId,
+                    hasIndex: inputUtxos[0].outpoint?.index !== undefined
+                });
+            }
+        }
+        
+        console.log('💾 UTXO data for QR:', {
+            inputUtxoCount: inputUtxos.length,
+            inputCount: inputs.length,
+            outputCount: outputs.length,
+            hasSerializedPending: !!serializedPendingTransaction
+        });
+        
+        // Create comprehensive QR data structure using centralized utility
+        // CRITICAL: Include the actual UTXO entries for true offline signing
+        let enhancedUtxos = inputUtxos;
+        
+        // If we still don't have UTXO data, try to reconstruct it from the transaction creation context
+        if (enhancedUtxos.length === 0) {
+            // This happens when the QR is generated after transaction creation but before the entries are lost
+            console.warn('🔍 No UTXOs found in summary, this may cause offline signing issues');
+            
+            // In a real-world app, we should store the original UTXO entries used in creation
+            // For now, let's mark this QR as requiring network connection for signing
+            enhancedUtxos = [{
+                warning: 'OFFLINE_SIGNING_INCOMPLETE',
+                message: 'This QR code does not contain complete UTXO data. Network connection may be required for signing.',
+                hasCompleteUtxoData: false
+            }];
+        }
+        
+        const enhancedTransactionData = {
+            ...transactionData,
+            serializedPendingTransaction: serializedPendingTransaction,
+            // CRITICAL: Include the original WASM pending transaction for offline signing
+            pendingTransaction: serializedPendingTransaction,
+            // Ensure transaction ID is always present
+            transactionId: transactionData.transactionId || `fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            // Ensure other critical fields are present
             fromAddress: transactionData.fromAddress,
             toAddress: transactionData.toAddress,
             amount: transactionData.amount,
-            amountInSompi: transactionData.amountInSompi,
-            fee: transactionData.fee,
-            feeMode: transactionData.feeMode,
             networkType: transactionData.networkType,
-            timestamp: transactionData.timestamp || new Date().toISOString(),
-            status: 'unsigned'
+            transactionDetails: {
+                inputs: inputs,
+                outputs: outputs,
+                inputUtxos: enhancedUtxos,
+                hasCompleteUtxoData: enhancedUtxos.length > 0 && !enhancedUtxos[0]?.warning,
+                mass: transactionData.summary?.mass || null,
+                fees: transactionData.summary?.fees || null,
+                aggregateInputAmount: transactionData.summary?.aggregateInputAmount || null,
+                aggregateOutputAmount: transactionData.summary?.aggregateOutputAmount || null,
+                changeAmount: transactionData.summary?.changeAmount || null
+            },
+            originalTransactionData: {
+                pendingTransaction: serializedPendingTransaction,
+                summary: transactionData.summary ? serializeWasmObject(transactionData.summary) : null,
+                transactions: transactionData.transactions ? transactionData.transactions.map(tx => {
+                    try {
+                        return serializeWasmObject(tx);
+                    } catch (e) {
+                        console.warn('Could not serialize transaction for QR:', e);
+                        return null;
+                    }
+                }).filter(tx => tx !== null) : []
+            },
+            // Mark this for offline capability assessment
+            offlineSigningCapable: enhancedUtxos.length > 0 && !enhancedUtxos[0]?.warning
         };
+        
+        const qrData = createQRTransactionData(enhancedTransactionData, 'unsigned');
+        
+        // Convert BigInt values to strings before JSON serialization
+        const serializedQrData = convertBigIntToString(qrData);
         
         // Convert to JSON string
-        const qrString = JSON.stringify(qrData);
-       
-        if (!qrCodeLib) {
-            throw new Error('QR code generation library not loaded');
+        const qrString = JSON.stringify(serializedQrData);
+        
+        console.log(`📊 Unsigned transaction QR data size: ${qrString.length} characters`);
+        
+        // Use multi-part QR generation for potentially large transaction data
+        const multiQRResult = await generateMultiPartQR(serializedQrData, 'unsigned-transaction');
+        
+        if (!multiQRResult.success) {
+            throw new Error(multiQRResult.error);
         }
         
-        // Generate QR code as data URL using our custom function
-        const qrDataURL = generateQRCodeDataURL(qrString);
-                
-        return {
-            success: true,
-            qrDataURL: qrDataURL,
-            qrData: qrData,
-            qrString: qrString,
-            size: qrString.length
-        };
+        console.log(`✅ Generated ${multiQRResult.totalParts} part(s) for unsigned transaction QR`);
+        
+        return multiQRResult;
         
     } catch (error) {
         console.error('QR DEBUG: Error in generateUnsignedTransactionQR:', error);
@@ -580,29 +782,55 @@ async function generateSignedTransactionQR(signedTransactionData) {
             throw new Error('Transaction ID is required for QR generation');
         }
         
-        // Create QR data structure for signed transaction
-        const qrData = {
-            type: 'kaspa-signed-transaction-qr',
-            version: '1.0',
-            transactionId: signedTransactionData.transactionId,
+        // Extract serialized transaction data using centralized utilities
+        let serializedTransaction = null;
+        
+        // First, try to use any existing serialized transaction data
+        if (signedTransactionData.serializedTransaction) {
+            console.log("✅ Using existing serialized transaction data from signedTransactionData");
+            serializedTransaction = signedTransactionData.serializedTransaction;
+        }
+        // Only if no existing serialized data, try to serialize the WASM object
+        else if (signedTransactionData.signedTransaction) {
+            try {
+                console.log("🔄 Serializing signed transaction using centralized utilities");
+                const rawSerialized = serializeWasmObject(signedTransactionData.signedTransaction);
+                serializedTransaction = convertBigIntToString(rawSerialized);
+            } catch (serializeError) {
+                console.error("❌ Failed to serialize signed transaction:", serializeError);
+                // Continue with null serializedTransaction
+            }
+        }
+
+        // Create comprehensive QR data structure using centralized utility
+        // Ensure critical fields are preserved even if WASM serialization fails
+        const enhancedSignedData = {
+            ...signedTransactionData,
+            serializedTransaction: serializedTransaction,
+            // Ensure transaction ID is always present
+            transactionId: signedTransactionData.transactionId || `fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            // Ensure other critical fields are present
             fromAddress: signedTransactionData.fromAddress,
             toAddress: signedTransactionData.toAddress,
             amount: signedTransactionData.amount,
-            amountInSompi: signedTransactionData.amountInSompi,
-            fee: signedTransactionData.fee,
-            feeMode: signedTransactionData.feeMode,
             networkType: signedTransactionData.networkType,
-            timestamp: signedTransactionData.timestamp || new Date().toISOString(),
-            status: 'signed',
-            // Include serialized transaction data if available
-            serializedTransaction: signedTransactionData.serializedTransaction || null
+            originalTransactionData: {
+                pendingTransaction: signedTransactionData.serializedPendingTransaction || null,
+                summary: signedTransactionData.summary || null,
+                signedTransaction: serializedTransaction
+            }
         };
         
+        const qrData = createQRTransactionData(enhancedSignedData, 'signed');
+        
+        // Convert BigInt values to strings before JSON serialization
+        const serializedQrData = convertBigIntToString(qrData);
+        
         // Convert to JSON string
-        const qrString = JSON.stringify(qrData);
+        const qrString = JSON.stringify(serializedQrData);
         
         // Use multi-part QR generation for potentially large signed transaction data
-        const multiQRResult = await generateMultiPartQR(qrData, 'signed-transaction');
+        const multiQRResult = await generateMultiPartQR(serializedQrData, 'signed-transaction');
         
         if (!multiQRResult.success) {
             throw new Error(multiQRResult.error);
@@ -632,26 +860,26 @@ async function generateSubmittedTransactionQR(submittedTransactionData) {
             throw new Error('Transaction ID is required for QR generation');
         }
         
-        // Create QR data structure for submitted transaction
-        const qrData = {
-            type: 'kaspa-submitted-transaction-qr',
-            version: '1.0',
-            transactionId: submittedTransactionData.transactionId,
+        // Ensure critical fields are preserved
+        const enhancedSubmittedData = {
+            ...submittedTransactionData,
+            // Ensure transaction ID is always present
+            transactionId: submittedTransactionData.transactionId || `fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            // Ensure other critical fields are present
             fromAddress: submittedTransactionData.fromAddress,
             toAddress: submittedTransactionData.toAddress,
             amount: submittedTransactionData.amount,
-            amountInSompi: submittedTransactionData.amountInSompi,
-            fee: submittedTransactionData.fee,
-            feeMode: submittedTransactionData.feeMode,
-            networkType: submittedTransactionData.networkType,
-            timestamp: submittedTransactionData.timestamp || new Date().toISOString(),
-            status: 'submitted',
-            networkResponse: submittedTransactionData.networkResponse || null,
-            submissionTimestamp: submittedTransactionData.submissionTimestamp || new Date().toISOString()
+            networkType: submittedTransactionData.networkType
         };
         
+        // Create QR data structure using centralized utility
+        const qrData = createQRTransactionData(enhancedSubmittedData, 'submitted');
+        
+        // Convert BigInt values to strings before JSON serialization
+        const serializedQrData = convertBigIntToString(qrData);
+        
         // Convert to JSON string
-        const qrString = JSON.stringify(qrData);
+        const qrString = JSON.stringify(serializedQrData);
         if (!qrCodeLib) {
             throw new Error('QR code generation library not loaded');
         }
@@ -661,7 +889,7 @@ async function generateSubmittedTransactionQR(submittedTransactionData) {
         return {
             success: true,
             qrDataURL: qrDataURL,
-            qrData: qrData,
+            qrData: serializedQrData,
             qrString: qrString,
             size: qrString.length
         };
@@ -688,8 +916,10 @@ function validateTransactionQRData(qrData, expectedType) {
         }
         
         const fullExpectedType = `kaspa-${expectedType}-qr`;
-        if (qrData.type !== fullExpectedType) {
-            throw new Error(`Invalid QR type - expected ${fullExpectedType}, got ${qrData.type}`);
+        const multiPartExpectedType = `kaspa-${expectedType}-multipart-qr`;
+        
+        if (qrData.type !== fullExpectedType && qrData.type !== multiPartExpectedType) {
+            throw new Error(`Invalid QR type - expected ${fullExpectedType} or ${multiPartExpectedType}, got ${qrData.type}`);
         }
         
         if (!qrData.version) {
@@ -865,11 +1095,12 @@ async function generateMultiPartQR(qrData, baseType) {
         // Convert to JSON string
         const jsonString = JSON.stringify(qrData);
         
-        // Check if we need multi-part QR (threshold: 1200 characters to be safe)
-        const maxSingleQRSize = 1200;
+        // For transaction QRs, prefer multi-part for comprehensive offline data
+        const isTransactionQR = baseType.includes('transaction');
+        const maxSingleQRSize = isTransactionQR ? 800 : 1200; // Lower threshold for transactions
         
-        if (jsonString.length <= maxSingleQRSize) {
-            // Single QR is sufficient
+        if (jsonString.length <= maxSingleQRSize && !isTransactionQR) {
+            // Single QR is sufficient for non-transaction data
             const qrDataURL = generateQRCodeDataURL(jsonString);
             
             return {
@@ -1165,7 +1396,7 @@ class CameraQRScanner {
                     };
                 }
             } catch (permError) {
-                console.log('Permission query not supported, proceeding with camera request');
+                
             }
 
             // Request camera permission with fallback options
@@ -1465,17 +1696,41 @@ class CameraQRScanner {
      */
     handleQRDetected(qrData) {
         try {
-            const parsedData = JSON.parse(qrData);
+            let parsedData;
             
-            // Check if it's a multi-part QR
-            if (parsedData.type && parsedData.type.includes('-multipart-qr')) {
-                this.handleMultiPartQR(parsedData);
-            } else {
-                this.handleSingleQR(parsedData);
+            // First, try to parse as JSON (for structured Kaspa QR codes)
+            try {
+                parsedData = JSON.parse(qrData);
+                
+                // Check if it's a multi-part QR
+                if (parsedData.type && parsedData.type.includes('-multipart-qr')) {
+                    this.handleMultiPartQR(parsedData);
+                    return;
+                } else if (parsedData.type && parsedData.type.startsWith('kaspa-')) {
+                    this.handleSingleQR(parsedData);
+                    return;
+                }
+            } catch (parseError) {
+                // If JSON parsing fails, try to handle as plain text
+                const rawData = qrData.trim();
+                
+                // Check if it's a plain address or extended public key
+                if (rawData.startsWith('kaspa:') || rawData.startsWith('kaspatest:') || 
+                    rawData.startsWith('xpub') || rawData.startsWith('tpub') || 
+                    rawData.startsWith('kpub') || rawData.startsWith('ktpub')) {
+                    // Treat as plain string data
+                    parsedData = rawData;
+                    this.handleSingleQR(parsedData);
+                    return;
+                }
             }
+            
+            // If we get here, it's not a recognized format
+            this.updateScanStatus('❌ QR code format not recognized');
+            
         } catch (error) {
-            console.error('Error parsing QR data:', error);
-            this.updateScanStatus('❌ Invalid QR code format detected');
+            console.error('Error handling QR data:', error);
+            this.updateScanStatus('❌ Error processing QR code');
         }
     }
 
@@ -1859,7 +2114,6 @@ function showCameraErrorDialog(errorMessage) {
  * @returns {Promise<Object>} - QR generation result
  */
 async function generateQRCode(text, options = {}) {
-    console.log('QR DEBUG: generateQRCode called with text:', text);
     
     try {
         // Ensure QR libraries are loaded

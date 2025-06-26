@@ -1,494 +1,663 @@
 /**
- * Wallet Manager
- * Business logic for wallet management UI and operations
+ * Unified Wallet Manager for Kaspa
+ * Consolidates HD and single address wallet functionality
+ * Implements DRY principles for balance checking, UTXO management, and address derivation
  */
 
-import { walletStorage } from './wallet-storage.js';
-import { walletEncryption } from './wallet-encryption.js';
+import { getKaspa, isInitialized } from './init.js';
+import { sompiToKas, kasToSompi } from './currency-utils.js';
+import { DEFAULT_ACCOUNT_PATH, buildDerivationPath } from './constants.js';
 
-class WalletManager {
-    constructor() {
-        this.isLoggedIn = false;
-        this.currentWallet = null;
-        this.currentPassword = null;
-        this.sessionTimeout = 30 * 60 * 1000; // 30 minutes
-        this.sessionTimer = null;
-        this.listeners = [];
-        this.initialize();
+export class UnifiedWalletManager {
+    constructor(mnemonic, network, derivationPath = DEFAULT_ACCOUNT_PATH, isHDWallet = true) {
+        this.mnemonic = mnemonic;
+        this.network = network;
+        this.derivationPath = derivationPath;
+        this.isHDWallet = isHDWallet;
+        this.addresses = {
+            receive: new Map(),
+            change: new Map()
+        };
+        this.currentReceiveIndex = 0;
+        this.currentChangeIndex = 0;
+        this.totalBalance = 0n;
+        this.kaspa = null;
+        this.xPrv = null;
+        this.rpc = null;
     }
 
     /**
-     * Initialize wallet manager
+     * Initialize the wallet manager
      */
     async initialize() {
-        // Check if there's a current wallet set
-        await this.checkCurrentWallet();
+        if (!isInitialized()) {
+            throw new Error('Kaspa WASM not initialized');
+        }
         
-        // Set up session management
-        this.setupSessionManagement();
+        this.kaspa = getKaspa();
         
-        console.log('Wallet Manager initialized');
+        if (this.isHDWallet) {
+            const { Mnemonic, XPrv } = this.kaspa;
+            const mnemonicObj = new Mnemonic(this.mnemonic);
+            const seed = mnemonicObj.toSeed();
+            this.xPrv = new XPrv(seed);
+            
+            // Generate initial receive address
+            await this.generateNextReceiveAddress();
+        }
     }
 
     /**
-     * Add event listener for wallet changes
-     * @param {Function} callback - Callback function
+     * Initialize RPC connection (reusable)
      */
-    addWalletChangeListener(callback) {
-        this.listeners.push(callback);
-    }
+    async initializeRpc() {
+        if (this.rpc) return this.rpc;
 
-    /**
-     * Remove event listener
-     * @param {Function} callback - Callback function to remove
-     */
-    removeWalletChangeListener(callback) {
-        this.listeners = this.listeners.filter(l => l !== callback);
-    }
-
-    /**
-     * Notify listeners of wallet changes
-     * @param {string} event - Event type
-     * @param {Object} data - Event data
-     */
-    notifyListeners(event, data = null) {
-        this.listeners.forEach(callback => {
-            try {
-                callback(event, data);
-            } catch (error) {
-                console.error('Error in wallet change listener:', error);
-            }
+        const { Resolver, RpcClient } = this.kaspa;
+        const resolver = new Resolver();
+        this.rpc = new RpcClient({
+            networkId: this.network,
+            resolver: resolver
         });
+
+        await this.rpc.connect();
+        return this.rpc;
     }
 
     /**
-     * Save a new wallet with encryption
-     * @param {Object} walletData - Wallet data
-     * @param {string} password - Wallet password
-     * @param {string} label - Optional wallet label
-     * @returns {Promise<string>} Wallet ID
+     * Clean up RPC connection
      */
-    async saveWallet(walletData, password, label = null) {
-        try {
-            // Validate password strength
-            const passwordValidation = walletEncryption.validatePasswordStrength(password);
-            if (!passwordValidation.isValid) {
-                throw new Error(`Weak password: ${passwordValidation.feedback.join(', ')}`);
-            }
-
-            // Save wallet
-            const walletId = await walletStorage.saveWallet(walletData, password);
-            
-            // Update label if provided
-            if (label) {
-                await walletStorage.updateWalletLabel(walletId, label);
-            }
-
-            // Notify listeners
-            this.notifyListeners('wallet_saved', { walletId, address: walletData.address });
-            
-            // Auto-login if no current wallet
-            if (!this.isLoggedIn) {
-                await this.loginWallet(walletId, password);
-            }
-
-            return walletId;
-        } catch (error) {
-            throw new Error(`Failed to save wallet: ${error.message}`);
+    async cleanup() {
+        if (this.rpc) {
+            await this.rpc.disconnect();
+            this.rpc = null;
         }
     }
 
     /**
-     * Login to a wallet
-     * @param {string} walletId - Wallet ID
-     * @param {string} password - Wallet password
-     * @returns {Promise<Object>} Decrypted wallet data
+     * Check balance for HD wallet using proper derivation and RPC calls
+     * Based on the working method from your external app
      */
-    async loginWallet(walletId, password) {
-        try {
-            // Decrypt wallet
-            const decryptedWallet = await walletStorage.decryptWallet(walletId, password);
-            
-            // Set as current wallet
-            await walletStorage.setCurrentWallet(walletId);
-            
-            // Update session
-            this.currentWallet = decryptedWallet;
-            this.currentPassword = password;
-            this.isLoggedIn = true;
-            
-            // Reset session timer
-            this.resetSessionTimer();
-            
-            // Notify listeners
-            this.notifyListeners('wallet_login', decryptedWallet);
-            
-            // Update UI
-            this.updateWalletManagerUI();
-            this.updateCurrentWalletDisplay();
-            
-            return decryptedWallet;
-        } catch (error) {
-            throw new Error(`Login failed: ${error.message}`);
+    async checkHDWalletBalance() {
+        if (!this.isHDWallet) {
+            throw new Error('This method is only for HD wallets');
         }
-    }
 
-    /**
-     * Logout from current wallet
-     */
-    async logoutWallet() {
         try {
-            // Clear session
-            this.currentWallet = null;
-            this.currentPassword = null;
-            this.isLoggedIn = false;
+            await this.initializeRpc();
             
-            // Clear session timer
-            if (this.sessionTimer) {
-                clearTimeout(this.sessionTimer);
-                this.sessionTimer = null;
-            }
+            // Import currency conversion function
+            const { sompiToKas } = await import('./currency-utils.js');
             
-            // Clear current wallet in storage
-            await walletStorage.clearCurrentWallet();
+            const { Mnemonic, XPrv, createAddress } = this.kaspa;
             
-            // Notify listeners
-            this.notifyListeners('wallet_logout');
+            // Create wallet from mnemonic using the working method
+            const mnemonic = new Mnemonic(this.mnemonic);
+            const seed = mnemonic.toSeed();
+            const xPrv = new XPrv(seed);
             
-            // Update UI
-            this.updateWalletManagerUI();
-            this.updateCurrentWalletDisplay();
+            let totalBalance = 0n;
+            const addressesWithBalance = [];
+            const gapLimit = 20;
             
-            console.log('Logged out successfully');
-        } catch (error) {
-            console.error('Logout error:', error);
-        }
-    }
-
-    /**
-     * Delete a wallet
-     * @param {string} walletId - Wallet ID
-     * @returns {Promise<boolean>} Success status
-     */
-    async deleteWallet(walletId) {
-        try {
-            // If deleting current wallet, logout first
-            if (this.currentWallet && this.currentWallet.id === walletId) {
-                await this.logoutWallet();
-            }
-            
-            // Delete wallet
-            const success = await walletStorage.deleteWallet(walletId);
-            
-            if (success) {
-                // Notify listeners
-                this.notifyListeners('wallet_deleted', { walletId });
+            // Scan both receive (0) and change (1) addresses
+            for (let change = 0; change <= 1; change++) {
+                let consecutiveEmpty = 0;
+                let index = 0;
                 
-                // Update UI
-                this.updateWalletManagerUI();
+                while (consecutiveEmpty < gapLimit && index < 100) {
+                    // Use the proper derivation path format from constants
+                    const fullPath = buildDerivationPath(this.derivationPath.split('/')[3], change, index);
+                    const addressXPrv = xPrv.derivePath(fullPath);
+                    const privateKey = addressXPrv.toPrivateKey();
+                    const address = createAddress(privateKey.toPublicKey(), this.network);
+                    const addressString = address.toString();
+                                        
+                    // Use getBalancesByAddresses instead of getUtxosByAddresses for balance checking
+                    const balanceResponse = await this.rpc.getBalancesByAddresses([addressString]);
+                    
+                    let addressBalance = 0n;
+                    const utxos = [];
+                    
+                    if (balanceResponse && balanceResponse.entries && balanceResponse.entries.length > 0) {
+                        
+                        for (const entry of balanceResponse.entries) {
+                            if (entry && entry.balance) {
+                                addressBalance = BigInt(entry.balance);                                
+                            }
+                        }
+                        
+                        // Also get UTXOs for additional info
+                        const utxoResponse = await this.rpc.getUtxosByAddresses([addressString]);
+                        if (utxoResponse && utxoResponse.entries) {
+                            for (const entry of utxoResponse.entries) {
+                                if (entry && entry.utxoEntries) {
+                                    for (const utxo of entry.utxoEntries) {
+                                        if (utxo && utxo.amount) {
+                                            utxos.push(utxo);                                            
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (addressBalance > 0n) {
+                        totalBalance += addressBalance;
+                        consecutiveEmpty = 0;
+                                                 
+                        addressesWithBalance.push({
+                            address: addressString,
+                            balance: parseFloat(sompiToKas(addressBalance)),
+                            balanceSompi: addressBalance,
+                            change: change,
+                            index: index,
+                            utxos: utxos,
+                            utxoCount: utxos.length,
+                            derivationPath: fullPath
+                        });
+                        
+                        // Update internal address tracking
+                        const addressMap = change === 0 ? this.addresses.receive : this.addresses.change;
+                        addressMap.set(index, {
+                            address: addressString,
+                            index: index,
+                            type: change === 0 ? 'receive' : 'change',
+                            derivationPath: fullPath,
+                            privateKey: privateKey.toString(),
+                            used: true,
+                            balance: addressBalance,
+                            utxos: utxos
+                        });
+                    } else {
+                        consecutiveEmpty++;
+                    }
+                    
+                    index++;                    
+                }
             }
             
-            return success;
+            this.totalBalance = totalBalance;
+            
+            const totalBalanceKas = parseFloat(sompiToKas(totalBalance));
+              
+            return {
+                success: true,
+                totalBalance: totalBalanceKas,
+                totalBalanceSompi: totalBalance,
+                addressesFound: addressesWithBalance.length,
+                addressesWithBalance: addressesWithBalance
+            };
+            
         } catch (error) {
-            console.error('Delete wallet error:', error);
+            console.error('HD wallet balance check failed:', error);
+            return {
+                success: false,
+                error: error.message,
+                totalBalance: 0,
+                totalBalanceSompi: 0n,
+                addressesFound: 0,
+                addressesWithBalance: []
+            };
+        } finally {
+            await this.cleanup();
+        }
+    }
+
+    /**
+     * Check balance for single address wallet
+     */
+    async checkSingleAddressBalance(address) {
+        try {
+            await this.initializeRpc();
+            
+            // Use the same approach as UTXO fetcher: check balances first, then get UTXOs
+            const balanceResponse = await this.rpc.getBalancesByAddresses([address]);
+            
+            if (!balanceResponse || !balanceResponse.entries || balanceResponse.entries.length === 0) {
+                // No balance found
+                return {
+                    success: true,
+                    address: address,
+                    balance: { kas: 0, sompi: 0n },
+                    utxoCount: 0,
+                    utxos: [],
+                    networkType: this.network
+                };
+            }
+            
+            // Address has balance, now get UTXOs
+            const utxoResponse = await this.rpc.getUtxosByAddresses([address]);
+            
+            let totalBalance = 0n;
+            const utxos = [];
+            
+            if (utxoResponse && utxoResponse.entries) {
+                for (const entry of utxoResponse.entries) {
+                    // Handle WASM objects vs traditional structures (same as UTXO fetcher)
+                    if (entry && typeof entry === 'object' && 
+                        (entry.__wbg_ptr || entry.constructor?.name === 'UtxoEntryReference')) {
+                        // This is a WASM UtxoEntryReference object - add it directly as a UTXO
+                        const entryAmount = BigInt(entry.amount || entry.value || 0);
+                        totalBalance += entryAmount;
+                        utxos.push(entry);
+                    } else if (entry && entry.utxoEntries) {
+                        // Traditional structure with utxoEntries array
+                        for (const utxo of entry.utxoEntries) {
+                            if (utxo) {
+                                const utxoAmount = BigInt(utxo.amount || utxo.value || 0);
+                                totalBalance += utxoAmount;
+                                utxos.push(utxo);
+                            }
+                        }
+                    } else if (entry && entry.entry) {
+                        // Handle case where entry is wrapped in another entry object
+                        const innerEntry = entry.entry;
+                        if (innerEntry && typeof innerEntry === 'object' && 
+                            (innerEntry.__wbg_ptr || innerEntry.constructor?.name === 'UtxoEntryReference')) {
+                            const entryAmount = BigInt(innerEntry.amount || innerEntry.value || 0);
+                            totalBalance += entryAmount;
+                            utxos.push(innerEntry);
+                        }
+                    }
+                }
+            }
+            
+            return {
+                success: true,
+                address: address,
+                balance: {
+                    kas: parseFloat(sompiToKas(totalBalance)),
+                    sompi: totalBalance
+                },
+                utxoCount: utxos.length,
+                utxos: utxos,
+                networkType: this.network
+            };
+            
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message,
+                address: address
+            };
+        } finally {
+            await this.cleanup();
+        }
+    }
+
+    /**
+     * Generate xpub for UTXO fetching operations (external tools)
+     * This should ONLY be used for UTXO fetching, not balance refresh
+     */
+    async getXPub() {
+        if (!this.isHDWallet) {
+            throw new Error('XPUB generation only available for HD wallets');
+        }
+
+        try {
+            const accountXPrv = this.xPrv.derivePath(this.derivationPath);
+            const xpub = accountXPrv.toXPub();
+            
+            // Handle different xpub formats
+            if (typeof xpub === 'object' && xpub !== null) {
+                if (xpub.xpub) {
+                    return xpub.xpub;
+                } else if (xpub.toString) {
+                    return xpub.toString();
+                }
+            }
+            
+            return xpub.toString();
+        } catch (error) {
+            throw new Error('Failed to generate XPUB: ' + error.message);
+        }
+    }
+
+    /**
+     * Fetch UTXOs for multiple addresses (for transaction creation)
+     */
+    async fetchUTXOsForAddresses(addresses) {
+        try {
+            await this.initializeRpc();
+            
+            const utxoResponse = await this.rpc.getUtxosByAddresses(addresses);
+            const allUtxos = [];
+            
+            if (utxoResponse && utxoResponse.entries) {
+                for (const entry of utxoResponse.entries) {
+                    // Handle WASM objects vs traditional structures (same as UTXO fetcher)
+                    if (entry && typeof entry === 'object' && 
+                        (entry.__wbg_ptr || entry.constructor?.name === 'UtxoEntryReference')) {
+                        // This is a WASM UtxoEntryReference object - add it directly as a UTXO
+                        allUtxos.push(entry);
+                    } else if (entry && entry.utxoEntries) {
+                        // Traditional structure with utxoEntries array
+                        for (const utxo of entry.utxoEntries) {
+                            if (utxo) {
+                                allUtxos.push(utxo);
+                            }
+                        }
+                    } else if (entry && entry.entry) {
+                        // Handle case where entry is wrapped in another entry object
+                        const innerEntry = entry.entry;
+                        if (innerEntry && typeof innerEntry === 'object' && 
+                            (innerEntry.__wbg_ptr || innerEntry.constructor?.name === 'UtxoEntryReference')) {
+                            allUtxos.push(innerEntry);
+                        }
+                    }
+                }
+            }
+            
+            return {
+                success: true,
+                utxos: allUtxos,
+                count: allUtxos.length
+            };
+            
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message,
+                utxos: [],
+                count: 0
+            };
+        } finally {
+            await this.cleanup();
+        }
+    }
+
+    /**
+     * Generate next receive address (HD wallets only)
+     */
+    async generateNextReceiveAddress() {
+        if (!this.isHDWallet) {
+            throw new Error('Address generation only available for HD wallets');
+        }
+
+        const addressInfo = await this.generateAddress('receive', this.currentReceiveIndex);
+        this.addresses.receive.set(this.currentReceiveIndex, {
+            ...addressInfo,
+            used: false,
+            balance: 0n,
+            utxos: []
+        });
+        
+        this.currentReceiveIndex++;
+        return addressInfo;
+    }
+
+    /**
+     * Generate next change address (HD wallets only)
+     */
+    async generateNextChangeAddress() {
+        if (!this.isHDWallet) {
+            throw new Error('Address generation only available for HD wallets');
+        }
+
+        const addressInfo = await this.generateAddress('change', this.currentChangeIndex);
+        this.addresses.change.set(this.currentChangeIndex, {
+            ...addressInfo,
+            used: false,
+            balance: 0n,
+            utxos: []
+        });
+        
+        this.currentChangeIndex++;
+        return addressInfo;
+    }
+
+    /**
+     * Generate address at specific index
+     */
+    async generateAddress(type, index) {
+        if (!this.isHDWallet) {
+            throw new Error('Address generation only available for HD wallets');
+        }
+
+        const typeIndex = type === 'receive' ? 0 : 1;
+        const fullPath = `${this.derivationPath}/${typeIndex}/${index}`;
+        
+        const derivedXPrv = this.xPrv.derivePath(fullPath);
+        const privateKey = derivedXPrv.toPrivateKey();
+        const address = privateKey.toPublicKey().toAddress(this.network).toString();
+        
+        return {
+            address,
+            index,
+            type,
+            derivationPath: fullPath,
+            privateKey: privateKey.toString()
+        };
+    }
+
+    /**
+     * Get current receive address
+     */
+    getCurrentReceiveAddress() {
+        if (!this.isHDWallet) {
+            throw new Error('HD address methods only available for HD wallets');
+        }
+
+        if (this.addresses.receive.size === 0) {
+            throw new Error('No receive addresses generated');
+        }
+        
+        const latestIndex = this.currentReceiveIndex - 1;
+        return this.addresses.receive.get(latestIndex)?.address;
+    }
+
+    /**
+     * Get current change address (generate one if none exists)
+     */
+    async getCurrentChangeAddress() {
+        if (!this.isHDWallet) {
+            throw new Error('HD address methods only available for HD wallets');
+        }
+
+        if (this.addresses.change.size === 0) {
+            // Generate first change address if none exists
+            const changeAddressInfo = await this.generateNextChangeAddress();
+            return changeAddressInfo.address;
+        }
+        
+        const latestIndex = this.currentChangeIndex - 1;
+        return this.addresses.change.get(latestIndex)?.address;
+    }
+
+    /**
+     * Get all addresses with balances
+     */
+    getAllAddresses() {
+        const addresses = [];
+        
+        for (const addressInfo of this.addresses.receive.values()) {
+            addresses.push(addressInfo);
+        }
+        
+        for (const addressInfo of this.addresses.change.values()) {
+            addresses.push(addressInfo);
+        }
+        
+        return addresses;
+    }
+
+    /**
+     * Get total balance
+     */
+    getTotalBalance() {
+        return this.totalBalance;
+    }
+
+    /**
+     * Mark address as used
+     */
+    markAddressAsUsed(address) {
+        for (const [index, addressInfo] of this.addresses.receive) {
+            if (addressInfo.address === address) {
+                addressInfo.used = true;
+                break;
+            }
+        }
+        
+        for (const [index, addressInfo] of this.addresses.change) {
+            if (addressInfo.address === address) {
+                addressInfo.used = true;
+                break;
+            }
+        }
+    }
+
+    /**
+     * Update address balance
+     */
+    updateAddressBalance(address, balance, utxos = []) {
+        // Ensure balance is BigInt
+        const balanceBigInt = typeof balance === 'bigint' ? balance : BigInt(balance.toString());
+        
+        for (const addressInfo of this.addresses.receive.values()) {
+            if (addressInfo.address === address) {
+                addressInfo.balance = balanceBigInt;
+                addressInfo.utxos = utxos;
+                break;
+            }
+        }
+        
+        for (const addressInfo of this.addresses.change.values()) {
+            if (addressInfo.address === address) {
+                addressInfo.balance = balanceBigInt;
+                addressInfo.utxos = utxos;
+                break;
+            }
+        }
+        
+        this.recalculateTotalBalance();
+    }
+
+    /**
+     * Recalculate total balance from all addresses
+     */
+    recalculateTotalBalance() {
+        let total = 0n;
+        
+        for (const addressInfo of this.addresses.receive.values()) {
+            const balance = addressInfo.balance;
+            if (balance) {
+                // Ensure balance is BigInt
+                const balanceBigInt = typeof balance === 'bigint' ? balance : BigInt(balance.toString());
+                total += balanceBigInt;
+            }
+        }
+        
+        for (const addressInfo of this.addresses.change.values()) {
+            const balance = addressInfo.balance;
+            if (balance) {
+                // Ensure balance is BigInt
+                const balanceBigInt = typeof balance === 'bigint' ? balance : BigInt(balance.toString());
+                total += balanceBigInt;
+            }
+        }
+        
+        this.totalBalance = total;
+    }
+
+    /**
+     * Check if we should generate a new receive address for privacy
+     */
+    shouldGenerateNewReceiveAddress() {
+        if (!this.isHDWallet) {
             return false;
         }
-    }
 
-    /**
-     * Get current wallet info
-     * @returns {Object|null} Current wallet data
-     */
-    getCurrentWallet() {
-        return this.currentWallet;
-    }
-
-    /**
-     * Check if logged in
-     * @returns {boolean} Login status
-     */
-    isWalletLoggedIn() {
-        return this.isLoggedIn && this.currentWallet !== null;
-    }
-
-    /**
-     * Get available wallets for dropdown
-     * @returns {Promise<Array>} Array of wallet options
-     */
-    async getWalletOptions() {
-        try {
-            const wallets = await walletStorage.getAllWallets();
-            return wallets.map(wallet => ({
-                id: wallet.id,
-                label: wallet.label,
-                address: wallet.address,
-                network: wallet.network,
-                lastUsed: wallet.lastUsed,
-                createdAt: wallet.createdAt
-            }));
-        } catch (error) {
-            console.error('Failed to get wallet options:', error);
-            return [];
-        }
-    }
-
-    /**
-     * Check current wallet from storage
-     */
-    async checkCurrentWallet() {
-        try {
-            const currentWalletId = await walletStorage.getCurrentWalletId();
-            if (currentWalletId) {
-                const wallet = await walletStorage.getWallet(currentWalletId);
-                if (wallet) {
-                    // Wallet exists but user needs to login
-                    this.notifyListeners('wallet_needs_login', { walletId: currentWalletId, wallet });
-                }
-            }
-        } catch (error) {
-            console.error('Error checking current wallet:', error);
-        }
-    }
-
-    /**
-     * Setup session management
-     */
-    setupSessionManagement() {
-        // Auto-logout on page visibility change
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden && this.isLoggedIn) {
-                // Optionally auto-logout when tab becomes hidden
-                // this.logoutWallet();
-            }
-        });
-
-        // Auto-logout before page unload
-        window.addEventListener('beforeunload', () => {
-            if (this.isLoggedIn) {
-                // Clear sensitive data from memory
-                this.currentPassword = null;
-            }
-        });
-    }
-
-    /**
-     * Reset session timer
-     */
-    resetSessionTimer() {
-        if (this.sessionTimer) {
-            clearTimeout(this.sessionTimer);
+        if (this.addresses.receive.size === 0) {
+            return true; // No addresses generated yet
         }
         
-        this.sessionTimer = setTimeout(() => {
-            if (this.isLoggedIn) {
-                console.log('Session expired - auto logout');
-                this.logoutWallet();
-                this.showWalletManagerStatus('Session expired. Please login again.', 'info');
-            }
-        }, this.sessionTimeout);
+        const latestIndex = this.currentReceiveIndex - 1;
+        const currentAddress = this.addresses.receive.get(latestIndex);
+        
+        return currentAddress?.used || (currentAddress?.balance && currentAddress.balance > 0n);
     }
 
     /**
-     * Update wallet manager UI
+     * Import wallet state from saved data
      */
-    async updateWalletManagerUI() {
-        const walletSelect = document.getElementById('wallet-select');
-        const loginSection = document.getElementById('wallet-login-section');
-        const loggedInSection = document.getElementById('wallet-logged-in-section');
-        const currentWalletInfo = document.getElementById('current-wallet-info-manager');
-
-        if (!walletSelect) return; // UI not loaded yet
-
-        try {
-            // Get wallet options
-            const walletOptions = await this.getWalletOptions();
-            
-            // Update wallet dropdown
-            walletSelect.innerHTML = '<option value="">Select a wallet...</option>';
-            walletOptions.forEach(wallet => {
-                const option = document.createElement('option');
-                option.value = wallet.id;
-                option.textContent = `${wallet.label} (${wallet.network})`;
-                walletSelect.appendChild(option);
-            });
-
-            if (this.isLoggedIn && this.currentWallet) {
-                // Show logged in state
-                loginSection.style.display = 'none';
-                loggedInSection.style.display = 'block';
-                
-                // Update current wallet info
-                document.getElementById('current-wallet-label').textContent = this.currentWallet.label || 'Unknown';
-                document.getElementById('current-wallet-address').textContent = this.currentWallet.address;
-                document.getElementById('current-wallet-network').textContent = this.currentWallet.network;
-                
-                // Select current wallet in dropdown
-                walletSelect.value = this.currentWallet.id;
-            } else {
-                // Show login state
-                loginSection.style.display = 'block';
-                loggedInSection.style.display = 'none';
-            }
-        } catch (error) {
-            console.error('Failed to update wallet manager UI:', error);
+    async importState(savedState) {
+        if (!this.isHDWallet) {
+            throw new Error('State import only available for HD wallets');
         }
-    }
 
-    /**
-     * Update current wallet display in other sections
-     */
-    updateCurrentWalletDisplay() {
-        // Update wallet displays in other sections
-        const walletDisplays = [
-            'current-wallet-info',
-            'current-wallet-info-msg',
-            'balance-wallet-info'
-        ];
-
-        walletDisplays.forEach(displayId => {
-            const display = document.getElementById(displayId);
-            if (display) {
-                if (this.isLoggedIn && this.currentWallet) {
-                    display.style.display = 'block';
-                    const addressSpan = display.querySelector('[id$="-address"], [id$="-address-msg"]');
-                    const networkSpan = display.querySelector('[id$="-network"], [id$="-network-msg"]');
-                    
-                    if (addressSpan) addressSpan.textContent = this.currentWallet.address;
-                    if (networkSpan) networkSpan.textContent = this.currentWallet.network;
-                } else {
-                    display.style.display = 'none';
+        if (savedState.addresses) {
+            // Import receive addresses
+            if (savedState.addresses.receive) {
+                for (const [index, addressInfo] of Object.entries(savedState.addresses.receive)) {
+                    this.addresses.receive.set(parseInt(index), {
+                        ...addressInfo,
+                        balance: BigInt(addressInfo.balance || 0),
+                        utxos: addressInfo.utxos || []
+                    });
                 }
             }
-        });
-
-        // Enable/disable buttons based on login status
-        this.updateButtonStates();
-    }
-
-    /**
-     * Update button states based on login status
-     */
-    updateButtonStates() {
-        const buttonsToEnable = [
-            'checkBalance',
-            'calculateFee',
-            'generateUnsignedTxQR',
-            'signMessage',
-            'generateUnsignedQR'
-        ];
-
-        buttonsToEnable.forEach(buttonId => {
-            const button = document.getElementById(buttonId);
-            if (button) {
-                button.disabled = !this.isLoggedIn;
+            
+            // Import change addresses
+            if (savedState.addresses.change) {
+                for (const [index, addressInfo] of Object.entries(savedState.addresses.change)) {
+                    this.addresses.change.set(parseInt(index), {
+                        ...addressInfo,
+                        balance: BigInt(addressInfo.balance || 0),
+                        utxos: addressInfo.utxos || []
+                    });
+                }
             }
-        });
-    }
-
-    /**
-     * Show status message in wallet manager
-     * @param {string} message - Status message
-     * @param {string} type - Message type (success, error, info)
-     */
-    showWalletManagerStatus(message, type = 'info') {
-        const statusDiv = document.getElementById('wallet-manager-status');
-        if (statusDiv) {
-            statusDiv.textContent = message;
-            statusDiv.className = `status-container ${type}`;
-            statusDiv.style.display = 'block';
-            
-            // Auto-hide after 5 seconds
-            setTimeout(() => {
-                statusDiv.style.display = 'none';
-            }, 5000);
         }
-    }
-
-    /**
-     * Export wallet backup
-     * @param {string} walletId - Wallet ID
-     * @returns {Promise<Object>} Backup data
-     */
-    async exportWalletBackup(walletId) {
-        try {
-            return await walletStorage.exportWalletBackup(walletId);
-        } catch (error) {
-            throw new Error(`Export failed: ${error.message}`);
+        
+        // Set current indices
+        if (savedState.currentReceiveIndex !== undefined) {
+            this.currentReceiveIndex = savedState.currentReceiveIndex;
         }
-    }
-
-    /**
-     * Import wallet backup
-     * @param {Object} backupData - Backup data
-     * @returns {Promise<string>} Imported wallet ID
-     */
-    async importWalletBackup(backupData) {
-        try {
-            const walletId = await walletStorage.importWalletBackup(backupData);
-            
-            // Update UI
-            await this.updateWalletManagerUI();
-            
-            // Notify listeners
-            this.notifyListeners('wallet_imported', { walletId });
-            
-            return walletId;
-        } catch (error) {
-            throw new Error(`Import failed: ${error.message}`);
+        
+        if (savedState.currentChangeIndex !== undefined) {
+            this.currentChangeIndex = savedState.currentChangeIndex;
         }
-    }
-
-    /**
-     * Change wallet password
-     * @param {string} walletId - Wallet ID
-     * @param {string} oldPassword - Current password
-     * @param {string} newPassword - New password
-     * @returns {Promise<boolean>} Success status
-     */
-    async changeWalletPassword(walletId, oldPassword, newPassword) {
-        try {
-            // Validate new password
-            const passwordValidation = walletEncryption.validatePasswordStrength(newPassword);
-            if (!passwordValidation.isValid) {
-                throw new Error(`Weak password: ${passwordValidation.feedback.join(', ')}`);
-            }
-
-            // Decrypt with old password
-            const decryptedWallet = await walletStorage.decryptWallet(walletId, oldPassword);
-            
-            // Delete old wallet
-            await walletStorage.deleteWallet(walletId);
-            
-            // Save with new password
-            const newWalletId = await walletStorage.saveWallet({
-                privateKey: decryptedWallet.privateKey,
-                address: decryptedWallet.address,
-                network: decryptedWallet.network,
-                mnemonic: decryptedWallet.mnemonic,
-                derivationPath: decryptedWallet.derivationPath
-            }, newPassword);
-            
-            // Update label
-            await walletStorage.updateWalletLabel(newWalletId, decryptedWallet.label);
-            
-            // Update current session if this is the active wallet
-            if (this.currentWallet && this.currentWallet.id === walletId) {
-                this.currentWallet.id = newWalletId;
-                this.currentPassword = newPassword;
-                await walletStorage.setCurrentWallet(newWalletId);
-            }
-            
-            // Notify listeners
-            this.notifyListeners('wallet_password_changed', { walletId: newWalletId });
-            
-            return true;
-        } catch (error) {
-            throw new Error(`Password change failed: ${error.message}`);
-        }
+        
+        // Recalculate total balance
+        this.recalculateTotalBalance();
     }
 }
 
-// Create singleton instance
-const walletManager = new WalletManager();
+// Create singleton instances for different wallet types
+let hdWalletInstance = null;
+let singleWalletInstance = null;
 
-export { walletManager, WalletManager }; 
+/**
+ * Get or create HD wallet instance
+ */
+export function getHDWallet(mnemonic, network, derivationPath) {
+    if (!hdWalletInstance || 
+        hdWalletInstance.mnemonic !== mnemonic || 
+        hdWalletInstance.network !== network ||
+        hdWalletInstance.derivationPath !== derivationPath) {
+        hdWalletInstance = new UnifiedWalletManager(mnemonic, network, derivationPath, true);
+    }
+    return hdWalletInstance;
+}
+
+/**
+ * Get or create single address wallet instance
+ */
+export function getSingleWallet(address, network) {
+    if (!singleWalletInstance || 
+        singleWalletInstance.network !== network) {
+        singleWalletInstance = new UnifiedWalletManager(null, network, null, false);
+        singleWalletInstance.primaryAddress = address;
+    }
+    return singleWalletInstance;
+}
+
+/**
+ * Clear wallet instances (for logout)
+ */
+export function clearWalletInstances() {
+    hdWalletInstance = null;
+    singleWalletInstance = null;
+} 

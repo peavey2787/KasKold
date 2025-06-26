@@ -1,6 +1,6 @@
 // Kaspa Fee Calculator Module
 import { getKaspa, isInitialized } from './init.js';
-import { fetchUTXOsForAddress } from './utxo-fetcher.js';
+import { fetchUTXOsForAddress } from './address-scanner.js';
 
 // Fee calculation constants (kept for backward compatibility)
 const FEE_CONSTANTS = {
@@ -36,7 +36,7 @@ function calculateTransactionFee(inputCount, outputCount, feeRatePerGram = null)
     
     return {
         feeInSompi: finalFee,
-        feeInKas: Number(finalFee) / 100000000,
+        feeInKas: sompiToKas(finalFee),
         sizeInGrams: sizeInGrams,
         feeRateUsed: feeRate
     };
@@ -125,7 +125,8 @@ async function calculateAccurateTransactionFee(fromAddress, toAddress, amount, n
                 };
             }
             
-            const amountInSompi = BigInt(Math.floor(amountFloat * 100000000));
+            const { kasNumberToSompi } = await import('./currency-utils.js');
+            const amountInSompi = kasNumberToSompi(amountFloat);
             
             // Priority fee rates in sompi
             const priorityFeeRates = {
@@ -149,6 +150,8 @@ async function calculateAccurateTransactionFee(fromAddress, toAddress, amount, n
             
             // Calculate fees for all options
             const feeEstimates = {};
+            const { sompiToKas } = await import('./currency-utils.js');
+            
             for (const [option, fee] of Object.entries(priorityFeeRates)) {
                 try {
                     const { summary: tempSummary } = await createTransactions({
@@ -161,14 +164,14 @@ async function calculateAccurateTransactionFee(fromAddress, toAddress, amount, n
                         changeAddress: fromAddress,
                         networkId: networkType
                     });
-                    feeEstimates[option] = Number(tempSummary.fees) / 100000000;
+                    feeEstimates[option] = sompiToKas(tempSummary.fees);
                 } catch (error) {
                     // If individual fee calculation fails, use the main estimate
-                    feeEstimates[option] = Number(summary.fees) / 100000000;
+                    feeEstimates[option] = sompiToKas(summary.fees);
                 }
             }
             
-            const selectedFee = Number(summary.fees) / 100000000; // Convert to KAS
+            const selectedFee = sompiToKas(summary.fees); // Convert to KAS
             
             return {
                 success: true,

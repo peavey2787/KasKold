@@ -10,6 +10,7 @@ import { MessageSigning } from './MessageSigning.js';
 import { ScriptBuilder } from './ScriptBuilder.js';
 import { WalletSettings } from './WalletSettings.js';
 import { ToastContainer } from './ToastContainer.js';
+import { DEFAULT_ACCOUNT_PATH } from '../../kaspa/js/constants.js';
 
 const { useState, useEffect, useRef } = React;
 
@@ -24,13 +25,21 @@ export function WalletApp() {
     network: 'mainnet',
     hdWallet: null, // HD wallet manager instance
     allAddresses: [], // All generated addresses
-    isHDWallet: false // Whether this is an HD wallet
+    isHDWallet: false, // Whether this is an HD wallet
+    mnemonic: null,
+    privateKey: null,
+    derivationPath: null
   });
+  const [cachedUTXOs, setCachedUTXOs] = useState(null); // Cached UTXO data for offline transactions
   const [theme, setTheme] = useState('dark');
   const [notifications, setNotifications] = useState([]); // For persistent notification history
   const [toastNotifications, setToastNotifications] = useState([]); // For temporary toast notifications
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0); // For badge count
   const [isCheckingSession, setIsCheckingSession] = useState(true); // Session check state
+  const [navigationData, setNavigationData] = useState(null); // Data to pass between views
+  const [showSessionWarning, setShowSessionWarning] = useState(false);
+  const [sessionWarningMinutes, setSessionWarningMinutes] = useState(0);
+  const [warningCountdown, setWarningCountdown] = useState(0);
   const kaspaInitialized = useRef(false);
   const initializationInProgress = useRef(false);
   const sessionManager = useRef(null);
@@ -57,22 +66,71 @@ export function WalletApp() {
   // Restore wallet session from saved data
   const restoreWalletSession = async (savedSession) => {
     try {
+      console.log('💾 SESSION: Restoring session...', { 
+        isHDWallet: savedSession.isHDWallet,
+        hasMnemonic: !!savedSession.mnemonic,
+        currentWallet: !!savedSession.currentWallet
+      });
+
       // Check if this is an HD wallet and restore HD wallet manager
-      if (savedSession.isHDWallet && savedSession.currentWallet?.mnemonic) {
-        const { HDWalletManager } = await import('../../kaspa/js/hd-wallet-manager.js');
-        const hdWallet = new HDWalletManager(
-          savedSession.currentWallet.mnemonic, 
-          savedSession.network, 
-          savedSession.currentWallet.derivationPath
-        );
+      if (savedSession.isHDWallet && (savedSession.mnemonic || savedSession.currentWallet?.mnemonic)) {
+        const { getHDWallet } = await import('../../kaspa/js/wallet-manager.js');
+        const mnemonic = savedSession.mnemonic || savedSession.currentWallet.mnemonic;
+        let derivationPath = savedSession.derivationPath || savedSession.currentWallet?.derivationPath;
+        
+        // Ensure we use account-level path for HD wallet manager
+        if (derivationPath && derivationPath.includes('/0/0')) {
+          // Convert address-level path to account-level path
+          derivationPath = derivationPath.split('/0/0')[0];
+          console.log('🔧 FIXED: Converted address-level path to account-level:', derivationPath);
+        } else if (!derivationPath) {
+          // Default to Kaspa account-level path
+          derivationPath = DEFAULT_ACCOUNT_PATH;
+          console.log('🔧 FIXED: Using default account-level path:', derivationPath);
+        }
+        
+        const hdWallet = getHDWallet(mnemonic, savedSession.network, derivationPath);
         await hdWallet.initialize();
         
+        // Restore addresses if available
+        if (savedSession.allAddresses && savedSession.allAddresses.length > 0) {
+          // Restore the address state to HD wallet
+          for (const addr of savedSession.allAddresses) {
+            if (addr.type === 'receive' && addr.index !== undefined) {
+              // Generate addresses up to the saved index
+              while (hdWallet.receiveAddressIndex < addr.index) {
+                await hdWallet.generateNextReceiveAddress();
+              }
+            }
+            if (addr.balance && addr.balance > 0) {
+              hdWallet.updateAddressBalance(addr.address, addr.balance, []);
+            }
+            if (addr.used) {
+              hdWallet.markAddressAsUsed(addr.address);
+            }
+          }
+        } else {
+          // Generate initial address if no addresses were saved
+          await hdWallet.generateNextReceiveAddress();
+        }
+        
         // Restore the wallet state with HD wallet manager
+        // Always use the HD wallet's current receive address as the main address
+        const currentReceiveAddress = hdWallet.getCurrentReceiveAddress();
         setWalletState({
           ...savedSession,
           hdWallet: hdWallet,
-          allAddresses: hdWallet.getAllAddresses()
+          allAddresses: hdWallet.getAllAddresses(),
+          address: currentReceiveAddress
         });
+        
+        // Log address synchronization for debugging
+        if (savedSession.address && savedSession.address !== currentReceiveAddress) {
+          console.log('🔧 SYNC: Updated main address from saved session:', {
+            savedAddress: savedSession.address,
+            newAddress: currentReceiveAddress
+          });
+        }
       } else {
         // Single address wallet
         setWalletState(savedSession);
@@ -80,13 +138,15 @@ export function WalletApp() {
       
       setCurrentView('wallet-dashboard');
       addNotification('Session restored successfully', 'success');
+      console.log('💾 SESSION: Session restored successfully');
     } catch (error) {
-      console.error('Failed to restore session:', error);
+      console.error('💾 SESSION: Failed to restore session:', error);
       addNotification('Failed to restore session: ' + error.message, 'error');
       // Clear invalid session
       if (sessionManager.current) {
         sessionManager.current.clearSession();
       }
+      setCurrentView('welcome');
     }
   };
 
@@ -104,17 +164,44 @@ export function WalletApp() {
         
         // Set up session expiration callback
         sessionManager.current.setSessionExpiredCallback(() => {
+          addNotification('Session expired. Please log in again.', 'warning');
           handleWalletLogout();
-          addNotification('Session expired - you have been logged out', 'warning');
+        });
+        
+        // Set session warning callback
+        sessionManager.current.setSessionWarningCallback((minutesRemaining) => {
+          setSessionWarningMinutes(minutesRemaining);
+          setWarningCountdown(minutesRemaining * 60); // Convert to seconds
+          setShowSessionWarning(true);
+          
+          // Start countdown timer
+          const countdownInterval = setInterval(() => {
+            setWarningCountdown(prev => {
+              if (prev <= 1) {
+                clearInterval(countdownInterval);
+                setShowSessionWarning(false);
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
         });
       }
       
       // Quick session check
       const savedSession = sessionManager.current.loadSession();
+      console.log('💾 SESSION: Quick session check result:', { 
+        hasSavedSession: !!savedSession,
+        isLoggedIn: savedSession?.isLoggedIn,
+        isHDWallet: savedSession?.isHDWallet,
+        address: savedSession?.address
+      });
+      
       if (savedSession && savedSession.isLoggedIn) {
         // Don't restore session yet, just continue to full initialization
         return savedSession;
       } else {
+        console.log('💾 SESSION: No valid session found, going to welcome screen');
         setIsCheckingSession(false);
         setCurrentView('welcome');
         return null;
@@ -201,7 +288,12 @@ export function WalletApp() {
   // Save session when wallet state changes
   useEffect(() => {
     if (sessionManager.current && walletState.isLoggedIn) {
-      sessionManager.current.saveSession(walletState);
+      // Create a serializable copy of wallet state without hdWallet instance
+      const sessionState = {
+        ...walletState,
+        hdWallet: null // Don't save the hdWallet instance - it will be recreated on restore
+      };
+      sessionManager.current.saveSession(sessionState);
     }
   }, [walletState.isLoggedIn, walletState.currentWallet, walletState.address]);
 
@@ -210,49 +302,130 @@ export function WalletApp() {
   };
 
   const handleWalletLogin = async (wallet) => {
+    
     try {
-      // Check if this is an HD wallet (has mnemonic)
-      const isHDWallet = !!(wallet.mnemonic);
-      
-      if (isHDWallet) {
-        // Initialize HD wallet manager
-        const { HDWalletManager } = await import('../../kaspa/js/hd-wallet-manager.js');
-        const hdWallet = new HDWalletManager(wallet.mnemonic, wallet.network, wallet.derivationPath);
+      // Initialize HD Wallet if needed
+      let hdWallet = null;
+      if (wallet.mnemonic) {
+        const { getHDWallet } = await import('../../kaspa/js/wallet-manager.js');
+        
+        // Convert address-level path to account-level path for HD wallet manager
+        let derivationPath = wallet.derivationPath;
+        if (derivationPath && derivationPath.includes(DEFAULT_ACCOUNT_PATH + '/')) {
+          // Convert from address-level to account-level
+          derivationPath = DEFAULT_ACCOUNT_PATH;
+          console.log('🔧 FIXED: Converted address-level path to account-level for HD wallet:', derivationPath);
+        } else if (!derivationPath) {
+          // Default to Kaspa account-level path
+          derivationPath = DEFAULT_ACCOUNT_PATH;
+          console.log('🔧 FIXED: Using default account-level path:', derivationPath);
+        }
+        
+        hdWallet = getHDWallet(wallet.mnemonic, wallet.network, derivationPath);
+        
+        // Initialize the HD wallet
         await hdWallet.initialize();
         
-        // Get current receive address
-        const currentAddress = hdWallet.getCurrentReceiveAddress();
+        // If importing existing wallet state
+        if (wallet.hdWalletState) {
+          await hdWallet.importState(wallet.hdWalletState);
+        } else {
+          // Generate initial address
+          await hdWallet.generateNextReceiveAddress();
+        }
         
-        setWalletState(prev => ({
-          ...prev,
-          isLoggedIn: true,
-          currentWallet: wallet,
-          address: currentAddress,
-          network: wallet.network,
-          hdWallet: hdWallet,
-          allAddresses: hdWallet.getAllAddresses(),
-          isHDWallet: true
-        }));
-      } else {
-        // Single address wallet
-        setWalletState(prev => ({
-          ...prev,
-          isLoggedIn: true,
-          currentWallet: wallet,
-          address: wallet.address,
-          network: wallet.network,
-          hdWallet: null,
-          allAddresses: [{ address: wallet.address, type: 'single', index: 0 }],
-          isHDWallet: false
-        }));
+        // PRIVACY ENHANCEMENT: Ensure we show a fresh address
+        // Check if current address has UTXOs and generate new one if needed
+        await ensureFreshReceiveAddress(hdWallet);
       }
-      
-      setCurrentView('wallet-dashboard');
-      addNotification(`Wallet logged in successfully (${wallet.network})`, 'success');
+
+      setWalletState({
+        isLoggedIn: true,
+        currentWallet: wallet,
+        address: hdWallet ? hdWallet.getCurrentReceiveAddress() : wallet.address,
+        balance: 0n,
+        network: wallet.network,
+        mnemonic: wallet.mnemonic || null,
+        privateKey: wallet.privateKey || null,
+        derivationPath: wallet.derivationPath || null,
+        isHDWallet: !!wallet.mnemonic,
+        hdWallet: hdWallet,
+        allAddresses: hdWallet ? hdWallet.getAllAddresses() : []
+      });
+
+      // Note: Session saving is handled by the useEffect hook that watches walletState changes
+      // No need to save session here manually as it will be saved automatically
+
+      navigateToView('wallet-dashboard');
+      addNotification('Wallet loaded successfully', 'success');
     } catch (error) {
       console.error('Wallet login error:', error);
-      addNotification('Failed to initialize wallet: ' + error.message, 'error');
+      addNotification('Failed to load wallet: ' + error.message, 'error');
     }
+  };
+
+  // PRIVACY ENHANCEMENT: Ensure fresh receive address
+  const ensureFreshReceiveAddress = async (hdWallet) => {
+    try {
+      
+      const currentAddress = hdWallet.getCurrentReceiveAddress();
+      
+      // Check if current address has been used or has balance/UTXOs
+      let needsNewAddress = hdWallet.shouldGenerateNewReceiveAddress();
+      
+      // Double-check by actually querying the blockchain for UTXOs
+      if (!needsNewAddress) {
+        try {
+          const { getSingleWallet } = await import('../../kaspa/js/wallet-manager.js');
+          const singleWallet = getSingleWallet(currentAddress, hdWallet.network);
+          await singleWallet.initialize();
+          const balanceResult = await singleWallet.checkSingleAddressBalance(currentAddress);
+          
+          if (balanceResult.success && (balanceResult.balance.kas > 0 || balanceResult.utxoCount > 0)) {
+            needsNewAddress = true;
+            
+            // Update HD wallet with the found balance/UTXOs using safe conversion
+            const { kasToSompi } = await import('../../kaspa/js/currency-utils.js');
+            const balanceInSompi = kasToSompi(balanceResult.balance.kas.toString());
+            hdWallet.updateAddressBalance(currentAddress, balanceInSompi, balanceResult.utxos || []);
+            hdWallet.markAddressAsUsed(currentAddress);
+          }
+        } catch (balanceError) {
+          console.warn('🔒 PRIVACY: Could not check address balance, proceeding with used flag only:', balanceError);
+        }
+      }
+      
+      // Generate new address if needed
+      if (needsNewAddress) {
+        const newAddress = await hdWallet.generateNextReceiveAddress();
+        addNotification('Generated fresh receive address for privacy', 'info');
+        return newAddress;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error('🔒 PRIVACY: Error ensuring fresh address:', error);
+      // Non-critical error, don't interrupt wallet login
+      return null;
+    }
+  };
+
+  // Handle session warning extension
+  const extendSession = () => {
+    if (sessionManager.current) {
+      const extended = sessionManager.current.extendSession();
+      if (extended) {
+        setShowSessionWarning(false);
+        addNotification('Session extended successfully', 'success');
+      } else {
+        addNotification('Failed to extend session', 'error');
+      }
+    }
+  };
+
+  // Close session warning (user chose not to extend)
+  const closeSessionWarning = () => {
+    setShowSessionWarning(false);
   };
 
   const handleWalletLogout = () => {
@@ -269,14 +442,18 @@ export function WalletApp() {
       network: walletState.network,
       hdWallet: null,
       allAddresses: [],
-      isHDWallet: false
+      isHDWallet: false,
+      mnemonic: null,
+      privateKey: null,
+      derivationPath: null
     });
     setCurrentView('welcome');
     addNotification('Wallet logged out', 'info');
   };
 
-  const navigateToView = (view) => {
+  const navigateToView = (view, data = null) => {
     setCurrentView(view);
+    setNavigationData(data);
   };
 
   const clearNotificationBadge = () => {
@@ -391,6 +568,16 @@ export function WalletApp() {
     }
   };
 
+  // Handle caching UTXOs from WalletDashboard
+  const handleCacheUTXOs = (utxoData) => {
+    setCachedUTXOs(utxoData);
+  };
+
+  // Clear cached UTXOs
+  const clearCachedUTXOs = () => {
+    setCachedUTXOs(null);
+  };
+
   return React.createElement('div', { className: 'wallet-app' },
     // Header Navigation
     React.createElement(WalletHeader, {
@@ -471,7 +658,10 @@ export function WalletApp() {
         addNotification,
         onGenerateNewAddress: generateNewReceiveAddress,
         onUpdateBalance: updateAddressBalance,
-        onMarkAddressUsed: markAddressAsUsed
+        onMarkAddressUsed: markAddressAsUsed,
+        cachedUTXOs,
+        onCacheUTXOs: handleCacheUTXOs,
+        onClearCachedUTXOs: clearCachedUTXOs
       }),
 
       // Transaction Manager
@@ -480,7 +670,11 @@ export function WalletApp() {
         onNavigate: navigateToView,
         addNotification,
         onGenerateChangeAddress: generateNewChangeAddress,
-        onMarkAddressUsed: markAddressAsUsed
+        onGenerateNewAddress: generateNewReceiveAddress,
+        onMarkAddressUsed: markAddressAsUsed,
+        cachedUTXOs,
+        onClearCachedUTXOs: clearCachedUTXOs,
+        navigationData
       }),
 
       // Message Signing
@@ -511,6 +705,63 @@ export function WalletApp() {
     React.createElement(ToastContainer, {
       notifications: toastNotifications,
       onDismiss: handleToastDismiss
-    })
+    }),
+
+    // Session Warning Modal
+    showSessionWarning && React.createElement('div', {
+      className: 'modal fade show',
+      style: { display: 'block', backgroundColor: 'rgba(0,0,0,0.8)' }
+    },
+      React.createElement('div', {
+        className: 'modal-dialog modal-dialog-centered'
+      },
+        React.createElement('div', { className: 'modal-content border-warning' },
+          React.createElement('div', { className: 'modal-header bg-warning text-dark' },
+            React.createElement('h5', { className: 'modal-title' },
+              React.createElement('i', { className: 'bi bi-exclamation-triangle me-2' }),
+              'Session Expiring Soon'
+            )
+          ),
+          React.createElement('div', { className: 'modal-body text-center' },
+            React.createElement('div', { className: 'mb-3' },
+              React.createElement('i', { 
+                className: 'bi bi-clock text-warning',
+                style: { fontSize: '3rem' }
+              })
+            ),
+            React.createElement('h6', { className: 'mb-3' },
+              `Your session will expire in ${Math.floor(warningCountdown / 60)}:${String(warningCountdown % 60).padStart(2, '0')}`
+            ),
+            React.createElement('p', { className: 'text-muted' },
+              'Would you like to extend your session? If you don\'t respond, you will be automatically logged out.'
+            ),
+            React.createElement('div', { className: 'progress mb-3', style: { height: '8px' } },
+              React.createElement('div', {
+                className: 'progress-bar bg-warning',
+                style: { 
+                  width: `${(warningCountdown / (sessionWarningMinutes * 60)) * 100}%`,
+                  transition: 'width 1s linear'
+                }
+              })
+            )
+          ),
+          React.createElement('div', { className: 'modal-footer' },
+            React.createElement('button', {
+              type: 'button',
+              className: 'btn btn-secondary',
+              onClick: closeSessionWarning
+            }, 'Logout Now'),
+            React.createElement('button', {
+              type: 'button',
+              className: 'btn btn-warning',
+              onClick: extendSession
+            },
+              React.createElement('i', { className: 'bi bi-clock-history me-2' }),
+              'Extend Session'
+            )
+          )
+        )
+      )
+    )
   );
 } 
