@@ -15,7 +15,7 @@ export function WalletCreation({ onNavigate, onWalletCreated, addNotification, n
   const [securityAcknowledged, setSecurityAcknowledged] = useState(false);
   const [selectedNetwork, setSelectedNetwork] = useState(network);
 
-  const DEFAULT_DERIVATION_PATH = "m/44'/111111'/0'/0/0";
+
 
   // Sync selectedNetwork with prop when it changes
   useEffect(() => {
@@ -28,12 +28,14 @@ export function WalletCreation({ onNavigate, onWalletCreated, addNotification, n
     try {
       const { generateWallet } = await import('../../kaspa/js/wallet-generator.js');
       
-      const generatedWallet = generateWallet(selectedNetwork, DEFAULT_DERIVATION_PATH);
+      const generatedWallet = generateWallet(selectedNetwork);
       
       setWalletData({
         ...generatedWallet,
         address: generatedWallet.publicAddress,
-        network: generatedWallet.networkType
+        network: generatedWallet.networkType,
+        xpub: generatedWallet.xpub,
+        accountPath: generatedWallet.accountPath
       });
       
       setCurrentStep(2);
@@ -65,7 +67,9 @@ export function WalletCreation({ onNavigate, onWalletCreated, addNotification, n
         address: walletData.address,
         network: walletData.network,
         mnemonic: walletData.mnemonic,
-        derivationPath: walletData.derivationPath
+        derivationPath: walletData.derivationPath,
+        xpub: walletData.xpub,
+        accountPath: walletData.accountPath
       };
       
       await walletStorage.saveWallet(walletToSave, password);
@@ -83,6 +87,8 @@ export function WalletCreation({ onNavigate, onWalletCreated, addNotification, n
         privateKey: walletData.privateKey,
         mnemonic: walletData.mnemonic,
         derivationPath: walletData.derivationPath,
+        xpub: walletData.xpub,
+        accountPath: walletData.accountPath,
         label: walletLabel.trim() || `Wallet ${walletData.address.substring(0, 8)}...`
       };
       
@@ -95,6 +101,14 @@ export function WalletCreation({ onNavigate, onWalletCreated, addNotification, n
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const isFormValid = () => {
+    return password && 
+           password.length >= 8 && 
+           password === confirmPassword && 
+           mnemonicConfirmed && 
+           securityAcknowledged;
   };
 
   const validateForm = () => {
@@ -368,8 +382,8 @@ export function WalletCreation({ onNavigate, onWalletCreated, addNotification, n
                 React.createElement('div', { className: 'd-grid gap-2' },
                   React.createElement('button', {
                     type: 'submit',
-                    className: `btn btn-success btn-lg ${isSaving ? 'disabled' : ''}`,
-                    disabled: isSaving || !mnemonicConfirmed
+                    className: `btn btn-success btn-lg ${isSaving || !isFormValid() ? 'disabled' : ''}`,
+                    disabled: isSaving || !isFormValid()
                   },
                     isSaving ? 
                       React.createElement('span', null,

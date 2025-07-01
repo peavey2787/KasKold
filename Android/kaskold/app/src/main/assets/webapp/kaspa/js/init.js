@@ -1,11 +1,12 @@
 // Kaspa WASM Initialization Module
+// Use relative path to kaspa-wasm32-sdk from kaspa/js/ directory
 import * as kaspa from '../../kaspa-wasm32-sdk/web/kaspa/kaspa.js';
-import { NETWORK_TYPES, DEFAULT_DERIVATION_PATH, generateWallet } from './wallet-generator.js';
+import { NETWORK_TYPES, DEFAULT_ADDRESS_PATH, generateWallet } from './wallet-generator.js';
 import { calculateAccurateTransactionFee } from './fee-calculator.js';
 import { createTransaction, createTransactionWithManualFee, exportTransaction } from './transaction-create.js';
 import { signTransaction, exportSignedTransaction } from './transaction-sign.js';
 import { submitTransaction, getTransactionStatus } from './transaction-submit.js';
-import { checkAddressBalance, formatBalance } from './wallet-balance.js';
+// Balance checking now handled by unified wallet manager
 import { 
     restoreWalletFromMnemonic, 
     restoreWalletFromPrivateKey, 
@@ -35,7 +36,7 @@ import {
     readMultiPartQRFromImages,
     openCameraQRScanner
 } from './qr-manager.js';
-import { walletManager } from './wallet-manager.js';
+// Wallet management now handled by unified wallet manager
 
 let kaspaInitialized = false;
 let currentTransactionData = null;
@@ -62,8 +63,6 @@ async function initKaspa() {
         
         // Make global functions available
         window.saveWalletWithPassword = saveWalletWithPassword;
-        window.checkAddressBalance = checkAddressBalance;
-        window.formatBalance = formatBalance;
         
 
     }
@@ -249,7 +248,7 @@ function setupWalletEventHandlers() {
         resetDerivationPath.addEventListener("click", () => {
             const derivationPathInput = document.getElementById("derivationPath");
             if (derivationPathInput) {
-                derivationPathInput.value = DEFAULT_DERIVATION_PATH;
+                derivationPathInput.value = DEFAULT_ADDRESS_PATH;
             }
         });
     }
@@ -260,7 +259,7 @@ function setupWalletEventHandlers() {
         generateWalletBtn.addEventListener("click", () => {
             try {
                 const networkType = document.getElementById("networkType")?.value || 'mainnet';
-                const derivationPath = document.getElementById("derivationPath")?.value || DEFAULT_DERIVATION_PATH;
+                const derivationPath = document.getElementById("derivationPath")?.value || DEFAULT_ADDRESS_PATH;
                 const passphrase = document.getElementById("passphrase")?.value || null;
 
                 const wallet = generateWallet(networkType, derivationPath, passphrase);
@@ -352,7 +351,7 @@ function setupWalletRestoreEventHandlers() {
 
     window.resetDerivationPath = (context) => {
         const pathInput = document.getElementById(`${context}-derivation-path`);
-        pathInput.value = DEFAULT_DERIVATION_PATH;
+        pathInput.value = DEFAULT_ADDRESS_PATH;
         pathInput.readOnly = true;
         pathInput.style.backgroundColor = '';
     };
@@ -512,7 +511,7 @@ function setupWalletRestoreEventHandlers() {
         document.getElementById('private-key-input').value = '';
         
         // Reset derivation paths
-        document.getElementById('restore-derivation-path').value = DEFAULT_DERIVATION_PATH;
+        document.getElementById('restore-derivation-path').value = DEFAULT_ADDRESS_PATH;
         document.getElementById('restore-derivation-path').readOnly = true;
         document.getElementById('restore-derivation-path').style.backgroundColor = '';
         
@@ -872,7 +871,7 @@ function setupTransactionEventHandlers() {
                 
                 if (isNetworkError) {
                     // Network/connectivity issue - switch to offline mode
-                    console.log('Network connectivity issue detected, switching to offline mode:', errorMessage);
+                    console.warn('Network connectivity issue detected, switching to offline mode:', errorMessage);
                     
                     isOfflineMode = true;
                     
@@ -1281,12 +1280,10 @@ function setupTransactionEventHandlers() {
     // Download signed transaction
     document.getElementById("downloadSigned").addEventListener("click", () => {
         try {
-            if (currentSignedTransactionData) {
-    
+            if (currentSignedTransactionData) {    
                 
                 // Use the SDK's serializeToObject method to get the actual transaction data
                 const serializedTransaction = currentSignedTransactionData.signedTransaction.serializeToObject();
-
                 
                 // Convert BigInt values to strings for JSON serialization
                 const jsonSafeTransaction = JSON.parse(JSON.stringify(serializedTransaction, (key, value) =>
@@ -1306,7 +1303,6 @@ function setupTransactionEventHandlers() {
                     transaction: jsonSafeTransaction
                 };
                 
-                console.log('Export data:', exportData);
                 const filename = `kaspa-transaction-signed-${currentSignedTransactionData.transactionId}.json`;
                 downloadFile(JSON.stringify(exportData, null, 2), filename);
             } else {
@@ -1460,7 +1456,7 @@ function setupTransactionEventHandlers() {
                     console.error("Error auto-generating submitted QR:", qrError);
                 }
             } else {
-                console.log('Transaction submission failed:', result.error);
+                console.error('Transaction submission failed:', result.error);
                 document.getElementById("transactionStatus").textContent = "Submit Failed ✗";
                 document.getElementById("transactionError").textContent = result.error;
             }
@@ -1621,8 +1617,7 @@ function setupTransactionEventHandlers() {
                 alert("Please create a transaction first");
                 return;
             }
-            
-            console.log("Generating unsigned transaction QR...");
+
             const qrResult = await generateUnsignedTransactionQR(currentTransactionData);
             
             if (qrResult.success) {
@@ -1692,13 +1687,9 @@ function setupTransactionEventHandlers() {
             const file = event.target.files[0];
             if (!file) return;
             
-            console.log("Reading unsigned transaction QR from image...", file.name, file.type);
             const qrResult = await readQRFromImage(file);
-            
-            console.log("QR reading result:", qrResult);
-            
+                        
             if (qrResult.success) {
-                console.log("QR data received:", qrResult.qrData);
                 
                 // Handle both parsed and unparsed QR data
                 let qrData;
@@ -1711,8 +1702,6 @@ function setupTransactionEventHandlers() {
                 }
                 
                 const validation = validateTransactionQRData(qrData, 'unsigned-transaction');
-                
-                console.log("Validation result:", validation);
                 
                 if (!validation.isValid) {
                     throw new Error(validation.error);
@@ -1772,8 +1761,7 @@ function setupTransactionEventHandlers() {
                 alert("Please sign a transaction first");
                 return;
             }
-            
-            console.log("Generating signed transaction QR...");
+
             const qrResult = await generateSignedTransactionQR(currentSignedTransactionData);
             
             if (qrResult.success) {
@@ -1867,16 +1855,13 @@ function setupTransactionEventHandlers() {
             
             if (files.length === 1) {
                 // Single QR upload
-                console.log("Reading signed transaction QR from single image...");
                 qrResult = await readQRFromImage(files[0]);
             } else {
                 // Multi-part QR upload
-                console.log(`Reading signed transaction QR from ${files.length} images...`);
                 qrResult = await readMultiPartQRFromImages(files);
             }
             
             if (qrResult.success) {
-                console.log("Signed QR data received:", qrResult.qrData);
                 
                 // Handle both parsed and unparsed QR data
                 let qrData;
@@ -1910,8 +1895,6 @@ function setupTransactionEventHandlers() {
                     isUploaded: true,
                     serializedTransaction: txData.serializedTransaction
                 };
-                
-                console.log("Signed transaction data loaded from QR:", currentSignedTransactionData);
                 
                 // Update UI
                 document.getElementById("toAddress").value = txData.toAddress;
@@ -1948,11 +1931,9 @@ function setupTransactionEventHandlers() {
     // Scan Unsigned Transaction QR
     document.getElementById("scanUnsignedTxQR").addEventListener("click", async () => {
         try {
-            console.log("Opening camera scanner for unsigned transaction QR...");
             
             await openCameraQRScanner(async (qrResult) => {
                 try {
-                    console.log("Unsigned QR scanned:", qrResult.qrData);
                     
                     // Handle both parsed and unparsed QR data
                     let qrData;
@@ -1986,8 +1967,6 @@ function setupTransactionEventHandlers() {
                         isUploaded: true,
                         pendingTransaction: txData.pendingTransaction
                     };
-                    
-                    console.log("Unsigned transaction data loaded from camera QR:", currentTransactionData);
                     
                     // Update UI
                     document.getElementById("toAddress").value = txData.toAddress;
@@ -2026,11 +2005,9 @@ function setupTransactionEventHandlers() {
     // Scan Signed Transaction QR
     document.getElementById("scanSignedTxQR").addEventListener("click", async () => {
         try {
-            console.log("Opening camera scanner for signed transaction QR...");
             
             await openCameraQRScanner(async (qrResult) => {
                 try {
-                    console.log("Signed QR scanned:", qrResult.qrData);
                     
                     // Handle both parsed and unparsed QR data
                     let qrData;
@@ -2064,8 +2041,6 @@ function setupTransactionEventHandlers() {
                         isUploaded: true,
                         serializedTransaction: txData.serializedTransaction
                     };
-                    
-                    console.log("Signed transaction data loaded from camera QR:", currentSignedTransactionData);
                     
                     // Update UI
                     document.getElementById("toAddress").value = txData.toAddress;
@@ -2104,11 +2079,9 @@ function setupTransactionEventHandlers() {
     // Scan Submitted Transaction QR
     document.getElementById("scanSubmittedTxQR").addEventListener("click", async () => {
         try {
-            console.log("Opening camera scanner for submitted transaction QR...");
             
             await openCameraQRScanner(async (qrResult) => {
                 try {
-                    console.log("Submitted QR scanned:", qrResult.qrData);
                     
                     // Handle both parsed and unparsed QR data
                     let qrData;
@@ -2142,8 +2115,6 @@ function setupTransactionEventHandlers() {
                         networkResponse: txData.networkResponse,
                         submissionTimestamp: txData.submissionTimestamp
                     };
-                    
-                    console.log("Submitted transaction data loaded from camera QR:", currentSubmittedTransactionData);
                     
                     // Update UI
                     document.getElementById("toAddress").value = txData.toAddress;
@@ -2186,8 +2157,7 @@ function setupTransactionEventHandlers() {
                 alert("Please submit a transaction first");
                 return;
             }
-            
-            console.log("Generating submitted transaction QR...");
+
             const qrResult = await generateSubmittedTransactionQR(currentSubmittedTransactionData);
             
             if (qrResult.success) {
@@ -2245,12 +2215,10 @@ function setupTransactionEventHandlers() {
         try {
             const file = event.target.files[0];
             if (!file) return;
-            
-            console.log("Reading submitted transaction QR from image...");
+
             const qrResult = await readQRFromImage(file);
             
             if (qrResult.success) {
-                console.log("Submitted QR data received:", qrResult.qrData);
                 
                 // Handle both parsed and unparsed QR data
                 let qrData;
@@ -2905,11 +2873,9 @@ function setupMessageSigningEventHandlers() {
     // Scan Message QR
     document.getElementById("scanMessageQR").addEventListener("click", async () => {
         try {
-            console.log("Opening camera scanner for message QR...");
             
             await openCameraQRScanner(async (qrResult) => {
                 try {
-                    console.log("Message QR scanned:", qrResult.qrData);
                     
                     // Handle both parsed and unparsed QR data
                     let qrData;
@@ -3151,7 +3117,7 @@ async function saveWalletWithPassword(walletData, password, label = null) {
     
         
         // Import wallet manager (this should be safe since it doesn't access DOM directly)
-        const { walletManager } = await import('./wallet-manager.js');
+        // Wallet management now handled by unified wallet manager
         
         // Save the wallet
         const walletId = await walletManager.saveWallet(walletData, password, label);

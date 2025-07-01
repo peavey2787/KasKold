@@ -8,10 +8,13 @@ export class SessionManager {
         this.sessionKey = 'kaspa_wallet_session';
         this.settingsKey = 'kaspa_session_settings';
         this.timeoutId = null;
+        this.warningTimeoutId = null; // For showing warning before expiry
         this.onSessionExpired = null;
+        this.onSessionWarning = null; // New callback for warning
         this.defaultSettings = {
-            timeoutMinutes: 0, // 0 = no timeout (current behavior)
-            autoSave: true
+            timeoutMinutes: 30, // 30 minutes default timeout
+            autoSave: true,
+            warningMinutes: 2 // Show warning 2 minutes before expiry
         };
     }
 
@@ -48,9 +51,17 @@ export class SessionManager {
     saveSession(walletState) {
         const settings = this.getSettings();
         
-        if (!settings.autoSave || settings.timeoutMinutes === 0) {
+        if (!settings.autoSave) {
+            console.log('Session save skipped - autoSave disabled');
             return;
         }
+
+        console.log('💾 SESSION: Attempting to save session...', { 
+            isLoggedIn: walletState.isLoggedIn,
+            hasCurrentWallet: !!walletState.currentWallet,
+            address: walletState.address,
+            network: walletState.network
+        });
 
         try {
             // Create a safe copy of currentWallet without circular references
@@ -69,7 +80,7 @@ export class SessionManager {
                 address: addr.address || '',
                 type: addr.type || 'receive',
                 index: typeof addr.index === 'number' ? addr.index : 0,
-                balance: typeof addr.balance === 'number' ? addr.balance : (typeof addr.balance === 'bigint' ? Number(addr.balance) : 0),
+                balance: addr.balance, // Preserve original type (BigInt, number, or 0)
                 used: Boolean(addr.used)
             })) : [];
 
@@ -81,18 +92,35 @@ export class SessionManager {
                     network: walletState.network,
                     allAddresses: safeAllAddresses,
                     isHDWallet: walletState.isHDWallet,
+                    mnemonic: walletState.mnemonic,
+                    privateKey: walletState.privateKey,
+                    derivationPath: walletState.derivationPath,
+                    balance: walletState.balance, // Preserve original type (BigInt, number, or null)
+                    // Explicitly exclude hdWallet instance - it will be recreated on restore
+                    hdWallet: null
                 },
                 timestamp: Date.now(),
-                expiresAt: Date.now() + (settings.timeoutMinutes * 60 * 1000)
+                expiresAt: settings.timeoutMinutes > 0 ? Date.now() + (settings.timeoutMinutes * 60 * 1000) : null
             };
 
-            const jsonString = JSON.stringify(sessionData);
+            // Convert BigInt values to strings for JSON serialization
+            const jsonString = JSON.stringify(sessionData, (key, value) => {
+                if (typeof value === 'bigint') {
+                    return value.toString();
+                }
+                return value;
+            });
+
             localStorage.setItem(this.sessionKey, jsonString);
+            console.log('💾 SESSION: Session saved successfully to localStorage');
             
-            this.startTimeout(settings.timeoutMinutes);
+            if (settings.timeoutMinutes > 0) {
+                this.startTimeout(settings.timeoutMinutes);
+            }
         } catch (error) {
-            console.error('Failed to save session:', error);
-            console.error('Error details:', error.message);
+            console.error('💾 SESSION: Failed to save session:', error);
+            console.error('💾 SESSION: Error details:', error.message);
+            console.error('💾 SESSION: WalletState that failed:', walletState);
         }
     }
 
@@ -103,30 +131,45 @@ export class SessionManager {
     loadSession() {
         try {
             const saved = localStorage.getItem(this.sessionKey);
+            console.log('💾 SESSION: Loading session...', { hasSavedData: !!saved });
+            
             if (!saved) {
+                console.log('💾 SESSION: No saved session found');
                 return null;
             }
 
             const sessionData = JSON.parse(saved);
             const now = Date.now();
 
-            // Check if session has expired
+            console.log('💾 SESSION: Session data loaded', { 
+                hasWalletState: !!sessionData.walletState,
+                isLoggedIn: sessionData.walletState?.isLoggedIn,
+                expiresAt: sessionData.expiresAt,
+                isExpired: sessionData.expiresAt && now > sessionData.expiresAt
+            });
+
+            // Check if session has expired (only if expiration is set)
             if (sessionData.expiresAt && now > sessionData.expiresAt) {
+                console.log('💾 SESSION: Session expired, clearing...');
                 this.clearSession();
                 return null;
             }
 
             // Calculate remaining time and start timeout
             const settings = this.getSettings();
-            if (settings.timeoutMinutes > 0) {
+            if (settings.timeoutMinutes > 0 && sessionData.expiresAt) {
                 const remainingMs = sessionData.expiresAt - now;
                 const remainingMinutes = Math.ceil(remainingMs / (60 * 1000));
                 this.startTimeout(remainingMinutes);
             }
 
-            return sessionData.walletState;
+            // Convert string values back to BigInt for balance fields
+            const walletState = this.convertStringToBigInt(sessionData.walletState, ['balance']);
+
+            console.log('💾 SESSION: Session restored successfully');
+            return walletState;
         } catch (error) {
-            console.error('Failed to load session:', error);
+            console.error('💾 SESSION: Failed to load session:', error);
             this.clearSession();
             return null;
         }
@@ -153,6 +196,17 @@ export class SessionManager {
 
         if (minutes <= 0) return; // No timeout
 
+        const settings = this.getSettings();
+        const warningMinutes = settings.warningMinutes || 2;
+        
+        // Only show warning if there's enough time
+        if (minutes > warningMinutes) {
+            const warningMs = (minutes - warningMinutes) * 60 * 1000;
+            this.warningTimeoutId = setTimeout(() => {
+                this.handleSessionWarning(warningMinutes);
+            }, warningMs);
+        }
+
         const timeoutMs = minutes * 60 * 1000;
         this.timeoutId = setTimeout(() => {
             this.handleSessionExpired();
@@ -167,6 +221,20 @@ export class SessionManager {
             clearTimeout(this.timeoutId);
             this.timeoutId = null;
         }
+        if (this.warningTimeoutId) {
+            clearTimeout(this.warningTimeoutId);
+            this.warningTimeoutId = null;
+        }
+    }
+
+    /**
+     * Handle session warning (before expiration)
+     * @param {number} minutesRemaining - Minutes until expiration
+     */
+    handleSessionWarning(minutesRemaining) {
+        if (this.onSessionWarning) {
+            this.onSessionWarning(minutesRemaining);
+        }
     }
 
     /**
@@ -178,6 +246,14 @@ export class SessionManager {
         if (this.onSessionExpired) {
             this.onSessionExpired();
         }
+    }
+
+    /**
+     * Set session warning callback
+     * @param {Function} callback - Function to call when warning should be shown
+     */
+    setSessionWarningCallback(callback) {
+        this.onSessionWarning = callback;
     }
 
     /**
@@ -204,7 +280,7 @@ export class SessionManager {
      */
     isSessionPersistenceEnabled() {
         const settings = this.getSettings();
-        return settings.autoSave && settings.timeoutMinutes > 0;
+        return settings.autoSave;
     }
 
     /**
@@ -225,6 +301,105 @@ export class SessionManager {
             return -1;
         }
     }
+
+    /**
+     * Extend session by specified minutes
+     * @param {number} additionalMinutes - Minutes to extend session
+     */
+    extendSession(additionalMinutes = null) {
+        const settings = this.getSettings();
+        const minutesToAdd = additionalMinutes || settings.timeoutMinutes;
+
+        console.log('🔄 SESSION: Attempting to extend session', {
+            additionalMinutes,
+            minutesToAdd,
+            settings
+        });
+
+        try {
+            const saved = localStorage.getItem(this.sessionKey);
+            console.log('🔄 SESSION: Retrieved saved session', {
+                hasSaved: !!saved,
+                savedLength: saved?.length
+            });
+
+            if (saved) {
+                const sessionData = JSON.parse(saved);
+                console.log('🔄 SESSION: Parsed session data', {
+                    hasWalletState: !!sessionData.walletState,
+                    currentExpiresAt: sessionData.expiresAt,
+                    isLoggedIn: sessionData.walletState?.isLoggedIn
+                });
+
+                // Extend expiration time
+                const newExpiresAt = Date.now() + (minutesToAdd * 60 * 1000);
+                sessionData.expiresAt = newExpiresAt;
+
+                console.log('🔄 SESSION: Updated expiration time', {
+                    oldExpiresAt: sessionData.expiresAt,
+                    newExpiresAt,
+                    minutesToAdd
+                });
+
+                // Save updated session with BigInt-safe serialization
+                const jsonString = JSON.stringify(sessionData, (key, value) => {
+                    if (typeof value === 'bigint') {
+                        return value.toString();
+                    }
+                    return value;
+                });
+                localStorage.setItem(this.sessionKey, jsonString);
+
+                console.log('🔄 SESSION: Saved updated session to localStorage');
+
+                // Restart timeout with new duration
+                this.startTimeout(minutesToAdd);
+
+                console.log('🔄 SESSION: Restarted timeout with', minutesToAdd, 'minutes');
+
+                return true;
+            } else {
+                console.error('🔄 SESSION: No saved session found in localStorage');
+            }
+        } catch (error) {
+            console.error('🔄 SESSION: Failed to extend session:', error);
+            console.error('🔄 SESSION: Error details:', error.message);
+            console.error('🔄 SESSION: Error stack:', error.stack);
+        }
+
+        return false;
+    }
+
+    /**
+     * Convert string values back to BigInt where appropriate
+     * @param {*} obj - Object to convert
+     * @param {string[]} bigIntFields - Fields that should be converted to BigInt
+     * @returns {*} - Object with string values converted back to BigInt
+     */
+    convertStringToBigInt(obj, bigIntFields = ['balance', 'amount', 'fee', 'value']) {
+        if (obj === null || obj === undefined) {
+            return obj;
+        }
+
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.convertStringToBigInt(item, bigIntFields));
+        }
+
+        if (typeof obj === 'object') {
+            const converted = {};
+            for (const [key, value] of Object.entries(obj)) {
+                if (bigIntFields.includes(key) && typeof value === 'string' && /^\d+$/.test(value)) {
+                    // Convert string back to BigInt if it's a valid number string
+                    converted[key] = BigInt(value);
+                } else {
+                    converted[key] = this.convertStringToBigInt(value, bigIntFields);
+                }
+            }
+            return converted;
+        }
+
+        return obj;
+    }
 }
 
-export default SessionManager; 
+export default SessionManager;

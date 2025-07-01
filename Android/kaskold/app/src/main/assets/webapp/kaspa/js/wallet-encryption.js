@@ -17,6 +17,7 @@ class WalletEncryption {
      * @returns {Uint8Array} Random salt
      */
     generateSalt() {
+        this.ensureCryptoAvailable();
         return crypto.getRandomValues(new Uint8Array(this.saltLength));
     }
 
@@ -25,7 +26,37 @@ class WalletEncryption {
      * @returns {Uint8Array} Random IV
      */
     generateIV() {
+        this.ensureCryptoAvailable();
         return crypto.getRandomValues(new Uint8Array(this.ivLength));
+    }
+
+    /**
+     * Check if crypto API is available
+     * @returns {boolean} Whether crypto API is available
+     */
+    isCryptoAvailable() {
+        return typeof crypto !== 'undefined' && 
+               crypto.subtle && 
+               typeof crypto.subtle.importKey === 'function' &&
+               typeof crypto.subtle.deriveKey === 'function' &&
+               typeof crypto.subtle.encrypt === 'function' &&
+               typeof crypto.subtle.decrypt === 'function';
+    }
+
+    /**
+     * Ensure crypto API is available or throw meaningful error
+     */
+    ensureCryptoAvailable() {
+        if (!this.isCryptoAvailable()) {
+            const isHttps = location.protocol === 'https:';
+            const isLocalhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            
+            if (!isHttps && !isLocalhost) {
+                throw new Error('Crypto API not available. This application requires HTTPS in production. Please access the site using HTTPS or run it locally for development.');
+            } else {
+                throw new Error('Crypto API not available. This application requires a modern browser with Web Crypto API support. Please update your browser or try a different one.');
+            }
+        }
     }
 
     /**
@@ -35,6 +66,8 @@ class WalletEncryption {
      * @returns {Promise<CryptoKey>} Derived key
      */
     async deriveKey(password, salt) {
+        this.ensureCryptoAvailable();
+        
         const encoder = new TextEncoder();
         const passwordBuffer = encoder.encode(password);
         
@@ -71,6 +104,8 @@ class WalletEncryption {
      */
     async encryptPrivateKey(privateKey, password) {
         try {
+            this.ensureCryptoAvailable();
+            
             const encoder = new TextEncoder();
             const data = encoder.encode(privateKey);
             

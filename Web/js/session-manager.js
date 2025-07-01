@@ -12,7 +12,7 @@ export class SessionManager {
         this.onSessionExpired = null;
         this.onSessionWarning = null; // New callback for warning
         this.defaultSettings = {
-            timeoutMinutes: 0, // 0 = no timeout (current behavior)
+            timeoutMinutes: 30, // 30 minutes default timeout
             autoSave: true,
             warningMinutes: 2 // Show warning 2 minutes before expiry
         };
@@ -80,7 +80,7 @@ export class SessionManager {
                 address: addr.address || '',
                 type: addr.type || 'receive',
                 index: typeof addr.index === 'number' ? addr.index : 0,
-                balance: typeof addr.balance === 'number' ? addr.balance : (typeof addr.balance === 'bigint' ? Number(addr.balance) : 0),
+                balance: addr.balance, // Preserve original type (BigInt, number, or 0)
                 used: Boolean(addr.used)
             })) : [];
 
@@ -95,7 +95,7 @@ export class SessionManager {
                     mnemonic: walletState.mnemonic,
                     privateKey: walletState.privateKey,
                     derivationPath: walletState.derivationPath,
-                    balance: typeof walletState.balance === 'bigint' ? Number(walletState.balance) : walletState.balance,
+                    balance: walletState.balance, // Preserve original type (BigInt, number, or null)
                     // Explicitly exclude hdWallet instance - it will be recreated on restore
                     hdWallet: null
                 },
@@ -103,7 +103,14 @@ export class SessionManager {
                 expiresAt: settings.timeoutMinutes > 0 ? Date.now() + (settings.timeoutMinutes * 60 * 1000) : null
             };
 
-            const jsonString = JSON.stringify(sessionData);
+            // Convert BigInt values to strings for JSON serialization
+            const jsonString = JSON.stringify(sessionData, (key, value) => {
+                if (typeof value === 'bigint') {
+                    return value.toString();
+                }
+                return value;
+            });
+
             localStorage.setItem(this.sessionKey, jsonString);
             console.log('💾 SESSION: Session saved successfully to localStorage');
             
@@ -156,8 +163,11 @@ export class SessionManager {
                 this.startTimeout(remainingMinutes);
             }
 
+            // Convert string values back to BigInt for balance fields
+            const walletState = this.convertStringToBigInt(sessionData.walletState, ['balance']);
+
             console.log('💾 SESSION: Session restored successfully');
-            return sessionData.walletState;
+            return walletState;
         } catch (error) {
             console.error('💾 SESSION: Failed to load session:', error);
             this.clearSession();
@@ -299,29 +309,97 @@ export class SessionManager {
     extendSession(additionalMinutes = null) {
         const settings = this.getSettings();
         const minutesToAdd = additionalMinutes || settings.timeoutMinutes;
-        
+
+        console.log('🔄 SESSION: Attempting to extend session', {
+            additionalMinutes,
+            minutesToAdd,
+            settings
+        });
+
         try {
             const saved = localStorage.getItem(this.sessionKey);
+            console.log('🔄 SESSION: Retrieved saved session', {
+                hasSaved: !!saved,
+                savedLength: saved?.length
+            });
+
             if (saved) {
                 const sessionData = JSON.parse(saved);
-                
+                console.log('🔄 SESSION: Parsed session data', {
+                    hasWalletState: !!sessionData.walletState,
+                    currentExpiresAt: sessionData.expiresAt,
+                    isLoggedIn: sessionData.walletState?.isLoggedIn
+                });
+
                 // Extend expiration time
-                sessionData.expiresAt = Date.now() + (minutesToAdd * 60 * 1000);
-                
-                // Save updated session
-                localStorage.setItem(this.sessionKey, JSON.stringify(sessionData));
-                
+                const newExpiresAt = Date.now() + (minutesToAdd * 60 * 1000);
+                sessionData.expiresAt = newExpiresAt;
+
+                console.log('🔄 SESSION: Updated expiration time', {
+                    oldExpiresAt: sessionData.expiresAt,
+                    newExpiresAt,
+                    minutesToAdd
+                });
+
+                // Save updated session with BigInt-safe serialization
+                const jsonString = JSON.stringify(sessionData, (key, value) => {
+                    if (typeof value === 'bigint') {
+                        return value.toString();
+                    }
+                    return value;
+                });
+                localStorage.setItem(this.sessionKey, jsonString);
+
+                console.log('🔄 SESSION: Saved updated session to localStorage');
+
                 // Restart timeout with new duration
                 this.startTimeout(minutesToAdd);
-                
+
+                console.log('🔄 SESSION: Restarted timeout with', minutesToAdd, 'minutes');
+
                 return true;
+            } else {
+                console.error('🔄 SESSION: No saved session found in localStorage');
             }
         } catch (error) {
-            console.error('Failed to extend session:', error);
+            console.error('🔄 SESSION: Failed to extend session:', error);
+            console.error('🔄 SESSION: Error details:', error.message);
+            console.error('🔄 SESSION: Error stack:', error.stack);
         }
-        
+
         return false;
+    }
+
+    /**
+     * Convert string values back to BigInt where appropriate
+     * @param {*} obj - Object to convert
+     * @param {string[]} bigIntFields - Fields that should be converted to BigInt
+     * @returns {*} - Object with string values converted back to BigInt
+     */
+    convertStringToBigInt(obj, bigIntFields = ['balance', 'amount', 'fee', 'value']) {
+        if (obj === null || obj === undefined) {
+            return obj;
+        }
+
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.convertStringToBigInt(item, bigIntFields));
+        }
+
+        if (typeof obj === 'object') {
+            const converted = {};
+            for (const [key, value] of Object.entries(obj)) {
+                if (bigIntFields.includes(key) && typeof value === 'string' && /^\d+$/.test(value)) {
+                    // Convert string back to BigInt if it's a valid number string
+                    converted[key] = BigInt(value);
+                } else {
+                    converted[key] = this.convertStringToBigInt(value, bigIntFields);
+                }
+            }
+            return converted;
+        }
+
+        return obj;
     }
 }
 
-export default SessionManager; 
+export default SessionManager;

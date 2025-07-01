@@ -15,6 +15,9 @@ import { convertBigIntToString, convertStringToBigInt, serializeWasmObject } fro
 export function TransactionManager({ walletState, onNavigate, addNotification, onGenerateChangeAddress, onGenerateNewAddress, onMarkAddressUsed, cachedUTXOs, onClearCachedUTXOs, navigationData }) {
   const [amount, setAmount] = useState(DEFAULT_TRANSACTION_AMOUNT.toString());
   const [toAddress, setToAddress] = useState('');
+  const [resolvedAddress, setResolvedAddress] = useState('');
+  const [domainLookupStatus, setDomainLookupStatus] = useState(null);
+  const [isLookingUpDomain, setIsLookingUpDomain] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const [transactionData, setTransactionData] = useState(null);
@@ -79,6 +82,64 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
     } catch (error) {
       console.error('Failed to set up transaction handlers:', error);
       addNotification('Failed to initialize transaction system', 'error');
+    }
+  };
+
+  // Handle .kas domain lookup
+  const handleDomainLookup = async (input) => {
+    const { isKasDomain, resolveDomain } = await import('../../kaspa/js/address-lookup.js');
+
+    if (!isKasDomain(input)) {
+      return null;
+    }
+
+    setIsLookingUpDomain(true);
+    setDomainLookupStatus(null);
+
+    try {
+      const result = await resolveDomain(input, walletState.network);
+
+      if (result.success) {
+        setResolvedAddress(result.address);
+        setDomainLookupStatus({
+          type: 'success',
+          message: `✅ ${input} resolved to ${result.address.substring(0, 20)}...`
+        });
+        return result.address;
+      } else {
+        setResolvedAddress('');
+        setDomainLookupStatus({
+          type: 'error',
+          message: `❌ ${result.error}`
+        });
+        return null;
+      }
+    } catch (error) {
+      setResolvedAddress('');
+      setDomainLookupStatus({
+        type: 'error',
+        message: '❌ KNS service unavailable. Please enter a valid Kaspa address.'
+      });
+      return null;
+    } finally {
+      setIsLookingUpDomain(false);
+    }
+  };
+
+  // Handle address input change
+  const handleAddressChange = async (value) => {
+    setToAddress(value);
+    setResolvedAddress('');
+    setDomainLookupStatus(null);
+
+    if (!value.trim()) {
+      return;
+    }
+
+    // Check if it's a .kas domain
+    const { isKasDomain } = await import('../../kaspa/js/address-lookup.js');
+    if (isKasDomain(value.trim())) {
+      await handleDomainLookup(value.trim());
     }
   };
 
@@ -156,11 +217,14 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
       return;
     }
 
+    // Determine final address to use (resolved domain or direct input)
+    const finalAddress = resolvedAddress || toAddress.trim();
+
     // Validate address for current network (use network from header dropdown)
     const currentNetwork = walletState.network;
-    
-    const addressValidation = await validateAddressForNetwork(toAddress.trim(), currentNetwork);
-    
+
+    const addressValidation = await validateAddressForNetwork(finalAddress, currentNetwork);
+
     if (!addressValidation.isValid) {
       addNotification(addressValidation.error, 'error');
       return;
@@ -1101,11 +1165,17 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         if (scanResult.success && scanResult.qrData) {
           const qrData = scanResult.qrData;
           
-          // Check if it's a simple address string
-          if (typeof qrData === 'string' && (qrData.startsWith('kaspa:') || qrData.startsWith('kaspatest:'))) {
-            setToAddress(qrData);
-            addNotification('Recipient address scanned successfully', 'success');
-            return;
+          // Check if it's a simple address string or .kas domain
+          if (typeof qrData === 'string') {
+            if (qrData.startsWith('kaspa:') || qrData.startsWith('kaspatest:')) {
+              setToAddress(qrData);
+              addNotification('Recipient address scanned successfully', 'success');
+              return;
+            } else if (qrData.endsWith('.kas')) {
+              await handleAddressChange(qrData);
+              addNotification('Domain scanned, resolving address...', 'info');
+              return;
+            }
           }
           
           // Check if it's a Kaspa address QR (receiving address)
@@ -1433,10 +1503,16 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
                     type: 'text',
                     className: `form-control ${!toAddress && formErrors.some(e => e.includes('address')) ? 'is-invalid' : ''}`,
                     value: toAddress,
-                    onChange: (e) => setToAddress(e.target.value),
-                    placeholder: `kaspa:qqkqkzjvr7zwxxmjxjkmxxdwju9kjs6e9u82uh59z07vgaks6gg62v8707g73`,
-                    required: true
+                    onChange: (e) => handleAddressChange(e.target.value),
+                    placeholder: `kaspa:qqkqkzjvr7zwxxmjxjkmxxdwju9kjs6e9u82uh59z07vgaks6gg62v8707g73 or domain.kas`,
+                    required: true,
+                    disabled: isLookingUpDomain
                   }),
+                  isLookingUpDomain && React.createElement('div', {
+                    className: 'input-group-text'
+                  },
+                    React.createElement('span', { className: 'spinner-border spinner-border-sm' })
+                  ),
                   React.createElement('button', {
                     className: 'btn btn-outline-secondary',
                     type: 'button',
@@ -1460,9 +1536,13 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
                   )
                 ),
                 React.createElement('div', { className: 'form-text' },
-                  `Enter a valid ${walletState.network} address (must start with "${walletState.network === 'mainnet' ? 'kaspa:' : 'kaspatest:'}"). Current network: `,
+                  `Enter a valid ${walletState.network} address or .kas domain. Current network: `,
                   React.createElement('span', { className: 'badge bg-primary' }, walletState.network)
                 ),
+                domainLookupStatus && React.createElement('div', {
+                  className: `alert alert-${domainLookupStatus.type === 'success' ? 'success' : 'danger'} mt-2 mb-0 py-2`,
+                  style: { fontSize: '0.875em' }
+                }, domainLookupStatus.message),
                 formErrors.some(e => e.includes('address')) && React.createElement('div', {
                   className: 'invalid-feedback'
                 }, 'Please enter a valid Kaspa address for the selected network')

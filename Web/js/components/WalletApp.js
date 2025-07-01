@@ -115,13 +115,14 @@ export function WalletApp() {
         }
         
         // Restore the wallet state with HD wallet manager
-        // Always use the HD wallet's current receive address as the main address
-        const currentReceiveAddress = hdWallet.getCurrentReceiveAddress();
+        // Always use the HD wallet's current receive address as the main address (with UTXO check)
+        const currentReceiveAddress = await hdWallet.getCurrentReceiveAddress();
         setWalletState({
           ...savedSession,
           hdWallet: hdWallet,
           allAddresses: hdWallet.getAllAddresses(),
-          address: currentReceiveAddress
+          address: currentReceiveAddress,
+          balance: null // Reset balance to null - it will be fetched fresh
         });
         
         // Log address synchronization for debugging
@@ -132,8 +133,11 @@ export function WalletApp() {
           });
         }
       } else {
-        // Single address wallet
-        setWalletState(savedSession);
+        // Single address wallet - reset balance to null for fresh fetch
+        setWalletState({
+          ...savedSession,
+          balance: null // Reset balance to null - it will be fetched fresh
+        });
       }
       
       setCurrentView('wallet-dashboard');
@@ -342,7 +346,7 @@ export function WalletApp() {
       setWalletState({
         isLoggedIn: true,
         currentWallet: wallet,
-        address: hdWallet ? hdWallet.getCurrentReceiveAddress() : wallet.address,
+        address: hdWallet ? await hdWallet.getCurrentReceiveAddress() : wallet.address,
         balance: 0n,
         network: wallet.network,
         mnemonic: wallet.mnemonic || null,
@@ -412,14 +416,24 @@ export function WalletApp() {
 
   // Handle session warning extension
   const extendSession = () => {
+    console.log('🔄 UI: Extend session button clicked');
+
     if (sessionManager.current) {
+      console.log('🔄 UI: Session manager available, calling extendSession');
       const extended = sessionManager.current.extendSession();
+      console.log('🔄 UI: ExtendSession result:', extended);
+
       if (extended) {
         setShowSessionWarning(false);
         addNotification('Session extended successfully', 'success');
+        console.log('🔄 UI: Session extended successfully');
       } else {
         addNotification('Failed to extend session', 'error');
+        console.log('🔄 UI: Session extension failed');
       }
+    } else {
+      console.error('🔄 UI: Session manager not available');
+      addNotification('Session manager not available', 'error');
     }
   };
 
@@ -551,20 +565,40 @@ export function WalletApp() {
     }
   };
 
-  const markAddressAsUsed = (address) => {
+  const markAddressAsUsed = async (address) => {
     if (!walletState.hdWallet || !walletState.isHDWallet) {
       return;
     }
 
     try {
       walletState.hdWallet.markAddressAsUsed(address);
-      
-      // Check if we should generate a new receive address
-      if (walletState.hdWallet.shouldGenerateNewReceiveAddress()) {
-        generateNewReceiveAddress();
+
+      // Check if we should generate a new receive address (async check for UTXOs)
+      if (await walletState.hdWallet.shouldGenerateNewReceiveAddress()) {
+        await generateNewReceiveAddress();
       }
     } catch (error) {
       console.error('Mark address as used error:', error);
+    }
+  };
+
+  // Check and update receive address if current one has UTXOs
+  const ensureCleanReceiveAddress = async () => {
+    if (!walletState.hdWallet || !walletState.isHDWallet) {
+      return;
+    }
+
+    try {
+      const currentAddress = walletState.address;
+      if (currentAddress && await walletState.hdWallet.addressHasUTXOs(currentAddress)) {
+        console.log('🚨 SECURITY: Current receive address has UTXOs, generating new one');
+        const newAddress = await generateNewReceiveAddress();
+        if (newAddress) {
+          addNotification('Generated new receive address for security', 'info');
+        }
+      }
+    } catch (error) {
+      console.error('Error checking receive address:', error);
     }
   };
 
@@ -659,6 +693,7 @@ export function WalletApp() {
         onGenerateNewAddress: generateNewReceiveAddress,
         onUpdateBalance: updateAddressBalance,
         onMarkAddressUsed: markAddressAsUsed,
+        onEnsureCleanReceiveAddress: ensureCleanReceiveAddress,
         cachedUTXOs,
         onCacheUTXOs: handleCacheUTXOs,
         onClearCachedUTXOs: clearCachedUTXOs

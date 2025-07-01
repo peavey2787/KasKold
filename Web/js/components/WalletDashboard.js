@@ -1,6 +1,6 @@
 const { useState, useEffect } = React;
 
-export function WalletDashboard({ walletState, onNavigate, addNotification, onGenerateNewAddress, onUpdateBalance, onMarkAddressUsed, cachedUTXOs, onCacheUTXOs, onClearCachedUTXOs }) {
+export function WalletDashboard({ walletState, onNavigate, addNotification, onGenerateNewAddress, onUpdateBalance, onMarkAddressUsed, onEnsureCleanReceiveAddress, cachedUTXOs, onCacheUTXOs, onClearCachedUTXOs }) {
   const [balance, setBalance] = useState(null);
   const [lastBalanceCheck, setLastBalanceCheck] = useState(null);
   const [addressQRCode, setAddressQRCode] = useState(null);
@@ -63,21 +63,21 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
           setBalance(balanceResult.balance);
           setLastBalanceCheck(new Date());
           
-          // Handle BigInt balance values
-          let kasValue;
-          if (typeof balanceResult.balance.kas === 'bigint') {
-            kasValue = Number(balanceResult.balance.kas) / 100000000;
-          } else if (typeof balanceResult.balance.kas === 'string') {
-            kasValue = parseFloat(balanceResult.balance.kas);
-          } else {
-            kasValue = balanceResult.balance.kas;
-          }
+          // Use standardized balance result
+          const { balanceManager } = await import('../../kaspa/js/balance-manager.js');
+          const standardizedResult = balanceManager.standardizeBalanceResult(balanceResult);
           
-          addNotification(`Balance: ${kasValue.toFixed(8)} KAS`, 'success');
+          addNotification(`Balance: ${standardizedResult.balanceKas} KAS`, 'success');
         } else {
           addNotification('Failed to check balance: ' + balanceResult.error, 'error');
         }
       }
+
+      // Ensure current receive address has no UTXOs after balance check
+      if (onEnsureCleanReceiveAddress) {
+        await onEnsureCleanReceiveAddress();
+      }
+
     } catch (error) {
       console.error('Balance check failed:', error);
       addNotification('Failed to check balance: ' + error.message, 'error');
@@ -120,30 +120,33 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       
       // Update UI with total balance
       setBalance({ 
-        kas: balanceResult.totalBalance, 
+        kas: balanceResult.totalBalance, // This is now a string
         sompi: balanceResult.totalBalanceSompi 
       });
       setLastBalanceCheck(new Date());
       
       if (balanceResult.addressesFound > 0) {
-        // Handle BigInt total balance values
-        let totalKasValue;
-        if (typeof balanceResult.totalBalance === 'bigint') {
-          totalKasValue = Number(balanceResult.totalBalance) / 100000000;
-        } else if (typeof balanceResult.totalBalance === 'string') {
-          totalKasValue = parseFloat(balanceResult.totalBalance);
-        } else {
-          totalKasValue = balanceResult.totalBalance;
-        }
+        // Use standardized balance result
+        const { balanceManager } = await import('../../kaspa/js/balance-manager.js');
+        const standardizedResult = balanceManager.standardizeBalanceResult({
+          success: true,
+          totalBalance: balanceResult.totalBalance,
+          totalBalanceSompi: balanceResult.totalBalanceSompi
+        });
         
         addNotification(
-          `Found balance across ${balanceResult.addressesFound} addresses: ${totalKasValue.toFixed(8)} KAS`, 
+          `Found balance across ${balanceResult.addressesFound} addresses: ${standardizedResult.balanceKas} KAS`, 
           'success'
         );
       } else {
         addNotification('No addresses with balance found in HD wallet', 'info');
       }
-      
+
+      // Ensure current receive address has no UTXOs (critical security check)
+      if (onEnsureCleanReceiveAddress) {
+        await onEnsureCleanReceiveAddress();
+      }
+
     } catch (error) {
       console.error('HD wallet balance refresh failed:', error);
       addNotification('Failed to refresh HD wallet balance: ' + error.message, 'error');
@@ -168,22 +171,10 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
             return;
           }
 
-          // For HD wallets, use the total balance from HD wallet manager if available
+          // For HD wallets, always perform fresh discovery instead of using cached balance
           if (walletState.isHDWallet && walletState.hdWallet) {
-            try {
-              const totalBalance = walletState.hdWallet.getTotalBalance();
-              if (totalBalance > 0n) {
-                const { sompiToKas } = await import('../../kaspa/js/currency-utils.js');
-                const totalKAS = sompiToKas(totalBalance);
-                setBalance({ kas: totalKAS, sompi: totalBalance });
-              } else {
-                // If no balance found in HD wallet, perform discovery
-                performHDWalletAddressDiscovery();
-              }
-            } catch (error) {
-              console.warn('Error getting HD wallet balance, falling back to discovery:', error);
-              performHDWalletAddressDiscovery();
-            }
+            console.log('🔍 HD WALLET: Starting fresh balance discovery (ignoring any cached balance)');
+            performHDWalletAddressDiscovery();
           } else {
             checkBalance();
           }
@@ -205,18 +196,33 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
   // Sync balance with wallet state when it updates
   useEffect(() => {
     const updateBalance = async () => {
-      if (walletState.balance !== null && walletState.balance !== undefined) {
-        if (typeof walletState.balance === 'bigint') {
-          const { sompiToKas } = await import('../../kaspa/js/currency-utils.js');
-          const totalKAS = sompiToKas(walletState.balance);
-          setBalance({ kas: parseFloat(totalKAS), sompi: walletState.balance });
-        } else if (typeof walletState.balance === 'object') {
-          setBalance(walletState.balance);
+      try {
+        if (walletState.balance !== null && walletState.balance !== undefined) {
+          if (typeof walletState.balance === 'bigint') {
+            const { sompiToKas } = await import('../../kaspa/js/currency-utils.js');
+            const totalKAS = sompiToKas(walletState.balance);
+            setBalance({ kas: totalKAS, sompi: walletState.balance });
+          } else if (typeof walletState.balance === 'object') {
+            setBalance(walletState.balance);
+          } else if (typeof walletState.balance === 'string') {
+            // Handle case where balance is already a KAS string
+            setBalance({ kas: walletState.balance, sompi: 0n });
+          } else if (typeof walletState.balance === 'number') {
+            // Handle case where balance is a number (legacy)
+            setBalance({ kas: walletState.balance.toFixed(8), sompi: 0n });
+          }
         }
+      } catch (error) {
+        console.error('Error updating balance:', error);
+        // Set a safe fallback balance
+        setBalance({ kas: '0.00000000', sompi: 0n });
       }
     };
-    
-    updateBalance();
+
+    updateBalance().catch(error => {
+      console.error('Error in updateBalance:', error);
+      setBalance({ kas: '0.00000000', sompi: 0n });
+    });
   }, [walletState.balance]);
 
   // Sync selectedNetwork with wallet network
@@ -259,24 +265,21 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
   }, [utxoQRCodes, showUTXOQR]);
 
   const formatBalance = (balanceObj) => {
-    if (!balanceObj) return '0.00';
+    if (!balanceObj) return '0.00000000';
     
-    // Handle different types of balance values
-    let kasValue;
-    if (typeof balanceObj.kas === 'bigint') {
-      // Convert BigInt to number (assuming it's in sompi, convert to KAS)
-      kasValue = Number(balanceObj.kas) / 100000000; // Convert from sompi to KAS
-    } else if (typeof balanceObj.kas === 'string') {
-      // Convert string to number
-      kasValue = parseFloat(balanceObj.kas);
+    // Handle different balance formats synchronously
+    if (typeof balanceObj.kas === 'string') {
+      return balanceObj.kas; // Already in correct format from currency-utils.js
     } else if (typeof balanceObj.kas === 'number') {
-      kasValue = balanceObj.kas;
+      return balanceObj.kas.toFixed(8);
+    } else if (typeof balanceObj.sompi === 'bigint') {
+      // For BigInt sompi values, we need to use currency-utils.js for precise conversion
+      // Since this is called in JSX, we'll use a simple synchronous approach
+      // This should only be used as a fallback - the balance should already be in KAS format
+      return '0.00000000'; // Fallback - balance should be pre-converted
     } else {
-      // Fallback
-      kasValue = 0;
+      return '0.00000000';
     }
-    
-    return kasValue.toFixed(8);
   };
 
   const formatLastCheck = (date) => {
@@ -581,18 +584,18 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
     }
   };
 
-  // Convert BigInt values to strings for JSON serialization (reuse existing pattern)
+  // Simple BigInt conversion utilities (inline for immediate use)
   const convertBigIntToString = (obj) => {
     if (obj === null || obj === undefined) return obj;
-    
+
     if (typeof obj === 'bigint') {
       return obj.toString();
     }
-    
+
     if (Array.isArray(obj)) {
       return obj.map(convertBigIntToString);
     }
-    
+
     if (typeof obj === 'object') {
       const converted = {};
       for (const [key, value] of Object.entries(obj)) {
@@ -600,18 +603,17 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       }
       return converted;
     }
-    
+
     return obj;
   };
 
-  // Convert string values back to BigInt for UTXO fields
   const convertStringToBigInt = (obj, bigIntFields = ['amount', 'fee', 'value', 'satoshis', 'balance']) => {
     if (obj === null || obj === undefined) return obj;
-    
+
     if (Array.isArray(obj)) {
       return obj.map(item => convertStringToBigInt(item, bigIntFields));
     }
-    
+
     if (typeof obj === 'object') {
       const converted = {};
       for (const [key, value] of Object.entries(obj)) {
@@ -623,7 +625,7 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       }
       return converted;
     }
-    
+
     return obj;
   };
 

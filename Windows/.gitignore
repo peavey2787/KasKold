@@ -1,0 +1,8 @@
+bin/laragon/laragon.log
+data
+etc/nginx/*
+!etc/nginx/alias
+!etc/nginx/php_upstream.conf
+tmp
+usr/tpl
+www/*

@@ -1,5 +1,6 @@
 // Kaspa Transaction Submission Module
 import { getKaspa, isInitialized } from './init.js';
+import { prepareForWasmDeserialization, cleanTransactionDataForSubmission } from './serialization-utils.js';
 
 // Check if a UTXO is still available (not spent)
 async function checkUTXOAvailability(rpc, transactionId, index) {
@@ -46,43 +47,72 @@ async function submitTransaction(signedTransactionData, networkEndpoint = null) 
             // Handle uploaded vs freshly signed transactions differently
             let transactionId;
             
-            if (signedTransactionData.isUploaded && signedTransactionData.serializedTransaction) {
-                // Use the SDK's Transaction.deserializeFromObject method - much cleaner!
+            if (signedTransactionData.isUploaded) {
+                console.log('🔄 Processing uploaded signed transaction for submission');
+                
+                // For uploaded signed transactions, we need to recreate the WASM object from serialized data
                 const kaspa = getKaspa();
                 const { Transaction } = kaspa;
                 
-                const rawTx = signedTransactionData.serializedTransaction;
+                let wasmTransaction;
                 
-                // Convert string values back to numbers for deserialization
-                // The deserializeFromObject method expects numeric values, not strings
-                const numericTx = {
-                    ...rawTx,
-                    version: typeof rawTx.version === 'string' ? parseInt(rawTx.version) : rawTx.version,
-                    lockTime: typeof rawTx.lockTime === 'string' ? parseInt(rawTx.lockTime) : rawTx.lockTime,
-                    gas: typeof rawTx.gas === 'string' ? parseInt(rawTx.gas) : rawTx.gas,
-                    mass: typeof rawTx.mass === 'string' ? parseInt(rawTx.mass) : rawTx.mass,
-                    inputs: rawTx.inputs.map(input => ({
-                        ...input,
-                        sequence: typeof input.sequence === 'string' ? parseInt(input.sequence) : input.sequence,
-                        sigOpCount: typeof input.sigOpCount === 'string' ? parseInt(input.sigOpCount) : input.sigOpCount,
-                        index: typeof input.index === 'string' ? parseInt(input.index) : input.index,
-                        utxo: input.utxo ? {
-                            ...input.utxo,
-                            amount: typeof input.utxo.amount === 'string' ? parseInt(input.utxo.amount) : input.utxo.amount,
-                            blockDaaScore: typeof input.utxo.blockDaaScore === 'string' ? parseInt(input.utxo.blockDaaScore) : input.utxo.blockDaaScore
-                        } : input.utxo
-                    })),
-                    outputs: rawTx.outputs.map(output => ({
-                        ...output,
-                        value: typeof output.value === 'string' ? parseInt(output.value) : output.value,
-                        amount: typeof output.amount === 'string' ? parseInt(output.amount) : output.amount
-                    }))
-                };
+                // Try to find serialized transaction data
+                if (signedTransactionData.serializedTransaction) {
+                    console.log('📦 Using serializedTransaction from uploaded QR');
+                    console.log('🔍 Serialized transaction data:', signedTransactionData.serializedTransaction);
+                    
+                    try {
+                        // Handle different serialization formats
+                        if (signedTransactionData.serializedTransaction.type === 'bytes' && signedTransactionData.serializedTransaction.serializedBytes) {
+                            // Handle byte array serialization
+                            console.log('📦 Deserializing from byte array');
+                            const bytes = new Uint8Array(signedTransactionData.serializedTransaction.serializedBytes);
+                            wasmTransaction = Transaction.deserialize(bytes);
+                        } else if (signedTransactionData.serializedTransaction.fallbackType === 'minimal_transaction') {
+                            // Handle fallback structure - this means the original QR was created with a fallback
+                            console.log('⚠️ Uploaded QR contains fallback transaction structure');
+                            throw new Error('This signed transaction QR was created with incomplete serialization data and cannot be submitted from upload. Please submit the transaction directly from the signing session.');
+                        } else if (typeof signedTransactionData.serializedTransaction === 'object') {
+                            // Handle object serialization
+                            console.log('📦 Deserializing from object');
+                            
+                            // Check if the serialized transaction has the required data
+                            const serializedTx = signedTransactionData.serializedTransaction;
+                            console.log('🔍 Serialized transaction keys:', Object.keys(serializedTx));
+                            
+                            // Validate that we have essential transaction data
+                            if (!serializedTx.inputs || !Array.isArray(serializedTx.inputs) || serializedTx.inputs.length === 0) {
+                                throw new Error('Serialized transaction has no inputs - cannot submit empty transaction');
+                            }
+                            
+                            if (!serializedTx.outputs || !Array.isArray(serializedTx.outputs) || serializedTx.outputs.length === 0) {
+                                throw new Error('Serialized transaction has no outputs - cannot submit empty transaction');
+                            }
+                            
+                            const preparedTx = prepareForWasmDeserialization(serializedTx);
+                            console.log('🔍 Prepared transaction for WASM:', {
+                                inputCount: preparedTx.inputs?.length || 0,
+                                outputCount: preparedTx.outputs?.length || 0,
+                                hasSignatures: preparedTx.inputs?.some(input => input.signatureScript && input.signatureScript.length > 0)
+                            });
+                            
+                            wasmTransaction = Transaction.deserializeFromObject(preparedTx);
+                        } else {
+                            throw new Error('Unknown serialization format');
+                        }
+                        
+                    } catch (deserializeError) {
+                        console.error('⚠️ Failed to deserialize transaction:', deserializeError);
+                        console.error('🔍 Available data in signedTransactionData:', Object.keys(signedTransactionData));
+                        throw new Error(`Failed to reconstruct transaction from QR data: ${deserializeError.message}. The signed transaction data may be incomplete or in an unsupported format.`);
+                    }
+                } else {
+                    console.error('🔍 No serializedTransaction found. Available keys:', Object.keys(signedTransactionData));
+                    // If no serialized transaction, we can't submit an uploaded QR
+                    throw new Error('Uploaded signed transaction QR does not contain submittable transaction data. The QR code may be incomplete or corrupted.');
+                }
                 
-                // Use the SDK's deserializeFromObject method to recreate the WASM Transaction
-                const wasmTransaction = Transaction.deserializeFromObject(numericTx);
-                
-                // Use RPC submitTransaction method with the WASM object
+                // Submit using RPC client directly
                 const response = await rpc.submitTransaction({
                     transaction: wasmTransaction,
                     allowOrphan: false
@@ -91,13 +121,22 @@ async function submitTransaction(signedTransactionData, networkEndpoint = null) 
                 transactionId = response.transactionId;
                 
             } else {
-                // Use the SDK's built-in submit method on the signed transaction
-                if (typeof signedTransactionData.signedTransaction.submit !== 'function') {
+                // For non-uploaded transactions, use the original WASM object
+                if (!signedTransactionData.signedTransaction || typeof signedTransactionData.signedTransaction.submit !== 'function') {
+                    // Check if we have a fallback structure but the original WASM object is available
+                    if (signedTransactionData.serializedTransaction?.fallbackType === 'minimal_transaction' && 
+                        signedTransactionData.serializedTransaction?.wasmObjectAvailable && 
+                        signedTransactionData.signedTransaction) {
+                        console.log('📦 Using original WASM object for submission despite fallback serialization');
+                        // Try to submit using the original WASM object
+                        transactionId = await signedTransactionData.signedTransaction.submit(rpc);
+                    } else {
                     throw new Error('Signed transaction object does not have a submit method');
                 }
-                
+                } else {
                 // The signedTransaction is a WASM object with a submit() method
                 transactionId = await signedTransactionData.signedTransaction.submit(rpc);
+                }
             }
             
             return {
@@ -115,7 +154,7 @@ async function submitTransaction(signedTransactionData, networkEndpoint = null) 
         } catch (submitError) {
             // If it's an orphan error, suggest possible solutions
             if (submitError.message && submitError.message.includes('orphan')) {
-                console.log('Orphan transaction detected - UTXO may have been spent or network issues');
+                console.error('Orphan transaction detected - UTXO may have been spent or network issues');
             }
             
             throw submitError; // Re-throw to be caught by outer catch
@@ -131,63 +170,6 @@ async function submitTransaction(signedTransactionData, networkEndpoint = null) 
             status: 'failed'
         };
     }
-}
-
-// Mock network submission (replace with real RPC calls)
-async function mockNetworkSubmission(signedTransactionData, networkEndpoint) {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Mock different network responses
-    const responses = [
-        {
-            accepted: true,
-            transactionId: signedTransactionData.transactionId,
-            message: 'Transaction accepted by network',
-            confirmations: 0,
-            estimatedConfirmationTime: '~1 minute'
-        },
-        {
-            accepted: false,
-            error: 'Insufficient funds',
-            message: 'Transaction rejected: insufficient funds'
-        },
-        {
-            accepted: false,
-            error: 'Double spend',
-            message: 'Transaction rejected: inputs already spent'
-        }
-    ];
-    
-    // Return success response for demo (90% success rate)
-    return Math.random() > 0.1 ? responses[0] : responses[1];
-}
-
-// Real network submission (template for future implementation)
-async function submitToRealNetwork(signedTransactionData, rpcEndpoint) {
-    // This would be the real implementation:
-    /*
-    const rpcCall = {
-        method: 'submitTransaction',
-        params: {
-            transaction: serializeTransaction(signedTransactionData.signedTransaction),
-            allowOrphan: false
-        },
-        id: 1
-    };
-    
-    const response = await fetch(rpcEndpoint, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(rpcCall)
-    });
-    
-    return await response.json();
-    */
-    
-    throw new Error('Real network submission not implemented yet');
 }
 
 // Get transaction status from real Kaspa network
@@ -291,6 +273,5 @@ function validateTransactionForSubmission(signedTransactionData) {
 export {
     submitTransaction,
     getTransactionStatus,
-    validateTransactionForSubmission,
-    mockNetworkSubmission
+    validateTransactionForSubmission
 }; 

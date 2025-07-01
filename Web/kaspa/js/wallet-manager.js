@@ -113,19 +113,15 @@ export class UnifiedWalletManager {
                     const address = createAddress(privateKey.toPublicKey(), this.network);
                     const addressString = address.toString();
                                         
-                    // Use getBalancesByAddresses instead of getUtxosByAddresses for balance checking
-                    const balanceResponse = await this.rpc.getBalancesByAddresses([addressString]);
+                    // Use centralized balance manager for consistent balance checking
+                    const { getBalanceByAddressRPC } = await import('./balance-manager.js');
+                    const balanceResult = await getBalanceByAddressRPC(addressString, this.network, true);
                     
                     let addressBalance = 0n;
                     const utxos = [];
                     
-                    if (balanceResponse && balanceResponse.entries && balanceResponse.entries.length > 0) {
-                        
-                        for (const entry of balanceResponse.entries) {
-                            if (entry && entry.balance) {
-                                addressBalance = BigInt(entry.balance);                                
-                            }
-                        }
+                    if (balanceResult.success && balanceResult.totalBalanceSompi > 0n) {
+                        addressBalance = balanceResult.totalBalanceSompi;
                         
                         // Also get UTXOs for additional info
                         const utxoResponse = await this.rpc.getUtxosByAddresses([addressString]);
@@ -148,7 +144,7 @@ export class UnifiedWalletManager {
                                                  
                         addressesWithBalance.push({
                             address: addressString,
-                            balance: parseFloat(sompiToKas(addressBalance)),
+                            balance: sompiToKas(addressBalance),
                             balanceSompi: addressBalance,
                             change: change,
                             index: index,
@@ -179,7 +175,7 @@ export class UnifiedWalletManager {
             
             this.totalBalance = totalBalance;
             
-            const totalBalanceKas = parseFloat(sompiToKas(totalBalance));
+            const totalBalanceKas = sompiToKas(totalBalance);
               
             return {
                 success: true,
@@ -211,11 +207,12 @@ export class UnifiedWalletManager {
         try {
             await this.initializeRpc();
             
-            // Use the same approach as UTXO fetcher: check balances first, then get UTXOs
-            const balanceResponse = await this.rpc.getBalancesByAddresses([address]);
+            // Use centralized balance manager for consistent balance checking
+            const { getBalanceByAddressRPC } = await import('./balance-manager.js');
+            const balanceResult = await getBalanceByAddressRPC(address, this.network, true);
             
-            if (!balanceResponse || !balanceResponse.entries || balanceResponse.entries.length === 0) {
-                // No balance found
+            if (!balanceResult.success || balanceResult.totalBalanceSompi === 0n) {
+                // No balance found or error
                 return {
                     success: true,
                     address: address,
@@ -229,7 +226,6 @@ export class UnifiedWalletManager {
             // Address has balance, now get UTXOs
             const utxoResponse = await this.rpc.getUtxosByAddresses([address]);
             
-            let totalBalance = 0n;
             const utxos = [];
             
             if (utxoResponse && utxoResponse.entries) {
@@ -238,15 +234,11 @@ export class UnifiedWalletManager {
                     if (entry && typeof entry === 'object' && 
                         (entry.__wbg_ptr || entry.constructor?.name === 'UtxoEntryReference')) {
                         // This is a WASM UtxoEntryReference object - add it directly as a UTXO
-                        const entryAmount = BigInt(entry.amount || entry.value || 0);
-                        totalBalance += entryAmount;
                         utxos.push(entry);
                     } else if (entry && entry.utxoEntries) {
                         // Traditional structure with utxoEntries array
                         for (const utxo of entry.utxoEntries) {
                             if (utxo) {
-                                const utxoAmount = BigInt(utxo.amount || utxo.value || 0);
-                                totalBalance += utxoAmount;
                                 utxos.push(utxo);
                             }
                         }
@@ -255,8 +247,6 @@ export class UnifiedWalletManager {
                         const innerEntry = entry.entry;
                         if (innerEntry && typeof innerEntry === 'object' && 
                             (innerEntry.__wbg_ptr || innerEntry.constructor?.name === 'UtxoEntryReference')) {
-                            const entryAmount = BigInt(innerEntry.amount || innerEntry.value || 0);
-                            totalBalance += entryAmount;
                             utxos.push(innerEntry);
                         }
                     }
@@ -267,8 +257,8 @@ export class UnifiedWalletManager {
                 success: true,
                 address: address,
                 balance: {
-                    kas: parseFloat(sompiToKas(totalBalance)),
-                    sompi: totalBalance
+                    kas: balanceResult.totalBalance,
+                    sompi: balanceResult.totalBalanceSompi
                 },
                 utxoCount: utxos.length,
                 utxos: utxos,
@@ -432,19 +422,34 @@ export class UnifiedWalletManager {
     }
 
     /**
-     * Get current receive address
+     * Get current receive address (ensures it has no UTXOs)
      */
-    getCurrentReceiveAddress() {
+    async getCurrentReceiveAddress() {
         if (!this.isHDWallet) {
             throw new Error('HD address methods only available for HD wallets');
+        }
+
+        // Always check if we need a new address before returning current one
+        if (await this.shouldGenerateNewReceiveAddress()) {
+            await this.generateNextReceiveAddress();
         }
 
         if (this.addresses.receive.size === 0) {
             throw new Error('No receive addresses generated');
         }
-        
+
         const latestIndex = this.currentReceiveIndex - 1;
-        return this.addresses.receive.get(latestIndex)?.address;
+        const currentAddress = this.addresses.receive.get(latestIndex);
+
+        // Double-check that this address has no UTXOs
+        if (currentAddress && await this.addressHasUTXOs(currentAddress.address)) {
+            console.warn('🚨 SECURITY: Current receive address has UTXOs, generating new one');
+            await this.generateNextReceiveAddress();
+            const newLatestIndex = this.currentReceiveIndex - 1;
+            return this.addresses.receive.get(newLatestIndex)?.address;
+        }
+
+        return currentAddress?.address;
     }
 
     /**
@@ -486,7 +491,34 @@ export class UnifiedWalletManager {
      * Get total balance
      */
     getTotalBalance() {
+        console.log('🏦 HD WALLET: getTotalBalance() called, returning:', this.totalBalance);
+        console.log('🏦 HD WALLET: Balance type:', typeof this.totalBalance);
         return this.totalBalance;
+    }
+
+    /**
+     * Reset all cached balances to 0 (for fresh discovery)
+     */
+    resetAllBalances() {
+        console.log('🧹 HD WALLET: Resetting all cached balances to 0');
+
+        // Reset all receive address balances
+        for (const [index, addressInfo] of this.addresses.receive.entries()) {
+            addressInfo.balance = 0n;
+            addressInfo.utxos = [];
+            console.log(`  Reset receive ${index}: ${addressInfo.address} - Balance: 0`);
+        }
+
+        // Reset all change address balances
+        for (const [index, addressInfo] of this.addresses.change.entries()) {
+            addressInfo.balance = 0n;
+            addressInfo.utxos = [];
+            console.log(`  Reset change ${index}: ${addressInfo.address} - Balance: 0`);
+        }
+
+        // Reset total balance
+        this.totalBalance = 0n;
+        console.log('🧹 HD WALLET: All balances reset to 0');
     }
 
     /**
@@ -538,33 +570,42 @@ export class UnifiedWalletManager {
      * Recalculate total balance from all addresses
      */
     recalculateTotalBalance() {
+        console.log('🧮 HD WALLET: Recalculating total balance...');
         let total = 0n;
-        
-        for (const addressInfo of this.addresses.receive.values()) {
+        let addressCount = 0;
+
+        console.log('🧮 HD WALLET: Checking receive addresses...');
+        for (const [index, addressInfo] of this.addresses.receive.entries()) {
             const balance = addressInfo.balance;
+            console.log(`  Receive ${index}: ${addressInfo.address} - Balance: ${balance}`);
             if (balance) {
                 // Ensure balance is BigInt
                 const balanceBigInt = typeof balance === 'bigint' ? balance : BigInt(balance.toString());
                 total += balanceBigInt;
+                addressCount++;
             }
         }
-        
-        for (const addressInfo of this.addresses.change.values()) {
+
+        console.log('🧮 HD WALLET: Checking change addresses...');
+        for (const [index, addressInfo] of this.addresses.change.entries()) {
             const balance = addressInfo.balance;
+            console.log(`  Change ${index}: ${addressInfo.address} - Balance: ${balance}`);
             if (balance) {
                 // Ensure balance is BigInt
                 const balanceBigInt = typeof balance === 'bigint' ? balance : BigInt(balance.toString());
                 total += balanceBigInt;
+                addressCount++;
             }
         }
-        
+
         this.totalBalance = total;
+        console.log(`🧮 HD WALLET: Total balance calculated: ${total} sompi from ${addressCount} addresses`);
     }
 
     /**
-     * Check if we should generate a new receive address for privacy
+     * Check if we should generate a new receive address for privacy and security
      */
-    shouldGenerateNewReceiveAddress() {
+    async shouldGenerateNewReceiveAddress() {
         if (!this.isHDWallet) {
             return false;
         }
@@ -572,11 +613,56 @@ export class UnifiedWalletManager {
         if (this.addresses.receive.size === 0) {
             return true; // No addresses generated yet
         }
-        
+
         const latestIndex = this.currentReceiveIndex - 1;
         const currentAddress = this.addresses.receive.get(latestIndex);
-        
-        return currentAddress?.used || (currentAddress?.balance && currentAddress.balance > 0n);
+
+        if (!currentAddress) {
+            return true;
+        }
+
+        // Check if address is marked as used
+        if (currentAddress.used) {
+            return true;
+        }
+
+        // Check if address has any balance
+        if (currentAddress.balance && currentAddress.balance > 0n) {
+            return true;
+        }
+
+        // Most important: Check if address has any UTXOs (even if balance is 0)
+        if (await this.addressHasUTXOs(currentAddress.address)) {
+            console.log('🚨 SECURITY: Current receive address has UTXOs, need new address');
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Check if an address has any UTXOs (critical for security)
+     */
+    async addressHasUTXOs(address) {
+        try {
+            await this.initializeRpc();
+            const utxoResponse = await this.rpc.getUtxosByAddresses([address]);
+
+            if (utxoResponse && utxoResponse.entries && utxoResponse.entries.length > 0) {
+                for (const entry of utxoResponse.entries) {
+                    if (entry && entry.utxoEntries && entry.utxoEntries.length > 0) {
+                        console.log(`🚨 SECURITY: Address ${address} has ${entry.utxoEntries.length} UTXOs`);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        } catch (error) {
+            console.error('Error checking UTXOs for address:', error);
+            // If we can't check, assume it has UTXOs for safety
+            return true;
+        }
     }
 
     /**
@@ -588,24 +674,24 @@ export class UnifiedWalletManager {
         }
 
         if (savedState.addresses) {
-            // Import receive addresses
+            // Import receive addresses (but reset balances to 0 for fresh discovery)
             if (savedState.addresses.receive) {
                 for (const [index, addressInfo] of Object.entries(savedState.addresses.receive)) {
                     this.addresses.receive.set(parseInt(index), {
                         ...addressInfo,
-                        balance: BigInt(addressInfo.balance || 0),
-                        utxos: addressInfo.utxos || []
+                        balance: 0n, // Reset balance to 0 - will be fetched fresh
+                        utxos: [] // Clear cached UTXOs - will be fetched fresh
                     });
                 }
             }
-            
-            // Import change addresses
+
+            // Import change addresses (but reset balances to 0 for fresh discovery)
             if (savedState.addresses.change) {
                 for (const [index, addressInfo] of Object.entries(savedState.addresses.change)) {
                     this.addresses.change.set(parseInt(index), {
                         ...addressInfo,
-                        balance: BigInt(addressInfo.balance || 0),
-                        utxos: addressInfo.utxos || []
+                        balance: 0n, // Reset balance to 0 - will be fetched fresh
+                        utxos: [] // Clear cached UTXOs - will be fetched fresh
                     });
                 }
             }
@@ -620,8 +706,9 @@ export class UnifiedWalletManager {
             this.currentChangeIndex = savedState.currentChangeIndex;
         }
         
-        // Recalculate total balance
-        this.recalculateTotalBalance();
+        // Reset total balance to 0 instead of recalculating from potentially stale cached data
+        this.totalBalance = 0n;
+        console.log('🧮 HD WALLET: Reset total balance to 0 after state import (cached balances cleared)');
     }
 }
 
@@ -633,12 +720,16 @@ let singleWalletInstance = null;
  * Get or create HD wallet instance
  */
 export function getHDWallet(mnemonic, network, derivationPath) {
-    if (!hdWalletInstance || 
-        hdWalletInstance.mnemonic !== mnemonic || 
+    if (!hdWalletInstance ||
+        hdWalletInstance.mnemonic !== mnemonic ||
         hdWalletInstance.network !== network ||
         hdWalletInstance.derivationPath !== derivationPath) {
         hdWalletInstance = new UnifiedWalletManager(mnemonic, network, derivationPath, true);
     }
+
+    // Always reset cached balances to ensure fresh discovery
+    hdWalletInstance.resetAllBalances();
+
     return hdWalletInstance;
 }
 
