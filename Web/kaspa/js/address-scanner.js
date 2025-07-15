@@ -81,16 +81,12 @@ export class AddressScanner {
      */
     async checkAddressBalance(address, networkType, reuseConnection = false) {
         try {
-            console.log(`🔍 ADDRESS SCANNER: Checking balance for ${address} on ${networkType}`);
 
             // Use centralized balance manager for consistent balance checking
             const { getBalanceByAddressRPC } = await import('./balance-manager.js');
             const balanceResult = await getBalanceByAddressRPC(address, networkType, reuseConnection);
 
-            console.log(`🔍 ADDRESS SCANNER: Balance result for ${address}:`, balanceResult);
-
             if (!balanceResult.success) {
-                console.log(`🔍 ADDRESS SCANNER: Balance check failed for ${address}:`, balanceResult.error);
                 return {
                     success: false,
                     error: balanceResult.error,
@@ -103,7 +99,6 @@ export class AddressScanner {
             }
 
             if (balanceResult.totalBalanceSompi === 0n) {
-                console.log(`🔍 ADDRESS SCANNER: No balance found for ${address}`);
                 return {
                     success: true,
                     balance: 0,
@@ -112,9 +107,7 @@ export class AddressScanner {
                     utxos: []
                 };
             }
-
-            console.log(`✅ ADDRESS SCANNER: Balance found for ${address}: ${balanceResult.totalBalance} KAS`);
-
+            
             // Get UTXOs for additional info if balance found
             const utxos = [];
             try {

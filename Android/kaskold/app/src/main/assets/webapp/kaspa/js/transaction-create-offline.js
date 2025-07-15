@@ -1,6 +1,8 @@
 // Kaspa Offline Transaction Creation Module
 // This module creates transactions using cached UTXO data to avoid network calls
 import { getKaspa, isInitialized } from './init.js';
+import { sompiToKas, kasToSompi, kasNumberToSompi } from './currency-utils.js';
+import { calculateBalanceFromUTXOs } from './balance-manager.js';
 
 // Helper function to extract scriptPublicKey data from WASM objects
 function extractScriptPublicKeyData(scriptPublicKey) {
@@ -20,11 +22,6 @@ function extractScriptPublicKeyData(scriptPublicKey) {
     
     // If it's a WASM object, try to extract data
     if (typeof scriptPublicKey === 'object' && scriptPublicKey.__wbg_ptr) {
-        console.log('🔍 Extracting data from WASM scriptPublicKey (offline):', {
-            hasVersionProp: 'version' in scriptPublicKey,
-            hasScriptProp: 'script' in scriptPublicKey,
-            availableProps: Object.getOwnPropertyNames(scriptPublicKey)
-        });
         
         // Try to access version and script properties directly
         try {
@@ -143,7 +140,7 @@ function normalizeAddressForUTXO(address, networkType) {
 
 // Create transaction using cached UTXOs (offline mode)
 async function createOfflineTransaction(fromAddress, toAddress, amount, networkType, cachedUTXOs, options = {}) {
-   
+
     if (!isInitialized()) {
         throw new Error('Kaspa WASM not initialized');
     }
@@ -158,17 +155,102 @@ async function createOfflineTransaction(fromAddress, toAddress, amount, networkT
 
         // Convert KAS to sompi manually
         const amountFloat = parseFloat(amount);
-        
+
         if (isNaN(amountFloat) || amountFloat <= 0) {
             throw new Error('Invalid amount: must be a positive number');
         }
-        
+
         // Safe conversion using currency utilities
-        const { kasNumberToSompi } = await import('./currency-utils.js');
         const amountInSompi = kasNumberToSompi(amountFloat);
-        
-        // Use cached UTXOs
-        const entries = cachedUTXOs.utxos;
+
+
+
+        // FIX: Use WASM SDK deserialization methods to properly convert WASM objects
+        const entries = cachedUTXOs.utxos.map((utxo, index) => {
+
+
+            // Convert WASM address object to string using SDK methods
+            let addressStr = utxo.address;
+            if (utxo.address && typeof utxo.address === 'object' && utxo.address.__wbg_ptr) {
+                try {
+                    // Use WASM SDK toString method
+                    addressStr = utxo.address.toString();
+                } catch (e) {
+                    console.error(`Failed to convert address WASM object for UTXO ${index}:`, e);
+                    throw new Error(`Invalid address in cached UTXO ${index}`);
+                }
+            } else if (typeof utxo.address === 'string') {
+                // Address is already a string, use as-is
+                addressStr = utxo.address;
+            }
+
+            // Convert WASM scriptPublicKey using SDK serialization methods
+            let scriptPubKey = utxo.scriptPublicKey;
+            if (utxo.scriptPublicKey && typeof utxo.scriptPublicKey === 'object' && utxo.scriptPublicKey.__wbg_ptr) {
+                try {
+                    // Try WASM SDK serialization methods
+                    if (typeof utxo.scriptPublicKey.serializeToObject === 'function') {
+                        scriptPubKey = utxo.scriptPublicKey.serializeToObject();
+                    } else if (typeof utxo.scriptPublicKey.toJSON === 'function') {
+                        scriptPubKey = utxo.scriptPublicKey.toJSON();
+                    } else {
+                        // Manual extraction as fallback
+                        scriptPubKey = {
+                            version: utxo.scriptPublicKey.version || 0,
+                            script: utxo.scriptPublicKey.script || ''
+                        };
+                    }
+                } catch (e) {
+                    console.error(`Failed to convert scriptPublicKey WASM object for UTXO ${index}:`, e);
+                    scriptPubKey = { version: 0, script: '' };
+                }
+            }
+
+            // Convert WASM outpoint using SDK serialization methods
+            let outpointObj = utxo.outpoint;
+            if (utxo.outpoint && typeof utxo.outpoint === 'object' && utxo.outpoint.__wbg_ptr) {
+                try {
+                    // Try WASM SDK serialization methods
+                    if (typeof utxo.outpoint.serializeToObject === 'function') {
+                        outpointObj = utxo.outpoint.serializeToObject();
+                    } else if (typeof utxo.outpoint.toJSON === 'function') {
+                        outpointObj = utxo.outpoint.toJSON();
+                    } else {
+                        // Manual extraction as fallback
+                        outpointObj = {
+                            transactionId: utxo.outpoint.transactionId || utxo.outpoint.id || '',
+                            index: utxo.outpoint.index || 0
+                        };
+                    }
+                } catch (e) {
+                    console.error(`Failed to convert outpoint WASM object for UTXO ${index}:`, e);
+                    outpointObj = { transactionId: '', index: 0 };
+                }
+            }
+
+            // Handle missing blockDaaScore - this is critical for WASM SDK
+            let blockDaaScore = utxo.blockDaaScore;
+            if (blockDaaScore === undefined || blockDaaScore === null) {
+                blockDaaScore = 0n;
+            } else if (typeof blockDaaScore === 'string') {
+                blockDaaScore = BigInt(blockDaaScore);
+            } else if (typeof blockDaaScore === 'number') {
+                blockDaaScore = BigInt(blockDaaScore);
+            } else if (typeof blockDaaScore !== 'bigint') {
+                blockDaaScore = 0n;
+            }
+
+            const processedUtxo = {
+                address: addressStr,
+                amount: utxo.amount,
+                scriptPublicKey: scriptPubKey,
+                outpoint: outpointObj,
+                blockDaaScore: blockDaaScore,
+                isCoinbase: utxo.isCoinbase || false
+            };
+
+            return processedUtxo;
+        });
         
         // Validate that we have enough UTXOs
         if (!entries || entries.length === 0) {
@@ -185,19 +267,19 @@ async function createOfflineTransaction(fromAddress, toAddress, amount, networkT
         
         // Calculate total available balance from cached UTXOs
         const totalBalance = entries.reduce((sum, entry) => {
-            // Handle both 'amount' and 'value' properties for WASM objects
-            const entryAmount = entry.amount || entry.value || 0;
-            if (!entryAmount && entryAmount !== 0) {
-                console.warn('UTXO entry missing amount/value property:', entry);
+            // Amount is already converted to BigInt in the mapping above
+            const entryAmount = entry.amount || 0n;
+            if (!entryAmount && entryAmount !== 0n) {
+                console.warn('UTXO entry missing amount property:', entry);
                 return sum;
             }
-            return sum + BigInt(entryAmount);
+            return sum + entryAmount;
         }, 0n);
-        
+
         // Get unique addresses that have UTXOs (for informational purposes)
-        const sourceAddresses = [...new Set(entries.map(utxo => utxo.address).filter(addr => addr))];
+        const sourceAddresses = [...new Set(entries.map(utxo => utxo.address ? utxo.address.toString() : null).filter(addr => addr))];
         
-        // Extract options
+        // Extract options - USE STRINGS LIKE WORKING ONLINE VERSION
         const { feeOption = 'normal', changeAddress = fromAddress, manualFeeKas } = options;
         
         let priorityFee;
@@ -225,12 +307,14 @@ async function createOfflineTransaction(fromAddress, toAddress, amount, networkT
         const totalRequired = amountInSompi + priorityFee;
         
         if (totalBalance < totalRequired) {
-            const { sompiToKas } = await import('./currency-utils.js');
             const balanceKas = sompiToKas(totalBalance);
             const requiredKas = sompiToKas(totalRequired);
             throw new Error(`Insufficient funds. Available: ${balanceKas} KAS, Required: ${requiredKas} KAS (amount + fee)`);
         }
                 
+
+
+        // Create transaction - EXACT same call as working online version
         const { transactions, summary } = await createTransactions({
             entries,
             outputs: [{
@@ -290,20 +374,11 @@ async function createOfflineTransaction(fromAddress, toAddress, amount, networkT
             isMultiAddress: sourceAddresses.length > 1 || inputAddresses.length > 1,
             // CRITICAL: Preserve original UTXO entries for offline QR generation
             utxoEntries: entries.map((entry, idx) => {
-                console.log(`🔍 Processing UTXO entry ${idx} for QR storage (offline):`, {
-                    keys: Object.keys(entry),
-                    hasOutpoint: !!entry.outpoint,
-                    outpointKeys: entry.outpoint ? Object.keys(entry.outpoint) : [],
-                    outpointValues: entry.outpoint,
-                    hasTransactionId: !!entry.outpoint?.transactionId,
-                    hasIndex: entry.outpoint?.index !== undefined,
-                    directTransactionId: entry.transactionId,
-                    directIndex: entry.index
-                });
                 
-                const normalizedAddress = normalizeAddressForUTXO(entry.address, networkType);
+                // Convert Address object back to string for QR storage
+                const normalizedAddress = entry.address ? entry.address.toString() : null;
                 if (!normalizedAddress) {
-                    console.warn('Failed to normalize address for UTXO entry:', entry);
+                    console.warn('Failed to get address string for UTXO entry:', entry);
                 }
                 
                 // Extract outpoint data more robustly
@@ -321,8 +396,6 @@ async function createOfflineTransaction(fromAddress, toAddress, amount, networkT
                         index: entry.index !== undefined ? entry.index : 0
                     };
                 }
-                
-                console.log(`✅ Constructed outpoint for UTXO ${idx} (offline):`, outpoint);
                 
                 return {
                     outpoint: outpoint,
@@ -436,7 +509,6 @@ async function calculateCachedBalance(cachedUTXOs) {
         };
     }
 
-    const { calculateBalanceFromUTXOs } = await import('./balance-manager.js');
     return calculateBalanceFromUTXOs(cachedUTXOs.utxos);
 }
 

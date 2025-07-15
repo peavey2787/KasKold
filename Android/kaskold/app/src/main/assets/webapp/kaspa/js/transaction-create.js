@@ -3,6 +3,8 @@ import { getKaspa, isInitialized } from './init.js';
 import { calculateTransactionFee } from './fee-calculator.js';
 import { fetchUTXOsForAddress, fetchUTXOsForAddresses } from './address-scanner.js';
 import { MAX_UTXOS_PER_TRANSACTION, UTXO_CONSOLIDATION_THRESHOLD } from './constants.js';
+import { sompiToKas, kasNumberToSompi, kasToSompi } from './currency-utils.js';
+import { getSingleWallet } from './wallet-manager.js';
 
 // Smart UTXO selection to avoid storage mass limits
 function selectOptimalUTXOs(utxos, requiredAmount, maxUtxos = MAX_UTXOS_PER_TRANSACTION) {
@@ -167,11 +169,6 @@ function extractScriptPublicKeyData(scriptPublicKey) {
     
     // If it's a WASM object, try to extract data
     if (typeof scriptPublicKey === 'object' && scriptPublicKey.__wbg_ptr) {
-        console.log('🔍 Extracting data from WASM scriptPublicKey:', {
-            hasVersionProp: 'version' in scriptPublicKey,
-            hasScriptProp: 'script' in scriptPublicKey,
-            availableProps: Object.getOwnPropertyNames(scriptPublicKey)
-        });
         
         // Try to access version and script properties directly
         try {
@@ -257,7 +254,6 @@ async function createTransactionWithManualFee(fromAddress, toAddress, amount, ma
         }
         
         // Safe conversion using currency utilities
-        const { kasNumberToSompi } = await import('./currency-utils.js');
         const amountInSompi = kasNumberToSompi(amountFloat);
         const manualFeeInSompi = kasNumberToSompi(manualFeeFloat);
         
@@ -274,18 +270,12 @@ async function createTransactionWithManualFee(fromAddress, toAddress, amount, ma
         const utxoSelection = selectOptimalUTXOs(allEntries, totalRequired);
         
         if (!utxoSelection.sufficient) {
-            const { sompiToKas } = await import('./currency-utils.js');
             const availableKas = sompiToKas(utxoSelection.totalValue);
             const requiredKas = sompiToKas(totalRequired);
             throw new Error(`Insufficient funds. Available: ${availableKas} KAS, Required: ${requiredKas} KAS (amount + fee)`);
         }
         
         const entries = utxoSelection.selected;
-        
-        // Add helpful info about UTXO selection
-        if (allEntries.length > UTXO_CONSOLIDATION_THRESHOLD) {
-            console.log(`Transaction using ${entries.length} of ${allEntries.length} UTXOs (${utxoSelection.strategy}). Consider consolidating UTXOs to reduce future transaction costs.`);
-        }
         
         // Use createTransactions with manual fee as priorityFee
         let transactions, summary;
@@ -305,9 +295,7 @@ async function createTransactionWithManualFee(fromAddress, toAddress, amount, ma
             // Handle storage mass exceeded error specifically
             if (wasmError.message && wasmError.message.includes('Storage mass exceeds maximum')) {
                 // Try with fewer UTXOs
-                const reducedMaxUtxos = Math.max(10, Math.floor(entries.length / 2));
-                console.log(`Storage mass exceeded with ${entries.length} UTXOs, retrying with max ${reducedMaxUtxos} UTXOs`);
-                
+                const reducedMaxUtxos = Math.max(10, Math.floor(entries.length / 2));                
                 const reducedSelection = selectOptimalUTXOs(allEntries, totalRequired, reducedMaxUtxos);
                 
                 if (!reducedSelection.sufficient) {
@@ -361,16 +349,6 @@ async function createTransactionWithManualFee(fromAddress, toAddress, amount, ma
             feeMode: 'manual',
             // CRITICAL: Preserve original UTXO entries for offline QR generation
             utxoEntries: entries.map((entry, idx) => {
-                console.log(`🔍 Processing UTXO entry ${idx} for QR storage:`, {
-                    keys: Object.keys(entry),
-                    hasOutpoint: !!entry.outpoint,
-                    outpointKeys: entry.outpoint ? Object.keys(entry.outpoint) : [],
-                    outpointValues: entry.outpoint,
-                    hasTransactionId: !!entry.outpoint?.transactionId,
-                    hasIndex: entry.outpoint?.index !== undefined,
-                    directTransactionId: entry.transactionId,
-                    directIndex: entry.index
-                });
                 
                 const normalizedAddress = normalizeAddressForUTXO(entry.address, networkType);
                 if (!normalizedAddress) {
@@ -392,8 +370,6 @@ async function createTransactionWithManualFee(fromAddress, toAddress, amount, ma
                         index: entry.index !== undefined ? entry.index : 0
                     };
                 }
-                
-                console.log(`✅ Constructed outpoint for UTXO ${idx}:`, outpoint);
                 
                 return {
                     outpoint: outpoint,
@@ -462,7 +438,6 @@ async function createTransaction(fromAddress, toAddress, amount, networkType, op
 
     try {
         const { createTransactions, kaspaToSompi } = kaspa;
-        const { sompiToKas } = await import('./currency-utils.js');
         
         // Convert KAS to sompi manually (kaspaToSompi was causing index out of bounds)
         const amountFloat = parseFloat(amount);
@@ -473,7 +448,6 @@ async function createTransaction(fromAddress, toAddress, amount, networkType, op
         }
         
         // Safe conversion using currency utilities
-        const { kasNumberToSompi } = await import('./currency-utils.js');
         const amountInSompi = kasNumberToSompi(amountFloat);
         
         // Check if we have multiple addresses (HD wallet) or single address
@@ -493,7 +467,6 @@ async function createTransaction(fromAddress, toAddress, amount, networkType, op
                 }
                 
                 // Check balance for each address to find those with UTXOs
-                const { getSingleWallet } = await import('./wallet-manager.js');
                 const addressesWithBalance = [];
                 
                 for (const address of allGeneratedAddresses) {
@@ -504,7 +477,6 @@ async function createTransaction(fromAddress, toAddress, amount, networkType, op
                         if (balanceResult.success && balanceResult.balance.kas > 0) {
                             addressesWithBalance.push(address);
                             // Update the HD wallet with this balance information
-                            const { kasToSompi } = await import('./currency-utils.js');
                             const balanceInSompi = kasToSompi(balanceResult.balance.kas.toString());
                             options.hdWallet.updateAddressBalance(address, balanceInSompi, balanceResult.utxos || []);
                         }
@@ -552,14 +524,8 @@ async function createTransaction(fromAddress, toAddress, amount, networkType, op
         
         if (!utxoSelection.sufficient) {
             // Try with all UTXOs if selection wasn't sufficient (maybe fee estimation was off)
-            console.log('Initial UTXO selection insufficient, trying with all UTXOs');
         } else {
             entries = utxoSelection.selected;
-            
-            // Add helpful info about UTXO selection
-            if (entries.length > UTXO_CONSOLIDATION_THRESHOLD) {
-                console.log(`Transaction using ${entries.length} UTXOs (${utxoSelection.strategy}). Consider consolidating UTXOs to reduce future transaction costs.`);
-            }
         }
                 
         let transactions, summary;
@@ -580,7 +546,6 @@ async function createTransaction(fromAddress, toAddress, amount, networkType, op
             if (wasmError.message && wasmError.message.includes('Storage mass exceeds maximum')) {
                 // Try with fewer UTXOs
                 const reducedMaxUtxos = Math.max(10, Math.floor(entries.length / 2));
-                console.log(`Storage mass exceeded with ${entries.length} UTXOs, retrying with max ${reducedMaxUtxos} UTXOs`);
                 
                 const reducedSelection = selectOptimalUTXOs(entries, amountInSompi, reducedMaxUtxos);
                 
@@ -637,16 +602,6 @@ async function createTransaction(fromAddress, toAddress, amount, networkType, op
             feeMode: 'automatic',
             // CRITICAL: Preserve original UTXO entries for offline QR generation
             utxoEntries: entries.map((entry, idx) => {
-                console.log(`🔍 Processing UTXO entry ${idx} for QR storage:`, {
-                    keys: Object.keys(entry),
-                    hasOutpoint: !!entry.outpoint,
-                    outpointKeys: entry.outpoint ? Object.keys(entry.outpoint) : [],
-                    outpointValues: entry.outpoint,
-                    hasTransactionId: !!entry.outpoint?.transactionId,
-                    hasIndex: entry.outpoint?.index !== undefined,
-                    directTransactionId: entry.transactionId,
-                    directIndex: entry.index
-                });
                 
                 const normalizedAddress = normalizeAddressForUTXO(entry.address, networkType);
                 if (!normalizedAddress) {
@@ -668,8 +623,6 @@ async function createTransaction(fromAddress, toAddress, amount, networkType, op
                         index: entry.index !== undefined ? entry.index : 0
                     };
                 }
-                
-                console.log(`✅ Constructed outpoint for UTXO ${idx}:`, outpoint);
                 
                 return {
                     outpoint: outpoint,

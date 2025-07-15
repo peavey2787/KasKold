@@ -1,6 +1,7 @@
 // Kaspa Fee Calculator Module
 import { getKaspa, isInitialized } from './init.js';
 import { fetchUTXOsForAddress } from './address-scanner.js';
+import { sompiToKas, kasNumberToSompi } from './currency-utils.js';
 
 // Fee calculation constants (kept for backward compatibility)
 const FEE_CONSTANTS = {
@@ -125,7 +126,6 @@ async function calculateAccurateTransactionFee(fromAddress, toAddress, amount, n
                 };
             }
             
-            const { kasNumberToSompi } = await import('./currency-utils.js');
             const amountInSompi = kasNumberToSompi(amountFloat);
             
             // Priority fee rates in sompi
@@ -150,7 +150,6 @@ async function calculateAccurateTransactionFee(fromAddress, toAddress, amount, n
             
             // Calculate fees for all options
             const feeEstimates = {};
-            const { sompiToKas } = await import('./currency-utils.js');
             
             for (const [option, fee] of Object.entries(priorityFeeRates)) {
                 try {

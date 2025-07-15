@@ -52,16 +52,8 @@ export class SessionManager {
         const settings = this.getSettings();
         
         if (!settings.autoSave) {
-            console.log('Session save skipped - autoSave disabled');
             return;
         }
-
-        console.log('💾 SESSION: Attempting to save session...', { 
-            isLoggedIn: walletState.isLoggedIn,
-            hasCurrentWallet: !!walletState.currentWallet,
-            address: walletState.address,
-            network: walletState.network
-        });
 
         try {
             // Create a safe copy of currentWallet without circular references
@@ -103,6 +95,8 @@ export class SessionManager {
                 expiresAt: settings.timeoutMinutes > 0 ? Date.now() + (settings.timeoutMinutes * 60 * 1000) : null
             };
 
+
+
             // Convert BigInt values to strings for JSON serialization
             const jsonString = JSON.stringify(sessionData, (key, value) => {
                 if (typeof value === 'bigint') {
@@ -112,15 +106,12 @@ export class SessionManager {
             });
 
             localStorage.setItem(this.sessionKey, jsonString);
-            console.log('💾 SESSION: Session saved successfully to localStorage');
             
             if (settings.timeoutMinutes > 0) {
                 this.startTimeout(settings.timeoutMinutes);
             }
         } catch (error) {
-            console.error('💾 SESSION: Failed to save session:', error);
-            console.error('💾 SESSION: Error details:', error.message);
-            console.error('💾 SESSION: WalletState that failed:', walletState);
+            console.error('Failed to save session:', error);
         }
     }
 
@@ -131,45 +122,58 @@ export class SessionManager {
     loadSession() {
         try {
             const saved = localStorage.getItem(this.sessionKey);
-            console.log('💾 SESSION: Loading session...', { hasSavedData: !!saved });
-            
+
             if (!saved) {
-                console.log('💾 SESSION: No saved session found');
                 return null;
             }
 
             const sessionData = JSON.parse(saved);
             const now = Date.now();
 
-            console.log('💾 SESSION: Session data loaded', { 
-                hasWalletState: !!sessionData.walletState,
-                isLoggedIn: sessionData.walletState?.isLoggedIn,
-                expiresAt: sessionData.expiresAt,
-                isExpired: sessionData.expiresAt && now > sessionData.expiresAt
-            });
 
-            // Check if session has expired (only if expiration is set)
-            if (sessionData.expiresAt && now > sessionData.expiresAt) {
-                console.log('💾 SESSION: Session expired, clearing...');
+
+            // Check if session has expired
+            const settings = this.getSettings();
+            let sessionExpired = false;
+
+            if (sessionData.expiresAt) {
+                // Session has explicit expiration time
+                sessionExpired = now > sessionData.expiresAt;
+            } else if (settings.timeoutMinutes > 0) {
+                // Session has no explicit expiration but timeout is configured
+                // Calculate expiration based on timestamp + timeout
+                const calculatedExpiration = sessionData.timestamp + (settings.timeoutMinutes * 60 * 1000);
+                sessionExpired = now > calculatedExpiration;
+            }
+
+            if (sessionExpired) {
                 this.clearSession();
                 return null;
             }
 
             // Calculate remaining time and start timeout
-            const settings = this.getSettings();
-            if (settings.timeoutMinutes > 0 && sessionData.expiresAt) {
-                const remainingMs = sessionData.expiresAt - now;
-                const remainingMinutes = Math.ceil(remainingMs / (60 * 1000));
-                this.startTimeout(remainingMinutes);
+            if (settings.timeoutMinutes > 0) {
+                let remainingMs;
+                if (sessionData.expiresAt) {
+                    remainingMs = sessionData.expiresAt - now;
+                } else {
+                    // Calculate based on timestamp + timeout
+                    const calculatedExpiration = sessionData.timestamp + (settings.timeoutMinutes * 60 * 1000);
+                    remainingMs = calculatedExpiration - now;
+                }
+
+                if (remainingMs > 0) {
+                    const remainingMinutes = Math.ceil(remainingMs / (60 * 1000));
+                    this.startTimeout(remainingMinutes);
+                }
             }
 
             // Convert string values back to BigInt for balance fields
             const walletState = this.convertStringToBigInt(sessionData.walletState, ['balance']);
 
-            console.log('💾 SESSION: Session restored successfully');
             return walletState;
         } catch (error) {
-            console.error('💾 SESSION: Failed to load session:', error);
+            console.error('Failed to load session:', error);
             this.clearSession();
             return null;
         }
@@ -310,61 +314,42 @@ export class SessionManager {
         const settings = this.getSettings();
         const minutesToAdd = additionalMinutes || settings.timeoutMinutes;
 
-        console.log('🔄 SESSION: Attempting to extend session', {
-            additionalMinutes,
-            minutesToAdd,
-            settings
-        });
-
         try {
             const saved = localStorage.getItem(this.sessionKey);
-            console.log('🔄 SESSION: Retrieved saved session', {
-                hasSaved: !!saved,
-                savedLength: saved?.length
-            });
 
-            if (saved) {
-                const sessionData = JSON.parse(saved);
-                console.log('🔄 SESSION: Parsed session data', {
-                    hasWalletState: !!sessionData.walletState,
-                    currentExpiresAt: sessionData.expiresAt,
-                    isLoggedIn: sessionData.walletState?.isLoggedIn
-                });
-
-                // Extend expiration time
-                const newExpiresAt = Date.now() + (minutesToAdd * 60 * 1000);
-                sessionData.expiresAt = newExpiresAt;
-
-                console.log('🔄 SESSION: Updated expiration time', {
-                    oldExpiresAt: sessionData.expiresAt,
-                    newExpiresAt,
-                    minutesToAdd
-                });
-
-                // Save updated session with BigInt-safe serialization
-                const jsonString = JSON.stringify(sessionData, (key, value) => {
-                    if (typeof value === 'bigint') {
-                        return value.toString();
-                    }
-                    return value;
-                });
-                localStorage.setItem(this.sessionKey, jsonString);
-
-                console.log('🔄 SESSION: Saved updated session to localStorage');
-
-                // Restart timeout with new duration
-                this.startTimeout(minutesToAdd);
-
-                console.log('🔄 SESSION: Restarted timeout with', minutesToAdd, 'minutes');
-
-                return true;
-            } else {
-                console.error('🔄 SESSION: No saved session found in localStorage');
+            if (!saved) {
+                return false;
             }
+
+            const sessionData = JSON.parse(saved);
+            const now = Date.now();
+
+            // Check if current session is still valid
+            if (sessionData.expiresAt && now > sessionData.expiresAt) {
+                // Session already expired, cannot extend
+                this.clearSession();
+                return false;
+            }
+
+            // Extend expiration time from current time
+            const newExpiresAt = now + (minutesToAdd * 60 * 1000);
+            sessionData.expiresAt = newExpiresAt;
+
+            // Save updated session with BigInt-safe serialization
+            const jsonString = JSON.stringify(sessionData, (key, value) => {
+                if (typeof value === 'bigint') {
+                    return value.toString();
+                }
+                return value;
+            });
+            localStorage.setItem(this.sessionKey, jsonString);
+
+            // Restart timeout with new duration from now
+            this.startTimeout(minutesToAdd);
+
+            return true;
         } catch (error) {
-            console.error('🔄 SESSION: Failed to extend session:', error);
-            console.error('🔄 SESSION: Error details:', error.message);
-            console.error('🔄 SESSION: Error stack:', error.stack);
+            console.error('Failed to extend session:', error);
         }
 
         return false;

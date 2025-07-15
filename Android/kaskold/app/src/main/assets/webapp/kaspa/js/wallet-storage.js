@@ -83,17 +83,8 @@ class WalletStorage {
      */
     async saveWallet(walletData, password) {
         try {
-            console.log('🗄️ STORAGE: saveWallet called with data:', {
-                hasPrivateKey: !!walletData.privateKey,
-                hasAddress: !!walletData.address,
-                hasNetwork: !!walletData.network,
-                hasMnemonic: !!walletData.mnemonic,
-                network: walletData.network,
-                address: walletData.address?.substring(0, 20) + '...'
-            });
             
             await this.ensureInitialized();
-            console.log('🗄️ STORAGE: Storage initialized for saving');
             
             const { privateKey, address, network, mnemonic, derivationPath } = walletData;
             
@@ -103,21 +94,16 @@ class WalletStorage {
             }
 
             const walletId = this.generateWalletId(address, network);
-            console.log('🗄️ STORAGE: Generated wallet ID:', walletId);
             
             // Encrypt the private key
-            console.log('🗄️ STORAGE: Encrypting private key...');
             const encryptedPrivateKey = await walletEncryption.encryptPrivateKey(privateKey, password);
             const serializedEncryptedKey = walletEncryption.serializeEncryptedData(encryptedPrivateKey);
-            console.log('🗄️ STORAGE: Private key encrypted successfully');
             
             // Encrypt mnemonic if provided
             let encryptedMnemonic = null;
             if (mnemonic) {
-                console.log('🗄️ STORAGE: Encrypting mnemonic...');
                 const encryptedMnemonicData = await walletEncryption.encryptPrivateKey(mnemonic, password);
                 encryptedMnemonic = walletEncryption.serializeEncryptedData(encryptedMnemonicData);
-                console.log('🗄️ STORAGE: Mnemonic encrypted successfully');
             }
 
             // Create wallet entry
@@ -132,20 +118,9 @@ class WalletStorage {
                 lastUsed: Date.now(),
                 label: `Wallet ${address.substring(0, 8)}...`
             };
-            
-            console.log('🗄️ STORAGE: Created wallet entry:', {
-                id: walletEntry.id,
-                address: walletEntry.address,
-                network: walletEntry.network,
-                hasEncryptedPrivateKey: !!walletEntry.encryptedPrivateKey,
-                hasEncryptedMnemonic: !!walletEntry.encryptedMnemonic,
-                derivationPath: walletEntry.derivationPath
-            });
 
             // Get existing wallets
-            console.log('🗄️ STORAGE: Fetching existing wallets...');
             const existingWallets = await this.getAllWallets();
-            console.log('🗄️ STORAGE: Found', existingWallets.length, 'existing wallets');
             
             // Check if wallet already exists
             if (existingWallets.some(w => w.id === walletId)) {
@@ -154,16 +129,12 @@ class WalletStorage {
 
             // Add new wallet
             existingWallets.push(walletEntry);
-            console.log('🗄️ STORAGE: Added new wallet to array, total wallets:', existingWallets.length);
             
             // Save updated wallets list
-            console.log('🗄️ STORAGE: Saving wallets to localforage...');
             await localforage.setItem(this.storageKey, existingWallets);
-            console.log('🗄️ STORAGE: Wallets saved successfully to localforage');
             
             // Verify the save worked
             const verifyWallets = await localforage.getItem(this.storageKey);
-            console.log('🗄️ STORAGE: Verification - wallets in storage:', verifyWallets?.length || 0);
             
             return walletId;
         } catch (error) {
@@ -178,15 +149,8 @@ class WalletStorage {
      */
     async getAllWallets() {
         try {
-            console.log('🗄️ STORAGE: getAllWallets called');
-            await this.ensureInitialized();
-            console.log('🗄️ STORAGE: Storage initialized, fetching from localforage...');
-            
-            const wallets = await localforage.getItem(this.storageKey);
-            console.log('🗄️ STORAGE: Raw result from localforage:', wallets);
-            console.log('🗄️ STORAGE: Storage key used:', this.storageKey);
-            console.log('🗄️ STORAGE: Returning wallets array:', wallets || []);
-            
+            await this.ensureInitialized();            
+            const wallets = await localforage.getItem(this.storageKey);            
             return wallets || [];
         } catch (error) {
             console.error('🗄️ STORAGE: Failed to get wallets:', error);
@@ -408,6 +372,21 @@ class WalletStorage {
         } catch (error) {
             console.error('Failed to get wallets by network:', error);
             return [];
+        }
+    }
+
+    /**
+     * Save wallets list to storage
+     * @param {Array} wallets - Array of wallet objects
+     * @returns {Promise<boolean>} Success status
+     */
+    async saveWalletsList(wallets) {
+        try {
+            await localforage.setItem(this.storageKey, wallets);
+            return true;
+        } catch (error) {
+            console.error('🗄️ STORAGE: Failed to save wallets list:', error);
+            throw error;
         }
     }
 

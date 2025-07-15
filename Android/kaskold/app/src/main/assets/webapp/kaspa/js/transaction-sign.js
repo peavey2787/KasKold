@@ -1,5 +1,7 @@
 // Kaspa Transaction Signing Module
 import { getKaspa, isInitialized } from './init.js';
+import { kasNumberToSompi } from './currency-utils.js';
+import { convertStringToBigInt } from './serialization-utils.js';
 
 // Sign transaction with private key(s) using SDK's pending transaction sign method
 async function signTransaction(transactionData, privateKeys) {
@@ -42,7 +44,6 @@ async function signTransaction(transactionData, privateKeys) {
                 BigInt(transactionData.amountInSompi) : BigInt(transactionData.amountInSompi);
         } else if (transactionData.amount) {
             // Convert KAS to sompi
-            const { kasNumberToSompi } = await import('./currency-utils.js');
             const amountFloat = parseFloat(transactionData.amount);
             amountInSompi = kasNumberToSompi(amountFloat);
         } else {
@@ -59,10 +60,7 @@ async function signTransaction(transactionData, privateKeys) {
         if (transactionData.transactionDetails && transactionData.transactionDetails.inputUtxos && 
             transactionData.transactionDetails.inputUtxos.length > 0) {
             
-            console.log('🔄 Using UTXO data from enhanced QR for offline signing');
             const entries = transactionData.transactionDetails.inputUtxos;
-            console.log(`📊 UTXO entries from transactionDetails: ${entries.length}`);
-            console.log('🔍 First UTXO sample:', entries[0]);
             
             // Check if UTXOs contain warning about incomplete data
             if (entries[0]?.warning === 'OFFLINE_SIGNING_INCOMPLETE') {
@@ -70,25 +68,13 @@ async function signTransaction(transactionData, privateKeys) {
             }
             
             // Validate UTXO entries format
-            console.log('🔍 Validating UTXO entries format...');
             for (let i = 0; i < entries.length; i++) {
                 const entry = entries[i];
-                console.log(`🔍 UTXO ${i}:`, {
-                    hasOutpoint: !!entry.outpoint,
-                    outpointKeys: entry.outpoint ? Object.keys(entry.outpoint) : [],
-                    hasAddress: !!entry.address,
-                    addressType: typeof entry.address,
-                    hasAmount: !!entry.amount,
-                    amountType: typeof entry.amount,
-                    hasScriptPublicKey: !!entry.scriptPublicKey,
-                    scriptPublicKeyKeys: entry.scriptPublicKey ? Object.keys(entry.scriptPublicKey) : []
-                });
                 
                 // Convert amount to BigInt if needed
                 if (typeof entry.amount === 'string') {
                     try {
                         entries[i].amount = BigInt(entry.amount);
-                        console.log(`✅ Converted UTXO ${i} amount from string to BigInt`);
                     } catch (conversionError) {
                         console.error(`❌ Failed to convert UTXO ${i} amount to BigInt:`, conversionError);
                     }
@@ -97,61 +83,45 @@ async function signTransaction(transactionData, privateKeys) {
                 // Ensure address is a string (not an object)
                 if (entry.address && typeof entry.address === 'object' && entry.address.payload) {
                     // Convert address object to string
-                    entries[i].address = entry.address.payload;
-                    console.log(`✅ Converted UTXO ${i} address from object to string:`, entries[i].address);
+                    entries[i].address = entry.address.payload;                    
                 }
             }
-            
-            console.log('📊 Creating transaction with:', {
-                entryCount: entries.length,
-                toAddress: transactionData.toAddress,
-                amount: amountInSompi.toString(),
-                changeAddress: changeAddress,
-                networkType: transactionData.networkType
-            });
-            
-            // Log the original entries structure for debugging
-            console.log('🔍 Original entries structure:', {
-                entryCount: entries.length,
-                firstEntry: entries[0] ? {
-                    keys: Object.keys(entries[0]),
-                    hasPrefix: 'prefix' in entries[0],
-                    prefix: entries[0].prefix,
-                    address: entries[0].address,
-                    outpoint: entries[0].outpoint,
-                    amount: entries[0].amount
-                } : 'No entries'
-            });
-            
+                        
             // Recreate the transaction using the original UTXO entries
-            console.log('🔄 Recreating transaction from original UTXO entries for offline signing');
             try {
                 // Helper function to validate and normalize UTXO entry for createTransactions
                 async function validateAndNormalizeUTXOEntry(entry, index, networkType) {
-                    const { convertStringToBigInt } = await import('./serialization-utils.js');
-                    
                     // Use serialization utils to properly convert the entry
                     const normalized = convertStringToBigInt(entry);
-                    
-                    console.log(`🔍 UTXO ${index} after convertStringToBigInt:`, {
-                        keys: Object.keys(normalized),
-                        hasAddress: !!normalized.address,
-                        hasOutpoint: !!normalized.outpoint,
-                        hasAmount: !!normalized.amount,
-                        hasScriptPublicKey: !!normalized.scriptPublicKey,
-                        hasBlockDaaScore: !!normalized.blockDaaScore,
-                        hasIsCoinbase: 'isCoinbase' in normalized,
-                        scriptPublicKeyType: typeof normalized.scriptPublicKey,
-                        scriptPublicKeyValue: normalized.scriptPublicKey,
-                        scriptPublicKeyKeys: normalized.scriptPublicKey ? Object.keys(normalized.scriptPublicKey) : 'N/A'
-                    });
-                    
-                    // Ensure address is a string (remove any prefix property)
-                    if (normalized.address && typeof normalized.address === 'object') {
-                        if (normalized.address.prefix && normalized.address.payload) {
-                            normalized.address = `${normalized.address.prefix}:${normalized.address.payload}`;
-                        } else if (normalized.address.toString) {
-                            normalized.address = normalized.address.toString();
+                                        
+                    // Handle Address objects - convert to Address object if needed
+                    if (normalized.address) {
+                        if (typeof normalized.address === 'string') {
+                            // Convert string address to Address object
+                            try {
+                                const { Address } = kaspa;
+                                normalized.address = new Address(normalized.address);
+                            } catch (e) {
+                                console.warn(`Failed to create Address object from string: ${normalized.address}`, e);
+                                // Keep as string if Address creation fails
+                            }
+                        } else if (typeof normalized.address === 'object') {
+                            // Handle existing Address objects or objects with prefix/payload
+                            if (normalized.address.prefix && normalized.address.payload) {
+                                // Convert prefix/payload object to Address object
+                                try {
+                                    const { Address } = kaspa;
+                                    const addressStr = `${normalized.address.prefix}:${normalized.address.payload}`;
+                                    normalized.address = new Address(addressStr);
+                                } catch (e) {
+                                    console.warn(`Failed to create Address object from prefix/payload:`, normalized.address, e);
+                                    // Fallback to string format
+                                    normalized.address = `${normalized.address.prefix}:${normalized.address.payload}`;
+                                }
+                            } else if (normalized.address.toString && typeof normalized.address.toString === 'function') {
+                                // Already an Address object or similar, keep as is
+                                // No conversion needed
+                            }
                         }
                     }
                     
@@ -195,8 +165,7 @@ async function signTransaction(transactionData, privateKeys) {
                     if (normalized.isCoinbase === undefined || normalized.isCoinbase === null) {
                         throw new Error(`UTXO ${index} missing isCoinbase`);
                     }
-                    
-                    console.log(`✅ UTXO ${index} validation passed`);
+                                        
                     return normalized;
                 }
 
@@ -209,27 +178,6 @@ async function signTransaction(transactionData, privateKeys) {
                     return normalizedEntry;
                 }));
                 
-                console.log('🔍 Debugging createTransactions parameters:', {
-                    entriesType: typeof processedEntries,
-                    entriesLength: processedEntries?.length,
-                    firstEntryKeys: processedEntries?.[0] ? Object.keys(processedEntries[0]) : 'N/A',
-                    firstEntryAddress: processedEntries?.[0]?.address || 'MISSING',
-                    firstEntryScriptPublicKey: processedEntries?.[0]?.scriptPublicKey || 'MISSING',
-                    firstEntryScriptPublicKeyType: typeof processedEntries?.[0]?.scriptPublicKey,
-                    firstEntryScriptPublicKeyKeys: processedEntries?.[0]?.scriptPublicKey ? Object.keys(processedEntries?.[0]?.scriptPublicKey) : 'N/A',
-                    toAddress: transactionData.toAddress,
-                    amountInSompi: amountInSompi.toString(),
-                    changeAddress: changeAddress,
-                    networkType: transactionData.networkType,
-                    feeType: typeof (transactionData.fee ? BigInt(transactionData.fee.priorityFee || '1000') : 1000n)
-                });
-                
-                // Log the complete structure of the first entry
-                if (processedEntries && processedEntries.length > 0) {
-                    console.log('🔍 COMPLETE first entry structure:', JSON.stringify(processedEntries[0], (key, value) => 
-                        typeof value === 'bigint' ? value.toString() + 'n' : value, 2));
-                }
-
                 const { transactions } = await createTransactions({
                     entries: processedEntries,
                     outputs: [{
@@ -246,7 +194,7 @@ async function signTransaction(transactionData, privateKeys) {
                 }
 
                 pendingTransaction = transactions[0];
-                console.log('✅ Successfully recreated pending transaction for offline signing');
+                
             } catch (createTxError) {
                 console.error('❌ createTransactions failed:', createTxError);
                 console.error('🔍 Error details:', {
@@ -285,16 +233,8 @@ async function signTransaction(transactionData, privateKeys) {
         }
         
         // Use the SDK's built-in sign method on the pending transaction
-        try {
-            console.log('🔏 About to sign transaction:', {
-                privKeyCount: privKeyArray.length,
-                inputCount: pendingTransaction.inputs?.length,
-                outputCount: pendingTransaction.outputs?.length,
-                transactionId: pendingTransaction.id || 'unknown'
-            });
-            
+        try {          
             await pendingTransaction.sign(privKeyArray);
-            console.log('✅ Transaction signed successfully');
         } catch (signError) {
             console.error('❌ Transaction signing failed:', {
                 message: signError.message,

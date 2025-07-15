@@ -38,8 +38,6 @@ export class AddressLookupService {
             const networkPath = network === 'mainnet' ? 'mainnet' : 'testnet';
             const apiUrl = `${KNS_API_BASE}/${networkPath}/api/v1/${domain}/owner`;
 
-            console.log(`🔍 LOOKUP: Resolving ${domain} on ${network}`);
-
             // Try multiple CORS proxy services for reliability
             const proxyServices = [
                 `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}`,
@@ -140,7 +138,6 @@ export class AddressLookupService {
                 timestamp: Date.now()
             });
 
-            console.log(`✅ LOOKUP: ${domain} resolved to ${ownerAddress}`);
             return result;
 
         } catch (error) {

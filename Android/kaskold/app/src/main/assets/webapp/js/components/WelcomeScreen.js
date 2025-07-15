@@ -21,13 +21,18 @@ export function WelcomeScreen({ onNavigate }) {
     setIsLoading(false);
   };
 
-  return React.createElement('section', { 
-    id: 'welcomeSection', 
-    className: 'text-center py-5' 
-  },
-    React.createElement('div', { className: 'row justify-content-center' },
-      React.createElement('div', { className: 'col-lg-6' },
-        React.createElement('div', { className: 'welcome-logo mb-4' },
+  return React.createElement(
+    'section',
+    { id: 'welcomeSection', className: 'text-center py-5' },
+    React.createElement(
+      'div',
+      { className: 'row justify-content-center' },
+      React.createElement(
+        'div',
+        { className: 'col-lg-6' },
+        React.createElement(
+          'div',
+          { className: 'welcome-logo mb-4' },
           React.createElement('img', {
             src: 'kaspa/assets/images/kaskold-logo.png',
             alt: 'Kaspa Kold Logo',
@@ -36,42 +41,78 @@ export function WelcomeScreen({ onNavigate }) {
           })
         ),
         React.createElement('h1', { className: 'display-4 fw-bold mb-3' }, 'Welcome to'),
-        React.createElement('div', { className: 'mb-4' },
+        React.createElement(
+          'div',
+          { className: 'mb-4' },
           React.createElement('img', {
             src: 'kaspa/assets/images/kaskold-text.png',
             alt: 'Kaspa Kold',
             style: { height: '60px', width: 'auto' }
           })
         ),
-        React.createElement('p', { className: 'lead mb-5' }, 'Air-gapped cold storage solution for the Kaspa network'),
-        
-        React.createElement('div', { className: 'd-grid gap-3' },
-          React.createElement('button', {
-            className: `btn btn-primary btn-lg ${isLoading ? 'disabled' : ''}`,
-            onClick: handleCreateWallet,
-            disabled: isLoading
-          },
+        React.createElement(
+          'p',
+          { className: 'lead mb-5' },
+          'Air-gapped cold storage solution for the Kaspa network'
+        ),
+        React.createElement(
+          'div',
+          { className: 'd-grid gap-3' },
+          React.createElement(
+            'button',
+            {
+              className: `btn btn-primary btn-lg ${
+                isLoading ? 'disabled' : ''
+              }`,
+              onClick: handleCreateWallet,
+              disabled: isLoading
+            },
             React.createElement('i', { className: 'bi bi-plus-circle me-2' }),
             'Create New Wallet'
           ),
-          React.createElement('button', {
-            className: `btn btn-outline-primary btn-lg ${isLoading ? 'disabled' : ''}`,
-            onClick: handleLoginWallet,
-            disabled: isLoading
-          },
+          React.createElement(
+            'button',
+            {
+              className: `btn btn-outline-primary btn-lg ${
+                isLoading ? 'disabled' : ''
+              }`,
+              onClick: handleLoginWallet,
+              disabled: isLoading
+            },
             React.createElement('i', { className: 'bi bi-key me-2' }),
             'Login to Existing Wallet'
           ),
-          React.createElement('button', {
-            className: `btn btn-outline-secondary btn-lg ${isLoading ? 'disabled' : ''}`,
-            onClick: handleRestoreWallet,
-            disabled: isLoading
-          },
-            React.createElement('i', { className: 'bi bi-arrow-clockwise me-2' }),
+          React.createElement(
+            'button',
+            {
+              className: `btn btn-outline-secondary btn-lg ${
+                isLoading ? 'disabled' : ''
+              }`,
+              onClick: handleRestoreWallet,
+              disabled: isLoading
+            },
+            React.createElement('i', {
+              className: 'bi bi-arrow-clockwise me-2'
+            }),
             'Restore Wallet'
+          )
+        ),
+        // New open-source footer line
+        React.createElement(
+          'p',
+          { className: 'mt-4 text-muted' },
+          'This project is open source. ',
+          React.createElement(
+            'a',
+            {
+              href: 'https://github.com/peavey2787/KasKold',
+              target: '_blank',
+              rel: 'noopener noreferrer'
+            },
+            'View on GitHub'
           )
         )
       )
     )
   );
-} 
+}

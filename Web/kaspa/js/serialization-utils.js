@@ -68,46 +68,60 @@ export function convertStringToBigInt(obj, bigIntFields = ['amount', 'fee', 'val
 export function serializeWasmObject(wasmObject) {
     if (!wasmObject) {
         return null;
-    }
-    
-    console.log('🔍 WASM Object Analysis:', {
-        type: typeof wasmObject,
-        constructor: wasmObject.constructor?.name || 'unknown',
-        hasWbgPtr: '__wbg_ptr' in wasmObject,
-        wbgPtr: wasmObject.__wbg_ptr,
-        isWasmObject: wasmObject.__wbg_ptr !== undefined,
-        availableMethods: Object.getOwnPropertyNames(Object.getPrototypeOf(wasmObject)).filter(name => typeof wasmObject[name] === 'function')
-    });
+    }    
     
     try {
         // Try serializeToObject first (most reliable)
         if (typeof wasmObject.serializeToObject === 'function') {
-            console.log('✅ Using serializeToObject() method');
             const result = wasmObject.serializeToObject();
-            console.log('📦 serializeToObject result:', result ? Object.keys(result) : null);
             return result;
         }
         
         // Try serializeToSafeJSON as fallback
         if (typeof wasmObject.serializeToSafeJSON === 'function') {
-            console.log('✅ Using serializeToSafeJSON() as fallback');
             const jsonStr = wasmObject.serializeToSafeJSON();
             const result = JSON.parse(jsonStr);
-            console.log('📦 serializeToSafeJSON result:', result ? Object.keys(result) : null);
             return result;
         }
         
-        // Try toJSON as another fallback
+        // Try toJSON as another fallback, but extract actual data from WASM objects
         if (typeof wasmObject.toJSON === 'function') {
-            console.log('✅ Using toJSON() as fallback');
             const result = wasmObject.toJSON();
-            console.log('📦 toJSON result:', result ? Object.keys(result) : null);
+
+            // Check if result still contains WASM objects and extract actual data
+            if (result && typeof result === 'object') {
+                const extractedResult = {};
+                for (const [key, value] of Object.entries(result)) {
+                    if (value && value.__wbg_ptr) {
+                        // This is still a WASM object, extract its data
+                        if (key === 'address' && typeof value.toString === 'function') {
+                            extractedResult[key] = value.toString();
+                        } else if (key === 'outpoint' && value.transactionId && value.index !== undefined) {
+                            extractedResult[key] = {
+                                transactionId: value.transactionId,
+                                index: value.index
+                            };
+                        } else if (key === 'scriptPublicKey' && (value.version !== undefined || value.script !== undefined)) {
+                            extractedResult[key] = {
+                                version: value.version || 0,
+                                script: value.script || ''
+                            };
+                        } else {
+                            // Try to serialize this nested WASM object
+                            extractedResult[key] = serializeWasmObject(value) || value;
+                        }
+                    } else {
+                        // Plain value, keep as-is
+                        extractedResult[key] = value;
+                    }
+                }
+                return extractedResult;
+            }
+
             return result;
         }
         
         // Manual extraction as last resort
-        console.warn('⚠️ No serialization method found, extracting manually');
-        console.log('🔍 Available methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(wasmObject)));
         
         // Try to get the actual WASM object data by calling toString or other methods
         let fallbackData = {};
@@ -115,7 +129,6 @@ export function serializeWasmObject(wasmObject) {
         // Try to extract data via direct property access
         try {
             const wasmKeys = Object.keys(wasmObject);
-            console.log('🔍 Direct WASM object keys:', wasmKeys);
             
             for (const key of wasmKeys) {
                 if (key !== '__wbg_ptr' && typeof wasmObject[key] !== 'function') {
@@ -143,16 +156,10 @@ export function serializeWasmObject(wasmObject) {
         }
         
         const result = { ...extractWasmObjectData(wasmObject), ...fallbackData };
-        console.log('📦 Manual extraction result:', result ? Object.keys(result) : null);
         return result;
         
     } catch (error) {
         console.error('❌ Serialization failed:', error);
-        console.error('❌ WASM object details:', {
-            type: typeof wasmObject,
-            keys: Object.keys(wasmObject),
-            proto: Object.getPrototypeOf(wasmObject)
-        });
         throw new Error(`Failed to serialize WASM object: ${error.message}`);
     }
 }
@@ -199,7 +206,6 @@ function extractWasmObjectData(wasmObject) {
                     const propName = getter.startsWith('get') ? 
                         getter.slice(3).charAt(0).toLowerCase() + getter.slice(4) : getter;
                     extracted[propName] = result;
-                    console.log(`✅ Extracted via ${getter}():`, propName, typeof result);
                 }
             }
         } catch (e) {
@@ -232,7 +238,6 @@ function extractWasmObjectData(wasmObject) {
             if (typeof wasmObject[method] === 'function') {
                 const result = wasmObject[method]();
                 if (result && typeof result === 'object') {
-                    console.log(`✅ Got data from ${method}():`, Object.keys(result));
                     Object.assign(extracted, result);
                 }
             }
@@ -275,7 +280,6 @@ function extractWasmObjectData(wasmObject) {
         }
     }
     
-    console.log('📋 Manually extracted properties:', Object.keys(extracted));
     return extracted;
 }
 
@@ -336,15 +340,7 @@ export function prepareForWasmDeserialization(rawTx) {
     if (!Array.isArray(prepared.inputs) || !Array.isArray(prepared.outputs)) {
         throw new Error('Invalid inputs or outputs array after preparation');
     }
-    
-    console.log('✅ Prepared transaction data for WASM deserialization:', {
-        version: prepared.version,
-        inputCount: prepared.inputs.length,
-        outputCount: prepared.outputs.length,
-        lockTime: prepared.lockTime.toString(),
-        gas: prepared.gas.toString()
-    });
-    
+        
     return prepared;
 }
 
@@ -500,10 +496,7 @@ export function cleanTransactionDataForSubmission(transactionData) {
     if (!transactionData) {
         throw new Error('No transaction data provided for cleaning');
     }
-    
-    console.log('🧹 Cleaning transaction data for submission');
-    console.log('📊 Input data keys:', Object.keys(transactionData));
-    
+        
     // Create a clean copy
     const cleaned = { ...transactionData };
     
@@ -516,18 +509,14 @@ export function cleanTransactionDataForSubmission(transactionData) {
     
     // For uploaded QR transactions, we need to reconstruct the transaction from the QR data
     if (cleaned.isUploaded && cleaned.type === 'kaspa-signed-transaction-qr') {
-        console.log('📦 Processing uploaded signed transaction QR for submission');
         
         // Try to find the actual transaction data from various sources
         if (cleaned.serializedTransaction && typeof cleaned.serializedTransaction === 'object') {
-            console.log('📦 Using serializedTransaction from QR data');
             submissionTransaction = cleaned.serializedTransaction;
         } else if (cleaned.serializedPendingTransaction && typeof cleaned.serializedPendingTransaction === 'object') {
-            console.log('📦 Using serializedPendingTransaction from QR data');
             submissionTransaction = cleaned.serializedPendingTransaction;
         } else if (cleaned.inputs && cleaned.outputs && Array.isArray(cleaned.inputs) && Array.isArray(cleaned.outputs)) {
             // Use the full transaction data from QR
-            console.log('📦 Using full transaction data from QR');
             submissionTransaction = {
                 version: cleaned.version || 1,
                 inputs: cleaned.inputs,
@@ -540,7 +529,6 @@ export function cleanTransactionDataForSubmission(transactionData) {
             };
         } else {
             // Try to reconstruct from the basic transaction data
-            console.log('📦 Reconstructing transaction from QR basic data');
             submissionTransaction = {
                 version: 1,
                 inputs: [],
@@ -569,16 +557,12 @@ export function cleanTransactionDataForSubmission(transactionData) {
     } else {
         // Priority order for non-uploaded transactions: serializedTransaction > signedTransaction > transactions array > original transaction data
         if (cleaned.serializedTransaction) {
-            console.log('📦 Found serializedTransaction for submission');
-            submissionTransaction = cleaned.serializedTransaction;
+             submissionTransaction = cleaned.serializedTransaction;
         } else if (cleaned.signedTransaction && typeof cleaned.signedTransaction === 'object') {
-            console.log('📦 Using signedTransaction for submission');
             submissionTransaction = cleaned.signedTransaction;
         } else if (cleaned.transactions && Array.isArray(cleaned.transactions) && cleaned.transactions.length > 0) {
-            console.log('📦 Using first transaction from transactions array');
             submissionTransaction = cleaned.transactions[0];
         } else if (cleaned.originalTransactionData && cleaned.originalTransactionData.signedTransaction) {
-            console.log('📦 Using signedTransaction from originalTransactionData');
             submissionTransaction = cleaned.originalTransactionData.signedTransaction;
         }
     }
@@ -593,7 +577,6 @@ export function cleanTransactionDataForSubmission(transactionData) {
         
         if (hasRequiredFields) {
             try {
-                console.log('✅ Preparing transaction for WASM submission');
                 cleaned.serializedTransaction = prepareForWasmDeserialization(submissionTransaction);
             } catch (error) {
                 console.warn('⚠️ Failed to prepare transaction for WASM:', error);
@@ -601,15 +584,12 @@ export function cleanTransactionDataForSubmission(transactionData) {
                 cleaned.serializedTransaction = submissionTransaction;
             }
         } else {
-            console.log('⚠️ Transaction missing required fields, keeping as-is for submission');
             cleaned.serializedTransaction = submissionTransaction;
         }
     } else {
-        console.log('⚠️ No suitable transaction data found for submission preparation');
         
         // Last resort: try to create a minimal transaction structure from available data
         if (cleaned.isUploaded) {
-            console.log('🔧 Creating minimal transaction structure for uploaded QR');
             cleaned.serializedTransaction = {
                 version: 1,
                 inputs: [],
@@ -625,8 +605,6 @@ export function cleanTransactionDataForSubmission(transactionData) {
             };
         }
     }
-    
-    console.log('🧹 Cleaned transaction data keys:', Object.keys(cleaned));
     return cleaned;
 }
 

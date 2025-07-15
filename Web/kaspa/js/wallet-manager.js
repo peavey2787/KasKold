@@ -407,11 +407,11 @@ export class UnifiedWalletManager {
 
         const typeIndex = type === 'receive' ? 0 : 1;
         const fullPath = `${this.derivationPath}/${typeIndex}/${index}`;
-        
+
         const derivedXPrv = this.xPrv.derivePath(fullPath);
         const privateKey = derivedXPrv.toPrivateKey();
         const address = privateKey.toPublicKey().toAddress(this.network).toString();
-        
+
         return {
             address,
             index,
@@ -419,6 +419,62 @@ export class UnifiedWalletManager {
             derivationPath: fullPath,
             privateKey: privateKey.toString()
         };
+    }
+
+    /**
+     * Derive private key for a specific address (for offline signing)
+     * This method searches through possible derivation paths to find the private key for a given address
+     */
+    async derivePrivateKeyForAddress(targetAddress) {
+        if (!this.isHDWallet) {
+            throw new Error('Private key derivation only available for HD wallets');
+        }
+
+        // Use a more efficient approach: check both receive and change in parallel batches
+        const batchSize = 50;
+        const maxBatches = 20; // Total of 1000 addresses per type
+
+        for (let batch = 0; batch < maxBatches; batch++) {
+            const promises = [];
+
+            // Create promises for both receive and change addresses in this batch
+            for (let i = 0; i < batchSize; i++) {
+                const index = batch * batchSize + i;
+
+                // Add receive address check
+                promises.push(
+                    this.generateAddress('receive', index)
+                        .then(addressInfo => ({ ...addressInfo, type: 'receive', index }))
+                        .catch(error => {
+                            console.warn(`Error generating receive address at index ${index}:`, error.message);
+                            return null;
+                        })
+                );
+
+                // Add change address check
+                promises.push(
+                    this.generateAddress('change', index)
+                        .then(addressInfo => ({ ...addressInfo, type: 'change', index }))
+                        .catch(error => {
+                            console.warn(`Error generating change address at index ${index}:`, error.message);
+                            return null;
+                        })
+                );
+            }
+
+            // Wait for this batch to complete
+            const results = await Promise.all(promises);
+
+            // Check if we found the target address in this batch
+            for (const result of results) {
+                if (result && result.address === targetAddress) {                    
+                    return result.privateKey;
+                }
+            }
+        }
+
+        console.error('❌ Could not find private key for address after comprehensive search:', targetAddress);
+        return null;
     }
 
     /**
@@ -491,8 +547,6 @@ export class UnifiedWalletManager {
      * Get total balance
      */
     getTotalBalance() {
-        console.log('🏦 HD WALLET: getTotalBalance() called, returning:', this.totalBalance);
-        console.log('🏦 HD WALLET: Balance type:', typeof this.totalBalance);
         return this.totalBalance;
     }
 
@@ -500,25 +554,52 @@ export class UnifiedWalletManager {
      * Reset all cached balances to 0 (for fresh discovery)
      */
     resetAllBalances() {
-        console.log('🧹 HD WALLET: Resetting all cached balances to 0');
 
         // Reset all receive address balances
         for (const [index, addressInfo] of this.addresses.receive.entries()) {
             addressInfo.balance = 0n;
             addressInfo.utxos = [];
-            console.log(`  Reset receive ${index}: ${addressInfo.address} - Balance: 0`);
         }
 
         // Reset all change address balances
         for (const [index, addressInfo] of this.addresses.change.entries()) {
             addressInfo.balance = 0n;
             addressInfo.utxos = [];
-            console.log(`  Reset change ${index}: ${addressInfo.address} - Balance: 0`);
         }
 
         // Reset total balance
         this.totalBalance = 0n;
-        console.log('🧹 HD WALLET: All balances reset to 0');
+    }
+
+    /**
+     * Force refresh balance for all generated addresses
+     * This is useful after operations that might change the balance state
+     */
+    async forceBalanceRefresh() {
+
+        try {
+            // Reset balances first
+            this.resetAllBalances();
+
+            // Check balance for all generated addresses
+            const balanceResult = await this.checkHDWalletBalance();
+
+            if (balanceResult.success) {
+                return balanceResult;
+            } else {
+                return balanceResult;
+            }
+        } catch (error) {
+            console.error('HD WALLET: Force refresh error:', error);
+            return {
+                success: false,
+                error: error.message,
+                totalBalance: 0,
+                totalBalanceSompi: 0n,
+                addressesFound: 0,
+                addressesWithBalance: []
+            };
+        }
     }
 
     /**
@@ -570,14 +651,12 @@ export class UnifiedWalletManager {
      * Recalculate total balance from all addresses
      */
     recalculateTotalBalance() {
-        console.log('🧮 HD WALLET: Recalculating total balance...');
         let total = 0n;
         let addressCount = 0;
 
-        console.log('🧮 HD WALLET: Checking receive addresses...');
         for (const [index, addressInfo] of this.addresses.receive.entries()) {
             const balance = addressInfo.balance;
-            console.log(`  Receive ${index}: ${addressInfo.address} - Balance: ${balance}`);
+            
             if (balance) {
                 // Ensure balance is BigInt
                 const balanceBigInt = typeof balance === 'bigint' ? balance : BigInt(balance.toString());
@@ -585,11 +664,9 @@ export class UnifiedWalletManager {
                 addressCount++;
             }
         }
-
-        console.log('🧮 HD WALLET: Checking change addresses...');
+        
         for (const [index, addressInfo] of this.addresses.change.entries()) {
             const balance = addressInfo.balance;
-            console.log(`  Change ${index}: ${addressInfo.address} - Balance: ${balance}`);
             if (balance) {
                 // Ensure balance is BigInt
                 const balanceBigInt = typeof balance === 'bigint' ? balance : BigInt(balance.toString());
@@ -598,8 +675,7 @@ export class UnifiedWalletManager {
             }
         }
 
-        this.totalBalance = total;
-        console.log(`🧮 HD WALLET: Total balance calculated: ${total} sompi from ${addressCount} addresses`);
+        this.totalBalance = total;        
     }
 
     /**
@@ -633,7 +709,6 @@ export class UnifiedWalletManager {
 
         // Most important: Check if address has any UTXOs (even if balance is 0)
         if (await this.addressHasUTXOs(currentAddress.address)) {
-            console.log('🚨 SECURITY: Current receive address has UTXOs, need new address');
             return true;
         }
 
@@ -650,8 +725,7 @@ export class UnifiedWalletManager {
 
             if (utxoResponse && utxoResponse.entries && utxoResponse.entries.length > 0) {
                 for (const entry of utxoResponse.entries) {
-                    if (entry && entry.utxoEntries && entry.utxoEntries.length > 0) {
-                        console.log(`🚨 SECURITY: Address ${address} has ${entry.utxoEntries.length} UTXOs`);
+                    if (entry && entry.utxoEntries && entry.utxoEntries.length > 0) {                        
                         return true;
                     }
                 }
@@ -659,7 +733,6 @@ export class UnifiedWalletManager {
 
             return false;
         } catch (error) {
-            console.error('Error checking UTXOs for address:', error);
             // If we can't check, assume it has UTXOs for safety
             return true;
         }
@@ -707,8 +780,7 @@ export class UnifiedWalletManager {
         }
         
         // Reset total balance to 0 instead of recalculating from potentially stale cached data
-        this.totalBalance = 0n;
-        console.log('🧮 HD WALLET: Reset total balance to 0 after state import (cached balances cleared)');
+        this.totalBalance = 0n;        
     }
 }
 

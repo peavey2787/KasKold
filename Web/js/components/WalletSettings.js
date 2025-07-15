@@ -24,6 +24,15 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
   const [autoDiscoveryEnabled, setAutoDiscoveryEnabled] = useState(true);
   const [isCompoundingUTXOs, setIsCompoundingUTXOs] = useState(false);
 
+  // Network settings
+  const [selectedNetwork, setSelectedNetwork] = useState(walletState.network);
+  const [isChangingNetwork, setIsChangingNetwork] = useState(false);
+
+  // Sync selected network with wallet state
+  useEffect(() => {
+    setSelectedNetwork(walletState.network);
+  }, [walletState.network]);
+
   // Password strength calculation
   const calculatePasswordStrength = (password) => {
     let score = 0;
@@ -97,9 +106,10 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
     try {
       const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
       const walletStorage = new WalletStorage();
-      
-      // Generate wallet ID from address and network to ensure consistency
-      const walletId = walletStorage.generateWalletId(walletState.address, walletState.network);
+
+      // Generate wallet ID from original wallet address (not current receive address)
+      const originalAddress = walletState.currentWallet?.address || walletState.address;
+      const walletId = walletStorage.generateWalletId(originalAddress, walletState.network);
       
       const success = await walletStorage.updateWalletLabel(walletId, walletLabel.trim());
       
@@ -141,9 +151,10 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
     try {
       const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
       const walletStorage = new WalletStorage();
-      
-      // Generate wallet ID from address and network to ensure consistency
-      const walletId = walletStorage.generateWalletId(walletState.address, walletState.network);
+
+      // Generate wallet ID from original wallet address (not current receive address)
+      const originalAddress = walletState.currentWallet?.address || walletState.address;
+      const walletId = walletStorage.generateWalletId(originalAddress, walletState.network);
       
       // First verify current password by trying to decrypt
       await walletStorage.decryptWallet(walletId, currentPassword);
@@ -203,9 +214,10 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
     try {
       const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
       const walletStorage = new WalletStorage();
-      
-      // Generate wallet ID from address and network to ensure consistency
-      const walletId = walletStorage.generateWalletId(walletState.address, walletState.network);
+
+      // Generate wallet ID from original wallet address (not current receive address)
+      const originalAddress = walletState.currentWallet?.address || walletState.address;
+      const walletId = walletStorage.generateWalletId(originalAddress, walletState.network);
       
       // Get wallet info to check if it has mnemonic
       const wallet = await walletStorage.getWallet(walletId);
@@ -327,9 +339,12 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
     try {
       const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
       const walletStorage = new WalletStorage();
-      
-      // Generate wallet ID from address and network to ensure consistency
-      const walletId = walletStorage.generateWalletId(walletState.address, walletState.network);
+
+      // Generate wallet ID from original wallet address (not current receive address)
+      // For HD wallets, walletState.address changes over time for privacy, but the wallet
+      // is always identified by the original address it was saved with
+      const originalAddress = walletState.currentWallet?.address || walletState.address;
+      const walletId = walletStorage.generateWalletId(originalAddress, walletState.network);
       
       // Decrypt wallet to get mnemonic
       const decryptedWallet = await walletStorage.decryptWallet(walletId, mnemonicPassword);
@@ -358,6 +373,58 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
     setShowMnemonic(false);
     setRevealedMnemonic('');
     setMnemonicPassword('');
+  };
+
+  // Handle network change
+  const handleNetworkChange = async (e) => {
+    e.preventDefault();
+
+    if (selectedNetwork === walletState.network) {
+      return; // No change needed
+    }
+
+    if (!confirm(`This will change your wallet's network from ${walletState.network} to ${selectedNetwork}. You will need to logout and login again. Are you sure?`)) {
+      setSelectedNetwork(walletState.network); // Reset to current network
+      return;
+    }
+
+    setIsChangingNetwork(true);
+
+    try {
+      const { WalletStorage } = await import('../../kaspa/js/wallet-storage.js');
+      const walletStorage = new WalletStorage();
+
+      // Get all wallets
+      const wallets = await walletStorage.getAllWallets();
+
+      // Find the current wallet
+      const originalAddress = walletState.currentWallet?.address || walletState.address;
+      const currentWalletId = walletStorage.generateWalletId(originalAddress, walletState.network);
+      const walletIndex = wallets.findIndex(w => w.id === currentWalletId);
+
+      if (walletIndex === -1) {
+        throw new Error('Current wallet not found in storage');
+      }
+
+      // Update the wallet's network
+      wallets[walletIndex].network = selectedNetwork;
+
+      // Generate new wallet ID with the new network
+      const newWalletId = walletStorage.generateWalletId(originalAddress, selectedNetwork);
+      wallets[walletIndex].id = newWalletId;
+
+      // Save the updated wallets using the wallet storage method
+      await walletStorage.saveWalletsList(wallets);
+
+      addNotification(`Network changed to ${selectedNetwork}! Please logout and login again.`, 'success');
+
+    } catch (error) {
+      console.error('Network change error:', error);
+      addNotification('Failed to change network: ' + error.message, 'error');
+      setSelectedNetwork(walletState.network); // Reset to current network on error
+    } finally {
+      setIsChangingNetwork(false);
+    }
   };
 
   // Copy address to clipboard
@@ -541,6 +608,52 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
               )
             ),
 
+            // Network Settings
+            React.createElement('div', { className: 'card mb-4' },
+              React.createElement('div', { className: 'card-header' },
+                React.createElement('h6', { className: 'card-title mb-0' },
+                  React.createElement('i', { className: 'bi bi-globe me-2' }),
+                  'Network Settings'
+                )
+              ),
+              React.createElement('div', { className: 'card-body' },
+                React.createElement('form', { onSubmit: handleNetworkChange },
+                  React.createElement('div', { className: 'mb-3' },
+                    React.createElement('label', { className: 'form-label' }, 'Current Network'),
+                    React.createElement('select', {
+                      className: 'form-select',
+                      value: selectedNetwork,
+                      onChange: (e) => setSelectedNetwork(e.target.value)
+                    },
+                      React.createElement('option', { value: 'mainnet' }, 'Mainnet'),
+                      React.createElement('option', { value: 'testnet-10' }, 'Testnet-10'),
+                      React.createElement('option', { value: 'testnet-11' }, 'Testnet-11'),
+                      React.createElement('option', { value: 'devnet' }, 'Devnet'),
+                      React.createElement('option', { value: 'simnet' }, 'Simnet')
+                    )
+                  ),
+                  selectedNetwork !== walletState.network && React.createElement('div', { className: 'alert alert-warning mb-3' },
+                    React.createElement('i', { className: 'bi bi-exclamation-triangle me-2' }),
+                    React.createElement('strong', null, 'Network Change: '),
+                    `This will change your wallet's network from ${walletState.network} to ${selectedNetwork}. You will need to logout and login again for the change to take effect.`
+                  ),
+                  React.createElement('button', {
+                    type: 'submit',
+                    className: 'btn btn-primary',
+                    disabled: selectedNetwork === walletState.network || isChangingNetwork
+                  },
+                    isChangingNetwork ? React.createElement('span', null,
+                      React.createElement('span', { className: 'spinner-border spinner-border-sm me-2' }),
+                      'Changing Network...'
+                    ) : React.createElement('span', null,
+                      React.createElement('i', { className: 'bi bi-arrow-repeat me-2' }),
+                      'Change Network'
+                    )
+                  )
+                )
+              )
+            ),
+
             // Change Password
             React.createElement('div', { className: 'card mb-4' },
               React.createElement('div', { className: 'card-header' },
@@ -643,7 +756,7 @@ export function WalletSettings({ walletState, onNavigate, addNotification, onGen
                       placeholder: '0 = No timeout (current behavior)'
                     }),
                     React.createElement('div', { className: 'form-text' },
-                      sessionSettings.timeoutMinutes === 0 ? 
+                      sessionSettings.timeoutMinutes === 0 ?
                         'You will be logged out when you refresh the page (current behavior)' :
                         `You will stay logged in for ${sessionSettings.timeoutMinutes} minutes after page refresh`
                     )

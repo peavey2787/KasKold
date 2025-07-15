@@ -1,3 +1,7 @@
+// Preload wallet manager for offline functionality
+import { getHDWallet, getSingleWallet } from '../../kaspa/js/wallet-manager.js';
+import { LoadingMessageManager } from '../utils/loading-messages.js';
+
 const { useState, useEffect } = React;
 
 export function WalletDashboard({ walletState, onNavigate, addNotification, onGenerateNewAddress, onUpdateBalance, onMarkAddressUsed, onEnsureCleanReceiveAddress, cachedUTXOs, onCacheUTXOs, onClearCachedUTXOs }) {
@@ -30,6 +34,8 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
   const [continuousScanTimeoutId, setContinuousScanTimeoutId] = useState(null);
   const [isCheckingBalance, setIsCheckingBalance] = useState(false);
   const [isLoadingUTXOs, setIsLoadingUTXOs] = useState(false);
+  const [discoveryMessage, setDiscoveryMessage] = useState('Discovering addresses...');
+  const [discoveryMessageManager, setDiscoveryMessageManager] = useState(null);
 
   // Add missing state variables
   const [selectedNetwork, setSelectedNetwork] = useState(walletState.network || 'mainnet');
@@ -47,27 +53,60 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
 
     setIsCheckingBalance(true);
     try {
-      if (walletState.isHDWallet && walletState.hdWallet) {
+      // 🔍 CRITICAL FIX: Enhanced HD wallet detection
+      const shouldUseHDWallet = (walletState.isHDWallet && walletState.hdWallet) ||
+                               (walletState.mnemonic && !walletState.hdWallet);
+
+      if (shouldUseHDWallet) {
         // For HD wallets, use the HD wallet discovery which is more comprehensive
-        await performHDWalletAddressDiscovery();
+
+        // If we have mnemonic but no hdWallet instance, create one
+        if (walletState.mnemonic && !walletState.hdWallet) {
+
+          const hdWallet = getHDWallet(
+            walletState.mnemonic,
+            walletState.network,
+            walletState.derivationPath || "m/44'/111111'/0'"
+          );
+          await hdWallet.initialize();
+
+          // Update wallet state with the HD wallet instance
+          setWalletState(prev => ({
+            ...prev,
+            hdWallet: hdWallet,
+            isHDWallet: true,
+            allAddresses: hdWallet.getAllAddresses()
+          }));
+
+          // Use the newly created HD wallet for balance checking
+          const balanceResult = await hdWallet.checkHDWalletBalance();
+
+          if (balanceResult.success) {
+            setBalance(balanceResult.totalBalanceSompi);
+            setLastBalanceCheck(new Date());
+            // Removed automatic balance notification - user doesn't need to see this
+          } else {
+            addNotification('Failed to check HD wallet balance: ' + balanceResult.error, 'error');
+          }
+        } else {
+          await performHDWalletAddressDiscovery();
+        }
       } else {
         // For single address wallets - use unified wallet manager
-        const { getSingleWallet } = await import('../../kaspa/js/wallet-manager.js');
-        
         const unifiedWallet = getSingleWallet(walletState.address, walletState.network);
         await unifiedWallet.initialize();
-        
+
         const balanceResult = await unifiedWallet.checkSingleAddressBalance(walletState.address);
 
         if (balanceResult.success) {
           setBalance(balanceResult.balance);
           setLastBalanceCheck(new Date());
-          
+
           // Use standardized balance result
           const { balanceManager } = await import('../../kaspa/js/balance-manager.js');
           const standardizedResult = balanceManager.standardizeBalanceResult(balanceResult);
-          
-          addNotification(`Balance: ${standardizedResult.balanceKas} KAS`, 'success');
+
+          // Removed automatic balance notification - user doesn't need to see this
         } else {
           addNotification('Failed to check balance: ' + balanceResult.error, 'error');
         }
@@ -86,26 +125,43 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
     }
   };
 
+  // Start rotating discovery messages
+  const startDiscoveryMessages = () => {
+    const manager = new LoadingMessageManager();
+    manager.start((message) => {
+      setDiscoveryMessage(message);
+    });
+    setDiscoveryMessageManager(manager);
+  };
+
+  // Stop rotating discovery messages
+  const stopDiscoveryMessages = () => {
+    if (discoveryMessageManager) {
+      discoveryMessageManager.stop();
+      setDiscoveryMessageManager(null);
+    }
+    setDiscoveryMessage('Discovering addresses...');
+  };
+
   // HD wallet balance refresh using optimized Kaspa WASM built-in functions
   const performHDWalletAddressDiscovery = async () => {
     setIsDiscovering(true);
-    addNotification('Refreshing HD wallet balance...', 'info');
-    
+    startDiscoveryMessages();
+    // Removed balance refresh notification - user doesn't need to see this
+
     try {
       // Use the unified wallet manager with mnemonic-based scanning (NOT xpub)
-      const { getHDWallet } = await import('../../kaspa/js/wallet-manager.js');
-      
       const unifiedWallet = getHDWallet(
         walletState.hdWallet.mnemonic,
         walletState.network,
         walletState.hdWallet.derivationPath
       );
-      
+
       await unifiedWallet.initialize();
-      
+
       // Use optimized mnemonic-based balance checking
       const balanceResult = await unifiedWallet.checkHDWalletBalance();
-      
+
       if (!balanceResult.success) {
         throw new Error(balanceResult.error);
       }
@@ -114,8 +170,17 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       for (const addressInfo of balanceResult.addressesWithBalance) {
         if (onUpdateBalance && onMarkAddressUsed) {
           onUpdateBalance(addressInfo.address, addressInfo.balanceSompi, addressInfo.utxos);
-        onMarkAddressUsed(addressInfo.address);
-      }
+          onMarkAddressUsed(addressInfo.address);
+        }
+
+        // CRITICAL: Also update the main wallet state HD wallet instance
+        // This ensures transaction creation uses the same balance information
+        if (walletState.hdWallet) {
+          walletState.hdWallet.updateAddressBalance(addressInfo.address, addressInfo.balanceSompi, addressInfo.utxos || []);
+          if (addressInfo.balanceSompi > 0n) {
+            walletState.hdWallet.markAddressAsUsed(addressInfo.address);
+          }
+        }
       }
       
       // Update UI with total balance
@@ -134,12 +199,14 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
           totalBalanceSompi: balanceResult.totalBalanceSompi
         });
         
-        addNotification(
-          `Found balance across ${balanceResult.addressesFound} addresses: ${standardizedResult.balanceKas} KAS`, 
-          'success'
-        );
+        // Removed automatic balance discovery notification - user doesn't need to see this
       } else {
         addNotification('No addresses with balance found in HD wallet', 'info');
+      }
+
+      // Debug: Verify HD wallet balance synchronization
+      if (walletState.hdWallet) {
+        const syncedAddresses = walletState.hdWallet.getAllAddresses().filter(addr => addr.balance > 0n);
       }
 
       // Ensure current receive address has no UTXOs (critical security check)
@@ -148,10 +215,10 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       }
 
     } catch (error) {
-      console.error('HD wallet balance refresh failed:', error);
-      addNotification('Failed to refresh HD wallet balance: ' + error.message, 'error');
+      
     } finally {
       setIsDiscovering(false);
+      stopDiscoveryMessages();
     }
   };
 
@@ -167,13 +234,11 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
           const autoDiscoveryEnabled = getAutoDiscoveryEnabled();
           
           if (!autoDiscoveryEnabled) {
-            console.log('Auto-discovery disabled, skipping balance check');
             return;
           }
 
           // For HD wallets, always perform fresh discovery instead of using cached balance
           if (walletState.isHDWallet && walletState.hdWallet) {
-            console.log('🔍 HD WALLET: Starting fresh balance discovery (ignoring any cached balance)');
             performHDWalletAddressDiscovery();
           } else {
             checkBalance();
@@ -228,26 +293,9 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
   // Sync selectedNetwork with wallet network
   useEffect(() => {
     if (walletState.network && walletState.network !== selectedNetwork) {
-      console.log('🔍 Syncing selectedNetwork from', selectedNetwork, 'to', walletState.network);
       setSelectedNetwork(walletState.network);
     }
   }, [walletState.network, selectedNetwork]);
-
-  // Debug showUTXOQR state changes
-  useEffect(() => {
-    console.log('🔍 showUTXOQR state changed:', showUTXOQR);
-    if (showUTXOQR) {
-      console.log('🔍 UTXO modal should be visible now!');
-      console.log('🔍 All modal states:', {
-        showUTXOQR,
-        showAddressQR,
-        showUTXOImport,
-        showCustomAddressPrompt,
-        utxoQRCodes: !!utxoQRCodes,
-        cachedUTXOs: !!cachedUTXOs
-      });
-    }
-  }, [showUTXOQR, showAddressQR, showUTXOImport, showCustomAddressPrompt, utxoQRCodes, cachedUTXOs]);
 
   // Display multi-part QR codes when loaded
   useEffect(() => {
@@ -263,6 +311,15 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       }
     }
   }, [utxoQRCodes, showUTXOQR]);
+
+  // Cleanup discovery message manager on unmount
+  useEffect(() => {
+    return () => {
+      if (discoveryMessageManager) {
+        discoveryMessageManager.stop();
+      }
+    };
+  }, [discoveryMessageManager]);
 
   const formatBalance = (balanceObj) => {
     if (!balanceObj) return '0.00000000';
@@ -317,8 +374,7 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
     }
 
     try {
-      // Use cache-busting parameter to ensure fresh import
-      const { generateQRCode } = await import(`../../kaspa/js/qr-manager.js?v=${Date.now()}`);
+      const { generateQRCode } = await import('../../kaspa/js/qr-manager.js');
       
       const qrResult = await generateQRCode(walletState.address, {
         width: 300,
@@ -383,8 +439,7 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
         timestamp: Date.now()
       };
 
-      // Use cache-busting parameter to ensure fresh import
-      const { generateQRCode } = await import(`../../kaspa/js/qr-manager.js?v=${Date.now()}`);
+      const { generateQRCode } = await import('../../kaspa/js/qr-manager.js');
       
       const qrResult = await generateQRCode(JSON.stringify(xpubData), {
         width: 300,
@@ -478,11 +533,11 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       return;
     }
 
-    // Close any open modals and show toast notification
+    // Close any open modals
     setShowCustomAddressPrompt(false);
     setShowUTXOImport(false);
     setIsDiscovering(true);
-    addNotification('UTXO scanning started. This may take a moment...', 'info');
+    // Removed UTXO scanning notification - user doesn't need to see this technical detail
     
     try {
       const { fetchUTXOsForAddress, fetchUTXOsForAddresses } = await import('../../kaspa/js/address-scanner.js');
@@ -492,7 +547,6 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       
       if (customAddress) {
         // Use the custom address provided
-        console.log('Fetching UTXOs for custom address:', customAddress);
         allAddresses = [customAddress];
         utxoResult = await fetchUTXOsForAddress(customAddress, walletState.network);
       } else if (walletState.isHDWallet && walletState.hdWallet) {
@@ -501,35 +555,26 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
           .filter(addr => addr.balance > 0n)
           .map(addr => addr.address);
         
-        console.log('HD Wallet addresses with balance:', addressesWithBalance);
-        
         if (addressesWithBalance.length > 0) {
           allAddresses = addressesWithBalance;
           utxoResult = await fetchUTXOsForAddresses(allAddresses, walletState.network);
         } else {
           // Fallback to current address if no addresses with balance found
-          console.log('No HD addresses with balance, using current address:', walletState.address);
           allAddresses = [walletState.address];
           utxoResult = await fetchUTXOsForAddress(walletState.address, walletState.network);
         }
       } else {
         // For single address wallets
-        console.log('Single address wallet, using:', walletState.address);
         allAddresses = [walletState.address];
         utxoResult = await fetchUTXOsForAddress(walletState.address, walletState.network);
       }
-      
-      console.log('UTXO fetch result:', utxoResult);
       
       if (!utxoResult.success) {
         addNotification('Failed to fetch UTXOs: ' + utxoResult.error, 'error');
         return;
       }
       
-      console.log('UTXOs found:', utxoResult.utxos?.length || 0);
-      
       if (!utxoResult.utxos || utxoResult.utxos.length === 0) {
-        console.log('🔍 No UTXOs found, but creating empty UTXO data structure for modal');
         
         // Still create UTXO data structure and show modal, even with 0 UTXOs
         const emptyUtxoData = {
@@ -539,17 +584,13 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
           timestamp: Date.now(),
           count: 0
         };
-        
-        console.log('🔍 Caching empty UTXOs...');
         onCacheUTXOs(emptyUtxoData);
         setLastUTXOFetch(new Date());
         
         // Generate QR codes even for empty data (will show the structure)
-        console.log('🔍 Generating QR codes for empty data...');
         await generateUTXOQRCodes(emptyUtxoData);
         
         // Show QR codes modal
-        console.log('🔍 Setting showUTXOQR to true for empty data...');
         setShowUTXOQR(true);
         
         addNotification(`Address has balance but no available UTXOs found. UTXOs may have been spent or are not confirmed yet. Empty UTXO data generated for reference.`, 'info');
@@ -574,13 +615,14 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       // Show QR codes
       setShowUTXOQR(true);
       
-      addNotification(`Successfully fetched ${utxoData.count} UTXOs`, 'success');
+      addNotification(`Successfully found ${utxoData.count} UTXOs`, 'success');
       
     } catch (error) {
       console.error('Error fetching UTXOs:', error);
       addNotification('Error fetching UTXOs: ' + error.message, 'error');
     } finally {
       setIsDiscovering(false);
+      stopDiscoveryMessages();
     }
   };
 
@@ -631,36 +673,62 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
 
   // Generate QR codes for UTXO data
   const generateUTXOQRCodes = async (utxoData) => {
-    console.log('🔍 generateUTXOQRCodes called with utxoData:', utxoData);
-    
+
     try {
       const { generateMultiPartQR } = await import('../../kaspa/js/qr-manager.js');
-      
-      // Create UTXO QR data structure
+      const { serializeWasmObject } = await import('../../kaspa/js/serialization-utils.js');
+
+      // Serialize WASM UTXOs to proper JavaScript objects
+      const serializedUtxos = [];
+      for (let i = 0; i < utxoData.utxos.length; i++) {
+        const utxo = utxoData.utxos[i];
+
+        if (utxo.__wbg_ptr) {
+          // This is a WASM object, serialize it properly
+          try {
+            const serializedUtxo = serializeWasmObject(utxo);
+            serializedUtxos.push(serializedUtxo);
+          } catch (serializeError) {
+            console.error(`❌ Failed to serialize UTXO ${i}:`, serializeError);
+            // Try manual extraction for UTXOs
+            const manualUtxo = {
+              amount: utxo.amount || 0n,
+              address: utxo.address?.toString() || null,
+              outpoint: utxo.outpoint ? {
+                transactionId: utxo.outpoint.transactionId || utxo.outpoint.transaction_id,
+                index: utxo.outpoint.index
+              } : null,
+              scriptPublicKey: utxo.scriptPublicKey,
+              blockDaaScore: utxo.blockDaaScore || 0n,
+              isCoinbase: utxo.isCoinbase || false
+            };
+            serializedUtxos.push(manualUtxo);
+          }
+        } else {
+          // Already a plain JavaScript object
+          serializedUtxos.push(utxo);
+        }
+      }
+
+      // Create UTXO QR data structure with properly serialized UTXOs
       const qrData = {
         type: 'kaspa-utxo-data',
         version: '1.0',
         addresses: utxoData.addresses,
-        utxos: utxoData.utxos,
+        utxos: serializedUtxos,
         networkType: utxoData.networkType,
         timestamp: utxoData.timestamp,
-        count: utxoData.count,
+        count: serializedUtxos.length,
         dataId: `utxo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       };
-      
-      console.log('🔍 Created QR data structure:', qrData);
-      
+
       // Convert BigInt values to strings for JSON serialization
       const serializedQrData = convertBigIntToString(qrData);
-      console.log('🔍 Serialized QR data for JSON:', serializedQrData);
       
       // Generate multi-part QR codes (UTXOs can be large) - use 'utxo-data' as baseType
-      console.log('🔍 Calling generateMultiPartQR...');
       const qrResult = await generateMultiPartQR(serializedQrData, 'utxo-data');
-      console.log('🔍 QR generation result:', qrResult);
       
       if (qrResult.success) {
-        console.log('🔍 Setting utxoQRCodes state...');
         setUtxoQRCodes(qrResult);
       } else {
         console.error('❌ Failed to generate UTXO QR codes:', qrResult.error);
@@ -741,9 +809,8 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
         
         // Extract just the addresses for UTXO fetching
         const addresses = addressObjects.map(addr => addr.address);
-        console.log('🔍 handleCustomAddressFetch: Found addresses with balance, calling fetchUTXOsForMultipleAddresses with:', addresses);
         await fetchUTXOsForMultipleAddresses(addresses);
-        addNotification(`Successfully fetched UTXOs from ${addressObjects.length} addresses`, 'success');
+        addNotification(`Successfully found UTXOs from ${addressObjects.length} addresses`, 'success');
         return;
       }
       
@@ -817,10 +884,9 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
           });
           
           // Extract just the addresses for UTXO fetching
-          const addresses = addressObjects.map(addr => addr.address);
-          console.log('🔍 handleNextAddressRange: Found addresses with balance, calling fetchUTXOsForMultipleAddresses with:', addresses);
+          const addresses = addressObjects.map(addr => addr.address);          
           await fetchUTXOsForMultipleAddresses(addresses);
-          addNotification(`Successfully fetched UTXOs from ${addressObjects.length} addresses`, 'success');
+          addNotification(`Successfully found UTXOs from ${addressObjects.length} addresses`, 'success');
         } catch (error) {
           console.error('Error processing next range:', error);
           setIsProcessingExtendedKey(false);
@@ -937,38 +1003,32 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
 
   // Derive addresses from extended public key using the new address scanner
   const deriveAddressesFromXpub = async (xpub, derivationPath = null, customGapLimit = null, customStartIndex = null, progressCallback = null) => {
-    console.log('Deriving addresses from xpub:', xpub);
-    
+        
     // Use proper derivation path from constants if not provided
     if (!derivationPath) {
       const { DEFAULT_ACCOUNT_PATH } = await import('../../kaspa/js/constants.js');
       derivationPath = DEFAULT_ACCOUNT_PATH;
     }
     
-    console.log('Using derivation path:', derivationPath);
-    console.log('Network type for balance checks:', walletState.network);
-
     try {
       // Import the new address scanner
       const { addressScanner } = await import('../../kaspa/js/address-scanner.js');
 
       // Try HDWallet approach first if available
       if (walletState.isHDWallet && walletState.hdWallet && !customGapLimit && !customStartIndex) {
-        console.log('Trying HDWallet approach...');
+        
         try {
           const hdWallet = walletState.hdWallet;
-          console.log('HDWallet available, checking for addresses...');
-          
+                  
           const addresses = hdWallet.getAllAddresses()
             .filter(addr => addr.balance > 0n)
             .map(addr => addr.address);
           
-          if (addresses.length > 0) {
-            console.log('Found addresses with balances in HDWallet:', addresses);
+          if (addresses.length > 0) {        
             return addresses;
           }
-        } catch (hdError) {
-          console.log('HDWallet approach failed:', hdError.message);
+        } catch (hdError) {   
+          console.error('HD wallet address fetching failed:', hdError);       
         }
       }
 
@@ -1012,7 +1072,6 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
 
   // Fetch UTXOs for multiple addresses using the new address scanner
   const fetchUTXOsForMultipleAddresses = async (addresses) => {
-    console.log('🔍 fetchUTXOsForMultipleAddresses called with addresses:', addresses);
     
     if (!addresses || addresses.length === 0) {
       throw new Error('No addresses provided');
@@ -1021,18 +1080,14 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
     setIsLoadingUTXOs(true);
     
     try {
-      const { addressScanner } = await import('../../kaspa/js/address-scanner.js');
-      
-      console.log('🔍 Calling addressScanner.fetchUTXOsForAddresses...');
+      const { addressScanner } = await import('../../kaspa/js/address-scanner.js');      
       const utxoResult = await addressScanner.fetchUTXOsForAddresses(addresses, walletState.network);
-      console.log('🔍 UTXO result:', utxoResult);
       
       if (!utxoResult.success) {
         throw new Error(utxoResult.error);
       }
       
       if (!utxoResult.utxos || utxoResult.utxos.length === 0) {
-        console.log('🔍 No UTXOs found, but creating empty UTXO data structure for modal');
         
         // Still create UTXO data structure and show modal, even with 0 UTXOs
         const emptyUtxoData = {
@@ -1042,25 +1097,25 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
           timestamp: Date.now(),
           count: 0
         };
-        
-        console.log('🔍 Caching empty UTXOs...');
+
         onCacheUTXOs(emptyUtxoData);
         setLastUTXOFetch(new Date());
         
         // Generate QR codes even for empty data (will show the structure)
-        console.log('🔍 Generating QR codes for empty data...');
         await generateUTXOQRCodes(emptyUtxoData);
         
         // Show QR codes modal
-        console.log('🔍 Setting showUTXOQR to true for empty data...');
         setShowUTXOQR(true);
         
         addNotification(`Address has balance but no available UTXOs found. UTXOs may have been spent or are not confirmed yet. Empty UTXO data generated for reference.`, 'info');
         return;
       }
-      
-      console.log('🔍 UTXOs found:', utxoResult.utxos.length);
-      
+
+      // Check UTXO structure from fetch
+      if (utxoResult.utxos.length > 0) {
+        const firstUtxo = utxoResult.utxos[0];
+      }
+
       // Cache the UTXOs
       const utxoData = {
         utxos: utxoResult.utxos,
@@ -1070,19 +1125,16 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
         count: utxoResult.count || utxoResult.utxos.length
       };
       
-      console.log('🔍 Caching UTXOs...');
       onCacheUTXOs(utxoData);
       setLastUTXOFetch(new Date());
       
       // Generate QR code(s) for the UTXO data
-      console.log('🔍 Generating QR codes...');
       await generateUTXOQRCodes(utxoData);
       
       // Show QR codes
-      console.log('🔍 Setting showUTXOQR to true...');
       setShowUTXOQR(true);
       
-      addNotification(`Successfully fetched ${utxoData.count} UTXOs from ${addresses.length} addresses`, 'success');
+      addNotification(`Successfully found ${utxoData.count} UTXOs from ${addresses.length} addresses`, 'success');
       
     } catch (error) {
       console.error('❌ Error fetching UTXOs for multiple addresses:', error);
@@ -1183,13 +1235,19 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       // Single QR code processing
       const file = files[0];
       const { readQRFromImage } = await import('../../kaspa/js/qr-manager.js');
-      
+
       const qrResult = await readQRFromImage(file);
-      
+
       if (!qrResult.success) {
         throw new Error(qrResult.error || 'Failed to read QR code');
       }
-      
+
+      // Check if this is a multi-part QR that needs other parts
+      if (qrResult.qrData && qrResult.qrData.type && qrResult.qrData.type.includes('-multipart-qr')) {
+        const partInfo = qrResult.qrData;
+        throw new Error(`This is part ${partInfo.part} of ${partInfo.totalParts} QR codes. Please upload all ${partInfo.totalParts} QR code images together to import the complete UTXO data.`);
+      }
+
       // Use the qrData from the result
       await handleUTXOImport(qrResult.qrData);
       setShowUTXOImport(false);
@@ -1220,7 +1278,7 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       }
       
       // Convert string values back to BigInt where needed (UTXO-specific fields)
-      const processedQrData = convertStringToBigInt(qrData, ['amount', 'fee', 'value', 'satoshis', 'balance']);
+      const processedQrData = convertStringToBigInt(qrData, ['amount', 'fee', 'value', 'satoshis', 'balance', 'blockDaaScore']);
       
       // Cache the imported UTXOs
       const utxoData = {
@@ -1234,8 +1292,53 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       
       onCacheUTXOs(utxoData);
       setLastUTXOFetch(new Date(utxoData.timestamp));
-      
-      addNotification(`Successfully imported ${utxoData.count} UTXOs from QR code`, 'success');
+
+      // Calculate and update balance from imported UTXOs
+      try {
+
+        // Check UTXO structure and manually calculate balance
+        let manualBalance = 0n;
+        if (utxoData.utxos.length > 0) {
+          const firstUtxo = utxoData.utxos[0];
+          // Manual balance calculation to debug
+          utxoData.utxos.forEach((utxo, index) => {
+            const amount = utxo.amount || utxo.value || 0;
+            if (amount) {
+              try {
+                const bigIntAmount = BigInt(amount);
+                manualBalance += bigIntAmount;
+              } catch (e) {
+                console.error(`🔍 DEBUG: Failed to convert UTXO ${index} amount to BigInt:`, e);
+              }
+            }
+          });
+
+          // Convert to KAS for display
+          try {
+            const { sompiToKas } = await import('../../kaspa/js/currency-utils.js');
+            const manualBalanceKas = sompiToKas(manualBalance);
+          } catch (e) {
+            console.error('🔍 DEBUG: Failed to convert manual balance to KAS:', e);
+          }
+        }
+
+        const { calculateBalanceFromUTXOs } = await import('../../kaspa/js/balance-manager.js');
+        const balanceResult = calculateBalanceFromUTXOs(utxoData.utxos);
+
+        if (balanceResult.success) {
+          setBalance({
+            kas: balanceResult.totalBalanceKas,
+            sompi: balanceResult.totalBalanceSompi
+          });
+          setLastBalanceCheck(new Date());
+          addNotification(`Successfully imported ${utxoData.count} UTXOs`, 'success');
+        } else {
+          addNotification(`Successfully imported ${utxoData.count} UTXOs`, 'success');
+        }
+      } catch (balanceError) {
+        console.error('Error calculating balance from imported UTXOs:', balanceError);
+        addNotification(`Successfully imported ${utxoData.count} UTXOs from QR code`, 'success');
+      }
       
     } catch (error) {
       console.error('Error importing UTXOs:', error);
@@ -1331,7 +1434,7 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       }
       
       // Convert string values back to BigInt where needed
-      const processedData = convertStringToBigInt(jsonData, ['amount', 'fee', 'value', 'satoshis', 'balance']);
+      const processedData = convertStringToBigInt(jsonData, ['amount', 'fee', 'value', 'satoshis', 'balance', 'blockDaaScore']);
       
       // Cache the imported UTXOs
       const utxoData = {
@@ -1347,8 +1450,26 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       onCacheUTXOs(utxoData);
       setLastUTXOFetch(new Date(utxoData.timestamp));
       setShowUTXOImport(false);
-      
-      addNotification(`Successfully imported ${utxoData.count} UTXOs from JSON file`, 'success');
+
+      // Calculate and update balance from imported UTXOs
+      try {
+        const { calculateBalanceFromUTXOs } = await import('../../kaspa/js/balance-manager.js');
+        const balanceResult = calculateBalanceFromUTXOs(utxoData.utxos);
+
+        if (balanceResult.success) {
+          setBalance({
+            kas: balanceResult.totalBalanceKas,
+            sompi: balanceResult.totalBalanceSompi
+          });
+          setLastBalanceCheck(new Date());
+          addNotification(`Successfully imported ${utxoData.count} UTXOs. Balance: ${balanceResult.totalBalanceKas} KAS`, 'success');
+        } else {
+          addNotification(`Successfully imported ${utxoData.count} UTXOs from JSON file`, 'success');
+        }
+      } catch (balanceError) {
+        console.error('Error calculating balance from imported UTXOs:', balanceError);
+        addNotification(`Successfully imported ${utxoData.count} UTXOs from JSON file`, 'success');
+      }
       
     } catch (error) {
       console.error('Error importing UTXOs from JSON:', error);
@@ -1637,8 +1758,18 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
               ),
               React.createElement('div', { className: 'col-md-4 text-md-end' },
                 React.createElement('h6', { className: 'mb-2' }, 'Balance:'),
-                React.createElement('div', { className: 'balance-amount mb-3' }, 
-                  formatBalance(balance), ' KAS'
+                React.createElement('div', { className: 'balance-amount mb-3' },
+                  (isCheckingBalance || isDiscovering) && !balance ?
+                    React.createElement('span', { className: 'text-muted d-flex align-items-center' },
+                      React.createElement('span', {
+                        className: 'spinner-border spinner-border-sm me-2',
+                        style: { width: '0.8rem', height: '0.8rem' }
+                      }),
+                      React.createElement('span', null,
+                        isDiscovering ? discoveryMessage : 'Loading balance...'
+                      )
+                    ) :
+                    React.createElement('span', null, formatBalance(balance), ' KAS')
                 ),
                 React.createElement('div', { className: 'd-flex gap-2 justify-content-end' },
                   React.createElement('button', {
@@ -1809,9 +1940,6 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
       style: { display: 'block', backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 9999 },
       onClick: closeUTXOQR,
       ref: (el) => {
-        if (el) {
-          console.log('🔍 UTXO modal DOM element created:', el);
-        }
       }
     },
       React.createElement('div', {
@@ -1903,12 +2031,35 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
                React.createElement('button', {
                  type: 'button',
                  className: 'btn btn-outline-success',
-                 onClick: () => {
-                   if (utxoQRCodes && utxoQRCodes.qrDataURL) {
-                     const link = document.createElement('a');
-                     link.href = utxoQRCodes.qrDataURL;
-                     link.download = `utxos_${Date.now()}.png`;
-                     link.click();
+                 onClick: async () => {
+                   if (!utxoQRCodes) {
+                     addNotification('No QR codes available to download', 'error');
+                     return;
+                   }
+
+                   try {
+                     const { downloadQRImage } = await import('../../kaspa/js/qr-manager.js');
+                     const timestamp = Date.now();
+
+                     if (utxoQRCodes.isMultiPart && utxoQRCodes.qrParts) {
+                       // Download all parts of multi-part QR
+                       for (let i = 0; i < utxoQRCodes.qrParts.length; i++) {
+                         const part = utxoQRCodes.qrParts[i];
+                         const filename = `utxos_${timestamp}_part${part.part}of${part.totalParts}.png`;
+                         downloadQRImage(part.qrDataURL, filename);
+                       }
+                       addNotification(`Downloaded ${utxoQRCodes.qrParts.length} UTXO QR code parts`, 'success');
+                     } else if (utxoQRCodes.qrDataURL) {
+                       // Download single QR
+                       const filename = `utxos_${timestamp}.png`;
+                       downloadQRImage(utxoQRCodes.qrDataURL, filename);
+                       addNotification('UTXO QR code downloaded successfully', 'success');
+                     } else {
+                       addNotification('No QR code data available to download', 'error');
+                     }
+                   } catch (error) {
+                     console.error('Error downloading UTXO QR codes:', error);
+                     addNotification('Failed to download QR codes: ' + error.message, 'error');
                    }
                  }
                },
@@ -2143,8 +2294,8 @@ export function WalletDashboard({ walletState, onNavigate, addNotification, onGe
                   onClick: () => document.getElementById('address-qr-file-input').click(),
                   title: 'Upload QR code image'
                 },
-                  React.createElement('i', { className: 'bi bi-upload me-1' }),
-                  React.createElement('span', { className: 'small' }, '📤')
+                  React.createElement('i', { className: 'bi bi-upload me-2' }),
+                  'Upload'
                 ),
                 React.createElement('input', {
                   id: 'address-qr-file-input',

@@ -1,16 +1,23 @@
 const { useState, useEffect, useRef } = React;
 
 // Import transaction constants
-import { 
-  DEFAULT_TRANSACTION_AMOUNT, 
-  MIN_TRANSACTION_AMOUNT, 
-  MAX_TRANSACTION_AMOUNT,
+import {
+  DEFAULT_TRANSACTION_AMOUNT,
+  MIN_TRANSACTION_AMOUNT,
   MAX_UTXOS_PER_TRANSACTION,
-  UTXO_CONSOLIDATION_THRESHOLD 
+  UTXO_CONSOLIDATION_THRESHOLD
 } from '../../kaspa/js/constants.js';
+import { useLoadingMessages } from '../utils/loading-messages.js';
 
 // Import centralized serialization utilities
 import { convertBigIntToString, convertStringToBigInt, serializeWasmObject } from '../../kaspa/js/serialization-utils.js';
+
+// Import offline transaction creation for offline compatibility
+import { createOfflineTransaction, validateCachedUTXOs } from '../../kaspa/js/transaction-create-offline.js';
+
+// Import address lookup and validation for offline compatibility
+import { isKasDomain, resolveDomain } from '../../kaspa/js/address-lookup.js';
+import { getKaspa, isInitialized, setupTransactionEventHandlers } from '../../kaspa/js/init.js';
 
 export function TransactionManager({ walletState, onNavigate, addNotification, onGenerateChangeAddress, onGenerateNewAddress, onMarkAddressUsed, cachedUTXOs, onClearCachedUTXOs, navigationData }) {
   const [amount, setAmount] = useState(DEFAULT_TRANSACTION_AMOUNT.toString());
@@ -31,9 +38,15 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
   const [isScanning, setIsScanning] = useState(false);
   const [multiPartQRs, setMultiPartQRs] = useState([]);
   const [useOfflineMode, setUseOfflineMode] = useState(false);
+  const [isActuallyOffline, setIsActuallyOffline] = useState(!navigator.onLine);
   const transactionHandlersSetup = useRef(false);
   const fileInputRef = useRef();
   const qrInputRef = useRef();
+
+  // Loading messages for transaction operations
+  const creatingMessage = useLoadingMessages(isCreating, 'Creating Transaction...');
+  const signingMessage = useLoadingMessages(isSigning, 'Signing Transaction...');
+  const submittingMessage = useLoadingMessages(isSubmitting, 'Submitting Transaction...');
 
   // Error boundary-like error handling
   useEffect(() => {
@@ -59,6 +72,28 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
     }
   }, []);
 
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsActuallyOffline(false);
+    };
+
+    const handleOffline = () => {
+      setIsActuallyOffline(true);
+      addNotification('You are now offline. Offline mode will be automatically enabled.', 'warning');
+    };
+
+    // Add event listeners
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [addNotification]);
+
   // Handle pre-filled data from navigation
   useEffect(() => {
     if (navigationData && navigationData.type === 'compound-utxos') {
@@ -77,7 +112,6 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
 
   const setupTransactionHandlers = async () => {
     try {
-      const { setupTransactionEventHandlers } = await import('../../kaspa/js/init.js');
       setupTransactionEventHandlers();
     } catch (error) {
       console.error('Failed to set up transaction handlers:', error);
@@ -87,8 +121,6 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
 
   // Handle .kas domain lookup
   const handleDomainLookup = async (input) => {
-    const { isKasDomain, resolveDomain } = await import('../../kaspa/js/address-lookup.js');
-
     if (!isKasDomain(input)) {
       return null;
     }
@@ -100,6 +132,18 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
       const result = await resolveDomain(input, walletState.network);
 
       if (result.success) {
+        // Validate that the resolved address matches the current network
+        const addressValidation = await validateAddressForNetwork(result.address, walletState.network);
+
+        if (!addressValidation.isValid) {
+          setResolvedAddress('');
+          setDomainLookupStatus({
+            type: 'error',
+            message: `❌ ${input} resolves to a different network address. Please use a ${walletState.network} KNS domain or switch networks.`
+          });
+          return null;
+        }
+
         setResolvedAddress(result.address);
         setDomainLookupStatus({
           type: 'success',
@@ -116,9 +160,17 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
       }
     } catch (error) {
       setResolvedAddress('');
+
+      // Check if this is a network error (likely offline)
+      const isNetworkError = error.message.includes('fetch') ||
+                            error.message.includes('network') ||
+                            error.message.includes('unavailable');
+
       setDomainLookupStatus({
         type: 'error',
-        message: '❌ KNS service unavailable. Please enter a valid Kaspa address.'
+        message: isNetworkError ?
+          '❌ KNS service unavailable (offline mode). Please enter a valid Kaspa address.' :
+          '❌ KNS service unavailable. Please enter a valid Kaspa address.'
       });
       return null;
     } finally {
@@ -137,7 +189,6 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
     }
 
     // Check if it's a .kas domain
-    const { isKasDomain } = await import('../../kaspa/js/address-lookup.js');
     if (isKasDomain(value.trim())) {
       await handleDomainLookup(value.trim());
     }
@@ -146,8 +197,6 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
   // Validate address for current network
   const validateAddressForNetwork = async (address, network) => {
     try {
-      const { getKaspa, isInitialized } = await import('../../kaspa/js/init.js');
-      
       if (!isInitialized()) {
         throw new Error('Kaspa WASM not initialized');
       }
@@ -207,10 +256,8 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
       return;
     }
 
-    if (transactionAmount > MAX_TRANSACTION_AMOUNT) {
-      addNotification(`Maximum transaction amount is ${MAX_TRANSACTION_AMOUNT} KAS`, 'error');
-      return;
-    }
+    // Removed arbitrary maximum transaction amount limit
+    // Users should be able to send any amount they have available
 
     if (!walletState.currentWallet) {
       addNotification('No wallet selected', 'error');
@@ -243,8 +290,6 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
           
           if (!changeAddress) {
             addNotification('Warning: Could not generate new change address', 'warning');
-          } else {
-            addNotification('New change address generated for enhanced privacy', 'info');
           }
         } catch (changeAddressError) {
           addNotification('Warning: Failed to generate new change address - trying alternative method', 'warning');
@@ -259,11 +304,9 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
           } catch (fallbackError) {
             // Final fallback to using the main address as change address
             changeAddress = walletState.address;
-            console.log('Using main address as final fallback for change address');
           }
         }
-      } else if (walletState.isHDWallet && !onGenerateChangeAddress) {
-        addNotification('Warning: HD wallet without change address generation capability', 'warning');
+      } else if (walletState.isHDWallet && !onGenerateChangeAddress) {        
         changeAddress = walletState.address;
       } else {
         // For single-address wallets, use the main address (no choice)
@@ -272,9 +315,11 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
 
       let transaction;
       
-      if (useOfflineMode && cachedUTXOs) {
-        // Use offline transaction creation with cached UTXOs
-        const { createOfflineTransaction, validateCachedUTXOs } = await import('../../kaspa/js/transaction-create-offline.js');
+      // Use offline mode only if user is actually offline OR manually enabled offline mode with cached UTXOs
+      const shouldUseOfflineMode = (isActuallyOffline || useOfflineMode) && cachedUTXOs;
+
+      if (shouldUseOfflineMode) {
+        // Use offline transaction creation with cached UTXOs - using static import for offline compatibility
         
         // Validate cached UTXOs first
         const validation = validateCachedUTXOs(cachedUTXOs, currentNetwork);
@@ -305,7 +350,7 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         
         let createTransaction;
         try {
-          const module = await import('../../kaspa/js/transaction-create.js?t=' + Date.now());   
+          const module = await import('../../kaspa/js/transaction-create.js');
           createTransaction = module.createTransaction;
         } catch (importError) {
           console.error('Failed to import transaction-create module:', importError);
@@ -313,18 +358,116 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         }        
         
         try {
-          transaction = await createTransaction(
-            walletState.address,
-            addressValidation.address,
-            parseFloat(amount),
-            currentNetwork,
-            { 
-              changeAddress: changeAddress,
-              hdWallet: walletState.hdWallet
+          // For HD wallets, we need to use the correct approach for multi-address transactions
+          if (walletState.isHDWallet && walletState.hdWallet) {
+
+            // Get all addresses with balance from the HD wallet
+            const allAddresses = walletState.hdWallet.getAllAddresses();
+            const addressesWithBalance = allAddresses.filter(addr => addr.balance > 0n);
+
+            if (addressesWithBalance.length === 0) {
+              // If using offline mode with cached UTXOs, skip HD wallet balance refresh (requires network)
+              if (useOfflineMode && cachedUTXOs) {
+                
+                // Extract addresses from cached UTXOs for offline transaction creation
+                const cachedAddresses = [...new Set(cachedUTXOs.addresses || [])];
+                if (cachedAddresses.length === 0) {
+                  throw new Error('No addresses found in cached UTXOs. Please fetch UTXOs first.');
+                }                
+              } else {
+                // If no addresses have balance in the HD wallet state, try to refresh the balance first
+                
+                try {
+                  // Use the force refresh method which resets and re-checks all balances
+                  const balanceResult = await walletState.hdWallet.forceBalanceRefresh();
+                  if (balanceResult.success && balanceResult.addressesWithBalance.length > 0) {
+                    
+                    // Get the updated addresses with balance
+                    const refreshedAddresses = walletState.hdWallet.getAllAddresses().filter(addr => addr.balance > 0n);
+                    if (refreshedAddresses.length === 0) {
+                      throw new Error('No addresses with balance found even after force refresh. Please check your wallet balance and try again.');
+                    }
+                  } else {
+                    throw new Error('No addresses with balance found in HD wallet. Please refresh your balance and try again.');
+                  }
+                } catch (refreshError) {
+                  console.error('Failed to force refresh HD wallet balance:', refreshError);
+                  throw new Error('No addresses with balance found in HD wallet. Please refresh your balance and try again.');
+                }
+              }
             }
-          );
+
+            // Get the primary address for transaction
+            let primaryFromAddress;
+
+            if (useOfflineMode && cachedUTXOs) {
+              // For offline mode, use the first address from cached UTXOs
+              const cachedAddresses = cachedUTXOs.addresses || [];
+              if (cachedAddresses.length === 0) {
+                throw new Error('No addresses found in cached UTXOs');
+              }
+              primaryFromAddress = cachedAddresses[0];              
+            } else {
+              // Get the current addresses with balance (after potential refresh)
+              const currentAddressesWithBalance = walletState.hdWallet.getAllAddresses().filter(addr => addr.balance > 0n);
+
+              if (currentAddressesWithBalance.length === 0) {
+                throw new Error('No addresses with balance found after refresh');
+              }
+
+              // Use the first address with balance as the primary "from" address
+              // The createTransaction function will handle multi-address UTXOs via the hdWallet option
+              primaryFromAddress = currentAddressesWithBalance[0].address;
+            }
+
+            // Debug: Check HD wallet total balance (skip in offline mode)
+            if (walletState.hdWallet && !useOfflineMode) {
+              try {
+                const hdWalletBalance = await walletState.hdWallet.checkHDWalletBalance();
+              } catch (balanceError) {
+                console.warn('Could not check HD wallet balance:', balanceError);
+              }
+            } 
+
+            transaction = await createTransaction(
+              primaryFromAddress,
+              addressValidation.address,
+              parseFloat(amount),
+              currentNetwork,
+              {
+                changeAddress: changeAddress,
+                hdWallet: walletState.hdWallet
+              }
+            );
+          } else {
+            // For single address wallets, use the current address
+            transaction = await createTransaction(
+              walletState.address,
+              addressValidation.address,
+              parseFloat(amount),
+              currentNetwork,
+              {
+                changeAddress: changeAddress,
+                hdWallet: walletState.hdWallet
+              }
+            );
+          }
         } catch (funcError) {
-          console.error('Error calling createTransaction:', funcError);          
+          console.error('❌ TRANSACTION CREATION FAILED:', {
+            error: funcError.message,
+            stack: funcError.stack,
+            name: funcError.name,
+            isHDWallet: walletState.isHDWallet,
+            walletAddress: walletState.address,
+            amount: amount,
+            network: currentNetwork
+          });
+
+          // If it's an insufficient funds error for HD wallet, provide more helpful message
+          if (funcError.message.includes('Insufficient funds') && walletState.isHDWallet) {
+            throw new Error(`${funcError.message}\n\nFor HD wallets, please ensure you have refreshed your balance to discover all addresses with funds. Try clicking "Check Balance" first.`);
+          }
+
           throw funcError;
         }
         
@@ -376,11 +519,55 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
     try {
 
 
-      const { signTransaction } = await import('../../kaspa/js/transaction-sign.js?t=' + Date.now());
+      const { signTransaction } = await import('../../kaspa/js/transaction-sign.js');
       
       let result;
       
       if (walletState.isHDWallet && walletState.hdWallet) {
+
+        // CRITICAL: For offline signing, we need to ensure the HD wallet has generated enough addresses
+        // to find the private keys for the transaction inputs
+
+        try {
+          const initialReceiveCount = walletState.hdWallet.getAllAddresses().filter(addr => addr.type === 'receive').length;
+          const initialChangeCount = walletState.hdWallet.getAllAddresses().filter(addr => addr.type === 'change').length;
+
+          // Generate up to 100 receive and 50 change addresses to ensure good coverage
+          const targetReceiveCount = Math.max(100, initialReceiveCount);
+          const targetChangeCount = Math.max(50, initialChangeCount);
+
+          for (let i = initialReceiveCount; i < targetReceiveCount; i++) {
+            try {
+              await walletState.hdWallet.generateNextReceiveAddress();
+            } catch (genError) {
+              console.warn(`Failed to generate receive address ${i}:`, genError.message);
+              break;
+            }
+          }
+
+          for (let i = initialChangeCount; i < targetChangeCount; i++) {
+            try {
+              await walletState.hdWallet.generateNextChangeAddress();
+            } catch (genError) {
+              console.warn(`Failed to generate change address ${i}:`, genError.message);
+              break;
+            }
+          }
+
+          const finalReceiveCount = walletState.hdWallet.getAllAddresses().filter(addr => addr.type === 'receive').length;
+          const finalChangeCount = walletState.hdWallet.getAllAddresses().filter(addr => addr.type === 'change').length;
+          
+          // After generating addresses, we need to check their balances to update the HD wallet state
+          // This is crucial for subsequent transaction creation          
+          try {
+            const balanceResult = await walletState.hdWallet.checkHDWalletBalance();
+          } catch (balanceCheckError) {
+            console.warn('Balance check after address generation failed:', balanceCheckError.message);
+          }
+        } catch (addressGenError) {
+          console.warn('Address generation failed, proceeding with existing addresses:', addressGenError.message);
+        }
+
         // Extract input addresses from the transaction data
         let inputAddresses = [];
         
@@ -392,7 +579,6 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         
         // For uploaded transactions, we might need to use current wallet addresses instead
         if (inputAddresses.length === 0 || transactionData.isUploaded) {
-          console.log('🔄 Using current wallet addresses for uploaded/reconstructed transaction');
           const allWalletAddresses = walletState.hdWallet.getAllAddresses();
           
           if (!Array.isArray(allWalletAddresses)) {
@@ -406,39 +592,88 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
           if (addressesWithBalance.length === 0) {
             // If no addresses with balance, use all addresses
             inputAddresses = allWalletAddresses.map(addr => addr.address);
-            console.log('⚠️ No addresses with balance found, using all addresses:', inputAddresses);
           } else {
             inputAddresses = addressesWithBalance;
-            console.log('✅ Using addresses with balance:', inputAddresses);
           }
-        } else {
-          console.log('Using input addresses from transaction:', inputAddresses);
-        }
+        } 
         
         const privateKeys = {};
-        
+
         // Get all addresses with their private keys from HD wallet
         const allAddresses = walletState.hdWallet.getAllAddresses();
-        
+
         if (!Array.isArray(allAddresses)) {
           throw new Error('HD wallet getAllAddresses() did not return an array');
         }
-        
-        console.log('Available addresses in HD wallet:', allAddresses.map(addr => ({ 
-          address: addr.address, 
-          hasPrivateKey: !!addr.privateKey,
-          balance: addr.balance?.toString() || '0'
-        })));
-        
+
+        // For offline signing, we need to derive private keys for addresses that might not be in our current wallet state
+        // This happens when the transaction was created on a different device with the same mnemonic
         for (const address of inputAddresses) {
           try {
-            // Find the address info object that contains the private key
+            // First, try to find the address in our existing addresses
             const addressInfo = allAddresses.find(addr => addr.address === address);
-            
+
             if (addressInfo && addressInfo.privateKey) {
               privateKeys[address] = addressInfo.privateKey;
             } else {
-              console.warn('Could not find private key for address:', address);
+              // Address not found in current wallet state - need to derive it
+
+              // Try to derive the private key for this address using the HD wallet
+              try {
+                const derivedKey = await walletState.hdWallet.derivePrivateKeyForAddress(address);
+                if (derivedKey) {
+                  privateKeys[address] = derivedKey;
+                } else {
+                  console.warn('❌ Could not derive private key for address:', address);
+                }
+              } catch (deriveError) {
+                console.warn('❌ Failed to derive private key for address:', address, deriveError.message);
+
+                // As a last resort, try to generate addresses until we find this one
+                // This is for cases where the transaction uses addresses that haven't been generated yet
+                let found = false;
+                let attempts = 0;
+                const maxAttempts = 200; // Increased limit for better coverage
+
+                // Try both receive and change address generation
+                while (!found && attempts < maxAttempts) {
+                  try {
+                    // Alternate between receive and change addresses
+                    const addressType = attempts % 2 === 0 ? 'receive' : 'change';
+                    let newAddress;
+
+                    if (addressType === 'receive') {
+                      newAddress = await walletState.hdWallet.generateNextReceiveAddress();
+                    } else {
+                      newAddress = await walletState.hdWallet.generateNextChangeAddress();
+                    }
+
+                    if (newAddress.address === address) {
+                      privateKeys[address] = newAddress.privateKey;
+                      found = true;
+                    }
+                    attempts++;
+                  } catch (genError) {
+                    console.warn('Failed to generate address during search:', genError.message);
+                    break;
+                  }
+                }
+
+                if (!found) {
+                  console.warn('❌ Could not find or derive private key for address after', attempts, 'attempts:', address);
+
+                  // Final attempt: Force derive using the comprehensive derivation method
+                  try {
+                    const derivedKey = await walletState.hdWallet.derivePrivateKeyForAddress(address);
+                    if (derivedKey) {
+                      privateKeys[address] = derivedKey;
+                      found = true;
+                    }
+                  } catch (finalError) {
+                    console.error('❌ Final derivation attempt failed:', finalError.message);
+                  }
+                }
+              }
             }
           } catch (error) {
             console.warn('Could not get private key for address:', address, error.message);
@@ -448,7 +683,6 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         // Also add any addresses with private keys that have balance, even if not in inputAddresses
         for (const addressInfo of allAddresses) {
           if (addressInfo.privateKey && addressInfo.balance > 0n && !privateKeys[addressInfo.address]) {
-            console.log('➕ Adding address with balance to available keys:', addressInfo.address);
             privateKeys[addressInfo.address] = addressInfo.privateKey;
           }
         }
@@ -456,44 +690,36 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         // Check if we have any valid private keys
         const validPrivateKeys = Object.keys(privateKeys);
         if (validPrivateKeys.length === 0) {
-          throw new Error('No valid private keys found for transaction signing. Please ensure your HD wallet has addresses with private keys and funds.');
+          console.error('❌ CRITICAL: No private keys found for any input addresses');
+          console.error('📋 Required addresses:', inputAddresses);
+          console.error('🔑 Available addresses in HD wallet:', allAddresses.map(addr => addr.address));
+
+          throw new Error(`No valid private keys found for transaction signing.
+
+Required addresses: ${inputAddresses.join(', ')}
+Available addresses: ${allAddresses.map(addr => addr.address).join(', ')}
+
+This usually happens when:
+1. The transaction was created on a different device with more addresses generated
+2. The HD wallet needs to generate more addresses to find the required ones
+3. The wallet needs to be restored with the same mnemonic
+
+Please ensure both devices use the same mnemonic and try refreshing the balance first.`);
         }
-        
-        console.log(`Found private keys for ${validPrivateKeys.length} addresses:`, validPrivateKeys);
         
         // Add diagnostic check for uploaded transactions
         if (transactionData.isUploaded) {
-          console.log('🔍 DIAGNOSTIC: Checking wallet status for uploaded transaction signing...');
-          
-          // Check each address for UTXOs via wallet state
-          for (const address of validPrivateKeys) {
-            const addressInfo = allAddresses.find(addr => addr.address === address);
-            if (addressInfo) {
-              console.log(`📊 Address ${address}:`, {
-                balance: addressInfo.balance?.toString() || '0',
-                hasPrivateKey: !!addressInfo.privateKey,
-                utxoCount: addressInfo.utxos?.length || 0
-              });
-            }
-          }
-          
+                    
           // Check if we have cached UTXOs available
-          if (cachedUTXOs) {
-            console.log('💾 Cached UTXOs available:', {
-              count: cachedUTXOs.count,
-              timestamp: new Date(cachedUTXOs.timestamp).toLocaleString(),
-              addresses: (cachedUTXOs.utxos && Array.isArray(cachedUTXOs.utxos)) ? [...new Set(cachedUTXOs.utxos.map(u => u.address))] : []
-            });
-          } else {
-            console.log('❌ No cached UTXOs available - this may cause network lookup');
+          if (!cachedUTXOs) {
+            console.error('❌ No cached UTXOs available - this may cause network lookup');
           }
           
-          addNotification('Signing uploaded transaction - checking for available UTXOs...', 'info');
+
         }
         
         // Check if this is an uploaded transaction that needs special handling
         if (transactionData.isUploaded && transactionData.serializedPendingTransaction) {
-          console.log('🔄 Signing uploaded transaction with serialized pending transaction data');
           
           // For uploaded transactions, we need to reconstruct the pending transaction
           // Try to restore the WASM pending transaction object
@@ -543,7 +769,6 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         // Serialize the signed transaction using centralized utilities
         if (result.signedTransaction) {
           try {
-            console.log('✅ Serializing signed transaction using centralized utilities');
             serializedTransaction = serializeWasmObject(result.signedTransaction);
           } catch (serializeError) {
             console.warn('⚠️ Could not serialize signed transaction:', serializeError);
@@ -558,11 +783,20 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
           // Ensure we have serialized transaction data for submission
           serializedTransaction: serializedTransaction
         };
-
-        console.log('🔍 Created signed transaction data with fields:', Object.keys(signedTxData));
         
         setSignedTransactionData(signedTxData);
         await generateQRCode(signedTxData, 'signed');
+
+        // CRITICAL: After successful signing, refresh the HD wallet balance state
+        // This ensures that subsequent transaction creation will work correctly
+        if (walletState.isHDWallet && walletState.hdWallet) {
+          try {
+            const balanceResult = await walletState.hdWallet.checkHDWalletBalance();
+          } catch (refreshError) {
+            console.warn('Balance refresh after signing failed:', refreshError.message);
+          }
+        }
+
         addNotification('Transaction signed successfully', 'success');
       } else {
         throw new Error(result?.error || 'Transaction signing failed');
@@ -582,8 +816,7 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
           'Would you like to go back to the wallet dashboard to refresh the wallet state and check for available funds?'
         );
         
-        if (shouldRefresh) {
-          addNotification('Redirecting to wallet dashboard to refresh UTXO data...', 'info');
+        if (shouldRefresh) {          
           onNavigate('wallet-dashboard');
           return;
         }
@@ -659,7 +892,7 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         if (walletState.isHDWallet && onGenerateNewAddress) {
           try {
             await onGenerateNewAddress();
-            addNotification('New receive address generated for enhanced privacy', 'info');
+            // Removed automatic privacy address generation notification - user doesn't need to see this
           } catch (error) {
             console.warn('Failed to generate new receive address:', error);
           }
@@ -719,7 +952,6 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
         }
         
         setQrCodeData(normalizedQRData);
-        console.log('✅ QR code generated successfully:', normalizedQRData);
       } else {
         console.error('QR generation failed:', qrResult.error);
         addNotification('Failed to generate QR code: ' + qrResult.error, 'warning');
@@ -1346,20 +1578,36 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
 
   return React.createElement('section', { className: 'py-4' },
     React.createElement('div', { className: 'row' },
+      React.createElement('div', { className: 'col-12' },
+        // Header with Back to Dashboard button
+        React.createElement('div', { className: 'd-flex justify-content-between align-items-center mb-4' },
+          React.createElement('h4', { className: 'mb-0' },
+            React.createElement('i', { className: 'bi bi-send me-2' }),
+            'Transaction Manager'
+          ),
+          React.createElement('button', {
+            className: 'btn btn-outline-primary btn-sm',
+            onClick: () => onNavigate('wallet-dashboard')
+          },
+            React.createElement('i', { className: 'bi bi-arrow-left me-1' }),
+            'Back to Dashboard'
+          )
+        )
+      ),
       // Main transaction form
       React.createElement('div', { className: 'col-lg-8' },
         React.createElement('div', { className: 'card' },
           React.createElement('div', { className: 'card-header d-flex justify-content-between align-items-center' },
             React.createElement('h5', { className: 'card-title mb-0' },
-              React.createElement('i', { className: 'bi bi-send me-2' }),
-              'Transaction Manager'
+              React.createElement('i', { className: 'bi bi-plus-circle me-2' }),
+              'Create Transaction'
             ),
             React.createElement('div', { className: 'btn-group' },
               React.createElement('button', {
                 className: 'btn btn-outline-primary btn-sm',
                 onClick: () => setShowUploadArea(!showUploadArea)
               },
-                React.createElement('i', { className: 'bi bi-upload me-1' }),
+                React.createElement('i', { className: 'bi bi-cloud-upload me-1' }),
                 'Upload Transaction'
               ),
               (transactionData || signedTransactionData || submittedTransactionData) && React.createElement('button', {
@@ -1377,7 +1625,7 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
             // Upload area
             showUploadArea && React.createElement('div', { className: 'alert alert-info mb-4' },
               React.createElement('h6', { className: 'alert-heading' },
-                React.createElement('i', { className: 'bi bi-upload me-2' }),
+                React.createElement('i', { className: 'bi bi-cloud-upload me-2' }),
                 'Upload or Scan Transaction'
               ),
               React.createElement('p', { className: 'mb-3' }, 
@@ -1479,16 +1727,23 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
                       className: 'form-check-input',
                       type: 'checkbox',
                       id: 'offlineMode',
-                      checked: useOfflineMode,
+                      checked: useOfflineMode || isActuallyOffline,
                       onChange: (e) => setUseOfflineMode(e.target.checked),
-                      disabled: !cachedUTXOs
+                      disabled: !cachedUTXOs || isActuallyOffline
                     }),
                     React.createElement('label', { className: 'form-check-label', htmlFor: 'offlineMode' },
-                      'Offline Mode'
+                      isActuallyOffline ? 'Offline Mode (Auto)' : 'Offline Mode (Manual)'
                     )
                   ),
-                  useOfflineMode && React.createElement('small', { className: 'text-primary d-block mt-1' },
-                    'Using cached UTXOs'
+                  React.createElement('small', {
+                    className: `d-block mt-1 ${isActuallyOffline ? 'text-warning' : 'text-info'}`
+                  },
+                    isActuallyOffline ?
+                      '📴 Network: OFFLINE - Offline mode enabled automatically' :
+                      '🌐 Network: ONLINE - You can manually enable offline mode if you have cached UTXOs'
+                  ),
+                  (useOfflineMode || isActuallyOffline) && cachedUTXOs && React.createElement('small', { className: 'text-primary d-block mt-1' },
+                    'Using cached UTXOs for transaction creation'
                   )
                 )
               )
@@ -1532,7 +1787,7 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
                     title: 'Upload QR code image',
                     style: { borderLeft: 'none' }
                   },
-                    React.createElement('i', { className: 'bi bi-upload' })
+                    React.createElement('i', { className: 'bi bi-cloud-upload' })
                   )
                 ),
                 React.createElement('div', { className: 'form-text' },
@@ -1558,11 +1813,10 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
                   placeholder: DEFAULT_TRANSACTION_AMOUNT.toString(),
                   step: '0.00000001',
                   min: MIN_TRANSACTION_AMOUNT.toString(),
-                  max: MAX_TRANSACTION_AMOUNT.toString(),
                   required: true
                 }),
                 React.createElement('div', { className: 'form-text' },
-                  `Minimum: ${MIN_TRANSACTION_AMOUNT} KAS | Maximum: ${MAX_TRANSACTION_AMOUNT} KAS`
+                  `Minimum: ${MIN_TRANSACTION_AMOUNT} KAS`
                 ),
                 formErrors.some(e => e.includes('amount')) && React.createElement('div', {
                   className: 'invalid-feedback'
@@ -1575,23 +1829,18 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
                   className: `btn btn-primary ${isCreating ? 'disabled' : ''}`,
                   disabled: isCreating || formErrors.length > 0
                 },
-                  isCreating ? 
+                  isCreating ?
                     React.createElement('span', null,
-                      React.createElement('span', { 
-                        className: 'spinner-border spinner-border-sm me-2' 
+                      React.createElement('span', {
+                        className: 'spinner-border spinner-border-sm me-2'
                       }),
-                      'Creating Transaction...'
+                      creatingMessage
                     ) :
                     React.createElement('span', null,
                       React.createElement('i', { className: 'bi bi-plus-circle me-2' }),
                       'Create Transaction'
                     )
-                ),
-                React.createElement('button', {
-                  type: 'button',
-                  className: 'btn btn-outline-secondary',
-                  onClick: () => onNavigate('wallet-dashboard')
-                }, 'Back to Dashboard')
+                )
               )
             )
           )
@@ -1614,12 +1863,12 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
               onClick: handleSignTransaction,
               disabled: isSigning
             },
-              isSigning ? 
+              isSigning ?
                 React.createElement('span', null,
-                  React.createElement('span', { 
-                    className: 'spinner-border spinner-border-sm me-2' 
+                  React.createElement('span', {
+                    className: 'spinner-border spinner-border-sm me-2'
                   }),
-                  'Signing Transaction...'
+                  signingMessage
                 ) :
                 React.createElement('span', null,
                   React.createElement('i', { className: 'bi bi-pen me-2' }),
@@ -1646,12 +1895,12 @@ export function TransactionManager({ walletState, onNavigate, addNotification, o
               onClick: handleSubmitTransaction,
               disabled: isSubmitting
             },
-              isSubmitting ? 
+              isSubmitting ?
                 React.createElement('span', null,
-                  React.createElement('span', { 
-                    className: 'spinner-border spinner-border-sm me-2' 
+                  React.createElement('span', {
+                    className: 'spinner-border spinner-border-sm me-2'
                   }),
-                  'Submitting Transaction...'
+                  submittingMessage
                 ) :
                 React.createElement('span', null,
                   React.createElement('i', { className: 'bi bi-broadcast me-2' }),

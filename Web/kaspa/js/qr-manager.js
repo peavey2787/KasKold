@@ -12,16 +12,30 @@ let jsQRLib = null;
 let qrLibraryLoading = false;
 let qrLibraryLoaded = false;
 
-// Load QR code libraries dynamically
+// Load QR code libraries dynamically or use preloaded ones
 async function loadQRLibraries() {
 
-    
-    // If already loaded, return immediately
-    if (qrLibraryLoaded && qrCodeLib && jsQRLib) {
+    // First, check if libraries are already available globally (preloaded in HTML)
+    if (!qrCodeLib && typeof window.qrcode !== 'undefined') {
+        qrCodeLib = window.qrcode;
+    }
 
+    if (!jsQRLib && typeof window.jsQR !== 'undefined') {
+        jsQRLib = window.jsQR;
+    }
+
+    // If both libraries are available, mark as loaded and return
+    if (qrCodeLib && jsQRLib) {
+        qrLibraryLoaded = true;
+        qrLibraryLoading = false;
         return;
     }
-    
+
+    // If already loaded, return immediately
+    if (qrLibraryLoaded && qrCodeLib && jsQRLib) {
+        return;
+    }
+
     // If currently loading, wait for it to complete
     if (qrLibraryLoading) {
         // Wait for loading to complete with timeout
@@ -30,17 +44,17 @@ async function loadQRLibraries() {
             await new Promise(resolve => setTimeout(resolve, 100));
             attempts++;
         }
-        
+
         if (qrLibraryLoaded && qrCodeLib && jsQRLib) {
             return;
         } else {
             throw new Error('QR libraries failed to load within timeout');
         }
     }
-    
+
     // Start loading
     qrLibraryLoading = true;
-    
+
     try {
         if (!qrCodeLib) {
             // Try to load qrcode-generator library (more reliable)
@@ -48,15 +62,15 @@ async function loadQRLibraries() {
             qrScript.src = './libs/qrcode-generator.min.js';
             qrScript.crossOrigin = 'anonymous';
             document.head.appendChild(qrScript);
-            
+
             await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
                     reject(new Error('QR generation library loading timeout'));
                 }, 10000); // 10 second timeout
-                
+
                 qrScript.onload = () => {
                     clearTimeout(timeout);
-                    
+
                     // qrcode-generator creates a global qrcode function
                     qrCodeLib = window.qrcode;
                     if (!qrCodeLib) {
@@ -71,19 +85,19 @@ async function loadQRLibraries() {
                 };
             });
         }
-        
+
         if (!jsQRLib) {
             // Load QR code reading library
             const jsQRScript = document.createElement('script');
             jsQRScript.src = './libs/jsQR.js';
             jsQRScript.crossOrigin = 'anonymous';
             document.head.appendChild(jsQRScript);
-            
+
             await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
                     reject(new Error('QR reading library loading timeout'));
                 }, 10000); // 10 second timeout
-                
+
                 jsQRScript.onload = () => {
                     clearTimeout(timeout);
                     jsQRLib = window.jsQR;
@@ -98,14 +112,22 @@ async function loadQRLibraries() {
                     reject(new Error('Failed to load QR reading library'));
                 };
             });
-        } 
-        
+        }
+
         // Mark as loaded
         qrLibraryLoaded = true;
         qrLibraryLoading = false;
-        
+
     } catch (error) {
         qrLibraryLoading = false;
+        console.error('❌ QR MANAGER: Failed to load QR libraries:', error);
+
+        // Provide helpful error message for offline scenarios
+        if (error.message.includes('Failed to load QR generation library') ||
+            error.message.includes('Failed to load QR reading library')) {
+            throw new Error('QR libraries could not be loaded. This may happen when offline. Please ensure you have an internet connection or try refreshing the page.');
+        }
+
         throw error;
     }
 }
@@ -116,9 +138,14 @@ async function loadQRLibraries() {
  * @returns {string} - Base64 data URL of the QR code
  */
 function generateQRCodeDataURL(text) {
-    
+
     if (!qrCodeLib) {
-        throw new Error('QR code library not loaded');
+        // Try to get the library from global scope as a last resort
+        if (typeof window.qrcode !== 'undefined') {
+            qrCodeLib = window.qrcode;
+        } else {
+            throw new Error('QR code library not loaded. Please ensure the app is properly initialized or try refreshing the page.');
+        }
     }
     
     try {
@@ -307,8 +334,17 @@ async function readQRFromImage(imageFile) {
                     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                     
                     // Read QR code
+                    if (!jsQRLib) {
+                        // Try to get the library from global scope as a last resort
+                        if (typeof window.jsQR !== 'undefined') {
+                            jsQRLib = window.jsQR;                            
+                        } else {
+                            throw new Error('QR reading library not loaded. Please ensure the app is properly initialized or try refreshing the page.');
+                        }
+                    }
+
                     const qrResult = jsQRLib(imageData.data, imageData.width, imageData.height);
-                    
+
                     if (!qrResult) {
                         throw new Error('No QR code found in the image');
                     }
@@ -510,31 +546,33 @@ async function initializeQRManager() {
         await loadQRLibraries();
         return true;
     } catch (error) {
-        console.error('QR DEBUG: Failed to initialize QR Manager:', error);
+        console.error('❌ QR MANAGER: Failed to initialize QR Manager:', error);
         return false;
     }
 }
 
-// Test function for manual debugging
-async function testQRGeneration() {
+// Early initialization function that can be called when the app starts
+async function initializeQRManagerEarly() {
     try {
+
+        // Check if libraries are already available
+        if (typeof window.qrcode !== 'undefined' && typeof window.jsQR !== 'undefined') {
+            qrCodeLib = window.qrcode;
+            jsQRLib = window.jsQR;
+            qrLibraryLoaded = true;
+            qrLibraryLoading = false;
+            return true;
+        }
+
+        // If not available, try to load them
         await loadQRLibraries();
         
-        const testData = "Hello World Test";
-        
-        if (!qrCodeLib) {
-            throw new Error('QR library not available');
-        }
-        
-        const result = generateQRCodeDataURL(testData);
-          return result;
+        return true;
     } catch (error) {
-        throw error;
+        console.error('❌ QR MANAGER: Early initialization failed:', error);
+        return false;
     }
 }
-
-// Make test function available globally for debugging
-window.testQRGeneration = testQRGeneration;
 
 /**
  * Generate QR code for unsigned transaction data
@@ -555,13 +593,10 @@ async function generateUnsignedTransactionQR(transactionData) {
         let serializedPendingTransaction = null;
         if (transactionData.pendingTransaction) {
             try {
-                console.log("🔄 Serializing pending transaction using centralized utilities");
                 const rawSerialized = serializeWasmObject(transactionData.pendingTransaction);
                 serializedPendingTransaction = convertBigIntToString(rawSerialized);
-                console.log("✅ Successfully serialized pending transaction for QR");
             } catch (serializeError) {
                 console.error("❌ CRITICAL ERROR: Failed to serialize pending transaction for QR:", serializeError);
-                console.warn("⚠️ Continuing QR generation without serialized transaction data");
                 serializedPendingTransaction = null;
             }
         }
@@ -582,21 +617,18 @@ async function generateUnsignedTransactionQR(transactionData) {
         // Extract UTXO data from multiple sources for comprehensive offline support
         // Priority 1: Use preserved UTXO entries from transaction creation
         if (transactionData.utxoEntries && Array.isArray(transactionData.utxoEntries)) {
-            inputUtxos = transactionData.utxoEntries;
-            console.log(`📦 Found ${inputUtxos.length} preserved UTXO entries (BEST for offline)`);
+            inputUtxos = transactionData.utxoEntries;            
         } 
         // Priority 2: Extract from transaction summary
         else if (transactionData.summary && Array.isArray(transactionData.summary.utxos)) {
-            inputUtxos = transactionData.summary.utxos;
-            console.log(`📦 Found ${inputUtxos.length} UTXOs in transaction summary`);
+            inputUtxos = transactionData.summary.utxos;            
         } 
         // Priority 3: Try to extract UTXOs from WASM summary object
         else if (transactionData.summary && transactionData.summary.__wbg_ptr) {
             try {
                 const summaryData = serializeWasmObject(transactionData.summary);
                 if (summaryData.utxos && Array.isArray(summaryData.utxos)) {
-                    inputUtxos = summaryData.utxos;
-                    console.log(`📦 Extracted ${inputUtxos.length} UTXOs from WASM summary`);
+                    inputUtxos = summaryData.utxos;                    
                 }
             } catch (e) {
                 console.warn('Could not extract UTXOs from WASM summary:', e);
@@ -606,16 +638,9 @@ async function generateUnsignedTransactionQR(transactionData) {
         // If we still don't have UTXOs but have inputs, try to get UTXO data from inputs
         if (inputUtxos.length === 0 && inputs.length > 0) {
             inputUtxos = inputs.map((input, index) => {
-                console.log(`🔍 Processing input ${index}:`, {
-                    keys: Object.keys(input),
-                    hasUtxo: !!input.utxo,
-                    hasPreviousOutpoint: !!input.previousOutpoint,
-                    hasPrevious_outpoint: !!input.previous_outpoint
-                });
                 
                 if (input.utxo) {
                     // Input already has a complete UTXO object
-                    console.log(`✅ Using complete UTXO from input ${index}`);
                     return input.utxo;
                 } else if (input.previousOutpoint) {
                     // Extract outpoint data from input.previousOutpoint
@@ -631,18 +656,9 @@ async function generateUnsignedTransactionQR(transactionData) {
                         isCoinbase: input.isCoinbase || input.previousOutpoint?.isCoinbase || false
                     };
                     
-                    console.log(`✅ Constructed UTXO from input ${index} previousOutpoint:`, {
-                        hasOutpoint: !!utxo.outpoint,
-                        outpointKeys: utxo.outpoint ? Object.keys(utxo.outpoint) : [],
-                        hasTransactionId: !!utxo.outpoint?.transactionId,
-                        hasIndex: utxo.outpoint?.index !== undefined,
-                        indexValue: utxo.outpoint?.index
-                    });
-                    
                     return utxo;
                 } else if (input.previous_outpoint) {
                     // Legacy format - try to extract what we can
-                    console.warn(`⚠️ Using legacy previous_outpoint format for input ${index}`);
                     const utxo = {
                         outpoint: {
                             transactionId: input.previous_outpoint.transactionId || input.previous_outpoint.txId || input.previous_outpoint.id,
@@ -661,25 +677,7 @@ async function generateUnsignedTransactionQR(transactionData) {
                     return null;
                 }
             }).filter(utxo => utxo !== null);
-            
-            if (inputUtxos.length > 0) {
-                console.log(`📦 Extracted ${inputUtxos.length} UTXOs from transaction inputs`);
-                // Log first UTXO structure for debugging
-                console.log('🔍 First extracted UTXO structure:', {
-                    keys: Object.keys(inputUtxos[0]),
-                    outpoint: inputUtxos[0].outpoint,
-                    hasTransactionId: !!inputUtxos[0].outpoint?.transactionId,
-                    hasIndex: inputUtxos[0].outpoint?.index !== undefined
-                });
-            }
         }
-        
-        console.log('💾 UTXO data for QR:', {
-            inputUtxoCount: inputUtxos.length,
-            inputCount: inputs.length,
-            outputCount: outputs.length,
-            hasSerializedPending: !!serializedPendingTransaction
-        });
         
         // Create comprehensive QR data structure using centralized utility
         // CRITICAL: Include the actual UTXO entries for true offline signing
@@ -687,9 +685,7 @@ async function generateUnsignedTransactionQR(transactionData) {
         
         // If we still don't have UTXO data, try to reconstruct it from the transaction creation context
         if (enhancedUtxos.length === 0) {
-            // This happens when the QR is generated after transaction creation but before the entries are lost
-            console.warn('🔍 No UTXOs found in summary, this may cause offline signing issues');
-            
+            // This happens when the QR is generated after transaction creation but before the entries are lost            
             // In a real-world app, we should store the original UTXO entries used in creation
             // For now, let's mark this QR as requiring network connection for signing
             enhancedUtxos = [{
@@ -746,16 +742,12 @@ async function generateUnsignedTransactionQR(transactionData) {
         // Convert to JSON string
         const qrString = JSON.stringify(serializedQrData);
         
-        console.log(`📊 Unsigned transaction QR data size: ${qrString.length} characters`);
-        
         // Use multi-part QR generation for potentially large transaction data
         const multiQRResult = await generateMultiPartQR(serializedQrData, 'unsigned-transaction');
         
         if (!multiQRResult.success) {
             throw new Error(multiQRResult.error);
-        }
-        
-        console.log(`✅ Generated ${multiQRResult.totalParts} part(s) for unsigned transaction QR`);
+        }        
         
         return multiQRResult;
         
@@ -787,13 +779,11 @@ async function generateSignedTransactionQR(signedTransactionData) {
         
         // First, try to use any existing serialized transaction data
         if (signedTransactionData.serializedTransaction) {
-            console.log("✅ Using existing serialized transaction data from signedTransactionData");
             serializedTransaction = signedTransactionData.serializedTransaction;
         }
         // Only if no existing serialized data, try to serialize the WASM object
         else if (signedTransactionData.signedTransaction) {
             try {
-                console.log("🔄 Serializing signed transaction using centralized utilities");
                 const rawSerialized = serializeWasmObject(signedTransactionData.signedTransaction);
                 serializedTransaction = convertBigIntToString(rawSerialized);
             } catch (serializeError) {
@@ -1681,8 +1671,14 @@ class CameraQRScanner {
             const imageData = this.context.getImageData(0, 0, this.canvas.width, this.canvas.height);
             
             // Scan for QR code
-            const qrResult = jsQR(imageData.data, imageData.width, imageData.height);
-            
+            let jsQRFunction = jsQRLib || window.jsQR;
+            if (!jsQRFunction) {
+                console.error('❌ QR MANAGER: jsQR library not available for camera scanning');
+                return;
+            }
+
+            const qrResult = jsQRFunction(imageData.data, imageData.width, imageData.height);
+
             if (qrResult) {
                 this.handleQRDetected(qrResult.data);
             }
@@ -2146,7 +2142,7 @@ export {
     validateQRData,
     createQRDisplay,
     initializeQRManager,
-    testQRGeneration,
+    initializeQRManagerEarly,
     generateUnsignedTransactionQR,
     generateSignedTransactionQR,
     generateSubmittedTransactionQR,
@@ -2158,4 +2154,4 @@ export {
     createMultiPartQRDisplay,
     readMultiPartQRFromImages,
     openCameraQRScanner
-}; 
+};

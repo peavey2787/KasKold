@@ -48,7 +48,6 @@ async function submitTransaction(signedTransactionData, networkEndpoint = null) 
             let transactionId;
             
             if (signedTransactionData.isUploaded) {
-                console.log('🔄 Processing uploaded signed transaction for submission');
                 
                 // For uploaded signed transactions, we need to recreate the WASM object from serialized data
                 const kaspa = getKaspa();
@@ -58,27 +57,21 @@ async function submitTransaction(signedTransactionData, networkEndpoint = null) 
                 
                 // Try to find serialized transaction data
                 if (signedTransactionData.serializedTransaction) {
-                    console.log('📦 Using serializedTransaction from uploaded QR');
-                    console.log('🔍 Serialized transaction data:', signedTransactionData.serializedTransaction);
                     
                     try {
                         // Handle different serialization formats
                         if (signedTransactionData.serializedTransaction.type === 'bytes' && signedTransactionData.serializedTransaction.serializedBytes) {
                             // Handle byte array serialization
-                            console.log('📦 Deserializing from byte array');
                             const bytes = new Uint8Array(signedTransactionData.serializedTransaction.serializedBytes);
                             wasmTransaction = Transaction.deserialize(bytes);
                         } else if (signedTransactionData.serializedTransaction.fallbackType === 'minimal_transaction') {
                             // Handle fallback structure - this means the original QR was created with a fallback
-                            console.log('⚠️ Uploaded QR contains fallback transaction structure');
                             throw new Error('This signed transaction QR was created with incomplete serialization data and cannot be submitted from upload. Please submit the transaction directly from the signing session.');
                         } else if (typeof signedTransactionData.serializedTransaction === 'object') {
                             // Handle object serialization
-                            console.log('📦 Deserializing from object');
                             
                             // Check if the serialized transaction has the required data
                             const serializedTx = signedTransactionData.serializedTransaction;
-                            console.log('🔍 Serialized transaction keys:', Object.keys(serializedTx));
                             
                             // Validate that we have essential transaction data
                             if (!serializedTx.inputs || !Array.isArray(serializedTx.inputs) || serializedTx.inputs.length === 0) {
@@ -89,12 +82,7 @@ async function submitTransaction(signedTransactionData, networkEndpoint = null) 
                                 throw new Error('Serialized transaction has no outputs - cannot submit empty transaction');
                             }
                             
-                            const preparedTx = prepareForWasmDeserialization(serializedTx);
-                            console.log('🔍 Prepared transaction for WASM:', {
-                                inputCount: preparedTx.inputs?.length || 0,
-                                outputCount: preparedTx.outputs?.length || 0,
-                                hasSignatures: preparedTx.inputs?.some(input => input.signatureScript && input.signatureScript.length > 0)
-                            });
+                            const preparedTx = prepareForWasmDeserialization(serializedTx);                            
                             
                             wasmTransaction = Transaction.deserializeFromObject(preparedTx);
                         } else {
@@ -102,8 +90,7 @@ async function submitTransaction(signedTransactionData, networkEndpoint = null) 
                         }
                         
                     } catch (deserializeError) {
-                        console.error('⚠️ Failed to deserialize transaction:', deserializeError);
-                        console.error('🔍 Available data in signedTransactionData:', Object.keys(signedTransactionData));
+                        console.error('⚠️ Failed to deserialize transaction:', deserializeError);                        
                         throw new Error(`Failed to reconstruct transaction from QR data: ${deserializeError.message}. The signed transaction data may be incomplete or in an unsupported format.`);
                     }
                 } else {
@@ -126,8 +113,7 @@ async function submitTransaction(signedTransactionData, networkEndpoint = null) 
                     // Check if we have a fallback structure but the original WASM object is available
                     if (signedTransactionData.serializedTransaction?.fallbackType === 'minimal_transaction' && 
                         signedTransactionData.serializedTransaction?.wasmObjectAvailable && 
-                        signedTransactionData.signedTransaction) {
-                        console.log('📦 Using original WASM object for submission despite fallback serialization');
+                        signedTransactionData.signedTransaction) {                        
                         // Try to submit using the original WASM object
                         transactionId = await signedTransactionData.signedTransaction.submit(rpc);
                     } else {
