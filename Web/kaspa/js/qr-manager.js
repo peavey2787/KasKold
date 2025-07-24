@@ -1,6 +1,7 @@
 // Kaspa QR Code Manager Module
 import { getKaspa, isInitialized } from './init.js';
 import { serializeWasmObject, convertBigIntToString, createQRTransactionData } from './serialization-utils.js';
+import { QR_DATA_SIZE_LIMIT } from '../../kaspa/js/constants.js';
 
 // QR Code generation using qrcode-generator library (will be loaded dynamically)
 let qrCodeLib = null;
@@ -965,10 +966,10 @@ function validateTransactionQRData(qrData, expectedType) {
 /**
  * Split large data into multiple parts for QR codes
  * @param {string} jsonString - JSON string to split
- * @param {number} maxChunkSize - Maximum size per chunk (default: 1000 chars)
+ * @param {number} maxChunkSize - Maximum size per chunk (default: 400 chars)
  * @returns {Array} - Array of data chunks with metadata
  */
-function splitDataForMultiQR(jsonString, maxChunkSize = 1000) {
+function splitDataForMultiQR(jsonString, maxChunkSize = 400) {
     const chunks = [];
     const totalParts = Math.ceil(jsonString.length / maxChunkSize);
     const multiQRId = `mqr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -1087,7 +1088,7 @@ async function generateMultiPartQR(qrData, baseType) {
         
         // For transaction QRs, prefer multi-part for comprehensive offline data
         const isTransactionQR = baseType.includes('transaction');
-        const maxSingleQRSize = isTransactionQR ? 800 : 1200; // Lower threshold for transactions
+        const maxSingleQRSize = QR_DATA_SIZE_LIMIT;
         
         if (jsonString.length <= maxSingleQRSize && !isTransactionQR) {
             // Single QR is sufficient for non-transaction data
@@ -1105,7 +1106,7 @@ async function generateMultiPartQR(qrData, baseType) {
         }
         
         // Multi-part QR needed
-        const chunks = splitDataForMultiQR(jsonString, 800); // Smaller chunks for QR reliability
+        const chunks = splitDataForMultiQR(jsonString, QR_DATA_SIZE_LIMIT); // Smaller chunks for QR reliability
         const qrParts = [];
         
         for (const chunk of chunks) {
