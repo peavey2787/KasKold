@@ -21,7 +21,16 @@
   <!-- Signing Section -->
   <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
     <h3>Message Signing</h3>
-    
+
+    <!-- Signing Address Input -->
+    <div style="margin-bottom: 15px;">
+      <label for="signingAddress"><strong>Signing Address:</strong></label>
+      <input type="text" id="signingAddress" placeholder="Address to sign with (auto-filled with current receive address)" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace;" />
+      <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
+        This field is auto-filled with your current receive address. You can modify it if needed.
+      </div>
+    </div>
+
     <!-- Signing Step Buttons -->
     <div style="margin: 1em 0;">
       <button id="signMessage">1. Sign Message</button>

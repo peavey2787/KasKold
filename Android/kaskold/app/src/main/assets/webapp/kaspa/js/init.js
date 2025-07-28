@@ -113,6 +113,12 @@ function updateCurrentWalletDisplay() {
             document.getElementById('current-wallet-address-msg').textContent = currentWallet.address;
             document.getElementById('current-wallet-network-msg').textContent = currentWallet.networkType;
         }
+
+        // Auto-fill signing address input
+        const signingAddressInput = document.getElementById('signingAddress');
+        if (signingAddressInput) {
+            signingAddressInput.value = currentWallet.address;
+        }
     } else {
         document.getElementById('current-wallet-info').style.display = 'none';
         const msgWalletInfo = document.getElementById('current-wallet-info-msg');
@@ -969,10 +975,9 @@ function setupTransactionEventHandlers() {
         const customFeeValue = parseFloat(document.getElementById('customFeeInput').value) || 0;
         const warningElement = document.getElementById('customFeeWarning');
         
-        // Define minimum recommended fee thresholds based on actual network fees
-        // Slow fee is typically around 0.00008333 KAS, so adjust thresholds accordingly
-        const EXTREMELY_LOW_FEE = 0.00002; // 0.00002 KAS - extremely low, will likely fail
-        const VERY_LOW_FEE = 0.00005; // 0.00005 KAS - too low, may not confirm
+        // Use kaspa wasm's fee estimator to get accurate fees, for now use these
+        const EXTREMELY_LOW_FEE = 0.00002; 
+        const VERY_LOW_FEE = 0.00005;  
         
         if (customFeeValue > 0 && customFeeValue <= EXTREMELY_LOW_FEE) {
             // Extremely low fee - strong warning
@@ -2311,10 +2316,16 @@ function setupMessageSigningEventHandlers() {
                 return;
             }
 
+            const signingAddress = document.getElementById("signingAddress").value;
+            if (!signingAddress.trim()) {
+                alert("Please enter a signing address");
+                return;
+            }
+
             document.getElementById("signingStatus").textContent = "Signing...";
             document.getElementById("signingError").textContent = "—";
-            
-            const result = await signMessage(message, currentWallet.privateKey, currentWallet.address, currentWallet.networkType);
+
+            const result = await signMessage(message, currentWallet.privateKey, signingAddress, currentWallet.networkType);
             
             if (result.success) {
                 currentSignedMessageData = result;
@@ -2384,10 +2395,16 @@ function setupMessageSigningEventHandlers() {
                 alert("Please generate or restore a wallet first");
                 return;
             }
-            
+
+            const signingAddress = document.getElementById("signingAddress").value;
+            if (!signingAddress.trim()) {
+                alert("Please enter a signing address");
+                return;
+            }
+
             const messageData = {
                 message: message,
-                signerAddress: currentWallet.address,
+                signerAddress: signingAddress,
                 networkType: currentWallet.networkType,
                 timestamp: new Date().toISOString(),
                 messageLength: message.length
@@ -2688,10 +2705,16 @@ function setupMessageSigningEventHandlers() {
                 alert("Please generate or restore a wallet first");
                 return;
             }
-            
+
+            const signingAddress = document.getElementById("signingAddress").value;
+            if (!signingAddress.trim()) {
+                alert("Please enter a signing address");
+                return;
+            }
+
             const messageData = {
                 message: message,
-                signerAddress: currentWallet.address,
+                signerAddress: signingAddress,
                 networkType: currentWallet.networkType,
                 timestamp: new Date().toISOString(),
                 messageId: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`

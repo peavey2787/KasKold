@@ -25,6 +25,9 @@ export const ADDRESS_TYPES = {
 // Default network for new installations
 export const DEFAULT_NETWORK = NETWORKS.TESTNET_10;
 
+// Max data to fit in a qr img; too high and scanning doesn't work, too low then several qr images
+export const QR_DATA_SIZE_LIMIT = 400;
+
 // Default transaction amount in KAS
 export const DEFAULT_TRANSACTION_AMOUNT = 0.2;
 

@@ -1,7 +1,8 @@
-const { useState, useRef } = React;
+const { useState, useRef, useEffect } = React;
 
 export function MessageSigning({ walletState, onNavigate, addNotification }) {
   const [message, setMessage] = useState('');
+  const [signingAddress, setSigningAddress] = useState('');
   const [unsignedMessageData, setUnsignedMessageData] = useState(null);
   const [signedMessageData, setSignedMessageData] = useState(null);
   const [qrCodeData, setQrCodeData] = useState(null);
@@ -12,6 +13,13 @@ export function MessageSigning({ walletState, onNavigate, addNotification }) {
 
   const fileInputRef = useRef(null);
   const qrInputRef = useRef(null);
+
+  // Auto-fill signing address when wallet state changes
+  useEffect(() => {
+    if (walletState.address) {
+      setSigningAddress(walletState.address);
+    }
+  }, [walletState.address]);
 
   // BigInt conversion functions
   const convertBigIntToString = (obj) => {
@@ -54,6 +62,11 @@ export function MessageSigning({ walletState, onNavigate, addNotification }) {
       return;
     }
 
+    if (!signingAddress.trim()) {
+      addNotification('Please enter a signing address', 'error');
+      return;
+    }
+
     if (!walletState.currentWallet || !walletState.address) {
       addNotification('No wallet loaded', 'error');
       return;
@@ -66,7 +79,7 @@ export function MessageSigning({ walletState, onNavigate, addNotification }) {
       
       const messageData = {
         message: message.trim(),
-        address: walletState.address,
+        address: signingAddress.trim(),
         network: walletState.network,
         timestamp: new Date().toISOString()
       };
@@ -95,6 +108,11 @@ export function MessageSigning({ walletState, onNavigate, addNotification }) {
       return;
     }
 
+    if (!signingAddress.trim()) {
+      addNotification('Please enter a signing address', 'error');
+      return;
+    }
+
     if (!walletState.currentWallet) {
       addNotification('No wallet loaded', 'error');
       return;
@@ -108,7 +126,7 @@ export function MessageSigning({ walletState, onNavigate, addNotification }) {
       const result = await signMessage(
         unsignedMessageData.message,
         walletState.currentWallet.privateKey,
-        walletState.address,
+        signingAddress.trim(),
         walletState.network
       );
 
@@ -439,6 +457,22 @@ export function MessageSigning({ walletState, onNavigate, addNotification }) {
                   placeholder: 'Enter the message you want to sign...',
                   required: true
                 })
+              ),
+
+              React.createElement('div', { className: 'mb-3' },
+                React.createElement('label', { className: 'form-label' }, 'Signing Address'),
+                React.createElement('input', {
+                  type: 'text',
+                  className: 'form-control',
+                  value: signingAddress,
+                  onChange: (e) => setSigningAddress(e.target.value),
+                  placeholder: 'Address to sign with (auto-filled with current receive address)',
+                  required: true,
+                  style: { fontFamily: 'monospace' }
+                }),
+                React.createElement('div', { className: 'form-text' },
+                  'This field is auto-filled with your current receive address. You can modify it if needed.'
+                )
               ),
 
               React.createElement('button', {
