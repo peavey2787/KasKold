@@ -15,7 +15,7 @@ final class KasKoldUITests: XCTestCase {
         XCTAssertTrue(webView.waitForExistence(timeout: 20))
         XCTAssertFalse(app.staticTexts["Companion failed to render"].exists)
 
-        let welcome = webView.staticTexts["Welcome to Companion"]
+        let welcome = webView.staticTexts["KasKold Companion"]
         XCTAssertTrue(welcome.waitForExistence(timeout: 20))
 
         let loadWallet = webView.buttons["Manage Wallets"]

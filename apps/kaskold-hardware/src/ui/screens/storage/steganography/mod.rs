@@ -5,7 +5,7 @@ use super::super::{
     COLOR_TEXT_DIM, CornerRadii, DrawTarget, Drawable, KASPA_ACCENT, KASPA_TEAL, Line, Point,
     Primitive, PrimitiveStyle, Rectangle, Rgb565, RoundedRectangle, Size, draw_lato_18,
     draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_18, measure_body,
-    measure_header, measure_hint, measure_title,
+    measure_header, measure_hint, measure_title, truncate_chars,
 };
 
 mod jpeg;

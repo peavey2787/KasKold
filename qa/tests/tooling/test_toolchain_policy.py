@@ -27,7 +27,7 @@ class ToolchainPolicyTests(unittest.TestCase):
 
     def test_fuzz_manifest_is_the_only_target_registry(self) -> None:
         targets = registered_targets()
-        self.assertEqual(len(targets), 10)
+        self.assertEqual(len(targets), 13)
         self.assertEqual(validate_targets(), [])
         policy = json.loads((ROOT / "qa/checks/security/policy.json").read_text())
         self.assertNotIn("targets", policy["fuzz"])

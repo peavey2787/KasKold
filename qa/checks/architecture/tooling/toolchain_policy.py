@@ -199,8 +199,8 @@ def _check_security_registry(root: Path) -> list[str]:
         errors.append(f"authoritative fuzz registry is invalid: {error}")
         targets = ()
     errors.extend(validate_targets())
-    if len(targets) != 10:
-        errors.append(f"authoritative fuzz registry must contain 10 targets, got {len(targets)}")
+    if len(targets) != 13:
+        errors.append(f"authoritative fuzz registry must contain 13 targets, got {len(targets)}")
     return errors
 
 
