@@ -469,6 +469,24 @@ internal class VaultController(context: Context) : AutoCloseable {
     fun showRestore(addToInventory: Boolean = false, previous: VaultScreenState = VaultScreenState.Locked): VaultScreenState =
         set(VaultScreenState.Restore(addToInventory = addToInventory, previous = previous))
 
+    /** Restore from recovery words, mirroring the iOS Vault: a fresh vault restores its only
+     *  wallet; from the wallet menu the restored wallet is added to the inventory. */
+    fun restore(
+        phrase: String,
+        passphrase: String,
+        addToInventory: Boolean,
+        previous: VaultScreenState,
+    ): VaultScreenState = guarded(VaultScreenState.Restore(addToInventory = addToInventory, previous = previous)) {
+        val words = phrase.trim()
+        if (addToInventory) {
+            runtime.workflowText("add_restore", JSONObject().put("phrase", words).put("passphrase", passphrase))
+        } else {
+            runtime.restoreWallet(words, passphrase)
+        }
+        persistUnlocked()
+        if (addToInventory) walletInventoryValue() else VaultScreenState.MainMenu
+    }
+
     fun beginScan(): VaultScreenState = guarded(state) {
         runtime.beginScan()
         VaultScreenState.Scanning()

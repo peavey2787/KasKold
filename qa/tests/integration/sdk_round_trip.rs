@@ -121,7 +121,10 @@ fn pskb(input_key: [u8; 32], tx_byte: u8) -> String {
     let script = format!("000020{}ac", hex::encode(input_key));
     let document = json!({
         "global": {
+            "version": 0,
             "txVersion": 0,
+            "inputCount": 1,
+            "outputCount": 1,
             "fallbackLockTime": "0",
             "subnetworkId": "0000000000000000000000000000000000000000",
             "gas": "0",
@@ -132,6 +135,7 @@ fn pskb(input_key: [u8; 32], tx_byte: u8) -> String {
             "utxoEntry": { "amount": "100000", "scriptPublicKey": script },
             "sequence": "0",
             "sigOpCount": 1,
+            "sighashType": 1,
             "partialSigs": {},
             "proprietaries": {}
         }],

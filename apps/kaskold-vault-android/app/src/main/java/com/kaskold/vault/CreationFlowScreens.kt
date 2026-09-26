@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -202,4 +201,37 @@ internal fun CreationStorageProtectionScreen(onProtect: () -> Unit, onSession: (
     Button(onClick = onProtect, modifier = Modifier.fillMaxWidth()) { Text("Use Android Device Protection") }
     Text("The device-bound Android Keystore key is non-exportable. KasKold does not write plaintext private material to app storage.")
     OutlinedButton(onClick = onSession, modifier = Modifier.fillMaxWidth()) { Text("Session Only") }
+}
+
+/** Restore a wallet from its recovery words (and optional BIP39 passphrase). */
+@Composable
+internal fun RestoreScreen(
+    initial: VaultScreenState.Restore,
+    onCancel: () -> Unit,
+    onRestore: (String, String) -> Unit,
+) {
+    var phrase by remember(initial) { mutableStateOf(initial.phrase) }
+    var passphrase by remember(initial) { mutableStateOf(initial.passphrase) }
+    Text("Restore Wallet", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+    Text("Enter the recovery words in order, separated by spaces.")
+    OutlinedTextField(
+        value = phrase,
+        onValueChange = { phrase = it },
+        label = { Text("Recovery words") },
+        minLines = 3,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    OutlinedTextField(
+        value = passphrase,
+        onValueChange = { passphrase = it },
+        label = { Text("BIP39 passphrase (optional)") },
+        visualTransformation = PasswordVisualTransformation(),
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Button(
+        onClick = { onRestore(phrase, passphrase) },
+        enabled = phrase.isNotBlank(),
+        modifier = Modifier.fillMaxWidth(),
+    ) { Text("Restore") }
+    OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
 }

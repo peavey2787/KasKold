@@ -85,7 +85,7 @@ final class VaultViewModel: ObservableObject {
     let creationFlow: CreationFlowConfig
     var creationSession: CreationSession?
     var automaticPersistence = true
-    private var creationPhrase: String?
+    var creationPhrase: String?
     private var advancedReturnsToCreation = false
     private var seedQRReturnsToAdvanced = false
     private var failureReturn: Screen = .mainMenu
