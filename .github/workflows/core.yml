@@ -40,6 +40,10 @@ jobs:
           ldproxy: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install host build libraries
+        shell: bash
+        # tools/ links serialport (espflash), which needs libudev headers.
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libudev-dev pkg-config
       - name: Fast contributor suite
         shell: bash
         run: make test STRICT_LOCKFILES=1

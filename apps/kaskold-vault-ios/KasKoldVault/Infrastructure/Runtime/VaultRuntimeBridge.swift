@@ -269,7 +269,7 @@ final class VaultRuntimeBridge {
 
     func approve() throws -> [Data] {
         try check(kkVaultApprove(requiredHandle(), UInt64(Date().timeIntervalSince1970)))
-        let count = kkVaultResponseCount(requiredHandle())
+        let count = try kkVaultResponseCount(requiredHandle())
         guard count > 0 else { throw VaultBridgeError.malformedResponse }
         return try (0..<count).map { index in
             let needed = kkVaultResponseFrameCopy(requiredHandleUnchecked(), index, nil, 0)
