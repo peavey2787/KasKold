@@ -232,7 +232,7 @@ final class VaultRuntimeBridge {
         }
     }
 
-    private func parseReview(_ object: [String: Any]) throws -> VaultReview {
+    func parseReview(_ object: [String: Any]) throws -> VaultReview {
         guard let network = object["network"] as? String,
               let inputCount = object["inputCount"] as? Int,
               let outputCount = object["outputCount"] as? Int,

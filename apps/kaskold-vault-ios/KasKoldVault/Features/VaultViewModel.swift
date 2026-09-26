@@ -258,13 +258,7 @@ final class VaultViewModel: ObservableObject {
     }
 
     func review(from object: [String: Any]) throws -> VaultReview {
-        guard let network = object["network"] as? String,
-              let inputCount = object["inputCount"] as? Int,
-              let outputCount = object["outputCount"] as? Int,
-              let inputTotal = object["inputTotal"] as? String,
-              let outputTotal = object["outputTotal"] as? String,
-              let fee = object["fee"] as? String else { throw VaultBridgeError.malformedResponse }
-        return VaultReview(network: network, inputCount: inputCount, outputCount: outputCount, inputTotal: inputTotal, outputTotal: outputTotal, fee: fee)
+        try runtime.parseReview(object)
     }
 
     func beginScan() { perform { try runtime.beginScan(); return .scanning(0, 0) } }

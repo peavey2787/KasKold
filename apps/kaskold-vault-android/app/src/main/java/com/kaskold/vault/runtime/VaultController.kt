@@ -430,12 +430,7 @@ internal class VaultController(context: Context) : AutoCloseable {
             }
             NativeFileWorkflow.Transaction -> {
                 val review = runtime.workflowTextWithBytes("transaction_file", JSONObject(), data)
-                VaultScreenState.Review(
-                    VaultReview(
-                        network = review.getString("network"), inputCount = review.getInt("inputCount"), outputCount = review.getInt("outputCount"),
-                        inputTotal = review.getString("inputTotal"), outputTotal = review.getString("outputTotal"), fee = review.getString("fee"),
-                    ),
-                )
+                VaultScreenState.Review(runtime.parseReview(review))
             }
             NativeFileWorkflow.Kpub -> {
                 val value = runtime.workflowText("normalize_kpub", JSONObject().put("value", data.toString(Charsets.UTF_8).trim())).getString("value")

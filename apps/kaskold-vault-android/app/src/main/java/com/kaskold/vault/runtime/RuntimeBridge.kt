@@ -113,7 +113,7 @@ internal class RuntimeBridge : AutoCloseable {
         }
     }
 
-    private fun parseReview(json: JSONObject): VaultReview {
+    fun parseReview(json: JSONObject): VaultReview {
         val inputsJson = json.getJSONArray("inputs")
         val outputsJson = json.getJSONArray("outputs")
         val inputs = (0 until inputsJson.length()).map { index ->
