@@ -1,0 +1,92 @@
+            <!-- Multisig menu -->
+            <section id="screen-multisig" class="screen">
+                <div class="screen-content">
+                    <h2>Multisig</h2>
+                    <p class="subtitle">Spend from multisig or manage saved public descriptors</p>
+                    <div class="card">
+                        <button class="btn btn-primary" id="btn-ms-menu-spend">Spend</button>
+                        <button class="btn btn-secondary u-mt-8px" id="btn-ms-menu-descriptors">Manage Descriptors</button>
+                        <button class="btn btn-back" id="btn-ms-menu-back">Back</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Multisig Spend screen -->
+            <section id="screen-multisig-spend" class="screen">
+                <div class="screen-content">
+                    <h2>Multisig Spend</h2>
+                    <p class="subtitle">Spend from a P2SH multisig address</p>
+                    <div class="card">
+                        <label class="input-label" for="select-ms-saved-descriptor">Saved Descriptor</label>
+                        <select id="select-ms-saved-descriptor" class="input-text" autocomplete="off">
+                            <option value="">Choose a saved descriptor...</option>
+                        </select>
+                        <label class="input-label" for="input-ms-descriptor">Descriptor</label>
+                        <textarea id="input-ms-descriptor" class="input-text input-textarea"
+                                  placeholder="Paste a descriptor or scan its QR code" rows="3"
+                                  autocomplete="off" spellcheck="false"></textarea>
+                        <button class="btn btn-outline u-full-width-mt-4px-text-12px" id="btn-scan-ms-descriptor"
+                               >📷 Scan Descriptor QR</button>
+                        <label class="input-label" for="input-ms-cosigner">45' Cosigner Branch</label>
+                        <input type="number" id="input-ms-cosigner" class="input-text" value="0" placeholder="0" min="0" max="4" step="1" autocomplete="off">
+                        <div class="send-balance-ref u-mt-4px">Branch 0 is the default; use the cosigner index shown by the KasKold signer.</div>
+                        <button class="btn btn-outline u-full-width-mt-4px-text-12px" id="btn-ms-discover">
+                            Discover Receive / Change Addresses
+                        </button>
+                        <div id="ms-discovery-info" class="send-balance-ref u-mt-8px"></div>
+                        <div id="ms-branch-utxos" class="address-list hidden"></div>
+                        <label class="input-label">Source Address (P2SH)</label>
+                        <div class="u-display-flex-gap-8px-align-start">
+                            <input type="text" id="input-ms-source" class="input-text u-grow-mb-0"
+                                   placeholder="kaspa:pr..." autocomplete="off" spellcheck="false">
+                            <button class="btn btn-outline u-width-auto-padding-13px-16px-no-shrink-mt-0" id="btn-scan-ms-source"
+                                    title="Scan QR">📷</button>
+                        </div>
+                        <label class="input-label">Destination Address</label>
+                        <div class="u-display-flex-gap-8px-align-start">
+                            <input type="text" id="input-ms-dest" class="input-text u-grow-mb-0"
+                                   placeholder="kaspa:..." autocomplete="off" spellcheck="false">
+                            <button class="btn btn-outline u-width-auto-padding-13px-16px-no-shrink-mt-0" id="btn-scan-ms-dest"
+                                    title="Scan QR">📷</button>
+                        </div>
+                        <label class="input-label">Amount (KAS)</label>
+                        <div class="u-display-flex-gap-8px-align-start">
+                            <input type="number" id="input-ms-amount" class="input-text u-grow-mb-0"
+                                   placeholder="0.0" step="0.00000001" min="0">
+                            <button class="btn btn-outline u-width-auto-padding-13px-16px-no-shrink-mt-0" id="btn-ms-max"
+                                   >Max</button>
+                        </div>
+                        <div id="ms-balance-info" class="send-balance-ref u-mt-8px"></div>
+                        <button class="btn btn-link u-text-12px-padding-4px-0-mb-8px-align-text-left" id="btn-toggle-ms-utxos">
+                            Select UTXOs manually ▸
+                        </button>
+                        <div id="ms-utxo-list" class="address-list hidden"></div>
+                        <button class="btn btn-primary u-mt-12px" id="btn-ms-create">
+                            Create Multisig TX
+                        </button>
+                        <button class="btn btn-back" id="btn-ms-back">Back</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Multisig descriptor management -->
+            <section id="screen-multisig-descriptors" class="screen">
+                <div class="screen-content">
+                    <h2>Multisig Descriptors</h2>
+                    <p class="subtitle">Save and reuse public multisig descriptors</p>
+                    <div class="card">
+                        <label class="input-label" for="input-ms-descriptor-name">Friendly Name</label>
+                        <input id="input-ms-descriptor-name" class="input-text" type="text" maxlength="64" placeholder="Example: Family multisig" autocomplete="off">
+                        <label class="input-label" for="input-ms-descriptor-saved">Descriptor</label>
+                        <textarea id="input-ms-descriptor-saved" class="input-text input-textarea" rows="4" placeholder="multi(...), multi_hd(...), or multi_hd45(...)" autocomplete="off" spellcheck="false"></textarea>
+                        <div class="multisig-descriptor-import-row">
+                            <button class="btn btn-outline" id="btn-ms-descriptor-scan-saved">📷 Scan QR</button>
+                            <button class="btn btn-outline" id="btn-ms-descriptor-upload-saved">Upload QR Image</button>
+                        </div>
+                        <input id="input-ms-descriptor-image-saved" type="file" accept="image/*" class="hidden">
+                        <button class="btn btn-primary u-mt-8px" id="btn-ms-descriptor-save">Save Descriptor</button>
+                        <div id="ms-descriptor-list" class="address-list u-mt-12px"></div>
+                        <button class="btn btn-back" id="btn-ms-descriptors-back">Back</button>
+                    </div>
+                </div>
+            </section>

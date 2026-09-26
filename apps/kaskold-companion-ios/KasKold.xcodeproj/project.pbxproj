@@ -1,0 +1,342 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		69A61C181E06569869C1522A /* KasKold/App/KasKoldApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7930E35C3639A2C92D1E63DD /* KasKold/App/KasKoldApp.swift */; };
+		96C164EE91F65E96567BA0BF /* KasKold/Features/Cover/Components/CitySearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07DE51D24D348CD3C776F5AA /* KasKold/Features/Cover/Components/CitySearchView.swift */; };
+		06A44F78C4CCF82AA60CBD81 /* KasKold/Features/Cover/Components/DecoyLaunchSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119CB24E00771173D7A5F896 /* KasKold/Features/Cover/Components/DecoyLaunchSettingsView.swift */; };
+		1D452908C755681776883C6A /* KasKold/Features/Cover/Components/WeatherCoverModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2805CE39B44AEC03FE974527 /* KasKold/Features/Cover/Components/WeatherCoverModel.swift */; };
+		F4F618072971C639A9922110 /* KasKold/Features/Cover/Components/WeatherCoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58FE75ADD9AA962192A4D3D8 /* KasKold/Features/Cover/Components/WeatherCoverView.swift */; };
+		96CCD92BCE33B19B6AF9DCD3 /* KasKold/Features/Cover/Components/WeatherModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14CB8B04EFA587BB970CD3B6 /* KasKold/Features/Cover/Components/WeatherModels.swift */; };
+		0489D2CB34D5CEF99B2C14F9 /* KasKold/Features/Cover/Components/WeatherSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B784584572BABA5A995CE15D /* KasKold/Features/Cover/Components/WeatherSettingsView.swift */; };
+		81EBC9712C6CADFCCD27E5FB /* KasKold/Features/Root/Components/RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8DDDC959813911A2E9FAC7E /* KasKold/Features/Root/Components/RootView.swift */; };
+		D80700000000000000000001 /* KasKold/Features/Root/Components/CompanionWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80700000000000000000011 /* KasKold/Features/Root/Components/CompanionWebView.swift */; };
+		D80700000000000000000002 /* KasKold/Features/Root/Components/CompanionLoopbackServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D80700000000000000000012 /* KasKold/Features/Root/Components/CompanionLoopbackServer.swift */; };
+		73DC789EB23D4E5C606FF99F /* KasKold/Features/Settings/SecuritySettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A39D116DA3FE151AE6EA24D1 /* KasKold/Features/Settings/SecuritySettingsView.swift */; };
+		F929FBF90A585860B8625DDC /* KasKold/Infrastructure/Persistence/AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FD3F5AB7F53E402B0C4A881 /* KasKold/Infrastructure/Persistence/AppPreferences.swift */; };
+		79D91B9F8E7874212CF132E9 /* KasKold/Infrastructure/Security/AppLockService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C54C7422CF4604344D691F /* KasKold/Infrastructure/Security/AppLockService.swift */; };
+		D6A544FA38465CB1A2FD75A2 /* Generated CompanionUI in Resources */ = {isa = PBXBuildFile; fileRef = 6397099E4CF65E1EA30FB542 /* Generated CompanionUI */; };
+		A50000000000000000000001 /* KasKold/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B50000000000000000000001 /* KasKold/Assets.xcassets */; };
+		A60000000000000000000001 /* KasKold/PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B60000000000000000000001 /* KasKold/PrivacyInfo.xcprivacy */; };
+		C10000000000000000000005 /* KasKoldAppTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000001 /* KasKoldAppTests.swift */; };
+		C10000000000000000000006 /* KasKoldUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10000000000000000000002 /* KasKoldUITests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		7930E35C3639A2C92D1E63DD /* KasKold/App/KasKoldApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKold/App/KasKoldApp.swift; sourceTree = "<group>"; };
+		07DE51D24D348CD3C776F5AA /* KasKold/Features/Cover/Components/CitySearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKold/Features/Cover/Components/CitySearchView.swift; sourceTree = "<group>"; };
+		119CB24E00771173D7A5F896 /* KasKold/Features/Cover/Components/DecoyLaunchSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKold/Features/Cover/Components/DecoyLaunchSettingsView.swift; sourceTree = "<group>"; };
+		2805CE39B44AEC03FE974527 /* KasKold/Features/Cover/Components/WeatherCoverModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKold/Features/Cover/Components/WeatherCoverModel.swift; sourceTree = "<group>"; };
+		58FE75ADD9AA962192A4D3D8 /* KasKold/Features/Cover/Components/WeatherCoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKold/Features/Cover/Components/WeatherCoverView.swift; sourceTree = "<group>"; };
+		14CB8B04EFA587BB970CD3B6 /* KasKold/Features/Cover/Components/WeatherModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKold/Features/Cover/Components/WeatherModels.swift; sourceTree = "<group>"; };
+		B784584572BABA5A995CE15D /* KasKold/Features/Cover/Components/WeatherSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKold/Features/Cover/Components/WeatherSettingsView.swift; sourceTree = "<group>"; };
+		C8DDDC959813911A2E9FAC7E /* KasKold/Features/Root/Components/RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKold/Features/Root/Components/RootView.swift; sourceTree = "<group>"; };
+		D80700000000000000000011 /* KasKold/Features/Root/Components/CompanionWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKold/Features/Root/Components/CompanionWebView.swift; sourceTree = "<group>"; };
+		D80700000000000000000012 /* KasKold/Features/Root/Components/CompanionLoopbackServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKold/Features/Root/Components/CompanionLoopbackServer.swift; sourceTree = "<group>"; };
+		A39D116DA3FE151AE6EA24D1 /* KasKold/Features/Settings/SecuritySettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKold/Features/Settings/SecuritySettingsView.swift; sourceTree = "<group>"; };
+		9FD3F5AB7F53E402B0C4A881 /* KasKold/Infrastructure/Persistence/AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKold/Infrastructure/Persistence/AppPreferences.swift; sourceTree = "<group>"; };
+		E7C54C7422CF4604344D691F /* KasKold/Infrastructure/Security/AppLockService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKold/Infrastructure/Security/AppLockService.swift; sourceTree = "<group>"; };
+		2E9D668BFA8F548D9470136C /* KasKold.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KasKold.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6397099E4CF65E1EA30FB542 /* Generated CompanionUI */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CompanionUI; path = ../../target/companion-runtime/ios/CompanionUI; sourceTree = "<group>"; };
+		B50000000000000000000001 /* KasKold/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = KasKold/Assets.xcassets; sourceTree = "<group>"; };
+		B60000000000000000000001 /* KasKold/PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = KasKold/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		C10000000000000000000001 /* KasKoldAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests/KasKoldAppTests/KasKoldAppTests.swift; sourceTree = "<group>"; };
+		C10000000000000000000002 /* KasKoldUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests/KasKoldUITests/KasKoldUITests.swift; sourceTree = "<group>"; };
+		C10000000000000000000003 /* KasKoldAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KasKoldAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C10000000000000000000004 /* KasKoldUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KasKoldUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D66D401460755D22B129D59F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C10000000000000000000009 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		C1000000000000000000000A /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A910BCA13E1B5F2FB1CE74D5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2E9D668BFA8F548D9470136C /* KasKold.app */,
+				C10000000000000000000003 /* KasKoldAppTests.xctest */,
+				C10000000000000000000004 /* KasKoldUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E269E802453A5921AE36517E = {
+			isa = PBXGroup;
+			children = (
+				C10000000000000000000001 /* KasKoldAppTests.swift */,
+				C10000000000000000000002 /* KasKoldUITests.swift */,
+				7930E35C3639A2C92D1E63DD /* KasKold/App/KasKoldApp.swift */,
+				07DE51D24D348CD3C776F5AA /* KasKold/Features/Cover/Components/CitySearchView.swift */,
+				119CB24E00771173D7A5F896 /* KasKold/Features/Cover/Components/DecoyLaunchSettingsView.swift */,
+				2805CE39B44AEC03FE974527 /* KasKold/Features/Cover/Components/WeatherCoverModel.swift */,
+				58FE75ADD9AA962192A4D3D8 /* KasKold/Features/Cover/Components/WeatherCoverView.swift */,
+				14CB8B04EFA587BB970CD3B6 /* KasKold/Features/Cover/Components/WeatherModels.swift */,
+				B784584572BABA5A995CE15D /* KasKold/Features/Cover/Components/WeatherSettingsView.swift */,
+				C8DDDC959813911A2E9FAC7E /* KasKold/Features/Root/Components/RootView.swift */,
+				D80700000000000000000011 /* KasKold/Features/Root/Components/CompanionWebView.swift */,
+				D80700000000000000000012 /* KasKold/Features/Root/Components/CompanionLoopbackServer.swift */,
+				A39D116DA3FE151AE6EA24D1 /* KasKold/Features/Settings/SecuritySettingsView.swift */,
+				9FD3F5AB7F53E402B0C4A881 /* KasKold/Infrastructure/Persistence/AppPreferences.swift */,
+				E7C54C7422CF4604344D691F /* KasKold/Infrastructure/Security/AppLockService.swift */,
+				6397099E4CF65E1EA30FB542 /* Generated CompanionUI */,
+				B50000000000000000000001 /* KasKold/Assets.xcassets */,
+				B60000000000000000000001 /* KasKold/PrivacyInfo.xcprivacy */,
+				A910BCA13E1B5F2FB1CE74D5 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXContainerItemProxy section */
+		C1000000000000000000000D /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 7A025726E1D052929F74E4AB /* Project object */; proxyType = 1; remoteGlobalIDString = BE1F5D545907559CB2F5BAEB; remoteInfo = KasKold; };
+		C1000000000000000000000E /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 7A025726E1D052929F74E4AB /* Project object */; proxyType = 1; remoteGlobalIDString = BE1F5D545907559CB2F5BAEB; remoteInfo = KasKold; };
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		C1000000000000000000000F /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = BE1F5D545907559CB2F5BAEB /* KasKold */; targetProxy = C1000000000000000000000D /* PBXContainerItemProxy */; };
+		C10000000000000000000010 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = BE1F5D545907559CB2F5BAEB /* KasKold */; targetProxy = C1000000000000000000000E /* PBXContainerItemProxy */; };
+/* End PBXTargetDependency section */
+
+/* Begin PBXNativeTarget section */
+		BE1F5D545907559CB2F5BAEB /* KasKold */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 65C31EA465495776A7289703 /* Build configuration list for PBXNativeTarget "KasKold" */;
+			buildPhases = (
+				F10000000000000000000001 /* Sync shared Companion runtime */,
+				6E6D9EA783085CCBBB6B74A8 /* Sources */,
+				D66D401460755D22B129D59F /* Frameworks */,
+				CAD5136F21EE5AC1B2D9942D /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KasKold;
+			productName = KasKold;
+			productReference = 2E9D668BFA8F548D9470136C /* KasKold.app */;
+			productType = "com.apple.product-type.application";
+		};
+		C1000000000000000000000B /* KasKoldAppTests */ = {isa = PBXNativeTarget; buildConfigurationList = C10000000000000000000015 /* Build configuration list for PBXNativeTarget "KasKoldAppTests" */; buildPhases = (C10000000000000000000007 /* Sources */, C10000000000000000000009 /* Frameworks */); buildRules = (); dependencies = (C1000000000000000000000F /* PBXTargetDependency */); name = KasKoldAppTests; productName = KasKoldAppTests; productReference = C10000000000000000000003 /* KasKoldAppTests.xctest */; productType = "com.apple.product-type.bundle.unit-test"; };
+		C1000000000000000000000C /* KasKoldUITests */ = {isa = PBXNativeTarget; buildConfigurationList = C10000000000000000000016 /* Build configuration list for PBXNativeTarget "KasKoldUITests" */; buildPhases = (C10000000000000000000008 /* Sources */, C1000000000000000000000A /* Frameworks */); buildRules = (); dependencies = (C10000000000000000000010 /* PBXTargetDependency */); name = KasKoldUITests; productName = KasKoldUITests; productReference = C10000000000000000000004 /* KasKoldUITests.xctest */; productType = "com.apple.product-type.bundle.ui-testing"; };
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		7A025726E1D052929F74E4AB /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					BE1F5D545907559CB2F5BAEB = { CreatedOnToolsVersion = 16.0; };
+					C1000000000000000000000B = { CreatedOnToolsVersion = 16.0; TestTargetID = BE1F5D545907559CB2F5BAEB; };
+					C1000000000000000000000C = { CreatedOnToolsVersion = 16.0; TestTargetID = BE1F5D545907559CB2F5BAEB; };
+				};
+			};
+			buildConfigurationList = EC6174CE49C7569F8F0D4C21 /* Build configuration list for PBXProject "KasKold" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = E269E802453A5921AE36517E;
+			productRefGroup = A910BCA13E1B5F2FB1CE74D5 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BE1F5D545907559CB2F5BAEB /* KasKold */,
+				C1000000000000000000000B /* KasKoldAppTests */,
+				C1000000000000000000000C /* KasKoldUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CAD5136F21EE5AC1B2D9942D /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D6A544FA38465CB1A2FD75A2 /* Generated CompanionUI in Resources */,
+				A50000000000000000000001 /* KasKold/Assets.xcassets in Resources */,
+				A60000000000000000000001 /* KasKold/PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		F10000000000000000000001 /* Sync shared Companion runtime */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = ();
+			inputPaths = ();
+			name = "Sync shared Companion runtime";
+			outputPaths = ();
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "if [[ \"${KASKOLD_IOS_RUNTIME_SYNCED:-0}\" == \"1\" ]]; then
+  echo \"KasKold iOS - shared Companion runtime already synchronized; skipping regeneration.\"
+else
+  python3 \"${SRCROOT}/../../tools/build/web/build_companion_runtime.py\" --mode release
+  python3 \"${SRCROOT}/../../tools/build/ios/sync_runtime.py\"
+fi
+";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		6E6D9EA783085CCBBB6B74A8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				69A61C181E06569869C1522A /* KasKold/App/KasKoldApp.swift in Sources */,
+				96C164EE91F65E96567BA0BF /* KasKold/Features/Cover/Components/CitySearchView.swift in Sources */,
+				06A44F78C4CCF82AA60CBD81 /* KasKold/Features/Cover/Components/DecoyLaunchSettingsView.swift in Sources */,
+				1D452908C755681776883C6A /* KasKold/Features/Cover/Components/WeatherCoverModel.swift in Sources */,
+				F4F618072971C639A9922110 /* KasKold/Features/Cover/Components/WeatherCoverView.swift in Sources */,
+				96CCD92BCE33B19B6AF9DCD3 /* KasKold/Features/Cover/Components/WeatherModels.swift in Sources */,
+				0489D2CB34D5CEF99B2C14F9 /* KasKold/Features/Cover/Components/WeatherSettingsView.swift in Sources */,
+				81EBC9712C6CADFCCD27E5FB /* KasKold/Features/Root/Components/RootView.swift in Sources */,
+				D80700000000000000000001 /* KasKold/Features/Root/Components/CompanionWebView.swift in Sources */,
+				D80700000000000000000002 /* KasKold/Features/Root/Components/CompanionLoopbackServer.swift in Sources */,
+				73DC789EB23D4E5C606FF99F /* KasKold/Features/Settings/SecuritySettingsView.swift in Sources */,
+				F929FBF90A585860B8625DDC /* KasKold/Infrastructure/Persistence/AppPreferences.swift in Sources */,
+				79D91B9F8E7874212CF132E9 /* KasKold/Infrastructure/Security/AppLockService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C10000000000000000000007 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (C10000000000000000000005 /* KasKoldAppTests.swift in Sources */,); runOnlyForDeploymentPostprocessing = 0; };
+		C10000000000000000000008 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (C10000000000000000000006 /* KasKoldUITests.swift in Sources */,); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		955FCF893AE85857A281101E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A7D44005E0A25767B4106761 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		B167C47E5CA0508B907D5DAB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ENABLE_TESTABILITY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 10;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = KasKold;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "KasKold uses the camera to scan watch-only wallet data and signed transaction QR codes from KasKold.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "KasKold uses Face ID to protect access to your watch-only wallet information.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.kaskold.KasKold;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		FFDA01A37DFC562DBB92FAEB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 10;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = KasKold;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "KasKold uses the camera to scan watch-only wallet data and signed transaction QR codes from KasKold.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "KasKold uses Face ID to protect access to your watch-only wallet information.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = org.kaskold.KasKold;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		C10000000000000000000011 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.6; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; BUNDLE_LOADER = "$(TEST_HOST)"; PRODUCT_BUNDLE_IDENTIFIER = org.kaskold.KasKoldAppTests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/KasKold.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KasKold"; }; name = Debug; };
+		C10000000000000000000012 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.6; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; BUNDLE_LOADER = "$(TEST_HOST)"; PRODUCT_BUNDLE_IDENTIFIER = org.kaskold.KasKoldAppTests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/KasKold.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/KasKold"; }; name = Release; };
+		C10000000000000000000013 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.6; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; PRODUCT_BUNDLE_IDENTIFIER = org.kaskold.KasKoldUITests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_TARGET_NAME = KasKold; }; name = Debug; };
+		C10000000000000000000014 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.6; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; PRODUCT_BUNDLE_IDENTIFIER = org.kaskold.KasKoldUITests; PRODUCT_NAME = "$(TARGET_NAME)"; TEST_TARGET_NAME = KasKold; }; name = Release; };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		65C31EA465495776A7289703 /* Build configuration list for PBXNativeTarget "KasKold" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B167C47E5CA0508B907D5DAB /* Debug */,
+				FFDA01A37DFC562DBB92FAEB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EC6174CE49C7569F8F0D4C21 /* Build configuration list for PBXProject "KasKold" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				955FCF893AE85857A281101E /* Debug */,
+				A7D44005E0A25767B4106761 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C10000000000000000000015 /* Build configuration list for PBXNativeTarget "KasKoldAppTests" */ = {isa = XCConfigurationList; buildConfigurations = (C10000000000000000000011 /* Debug */, C10000000000000000000012 /* Release */,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		C10000000000000000000016 /* Build configuration list for PBXNativeTarget "KasKoldUITests" */ = {isa = XCConfigurationList; buildConfigurations = (C10000000000000000000013 /* Debug */, C10000000000000000000014 /* Release */,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+	};
+	rootObject = 7A025726E1D052929F74E4AB /* Project object */;
+}

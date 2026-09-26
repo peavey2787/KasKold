@@ -1,0 +1,26 @@
+            <!-- Companion startup / wallet management -->
+            <section id="screen-welcome" class="screen active">
+                <div class="screen-content">
+                    <h2>KasKold Companion</h2>
+                    <div class="card">
+                        <p class="welcome-import-prompt">Load a <strong>wallet</strong> from KasKold Hardware or Vault to start.</p>
+                        <p id="companion-startup-status" class="welcome-startup-status" role="status" aria-live="polite">
+                            Initializing the Companion watch-only engine…
+                        </p>
+                        <div id="welcome-saved-kpubs" class="welcome-saved-kpubs hidden">
+                            <p class="welcome-saved-kpubs-label">Saved wallets</p>
+                            <div id="welcome-kpub-list" class="welcome-kpub-list" role="list"></div>
+                        </div>
+                        <div class="welcome-import-actions">
+                            <button class="btn btn-primary" id="btn-scan-kpub">Manage Wallets</button>
+                        </div>
+                        <hr class="welcome-tools-separator" aria-hidden="true">
+                        <button class="btn btn-outline" id="btn-broadcast-welcome">
+                            Broadcast TX
+                        </button>
+                        <button class="btn btn-outline u-text-13px" id="btn-multisig-welcome">
+                            Multisig
+                        </button>
+                    </div>
+                </div>
+            </section>

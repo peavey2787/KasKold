@@ -1,0 +1,36 @@
+            <!-- Broadcast screen -->
+            <section id="screen-broadcast" class="screen">
+                <div class="screen-content">
+                    <h2>Broadcast Transaction</h2>
+                    <p class="subtitle" id="broadcast-instruction">Scan or import the signed QR response from KasKold</p>
+                    <div class="card">
+                        <button class="btn btn-primary" id="btn-scan-signed">
+                            Scan Signed KasKold QR
+                        </button>
+                        <button class="btn btn-secondary u-mt-8px" id="btn-load-signed-qr-image">
+                            Upload Signed QR Image
+                        </button>
+                        <input id="input-signed-qr-image" type="file" accept="image/*" multiple class="hidden">
+                        <div id="broadcast-image-status" class="scanner-status" aria-live="polite"></div>
+                        <div class="divider">or paste QR Frame Hex</div>
+                        <label class="input-label" for="input-signed-frame-hex">QR Frame Hex</label>
+                        <textarea id="input-signed-frame-hex" class="input-text input-textarea"
+                                  placeholder="Paste one or more QR Frame Hex values — one per line; accepted automatically, or press Enter..." rows="4" autocomplete="off" spellcheck="false"></textarea>
+                        <div id="broadcast-frame-status" class="scanner-status" aria-live="polite"></div>
+                        <textarea id="input-signed-hex" class="input-text input-textarea u-hidden"
+                                  placeholder="Paste signed KSPT hex..." rows="4"></textarea>
+                        <button class="btn btn-secondary u-hidden u-mt-8px" id="btn-broadcast-hex">
+                            Broadcast
+                        </button>
+                        <button class="btn btn-back broadcast-back" id="btn-broadcast-back">Back</button>
+                    </div>
+                    <div id="broadcast-result" class="result-card hidden">
+                        <div id="broadcast-result-icon" class="result-icon"></div>
+                        <div id="broadcast-result-msg" class="result-msg"></div>
+                        <div id="broadcast-result-txid" class="tx-id"></div>
+                        <button class="btn btn-link" id="btn-copy-txid">Copy TX ID</button>
+                        <a class="btn btn-link hidden" id="link-view-explorer" href="#" target="_blank" rel="noopener noreferrer">View on Explorer</a>
+                        <button class="btn btn-secondary u-mt-12px" id="btn-broadcast-done">Back to Dashboard</button>
+                    </div>
+                </div>
+            </section>

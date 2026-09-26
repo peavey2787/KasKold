@@ -1,0 +1,127 @@
+/* ─── Cards ─── */
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    margin-top: 16px;
+}
+
+.balance-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    text-align: center;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.balance-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--teal), transparent);
+}
+
+.balance-label {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text-dim);
+    text-transform: none;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+}
+
+.balance-value-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.balance-amount {
+    min-width: 0;
+    font-family: var(--mono);
+    font-size: clamp(24px, 8vw, 32px);
+    font-weight: 700;
+    color: var(--teal);
+    letter-spacing: -0.5px;
+    text-shadow: 0 0 30px var(--teal-glow);
+    overflow-wrap: anywhere;
+}
+
+.balance-unit-toggle {
+    padding: 2px 3px;
+    border: 0;
+    border-bottom: 1px dashed rgba(73, 234, 203, 0.45);
+    background: transparent;
+    color: var(--teal);
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    opacity: 0.9;
+    transition: opacity var(--transition), border-color var(--transition), transform var(--transition);
+}
+
+.balance-unit-toggle:hover,
+.balance-unit-toggle:focus-visible {
+    opacity: 1;
+    border-bottom-color: var(--teal);
+    transform: translateY(-1px);
+}
+
+.balance-info {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 10px;
+}
+
+.balance-refresh-button {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 38px;
+    height: 38px;
+    margin: 0;
+    padding: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: color var(--transition), border-color var(--transition), background var(--transition), transform var(--transition);
+}
+
+.balance-refresh-button svg {
+    width: 21px;
+    height: 21px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.balance-refresh-button:hover,
+.balance-refresh-button:focus-visible {
+    color: var(--teal);
+    border-color: var(--teal);
+    background: var(--teal-glow);
+    outline: none;
+}
+
+.balance-refresh-button:active {
+    transform: rotate(24deg) scale(0.96);
+}

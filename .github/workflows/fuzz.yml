@@ -1,0 +1,31 @@
+name: fuzz
+
+on:
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - 'qa/fuzz/**'
+      - 'qa/linux/run-security-fuzz.sh'
+      - 'scripts/linux/quality/security-fuzz.sh'
+      - 'qa/checks/security/fuzz_*.py'
+      - 'qa/config/toolchains.env'
+
+jobs:
+  bounded-security-fuzz:
+    name: Bounded security fuzz (nightly/manual/harness changes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v6
+      - name: Bounded registered fuzz targets
+        shell: bash
+        run: FUZZ_SECONDS=300 bash scripts/linux/quality/security-fuzz.sh
+      - name: Upload fuzz evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: security-fuzz
+          path: target/qa/fuzz
+          if-no-files-found: warn

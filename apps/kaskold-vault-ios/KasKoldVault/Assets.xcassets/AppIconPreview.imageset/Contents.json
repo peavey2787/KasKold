@@ -1,0 +1,8 @@
+{
+  "images" : [
+    { "filename" : "kaskold-vault-preview.png", "idiom" : "universal", "scale" : "1x" },
+    { "filename" : "kaskold-vault-preview.png", "idiom" : "universal", "scale" : "2x" },
+    { "filename" : "kaskold-vault-preview.png", "idiom" : "universal", "scale" : "3x" }
+  ],
+  "info" : { "author" : "xcode", "version" : 1 }
+}

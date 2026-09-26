@@ -1,0 +1,47 @@
+# Security-critical mutation profile. The runner enforces the score gate.
+test_workspace = true
+minimum_test_timeout = 60
+additional_cargo_args = ["--locked"]
+output = "target/qa/mutation"
+examine_globs = [
+  "crates/shared-signer/src/account_key.rs",
+  "crates/shared-signer/src/covenant_branch.rs",
+  "crates/kaskold-protocol/src/account/address.rs",
+  "crates/kaskold-protocol/src/pskt/**/*.rs",
+  "crates/kaskold-protocol/src/wire/kspt/**/*.rs",
+  "crates/kaskold-protocol/src/wire/pskt_schema.rs",
+  "crates/vault-runtime/src/**/*.rs",
+  "crates/hot-wallet/src/**/*.rs",
+  "crates/shared-signer/src/anti_klepto.rs",
+  "crates/kaskold-hardware-core/src/entropy/**/*.rs",
+  "crates/kaskold-hardware-core/src/security.rs",
+  "crates/kaskold-hardware-core/src/security/**/*.rs",
+  "crates/shared-signer/src/bytes.rs",
+  "crates/shared-signer/src/legacy_account_key.rs",
+  "crates/shared-signer/src/qr_frame.rs",
+  "crates/shared-signer/src/security.rs",
+  "crates/kaskold-protocol/src/wire/multisig_descriptor.rs",
+  "crates/offline-signer/src/crypto/**/*.rs",
+  "crates/offline-signer/src/derivation/**/*.rs",
+  "crates/offline-signer/src/transaction/kspt/**/*.rs",
+  "crates/offline-signer/src/transaction/std_pskt/**/*.rs",
+  "crates/offline-signer/src/transaction/sighash/**/*.rs",
+  "crates/offline-signer/src/transaction/signature_verification.rs",
+  "crates/offline-signer/src/transaction/kspt/signing/covenant.rs",
+  "crates/shared-signer/src/covenant_branch.rs",
+  "crates/online-watcher/src/protocol/**/*.rs",
+  "crates/online-watcher/src/protocol/pskt/consensus/finalizer.rs",
+  "crates/online-watcher/src/protocol/transaction/signed_kspt.rs",
+  "crates/online-watcher/src/protocol/pskt/kspt_bridge/parser_compact.rs",
+  "crates/online-watcher/src/multisig/redeem_script.rs",
+  "crates/online-watcher/src/privacy/stealth/derivation.rs",
+  "crates/online-watcher/src/contracts/zk/proof.rs",
+  "crates/online-watcher/src/contracts/zk/crowdfund.rs",
+  "crates/online-watcher/src/transaction_builder/**/*.rs",
+]
+exclude_globs = [
+  "**/unit_tests/**",
+  "**/tests/**",
+  "**/bip39_wordlist.rs",
+]
+exclude_re = ["impl Debug", "fmt\\(", "message\\("]

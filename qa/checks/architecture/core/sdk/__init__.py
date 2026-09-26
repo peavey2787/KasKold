@@ -1,0 +1,1 @@
+"""KasKold SDK architecture checks."""

@@ -1,0 +1,31 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/kaskold-protocol",
+    "crates/kaskold-sdk",
+    "crates/offline-signer",
+    "crates/online-watcher",
+    "crates/shared-signer",
+    "crates/kaskold-hardware-core",
+    "crates/hot-wallet",
+    "crates/vault-runtime",
+]
+exclude = [
+    "apps/kaskold-hardware",
+    "apps/kaskold-companion-web",
+    "apps/kaskold-vault-web",
+    "tools",
+    "qa",
+    "qa/fuzz",
+    "external/rqrr-nostd",
+]
+
+[profile.dev]
+opt-level = "s"
+overflow-checks = true
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+overflow-checks = true

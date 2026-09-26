@@ -1,0 +1,27 @@
+            <!-- Receive screen (show address) -->
+            <section id="screen-receive" class="screen">
+                <div class="screen-content">
+                    <h2>Receive KAS</h2>
+                    <div class="card">
+                        <div id="receive-qr" class="qr-container"></div>
+                        <div id="receive-address" class="address-display"></div>
+                        <button class="btn btn-secondary" id="btn-copy-address">
+                            Copy Address
+                        </button>
+                        <button class="btn btn-outline u-mt-8px" id="btn-receive-advanced" aria-expanded="false">
+                            Advanced ▸
+                        </button>
+                        <div id="receive-advanced-panel" class="hidden u-mt-12px">
+                            <label class="input-label" for="receive-chain">Address Type</label>
+                            <select id="receive-chain" class="input-text">
+                                <option value="receive">Receive</option>
+                                <option value="change">Change</option>
+                            </select>
+                            <label class="input-label" for="receive-index">Address Index</label>
+                            <input id="receive-index" class="input-text" type="number" min="0" max="999" step="1" value="0" inputmode="numeric">
+                            <button class="btn btn-secondary u-mt-8px" id="btn-receive-apply">Show Address</button>
+                        </div>
+                        <button class="btn btn-back" id="btn-receive-back">Back</button>
+                    </div>
+                </div>
+            </section>

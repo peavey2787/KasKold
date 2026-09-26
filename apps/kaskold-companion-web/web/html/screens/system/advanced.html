@@ -1,0 +1,28 @@
+            <section id="screen-advanced" class="screen">
+                <div class="screen-content">
+                    <h2>Advanced</h2>
+                    <button class="btn btn-back" id="btn-advanced-back">Back</button>
+                    <div class="card advanced-menu-list">
+                        <button class="btn btn-outline" id="btn-broadcast">Broadcast Transaction</button>
+                        <button class="btn btn-outline" id="btn-covenant">Covenant++</button>
+                        <button class="btn btn-outline" id="btn-view-kpub">View kpub</button>
+                        <button class="btn btn-outline" id="btn-advanced-addresses">Addresses</button>
+                        <button class="btn btn-outline" id="btn-stealth">Stealth Addresses</button>
+                        <button class="btn btn-outline" id="btn-advanced-utxos">UTXOs</button>
+                    </div>
+                </div>
+            </section>
+
+
+            <section id="screen-view-kpub" class="screen">
+                <div class="screen-content">
+                    <h2>View kpub</h2>
+                    <div class="card">
+                        <p class="utxo-detail">This is the public watch-only account key for the currently loaded wallet. It contains no private keys.</p>
+                        <div id="view-kpub-qr" class="qr-container"></div>
+                        <div id="view-kpub-text" class="kpub-entry-key selectable"></div>
+                        <button class="btn btn-outline" id="btn-copy-view-kpub">Copy kpub</button>
+                        <button class="btn btn-back" id="btn-view-kpub-back">Back</button>
+                    </div>
+                </div>
+            </section>

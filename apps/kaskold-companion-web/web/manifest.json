@@ -1,0 +1,17 @@
+{
+    "name": "Companion — KasKold Companion",
+    "short_name": "Companion",
+    "description": "Watch-only wallet companion for KasKold air-gapped signing device. Pure Rust/WASM. Zero install.",
+    "start_url": "./",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#080c12",
+    "theme_color": "#080c12",
+    "icons": [
+        {
+            "src": "favicon.ico",
+            "sizes": "16x16 32x32 48x48 64x64 128x128 256x256",
+            "type": "image/x-icon"
+        }
+    ]
+}

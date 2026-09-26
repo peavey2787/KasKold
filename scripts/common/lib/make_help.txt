@@ -1,0 +1,49 @@
+KasKold developer commands
+
+WEB APPS / SDK
+  make companion                   — build strictly watch-only KasKold Companion Web + WASM runtime
+  make vault-web                   — build separate KasKold Vault Web signer + vault-runtime WASM
+  make sdk                         — build standalone @kaskold/sdk WASM package into target/sdk/kaskold-sdk/pkg
+
+IOS PRODUCT FAMILY
+  make ios                         — build Companion + Vault Debug apps (macOS/Xcode required)
+  make ios-vault                   — build only the Vault Debug app (macOS/Xcode required)
+  make ios-release                 — archive Companion + Vault; device distribution requires local Apple signing team
+  make ios-test                    — run Companion XCTest/XCUITest + build-validate Vault on the selected simulator
+  make ios-qa                      — iOS product-family architecture/CRAP/instrumentation/mutation QA
+
+ANDROID PRODUCT FAMILY
+  make android                     — build Companion + Vault API-37 Debug apps; bootstraps the pinned SDK platform/build-tools when missing
+  make android-vault               — build only the Vault API-37 Debug app
+  make android-release             — build Companion + Vault optimized Release apps; signing is publisher-controlled
+  make android-test                — run Companion + Vault Debug unit tests
+  make android-qa                  — Android product-family architecture/CRAP/instrumentation/mutation QA
+
+FIRMWARE / DEVICE
+  make firmware [BOARD=m5stack|m5stack-lite]                         — build development firmware; BOARD defaults to m5stack
+  make flash [BOARD=m5stack|m5stack-lite] [PORT=/dev/ttyACM0]       — build development firmware, flash, and monitor; PORT auto-detects
+  make flash-release [BOARD=m5stack] [PORT=...] [RELEASE_DIR=release] — flash a qualified CoreS3 signed merged normal-release image only; never builds/provisions/falls back unsigned
+  make secure-provisioning SECURE_BOOT_KEY=/secure/vendor-rsa.pem SIGNING_KEY=/secure/vendor-schnorr.key [SECURE_DIR=...] — build the non-flashing CoreS3 vendor+optional-owner provisioning profile
+  make secure-owner-only OWNER_KEY=/secure/owner-rsa.pem [SECURE_DIR=...] — build the non-flashing CoreS3 sole-owner provisioning profile; no vendor authority
+  make test-hardware [BOARD=m5stack|m5stack-lite] [PORT=...]      — physical registered hardware tests; CoreS3 Lite remains qualification-pending
+  make workflow-e2e [BOARD=m5stack|m5stack-lite] [PORT=...]       — connected physical workflow E2E; CoreS3 Lite remains qualification-pending
+  make workflow-hil [BOARD=m5stack] [PORT=...]                    — physical/destructive workflow HIL only
+  make firmware-qemu-setup                                        — install QEMU prerequisites
+  make firmware-qemu                                              — build the ESP32-S3 QEMU image
+  make firmware-qemu-test                                         — build and run QEMU tests
+  make owner-firmware OWNER_KEY=/secure/path/owner.pem             — build OWNERKEY.KAS + owner-signed CoreS3 OWNERFW.BIN; private key stays outside repository
+
+COMMON QA
+  make test                       — fast host/browser contributor suite; no Android, iOS/Xcode, physical-device, or HIL tests
+  make qa [RESUME_FROM=STEP]      — repository/Web/firmware QA only; Android/iOS are excluded and live under make android-qa / make ios-qa; RESUME_FROM reruns STEP then later shared-QA steps
+
+RELEASE
+  make release [SIGNING_KEY=...] [RELEASE_DIR=...]                — build normal non-destructive production artifacts; SIGNING_KEY emits signed images; no provisioning UI
+  make release-readiness                                         — validate operator-supplied source/artifact-bound signed release evidence; requires the bindings documented in qa/release/README.md
+
+RECOMMENDED RELEASE WORKFLOW
+  make test -> make qa -> make android-qa -> make ios-qa -> make test-hardware -> make workflow-e2e -> make workflow-hil -> make release -> make release-readiness
+
+OTHER
+  make clean
+  make help

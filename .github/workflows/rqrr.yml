@@ -1,0 +1,45 @@
+# KasKold: dedicated no_std QR decoder CI.
+#
+# rqrr remains an independent workspace, matching its original upstream
+# ownership while living under external/rqrr-nostd/ after the repository move.
+name: rqrr CI
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "external/rqrr-nostd/**"
+      - "qa/config/toolchains.env"
+      - ".github/workflows/rqrr.yml"
+  pull_request:
+    paths:
+      - "external/rqrr-nostd/**"
+      - "qa/config/toolchains.env"
+      - ".github/workflows/rqrr.yml"
+
+jobs:
+  test:
+    name: Build, test, and Clippy
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: external/rqrr-nostd
+    steps:
+      - uses: actions/checkout@v6
+      - name: Export pinned toolchain policy
+        shell: bash
+        working-directory: .
+        run: grep -E '^[A-Za-z_][A-Za-z0-9_]*=' qa/config/toolchains.env >> "$GITHUB_ENV"
+      - name: Install pinned stable Rust and Clippy
+        shell: bash
+        working-directory: .
+        run: rustup toolchain install "$KASKOLD_STABLE_RUST" --profile minimal --component clippy
+      - name: Build (release, as firmware consumes it)
+        shell: bash
+        run: rustup run "$KASKOLD_STABLE_RUST" cargo build --release --locked
+      - name: Tests (dev profile keeps overflow checks enabled)
+        shell: bash
+        run: rustup run "$KASKOLD_STABLE_RUST" cargo test --all-features --locked
+      - name: Clippy
+        shell: bash
+        run: rustup run "$KASKOLD_STABLE_RUST" cargo clippy --all-targets --all-features --locked -- -D warnings -A unknown_lints

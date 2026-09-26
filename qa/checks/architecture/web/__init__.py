@@ -1,0 +1,1 @@
+"""Companion web architecture checks."""

@@ -1,0 +1,95 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* KasKoldVaultApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* KasKoldVaultApp.swift */; };
+		A10000000000000000000002 /* VaultHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* VaultHomeView.swift */; };
+		A10000000000000000000003 /* VaultBlobStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* VaultBlobStore.swift */; };
+		A10000000000000000000006 /* VaultViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000007 /* VaultViewModel.swift */; };
+		A10000000000000000000007 /* VaultViewModel+Workflows.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008 /* VaultViewModel+Workflows.swift */; };
+		A10000000000000000000008 /* VaultWorkflowSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* VaultWorkflowSupport.swift */; };
+		A10000000000000000000009 /* QRScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* QRScanner.swift */; };
+		A1000000000000000000000A /* VaultRuntimeBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000B /* VaultRuntimeBridge.swift */; };
+		A1000000000000000000000B /* CreationFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000C /* CreationFlowView.swift */; };
+		A1000000000000000000000C /* VaultViewModel+Creation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000D /* VaultViewModel+Creation.swift */; };
+		A10000000000000000000004 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000004 /* Assets.xcassets */; };
+		A10000000000000000000005 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* PrivacyInfo.xcprivacy */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B10000000000000000000001 /* KasKoldVaultApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKoldVault/App/KasKoldVaultApp.swift; sourceTree = "<group>"; };
+		B10000000000000000000002 /* VaultHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKoldVault/Features/VaultHomeView.swift; sourceTree = "<group>"; };
+		B10000000000000000000003 /* VaultBlobStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKoldVault/Infrastructure/Security/VaultBlobStore.swift; sourceTree = "<group>"; };
+		B10000000000000000000004 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = KasKoldVault/Assets.xcassets; sourceTree = "<group>"; };
+		B10000000000000000000005 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = KasKoldVault/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B10000000000000000000006 /* KasKoldVault.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KasKoldVault.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000007 /* VaultViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKoldVault/Features/VaultViewModel.swift; sourceTree = "<group>"; };
+		B10000000000000000000008 /* VaultViewModel+Workflows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KasKoldVault/Features/VaultViewModel+Workflows.swift"; sourceTree = "<group>"; };
+		B10000000000000000000009 /* VaultWorkflowSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKoldVault/Features/VaultWorkflowSupport.swift; sourceTree = "<group>"; };
+		B1000000000000000000000A /* QRScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKoldVault/Features/QRScanner.swift; sourceTree = "<group>"; };
+		B1000000000000000000000B /* VaultRuntimeBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKoldVault/Infrastructure/Runtime/VaultRuntimeBridge.swift; sourceTree = "<group>"; };
+		B1000000000000000000000C /* CreationFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KasKoldVault/Features/CreationFlowView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000D /* VaultViewModel+Creation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KasKoldVault/Features/VaultViewModel+Creation.swift"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C10000000000000000000001 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D10000000000000000000001 = {isa = PBXGroup; children = (
+			B10000000000000000000001,
+			B10000000000000000000002,
+			B10000000000000000000003,
+			B10000000000000000000007,
+			B10000000000000000000008,
+			B10000000000000000000009,
+			B1000000000000000000000A,
+			B1000000000000000000000B,
+			B1000000000000000000000C,
+			B1000000000000000000000D,
+			B10000000000000000000004,
+			B10000000000000000000005,
+			D10000000000000000000002,
+		); sourceTree = "<group>"; };
+		D10000000000000000000002 /* Products */ = {isa = PBXGroup; children = (B10000000000000000000006,); name = Products; sourceTree = "<group>"; };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E10000000000000000000001 /* KasKoldVault */ = {isa = PBXNativeTarget; buildConfigurationList = F10000000000000000000001; buildPhases = (C10000000000000000000004, C10000000000000000000002, C10000000000000000000001, C10000000000000000000003); buildRules = (); dependencies = (); name = KasKoldVault; productName = KasKoldVault; productReference = B10000000000000000000006; productType = "com.apple.product-type.application"; };
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E10000000000000000000002 /* Project object */ = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = 1; LastSwiftUpdateCheck = 1600; LastUpgradeCheck = 1600; TargetAttributes = {E10000000000000000000001 = {CreatedOnToolsVersion = 16.0;};};}; buildConfigurationList = F10000000000000000000002; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = D10000000000000000000001; productRefGroup = D10000000000000000000002; projectDirPath = ""; projectRoot = ""; targets = (E10000000000000000000001,); };
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C10000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000004, A10000000000000000000005); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		C10000000000000000000004 /* Build Rust Vault Runtime */ = {isa = PBXShellScriptBuildPhase; buildActionMask = 2147483647; files = (); inputPaths = ("$(SRCROOT)/../../Cargo.toml", "$(SRCROOT)/../../Cargo.lock",); name = "Build Rust Vault Runtime"; outputPaths = ("$(DERIVED_FILE_DIR)/libvault_runtime.a",); runOnlyForDeploymentPostprocessing = 0; shellPath = /bin/bash; shellScript = "\"${SRCROOT}/scripts/build-vault-runtime.sh\" \"${PLATFORM_NAME}\" \"${NATIVE_ARCH_ACTUAL:-${CURRENT_ARCH}}\" \"${DERIVED_FILE_DIR}\"\n"; };
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C10000000000000000000002 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001, A10000000000000000000002, A10000000000000000000003, A10000000000000000000006, A10000000000000000000007, A10000000000000000000008, A10000000000000000000009, A1000000000000000000000A, A1000000000000000000000B, A1000000000000000000000C); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		F20000000000000000000001 /* Debug project */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; SWIFT_VERSION = 5.0;}; name = Debug; };
+		F20000000000000000000002 /* Release project */ = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_VERSION = 5.0;}; name = Release; };
+		F20000000000000000000003 /* Debug target */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "KasKold Vault"; INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO; INFOPLIST_KEY_NSCameraUsageDescription = "KasKold Vault uses the camera only to scan offline signing request QR codes."; INFOPLIST_KEY_NSFaceIDUsageDescription = "KasKold Vault uses Face ID only to reauthenticate before unlocking saved private key custody."; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UILaunchScreen_Generation = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; LIBRARY_SEARCH_PATHS = "$(DERIVED_FILE_DIR)"; OTHER_LDFLAGS = "-lvault_runtime"; MARKETING_VERSION = 2.0.0; PRODUCT_BUNDLE_IDENTIFIER = com.kaskold.vault; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1;}; name = Debug; };
+		F20000000000000000000004 /* Release target */ = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon; CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "KasKold Vault"; INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO; INFOPLIST_KEY_NSCameraUsageDescription = "KasKold Vault uses the camera only to scan offline signing request QR codes."; INFOPLIST_KEY_NSFaceIDUsageDescription = "KasKold Vault uses Face ID only to reauthenticate before unlocking saved private key custody."; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UILaunchScreen_Generation = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; LIBRARY_SEARCH_PATHS = "$(DERIVED_FILE_DIR)"; OTHER_LDFLAGS = "-lvault_runtime"; MARKETING_VERSION = 2.0.0; PRODUCT_BUNDLE_IDENTIFIER = com.kaskold.vault; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1;}; name = Release; };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F10000000000000000000001 = {isa = XCConfigurationList; buildConfigurations = (F20000000000000000000003, F20000000000000000000004); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		F10000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (F20000000000000000000001, F20000000000000000000002); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+	};
+	rootObject = E10000000000000000000002 /* Project object */;
+}

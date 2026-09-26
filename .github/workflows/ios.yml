@@ -1,0 +1,58 @@
+name: ios
+
+on:
+  push:
+    paths:
+      - 'apps/kaskold-companion-ios/**'
+      - 'apps/kaskold-vault-ios/**'
+      - 'apps/kaskold-companion-web/**'
+      - 'crates/hot-wallet/**'
+      - 'crates/vault-runtime/**'
+      - 'crates/offline-signer/**'
+      - 'crates/shared-signer/**'
+      - 'crates/online-watcher/**'
+      - 'crates/kaskold-protocol/**'
+      - 'crates/kaskold-sdk/**'
+      - 'qa/config/toolchains.env'
+      - 'scripts/mac/build/ios-build.sh'
+      - 'scripts/mac/build/ios-runtime-sync.sh'
+      - 'tools/build/web/**'
+      - 'tools/build/ios/**'
+      - '.github/workflows/ios.yml'
+  pull_request:
+    paths:
+      - 'apps/kaskold-companion-ios/**'
+      - 'apps/kaskold-vault-ios/**'
+      - 'apps/kaskold-companion-web/**'
+      - 'crates/hot-wallet/**'
+      - 'crates/vault-runtime/**'
+      - 'crates/offline-signer/**'
+      - 'crates/shared-signer/**'
+      - 'crates/online-watcher/**'
+      - 'crates/kaskold-protocol/**'
+      - 'crates/kaskold-sdk/**'
+      - 'qa/config/toolchains.env'
+      - 'scripts/mac/build/ios-build.sh'
+      - 'scripts/mac/build/ios-runtime-sync.sh'
+      - 'tools/build/web/**'
+      - 'tools/build/ios/**'
+      - '.github/workflows/ios.yml'
+
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Export pinned toolchain policy
+        shell: bash
+        run: grep -E '^[A-Za-z_][A-Za-z0-9_]*=' qa/config/toolchains.env >> "$GITHUB_ENV"
+      - name: Install pinned stable Rust and iOS targets
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rustup toolchain install "$KASKOLD_STABLE_RUST" --profile minimal
+          rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios --toolchain "$KASKOLD_STABLE_RUST"
+      - name: iOS tests
+        run: make ios-test

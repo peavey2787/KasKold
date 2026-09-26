@@ -1,0 +1,4 @@
+/* Mobile safe-area behavior shared by the Companion shell. */
+@supports (padding-top: env(safe-area-inset-top)) {
+    header { padding-top: calc(14px + env(safe-area-inset-top)); }
+}

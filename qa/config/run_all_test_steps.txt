@@ -1,0 +1,21 @@
+# Stable step IDs included by public `make test` / `run-all --profile test`.
+# Generated from the contiguous `test` block of qa/config/run_all_steps.tsv; keep these in sync.
+preflight.cargo-resolution
+preflight.repository-lockfiles
+preflight.companion-build
+preflight.vault-web-build
+unit.shared-signer
+unit.kaskold-hardware-core
+unit.offline-signer
+unit.online-watcher
+unit.kaskold-companion-web
+unit.kaskold-vault-web
+unit.signer-firmware
+unit.external-rqrr
+unit.tools
+integration.shared-signer-conformance
+integration.repository-layout
+integration.offline-signer-firmware-signing
+integration.online-watcher-source
+integration.kaskold-companion-web-generated
+integration.kaskold-companion-web-browser

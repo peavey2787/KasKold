@@ -1,0 +1,59 @@
+# KasKold — Air-gapped offline signing device for Kaspa
+# Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
+# License: GPL-3.0
+#
+# Frozen toolchain base image assembled only from host-prefetched, SHA-256
+# inventoried inputs. The caller must build this Dockerfile with
+# --network=none. No Dockerfile instruction downloads anything.
+FROM kaskold-ubuntu-rootfs:v1
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV HOME=/root
+SHELL ["/bin/bash", "-c"]
+
+# The generated build context contains only inputs that were acquired on the
+# host before Docker starts and inventoried in BUILD-INPUT-SHA256SUMS.
+COPY . /opt/kaskold/input/
+
+RUN cd /opt/kaskold/input && sha256sum -c BUILD-INPUT-SHA256SUMS
+# The .debs were acquired from the pinned Ubuntu snapshot during host
+# prefetch and are authenticated here by the SHA-256 inventory.  The host also
+# emits a deterministic Packages index for exactly that closure.  Docker APT
+# sees only this file:// repository; Docker networking is disabled by the
+# caller, so no package can come from an external repository.
+RUN cd /opt/kaskold/input && sha256sum -c DEBS-SHA256SUMS && \
+    rm -rf /tmp/kaskold-apt-lists && mkdir -p /tmp/kaskold-apt-lists/partial && \
+    apt-get \
+      -o Dir::Etc::sourcelist=/opt/kaskold/input/apt-state/sources.container.list \
+      -o Dir::Etc::sourceparts=- \
+      -o Dir::State::lists=/tmp/kaskold-apt-lists \
+      -o Acquire::Languages=none \
+      update && \
+    apt-get \
+      -o Dir::Etc::sourcelist=/opt/kaskold/input/apt-state/sources.container.list \
+      -o Dir::Etc::sourceparts=- \
+      -o Dir::State::lists=/tmp/kaskold-apt-lists \
+      -o Acquire::Languages=none \
+      install -y --no-install-recommends /opt/kaskold/input/debs/*.deb && \
+    dpkg --audit && \
+    rm -rf /tmp/kaskold-apt-lists /var/lib/apt/lists/*
+
+COPY qa/config/toolchains.env /etc/kaskold/toolchains.env
+RUN cp -a /opt/kaskold/input/root-home/. /root/ && \
+    cd /root && sha256sum -c /opt/kaskold/input/TOOLCHAIN-SHA256SUMS
+
+ENV PATH="/root/.cargo/bin:/root/.rustup/toolchains/esp/bin:${PATH}"
+ENV CARGO_NET_OFFLINE=true
+
+# espflash is compiled inside the Docker toolchain image, but exclusively from
+# the Cargo cache populated during the host prefetch phase.
+RUN source /etc/kaskold/toolchains.env && \
+    cargo "+$KASKOLD_REPRO_HOST_RUST" install espflash \
+      --offline --locked --version "$KASKOLD_ESPFLASH_VERSION" --force
+
+RUN source /etc/kaskold/toolchains.env && \
+    rustc "+$KASKOLD_REPRO_HOST_RUST" --version && \
+    rustup target list --toolchain "$KASKOLD_REPRO_HOST_RUST" --installed | grep -qx wasm32-unknown-unknown && \
+    source /root/esp-env.sh && \
+    python3 --version && \
+    rustc --version && cargo --version && espflash --version

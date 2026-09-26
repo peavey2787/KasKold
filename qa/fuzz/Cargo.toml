@@ -1,0 +1,111 @@
+[package]
+name = "kaskold-fuzz"
+version = "2.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "=0.4.13"
+hex = "0.4"
+serde_json = "1"
+shared-signer = { path = "../../crates/shared-signer" }
+kaskold-hardware-core = { path = "../../crates/kaskold-hardware-core" }
+kaskold-protocol = { path = "../../crates/kaskold-protocol", features = ["host", "companion-compat"] }
+offline-signer = { path = "../../crates/offline-signer" }
+
+[[bin]]
+name = "unwrap_qr_payload"
+path = "unwrap_qr_payload.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]
+resolver = "2"
+
+[[bin]]
+name = "qr_frame_roundtrip"
+path = "qr_frame_roundtrip.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "account_key_canonical"
+path = "account_key_canonical.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "firmware_protocol_parsing"
+path = "firmware_protocol_parsing.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "compact_kspt_roundtrip"
+path = "compact_kspt_roundtrip.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "compact_kspt_parser"
+path = "compact_kspt_parser.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "std_pskt_parser"
+path = "std_pskt_parser.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "bip32_derivation"
+path = "bip32_derivation.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "stego_picture_parser"
+path = "stego_picture_parser.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "firmware_external_inputs"
+path = "firmware_external_inputs.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "public_host_parsers"
+path = "public_host_parsers.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "covenant_branch_resolver"
+path = "covenant_branch_resolver.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "pskt_parser_differential"
+path = "pskt_parser_differential.rs"
+test = false
+doc = false
+bench = false

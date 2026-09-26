@@ -1,0 +1,49 @@
+name: companion-ci
+
+on:
+  push:
+    paths:
+      - 'apps/kaskold-companion-web/**'
+      - 'crates/online-watcher/**'
+      - 'crates/kaskold-protocol/**'
+      - 'crates/kaskold-sdk/**'
+      - 'crates/shared-signer/**'
+      - 'qa/config/toolchains.env'
+      - 'tools/build/web/**'
+      - '.github/workflows/kaskold-companion-ci.yml'
+  pull_request:
+    paths:
+      - 'apps/kaskold-companion-web/**'
+      - 'crates/online-watcher/**'
+      - 'crates/kaskold-protocol/**'
+      - 'crates/kaskold-sdk/**'
+      - 'crates/shared-signer/**'
+      - 'qa/config/toolchains.env'
+      - 'tools/build/web/**'
+      - '.github/workflows/kaskold-companion-ci.yml'
+
+  workflow_dispatch:
+
+jobs:
+  wasm-hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Export pinned toolchain policy
+        shell: bash
+        run: grep -E '^[A-Za-z_][A-Za-z0-9_]*=' qa/config/toolchains.env >> "$GITHUB_ENV"
+      - name: Install pinned stable Rust
+        shell: bash
+        run: rustup toolchain install "$KASKOLD_STABLE_RUST" --profile minimal --component rustfmt --component clippy
+      - name: Companion Rust format
+        shell: bash
+        run: rustup run "$KASKOLD_STABLE_RUST" cargo fmt --manifest-path apps/kaskold-companion-web/Cargo.toml --package kaskold-companion-web -- --check
+      - name: Companion Clippy
+        shell: bash
+        run: rustup run "$KASKOLD_STABLE_RUST" cargo clippy --manifest-path apps/kaskold-companion-web/Cargo.toml --locked -- -D warnings
+      - name: Cargo audit (non-blocking)
+        continue-on-error: true
+        shell: bash
+        run: |
+          rustup run "$KASKOLD_STABLE_RUST" cargo install cargo-audit --locked
+          rustup run "$KASKOLD_STABLE_RUST" cargo audit

@@ -1,0 +1,39 @@
+            <!-- Themed wallet-unload confirmation -->
+            <div id="wallet-unload-modal" class="confirmation-modal hidden" role="dialog" aria-modal="true" aria-labelledby="wallet-unload-title" aria-describedby="wallet-unload-message">
+                <div class="confirmation-dialog">
+                    <div class="confirmation-icon confirmation-icon-danger" aria-hidden="true">!</div>
+                    <h3 id="wallet-unload-title" class="confirmation-title">Unload wallet?</h3>
+                    <p id="wallet-unload-message" class="confirmation-message"></p>
+                    <div class="confirmation-actions">
+                        <button type="button" class="btn btn-secondary" id="btn-wallet-unload-cancel">Cancel</button>
+                        <button type="button" class="btn confirmation-danger-button" id="btn-wallet-unload-confirm">Unload wallet</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading overlay -->
+            <div id="loading" class="loading" role="status" aria-live="polite" aria-busy="true">
+                <div class="loading-panel">
+                    <div class="loading-badge">KasKold Companion</div>
+                    <div class="loading-spinner-shell">
+                        <div class="spinner"></div>
+                    </div>
+                    <div id="loading-title" class="loading-title">Connecting to a Kaspa node</div>
+                    <div id="loading-msg" class="loading-msg">Please wait while Companion establishes the node connection.</div>
+                    <div id="loading-note" class="loading-note">Companion will open automatically when the connection is ready.</div>
+                </div>
+            </div>
+
+            <!-- Toast notifications -->
+            <div id="toast" class="toast hidden"></div>
+        </main>
+    </div>
+
+    <!-- jsQR for camera QR decoding (bundled locally — no CDN dependency) -->
+    <script src="lib/jsQR.js"></script>
+    <!-- main.js freshness is handled by the server no-cache header on *.js/*.wasm/*.html
+         (see Caddyfile). No inline cache-buster: this page's CSP forbids inline
+         scripts, and the header makes a static tag reload on every deploy anyway. -->
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+mod account_key_tests;
+mod bytes_tests;
+mod covenant_branch_tests;
+mod creation_flow_tests;
+mod external_input_hardening_tests;
+mod pairing_tests;
+mod property_tests;
+mod pskt_tests;
+mod qr_frame_boundaries;
+mod qr_frame_tests;
+mod security_tests;
+mod seed_entropy_tests;
+mod seed_qr_tests;

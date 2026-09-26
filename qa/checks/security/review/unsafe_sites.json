@@ -1,0 +1,844 @@
+{
+  "sites": [
+    {
+      "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
+      "line": 56,
+      "source": "unsafe { core::ptr::write_volatile(scratch.as_mut_ptr().add(128 + offset), byte); }",
+      "fingerprint": "6771816be6aad3477cf6955f06025480a899107a516c53786e45839fcecc7565",
+      "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
+      "line": 57,
+      "source": "unsafe { core::ptr::write_volatile(scratch.as_mut_ptr().add(896 + offset), byte); }",
+      "fingerprint": "e4e64a61e9547023a0f7b17089fe50c4d3d37957f08c8d341697e0c2722cba0a",
+      "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
+      "line": 58,
+      "source": "unsafe { core::ptr::write_volatile(scratch.as_mut_ptr().add(1664 + offset), byte); }",
+      "fingerprint": "71a05d8af77670688d6b6dc201ff106c578fe866c0b5f6a9b5527bdb02def800",
+      "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
+      "line": 62,
+      "source": "unsafe { core::ptr::write_volatile(scratch.as_mut_ptr().add(1408 + offset), byte); }",
+      "fingerprint": "9e18ec0874a90bdb18b6627dd750ed3fe86f25ff83fb22c423ebb8167706e15d",
+      "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
+      "line": 65,
+      "source": "let observed = unsafe { core::ptr::read_volatile(scratch.as_ptr().add(1664)) };",
+      "fingerprint": "083afc17a53d4ac303aa5a271f539c2e8eaca9195e32c099e39697694972bc8d",
+      "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
+      "line": 102,
+      "source": "let stack_byte = unsafe { core::ptr::read_volatile((address + index) as *const u8) };",
+      "fingerprint": "b2ceee0bf10d2d28f92c53e114231bfd67b1bb630106cd0a2842b2de8818ca44",
+      "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
+      "line": 103,
+      "source": "let marker_byte = unsafe { core::ptr::read_volatile(SENTINEL.as_ptr().add(index)) };",
+      "fingerprint": "a6865d82af8e72ecacd09a91153d13a1d2670eaabc68f3e8a5c9be03f1c68171",
+      "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
+      "line": 113,
+      "source": "unsafe { core::ptr::write_volatile(address as *mut u8, 0); }",
+      "fingerprint": "4a3ad294a72f83e955b2b5998efcca2f7a5577baa00813c3b97d8c74f63e1b33",
+      "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/gpio35.rs",
+      "line": 18,
+      "source": "unsafe {",
+      "fingerprint": "d97de5e39f1371b520b5b2f5740728dc3412633cbdce5e2fc7569e75fb92b85e",
+      "rationale": "Reviewed CoreS3 GPIO35 multiplexing boundary: fixed ESP32-S3 GPIO-matrix/enable/data registers switch only GPIO35 between LCD D/C output and SD FSPIQ/MISO. The SD handoff restores the official FSPIQ selector before disabling GPIO35 output; the single shared SPI2 owner serializes every LCD/SD transition.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/gpio35.rs",
+      "line": 25,
+      "source": "unsafe {",
+      "fingerprint": "404e63a5fbe8c6b5528d3f65f1a6b48846537e4e9e1fe59985d9c66e554380d3",
+      "rationale": "Reviewed CoreS3 GPIO35 multiplexing boundary: fixed ESP32-S3 GPIO-matrix/enable/data registers switch only GPIO35 between LCD D/C output and SD FSPIQ/MISO. The SD handoff restores the official FSPIQ selector before disabling GPIO35 output; the single shared SPI2 owner serializes every LCD/SD transition.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/gpio35.rs",
+      "line": 32,
+      "source": "unsafe {",
+      "fingerprint": "1eb3c4f17dd5dc29f0ff37ad70533061746dec02010291b3d73ac24a89d5f181",
+      "rationale": "Reviewed CoreS3 GPIO35 multiplexing boundary: fixed ESP32-S3 GPIO-matrix/enable/data registers switch only GPIO35 between LCD D/C output and SD FSPIQ/MISO. The SD handoff restores the official FSPIQ selector before disabling GPIO35 output; the single shared SPI2 owner serializes every LCD/SD transition.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/gpio35.rs",
+      "line": 41,
+      "source": "unsafe {",
+      "fingerprint": "0f63a611d3705b3ece3ebb30dc45be4dfad482a127356b19472b3efbc072e128",
+      "rationale": "Reviewed CoreS3 GPIO35 multiplexing boundary: fixed ESP32-S3 GPIO-matrix/enable/data registers switch only GPIO35 between LCD D/C output and SD FSPIQ/MISO. The SD handoff restores the official FSPIQ selector before disabling GPIO35 output; the single shared SPI2 owner serializes every LCD/SD transition.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/gpio35.rs",
+      "line": 46,
+      "source": "unsafe fn read_register(address: u32) -> u32 {",
+      "fingerprint": "2c8afc17a4669cce594bf7ece90fe5b69ae09089ede163f2c2152a1ac6f3abec",
+      "rationale": "Reviewed CoreS3 GPIO35 multiplexing boundary: fixed ESP32-S3 GPIO-matrix/enable/data registers switch only GPIO35 between LCD D/C output and SD FSPIQ/MISO. The SD handoff restores the official FSPIQ selector before disabling GPIO35 output; the single shared SPI2 owner serializes every LCD/SD transition.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/gpio35.rs",
+      "line": 50,
+      "source": "unsafe fn write_register(address: u32, value: u32) {",
+      "fingerprint": "c665d4cc03d36cbc20e82c70f7e2e1d7bfde1e182c696b052e24883a55096d17",
+      "rationale": "Reviewed CoreS3 GPIO35 multiplexing boundary: fixed ESP32-S3 GPIO-matrix/enable/data registers switch only GPIO35 between LCD D/C output and SD FSPIQ/MISO. The SD handoff restores the official FSPIQ selector before disabling GPIO35 output; the single shared SPI2 owner serializes every LCD/SD transition.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/sd_power_lines.rs",
+      "line": 28,
+      "source": "unsafe {",
+      "fingerprint": "fec4187182c9784ba9f31d4ea784cebbb5dacb8fb83ae6f6abc0c3356187c2e8",
+      "rationale": "Reviewed CoreS3 microSD electrical-reset boundary: fixed ESP32-S3 GPIO output, enable, and matrix registers affect only card-facing GPIO4/35/36/37. The shared SPI2 owner flushes and deselects the card before these lines are clamped low during ALDO4-off, then restores GPIO36 FSPICLK, GPIO37 FSPID, GPIO35 FSPIQ/input, and GPIO4 high CS immediately after rail enable.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/sd_power_lines.rs",
+      "line": 40,
+      "source": "unsafe {",
+      "fingerprint": "219e01c45750d6f57394edb156b1fc716f37c06e3920a3d4cf36b8b25ab49d1e",
+      "rationale": "Reviewed CoreS3 microSD electrical-reset boundary: fixed ESP32-S3 GPIO output, enable, and matrix registers affect only card-facing GPIO4/35/36/37. The shared SPI2 owner flushes and deselects the card before these lines are clamped low during ALDO4-off, then restores GPIO36 FSPICLK, GPIO37 FSPID, GPIO35 FSPIQ/input, and GPIO4 high CS immediately after rail enable.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/sd_power_lines.rs",
+      "line": 55,
+      "source": "unsafe fn write_register(address: u32, value: u32) {",
+      "fingerprint": "7ad85bc79c90ad38be16120350fbfc0a8d196f7e10220bd180da03bf1719ed12",
+      "rationale": "Reviewed CoreS3 microSD electrical-reset boundary: fixed ESP32-S3 GPIO output, enable, and matrix registers affect only card-facing GPIO4/35/36/37. The shared SPI2 owner flushes and deselects the card before these lines are clamped low during ALDO4-off, then restores GPIO36 FSPICLK, GPIO37 FSPID, GPIO35 FSPIQ/input, and GPIO4 high CS immediately after rail enable.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/sd_power_lines.rs",
+      "line": 56,
+      "source": "unsafe { ptr::write_volatile(address as *mut u32, value) };",
+      "fingerprint": "6685f87013c0189a09acdb0373896a05d56c0fa2837a06cd266426a0b1942954",
+      "rationale": "Reviewed CoreS3 microSD electrical-reset boundary: fixed ESP32-S3 GPIO output, enable, and matrix registers affect only card-facing GPIO4/35/36/37. The shared SPI2 owner flushes and deselects the card before these lines are clamped low during ALDO4-off, then restores GPIO36 FSPICLK, GPIO37 FSPID, GPIO35 FSPIQ/input, and GPIO4 high CS immediately after rail enable.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/state.rs",
+      "line": 176,
+      "source": "Ok(unsafe { &*pointer })",
+      "fingerprint": "70e269691e1e65290f31ba0fa1cc1808e044b72d1c8f1498eef7674ca84131b1",
+      "rationale": "Reviewed one-time CoreS3 SPI2 publication boundary: the pointer is produced only from the StaticCell allocation during boot, checked non-null before dereference, never replaced after publication, and all mutable SPI2/SD-CS access is mediated by RefCell re-entry checks; architecture policy forbids interrupt handlers from accessing this shared bus.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/core.rs",
+      "line": 47,
+      "source": "let mut cpu_control = CpuControl::new(unsafe { CPU_CTRL::steal() });",
+      "fingerprint": "7d1f1256d754775221ace848ed820ab5c5beff8f91df1bf77509790eacbd9c28",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/core.rs",
+      "line": 51,
+      "source": "unsafe { cpu_control.park_core(other_cpu) };",
+      "fingerprint": "0330ddecb36ef5c55b08a3ce45e276446b266cfa03bbea26f4d0ff11f4b20fde",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/core.rs",
+      "line": 63,
+      "source": "let mut cpu_control = CpuControl::new(unsafe { CPU_CTRL::steal() });",
+      "fingerprint": "ac665152ba12da54f70894a0fb0fe57466f60fef267be29af9b34da14b967563",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/flash.rs",
+      "line": 84,
+      "source": "let result = ROM_FLASH_LOCK.lock(|| unsafe { esp_rom_spiflash_read(address, data, len) });",
+      "fingerprint": "da651778286cf1f0ea5b14267fd6bdfc7607804bb29870b99d8bb160ea7b1c9a",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/flash.rs",
+      "line": 91,
+      "source": "let result = ROM_FLASH_LOCK.lock(|| unsafe { esp_rom_spiflash_unlock() });",
+      "fingerprint": "24cedcf011e7828486c0f19521736bdfde41bf6cf903f931d21c98065f7c2dcf",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/flash.rs",
+      "line": 98,
+      "source": "let result = ROM_FLASH_LOCK.lock(|| unsafe { esp_rom_spiflash_erase_sector(sector) });",
+      "fingerprint": "96c52981c03545767ed481c5ef09a5df6e9002ec9eac43e216753fa31ad1a76a",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/flash.rs",
+      "line": 105,
+      "source": "let result = ROM_FLASH_LOCK.lock(|| unsafe { esp_rom_spiflash_write(address, data, len) });",
+      "fingerprint": "5e19c4eb69e29ee8de04dc0b6ed604ee77820ab87d04ad7039d1c49a9f751bca",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/lockdown.rs",
+      "line": 40,
+      "source": "unsafe {",
+      "fingerprint": "98489413912904842245f33671f60d8858c107b15ad3ebf1fabd359f182a84ee",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/lockdown.rs",
+      "line": 59,
+      "source": "let power = unsafe { read(RTC_CNTL_DIG_PWC) };",
+      "fingerprint": "f7c4ab28000d1ce3479a165866c21ae351446298992187c7dfcad770b41956e5",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/lockdown.rs",
+      "line": 76,
+      "source": "unsafe {",
+      "fingerprint": "0cd658d372632ad9e93aec7882e671928807e7ee4ef5c9e25524f6b2b3ad3104",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/lockdown.rs",
+      "line": 95,
+      "source": "unsafe {",
+      "fingerprint": "ee462d8fcc25f48786eaab65ee674ad1cf36e26dbadc42d8a252411fd48ec55e",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
+      "line": 6,
+      "source": "pub(crate) unsafe fn read(address: u32) -> u32 {",
+      "fingerprint": "3903e72bd51742b8118e401975b3858ffd0a10447887ad15d1e06c1c574e67b1",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
+      "line": 7,
+      "source": "unsafe { core::ptr::read_volatile(address as *const u32) }",
+      "fingerprint": "b921f178f941433386ed20e3d2d58e18fa09be5d8d5d76f03d6119849fa7a4dc",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
+      "line": 11,
+      "source": "pub(crate) unsafe fn write(address: u32, value: u32) {",
+      "fingerprint": "4937cf74a322e3e3ca4caf9c8a707cb68091b3d855dba56f917e387d4c16ce01",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
+      "line": 12,
+      "source": "unsafe { core::ptr::write_volatile(address as *mut u32, value) };",
+      "fingerprint": "197a92022cf1780e9c208da06ad07a1bdd72dd17446e509e17af97d0ef186325",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
+      "line": 16,
+      "source": "pub(crate) unsafe fn set_bits(address: u32, mask: u32) {",
+      "fingerprint": "1b6970a89a8f7add165446560bdde62a12b4b506132e391e2198d6b3d88a3588",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
+      "line": 17,
+      "source": "unsafe { write(address, read(address) | mask) };",
+      "fingerprint": "44c8d82a5a5e5cdd83e808ac17caa8bb3a43e77896895210a23c16d293dd054e",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
+      "line": 21,
+      "source": "pub(crate) unsafe fn clear_bits(address: u32, mask: u32) {",
+      "fingerprint": "44db90651ed4c4c1a9ca33c5f6702a628bd1461fd15bda7e6a25c2114904fe76",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
+      "line": 22,
+      "source": "unsafe { write(address, read(address) & !mask) };",
+      "fingerprint": "e58228d21b7c36b5ebd1d84f62a34cb54398534f1fcbaebafee7a09d371cf8d8",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/screenshot.rs",
+      "line": 53,
+      "source": "let candidate = unsafe { alloc::alloc::alloc_zeroed(layout) };",
+      "fingerprint": "1aa1626b27369acd2756af9601cbd2c4c17b184fcf3d9c749953974960b71323",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/screenshot.rs",
+      "line": 66,
+      "source": "unsafe { alloc::alloc::dealloc(candidate, layout) };",
+      "fingerprint": "425614dfa53baec0385208eea0282f5ee05b5862fd790ce29883627ca1e6a38e",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/screenshot.rs",
+      "line": 79,
+      "source": "let framebuffer = unsafe { core::slice::from_raw_parts_mut(pointer, BUF_SIZE) };",
+      "fingerprint": "aee106c8fc8398b4e03143e9835113cbc84b79ac084fc657f01938c62ab5d64d",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/screenshot.rs",
+      "line": 89,
+      "source": "let framebuffer = unsafe { core::slice::from_raw_parts(pointer, BUF_SIZE) };",
+      "fingerprint": "b58001aef58069405d1965f51b52580d2f39fac2b9abd7f8d4ae833397ecd1c2",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/qemu/allocator.rs",
+      "line": 24,
+      "source": "unsafe {",
+      "fingerprint": "8ae0d1618d91393f96df4e1c46daed3914402787d9da9a04916c07b4c9cbf6fc",
+      "rationale": "Reviewed raw-memory boundary: pointer/slice construction is confined to a locally validated allocation or mapped region whose length/alignment/lifetime invariants are checked by the surrounding safe wrapper.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 30,
+      "source": "unsafe { self.ptr.as_mut() }",
+      "fingerprint": "43385bbb8e9e9389486c69a21abe9884f09c3b0e183f887091c237f9ed19eb50",
+      "rationale": "Reviewed one-shot ownership handoff: InitializedAppData is a private non-Copy token created only after the StaticCell slot is exclusively claimed and every AppData field is initialized. Consuming the token is the sole safe path that converts its NonNull<AppData> into the long-lived mutable application root, so safe code cannot duplicate the mutable reference.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 35,
+      "source": "unsafe fn place_runtime(target: *mut RuntimeState) {",
+      "fingerprint": "059116447c7290cc080ce36810ec68357bd8478477f80b1e440525610e0c2106",
+      "rationale": "Reviewed static placement boundary: the private no-inline initializer operates only on properly aligned field pointers derived from the exclusively claimed StaticCell<MaybeUninit<AppData>> slot; each destination is written exactly once and is never read or dropped before full AppData initialization. The boundary exists to prevent Xtensa LTO from materializing aggregate constructor temporaries on the ProCpu stack.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 40,
+      "source": "unsafe fn place_presentation(target: *mut PresentationState) {",
+      "fingerprint": "a8e6c6bf8c5ad13ff0ac8783b7278a77a22727b2f09a4d19e6f99e4f1fc52386",
+      "rationale": "Reviewed static placement boundary: the private no-inline initializer operates only on properly aligned field pointers derived from the exclusively claimed StaticCell<MaybeUninit<AppData>> slot; each destination is written exactly once and is never read or dropped before full AppData initialization. The boundary exists to prevent Xtensa LTO from materializing aggregate constructor temporaries on the ProCpu stack.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 45,
+      "source": "unsafe fn place_navigation(target: *mut NavigationState) {",
+      "fingerprint": "dd07d4fd9d60afcf3fbcb2a8c2a3173f659dedb4c5ee8086a72b1167f9ac3d13",
+      "rationale": "Reviewed static placement boundary: the private no-inline initializer operates only on properly aligned field pointers derived from the exclusively claimed StaticCell<MaybeUninit<AppData>> slot; each destination is written exactly once and is never read or dropped before full AppData initialization. The boundary exists to prevent Xtensa LTO from materializing aggregate constructor temporaries on the ProCpu stack.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 50,
+      "source": "unsafe fn place_wallet_seeds(target: *mut SeedSession) {",
+      "fingerprint": "c9e2b0f4579664a5f5219319199f81094de424be564e8e01a1e3c1c2c048b4e7",
+      "rationale": "Reviewed static placement boundary: the private no-inline initializer operates only on properly aligned field pointers derived from the exclusively claimed StaticCell<MaybeUninit<AppData>> slot; each destination is written exactly once and is never read or dropped before full AppData initialization. The boundary exists to prevent Xtensa LTO from materializing aggregate constructor temporaries on the ProCpu stack.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 55,
+      "source": "unsafe fn place_wallet_keys(target: *mut KeyMaterialState) {",
+      "fingerprint": "d7a40f09cf3e66954613a3852854c6d4db8f4ab58a65849c78a98214dcdd042c",
+      "rationale": "Reviewed static placement boundary: the private no-inline initializer operates only on properly aligned field pointers derived from the exclusively claimed StaticCell<MaybeUninit<AppData>> slot; each destination is written exactly once and is never read or dropped before full AppData initialization. The boundary exists to prevent Xtensa LTO from materializing aggregate constructor temporaries on the ProCpu stack.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 60,
+      "source": "unsafe fn place_wallet_addresses(target: *mut AddressState) {",
+      "fingerprint": "60067499857580af8f256d3e589ebcacad90dda7887a3a103494985c2381bdeb",
+      "rationale": "Reviewed static placement boundary: the private no-inline initializer operates only on properly aligned field pointers derived from the exclusively claimed StaticCell<MaybeUninit<AppData>> slot; each destination is written exactly once and is never read or dropped before full AppData initialization. The boundary exists to prevent Xtensa LTO from materializing aggregate constructor temporaries on the ProCpu stack.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 65,
+      "source": "unsafe fn place_wallet(target: *mut WalletState) {",
+      "fingerprint": "f6b0b12ec5474ab796d04274ec21ecebf59a596950da9db314b106a8f603ae7f",
+      "rationale": "Reviewed static placement boundary: the private no-inline initializer operates only on properly aligned field pointers derived from the exclusively claimed StaticCell<MaybeUninit<AppData>> slot; each destination is written exactly once and is never read or dropped before full AppData initialization. The boundary exists to prevent Xtensa LTO from materializing aggregate constructor temporaries on the ProCpu stack.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 76,
+      "source": "unsafe fn place_export(target: *mut ExportState) {",
+      "fingerprint": "9558bce9dba67aa72d6508889a408cf318e72e159579cc9bf6f682959edc0e61",
+      "rationale": "Reviewed static placement boundary: the private no-inline initializer operates only on properly aligned field pointers derived from the exclusively claimed StaticCell<MaybeUninit<AppData>> slot; each destination is written exactly once and is never read or dropped before full AppData initialization. The boundary exists to prevent Xtensa LTO from materializing aggregate constructor temporaries on the ProCpu stack.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 81,
+      "source": "unsafe fn place_storage(target: *mut StorageState) {",
+      "fingerprint": "72afd0b88ab348d20eef336030de8f5a62f036a60cbd9db83c7c43cc6a8321a0",
+      "rationale": "Reviewed static placement boundary: the private no-inline initializer operates only on properly aligned field pointers derived from the exclusively claimed StaticCell<MaybeUninit<AppData>> slot; each destination is written exactly once and is never read or dropped before full AppData initialization. The boundary exists to prevent Xtensa LTO from materializing aggregate constructor temporaries on the ProCpu stack.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 86,
+      "source": "unsafe fn place_signing(",
+      "fingerprint": "9e8bb0bda2ec2f57a14e854a1192a609b3359a21fd5c85214686668eac25ed75",
+      "rationale": "Reviewed static placement boundary: the private no-inline initializer operates only on properly aligned field pointers derived from the exclusively claimed StaticCell<MaybeUninit<AppData>> slot; each destination is written exactly once and is never read or dropped before full AppData initialization. The boundary exists to prevent Xtensa LTO from materializing aggregate constructor temporaries on the ProCpu stack.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 94,
+      "source": "unsafe fn place_stego(target: *mut StegoState) {",
+      "fingerprint": "cb8e46c42e00ebd99b70462446525140affe28373b02057076c19a6077e2e148",
+      "rationale": "Reviewed static placement boundary: the private no-inline initializer operates only on properly aligned field pointers derived from the exclusively claimed StaticCell<MaybeUninit<AppData>> slot; each destination is written exactly once and is never read or dropped before full AppData initialization. The boundary exists to prevent Xtensa LTO from materializing aggregate constructor temporaries on the ProCpu stack.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 99,
+      "source": "unsafe fn place_settings(target: *mut SettingsState) {",
+      "fingerprint": "81af07f0930a51fd65121424f06c1997427b8509fb1bb9265a61dd094b9d9913",
+      "rationale": "Reviewed static placement boundary: the private no-inline initializer operates only on properly aligned field pointers derived from the exclusively claimed StaticCell<MaybeUninit<AppData>> slot; each destination is written exactly once and is never read or dropped before full AppData initialization. The boundary exists to prevent Xtensa LTO from materializing aggregate constructor temporaries on the ProCpu stack.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 105,
+      "source": "unsafe fn place_pop_it(target: *mut PopItState) {",
+      "fingerprint": "5783f73b8942bb11795b9a912a89465830b566a296b619b655cbd2943ab069b5",
+      "rationale": "Reviewed static placement boundary: the private no-inline initializer operates only on properly aligned field pointers derived from the exclusively claimed StaticCell<MaybeUninit<AppData>> slot; each destination is written exactly once and is never read or dropped before full AppData initialization. The boundary exists to prevent Xtensa LTO from materializing aggregate constructor temporaries on the ProCpu stack.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 111,
+      "source": "unsafe fn place_workflow_tests(target: *mut WorkflowTestState) {",
+      "fingerprint": "2d565576ad5d91edde16cb8e83f1df8225f0831068c2f88090c791607cc2081a",
+      "rationale": "Reviewed static placement boundary: the private no-inline initializer operates only on properly aligned field pointers derived from the exclusively claimed StaticCell<MaybeUninit<AppData>> slot; each destination is written exactly once and is never read or dropped before full AppData initialization. The boundary exists to prevent Xtensa LTO from materializing aggregate constructor temporaries on the ProCpu stack.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/placement/mod.rs",
+      "line": 144,
+      "source": "unsafe {",
+      "fingerprint": "7677a68b08d8d4ebb90d76166a321c20f5f9304c570018f02f9262ba6423e0ef",
+      "rationale": "Reviewed static placement boundary: the private no-inline initializer operates only on properly aligned field pointers derived from the exclusively claimed StaticCell<MaybeUninit<AppData>> slot; each destination is written exactly once and is never read or dropped before full AppData initialization. The boundary exists to prevent Xtensa LTO from materializing aggregate constructor temporaries on the ProCpu stack.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/qr.rs",
+      "line": 106,
+      "source": "pub(super) unsafe fn initialize_in_place(target: *mut Self) {",
+      "fingerprint": "0ee777f1f8f7a58cccef10c1ce4cb7d4dcb956a4708a5cf65ef0294a4a302e23",
+      "rationale": "Reviewed in-place QR-state initialization boundary: the raw pointer is supplied only from the exclusive uninitialized AppData slot, every QrState field is initialized before exposure, and the 16,320-byte outgoing secret buffer plus scan buffer are zeroed directly at their final internal-SRAM addresses without reading uninitialized storage.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/signing/placement.rs",
+      "line": 9,
+      "source": "unsafe fn place_transaction(",
+      "fingerprint": "26015105991a746f6bfef2d11dafd3e7c4464328cbac0ee89368a310f119e53e",
+      "rationale": "Reviewed signing-state placement boundary: the pointer targets an exclusively owned, uninitialized SigningState field inside the claimed AppData slot. Each child is written exactly once, the only fallible transaction allocation is completed before StaticCell claim, and no signing state is read until every child has been initialized. The no-inline boundary prevents aggregate stack temporaries.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/signing/placement.rs",
+      "line": 17,
+      "source": "unsafe fn place_multisig(target: *mut MultisigState) {",
+      "fingerprint": "8ccc9452789a1f41380323fc450b4422f343a9baaaf8b318bd59df7d8b6329e4",
+      "rationale": "Reviewed signing-state placement boundary: the pointer targets an exclusively owned, uninitialized SigningState field inside the claimed AppData slot. Each child is written exactly once, the only fallible transaction allocation is completed before StaticCell claim, and no signing state is read until every child has been initialized. The no-inline boundary prevents aggregate stack temporaries.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/signing/placement.rs",
+      "line": 22,
+      "source": "unsafe fn place_message(target: *mut MessageSigningState) {",
+      "fingerprint": "323111d999c566ebdca42e12acedf46876a6a1a653e1f1b7fff91b481db330c8",
+      "rationale": "Reviewed signing-state placement boundary: the pointer targets an exclusively owned, uninitialized SigningState field inside the claimed AppData slot. Each child is written exactly once, the only fallible transaction allocation is completed before StaticCell claim, and no signing state is read until every child has been initialized. The no-inline boundary prevents aggregate stack temporaries.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/signing/placement.rs",
+      "line": 27,
+      "source": "unsafe fn place_commit_reveal(target: *mut CommitRevealState) {",
+      "fingerprint": "d37a7407db2930ed5e2e60f85b0972352c81fc60f5e66fcbab165c210c5924e1",
+      "rationale": "Reviewed signing-state placement boundary: the pointer targets an exclusively owned, uninitialized SigningState field inside the claimed AppData slot. Each child is written exactly once, the only fallible transaction allocation is completed before StaticCell claim, and no signing state is read until every child has been initialized. The no-inline boundary prevents aggregate stack temporaries.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/signing/placement.rs",
+      "line": 32,
+      "source": "unsafe fn place_covenant(target: *mut CovenantSigningState) {",
+      "fingerprint": "5e6fccc442922fad63e46b6148d688fa98beaa383cc2cd39b98d5d7891d784df",
+      "rationale": "Reviewed signing-state placement boundary: the pointer targets an exclusively owned, uninitialized SigningState field inside the claimed AppData slot. Each child is written exactly once, the only fallible transaction allocation is completed before StaticCell claim, and no signing state is read until every child has been initialized. The no-inline boundary prevents aggregate stack temporaries.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/signing/placement.rs",
+      "line": 37,
+      "source": "unsafe fn place_private_swap(target: *mut PrivateSwapState) {",
+      "fingerprint": "31316a66392f47f971d1e5fb168502e33db4ee04ab69da8ebb447c0dd111a63e",
+      "rationale": "Reviewed signing-state placement boundary: the pointer targets an exclusively owned, uninitialized SigningState field inside the claimed AppData slot. Each child is written exactly once, the only fallible transaction allocation is completed before StaticCell claim, and no signing state is read until every child has been initialized. The no-inline boundary prevents aggregate stack temporaries.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/signing/placement.rs",
+      "line": 42,
+      "source": "unsafe fn place_anti_klepto(target: *mut AntiKleptoSigningState) {",
+      "fingerprint": "4920a19b4092c386d6caebedf30743527f8f9913fcc53b1630193d30e892c55a",
+      "rationale": "Reviewed signing-state placement boundary: the pointer targets an exclusively owned, uninitialized SigningState field inside the claimed AppData slot. Each child is written exactly once, the only fallible transaction allocation is completed before StaticCell claim, and no signing state is read until every child has been initialized. The no-inline boundary prevents aggregate stack temporaries.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/signing/placement.rs",
+      "line": 52,
+      "source": "pub(super) unsafe fn initialize_in_place(",
+      "fingerprint": "721ab435f0a47f37637290e6b1285110ce98cfbbe5407e3bac83ad928b37d2a0",
+      "rationale": "Reviewed signing-state placement boundary: the pointer targets an exclusively owned, uninitialized SigningState field inside the claimed AppData slot. Each child is written exactly once, the only fallible transaction allocation is completed before StaticCell claim, and no signing state is read until every child has been initialized. The no-inline boundary prevents aggregate stack temporaries.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/data/signing.rs",
+      "line": 124,
+      "source": "pub(super) unsafe fn initialize_in_place(",
+      "fingerprint": "b74bfb1e62e079dab2fcf424942be1fbf5f34b5481b14e0e750de5261be43288",
+      "rationale": "Reviewed signing-state placement boundary: the pointer targets an exclusively owned, uninitialized SigningState field inside the claimed AppData slot. Each child is written exactly once, the only fallible transaction allocation is completed before StaticCell claim, and no signing state is read until every child has been initialized. The no-inline boundary prevents aggregate stack temporaries.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/interactions/camera_loop/cycle.rs",
+      "line": 109,
+      "source": "unsafe {",
+      "fingerprint": "81f1a049825270e38d8682abd3088d43b62c0747c6deae13903e389da4a84e32",
+      "rationale": "Reviewed unsafe boundary: required for embedded FFI/raw hardware interaction; the surrounding safe wrapper establishes pointer validity, bounds, lifetime, and exclusive-access invariants before entry.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/interactions/camera_loop/dvp_capture.rs",
+      "line": 92,
+      "source": "unsafe fn process_captured_frame<'cam>(",
+      "fingerprint": "04838e5309e7dcf2b1dd653fcb6395e6cd0f43f4032b0f8af57f9f9fb2d03a09",
+      "rationale": "Reviewed camera scratch-buffer boundary: the camera loop owns independent decode (320x240) and crop (240x180) allocations for the capture lifetime; this function converts those caller-provided raw pointers once into fixed-size exclusive mutable slices before safe rendering/decoding helpers use them.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/interactions/camera_loop/dvp_capture.rs",
+      "line": 162,
+      "source": "pub(super) unsafe fn run_capture(",
+      "fingerprint": "d7332e0a644ab63affa85aa579d07f2dca553e0a16902f18a2982bb45c6a4419",
+      "rationale": "Reviewed DVP capture boundary: callers provide the camera-loop-owned decode/crop scratch pointers with their fixed allocation sizes, non-overlap, validity, and exclusive-access lifetime; the raw pointers are forwarded only to the bounded conversion boundary after DMA ownership is recovered.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/interactions/camera_loop/timing.rs",
+      "line": 26,
+      "source": "unsafe {",
+      "fingerprint": "0c4f4549cbd6199d16bad85bf22c0930112bbbfb52753b1e87bbaae72700e1aa",
+      "rationale": "Reviewed unsafe boundary: required for embedded FFI/raw hardware interaction; the surrounding safe wrapper establishes pointer validity, bounds, lifetime, and exclusive-access invariants before entry.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/self_test/memory.rs",
+      "line": 41,
+      "source": "let observed = unsafe { core::ptr::read_volatile(byte as *const u8) };",
+      "fingerprint": "4ada88fbf9c0ba678e971ccb9669f6ff8e4fdde334716a7b24f797ac9006002d",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/self_test/memory.rs",
+      "line": 50,
+      "source": "let data = unsafe {",
+      "fingerprint": "cc6b1008e134ff1290dcd8a31c5ba3c568b8751ecfac8be72c7495cfff5c3b6b",
+      "rationale": "Reviewed unsafe boundary: required for embedded FFI/raw hardware interaction; the surrounding safe wrapper establishes pointer validity, bounds, lifetime, and exclusive-access invariants before entry.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/self_test/memory.rs",
+      "line": 62,
+      "source": "let value = unsafe { core::ptr::read_volatile(byte as *const u8) };",
+      "fingerprint": "6354311bcab03bdd2c6b937aeb6f0d25b7c642722cd118de6718f14e631bc281",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/entropy/platform.rs",
+      "line": 66,
+      "source": "let value = unsafe { core::ptr::read_volatile(0x6004_0868u32 as *const u32) };",
+      "fingerprint": "6bea38fe7a3efc85d8591603fe199a7d11600c74ba7aa1fd2efef5947482d5f5",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/entropy/trng.rs",
+      "line": 15,
+      "source": "unsafe {",
+      "fingerprint": "5839e61516207730b7c86919242a6ffca993fe0c471a36560f4af840b6d98288",
+      "rationale": "Reviewed unsafe boundary: required for embedded FFI/raw hardware interaction; the surrounding safe wrapper establishes pointer validity, bounds, lifetime, and exclusive-access invariants before entry.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/entropy/trng.rs",
+      "line": 37,
+      "source": "unsafe { core::ptr::read_volatile(RNG_DATA_REG) }",
+      "fingerprint": "612e7447b27fe4ed9fc26a36155b4500f5100ce8220773822f1168d84584d684",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/memory/password_kdf.rs",
+      "line": 50,
+      "source": "unsafe {",
+      "fingerprint": "9fca258016cc09585d91ed4a2a458cdb07cd96c20b1bbf02b124a32d953fab20",
+      "rationale": "Reviewed Argon2 workspace cast: PsramAllocation now validates the requested PasswordKdfBlock alignment and runtime PSRAM provenance and zero-initializes the complete raw allocation before any reference is exposed. All-zero bytes are a valid argon2::Block representation, and the exact block-count \u00d7 block-size length is checked before forming the exclusive typed slice.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/memory/password_kdf.rs",
+      "line": 81,
+      "source": "unsafe { core::ptr::write_volatile(byte, expected) };",
+      "fingerprint": "607dda839a09167145c41e050b1f47c4c342d5c9c90919023333cd07f278b133",
+      "rationale": "Reviewed developer-only PSRAM integrity probe: the allocation is already initialized and bounded by PsramAllocation; volatile access intentionally forces the physical pattern write during the non-secret benchmark integrity test, which zeroizes afterward.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/memory/password_kdf.rs",
+      "line": 86,
+      "source": "let observed = unsafe { core::ptr::read_volatile(byte) };",
+      "fingerprint": "9213568dda884a4260b05aaa7e2a7e7765b07beb867971ac438cf6e10d023836",
+      "rationale": "Reviewed developer-only PSRAM integrity probe: the allocation is initialized and the byte reference is within its exact bounded slice; volatile read verifies physical PSRAM contents during the non-secret benchmark integrity test.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
+      "line": 57,
+      "source": "unsafe {",
+      "fingerprint": "fb50bb2ce004de7c02b38c55f7c8ca3a025d181fe906cdcfd123d8c09941da77",
+      "rationale": "Reviewed PSRAM registration boundary: ESP-HAL supplies the runtime-mapped external memory base/length; KasKold validates non-null, non-zero, checked bounds before registering exactly that region with esp-alloc as External for the program lifetime.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
+      "line": 111,
+      "source": "let ptr = unsafe { HEAP.alloc_caps(MemoryCapability::External.into(), layout) };",
+      "fingerprint": "d3a1b9da79158c0fd2789c13aadb570ea43f7c55cbc70fcb7573236a25336a8e",
+      "rationale": "Reviewed PSRAM allocation boundary: allocation is capability-constrained to External memory with a checked non-zero Layout; the returned pointer is rejected unless its full range lies inside the retained ESP-HAL PSRAM region, and production allocations also verify the requested alignment before exposure.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
+      "line": 117,
+      "source": "unsafe { HEAP.dealloc(ptr, layout) };",
+      "fingerprint": "1e89f6d971db30e77e6c3d545e3648eac684f6b414e47120d32280acb5825ca8",
+      "rationale": "Reviewed fail-closed allocation cleanup: ptr/layout are the exact pair returned by the immediately preceding esp-alloc allocation and have not been exposed to callers; the same Layout is used to release a provenance- or alignment-rejected allocation.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
+      "line": 121,
+      "source": "unsafe { HEAP.dealloc(ptr, layout) };",
+      "fingerprint": "d4ea394f6b0d5646aaca72ed80e074e808ce6100d0d58462d02064dee3ea6ca5",
+      "rationale": "Reviewed fail-closed allocation cleanup: ptr/layout are the exact pair returned by the immediately preceding esp-alloc allocation and have not been exposed to callers; the same Layout is used to release a provenance- or alignment-rejected allocation.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
+      "line": 130,
+      "source": "unsafe { core::ptr::write_bytes(ptr, 0, layout.size()) };",
+      "fingerprint": "5dfa3293bdec3e8dbadb6393506e96f87a22f1e2206fc20bff97b08e9f272db1",
+      "rationale": "Reviewed raw-initialization boundary: after non-null, full-range PSRAM provenance and alignment checks, the uniquely owned raw allocation is zero-filled through its raw u8 pointer before any Rust reference is constructed. This establishes initialized storage for byte slices and for the later zero-valid argon2::Block reinterpretation.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
+      "line": 143,
+      "source": "unsafe { core::slice::from_raw_parts(self.ptr, self.layout.size()) }",
+      "fingerprint": "cb2f8f5ee58f5cbf43a452b8804d5ee678ed8fcf19366eb16a03fb52a4869c8a",
+      "rationale": "Reviewed PSRAM shared-slice boundary: PsramAllocation uniquely owns a validated external allocation and zero-initializes the complete region before returning, so the bounded byte slice is both in-range and initialized for its entire lifetime.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
+      "line": 147,
+      "source": "unsafe { core::slice::from_raw_parts_mut(self.ptr, self.layout.size()) }",
+      "fingerprint": "3a973996c3aedd604df6d8ca0ced3983f4d8da02ddecf85a596dd92ce870c395",
+      "rationale": "Reviewed PSRAM mutable-slice boundary: PsramAllocation uniquely owns a validated external allocation and zero-initializes it before exposure; the exclusive byte slice is bounded to the exact Layout and cannot outlive the owner.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
+      "line": 154,
+      "source": "unsafe { HEAP.dealloc(self.ptr, self.layout) };",
+      "fingerprint": "96eecca8ae01a4626a63a1af99ae9216e3c8cb4cb775cd7b5d8dd0967f859efc",
+      "rationale": "Reviewed PSRAM owner teardown: ptr/layout are the exact allocation pair retained by PsramAllocation; Drop volatile-zeroizes the initialized byte region before deallocating with the same Layout.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
+      "line": 175,
+      "source": "let ptr = unsafe { HEAP.alloc_caps(MemoryCapability::External.into(), layout) };",
+      "fingerprint": "bd47c00a1d58db5212f3dc279de6669533c435edcbb0ee6c429e646f253b17e8",
+      "rationale": "Reviewed PSRAM allocation boundary: allocation is capability-constrained to External memory with a checked non-zero Layout; the returned pointer is rejected unless its full range lies inside the retained ESP-HAL PSRAM region, and production allocations also verify the requested alignment before exposure.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
+      "line": 178,
+      "source": "unsafe { HEAP.dealloc(ptr, layout) };",
+      "fingerprint": "881a6faa08105de72f372344bdad95a95a3bdacae1b9bd2d3010e21d49303597",
+      "rationale": "Reviewed PSRAM probe cleanup: ptr/layout are the exact pair returned by the temporary capability-constrained allocation probe and are released immediately with the same Layout.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/verify/mapped_segment.rs",
+      "line": 64,
+      "source": "let word = unsafe {",
+      "fingerprint": "d154422864a0b9bdb0ce216723d513a18b8643b8c90d7c156334bdc76f72e848",
+      "rationale": "Reviewed unsafe boundary: required for embedded FFI/raw hardware interaction; the surrounding safe wrapper establishes pointer validity, bounds, lifetime, and exclusive-access invariants before entry.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/verify/mapped_segment.rs",
+      "line": 92,
+      "source": "let data: &[u8] = unsafe {",
+      "fingerprint": "8d3033ac0dbe6da1555aafe1534879a6dbda0109f565eccf0321c030c4dfcfb1",
+      "rationale": "Reviewed unsafe boundary: required for embedded FFI/raw hardware interaction; the surrounding safe wrapper establishes pointer validity, bounds, lifetime, and exclusive-access invariants before entry.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/verify/mapped_segment.rs",
+      "line": 100,
+      "source": "let val = unsafe { core::ptr::read_volatile(&data[i] as *const u8) };",
+      "fingerprint": "4fa66b47f9d08b462f1668b1ae35edce2610de4d54362280438aa3f5b5f6044e",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/verify/mod.rs",
+      "line": 20,
+      "source": "unsafe {",
+      "fingerprint": "3e26b7fc177804f0ce2099ebac7b3999529d6787141af34d1a4ba33564185067",
+      "rationale": "Reviewed firmware-identity load boundary: the source is an immutable, aligned, generated static forced into flash rodata with process lifetime; read_volatile copies the fixed-size initialized value so LLVM cannot constant-fold generated identity metadata into the executable segment whose hash is being verified.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/verify/mod.rs",
+      "line": 29,
+      "source": "unsafe {",
+      "fingerprint": "309f396ac65ce81f8cba5d864a0f1b7ad669bce40e061a86e3ed2ed3ae2496b0",
+      "rationale": "Reviewed firmware-identity load boundary: the source is an immutable, aligned, generated static forced into flash rodata with process lifetime; read_volatile copies the fixed-size initialized value so LLVM cannot constant-fold generated identity metadata into the executable segment whose hash is being verified.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/verify/mod.rs",
+      "line": 37,
+      "source": "unsafe { core::ptr::read_volatile(core::ptr::addr_of!(firmware_hash::FIRMWARE_SIGNED)) }",
+      "fingerprint": "f192c1a8b78a4f81ce3975f55a7b07615930cba5fcbdd37aba1ede1437e5aa42",
+      "rationale": "Reviewed firmware-identity load boundary: the source is an immutable, aligned, generated static forced into flash rodata with process lifetime; read_volatile copies the fixed-size initialized value so LLVM cannot constant-fold generated identity metadata into the executable segment whose hash is being verified.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/verify/mod.rs",
+      "line": 43,
+      "source": "unsafe { core::ptr::read_volatile(core::ptr::addr_of!(firmware_hash::FIRMWARE_SIZE)) }",
+      "fingerprint": "8e453c3223ecb1b7784a9f1e3aad1c42117d697c178192077c7471f6973040f5",
+      "rationale": "Reviewed firmware-identity load boundary: the source is an immutable, aligned, generated static forced into flash rodata with process lifetime; read_volatile copies the fixed-size initialized value so LLVM cannot constant-fold generated identity metadata into the executable segment whose hash is being verified.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/services/verify/mod.rs",
+      "line": 49,
+      "source": "unsafe { core::ptr::read_volatile(core::ptr::addr_of!(firmware_hash::FIRMWARE_IADDR)) }",
+      "fingerprint": "ee2c4f7d48d50deab0dd6e94d41fc064ea81b432508d53e7827b8351fa1b0412",
+      "rationale": "Reviewed firmware-identity load boundary: the source is an immutable, aligned, generated static forced into flash rodata with process lifetime; read_volatile copies the fixed-size initialized value so LLVM cannot constant-fold generated identity metadata into the executable segment whose hash is being verified.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/wallet/mnemonic/touch.rs",
+      "line": 40,
+      "source": "let bytes = unsafe {",
+      "fingerprint": "1c03ed179a8c4d025d20baec12b8943383929f7873364c0ee608aa6342a2293e",
+      "rationale": "Reviewed touch-entropy destruction boundary: the collector exclusively owns the in-progress Sha256 value. It converts exactly that ManuallyDrop stack object to a mutable byte slice solely to volatile-zero the complete hashing state, then never reads or drops the scrubbed object. No alias or external buffer is exposed.",
+      "reviewed": true
+    },
+    {
+      "path": "crates/kaskold-hardware-core/src/runtime/worker/mailbox.rs",
+      "line": 40,
+      "source": "unsafe { (*self.value.get()).write(value) };",
+      "fingerprint": "f7a8ab77859d370bfc8ffcd005a2e5e19e03bae288226de32f30b4de68e82d09",
+      "rationale": "Reviewed typed cross-core mailbox boundary: UnsafeCell/MaybeUninit are centralized here and access is serialized by WorkerLifecycle ownership plus acquire/release initialization state. Writes occur before publication, reads require initialized ownership, and retired slot storage is volatile-zeroized without reading uninitialized bytes.",
+      "reviewed": true
+    },
+    {
+      "path": "crates/kaskold-hardware-core/src/runtime/worker/mailbox.rs",
+      "line": 51,
+      "source": "let value = unsafe { (*self.value.get()).assume_init_read() };",
+      "fingerprint": "3df528d8be2036e5d9213b9007dc153812f0b939cd5463cb5b65ba484749364c",
+      "rationale": "Reviewed typed cross-core mailbox boundary: UnsafeCell/MaybeUninit are centralized here and access is serialized by WorkerLifecycle ownership plus acquire/release initialization state. Writes occur before publication, reads require initialized ownership, and retired slot storage is volatile-zeroized without reading uninitialized bytes.",
+      "reviewed": true
+    },
+    {
+      "path": "crates/kaskold-hardware-core/src/runtime/worker/mailbox.rs",
+      "line": 67,
+      "source": "let bytes = unsafe {",
+      "fingerprint": "c7dadaefa506ddcfcef25dec6a3ad66eb3cd0216dce099d15479578caf34bed5",
+      "rationale": "Reviewed typed cross-core mailbox boundary: UnsafeCell/MaybeUninit are centralized here and access is serialized by WorkerLifecycle ownership plus acquire/release initialization state. Writes occur before publication, reads require initialized ownership, and retired slot storage is volatile-zeroized without reading uninitialized bytes.",
+      "reviewed": true
+    },
+    {
+      "path": "crates/shared-signer/src/bytes.rs",
+      "line": 99,
+      "source": "unsafe { core::ptr::write_volatile(value, zero) };",
+      "fingerprint": "bc7a940e840497f5eba078977df31fe0f4817bcd0a91475f98050c04d46ba24f",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    }
+  ]
+}

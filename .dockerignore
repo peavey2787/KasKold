@@ -1,0 +1,37 @@
+# Build artifacts
+**/target/
+*.bin
+*.elf
+*.map
+
+# Secrets
+*.pem
+*.key
+dev_signing_key.bin
+
+# Git / CI
+.git/
+.github/
+
+# Documentation and local artifacts not needed for build verification
+docs/
+screenshots/
+*.log
+
+# GitHub Pages assets
+pkg/
+
+# Non-code files copied explicitly when needed
+README.md
+CHANGELOG.md
+CODE_OF_CONDUCT.md
+CONTRIBUTING.md
+SECURITY.md
+LICENSE
+install.sh
+Makefile
+Dockerfile
+Dockerfile.base
+qa/fuzz/Cargo.lock
+release/
+release.tmp.*/

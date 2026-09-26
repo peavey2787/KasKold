@@ -1,0 +1,38 @@
+# Rust / build output
+/target/
+/release/
+/release.tmp.[0-9]*/
+
+# QA generated state
+/qa/fuzz/Cargo.lock
+
+# Generated web/runtime dependencies
+**/node_modules/
+/apps/kaskold-companion-web/web/pkg/
+/apps/kaskold-vault-web/web/pkg/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# IDE / local machine state
+**/.idea/
+**/.vscode/
+**/*.iml
+**/*.ipr
+**/*.iws
+/apps/kaskold-companion-android/local.properties
+/apps/kaskold-companion-android/.kotlin/
+
+# OS/editor leftovers
+.DS_Store
+Thumbs.db
+*~
+
+# Mobile release signing secrets
+*.jks
+*.keystore
+
+# Nested build output
+**/target/

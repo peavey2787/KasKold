@@ -1,0 +1,45 @@
+name: core
+
+on:
+  push:
+    paths-ignore:
+      - 'apps/kaskold-companion-android/**'
+      - 'apps/kaskold-companion-ios/**'
+  pull_request:
+    paths-ignore:
+      - 'apps/kaskold-companion-android/**'
+      - 'apps/kaskold-companion-ios/**'
+
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Export pinned toolchain policy
+        shell: bash
+        run: grep -E '^[A-Za-z_][A-Za-z0-9_]*=' qa/config/toolchains.env >> "$GITHUB_ENV"
+      - name: Install pinned stable Rust
+        shell: bash
+        run: rustup toolchain install "$KASKOLD_STABLE_RUST" --profile minimal --component rustfmt --component clippy
+      - name: Rust format
+        shell: bash
+        run: rustup run "$KASKOLD_STABLE_RUST" cargo fmt --all -- --check
+      - name: Host Clippy
+        shell: bash
+        run: rustup run "$KASKOLD_STABLE_RUST" cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Install pinned ESP Rust toolchain
+        uses: esp-rs/xtensa-toolchain@v1.7.0
+        with:
+          default: false
+          override: false
+          export: true
+          buildtargets: esp32s3
+          version: ${{ env.KASKOLD_ESP_RUST }}
+          ldproxy: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Fast contributor suite
+        shell: bash
+        run: make test STRICT_LOCKFILES=1

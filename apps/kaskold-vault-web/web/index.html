@@ -1,0 +1,916 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'">
+  <title>KasKold Vault</title>
+  <link rel="stylesheet" href="css/vault.css">
+  <script src="lib/vault_jsQR.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="vault-header">
+      <button id="brand-home" class="brand-home" type="button" aria-label="Return home" title="Home">
+        <img class="vault-wordmark" src="img/kaskold-wordmark.png" alt="KasKold Vault">
+      </button>
+    </header>
+
+    <section id="status-card" class="card status hidden" role="alert" aria-live="polite"></section>
+
+    <section id="screen-locked" class="card screen" data-workflow-state="StorageModeChoice SeedList AddWalletChoice">
+      <div class="wallet-picker-heading">
+        <h2>Wallets</h2>
+        <button id="wallet-add-open" class="wallet-add-plus" type="button" aria-label="Add wallet" title="Add wallet">+</button>
+      </div>
+      <div id="saved-wallets" class="saved-wallets hidden">
+        <div id="saved-wallet-list" class="stack" aria-label="Saved wallets"></div>
+      </div>
+      <p id="wallet-picker-empty" class="muted hidden">No saved wallets yet. Use + to create or import one.</p>
+      <button id="wallet-picker-back" class="hidden" data-back>Back</button>
+    </section>
+
+    <section id="screen-wallet-name-entry" class="card screen hidden" data-workflow-state="WalletNameEntry">
+      <h2>Wallet Name</h2>
+      <label>Wallet name<input id="wallet-name-entry" maxlength="64" autocomplete="off" placeholder="Wallet 1"></label>
+      <button id="wallet-name-continue" class="primary">Continue</button><button data-back>Back</button>
+    </section>
+
+    <section id="screen-onboarding-word-count" class="card screen hidden" data-workflow-state="StorageSeedWordCountChoice ChooseWordCount SeedEntropyUnavailable">
+      <h2>Recovery Words</h2>
+      <div class="stack">
+        <button id="onboarding-24" class="primary">24 Words</button>
+        <button id="onboarding-12">12 Words</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-onboarding-dice-choice" class="card screen hidden" data-workflow-state="StorageSeedDiceChoice">
+      <h2>Add Dice</h2>
+      <p class="muted">Rust CSPRNG entropy is always used. Dice can add extra user entropy.</p>
+      <div class="stack"><button id="onboarding-no-dice" class="primary">No Dice</button><button id="onboarding-add-dice">Add Dice Rolls</button><button data-back>Back</button></div>
+    </section>
+
+    <section id="screen-onboarding-dice-count" class="card screen hidden" data-workflow-state="StorageSeedDiceCountChoice">
+      <h2>How Many Dice Rolls?</h2>
+      <div id="onboarding-dice-targets" class="stack"></div>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-onboarding-dice" class="card screen hidden" data-workflow-state="DiceRoll">
+      <h2>Dice Rolls</h2>
+      <p id="onboarding-dice-progress" class="muted"></p>
+      <div class="dice-grid">
+        <button data-die="1">1</button><button data-die="2">2</button><button data-die="3">3</button>
+        <button data-die="4">4</button><button data-die="5">5</button><button data-die="6">6</button>
+      </div>
+      <div class="row"><button id="onboarding-dice-undo">Undo</button><button id="onboarding-dice-reset">Reset</button></div>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-onboarding-touch-choice" class="card screen hidden" data-workflow-state="StorageSeedTouchChoice">
+      <h2>Add Touch</h2>
+      <p class="muted">Touch is optional additive entropy; the Rust CSPRNG remains mandatory.</p>
+      <div class="stack"><button id="onboarding-no-touch" class="primary">No Touch Entropy</button><button id="onboarding-add-touch">Add Touch Entropy</button><button data-back>Back</button></div>
+    </section>
+
+    <section id="screen-onboarding-touch" class="card screen hidden" data-workflow-state="TouchEntropy">
+      <h2>Touch Entropy</h2>
+      <p id="onboarding-touch-progress" class="muted">Move your finger or pointer continuously in the area below.</p>
+      <div id="onboarding-touch-pad" class="touch-pad" aria-label="Touch entropy collection area"></div>
+      <button id="onboarding-touch-reset">Reset</button><button data-back>Back</button>
+    </section>
+
+    <section id="screen-onboarding-passphrase-choice" class="card screen hidden" data-workflow-state="PassphraseChoice">
+      <h2>BIP39 Pass.</h2>
+      <p class="muted">Optional extra secret for your words. It creates a different wallet. Keep the passphrase to restore later.</p>
+      <div class="stack"><button id="onboarding-no-passphrase" class="primary">No Passphrase</button><button id="onboarding-use-passphrase">Use Passphrase</button><button data-back>Back</button></div>
+    </section>
+
+    <section id="screen-onboarding-passphrase" class="card screen hidden" data-workflow-state="PassphraseEntry">
+      <h2>Passphrase</h2>
+      <label>BIP39 passphrase<input id="onboarding-passphrase" type="password" autocomplete="new-password"></label>
+      <label>Confirm passphrase<input id="onboarding-passphrase-confirm" type="password" autocomplete="new-password"></label>
+      <button id="onboarding-passphrase-submit" class="primary">Continue</button><button data-back>Back</button>
+    </section>
+
+    <section id="screen-storage-finalize" class="card screen hidden" data-workflow-state="StorageFinalizeChoice">
+      <h2>Storage</h2>
+      <div class="stack">
+        <button id="storage-save" class="primary">Save Securely on Device</button>
+        <button id="storage-session">Use for This Session Only</button>
+      </div>
+    </section>
+
+    <section id="screen-storage-protection" class="card screen hidden" data-workflow-state="StorageProtectionChoice StorageCredentialType">
+      <h2>Wallet Password</h2>
+      <div class="stack"><button id="storage-use-password" class="primary">Use Password</button></div>
+      <p class="muted">Persistent Web Vault storage requires a password of at least 12 characters containing a letter and number. Legacy PIN-protected wallets remain unlockable for migration, but new PIN-only storage is disabled.</p>
+    </section>
+
+
+    <section id="screen-storage-credential" class="card screen hidden" data-workflow-state="StoragePinEntry StoragePasswordEntry StoragePasswordConfirm StoragePinConfirm">
+      <h2 id="storage-credential-title">Save Wallet</h2>
+      <label>Credential<input id="storage-credential" type="password" autocomplete="new-password"></label>
+      <label>Confirm credential<input id="storage-credential-confirm" type="password" autocomplete="new-password"></label>
+      <button id="storage-credential-submit" class="primary">Encrypt &amp; Save</button><button data-back>Back</button>
+    </section>
+
+    <section id="screen-unlock-saved" class="card screen hidden" data-workflow-state="StorageUnlockPin StorageUnlockPassword SdCardUnlockPassword SdWalletBackupImportPassphrase">
+      <h2>Unlock Wallet</h2>
+      <p id="unlock-saved-name" class="muted"></p>
+      <label>Credential<input id="unlock-saved-credential" type="password" autocomplete="current-password"></label>
+      <button id="unlock-saved-submit" class="primary">Unlock</button><button data-back>Back</button>
+    </section>
+
+    <section id="screen-backup" class="card screen hidden" data-workflow-state="SeedBackup">
+      <h2>Recovery Words</h2>
+      <p class="warning">Write down each recovery word in order and store the backup privately and securely.</p>
+      <p id="backup-word-position" class="muted">Word 1 of 12</p>
+      <div id="backup-word" class="secret backup-word" aria-live="polite"></div>
+      <div id="backup-all-words" class="secret backup-all-words hidden" aria-live="polite"></div>
+      <button id="backup-show-all" type="button">Show All</button>
+      <div class="row">
+        <button id="backup-prev">Previous</button>
+        <button id="backup-next" class="primary">Next</button>
+      </div>
+    </section>
+
+    <section id="screen-backup-ack" class="card screen hidden" data-workflow-state="StorageRecoveryAcknowledgement">
+      <h2>Recovery Backup</h2>
+      <p>Your recovery words are the master backup for this wallet.</p>
+      <p>Write them down in order and keep them private, offline, and in a secure location.</p>
+      <p>Anyone who has these words can restore the wallet and spend its funds.</p>
+      <p>Verify your recovery backup before relying on encrypted device storage.</p>
+      <div class="stack">
+        <button id="backup-ack-done" class="primary">I Backed Up My Words</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-home" class="card screen hidden" data-workflow-menu="MainMenu" data-workflow-state="MainMenu">
+      <h2>Main Menu</h2>
+      <div class="home-menu-grid">
+        <button id="home-connect" data-workflow-action="home.connect_companion" class="home-menu-button">
+          <img src="img/hardware/icon_connect_companion_56.png" alt=""><span>Connect</span>
+        </button>
+        <button id="begin-scan" data-workflow-action="home.scan_qr" class="home-menu-button">
+          <img src="img/hardware/icon_send.png" alt=""><span>Scan QR</span>
+        </button>
+        <button id="home-wallet" data-workflow-action="home.wallet" class="home-menu-button">
+          <img src="img/hardware/icon_wallet_56.png" alt=""><span>Wallet</span>
+        </button>
+        <button id="home-settings" data-workflow-action="home.settings" class="home-menu-button">
+          <img src="img/hardware/icon_settings.png" alt=""><span>Settings</span>
+        </button>
+      </div>
+    </section>
+
+    <section id="screen-connect" class="card screen hidden" data-workflow-state="ExportKpub ExportKpubPopup">
+      <h2>Connect</h2>
+      <p class="muted">Scan this public account in KasKold Companion. It contains no private keys.</p>
+      <div id="kpub-qr" class="qr"></div>
+      <label>Public account (kpub)</label>
+      <div class="mono break selectable" id="home-kpub"></div>
+      <div class="stack">
+        <button id="copy-kpub">Copy kpub</button>
+        <button id="save-kpub">Save kpub</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-wallet" class="card screen hidden" data-workflow-menu="SeedsMenu" data-workflow-state="SeedsMenu">
+      <h2>Wallet</h2>
+      <div class="stack">
+        <button id="wallet-receive" data-workflow-action="wallet.receive">Receive</button>
+        <button id="wallet-backup" data-workflow-action="wallet.backup">Backup</button>
+        <button id="wallet-recovery" data-workflow-action="wallet.recovery">Recovery</button>
+        <button id="wallet-details" data-workflow-action="wallet.details">Wallet Details</button>
+        <button id="wallet-switch" data-workflow-action="wallet.switch_add">Switch / Add Wallet</button>
+        <button id="wallet-multisig" data-workflow-action="wallet.multisig">Multisig</button>
+        <button id="wallet-advanced" data-workflow-action="wallet.advanced">Advanced</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-backup-methods" class="card screen hidden" data-workflow-menu="WalletBackupMethodsMenu" data-workflow-state="WalletBackupMethodsMenu">
+      <h2>Backup</h2>
+      <div class="stack">
+        <button id="backup-view-words" data-workflow-action="wallet.backup.view_words">View Words</button>
+        <button id="backup-seedqr" data-workflow-action="wallet.backup.seedqr">SeedQR Backup</button>
+        <button id="backup-encrypted-sd" data-workflow-action="wallet.backup.sd">Encrypted SD Card</button>
+        <button id="backup-methods-advanced" data-workflow-action="wallet.backup.advanced" class="primary">Advanced</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-backup-words" class="card screen hidden" data-workflow-state="ExportPlainWordsQR">
+      <h2>Recovery Words</h2>
+      <p class="warning">Anyone with these words can control this wallet. Keep them private and offline.</p>
+      <pre id="reveal-phrase" class="secret"></pre>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-seedqr" class="card screen hidden" data-workflow-state="ExportCompactSeedQR ExportSeedQR SeedQrGrid ExportPlainWordsQR">
+      <h2 id="seedqr-title">SeedQR Backup</h2>
+      <p class="warning">This QR contains wallet recovery material. Keep it private.</p>
+      <div id="seedqr-output" class="qr"></div>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-backup-advanced" class="card screen hidden" data-workflow-menu="BackupRecoveryMenu" data-workflow-state="BackupRecoveryMenu">
+      <h2>Advanced Backup</h2>
+      <div class="stack">
+        <button id="advanced-compact-seedqr" data-workflow-action="wallet.backup.advanced.compact_seedqr">Compact SeedQR</button>
+        <button id="advanced-plain-seedqr" data-workflow-action="wallet.backup.advanced.plain_seedqr">Plain-text SeedQR</button>
+        <button id="advanced-stego" data-workflow-action="wallet.backup.advanced.stego">Steganographic</button>
+        <button id="advanced-xprv" data-workflow-action="wallet.backup.advanced.xprv">XPrv Backup</button>
+        <button id="advanced-export-key" data-workflow-action="wallet.backup.advanced.export_key">Export Key</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-secret-text" class="card screen hidden">
+      <h2 id="secret-text-title">Secret Backup</h2>
+      <p class="warning" id="secret-text-warning">Keep this secret offline.</p>
+      <pre id="secret-text-value" class="secret break"></pre>
+      <div id="secret-text-qr" class="qr hidden"></div>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-xprv-export" class="card screen hidden" data-workflow-menu="XprvExportMenu" data-workflow-state="XprvExportMenu ExportXprv SdXprvFilename SdXprvExportPassphrase">
+      <h2>XPrv Backup</h2>
+      <div class="stack">
+        <button id="xprv-show-qr" data-workflow-action="export.xprv.qr">Show as QR</button>
+        <button id="xprv-encrypt-sd" data-workflow-action="export.xprv.sd">Encrypt to SD</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-xprv-encrypt" class="card screen hidden">
+      <h2>Encrypt XPrv Backup</h2>
+      <p class="warning">This portable encrypted file restores as an account-XPrv wallet. It does not contain recovery words.</p>
+      <label>Password<input id="xprv-password" type="password" autocomplete="new-password"></label>
+      <label>Confirm password<input id="xprv-password-confirm" type="password" autocomplete="new-password"></label>
+      <button id="xprv-download" class="primary">Create Encrypted XPrv Backup</button>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-export-key" class="card screen hidden" data-workflow-state="ExportPrivKeyIndex ExportPrivKey">
+      <h2>Export Key</h2>
+      <p class="warning">This exports one receive-chain private key. Anyone with it can spend funds controlled by that key.</p>
+      <label>Address index<input id="export-key-index" inputmode="numeric" pattern="[0-9]*" value="0"></label>
+      <button id="export-key-show" class="primary">Show Private Key</button>
+      <pre id="export-key-value" class="secret break hidden"></pre>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-wallet-details" class="card screen hidden" data-workflow-state="WalletDetails">
+      <h2>Wallet Details</h2>
+      <dl class="review">
+        <div><dt>Wallet</dt><dd id="details-name"></dd></div>
+        <div><dt>Source</dt><dd id="details-kind"></dd></div>
+        <div><dt>Fingerprint</dt><dd id="details-fingerprint"></dd></div>
+      </dl>
+      <label>Wallet name<input id="details-name-input" maxlength="64" autocomplete="off"></label>
+      <button id="details-rename">Rename Wallet</button>
+      <div id="details-kpub-panel">
+        <label>Public account (kpub)</label>
+        <div class="mono break selectable" id="details-kpub"></div>
+      </div>
+      <button id="details-delete" class="danger">Delete Wallet</button>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-delete-wallet" class="card screen hidden" data-workflow-state="ConfirmDeleteSeed">
+      <h2>Delete Wallet</h2>
+      <p class="warning">Deleting removes this wallet from the active Vault session. Confirm that you have a valid recovery backup before continuing.</p>
+      <div class="row"><button id="delete-wallet-cancel">Cancel</button><button id="delete-wallet-confirm" class="danger">Delete Wallet</button></div>
+    </section>
+
+    <section id="screen-wallet-advanced" class="card screen hidden" data-workflow-menu="WalletAdvancedMenu" data-workflow-state="WalletAdvancedMenu">
+      <h2>Advanced</h2>
+      <div class="stack">
+        <button id="advanced-bip85" data-workflow-action="wallet.advanced.bip85">BIP85 Child Wallet</button>
+        <button id="advanced-sign-message" data-workflow-action="wallet.advanced.sign_message">Sign Message</button>
+        <button id="advanced-commit-secret" data-workflow-action="wallet.advanced.commit_secret">Commit Secret</button>
+        <button id="advanced-decrypt-secret" data-workflow-action="wallet.advanced.decrypt_secret">Decrypt Secret</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-seed-tools" class="card screen hidden" data-workflow-menu="SeedToolsMenu" data-workflow-state="SeedToolsMenu">
+      <h2>Seed Tools</h2>
+      <div class="stack">
+        <button id="seed-tools-new" data-workflow-action="seed_tools.new_seed">New Seed</button>
+        <button id="seed-tools-dice" data-workflow-action="seed_tools.dice_seed">Dice Seed</button>
+        <button id="seed-tools-touch" data-workflow-action="seed_tools.touch_seed">Touch Seed</button>
+        <button id="seed-tools-import" data-workflow-action="seed_tools.import_words">Import Words</button>
+        <button id="seed-tools-address" data-workflow-action="seed_tools.address">Address</button>
+        <button id="seed-tools-bip85" data-workflow-action="seed_tools.bip85">BIP85 Child</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-import-menu" class="card screen hidden" data-workflow-menu="ImportMenu" data-workflow-state="ImportMenu">
+      <h2>Import</h2>
+      <div class="stack">
+        <button id="import-menu-sd" data-workflow-action="import.sd">Import from SD</button>
+        <button id="import-menu-stego" data-workflow-action="import.stego">Stego Import</button>
+        <button id="import-menu-raw" data-workflow-action="import.raw_key">Import Raw Key</button>
+        <button id="import-menu-covenant" data-workflow-action="import.covenant">Covenant Restore</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-single-sig" class="card screen hidden" data-workflow-menu="SingleSigMenu" data-workflow-state="SingleSigMenu">
+      <h2>Single-Sig</h2>
+      <div class="stack">
+        <button id="single-sign-tx" data-workflow-action="signing.sign_tx">Sign TX</button>
+        <button id="single-sign-message" data-workflow-action="signing.sign_message">Sign Message</button>
+        <button id="single-covenant" data-workflow-action="signing.covenant">Covenant Sign</button>
+        <button id="single-commit" data-workflow-action="signing.commit_secret">Commit Secret</button>
+        <button id="single-decrypt" data-workflow-action="signing.decrypt_secret">Decrypt Secret</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-export-choice" class="card screen hidden" data-workflow-menu="ExportChoice" data-workflow-state="ExportChoice">
+      <h2>Export</h2>
+      <div class="stack">
+        <button id="export-choice-seed" data-workflow-action="export.seed_backup">Seed Backup</button>
+        <button id="export-choice-watch" data-workflow-action="export.watch_only">Watch-Only</button>
+        <button id="export-choice-keys" data-workflow-action="export.signing_keys">Signing Keys</button>
+        <button id="export-choice-stego" data-workflow-action="export.stego">Steganography</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-seed-backup-menu" class="card screen hidden" data-workflow-menu="SeedBackupMenu" data-workflow-state="SeedBackupMenu">
+      <h2>Seed Backup</h2>
+      <div class="stack">
+        <button id="legacy-seed-words" data-workflow-action="export.seed.words">Show Seed Words</button>
+        <button id="legacy-seed-qr" data-workflow-action="export.seed.qr">QR Export</button>
+        <button id="legacy-seed-sd" data-workflow-action="export.seed.sd">Backup to SD</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-watch-only-menu" class="card screen hidden" data-workflow-menu="WatchOnlyMenu" data-workflow-state="WatchOnlyMenu">
+      <h2>Watch-Only</h2>
+      <div class="stack">
+        <button id="legacy-kpub-qr" data-workflow-action="export.watch.kpub_qr">kpub as QR</button>
+        <button id="legacy-kpub-file" data-workflow-action="export.watch.kpub_sd">kpub to SD</button>
+        <button id="legacy-multisig-kpub" data-workflow-action="export.watch.multisig_kpub">kpub Multisig QR</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-signing-keys-menu" class="card screen hidden" data-workflow-menu="SigningKeysMenu" data-workflow-state="SigningKeysMenu">
+      <h2>Signing Keys</h2>
+      <div class="stack">
+        <button id="legacy-xprv" data-workflow-action="export.keys.xprv">xprv Account</button>
+        <button id="legacy-private-key" data-workflow-action="export.keys.private">Private Key</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-qr-export-menu" class="card screen hidden" data-workflow-menu="QrExportMenu" data-workflow-state="QrExportMenu">
+      <h2>QR Export</h2>
+      <div class="stack">
+        <button id="legacy-qr-compact" data-workflow-action="export.seedqr.compact">CompactSeedQR</button>
+        <button id="legacy-qr-standard" data-workflow-action="export.seedqr.standard">Standard SeedQR</button>
+        <button id="legacy-qr-plain" data-workflow-action="export.seedqr.plain">Plain Text QR</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-settings" class="card screen hidden" data-workflow-menu="SettingsMenu" data-workflow-state="SettingsMenu">
+      <h2>Settings</h2>
+      <div class="stack">
+        <button id="settings-security" data-workflow-action="settings.security">Security</button>
+        <button id="settings-storage" data-workflow-action="settings.storage">Storage</button>
+        <button id="settings-about" data-workflow-action="settings.about">About</button>
+        <button id="lock-vault">Lock Vault</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+
+    <section id="screen-security" class="card screen hidden" data-workflow-state="AdvancedFeatures">
+      <h2>Security</h2>
+      <p class="muted">KasKold Web Vault enforces portable session policies inside the Rust signing boundary. Hardware RTC, eFuse, and device-bound storage guarantees remain properties of the physical M5 signer.</p>
+      <div class="stack">
+        <button id="security-duress">Duress credential</button>
+        <button id="security-no-sign">No-sign-before (UTC)</button>
+        <button id="security-weekly">Weekly signing windows</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-security-no-sign" class="card screen hidden" data-workflow-state="AdvancedTimeLockWarning AdvancedTimeLockEntry AdvancedTimeLockConfirm">
+      <h2>No-Sign Until</h2>
+      <p class="warning">On M5 this policy is permanent and enforced by the hardware RTC. Web Vault can enforce the same UTC rule only for this running session because the host clock is not tamper-resistant.</p>
+      <label>Lock Until (UTC)<input id="security-no-sign-value" inputmode="numeric" maxlength="12" placeholder="YYYYMMDDHHMM" autocomplete="off"></label>
+      <div class="row"><button id="security-no-sign-clear">Clear Session Rule</button><button id="security-no-sign-save" class="primary">Apply Session Rule</button></div>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-security-weekly" class="card screen hidden" data-workflow-state="AdvancedWeeklyWarning AdvancedWeeklyEntry AdvancedWeeklyConfirm">
+      <h2>Weekly Signing Windows</h2>
+      <p class="warning">On M5 configured windows are permanent and hardware-RTC enforced. Web Vault uses the same parser/evaluator for this session, but the computer clock is not a hardware trust anchor.</p>
+      <label>Weekly Windows (UTC)<textarea id="security-weekly-value" rows="4" autocomplete="off" spellcheck="false" placeholder="MON 08:10-08:25;MON 21:33-21:43"></textarea></label>
+      <div class="row"><button id="security-weekly-clear">Clear Session Windows</button><button id="security-weekly-save" class="primary">Apply Session Windows</button></div>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-security-duress" class="card screen hidden" data-workflow-state="AdvancedDuressWarning AdvancedDuressEntry AdvancedDuressConfirm">
+      <h2>Duress Credential</h2>
+      <p class="warning">The M5 duress credential is an irreversible authenticated device feature: entering it wipes internal user data and it cannot later be disabled or changed.</p>
+      <p>Web Vault does not create a weaker software imitation. Use the physical M5 signer when this security property is required.</p>
+      <button data-back>Back</button>
+    </section>
+
+
+
+    <section id="screen-receive" class="card screen hidden" data-workflow-state="ShowAddress AddrIndexPicker">
+      <h2>Receive</h2>
+      <div class="row">
+        <label>Network<select id="receive-network"><option value="mainnet">Mainnet</option><option value="testnet">Testnet</option><option value="devnet">Devnet</option><option value="simnet">Simnet</option></select></label>
+        <label>Chain<select id="receive-chain"><option value="0">Receive</option><option value="1">Change</option></select></label>
+      </div>
+      <label>Address index<input id="receive-index" inputmode="numeric" pattern="[0-9]*" value="0"></label>
+      <div class="row"><button id="receive-prev">Previous</button><button id="receive-next">Next</button></div>
+      <div class="mono break selectable" id="receive-address"></div>
+      <div id="receive-qr" class="qr"></div>
+      <div class="row"><button id="receive-fullscreen">Full Screen QR</button><button data-back>Back</button></div>
+    </section>
+
+    <section id="screen-receive-qr" class="card screen hidden" data-workflow-state="ShowAddressQR">
+      <h2>Receive QR</h2>
+      <div class="mono break selectable" id="receive-qr-address"></div>
+      <div id="receive-qr-full" class="qr qr-large"></div>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-restore-source" class="card screen hidden" data-workflow-menu="StorageSeedSourceChoice" data-workflow-state="StorageSeedSourceChoice SdWalletBackupFileList ImportPrivKey StegoImportPick ImportExportChoice ImportWord">
+      <h2>Restore Wallet</h2>
+      <div class="stack">
+        <button id="recovery-words-open" data-workflow-action="onboarding.restore.words">Words</button>
+        <button id="recovery-seedqr-open" data-workflow-action="onboarding.restore.seedqr">SeedQR</button>
+        <button id="recovery-sd-open" data-workflow-action="onboarding.restore.sd">SD</button>
+        <button id="recovery-advanced-open" data-workflow-action="onboarding.restore.advanced">Advanced</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-wallet-recovery" class="card screen hidden" data-workflow-menu="SdImportMenu" data-workflow-state="SdImportMenu SdFileList SdDeleteConfirm">
+      <h2>Recovery</h2>
+      <div class="stack">
+        <button id="sd-import-wallet-backup" data-workflow-action="sd.import.wallet_backup">Seed / XPrv Backup</button>
+        <button id="sd-import-transaction" data-workflow-action="sd.import.transaction">Transaction</button>
+        <button id="sd-import-kpub" data-workflow-action="sd.import.kpub">kpub (Watch-Only)</button>
+        <button id="sd-import-multisig-address" data-workflow-action="sd.import.multisig_address">Multisig Address</button>
+        <button id="sd-import-covenant" data-workflow-action="sd.import.covenant">Covenant Restore</button>
+        <button id="sd-import-raw" data-workflow-action="recovery.import_raw_key">Import Raw Key</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-sd-wallet-backup" class="card screen hidden">
+      <h2>Seed / XPrv Backup</h2>
+      <p class="muted">Import a KasKold portable encrypted wallet backup or an account XPrv backup. Web Vault maps the M5 removable-storage workflow to a user-selected portable authenticated backup while retaining the shared KasKold recovery format and KDF policy.</p>
+      <label>Backup file<input id="sd-wallet-file" type="file" accept=".kwp,.xprv,.txt,.bin,application/octet-stream,text/plain"></label>
+      <label>Password for encrypted backup<input id="sd-wallet-password" type="password" autocomplete="off"></label>
+      <button id="sd-wallet-submit" class="primary">Import Backup</button>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-sd-transaction" class="card screen hidden" data-workflow-state="SdKsptEncryptPass SdKsptFilename SdKsptEncryptAsk SdKsptFileList">
+      <h2>Transaction</h2>
+      <label>KSPT / PSKT / PSKB file<input id="sd-transaction-file" type="file" accept=".ksp,.kspt,.pskt,.pskb,.bin,application/octet-stream"></label>
+      <button id="sd-transaction-submit" class="primary">Open for Review</button>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-sd-kpub" class="card screen hidden" data-workflow-state="KpubScannedPopup SdKpubEncryptAsk SdKpubFileList SdKpubFilename">
+      <h2>kpub (Watch-Only)</h2>
+      <label>kpub file<input id="sd-kpub-file" type="file" accept=".txt,.kpub,text/plain"></label>
+      <button id="sd-kpub-submit" class="primary">Open kpub</button>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-sd-multisig-address" class="card screen hidden" data-workflow-state="SdMsAddrEncryptAsk SdMsAddrFilename">
+      <h2>Multisig Address</h2>
+      <label>Address file<input id="sd-multisig-address-file" type="file" accept=".txt,text/plain"></label>
+      <button id="sd-multisig-address-submit" class="primary">Open Address</button>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-sd-multisig-descriptor" class="card screen hidden" data-workflow-state="MultisigDescriptor SdMsDescEncryptAsk SdMsDescFilename">
+      <h2>Multisig Descriptor</h2>
+      <label>Descriptor file<input id="sd-multisig-descriptor-file" type="file" accept=".txt,.desc,text/plain"></label>
+      <div class="row"><label>Network<select id="sd-multisig-descriptor-network"><option value="mainnet">Mainnet</option><option value="testnet">Testnet</option><option value="devnet">Devnet</option><option value="simnet">Simnet</option></select></label><label>Chain<select id="sd-multisig-descriptor-chain"><option value="0">Receive</option><option value="1">Change</option></select></label></div>
+      <label>Index<input id="sd-multisig-descriptor-index" inputmode="numeric" value="0"></label>
+      <button id="sd-multisig-descriptor-submit" class="primary">Import Descriptor</button>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-sd-covenant" class="card screen hidden">
+      <h2>Covenant Restore</h2>
+      <label>Covenant restore file<input id="sd-covenant-file" type="file" accept=".bin,.txt,application/octet-stream,text/plain"></label>
+      <button id="sd-covenant-submit" class="primary">Open Covenant Restore</button>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-import-public" class="card screen hidden">
+      <h2 id="import-public-title">Imported Public Data</h2>
+      <div id="import-public-value" class="mono break selectable"></div>
+      <div id="import-public-qr" class="qr"></div>
+      <div class="row"><button id="import-public-save">Save</button><button data-back>Back</button></div>
+    </section>
+
+    <section id="screen-recovery-words" class="card screen hidden" data-workflow-state="RestoreWord12Detected RestoreWord">
+      <h2>Recovery Words</h2>
+      <label>Recovery phrase<textarea id="recovery-material" rows="5" autocomplete="off" spellcheck="false"></textarea></label>
+      <p class="muted">Paste plain recovery words or a numbered list such as <span class="mono">1. word</span>, one entry per line.</p>
+      <label>Optional BIP39 passphrase<input id="recovery-passphrase" type="password" autocomplete="off"></label>
+      <button id="recovery-material-submit" class="primary">Restore Wallet</button>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-recovery-seedqr" class="card screen hidden">
+      <h2>SeedQR</h2>
+      <p class="muted">Scan a standard numeric SeedQR, or paste its 48/96 digits.</p>
+      <textarea id="recovery-seedqr-text" rows="4" autocomplete="off" spellcheck="false"></textarea>
+      <label>Optional BIP39 passphrase<input id="recovery-seedqr-passphrase" type="password" autocomplete="off"></label>
+      <div class="row"><button id="recovery-seedqr-submit">Import SeedQR</button><button id="recovery-seedqr-scan" class="primary">Scan SeedQR</button></div>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-recovery-sd" class="card screen hidden">
+      <h2>SD Recovery</h2>
+      <p class="muted">In Web Vault, the M5 SD slot maps to a user-selected encrypted KasKold backup file. The authenticated wallet container and password KDF remain in shared Rust.</p>
+      <label>Encrypted backup file<input id="recovery-portable-file" type="file" accept=".kwp,.bin,application/octet-stream"></label>
+      <label>Backup password<input id="recovery-portable-password" type="password" autocomplete="off"></label>
+      <button id="recovery-portable-submit" class="primary">Import Encrypted Backup</button>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-recovery-advanced" class="card screen hidden" data-workflow-menu="AdvancedRestoreMenu" data-workflow-state="AdvancedRestoreMenu">
+      <h2>Advanced Recovery</h2>
+      <div class="stack">
+        <button id="recovery-compact-open" data-workflow-action="onboarding.advanced_restore.compact_seedqr">Compact SeedQR</button>
+        <button id="recovery-plain-open" data-workflow-action="onboarding.advanced_restore.plain_seedqr">Plain-text SeedQR</button>
+        <button id="recovery-stego-open" data-workflow-action="onboarding.advanced_restore.stego">Steganographic</button>
+        <button id="recovery-raw-open" data-workflow-action="onboarding.advanced_restore.raw_key">Raw Private Key</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-recovery-stego" class="card screen hidden" data-workflow-state="StegoImportPick StegoImportDescChoice StegoImportDescFile StegoImportPass StegoImportPortablePassword StegoHintReveal StegoHintPassphrase">
+      <h2>Steganographic Recovery</h2>
+      <label>Steganographic JPEG<input id="recovery-stego-file" type="file" accept="image/jpeg,.jpg,.jpeg"></label>
+      <label>Backup password<input id="recovery-stego-password" type="password" autocomplete="off"></label>
+      <button id="recovery-stego-submit" class="primary">Import Steganographic Backup</button>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-recovery-raw" class="card screen hidden" data-workflow-state="ImportPrivKey">
+      <h2>Raw Private Key</h2>
+      <p class="warning">Enter exactly 64 hexadecimal characters. A raw-key wallet has one address only: receive index 0. It has no watch-account kpub, child addresses, mnemonic, SeedQR, XPrv, BIP85, or multisig account.</p>
+      <label>Private key<input id="recovery-raw-key" type="password" autocomplete="off" inputmode="text" maxlength="64" spellcheck="false"></label>
+      <button id="recovery-raw-submit" class="primary">Import Raw Private Key</button>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-wallet-add" class="card screen hidden">
+      <h2>Add Wallet</h2>
+      <div class="stack">
+        <button id="onboarding-create" class="primary">Create Wallet</button>
+        <button id="show-restore">Restore / Import Wallet</button>
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-portable-backup" class="card screen hidden" data-workflow-state="SdBackupWarning SdSeedFilename SdSeedExportPassphrase SdOverwriteWarning">
+      <h2>Encrypted Backup</h2>
+      <p class="warning">Web Vault uses KasKold Argon2id plus authenticated KHV3 encryption. Unlike M5 encrypted SD backup, a browser has no non-exportable device secret, so this file is intentionally portable and password-protected.</p>
+      <label>Password<input id="portable-password" type="password" autocomplete="new-password"></label>
+      <label>Confirm password<input id="portable-password-confirm" type="password" autocomplete="new-password"></label>
+      <button id="portable-download" class="primary">Create Encrypted Backup File</button>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-stego-backup" class="card screen hidden" data-workflow-state="StegoModeSelect StegoResult StegoSecuritySelect StegoJpegPick StegoJpegDescChoice StegoJpegDescFile StegoJpegDesc StegoJpegDescPreview StegoJpegPpAsk StegoJpegPpInfo StegoJpegPpEntry StegoPortablePassword StegoPortablePasswordConfirm StegoJpegConfirm">
+      <h2>Steganographic</h2>
+      <p class="warning">The JPEG hides an authenticated encrypted portable backup. Keep both the image and password private.</p>
+      <label>Baseline JPEG carrier<input id="stego-carrier" type="file" accept="image/jpeg,.jpg,.jpeg"></label>
+      <label>Password<input id="stego-password" type="password" autocomplete="new-password"></label>
+      <label>Confirm password<input id="stego-password-confirm" type="password" autocomplete="new-password"></label>
+      <button id="stego-download" class="primary">Create Steganographic JPEG</button>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-multisig" class="card screen hidden" data-workflow-menu="MultisigMenu" data-workflow-state="MultisigMenu MultisigAddKey">
+      <h2>Multisig</h2>
+      <div class="stack">
+        <button id="multisig-create-open" data-workflow-action="multisig.create" class="primary">Create Multisig</button>
+        <button id="multisig-descriptors-open" data-workflow-action="multisig.descriptors">Descriptors</button>
+        <button id="multisig-show-kpub" data-workflow-action="multisig.kpub">kpub Multisig QR</button>
+      </div>
+      <div id="multisig-kpub-panel" class="hidden">
+        <div id="multisig-kpub" class="mono break selectable"></div><div id="multisig-kpub-qr" class="qr"></div>
+      </div>
+      <hr>
+      <h3>Import Descriptor</h3>
+      <label>Descriptor<textarea id="multisig-import-descriptor" rows="4" autocomplete="off" spellcheck="false"></textarea></label>
+      <div class="row"><label>Network<select id="multisig-import-network"><option value="mainnet">Mainnet</option><option value="testnet">Testnet</option><option value="devnet">Devnet</option><option value="simnet">Simnet</option></select></label><label>Chain<select id="multisig-import-chain"><option value="0">Receive</option><option value="1">Change</option></select></label></div>
+      <label>Index<input id="multisig-import-index" inputmode="numeric" value="0"></label>
+      <div class="row"><button id="multisig-import-submit">Import Descriptor</button><button id="multisig-import-scan">Scan Descriptor</button></div>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-multisig-descriptors" class="card screen hidden" data-workflow-menu="MultisigDescriptorsMenu" data-workflow-state="MultisigDescriptorsMenu MultisigDescriptorList">
+      <h2>Descriptors</h2>
+      <p class="muted">Only descriptors containing the currently active wallet are shown.</p>
+      <div class="stack">
+        <button id="multisig-descriptors-view" data-workflow-action="multisig.descriptors.view">View</button>
+        <button id="multisig-descriptors-backup" data-workflow-action="multisig.descriptors.backup">Backup to SD</button>
+        <button id="multisig-descriptors-restore" data-workflow-action="multisig.descriptors.restore">Restore from SD</button>
+        <button id="multisig-descriptors-delete" data-workflow-action="multisig.descriptors.delete" class="danger">Delete</button>
+      </div>
+      <div id="multisig-descriptor-list" class="stack"></div>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-multisig-create" class="card screen hidden" data-workflow-state="MultisigChooseMN MultisigPickSeed">
+      <h2>Create Multisig</h2>
+      <p class="muted">This Vault is included automatically. Add each other participant's dedicated multisig kpub on a separate line.</p>
+      <div class="row"><label>Required signatures<input id="multisig-threshold" inputmode="numeric" value="2"></label><label>Network<select id="multisig-network"><option value="mainnet">Mainnet</option><option value="testnet">Testnet</option><option value="devnet">Devnet</option><option value="simnet">Simnet</option></select></label></div>
+      <label>Other cosigner kpubs<textarea id="multisig-cosigners" rows="5" autocomplete="off" spellcheck="false"></textarea></label><button id="multisig-cosigner-scan">Scan Cosigner kpub</button>
+      <div class="row"><label>Chain<select id="multisig-chain"><option value="0">Receive</option><option value="1">Change</option></select></label><label>Index<input id="multisig-index" inputmode="numeric" value="0"></label></div>
+      <button id="multisig-create-submit" class="primary">Create</button>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-multisig-result" class="card screen hidden" data-workflow-state="MultisigShowAddressQR MultisigShowAddress MultisigSaveAddrAsk MultisigSaveDescriptorAsk">
+      <h2>Multisig Wallet</h2>
+      <label>Address</label><div id="multisig-result-address" class="mono break selectable"></div><div id="multisig-result-address-qr" class="qr"></div>
+      <label>Descriptor</label><div id="multisig-result-descriptor" class="mono break selectable"></div><div id="multisig-result-descriptor-qr" class="qr"></div>
+      <div id="multisig-descriptor-save-prompt" class="hidden">
+        <h3>Save Descriptor?</h3>
+        <p class="muted">Save this public descriptor to this browser for the active wallet?</p>
+        <div class="row"><button id="multisig-store-descriptor" class="primary">Yes, Save</button><button id="multisig-skip-descriptor">No</button></div>
+      </div>
+      <div class="row"><button id="multisig-save-address">Save Address</button><button id="multisig-save-descriptor">Backup Descriptor File</button></div>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-bip85" class="card screen hidden" data-workflow-state="Bip85Index Bip85ShowWord">
+      <h2>BIP85 Child Wallet</h2>
+      <div class="row"><label>Words<select id="bip85-words"><option value="12">12</option><option value="24">24</option></select></label><label>Child index<input id="bip85-index" inputmode="numeric" value="0"></label></div>
+      <button id="bip85-generate" class="primary">Derive Child Wallet</button>
+      <pre id="bip85-result" class="secret hidden"></pre>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-sign-message" class="card screen hidden" data-workflow-state="SignMsgChoice">
+      <h2>Sign Message</h2>
+      <p class="muted">Choose the message source. Signing occurs only after a separate preview and confirmation.</p>
+      <div class="stack">
+        <button id="sign-message-type" class="primary">Type manually</button>
+        <button id="sign-message-scan">Scan message QR</button>
+        <button id="sign-message-file">Load .TXT from SD</button>
+        <input id="sign-message-file-input" class="hidden" type="file" accept=".txt,text/plain">
+        <button data-back>Back</button>
+      </div>
+    </section>
+
+    <section id="screen-sign-message-input" class="card screen hidden" data-workflow-state="SignMsgType SignMsgScan SignMsgFile">
+      <h2>Message</h2>
+      <textarea id="sign-message-value" rows="7" autocomplete="off" spellcheck="false"></textarea>
+      <button id="sign-message-review" class="primary">Review Message</button><button data-back>Back</button>
+    </section>
+
+    <section id="screen-sign-message-preview" class="card screen hidden" data-workflow-state="SignMsgPreview">
+      <h2>Review Message</h2>
+      <pre id="sign-message-preview-value" class="mono break"></pre>
+      <p class="warning">Sign only if the exact message above is what you intend to authenticate.</p>
+      <div class="row"><button id="sign-message-confirm" class="primary">Sign</button><button data-back>Back</button></div>
+    </section>
+
+    <section id="screen-sign-message-result" class="card screen hidden" data-workflow-state="SignMsgResult SignMsgResultQr">
+      <h2>Signed Message</h2>
+      <label>Signature</label><div id="sign-message-signature" class="mono break"></div>
+      <label>Message digest</label><div id="sign-message-digest" class="mono break"></div>
+      <div id="sign-message-qr" class="qr"></div>
+      <div class="row"><button id="sign-message-save">Save Result</button><button id="sign-message-done" class="primary">Done</button></div>
+    </section>
+
+    <section id="screen-commit-secret" class="card screen hidden" data-workflow-state="CommitRevealType">
+      <h2>Commit Secret</h2>
+      <p class="muted">Up to 33 UTF-8 bytes. The result QR contains the commitment and encrypted reveal payload.</p>
+      <input id="commit-secret-value" type="password" autocomplete="off" maxlength="33">
+      <button id="commit-secret-review" class="primary">Review Secret</button><button data-back>Back</button>
+    </section>
+
+    <section id="screen-commit-secret-preview" class="card screen hidden" data-workflow-state="CommitRevealPreview">
+      <h2>Review Secret</h2>
+      <pre id="commit-secret-preview-value" class="secret"></pre>
+      <p class="warning">Confirm only if this is the secret you intend to commit and encrypt.</p>
+      <button id="commit-secret-confirm" class="primary">Commit &amp; Encrypt</button><button data-back>Back</button>
+    </section>
+
+    <section id="screen-commit-secret-result" class="card screen hidden" data-workflow-state="CommitRevealResult CommitRevealResultQr">
+      <h2>Committed Secret</h2>
+      <label>Commitment</label><div id="commit-secret-hash" class="mono break"></div>
+      <details><summary>Encrypted payload</summary><div id="commit-secret-payload" class="mono break"></div></details>
+      <div id="commit-secret-qr" class="qr"></div>
+      <button id="commit-secret-done" class="primary">Done</button>
+    </section>
+
+    <section id="screen-decrypt-secret" class="card screen hidden" data-workflow-state="DecryptSecretScan">
+      <h2>Decrypt Secret</h2>
+      <p class="muted">Scan the commit/reveal QR. A manual hex field is also available for local testing and file interchange.</p>
+      <button id="decrypt-secret-scan" class="primary">Scan Commit/Reveal QR</button>
+      <label>Commit/reveal payload (hex)<textarea id="decrypt-secret-payload" rows="5" autocomplete="off" spellcheck="false"></textarea></label>
+      <button id="decrypt-secret-submit">Decrypt &amp; Verify Hex</button><button data-back>Back</button>
+    </section>
+
+    <section id="screen-decrypt-secret-result" class="card screen hidden" data-workflow-state="DecryptSecretResult DecryptSecretResultQr">
+      <h2>Decrypted Secret</h2>
+      <pre id="decrypt-secret-result" class="secret"></pre>
+      <div id="decrypt-secret-result-qr" class="qr"></div>
+      <button id="decrypt-secret-done" class="primary">Done</button>
+    </section>
+
+
+
+    <section id="screen-settings-detail" class="card screen hidden" data-workflow-state="About SdCardSettings FirmwareUpdateReady StorageSdFailure">
+      <h2 id="settings-detail-title">Setting</h2>
+      <div id="settings-detail-body"></div>
+      <button data-back>Back</button>
+    </section>
+
+    <section id="screen-private-swap-review" class="card screen hidden" data-workflow-state="PrivateSwapReview">
+      <h2>Private Swap</h2>
+      <p class="warning">Private Swap uses an isolated mnemonic-derived covenant key. Confirm only if every binding and transaction field matches the swap you intend to authorize.</p>
+      <dl class="review">
+        <div><dt>Operation</dt><dd id="private-swap-mode"></dd></div>
+        <div><dt>Key ID</dt><dd id="private-swap-key-id" class="mono break"></dd></div>
+        <div><dt>Claim key</dt><dd id="private-swap-pubkey" class="mono break"></dd></div>
+        <div><dt>Adaptor point</dt><dd id="private-swap-adaptor" class="mono break"></dd></div>
+        <div><dt>Script hash</dt><dd id="private-swap-script-hash" class="mono break"></dd></div>
+        <div><dt>Transaction sighash</dt><dd id="private-swap-sighash" class="mono break"></dd></div>
+        <div><dt>Input (sompi)</dt><dd id="private-swap-input"></dd></div>
+        <div><dt>Output (sompi)</dt><dd id="private-swap-output"></dd></div>
+        <div><dt>Fee (sompi)</dt><dd id="private-swap-fee"></dd></div>
+        <div><dt>Refund lock DAA</dt><dd id="private-swap-refund"></dd></div>
+        <div><dt>Destination hash</dt><dd id="private-swap-destination" class="mono break"></dd></div>
+      </dl>
+      <div class="row"><button id="private-swap-cancel">Cancel</button><button id="private-swap-confirm" class="primary">Confirm</button></div>
+    </section>
+
+    <section id="screen-private-swap-result" class="card screen hidden" data-workflow-state="PrivateSwapKeyResult PrivateSwapKeyResultQr PrivateSwapResult PrivateSwapResultQr">
+      <h2 id="private-swap-result-title">Private Swap Result</h2>
+      <p id="private-swap-result-note" class="muted"></p>
+      <div id="private-swap-result-qr" class="qr"></div>
+      <pre id="private-swap-result-hex" class="mono break selectable"></pre>
+      <div class="stack">
+        <button id="private-swap-scan-reveal" class="primary hidden">Scan Host Reveal</button>
+        <button id="private-swap-save">Save Response</button>
+        <button id="private-swap-done">Done</button>
+      </div>
+    </section>
+
+    <section id="screen-covenant-review" class="card screen hidden" data-workflow-state="CovenantSignReview CovenantSignOpaqueWarning CovenantSignOpaqueConfirm">
+      <h2>Covenant Sign</h2>
+      <p id="covenant-warning" class="warning hidden"></p>
+      <dl class="review">
+        <div><dt>Mode</dt><dd id="covenant-mode"></dd></div>
+        <div><dt>Scheme</dt><dd id="covenant-scheme"></dd></div>
+        <div><dt>Key ID</dt><dd id="covenant-key-id" class="mono break"></dd></div>
+        <div><dt>Covenant key</dt><dd id="covenant-pubkey" class="mono break"></dd></div>
+        <div><dt>Commitment</dt><dd id="covenant-commitment" class="mono break"></dd></div>
+        <div><dt>Script hash</dt><dd id="covenant-script-hash" class="mono break"></dd></div>
+      </dl>
+      <label>Verified context</label><pre id="covenant-context" class="selectable"></pre>
+      <div class="row"><button id="covenant-cancel">Cancel</button><button id="covenant-confirm" class="primary">Confirm</button></div>
+    </section>
+
+    <section id="screen-covenant-result" class="card screen hidden" data-workflow-state="CovenantKeyResult CovenantKeyResultQr CovenantSignResult CovenantSignResultQr CovBackupName">
+      <h2 id="covenant-result-title">Covenant Result</h2>
+      <p id="covenant-result-note" class="muted"></p>
+      <div id="covenant-result-qr" class="qr"></div>
+      <pre id="covenant-result-hex" class="mono break selectable"></pre>
+      <div class="stack">
+        <button id="covenant-scan-reveal" class="primary hidden">Scan Host Reveal</button>
+        <button id="covenant-save">Save Response</button>
+        <button id="covenant-done">Done</button>
+      </div>
+    </section>
+
+    <section id="screen-scan-response" class="card screen hidden" data-workflow-state="ShowQR ShowQrPopup">
+      <h2 id="scan-response-title">QR Response</h2>
+      <p id="scan-response-note" class="muted"></p>
+      <div id="scan-response-qr" class="qr"></div>
+      <pre id="scan-response-hex" class="mono break selectable"></pre>
+      <div class="row"><button id="scan-response-save">Save Response</button><button id="scan-response-done" class="primary">Done</button></div>
+    </section>
+
+    <section id="screen-scan" class="card screen hidden" data-workflow-state="ScanQR">
+      <h2 id="scan-title">Scan QR</h2>
+      <p id="scan-progress">Point the camera at the signing request from KasKold Companion.</p>
+      <video id="camera" playsinline muted></video>
+      <canvas id="camera-canvas" class="hidden"></canvas>
+      <div class="row"><button id="camera-start" class="primary">Start camera</button><button id="camera-stop">Stop camera</button></div>
+      <label>Or paste one or more QR frames as hex<textarea id="frame-hex" rows="4" autocomplete="off" spellcheck="false" placeholder="Paste QR Frame Hex values — one per line; accepted automatically"></textarea></label>
+      <p class="muted">Pasted valid frames are accepted automatically, including multiple frames copied at once. Press Enter to accept typed hex; use Shift+Enter for a new line.</p>
+      <button id="scan-cancel" data-back>Back</button>
+    </section>
+
+    <section id="screen-review" class="card screen hidden" data-workflow-menu="ConfirmTx" data-workflow-state="ConfirmTx Rejected SignTxGuide">
+      <div class="review-heading-row">
+        <h2>Review transaction</h2>
+        <button id="review-unit-toggle" class="amount-unit-toggle" type="button" aria-label="Show amounts in Sompi" title="Show amounts in Sompi">⇄ Sompi</button>
+      </div>
+      <dl class="review review-summary">
+        <div><dt>Total amount</dt><dd id="review-total-amount"></dd></div>
+        <div><dt>Total fee</dt><dd id="review-fee"></dd></div>
+      </dl>
+      <div id="review-destinations" class="review-destinations" aria-label="Transaction destination addresses"></div>
+      <dl class="review review-summary">
+        <div id="review-change-row"><dt>Total change</dt><dd id="review-change-total"></dd></div>
+      </dl>
+      <p class="warning">Review the amount, fee, destination, and change before signing.</p>
+      <div class="row"><button id="review-approve" class="primary" data-workflow-action="tx.confirm">Sign</button><button id="review-reject" data-workflow-action="tx.cancel">Cancel</button><button id="review-inspect" data-workflow-action="tx.inspect">Inspect</button></div>
+    </section>
+
+    <section id="screen-review-inspect" class="card screen hidden vault-inspect-screen" data-workflow-state="ReviewTx InspectUtxoSummary InspectUtxo">
+      <div class="vault-inspect-heading">
+        <h2>Inspect transaction</h2>
+        <p class="muted">Optional technical details for the scanned transaction.</p>
+      </div>
+      <div class="vault-inspect-header" aria-label="Transaction metadata">
+        <div class="vault-inspect-header-cell">
+          <div class="vault-inspect-label">Network</div>
+          <div id="review-inspect-network" class="vault-inspect-header-value">—</div>
+        </div>
+        <div class="vault-inspect-header-cell">
+          <div class="vault-inspect-label">Inputs</div>
+          <div id="review-inspect-input-count" class="vault-inspect-header-value">0</div>
+        </div>
+        <div class="vault-inspect-header-cell">
+          <div class="vault-inspect-label">Outputs</div>
+          <div id="review-inspect-output-count" class="vault-inspect-header-value">0</div>
+        </div>
+      </div>
+      <h3 class="vault-inspect-section-title">UTXOs</h3>
+      <div id="review-inputs-detail" class="vault-inspect-list"></div>
+      <h3 class="vault-inspect-section-title">Outputs</h3>
+      <div id="review-outputs-detail" class="vault-inspect-list"></div>
+      <div class="vault-inspect-totals" aria-label="Transaction totals">
+        <div class="vault-inspect-total-row"><span>Total in</span><strong id="review-inspect-total-in">—</strong></div>
+        <div class="vault-inspect-total-row"><span>Total out</span><strong id="review-inspect-total-out">—</strong></div>
+        <div class="vault-inspect-total-row"><span>Fee</span><strong id="review-inspect-fee">—</strong></div>
+      </div>
+      <button id="review-inspect-done" class="primary">Back to Review</button>
+    </section>
+
+    <section id="screen-anti-klepto-reveal" class="card screen hidden" data-workflow-state="AntiKleptoRevealGuide">
+      <h2>Anti-Klepto Host Reveal</h2>
+      <p>The nonce commitment has been returned to the host. Scan the reveal from that same session to finalize the signatures. A mismatched session or secret is rejected.</p>
+      <button id="anti-klepto-scan" class="primary">Scan Host Reveal</button>
+      <button id="anti-klepto-cancel">Cancel Signing</button>
+    </section>
+
+    <section id="screen-response" class="card screen hidden" data-workflow-state="ShowQR ShowQrPopup SdSigFilename ShowQrModeChoice">
+      <h2>Signed response</h2>
+      <div id="response-qr" class="qr"></div>
+      <p id="response-frame-label" class="response-frame-label"></p>
+      <div class="response-frame-controls" aria-label="QR frame controls">
+        <button id="response-prev" class="frame-nav-button" type="button" title="Previous frame" aria-label="Previous frame">⏪</button>
+        <button id="response-pause" class="frame-nav-button" type="button" title="Pause QR animation" aria-label="Pause QR animation">⏸</button>
+        <button id="response-next" class="frame-nav-button" type="button" title="Next frame" aria-label="Next frame">⏩</button>
+      </div>
+      <div class="qr-frame-hex-panel">
+        <div class="qr-frame-hex-heading"><div class="qr-frame-hex-title">QR Frame Hex</div><button id="response-copy-all" type="button" class="qr-frame-copy-all" title="Copy all QR Frame Hex values">Copy All</button></div>
+        <pre id="response-hex" class="mono qr-frame-hex-copy" role="button" tabindex="0" title="Click to copy this QR Frame Hex" aria-label="QR Frame Hex. Click to copy."></pre>
+        <div id="response-copy-status" class="qr-frame-copy-status" role="status" aria-live="polite"></div>
+      </div>
+      <div class="stack">
+        <button id="response-scan-reveal" class="primary hidden">Continue: Scan Host Reveal</button>
+        <button id="response-save">Save QR Images</button>
+        <button id="response-done" class="primary">Done</button>
+      </div>
+    </section>
+
+    <footer class="vault-footer" aria-label="Application information">
+      <p>Secure signer · No network access</p>
+      <p>v 2.0.0</p>
+    </footer>
+  </main>
+  <script type="module" src="js/vault_main.js"></script>
+</body>
+</html>

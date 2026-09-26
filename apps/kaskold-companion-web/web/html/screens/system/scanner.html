@@ -1,0 +1,28 @@
+            <section id="screen-scanner" class="screen">
+                <div class="screen-content scanner-content">
+                    <h2 id="scanner-title">Scan QR Code</h2>
+                    <div id="scanner-viewport" class="scanner-viewport">
+                        <video id="scanner-video" autoplay playsinline muted></video>
+                        <canvas id="scanner-canvas" class="hidden"></canvas>
+                        <div class="scanner-guide"></div>
+                    </div>
+                    <div id="scanner-status" class="scanner-status">
+                        Waiting for camera...
+                    </div>
+                    <div id="scanner-camera-fallback" class="scanner-camera-fallback hidden">
+                        <p id="scanner-camera-fallback-message" class="scanner-camera-fallback-message">
+                            Live camera preview is unavailable. You can still scan a QR code with the device camera.
+                        </p>
+                        <button type="button" class="btn btn-primary" id="btn-scanner-take-photo">Take QR Photo</button>
+                        <button type="button" class="btn btn-outline" id="btn-scanner-choose-image">Choose QR Image</button>
+                        <input id="scanner-capture-input" class="hidden" type="file" accept="image/*" capture="environment">
+                        <input id="scanner-image-input" class="hidden" type="file" accept="image/*">
+                    </div>
+                    <div id="scanner-frame-hex-panel" class="scanner-frame-hex-panel hidden">
+                        <div class="divider">or paste QR Frame Hex</div>
+                        <label class="input-label" for="scanner-frame-hex">QR Frame Hex</label>
+                        <textarea id="scanner-frame-hex" class="input-text input-textarea" rows="4" autocomplete="off" spellcheck="false" placeholder="Paste one or more QR Frame Hex values — one per line; accepted automatically, or press Enter..."></textarea>
+                    </div>
+                    <button class="btn btn-back" id="btn-scanner-cancel">Back</button>
+                </div>
+            </section>

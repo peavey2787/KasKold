@@ -1,0 +1,173 @@
+/* ─── Header ─── */
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--bg);
+    z-index: 10;
+}
+
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-logo {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    flex: 0 0 50px;
+    cursor: pointer;
+    transition: transform var(--transition), filter var(--transition);
+}
+
+.header-brand .title {
+    font-family: var(--mono);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: none;
+    background: linear-gradient(135deg, var(--teal), #7af5dd);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+
+.header-logo:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 3px;
+    border-radius: 999px;
+}
+
+.header-status {
+    display: flex;
+    align-items: center;
+    height: 50px;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 20px;
+    color: var(--text-dim);
+    letter-spacing: 0.5px;
+}
+
+
+.header-status .status-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    line-height: 1.05;
+}
+
+.header-status .network-tag {
+    margin-top: 3px;
+    font-size: 14px;
+    line-height: 1;
+    letter-spacing: 0.25px;
+    color: var(--text-muted);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-social {
+    width: 50px;
+    height: 50px;
+    flex: 0 0 50px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: color var(--transition);
+    text-decoration: none;
+}
+
+.header-social:hover {
+    color: var(--text);
+}
+
+.header-social svg {
+    width: 32px;
+    height: 32px;
+    display: block;
+    flex: 0 0 32px;
+}
+
+#btn-explorer {
+    overflow: hidden;
+}
+
+.explorer-network-icon {
+    width: 50px;
+    height: 50px;
+    display: block;
+    flex: 0 0 50px;
+    transform: scale(1.2);
+    transform-origin: center;
+    transition: transform var(--transition), filter var(--transition);
+}
+
+.header-logo:hover,
+.header-logo:focus-visible {
+    transform: scale(1.08);
+    filter: brightness(1.15);
+}
+
+#btn-explorer:hover .explorer-network-icon,
+#btn-explorer:focus-visible .explorer-network-icon {
+    transform: scale(1.28);
+    filter: brightness(1.15);
+}
+
+.header-settings-btn {
+    width: 50px;
+    height: 50px;
+    flex: 0 0 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 40px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    transition: color var(--transition);
+}
+
+.header-settings-btn:hover,
+.header-settings-btn.active {
+    color: var(--teal);
+}
+
+/* The settings cog routes directly to Node Connection; no secondary gear menu. */
+
+.dot {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.dot.offline { background: var(--danger); box-shadow: 0 0 6px rgba(229, 83, 75, 0.4); }
+.dot.connecting { background: var(--warning); animation: pulse 1.2s ease-in-out infinite; }
+.dot.online { background: var(--success); box-shadow: 0 0 6px rgba(63, 185, 80, 0.4); }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+
+

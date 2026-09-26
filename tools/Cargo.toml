@@ -1,0 +1,52 @@
+# KasKold — Air-gapped offline signing device for Kaspa
+# Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
+# License: GPL-3.0
+
+[package]
+name = "firmware-tools"
+version = "2.0.0"
+edition = "2021"
+
+[lib]
+path = "firmware/lib.rs"
+
+[[bin]]
+name = "gen-hash"
+path = "firmware/gen_hash.rs"
+
+[[bin]]
+name = "gen-keypair"
+path = "firmware/gen_keypair.rs"
+
+[[bin]]
+name = "gen-update-manifest"
+path = "firmware/gen_update_manifest.rs"
+
+[[bin]]
+name = "kaskold-mirror"
+path = "dev/firmware_mirror.rs"
+
+[[bin]]
+name = "kaskold-setup"
+path = "dev/setup_check.rs"
+
+[[bin]]
+name = "kaskold-verify"
+path = "firmware/verify.rs"
+
+[[bin]]
+name = "kaskold-funded-e2e"
+path = "dev/funded_e2e_signer.rs"
+
+[dependencies]
+sha2 = "0.10"
+k256 = { version = "0.13.4", default-features = false, features = ["arithmetic", "ecdsa", "schnorr"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+serialport = "4"
+minifb = "0.27"
+shared-signer = { path = "../crates/shared-signer" }
+kaskold-hardware-core = { path = "../crates/kaskold-hardware-core" }
+offline-signer = { path = "../crates/offline-signer" }
+
+[workspace]
+resolver = "2"
