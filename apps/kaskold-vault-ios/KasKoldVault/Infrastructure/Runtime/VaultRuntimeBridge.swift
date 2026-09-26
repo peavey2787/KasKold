@@ -276,7 +276,7 @@ final class VaultRuntimeBridge {
             guard needed < 0 else { throw VaultBridgeError.malformedResponse }
             var data = Data(count: -needed)
             let written = data.withUnsafeMutableBytes { bytes in
-                kkVaultResponseFrameCopy(requiredHandleUnchecked(), index, bytes.bindMemory(to: UInt8.self).baseAddress, data.count)
+                kkVaultResponseFrameCopy(requiredHandleUnchecked(), index, bytes.bindMemory(to: UInt8.self).baseAddress, bytes.count)
             }
             guard written == data.count else { throw VaultBridgeError.malformedResponse }
             return data
@@ -326,7 +326,7 @@ final class VaultRuntimeBridge {
         guard needed < 0 else { throw VaultBridgeError.malformedResponse }
         var data = Data(count: -needed)
         let written = data.withUnsafeMutableBytes { bytes in
-            function(requiredHandleUnchecked(), bytes.bindMemory(to: UInt8.self).baseAddress, data.count)
+            function(requiredHandleUnchecked(), bytes.bindMemory(to: UInt8.self).baseAddress, bytes.count)
         }
         guard written == data.count else { throw VaultBridgeError.malformedResponse }
         return data
