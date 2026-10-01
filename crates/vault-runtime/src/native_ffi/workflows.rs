@@ -302,7 +302,7 @@ pub(crate) fn hex_decode(text: &str) -> Result<Vec<u8>, String> {
         return Err("hex payload must have an even number of characters".to_owned());
     }
     let mut output = Vec::with_capacity(text.len() / 2);
-    for pair in text.as_bytes().chunks_exact(2) {
+    for pair in text.as_bytes().as_chunks::<2>().0 {
         let high = shared_signer::bytes::decode_hex_nibble(pair[0])
             .ok_or_else(|| "hex payload contains a non-hex character".to_owned())?;
         let low = shared_signer::bytes::decode_hex_nibble(pair[1])

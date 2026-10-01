@@ -282,7 +282,7 @@ fn decode_hex_bytes(hex: &[u8], output: &mut [u8]) -> Result<(), MultisigDescrip
     if hex.len() != output.len() * 2 {
         return Err(MultisigDescriptorError::InvalidParticipantLength);
     }
-    for (pair, byte) in hex.chunks_exact(2).zip(output.iter_mut()) {
+    for (pair, byte) in hex.as_chunks::<2>().0.iter().zip(output.iter_mut()) {
         let high = decode_hex_nibble(pair[0]).ok_or(MultisigDescriptorError::InvalidHex)?;
         let low = decode_hex_nibble(pair[1]).ok_or(MultisigDescriptorError::InvalidHex)?;
         *byte = high.wrapping_shl(4).wrapping_add(low);

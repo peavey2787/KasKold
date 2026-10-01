@@ -39,7 +39,7 @@ pub fn hex_decode_strict(src: &[u8], dst: &mut [u8]) -> Result<usize, PskError> 
     if dst.len() < need {
         return Err(PskError::ScratchBufferTooSmall);
     }
-    for (index, pair) in src.chunks_exact(2).enumerate() {
+    for (index, pair) in src.as_chunks::<2>().0.iter().enumerate() {
         let hi = decode_nibble(pair[0])?;
         let lo = decode_nibble(pair[1])?;
         dst[index] = hi * 16 + lo;

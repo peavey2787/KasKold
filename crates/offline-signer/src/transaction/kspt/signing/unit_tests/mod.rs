@@ -503,7 +503,7 @@ fn covenant_scanner_distinguishes_unchecked_delayed_and_capacity_limited_keys() 
     assert_eq!(delayed_candidates.len, 0);
 
     let mut many = [0u8; 9 * 34];
-    for chunk in many.chunks_exact_mut(34) {
+    for chunk in many.as_chunks_mut::<34>().0.iter_mut() {
         chunk[0] = 0x20;
         chunk[1..33].copy_from_slice(&key);
         chunk[33] = 0xac;

@@ -10,7 +10,7 @@ Security properties enforced by the project:
 - cleartext traffic is disabled;
 - no node, HTTP, WebSocket, resolver, telemetry, or broadcast dependency is included;
 - wallet/signing logic belongs to the Rust `vault-runtime` / hardened signing core;
-- Rust seals each wallet as authenticated `KHV3` custody state and wraps the native multi-wallet catalog in an authenticated `KVI1` inventory envelope before it reaches Kotlin; `KHV2`/legacy `KHV1` containers remain readable as one-wallet migration inputs;
+- Rust seals each wallet as authenticated `KHV3` custody state and wraps the native multi-wallet catalog in an authenticated `KVI1` inventory envelope before it reaches Kotlin;
 - a random 256-bit wrapping key is itself protected by a non-exportable Android Keystore AES key and is zeroized after each Rust call;
 - recovery phrase display/export is an explicit backup operation, not part of ordinary signing.
 

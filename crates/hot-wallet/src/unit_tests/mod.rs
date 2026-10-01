@@ -644,17 +644,6 @@ fn privacy_stego_and_static_multisig_paths_fail_closed_or_round_trip_public_data
 }
 
 #[test]
-fn legacy_khv2_dispatch_reaches_authenticated_migration_decoder() {
-    let key = [0x77u8; PLATFORM_WRAPPING_KEY_LEN];
-    let mut sealed = vec![0u8; super::V2_SEALED_WALLET_LEN];
-    sealed[..4].copy_from_slice(b"KHV2");
-    assert!(matches!(
-        HotWallet::restore_platform_sealed(&sealed, &key),
-        Err(HotWalletError::SealedWalletAuthenticationFailed)
-    ));
-}
-
-#[test]
 fn review_owned_receive_hint_covers_verified_output_derivation() {
     let wallet = restored_wallet();
     let mut transaction = Transaction::try_new().expect("transaction allocation");

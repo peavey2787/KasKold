@@ -46,19 +46,10 @@ pub(crate) mod test_support {
         pin::pin,
         task::{Context, Poll, Waker},
     };
-    use std::sync::Arc;
-    use std::task::Wake;
-
-    struct NoopWake;
-
-    impl Wake for NoopWake {
-        fn wake(self: Arc<Self>) {}
-    }
 
     /// Poll a boundary future that is expected to complete without browser I/O.
     pub(crate) fn ready<F: Future>(future: F) -> F::Output {
-        let waker = Waker::from(Arc::new(NoopWake));
-        let mut context = Context::from_waker(&waker);
+        let mut context = Context::from_waker(Waker::noop());
         let mut future = pin!(future);
         match future.as_mut().poll(&mut context) {
             Poll::Ready(output) => output,

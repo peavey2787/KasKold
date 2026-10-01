@@ -8,12 +8,8 @@ final class VaultBlobStore {
     private static let currentSealedWalletLength = 216
     private static let minInventoryLength = 128
     private static let maxInventoryLength = 4096
-    private static let v2SealedWalletLength = 210
-    private static let legacySealedWalletLength = 96
     private static let inventoryMagic = Data([0x4b, 0x56, 0x49, 0x31]) // KVI1
     private static let currentMagic = Data([0x4b, 0x48, 0x56, 0x33]) // KHV3
-    private static let v2Magic = Data([0x4b, 0x48, 0x56, 0x32]) // KHV2
-    private static let legacyMagic = Data([0x4b, 0x48, 0x56, 0x31]) // KHV1
 
     func writeSealedWallet(_ sealedWallet: Data) throws {
         guard Self.isInventory(sealedWallet) || Self.isCurrent(sealedWallet) else {
@@ -27,7 +23,7 @@ final class VaultBlobStore {
         let url = try storageURL()
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         let sealedWallet = try Data(contentsOf: url, options: [.mappedIfSafe])
-        guard Self.isInventory(sealedWallet) || Self.isCurrent(sealedWallet) || Self.isV2(sealedWallet) || Self.isLegacy(sealedWallet) else {
+        guard Self.isInventory(sealedWallet) || Self.isCurrent(sealedWallet) else {
             throw VaultStorageError.invalidSealedWallet
         }
         return sealedWallet
@@ -39,14 +35,6 @@ final class VaultBlobStore {
 
     private static func isCurrent(_ value: Data) -> Bool {
         value.count == currentSealedWalletLength && value.prefix(4) == currentMagic
-    }
-
-    private static func isV2(_ value: Data) -> Bool {
-        value.count == v2SealedWalletLength && value.prefix(4) == v2Magic
-    }
-
-    private static func isLegacy(_ value: Data) -> Bool {
-        value.count == legacySealedWalletLength && value.prefix(4) == legacyMagic
     }
 
     func delete() throws {

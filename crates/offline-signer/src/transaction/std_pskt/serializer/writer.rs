@@ -42,7 +42,7 @@ impl<'a> HexWriter<'a> {
             .out
             .get_mut(self.pos..end)
             .ok_or(PskError::OutputBufferTooSmall)?;
-        for (chunk, &b) in destination.chunks_exact_mut(2).zip(s) {
+        for (chunk, &b) in destination.as_chunks_mut::<2>().0.iter_mut().zip(s) {
             chunk[0] = HEX_CHARS[(b >> 4) as usize];
             chunk[1] = HEX_CHARS[(b & 0x0F) as usize];
         }

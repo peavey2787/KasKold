@@ -45,15 +45,14 @@ impl VaultRuntime {
         Ok(output)
     }
 
-    /// Restore a complete native inventory. Legacy KHV1/KHV2/KHV3 blobs remain
-    /// accepted as a one-slot migration path.
+    /// Restore a complete native inventory (`KVI1`) or a single KHV3 wallet as one slot.
     pub fn unlock_native_inventory(
         &mut self,
         sealed: &[u8],
         wrapping_key: &[u8; PLATFORM_WRAPPING_KEY_LEN],
     ) -> Result<Option<String>, VaultRuntimeError> {
         if !sealed.starts_with(MAGIC) {
-            return self.unlock_legacy_inventory(sealed, wrapping_key);
+            return self.unlock_single_wallet(sealed, wrapping_key);
         }
         let body = authenticated_inventory_body(sealed, wrapping_key)?;
         let (active, count) = parse_inventory_header(body)?;
@@ -64,7 +63,7 @@ impl VaultRuntime {
         Ok(kpub)
     }
 
-    fn unlock_legacy_inventory(
+    fn unlock_single_wallet(
         &mut self,
         sealed: &[u8],
         wrapping_key: &[u8; PLATFORM_WRAPPING_KEY_LEN],

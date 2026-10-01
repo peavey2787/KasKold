@@ -14,10 +14,7 @@ use zeroize::Zeroize;
 
 use crate::entropy::fill_random;
 
-use super::{
-    HotWallet, HotWalletError, WalletKind, LEGACY_SEALED_WALLET_LEN, PLATFORM_WRAPPING_KEY_LEN,
-    SEALED_WALLET_LEN, V2_SEALED_WALLET_LEN,
-};
+use super::{HotWallet, HotWalletError, WalletKind, PLATFORM_WRAPPING_KEY_LEN, SEALED_WALLET_LEN};
 
 const PORTABLE_MAGIC: &[u8; 4] = b"KWP1";
 const HEADER_LEN: usize = 4 + METADATA_SIZE + SALT_SIZE;
@@ -75,14 +72,7 @@ impl HotWallet {
     }
 
     pub fn restore_portable_backup(data: &[u8], password: &str) -> Result<Self, HotWalletError> {
-        if data.len() < HEADER_LEN + LEGACY_SEALED_WALLET_LEN || &data[..4] != PORTABLE_MAGIC {
-            return Err(HotWalletError::InvalidSealedWallet);
-        }
-        let sealed_len = data.len() - HEADER_LEN;
-        if !matches!(
-            sealed_len,
-            SEALED_WALLET_LEN | V2_SEALED_WALLET_LEN | LEGACY_SEALED_WALLET_LEN
-        ) {
+        if data.len() != HEADER_LEN + SEALED_WALLET_LEN || &data[..4] != PORTABLE_MAGIC {
             return Err(HotWalletError::InvalidSealedWallet);
         }
         let parameters = parse_metadata(&data[4..4 + METADATA_SIZE])

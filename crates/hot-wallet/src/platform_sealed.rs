@@ -1,7 +1,7 @@
 //! Authenticated native-platform persistence for software Vault custody state.
 //!
 //! KHV3 persists the wallet source type plus secret/recovery metadata required
-//! by explicit backup workflows. KHV2 and KHV1 remain readable for migration.
+//! by explicit backup workflows.
 
 use aes_gcm::{
     aead::{generic_array::GenericArray, AeadInPlace, KeyInit},
@@ -19,7 +19,6 @@ pub const SEALED_WALLET_NONCE_LEN: usize = 12;
 pub const SEALED_WALLET_TAG_LEN: usize = 16;
 pub(crate) const RECOVERY_RECORD_LEN: usize = 1 + 1 + 24 * 2 + MAX_BIP39_PASSPHRASE_LEN;
 const SECRET_RECORD_LEN: usize = 69;
-const V2_SECRET_RECORD_LEN: usize = 64;
 const SOURCE_MNEMONIC: u8 = 0;
 const SOURCE_RAW_PRIVATE_KEY: u8 = 1;
 const SOURCE_ACCOUNT_XPRV: u8 = 2;
@@ -28,18 +27,6 @@ pub const SEALED_WALLET_LEN: usize =
     4 + SEALED_WALLET_NONCE_LEN + SEALED_WALLET_PLAINTEXT_LEN + SEALED_WALLET_TAG_LEN;
 const SEALED_WALLET_MAGIC: &[u8; 4] = b"KHV3";
 const SEALED_WALLET_AAD: &[u8] = b"KasKold/vault/platform-sealed-wallet/v3";
-
-const V2_SEALED_WALLET_MAGIC: &[u8; 4] = b"KHV2";
-const V2_SEALED_WALLET_AAD: &[u8] = b"KasKold/vault/platform-sealed-wallet/v2";
-const V2_SEALED_WALLET_PLAINTEXT_LEN: usize = V2_SECRET_RECORD_LEN + RECOVERY_RECORD_LEN;
-pub const V2_SEALED_WALLET_LEN: usize =
-    4 + SEALED_WALLET_NONCE_LEN + V2_SEALED_WALLET_PLAINTEXT_LEN + SEALED_WALLET_TAG_LEN;
-
-const LEGACY_SEALED_WALLET_MAGIC: &[u8; 4] = b"KHV1";
-const LEGACY_SEALED_WALLET_AAD: &[u8] = b"KasKold/vault/platform-sealed-wallet/v1";
-const LEGACY_SEALED_WALLET_PLAINTEXT_LEN: usize = V2_SECRET_RECORD_LEN;
-pub const LEGACY_SEALED_WALLET_LEN: usize =
-    4 + SEALED_WALLET_NONCE_LEN + LEGACY_SEALED_WALLET_PLAINTEXT_LEN + SEALED_WALLET_TAG_LEN;
 
 impl HotWallet {
     /// Seal wallet custody state under a short-lived platform wrapping key.
@@ -81,21 +68,13 @@ impl HotWallet {
 
     /// Restore a wallet from an authenticated platform-sealed custody container.
     ///
-    /// KHV3 retains wallet type and recovery material. KHV2/KHV1
-    /// remain readable for migration so existing native Vaults do not lose
-    /// access, but its historical seed-only payload cannot reveal recovery words.
+    /// KHV3 is the only accepted format; it retains wallet type and recovery material.
     pub fn restore_platform_sealed(
         sealed: &[u8],
         wrapping_key: &[u8; PLATFORM_WRAPPING_KEY_LEN],
     ) -> Result<Self, HotWalletError> {
         if sealed.len() == SEALED_WALLET_LEN && &sealed[..4] == SEALED_WALLET_MAGIC {
             return restore_platform_sealed_v3(sealed, wrapping_key);
-        }
-        if sealed.len() == V2_SEALED_WALLET_LEN && &sealed[..4] == V2_SEALED_WALLET_MAGIC {
-            return restore_platform_sealed_v2(sealed, wrapping_key);
-        }
-        if sealed.len() == LEGACY_SEALED_WALLET_LEN && &sealed[..4] == LEGACY_SEALED_WALLET_MAGIC {
-            return restore_platform_sealed_v1(sealed, wrapping_key);
         }
         Err(HotWalletError::InvalidSealedWallet)
     }
@@ -269,84 +248,6 @@ fn decode_v3_account(
         seed: Seed { bytes: [0u8; 64] },
         account_key: Some(account),
         account_parent_fingerprint: parent_fingerprint,
-        raw_key: None,
-        recovery: None,
-        multisig_store: MultisigStore::new(),
-    })
-}
-
-fn restore_platform_sealed_v2(
-    sealed: &[u8],
-    wrapping_key: &[u8; PLATFORM_WRAPPING_KEY_LEN],
-) -> Result<HotWallet, HotWalletError> {
-    let nonce_end = 4 + SEALED_WALLET_NONCE_LEN;
-    let payload_end = nonce_end + V2_SEALED_WALLET_PLAINTEXT_LEN;
-    let mut plaintext = [0u8; V2_SEALED_WALLET_PLAINTEXT_LEN];
-    plaintext.copy_from_slice(&sealed[nonce_end..payload_end]);
-    let tag = GenericArray::from_slice(&sealed[payload_end..]);
-    let cipher = Aes256Gcm::new(GenericArray::from_slice(wrapping_key));
-    if cipher
-        .decrypt_in_place_detached(
-            GenericArray::from_slice(&sealed[4..nonce_end]),
-            V2_SEALED_WALLET_AAD,
-            &mut plaintext,
-            tag,
-        )
-        .is_err()
-    {
-        plaintext.zeroize();
-        return Err(HotWalletError::SealedWalletAuthenticationFailed);
-    }
-    let mut seed_bytes = [0u8; 64];
-    seed_bytes.copy_from_slice(&plaintext[..V2_SECRET_RECORD_LEN]);
-    let recovery_result = decode_recovery(&plaintext[V2_SECRET_RECORD_LEN..]);
-    plaintext.zeroize();
-    let recovery = match recovery_result {
-        Ok(value) => value,
-        Err(error) => {
-            seed_bytes.zeroize();
-            return Err(error);
-        }
-    };
-    Ok(HotWallet {
-        seed: Seed { bytes: seed_bytes },
-        account_key: None,
-        account_parent_fingerprint: [0u8; 4],
-        raw_key: None,
-        recovery,
-        multisig_store: MultisigStore::new(),
-    })
-}
-
-fn restore_platform_sealed_v1(
-    sealed: &[u8],
-    wrapping_key: &[u8; PLATFORM_WRAPPING_KEY_LEN],
-) -> Result<HotWallet, HotWalletError> {
-    let nonce_end = 4 + SEALED_WALLET_NONCE_LEN;
-    let payload_end = nonce_end + LEGACY_SEALED_WALLET_PLAINTEXT_LEN;
-    let mut plaintext = [0u8; LEGACY_SEALED_WALLET_PLAINTEXT_LEN];
-    plaintext.copy_from_slice(&sealed[nonce_end..payload_end]);
-    let tag = GenericArray::from_slice(&sealed[payload_end..]);
-    let cipher = Aes256Gcm::new(GenericArray::from_slice(wrapping_key));
-    if cipher
-        .decrypt_in_place_detached(
-            GenericArray::from_slice(&sealed[4..nonce_end]),
-            LEGACY_SEALED_WALLET_AAD,
-            &mut plaintext,
-            tag,
-        )
-        .is_err()
-    {
-        plaintext.zeroize();
-        return Err(HotWalletError::SealedWalletAuthenticationFailed);
-    }
-    let mut seed_bytes = [0u8; 64];
-    seed_bytes.copy_from_slice(&plaintext);
-    plaintext.zeroize();
-    Ok(HotWallet {
-        seed: Seed { bytes: seed_bytes },
-        account_key: None,
-        account_parent_fingerprint: [0u8; 4],
         raw_key: None,
         recovery: None,
         multisig_store: MultisigStore::new(),

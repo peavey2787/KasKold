@@ -53,7 +53,7 @@ fn boot_chime_is_stereo_signed_little_endian_and_has_no_inserted_gaps() {
     );
 
     // Every encoded frame carries exactly the same signed sample to L and R.
-    for frame in output.chunks_exact(4) {
+    for frame in output.as_chunks::<4>().0.iter() {
         assert_eq!(&frame[..2], &frame[2..]);
         assert!(frame[..2] == positive || frame[..2] == negative);
     }

@@ -180,7 +180,7 @@ pub fn decode_hex(input: &[u8], output: &mut [u8]) -> Result<usize, HexError> {
     if output.len() < decoded_len {
         return Err(HexError::OutputTooSmall);
     }
-    for (index, pair) in input.chunks_exact(2).enumerate() {
+    for (index, pair) in input.as_chunks::<2>().0.iter().enumerate() {
         let high = decode_hex_nibble(pair[0]).ok_or(HexError::InvalidDigit)?;
         let low = decode_hex_nibble(pair[1]).ok_or(HexError::InvalidDigit)?;
         output[index] = (high << 4) | low;

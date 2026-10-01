@@ -415,7 +415,13 @@ fn multisig_declared_count(script: &[u8]) -> Option<u8> {
 fn multisig_key_count(script: &[u8]) -> Option<u8> {
     let end = script.len().checked_sub(2)?;
     let region = script.get(1..end)?;
-    if !region.len().is_multiple_of(33) || !region.chunks_exact(33).all(|chunk| chunk[0] == 0x20) {
+    if !region.len().is_multiple_of(33)
+        || !region
+            .as_chunks::<33>()
+            .0
+            .iter()
+            .all(|chunk| chunk[0] == 0x20)
+    {
         return None;
     }
     u8::try_from(region.len() / 33).ok()

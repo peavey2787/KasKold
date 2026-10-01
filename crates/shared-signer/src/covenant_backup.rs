@@ -51,7 +51,7 @@ pub fn normalize(input: &[u8], output: &mut [u8]) -> Result<usize, CovenantBacku
     if output.len() < len {
         return Err(CovenantBackupError::OutputTooSmall);
     }
-    for (index, pair) in input.chunks_exact(2).enumerate() {
+    for (index, pair) in input.as_chunks::<2>().0.iter().enumerate() {
         let high = decode_hex_nibble(pair[0]).ok_or(CovenantBackupError::InvalidFormat)?;
         let low = decode_hex_nibble(pair[1]).ok_or(CovenantBackupError::InvalidFormat)?;
         output[index] = (high << 4) | low;

@@ -89,7 +89,7 @@ pub(super) fn compress(h: &mut [u64; 8], block: &[u8; 128], t: u128, last: bool)
 
     // Parse message block as 16 u64 LE words
     let mut m = [0u64; 16];
-    for (word, bytes) in m.iter_mut().zip(block.chunks_exact(8)) {
+    for (word, bytes) in m.iter_mut().zip(block.as_chunks::<8>().0.iter()) {
         *word = u64::from_le_bytes([
             bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
         ]);

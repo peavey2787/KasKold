@@ -1,20 +1,13 @@
 use std::{
     future::Future,
-    sync::Arc,
-    task::{Context, Poll, Wake, Waker},
+    task::{Context, Poll, Waker},
 };
 
 use super::crowdfund::{fetch_contributions, summarize_contributions, ContributionRef};
 use crate::account::utxo::UtxoEntry;
 
-struct NoopWake;
-impl Wake for NoopWake {
-    fn wake(self: Arc<Self>) {}
-}
-
 fn ready<T>(future: impl Future<Output = T>) -> T {
-    let waker = Waker::from(Arc::new(NoopWake));
-    let mut context = Context::from_waker(&waker);
+    let mut context = Context::from_waker(Waker::noop());
     let mut future = Box::pin(future);
     match future.as_mut().poll(&mut context) {
         Poll::Ready(value) => value,

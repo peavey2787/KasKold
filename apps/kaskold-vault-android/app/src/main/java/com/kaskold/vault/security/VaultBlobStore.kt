@@ -24,7 +24,7 @@ class VaultBlobStore(private val context: Context) {
         val file = context.getFileStreamPath(fileName)
         if (!file.isFile) return null
         val sealedWallet = file.readBytes()
-        require(isInventory(sealedWallet) || isCurrent(sealedWallet) || isV2(sealedWallet) || isLegacy(sealedWallet)) { "invalid sealed Vault wallet container" }
+        require(isInventory(sealedWallet) || isCurrent(sealedWallet)) { "invalid sealed Vault wallet container" }
         return sealedWallet
     }
 
@@ -37,22 +37,12 @@ class VaultBlobStore(private val context: Context) {
         const val MIN_INVENTORY_LENGTH = 128
         const val MAX_INVENTORY_LENGTH = 4096
         val CURRENT_MAGIC = byteArrayOf('K'.code.toByte(), 'H'.code.toByte(), 'V'.code.toByte(), '3'.code.toByte())
-        val V2_MAGIC = byteArrayOf('K'.code.toByte(), 'H'.code.toByte(), 'V'.code.toByte(), '2'.code.toByte())
-        val LEGACY_MAGIC = byteArrayOf('K'.code.toByte(), 'H'.code.toByte(), 'V'.code.toByte(), '1'.code.toByte())
         const val CURRENT_SEALED_WALLET_LENGTH = 216
-        const val V2_SEALED_WALLET_LENGTH = 210
-        const val LEGACY_SEALED_WALLET_LENGTH = 96
 
         fun isInventory(value: ByteArray): Boolean =
             value.size in MIN_INVENTORY_LENGTH..MAX_INVENTORY_LENGTH && value.copyOfRange(0, 4).contentEquals(INVENTORY_MAGIC)
 
         fun isCurrent(value: ByteArray): Boolean =
             value.size == CURRENT_SEALED_WALLET_LENGTH && value.copyOfRange(0, 4).contentEquals(CURRENT_MAGIC)
-
-        fun isV2(value: ByteArray): Boolean =
-            value.size == V2_SEALED_WALLET_LENGTH && value.copyOfRange(0, 4).contentEquals(V2_MAGIC)
-
-        fun isLegacy(value: ByteArray): Boolean =
-            value.size == LEGACY_SEALED_WALLET_LENGTH && value.copyOfRange(0, 4).contentEquals(LEGACY_MAGIC)
     }
 }

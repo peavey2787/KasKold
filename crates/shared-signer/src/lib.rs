@@ -62,7 +62,7 @@ pub mod seed_qr {
             return 0;
         }
         indices.fill(0);
-        for (position, chunk) in data.chunks_exact(4).take(count).enumerate() {
+        for (position, chunk) in data.as_chunks::<4>().0.iter().take(count).enumerate() {
             let value = u16::from(chunk[0] - b'0') * 1000
                 + u16::from(chunk[1] - b'0') * 100
                 + u16::from(chunk[2] - b'0') * 10

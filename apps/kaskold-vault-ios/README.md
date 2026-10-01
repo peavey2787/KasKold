@@ -8,7 +8,7 @@ Security boundaries in this source tree:
 
 - there is no `URLSession`, WebSocket, node resolver, blockchain RPC, telemetry, or broadcast client;
 - wallet creation, derivation, validation, and signing belong to the shared Rust `vault-runtime` and hardened signer core;
-- Rust seals each wallet as authenticated `KHV3` custody state and wraps the native multi-wallet catalog in an authenticated `KVI1` inventory envelope before persistence; `KHV2` and legacy `KHV1` containers remain readable as one-wallet migration inputs;
+- Rust seals each wallet as authenticated `KHV3` custody state and wraps the native multi-wallet catalog in an authenticated `KVI1` inventory envelope before persistence;
 - a random 256-bit platform wrapping key is protected with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` and must be zeroized after each Rust call;
 - persisted ciphertext uses complete iOS file protection;
 - camera access is intended only for QR request/response transport.

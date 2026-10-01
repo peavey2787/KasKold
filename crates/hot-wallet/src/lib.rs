@@ -51,8 +51,7 @@ pub enum WalletKind {
 }
 
 pub use platform_sealed::{
-    LEGACY_SEALED_WALLET_LEN, PLATFORM_WRAPPING_KEY_LEN, SEALED_WALLET_LEN,
-    SEALED_WALLET_NONCE_LEN, SEALED_WALLET_TAG_LEN, V2_SEALED_WALLET_LEN,
+    PLATFORM_WRAPPING_KEY_LEN, SEALED_WALLET_LEN, SEALED_WALLET_NONCE_LEN, SEALED_WALLET_TAG_LEN,
 };
 pub use private_swap::{
     PrivateSwapMode, PrivateSwapPhase, PrivateSwapPrepared, PrivateSwapReview, PrivateSwapSession,
