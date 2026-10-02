@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
+
 from pathlib import Path
 import re
 
 
 def check_wallet_recovery_contract(root: Path, errors: list[str]) -> None:
     def read(relative: str) -> str:
-        return (root / relative).read_text(encoding="utf-8")
+        return kaskold_source(str(relative)).read_text(encoding="utf-8")
 
     def require(condition: bool, message: str) -> None:
         if not condition:
@@ -99,9 +105,7 @@ def check_wallet_recovery_contract(root: Path, errors: list[str]) -> None:
         "wallet recovery: original v1.0.5 exports require standard BIP32 HASH160 fingerprints",
     )
     require(
-        "test_original_v105_export_vectors" in read(
-            "crates/offline-signer/src/derivation/unit_tests/xpub_tests.rs"
-        ),
+        "fn test_account_export_vectors()" in read("crates/offline-signer/src/self_test/xpub.rs"),
         "wallet recovery: fixed original-v1.0.5 kpub/XPrv vectors are missing",
     )
 
@@ -196,14 +200,13 @@ def check_wallet_recovery_contract(root: Path, errors: list[str]) -> None:
         "wallet recovery: current JPEG stego payload must not route through the retired facade",
     )
 
-    legacy = read("crates/shared-signer/src/legacy_account_key.rs")
+    # Account keys are canonical kpub1 text or an account-level BIP32 xpub. The
+    # retired Base58Check kpub decoder must not return anywhere.
     require(
-        "decode_legacy_kpub" in legacy
-        and "validate_account_key_payload" in legacy
-        and "base58check_encode" not in legacy
-        and "pub fn encode_legacy" not in legacy,
-        "wallet recovery: legacy Base58 adapter must remain decode-only and canonicalizing",
+        not (root / "crates/shared-signer/src/legacy_account_key.rs").exists(),
+        "wallet recovery: retired Base58 kpub adapter must stay removed",
     )
+    retired_kpub = ("decode_legacy_kpub", "decode_kpub_compatible", "legacy_account_key")
     for path in (
         "crates/offline-signer/src/derivation/xpub/kpub.rs",
         "apps/kaskold-hardware/src/runtime/interactions/camera_loop/dispatch/kpub.rs",
@@ -212,19 +215,23 @@ def check_wallet_recovery_contract(root: Path, errors: list[str]) -> None:
     ):
         contents = read(path)
         require(
-            "decode_legacy_kpub" in contents
-            or "decode_kpub_compatible" in contents
+            "decode_kpub_or_xpub" in contents
+            or "decode_account_key_text" in contents
             or "normalize_kpub_text" in contents,
-            f"wallet recovery: legacy kpub migration is missing from {path}",
+            f"wallet recovery: canonical kpub import is missing from {path}",
+        )
+        require(
+            not any(token in contents for token in retired_kpub),
+            f"wallet recovery: retired Base58 kpub support returned in {path}",
         )
 
     protocol_bip32 = read("crates/kaskold-protocol/src/account/bip32.rs")
     watcher_bip32 = read("crates/online-watcher/src/account/bip32.rs")
     require(
-        "decode_legacy_kpub" in protocol_bip32
-        and "decode_bip32_xpub" in protocol_bip32
-        and "canonical_kpub_text" in protocol_bip32,
-        "wallet recovery: protocol-owned watcher migration must accept legacy kpub/BIP32 xpub and canonicalize output",
+        "kaspa_portal::wallet::key::xpub::decode_kpub_or_xpub" in protocol_bip32
+        and "canonical_kpub_text" in protocol_bip32
+        and not any(token in protocol_bip32 for token in retired_kpub),
+        "wallet recovery: protocol-owned watcher import must accept kpub1/BIP32 xpub through Kaspa Portal and canonicalize output",
     )
     for delegated in (
         "kaskold_protocol::compat::decode_kpub_text",
@@ -233,7 +240,7 @@ def check_wallet_recovery_contract(root: Path, errors: list[str]) -> None:
     ):
         require(
             delegated in watcher_bip32,
-            f"wallet recovery: watcher facade must delegate legacy-compatible account import through protocol owner ({delegated})",
+            f"wallet recovery: watcher facade must delegate account import through protocol owner ({delegated})",
         )
 
 

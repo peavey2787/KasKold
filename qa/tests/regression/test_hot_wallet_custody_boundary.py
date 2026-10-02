@@ -175,7 +175,7 @@ class VaultCustodyBoundaryTests(unittest.TestCase):
         for token in (
             "transaction.version != 1", "transaction.locktime != 0",
             "transaction.subnetwork_id != SUBNETWORK_ID_NATIVE", "transaction.gas != 0",
-            "transaction.payload_len != 0", "input.sequence != u64::MAX",
+            "!transaction.payload.is_empty()", "input.sequence != u64::MAX",
             "input.sig_op_count != 1", "output.has_covenant",
         ):
             self.assertIn(token, review)

@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[4] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
+
 from pathlib import Path
 import re
 
@@ -314,16 +320,24 @@ def check_monetary_arithmetic(root: Path) -> list[str]:
             errors.append(f"PSKT review checked arithmetic contract changed: {required}")
     return errors
 
+def _display(path: Path, root: Path) -> str:
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def check_kspt(root: Path) -> list[str]:
     errors: list[str] = []
-    offline_root = root / "crates/offline-signer/src/transaction/kspt"
+    offline_root = kaskold_source("crates/offline-signer/src/transaction/kspt")
     bridge_root = root / "crates/online-watcher/src/protocol/pskt/kspt_bridge"
     protocol_wire = root / "crates/kaskold-protocol/src/wire/kspt"
 
     required_offline = (
         offline_root / "mod.rs",
-        offline_root / "wire_adapter.rs",
-        offline_root / "kssn_io.rs",
+        offline_root / "codec/partial_signed.rs",
+        offline_root / "codec/trailers.rs",
+        offline_root / "kssn.rs",
         offline_root / "signing/mod.rs",
         offline_root / "validation.rs",
     )
@@ -345,7 +359,7 @@ def check_kspt(root: Path) -> list[str]:
     )
     for required in (*required_offline, *required_protocol, *required_bridge):
         if not required.exists():
-            errors.append(f"required compact KSPT module is missing: {required.relative_to(root)}")
+            errors.append(f"required compact KSPT module is missing: {_display(required, root)}")
 
     forbidden_files = (
         offline_root / "codec/unsigned.rs",
@@ -356,10 +370,11 @@ def check_kspt(root: Path) -> list[str]:
     )
     for path in forbidden_files:
         if path.exists():
-            errors.append(f"retired KSPT generation module remains: {path.relative_to(root)}")
+            errors.append(f"retired KSPT generation module remains: {_display(path, root)}")
 
+    # Kaspa Portal's codec (offline_root) has its own size and SRP gates.
     production_files = [
-        path for base in (offline_root, protocol_wire, bridge_root)
+        path for base in (protocol_wire, bridge_root)
         for path in base.rglob("*.rs")
         if "unit_tests" not in path.parts
     ]
@@ -388,8 +403,8 @@ def check_kspt(root: Path) -> list[str]:
     wire_model = (protocol_wire / "model.rs").read_text(errors="ignore")
     wire_decode = (protocol_wire / "decode.rs").read_text(errors="ignore")
     wire_encode = (protocol_wire / "encode.rs").read_text(errors="ignore")
-    if "GENERATION_CURRENT: u8 = 0x04" not in wire_model:
-        errors.append("canonical compact KSPT current generation must remain exactly v4")
+    if "pub const KSPT_VERSION: u8 = kaspa_portal::transaction::interchange::kspt::KSPT_VERSION;" not in wire_model:
+        errors.append("canonical compact KSPT version must be Kaspa Portal's v1 constant")
     duplicate_grammar_files = []
     for path in production_files:
         if path == protocol_wire / "model.rs":
@@ -402,8 +417,8 @@ def check_kspt(root: Path) -> list[str]:
     for marker in ("NETWORK_MARKER", "MS45_INPUT_MARKER", "MS45_OUTPUT_MARKER", "STEALTH_MARKER", "COVENANT_MARKER", "INPUT_DERIVATION_MARKER", "OUTPUT_DERIVATION_MARKER"):
         if marker not in wire_model:
             errors.append(f"canonical KSPT wire model is missing trailer marker: {marker}")
-    if "reader.u8()? != GENERATION_CURRENT" not in wire_decode:
-        errors.append("canonical compact KSPT decoder must accept only generation v4")
+    if "reader.u8()? != KSPT_VERSION" not in wire_decode:
+        errors.append("canonical compact KSPT decoder must accept only the current version")
     if "write_network(writer, source.network())" not in wire_encode:
         errors.append("canonical compact KSPT encoder must own network trailer emission")
     trailer_body = wire_encode.split("fn write_trailers", 1)[1].split("fn write_ms45_trailers", 1)[0]
@@ -426,32 +441,33 @@ def check_kspt(root: Path) -> list[str]:
     if any(offset < 0 for offset in offsets) or offsets != sorted(offsets) or not grouped_order:
         errors.append("canonical compact KSPT encoder trailer order must remain N/I/O/S/C/A/D")
 
-    offline_codec = (offline_root / "wire_adapter.rs").read_text(errors="ignore")
-    if (
-        "kaskold_protocol::wire::kspt" not in offline_codec
-        or "kspt::decode_with_limits" not in offline_codec
-        or "kspt::DecodeLimits::new" not in offline_codec
-        or "kspt::encode" not in offline_codec
-    ):
-        errors.append("offline signer must consume the canonical KSPT codec with explicit resource limits")
-    for duplicate in ('b"KSPT"', "NETWORK_TRAILER_MARKER", "KSPT_GENERATION_CURRENT"):
-        if duplicate in offline_codec:
-            errors.append(f"offline signer reintroduced duplicated KSPT wire knowledge: {duplicate}")
+    # The hardware signer links Kaspa Portal's KSPT codec; it keeps no copy.
+    offline_facade = (root / "crates/offline-signer/src/lib.rs").read_text(errors="ignore")
+    if "pub use kaspa_portal::transaction::" not in offline_facade or "interchange::{kspt" not in offline_facade:
+        errors.append("offline signer must re-export Kaspa Portal's KSPT codec")
+    if (root / "crates/offline-signer/src/transaction").exists():
+        errors.append("offline signer must not carry a local transaction/KSPT implementation")
     protocol_manifest = (root / "crates/kaskold-protocol/Cargo.toml").read_text(errors="ignore")
     offline_manifest = (root / "crates/offline-signer/Cargo.toml").read_text(errors="ignore")
+    portal_pin = re.compile(r'kaspa-portal = \{ git = "[^"]+", rev = "[0-9a-f]{40}", default-features = false')
+    if not portal_pin.search(offline_manifest):
+        errors.append("offline signer must pin kaspa-portal by revision with std features disabled")
     if 'default-features = false' not in offline_manifest or 'kaskold-protocol' not in offline_manifest:
         errors.append("offline signer must consume kaskold-protocol with host features disabled")
+    wire_model = (root / "crates/kaskold-protocol/src/wire/kspt/model.rs").read_text(errors="ignore")
+    if "pub const KSPT_VERSION: u8 = kaspa_portal::transaction::interchange::kspt::KSPT_VERSION;" not in wire_model:
+        errors.append("kaskold-protocol must take the KSPT version byte from Kaspa Portal")
     if "online-watcher" in protocol_manifest or "offline-signer" in protocol_manifest:
         errors.append("kaskold-protocol must not depend upward on host or hardware consumers")
 
-    envelope_source = (root / "crates/offline-signer/src/transaction/std_pskt/envelope.rs").read_text(errors="ignore")
-    if "kaskold_protocol::wire::kspt::GENERATION_CURRENT" not in envelope_source:
-        errors.append("transaction envelope detection must use the canonical KSPT generation constant")
+    envelope_source = kaskold_source("crates/offline-signer/src/transaction/std_pskt/envelope.rs").read_text(errors="ignore")
+    if "kspt::format::KSPT_VERSION_CURRENT" not in envelope_source:
+        errors.append("transaction envelope detection must use the canonical KSPT version constant")
 
     firmware_parser_source = (root / "crates/kaskold-hardware-core/src/qr/classification.rs").read_text(errors="ignore")
     for canonical in (
         "kspt::MAGIC",
-        "kspt::GENERATION_CURRENT",
+        "kspt::KSPT_VERSION",
         "pskt_envelope::PSKB_MAGIC",
         "pskt_envelope::PSKT_MAGIC",
     ):
@@ -467,7 +483,7 @@ def check_kspt(root: Path) -> list[str]:
     parser_source = (bridge_root / "parser_transaction.rs").read_text(errors="ignore")
     if "kaskold_protocol::wire::kspt" not in parser_source or "kspt::decode(data, &mut sink)" not in parser_source:
         errors.append("Companion compact KSPT parsing must delegate to the canonical protocol decoder")
-    for duplicate in ('b"KSPT"', "KSPT_V4", "GENERATION_CURRENT: u8", "NETWORK_MARKER"):
+    for duplicate in ('b"KSPT"', "KSPT_V4", "KSPT_VERSION: u8", "NETWORK_MARKER"):
         if duplicate in parser_source:
             errors.append(f"Companion compact parser reintroduced KSPT wire grammar: {duplicate}")
     parser_tests = (root / "crates/online-watcher/src/protocol/pskt/unit_tests/kspt_compact.rs").read_text(errors="ignore")

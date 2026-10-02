@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[5] / "qa/checks"))
+from portal_source import kaskold_source, resolve_path  # noqa: E402
+
 from pathlib import Path
 import re
 
@@ -18,7 +24,7 @@ INCLUDE_BYTES_LITERAL = re.compile(r'include_bytes!\(\s*"([^"]+)"\s*\)')
 
 
 def _source(path: Path) -> str:
-    return path.read_text(errors="ignore")
+    return resolve_path(path).read_text(errors="ignore")
 
 def _check_explicit_module_paths(root: Path) -> list[str]:
     errors: list[str] = []
@@ -107,7 +113,7 @@ def _check_silent_availability(root: Path) -> list[str]:
 
 def _check_shared_primitives(root: Path) -> list[str]:
     errors: list[str] = []
-    shared = root / "crates/shared-signer/src/bytes.rs"
+    shared = kaskold_source("crates/shared-signer/src/bytes.rs")
     shared_source = _source(shared)
     for symbol in ("decode_hex_nibble", "volatile_clear", "zeroize_bytes", "zeroize_u16"):
         if f"fn {symbol}" not in shared_source:
@@ -180,7 +186,7 @@ def _check_bip340_release_path(root: Path) -> list[str]:
     obsolete = root / "tools/firmware/gen_hash/signing.rs"
     if obsolete.exists():
         errors.append("tool-local Schnorr implementation must not return")
-    shared = _source(root / "crates/offline-signer/src/crypto/schnorr.rs")
+    shared = _source(kaskold_source("crates/offline-signer/src/crypto/schnorr.rs"))
     for required in ("k256::schnorr", "sign_raw", "verify_raw"):
         if required not in shared:
             errors.append(f"shared BIP340 implementation is missing: {required}")

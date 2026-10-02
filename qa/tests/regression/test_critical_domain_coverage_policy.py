@@ -1,3 +1,9 @@
+
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
 from pathlib import Path
 import unittest
 
@@ -7,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 class CriticalDomainCoveragePolicyTests(unittest.TestCase):
     def assert_contains(self, relative_path: str, fragments: tuple[str, ...]) -> None:
-        text = (ROOT / relative_path).read_text(encoding="utf-8")
+        text = kaskold_source(str(relative_path)).read_text(encoding="utf-8")
         for fragment in fragments:
             self.assertIn(fragment, text, f"{relative_path} must retain {fragment}")
 
@@ -155,10 +161,10 @@ class CriticalDomainCoveragePolicyTests(unittest.TestCase):
         )
 
     def test_message_digest_known_answer_uses_declared_first_party_hex_encoder(self) -> None:
-        path = ROOT / "crates/offline-signer/src/crypto/unit_tests/message_tests.rs"
+        path = kaskold_source("crates/offline-signer/src/crypto/unit_tests/message_tests.rs")
         text = path.read_text(encoding="utf-8")
-        self.assertIn("shared_signer::bytes::encode_lower_hex", text)
-        self.assertIn("8801296b169c712eab1cfeb5f0710e361c130de7195adc1a1f7ce7d380cd0ebd", text)
+        self.assertIn("crate::primitives::bytes::encode_lower_hex", text)
+        self.assertIn("a3b9eb6c9cab9479a263fe5377e8f0120bd0ad289035e6708fbd7c2e18cb5916", text)
         self.assertNotIn("hex::", text)
 
 

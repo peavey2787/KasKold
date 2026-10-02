@@ -1,3 +1,9 @@
+
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
 from pathlib import Path
 import re
 import unittest
@@ -6,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def text(path: str) -> str:
-    return (ROOT / path).read_text(encoding="utf-8")
+    return kaskold_source(str(path)).read_text(encoding="utf-8")
 
 
 def fn_body(source: str, name: str) -> str:

@@ -1,3 +1,9 @@
+
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
 from pathlib import Path
 import unittest
 
@@ -5,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def read(relative: str) -> str:
-    return (ROOT / relative).read_text(errors="replace")
+    return kaskold_source(str(relative)).read_text(errors="replace")
 
 
 class UniversalCovenantSigningTests(unittest.TestCase):
@@ -39,7 +45,9 @@ class UniversalCovenantSigningTests(unittest.TestCase):
         self.assertNotIn("pub fn sign_covenant_commitment", derivation)
 
     def test_request_kind_wire_decoder_is_present_and_fail_closed(self) -> None:
-        protocol = read("crates/shared-signer/src/covenant_sign/mod.rs")
+        protocol = read("crates/shared-signer/src/covenant_sign/mod.rs") + read(
+            "crates/shared-signer/src/covenant_sign/validation.rs"
+        )
         unit_tests = read("crates/shared-signer/src/covenant_sign/unit_tests/mod.rs")
         self.assertIn("fn parse_kind(value: u8) -> Result<RequestKind, ProtocolError>", protocol)
         for mapping in (
@@ -53,7 +61,9 @@ class UniversalCovenantSigningTests(unittest.TestCase):
         self.assertIn("request_kind_decoder_rejects_unknown_wire_values", unit_tests)
 
     def test_envelope_keeps_transport_metadata_separate_from_exact_commitment(self) -> None:
-        protocol = read("crates/shared-signer/src/covenant_sign/mod.rs")
+        protocol = read("crates/shared-signer/src/covenant_sign/mod.rs") + read(
+            "crates/shared-signer/src/covenant_sign/validation.rs"
+        )
         js = read("apps/kaskold-companion-web/web/js/features/covenants/signing/protocol.js")
         derivation = read("crates/offline-signer/src/derivation/covenant.rs")
         self.assertIn('*b"CVSG"', protocol)
@@ -70,7 +80,9 @@ class UniversalCovenantSigningTests(unittest.TestCase):
         self.assertIn("covenantRevealHex", js)
 
     def test_known_review_retains_full_protocol_context_without_preview_truncation(self) -> None:
-        protocol = read("crates/shared-signer/src/covenant_sign/mod.rs")
+        protocol = read("crates/shared-signer/src/covenant_sign/mod.rs") + read(
+            "crates/shared-signer/src/covenant_sign/validation.rs"
+        )
         state = read("apps/kaskold-hardware/src/runtime/data/signing/covenant.rs")
         service = read("apps/kaskold-hardware/src/services/covenant_sign.rs")
         ui = read("apps/kaskold-hardware/src/ui/screens/signing/covenant.rs")
@@ -85,7 +97,9 @@ class UniversalCovenantSigningTests(unittest.TestCase):
         self.assertIn("if page < pages", ui)
 
     def test_known_and_opaque_modes_have_distinct_verification_and_confirmation(self) -> None:
-        protocol = read("crates/shared-signer/src/covenant_sign/mod.rs")
+        protocol = read("crates/shared-signer/src/covenant_sign/mod.rs") + read(
+            "crates/shared-signer/src/covenant_sign/validation.rs"
+        )
         validation = read("crates/shared-signer/src/covenant_sign/validation.rs")
         service = read("apps/kaskold-hardware/src/services/covenant_sign.rs")
         ui = read("apps/kaskold-hardware/src/ui/screens/signing/covenant.rs")

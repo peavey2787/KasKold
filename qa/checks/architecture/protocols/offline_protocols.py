@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[4] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
+
 from pathlib import Path
 import re
 
@@ -10,11 +16,7 @@ def _check_bip32_and_transaction_models(root: Path) -> list[str]:
     errors: list[str] = []
     offline_root = ROOT / "crates/offline-signer/src"
     offline_lib_source = (offline_root / "lib.rs").read_text(errors="ignore")
-    # Offline BIP32 and transaction data models live under canonical domain
-    # namespaces rather than crate-root compatibility aliases.
-    derivation_facade = (offline_root / "derivation/mod.rs").read_text(errors="ignore")
-    transaction_facade = (offline_root / "transaction/mod.rs").read_text(errors="ignore")
-    for required in ("pub mod derivation;", "pub mod crypto;", "pub mod transaction;"):
+    for required in ("pub mod derivation", "pub mod crypto", "pub mod transaction"):
         if required not in offline_lib_source:
             errors.append(f"offline signer domain wiring is missing: {required}")
     if "#[path" in offline_lib_source:
@@ -25,63 +27,23 @@ def _check_bip32_and_transaction_models(root: Path) -> list[str]:
     ):
         if f"pub mod {retired_root};" in offline_lib_source:
             errors.append(f"offline signer crate-root compatibility module must not return: {retired_root}")
-    if "pub mod bip32;" not in derivation_facade:
-        errors.append("offline signer derivation facade must expose bip32")
-    if "pub mod model;" not in transaction_facade:
-        errors.append("offline signer transaction facade must expose model")
-    bip32_legacy = offline_root / "derivation/bip32.rs"
-    bip32_root = offline_root / "derivation/bip32"
-    if bip32_legacy.exists():
-        errors.append("legacy monolithic offline-signer derivation/bip32.rs must not exist")
-    for required in (
-        bip32_root / "mod.rs",
-        bip32_root / "constants.rs",
-        bip32_root / "error.rs",
-        bip32_root / "extended_private.rs",
-        bip32_root / "extended_public.rs",
-        bip32_root / "child.rs",
-        bip32_root / "paths.rs",
-        bip32_root / "address_lookup.rs",
-        bip32_root / "scalar.rs",
-    ):
-        if not required.exists():
-            errors.append(f"required offline BIP32 module is missing: {required.relative_to(ROOT)}")
-    for path in bip32_root.glob("*.rs"):
-        line_count = len(path.read_text().splitlines())
-        if line_count > 350:
-            errors.append(
-                f"offline BIP32 module exceeds 350-line SRP limit: "
-                f"{path.relative_to(ROOT)} ({line_count} lines)"
-            )
-    if (bip32_root / "mod.rs").exists() and len((bip32_root / "mod.rs").read_text().splitlines()) > 120:
-        errors.append("offline BIP32 mod.rs must remain declarations and exports only")
 
-    model_legacy = offline_root / "transaction/model.rs"
-    model_root = offline_root / "transaction/model"
-    if model_legacy.exists():
-        errors.append("legacy monolithic offline-signer transaction/model.rs must not exist")
-    for required in (
-        model_root / "mod.rs",
-        model_root / "constants.rs",
-        model_root / "sighash_type.rs",
-        model_root / "script.rs",
-        model_root / "signatures.rs",
-        model_root / "input.rs",
-        model_root / "output.rs",
-        model_root / "transaction.rs",
-        model_root / "multisig.rs",
-    ):
-        if not required.exists():
-            errors.append(f"required transaction model module is missing: {required.relative_to(ROOT)}")
-    for path in model_root.glob("*.rs"):
-        line_count = len(path.read_text().splitlines())
-        if line_count > 300:
-            errors.append(
-                f"transaction model module exceeds 300-line SRP limit: "
-                f"{path.relative_to(ROOT)} ({line_count} lines)"
-            )
-    if (model_root / "mod.rs").exists() and len((model_root / "mod.rs").read_text().splitlines()) > 120:
-        errors.append("transaction model mod.rs must remain declarations and exports only")
+    # The signing core is Kaspa Portal's. offline-signer exposes it through thin
+    # re-export facades and must never regain a local copy that could drift.
+    derivation_facade = offline_lib_source.split("pub mod derivation", 1)[-1].split("\n}", 1)[0]
+    transaction_facade = offline_lib_source.split("pub mod transaction", 1)[-1].split("\n}", 1)[0]
+    for token in ("pub use kaspa_portal::wallet::", "bip32", "bip39", "xpub"):
+        if token not in derivation_facade:
+            errors.append(f"offline signer derivation facade must re-export Kaspa Portal: {token}")
+    for token in ("pub use kaspa_portal::transaction::", "model", "sighash", "kspt"):
+        if token not in transaction_facade:
+            errors.append(f"offline signer transaction facade must re-export Kaspa Portal: {token}")
+    for copied in ("derivation", "transaction", "address"):
+        if (offline_root / copied).is_dir():
+            errors.append(f"offline signer must not carry a local copy of the signing core: src/{copied}/")
+    for copied in ("adaptor", "anti_klepto", "ecies", "message", "password_kdf", "schnorr"):
+        if (offline_root / f"crypto/{copied}.rs").exists():
+            errors.append(f"offline signer must not carry a local copy of Kaspa Portal crypto: {copied}")
 
     retired_path = re.compile(
         r"\boffline_signer::(?:bip32|bip39|bip39_wordlist|bip85|ecies|hmac|kspt|"
@@ -102,48 +64,11 @@ def _check_bip32_and_transaction_models(root: Path) -> list[str]:
 
     return errors
 def _check_xpub_and_sighash(root: Path) -> list[str]:
-    ROOT = root
     errors: list[str] = []
-    offline_root = ROOT / "crates/offline-signer/src"
-    derivation_facade = (offline_root / "derivation/mod.rs").read_text(errors="ignore")
-    transaction_facade = (offline_root / "transaction/mod.rs").read_text(errors="ignore")
-    if "pub mod xpub;" not in derivation_facade:
-        errors.append("offline signer derivation facade must expose xpub")
-    if "pub mod sighash;" not in transaction_facade:
-        errors.append("offline signer transaction facade must expose sighash")
-
-    xpub_legacy = offline_root / "derivation/xpub.rs"
-    xpub_root = offline_root / "derivation/xpub"
-    xpub_limits = {
-        "mod.rs": 80,
-        "base58.rs": 240,
-        "constants.rs": 60,
-        "fingerprint.rs": 40,
-        "kpub.rs": 320,
-        "xprv.rs": 140,
-    }
-    if xpub_legacy.exists():
-        errors.append("legacy monolithic offline-signer derivation/xpub.rs must not exist")
-    actual_xpub = {path.name for path in xpub_root.glob("*.rs")}
-    if actual_xpub != set(xpub_limits):
-        errors.append(
-            f"offline xpub module inventory changed: expected {sorted(xpub_limits)}, "
-            f"got {sorted(actual_xpub)}"
-        )
-    xpub_source = ""
-    for name, limit in xpub_limits.items():
-        path = xpub_root / name
-        if not path.exists():
-            errors.append(f"required offline xpub module is missing: {path.relative_to(ROOT)}")
-            continue
-        source = path.read_text(errors="ignore")
-        xpub_source += "\n" + source
-        if len(source.splitlines()) > limit:
-            errors.append(
-                f"offline xpub module exceeds SRP limit: {path.relative_to(ROOT)} "
-                f"({len(source.splitlines())} > {limit})"
-            )
-    xpub_facade = (xpub_root / "mod.rs").read_text(errors="ignore") if xpub_root.exists() else ""
+    # xpub and sighash structure, single Base58Check codec and single keyed
+    # Blake2b are enforced by Kaspa Portal's own architecture gates. KasKold
+    # only requires that the shipped sources expose the APIs firmware uses.
+    xpub_facade = kaskold_source("crates/offline-signer/src/derivation/xpub/mod.rs").read_text(errors="ignore")
     for symbol in (
         "KPUB_MAX_LEN", "XPUB_PAYLOAD_LEN", "XPRV_MAX_LEN", "serialize_kpub",
         "derive_and_serialize_kpub", "derive_account_raw_kpub_payload", "kpub_text_to_raw",
@@ -151,60 +76,18 @@ def _check_xpub_and_sighash(root: Path) -> list[str]:
     ):
         if symbol not in xpub_facade:
             errors.append(f"offline xpub façade is missing required export: {symbol}")
-    if len(re.findall(r"\bfn\s+base58check_encode\b", xpub_source)) != 1:
-        errors.append("offline xpub subsystem must contain exactly one Base58Check encoder")
-    if len(re.findall(r"\bfn\s+base58check_decode\b", xpub_source)) != 1:
-        errors.append("offline xpub subsystem must contain exactly one Base58Check decoder")
-
-    sighash_legacy = offline_root / "transaction/sighash.rs"
-    sighash_root = offline_root / "transaction/sighash"
-    sighash_limits = {
-        "mod.rs": 80,
-        "blake2b.rs": 280,
-        "components.rs": 220,
-        "digest.rs": 220,
-        "signing.rs": 80,
-    }
-    if sighash_legacy.exists():
-        errors.append("legacy monolithic offline-signer transaction/sighash.rs must not exist")
-    actual_sighash = {path.name for path in sighash_root.glob("*.rs")}
-    if actual_sighash != set(sighash_limits):
-        errors.append(
-            f"offline sighash module inventory changed: expected {sorted(sighash_limits)}, "
-            f"got {sorted(actual_sighash)}"
-        )
-    sighash_source = ""
-    for name, limit in sighash_limits.items():
-        path = sighash_root / name
-        if not path.exists():
-            errors.append(f"required offline sighash module is missing: {path.relative_to(ROOT)}")
-            continue
-        source = path.read_text(errors="ignore")
-        sighash_source += "\n" + source
-        if len(source.splitlines()) > limit:
-            errors.append(
-                f"offline sighash module exceeds SRP limit: {path.relative_to(ROOT)} "
-                f"({len(source.splitlines())} > {limit})"
-            )
-    sighash_facade = (sighash_root / "mod.rs").read_text(errors="ignore") if sighash_root.exists() else ""
+    sighash_facade = kaskold_source("crates/offline-signer/src/transaction/sighash/mod.rs").read_text(errors="ignore")
     for symbol in ("KaspaBlake2b", "blake2b_hash", "calculate_sighash", "sign_input"):
         if symbol not in sighash_facade:
             errors.append(f"offline sighash façade is missing required export: {symbol}")
-    if len(re.findall(r"\bpub\s+struct\s+KaspaBlake2b\b", sighash_source)) != 1:
-        errors.append("offline sighash subsystem must contain exactly one keyed Blake2b implementation")
-    if len(re.findall(r"\bpub\s+fn\s+calculate_sighash\b", sighash_source)) != 1:
-        errors.append("offline sighash subsystem must contain exactly one digest assembler")
-    if re.search(r"\bfn\s+blake2b_keyed\b", sighash_source):
-        errors.append("offline signer retains unused blake2b_keyed helper")
-
     return errors
 
 def _check_password_kdf_policy(root: Path) -> list[str]:
     errors: list[str] = []
     offline_root = root / "crates/offline-signer/src"
-    password_kdf = offline_root / "crypto/password_kdf.rs"
-    password_tests = offline_root / "crypto/unit_tests/password_kdf_tests.rs"
-    bip39 = offline_root / "derivation/bip39/seed.rs"
+    password_kdf = kaskold_source("crates/offline-signer/src/crypto/password_kdf.rs")
+    password_tests = kaskold_source("crates/offline-signer/src/crypto/unit_tests/password_kdf_tests.rs")
+    bip39 = kaskold_source("crates/offline-signer/src/derivation/bip39/seed.rs")
     retired = (
         offline_root / "crypto/pbkdf2.rs",
         offline_root / "crypto/unit_tests/pbkdf2_tests.rs",
@@ -214,7 +97,7 @@ def _check_password_kdf_policy(root: Path) -> list[str]:
 
     for path in (password_kdf, password_tests, bip39):
         if not path.exists():
-            errors.append(f"password-KDF contract file is missing: {path.relative_to(root)}")
+            errors.append(f"password-KDF contract file is missing: {path}")
     for path in retired:
         if path.exists():
             errors.append(f"retired non-BIP39 PBKDF2 implementation returned: {path.relative_to(root)}")
@@ -269,7 +152,7 @@ def _check_password_kdf_policy(root: Path) -> list[str]:
         ): ("KSWLT004", "parse_current_header", "CredentialKdf::from_parameters"),
     }
     for names, tokens in current_only.items():
-        text = "\n".join((root / name).read_text(errors="ignore") for name in names)
+        text = "\n".join(kaskold_source(str(name)).read_text(errors="ignore") for name in names)
         label = " + ".join(names)
         for token in tokens:
             if token not in text:

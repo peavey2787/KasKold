@@ -44,8 +44,8 @@ class DeviceBoundStorageTests(unittest.TestCase):
         header = b"KSWLT004-test-header"
         device_secret = bytes(range(0xA0, 0xC0))
         stretched = bytes.fromhex(
-            "02a4347e32d077ae7409aa034c1b8fc2"
-            "7a60b1925ce9cdb6ebbe1cfe939b38f0"
+            "aa550f77f091f796cb6e719af164c7c1"
+            "08eab6e2320b3eeebeba08cb7f46ed57"
         )
         params = bytes((3, 2, 1, 2))  # format, device KDF, internal purpose, password
         context = hashlib.sha256(
@@ -70,15 +70,15 @@ class DeviceBoundStorageTests(unittest.TestCase):
         ).hexdigest()
         self.assertEqual(
             key,
-            "43ced9255a60022d847212896510436ad983053684d51beb80e7ca49bc266319",
+            "42ce892f3b49ad9c4e34fda82bd9f64a2d94b2a0fdea887e0449d62b641cb841",
         )
         rust_test = read(
             "crates/offline-signer/src/crypto/unit_tests/device_bound_storage_tests.rs"
         ).replace(" ", "").replace("\n", "")
         for chunk in (
-            "0x43,0xce,0xd9,0x25",
-            "0xd9,0x83,0x05,0x36",
-            "0xbc,0x26,0x63,0x19",
+            "0x42,0xce,0x89,0x2f",
+            "0x2d,0x94,0xb2,0xa0",
+            "0x64,0x1c,0xb8,0x41",
         ):
             self.assertIn(chunk, rust_test)
         self.assertIn(

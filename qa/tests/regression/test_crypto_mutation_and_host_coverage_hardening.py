@@ -1,3 +1,9 @@
+
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
 import unittest
 from pathlib import Path
 
@@ -6,8 +12,8 @@ ROOT = Path(__file__).resolve().parents[3]
 
 class CryptoMutationAndHostCoverageHardeningTests(unittest.TestCase):
     def test_covenant_derivation_removes_equivalent_operator_mutants_and_pins_vectors(self):
-        source = (ROOT / "crates/offline-signer/src/derivation/covenant.rs").read_text()
-        tests = (ROOT / "crates/offline-signer/src/derivation/covenant/unit_tests/mod.rs").read_text()
+        source = kaskold_source("crates/offline-signer/src/derivation/covenant.rs").read_text()
+        tests = kaskold_source("crates/offline-signer/src/derivation/covenant/unit_tests/mod.rs").read_text()
 
         for literal in (
             "const COVENANT_PURPOSE: u32 = 0x8000_2720;",
@@ -28,9 +34,9 @@ class CryptoMutationAndHostCoverageHardeningTests(unittest.TestCase):
 
     def test_remaining_crypto_mutation_relations_have_exact_or_directional_tests(self):
         stealth = (ROOT / "crates/online-watcher/src/privacy/stealth/unit_tests/mod.rs").read_text()
-        adaptor = (ROOT / "crates/offline-signer/src/crypto/unit_tests/adaptor_tests.rs").read_text()
-        kspt = (ROOT / "crates/offline-signer/src/transaction/kspt/signing/covenant.rs").read_text()
-        resolver = (ROOT / "crates/shared-signer/src/covenant_branch.rs").read_text()
+        adaptor = kaskold_source("crates/offline-signer/src/crypto/unit_tests/adaptor_tests.rs").read_text()
+        kspt = kaskold_source("crates/offline-signer/src/transaction/kspt/signing/covenant.rs").read_text()
+        resolver = kaskold_source("crates/shared-signer/src/covenant_branch.rs").read_text()
         resolver_tests = resolver
 
         self.assertIn("stealth_tweak_masks_the_high_index_bit_against_an_exact_vector", stealth)
@@ -71,7 +77,7 @@ class CryptoMutationAndHostCoverageHardeningTests(unittest.TestCase):
         self.assertIn("merge_signed_kspt_into_pskb", companion_tests)
 
     def test_shared_covenant_and_policy_branch_vectors_cover_boolean_boundaries(self):
-        covenant = (ROOT / "crates/shared-signer/src/covenant_sign/unit_tests/mod.rs").read_text()
+        covenant = kaskold_source("crates/shared-signer/src/covenant_sign/unit_tests/mod.rs").read_text()
         advanced = (ROOT / "crates/kaskold-hardware-core/src/unit_tests/advanced_policy_tests.rs").read_text()
         for name in (
             "request_length_enum_and_review_helpers_cover_all_boundaries",
@@ -92,7 +98,7 @@ class CryptoMutationAndHostCoverageHardeningTests(unittest.TestCase):
         ):
             self.assertIn(name, advanced)
 
-        private_swap = (ROOT / "crates/shared-signer/src/covenant_sign/private_swap/unit_tests/mod.rs").read_text()
+        private_swap = kaskold_source("crates/shared-signer/src/covenant_sign/private_swap/unit_tests/mod.rs").read_text()
         parsing = (ROOT / "crates/kaskold-hardware-core/src/unit_tests/firmware_decisions/parsing.rs").read_text()
         self.assertIn("private_swap_wire_short_circuits_cover_each_parse_boundary", private_swap)
         self.assertIn("covenant_prefix_classifiers_cover_short_circuit_and_covi_sides", parsing)

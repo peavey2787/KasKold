@@ -1,3 +1,9 @@
+
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
 import json
 import re
 import sys
@@ -48,10 +54,10 @@ class BranchCoverage90ContractTests(unittest.TestCase):
         self.assertFalse((ROOT / "qa/baselines/crap").exists())
 
     def test_crypto_branch_vectors_cover_real_fail_closed_boundaries(self):
-        adaptor = (ROOT / "crates/offline-signer/src/crypto/unit_tests/adaptor_tests.rs").read_text()
-        anti_klepto = (ROOT / "crates/offline-signer/src/crypto/unit_tests/anti_klepto_tests.rs").read_text()
+        adaptor = kaskold_source("crates/offline-signer/src/crypto/unit_tests/adaptor_tests.rs").read_text()
+        anti_klepto = kaskold_source("crates/offline-signer/src/crypto/unit_tests/anti_klepto_tests.rs").read_text()
         storage = (ROOT / "crates/offline-signer/src/crypto/unit_tests/device_bound_storage_tests.rs").read_text()
-        schnorr = (ROOT / "crates/offline-signer/src/crypto/unit_tests/schnorr_tests.rs").read_text()
+        schnorr = kaskold_source("crates/offline-signer/src/crypto/unit_tests/schnorr_tests.rs").read_text()
         for needle in ("nonzero_reduced_scalar", "nonzero_scalar_sum"):
             self.assertIn(needle, adaptor)
         self.assertIn("nonce_cancellation_fail_closed", anti_klepto)
@@ -144,8 +150,8 @@ class BranchCoverage90ContractTests(unittest.TestCase):
         )
 
     def test_fail_closed_field_mutation_coverage_is_security_meaningful(self):
-        covenant = (ROOT / "crates/shared-signer/src/covenant_sign/unit_tests/mod.rs").read_text()
-        private_swap = (ROOT / "crates/shared-signer/src/covenant_sign/private_swap/unit_tests/mod.rs").read_text()
+        covenant = kaskold_source("crates/shared-signer/src/covenant_sign/unit_tests/mod.rs").read_text()
+        private_swap = kaskold_source("crates/shared-signer/src/covenant_sign/private_swap/unit_tests/mod.rs").read_text()
         self.assertIn("request_field_invariants_reject_each_independent_invalid_shape", covenant)
         self.assertIn("response_field_invariants_reject_each_independent_invalid_shape", covenant)
         self.assertIn("private_swap_request_fields_fail_closed_one_at_a_time", private_swap)

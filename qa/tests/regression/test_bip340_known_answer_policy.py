@@ -3,12 +3,18 @@
 
 from __future__ import annotations
 
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
+
 from pathlib import Path
 import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
-SCHNORR = ROOT / "crates/offline-signer/src/crypto/schnorr.rs"
+SCHNORR = kaskold_source("crates/offline-signer/src/crypto/schnorr.rs")
 BOOT = ROOT / "apps/kaskold-hardware/src/runtime/unit_tests/boot.rs"
 
 BIP340_VECTOR_0_SIGNATURE = bytes.fromhex(

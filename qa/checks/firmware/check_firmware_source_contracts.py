@@ -59,23 +59,19 @@ def check_iconoir_contract(errors: list[str]) -> None:
         )
 
 def check_kspt_boot_tests(errors: list[str]) -> None:
-    path = "crates/offline-signer/src/transaction/kspt/unit_tests/mod.rs"
-    source = read(path)
-    for module in ("wire_adapter", "common", "kssn", "script", "status"):
-        require(
-            errors,
-            f"#[cfg(test)]\nmod {module};" in source,
-            f"{path}: {module} must be test-only",
-        )
+    # Power-on known-answer runners are Kaspa Portal's `self_test` module,
+    # re-exported by the offline signer for the firmware boot path.
+    lib = read("crates/offline-signer/src/lib.rs")
     require(
         errors,
-        "mod codec;" not in source,
-        f"{path}: retired local codec module must not return; canonical wire ownership is kaskold-protocol",
+        "pub use kaspa_portal::self_test;" in lib,
+        "offline-signer must re-export Kaspa Portal's power-on self-tests",
     )
+    runner = read("crates/offline-signer/src/self_test/kspt.rs")
     require(
         errors,
-        "pub use integration::run_kspt_tests;" in source,
-        f"{path}: verbose-boot KSPT runner must be exported",
+        "pub fn run_kspt_tests() -> (u32, u32)" in runner,
+        "Kaspa Portal must provide the KSPT power-on runner",
     )
 
 def check_module_owners(errors: list[str]) -> None:
@@ -169,7 +165,9 @@ def check_refactored_firmware_api_contracts(errors: list[str]) -> None:
     signing = read("apps/kaskold-hardware/src/runtime/data/signing.rs")
     require(
         errors,
-        "Transaction::try_new().map_err(|_| ())?" in signing,
+        "Transaction::try_new_with(" in signing
+        and "kaskold_protocol::SIGNER_TRANSACTION_LIMITS" in signing
+        and ".map_err(|_| ())?" in signing,
         "runtime/data/signing.rs: transaction storage allocation errors must map into the firmware initialization error boundary",
     )
 

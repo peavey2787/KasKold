@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
+
 import re
 import unittest
 from pathlib import Path
@@ -8,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def read(relative: str) -> str:
-    return (ROOT / relative).read_text(errors="ignore")
+    return kaskold_source(str(relative)).read_text(errors="ignore")
 
 
 class CredentialKdfSecurityTests(unittest.TestCase):
@@ -32,7 +38,7 @@ class CredentialKdfSecurityTests(unittest.TestCase):
         self.assertNotIn("Debug", declaration)
         self.assertNotIn("PartialEq", declaration)
         for tests in (xpub_tests, bip32_tests):
-            self.assertIn("use crate::derivation::bip32::Bip32Error;", tests)
+            self.assertIn("use crate::wallet::derivation::bip32::Bip32Error;", tests)
             self.assertIn("matches!", tests)
             self.assertIn("Err(Bip32Error::InvalidKey)", tests)
         self.assertNotRegex(
@@ -115,17 +121,20 @@ class CredentialKdfSecurityTests(unittest.TestCase):
             self.assertNotIn("legacy_pbkdf2", source)
             self.assertNotIn("derive_legacy_32", source)
 
-    def test_current_kdf_profile_is_versioned_v2_and_legacy_v1_is_read_only(self) -> None:
+    def test_current_kdf_profile_is_the_single_strengthened_v1_profile(self) -> None:
+        # Kaspa Portal owns one Argon2id profile (8 MiB, t=3, p=1); there is no
+        # older, weaker profile left to accept.
         source = read("crates/offline-signer/src/crypto/password_kdf.rs")
         portable = read("crates/hot-wallet/src/portable_backup.rs")
         for token in (
-            "PROFILE_VERSION_2: u8 = 2",
-            "V2_MEMORY_KIB: u32 = 8_192",
-            "V2_TIME_COST: u32 = 3",
-            "profile_version: PROFILE_VERSION_2",
-            "pub const fn is_supported",
+            "PROFILE_VERSION_1: u8 = 1",
+            "V1_MEMORY_KIB: u32 = 8_192",
+            "V1_TIME_COST: u32 = 3",
+            "profile_version: PROFILE_VERSION_1",
         ):
             self.assertIn(token, source)
+        self.assertNotIn("PROFILE_VERSION_2", source)
+        self.assertNotIn("is_supported", source)
         self.assertIn("if !parameters.is_current()", source)
         self.assertIn("derive_key_32_with_params", portable)
         self.assertIn("let parameters = parse_metadata", portable)

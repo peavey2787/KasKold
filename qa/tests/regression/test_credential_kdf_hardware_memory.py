@@ -1,3 +1,9 @@
+
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
 import re
 import unittest
 from pathlib import Path
@@ -6,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def read(relative: str) -> str:
-    return (ROOT / relative).read_text(errors="strict")
+    return kaskold_source(str(relative)).read_text(errors="strict")
 
 
 class CredentialKdfHardwareMemoryTests(unittest.TestCase):

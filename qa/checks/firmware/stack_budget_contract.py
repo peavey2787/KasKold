@@ -76,10 +76,16 @@ def check_critical_memory_shapes(errors: list[str]) -> None:
     codec = read("crates/shared-signer/src/stego_picture/codec.rs")
     frame = read("crates/shared-signer/src/stego_picture/frame.rs")
     psram = read("apps/kaskold-hardware/src/services/memory/psram.rs")
-    require(errors, "SIGNER_CAPABILITIES.max_inputs as usize" in constants, "transaction input resource cap must follow the canonical signer capability")
+    require(errors, "pub struct TransactionLimits" in constants, "transaction input resource cap must be a runtime TransactionLimits")
+    signing_state = (ROOT / "apps/kaskold-hardware/src/runtime/data/signing.rs").read_text(errors="replace")
+    require(
+        errors,
+        "SIGNER_TRANSACTION_LIMITS" in signing_state,
+        "firmware transactions must use the canonical signer capability limits",
+    )
     capabilities = (ROOT / "crates/kaskold-protocol/src/capabilities/mod.rs").read_text(errors="replace")
     require(errors, "max_inputs: 32" in capabilities, "reference signer input capability must remain 32")
-    for field in ("outputs: Box<", "payload: Box<", "redeem_pool: Box<"):
+    for field in ("outputs: Box<", "payload: Vec<u8>", "redeem_pool: Box<"):
         require(errors, field in tx, f"Transaction bulk store must remain heap-backed: {field}")
     require(errors, "pub fn try_new() -> Result<Self, TransactionStorageError>" in tx, "Transaction must retain typed fallible constructor")
     require(errors, "try_reserve_exact" in tx, "Transaction constructor must allocate fallibly")

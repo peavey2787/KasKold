@@ -3,6 +3,12 @@
 
 from __future__ import annotations
 
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
+
 from pathlib import Path
 import sys
 import tempfile
@@ -18,7 +24,7 @@ from architecture.protocols.offline_portability import (  # noqa: E402
 
 class OfflineSignerBoundaryTests(unittest.TestCase):
     def test_covenant_key_error_does_not_overclaim_wrapped_traits(self) -> None:
-        source = (ROOT / "crates/offline-signer/src/derivation/covenant.rs").read_text()
+        source = kaskold_source("crates/offline-signer/src/derivation/covenant.rs").read_text()
         self.assertIn("#[derive(Debug, PartialEq)]\npub enum CovenantKeyError", source)
         self.assertNotIn("#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum CovenantKeyError", source)
 

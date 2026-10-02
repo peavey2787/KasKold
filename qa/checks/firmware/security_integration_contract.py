@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
+
 from pathlib import Path
 
 
 def check_security_integration_contract(root: Path, errors: list[str]) -> None:
     def read(relative: str) -> str:
-        return (root / relative).read_text(encoding="utf-8")
+        return kaskold_source(str(relative)).read_text(encoding="utf-8")
 
     def require(condition: bool, message: str) -> None:
         if not condition:

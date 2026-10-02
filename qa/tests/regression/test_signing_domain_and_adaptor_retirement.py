@@ -1,7 +1,10 @@
 import pathlib
+import sys
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
 
 
 class SigningBoundary(unittest.TestCase):
@@ -17,9 +20,9 @@ class SigningBoundary(unittest.TestCase):
         self.assertNotIn('pub fn sign_message_with_entropy(', facade)
 
     def test_reviewed_message_is_domain_separated_on_device(self):
-        crypto = (ROOT / 'crates/offline-signer/src/crypto/message.rs').read_text()
+        crypto = kaskold_source('crates/offline-signer/src/crypto/message.rs').read_text()
         service = (ROOT / 'apps/kaskold-hardware/src/runtime/interactions/tx/message_signing/service.rs').read_text()
-        self.assertIn('KasSigner Signed Message v1', crypto)
+        self.assertIn('KaspaPortal Signed Message v1', crypto)
         self.assertNotIn('KasKold Signed Message v1', crypto)
         self.assertIn('message_digest(message)', crypto)
         self.assertIn('crypto::message::message_digest', service)
@@ -47,7 +50,7 @@ class SigningBoundary(unittest.TestCase):
             'apps/kaskold-companion-web/web/html/screens/covenant/create/private_swap.html',
         )
         for relative in required_v2:
-            self.assertTrue((ROOT / relative).is_file(), relative)
+            self.assertTrue(kaskold_source(relative).is_file(), relative)
 
         production = '\n'.join(
             path.read_text(errors='replace')

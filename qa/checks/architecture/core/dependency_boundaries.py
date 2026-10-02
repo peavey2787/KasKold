@@ -2,6 +2,12 @@
 
 from __future__ import annotations
 
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[4] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
+
 from pathlib import Path
 import re
 import tomllib
@@ -176,7 +182,7 @@ def _check_shared_workflow_ownership(root: Path) -> list[str]:
         ),
     }
     for relative, markers in checks.items():
-        path = root / relative
+        path = kaskold_source(relative)
         source = path.read_text(errors="ignore") if path.is_file() else ""
         for marker in markers:
             if marker not in source:
@@ -192,14 +198,12 @@ def _check_shared_workflow_ownership(root: Path) -> list[str]:
         for path in source_root.rglob("*.rs")
         if "unit_tests" not in path.parts and "tests" not in path.parts
     )
-    expected_single = {
-        "fn seed_from_indices(": 1,
-        "fn capture_nonempty_object(": 1,
-    }
-    for marker, expected in expected_single.items():
+    # Their single implementation lives in Kaspa Portal (checked above through
+    # the shipped source); KasKold's own tree must not grow a second copy.
+    for marker in ("fn seed_from_indices(", "fn capture_nonempty_object("):
         count = production.count(marker)
-        if count != expected:
-            errors.append(f"shared primitive {marker} must have one implementation, found {count}")
+        if count:
+            errors.append(f"shared primitive {marker} is duplicated in KasKold ({count} copies)")
 
     qr_callers = (
         root / "apps/kaskold-hardware/src/ui/screens/signing/qr.rs",

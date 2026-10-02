@@ -2,6 +2,12 @@
 """Hardware home-icon transparency and multisig descriptor-management regressions."""
 from __future__ import annotations
 
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
+
 from pathlib import Path
 import struct
 import unittest
@@ -12,7 +18,7 @@ SRC = ROOT / "apps/kaskold-hardware/src"
 
 
 def read(path: str) -> str:
-    return (ROOT / path).read_text()
+    return kaskold_source(str(path)).read_text()
 
 
 def read_rgb565(path: Path) -> list[int]:

@@ -132,7 +132,8 @@ class LockfilePolicyTests(unittest.TestCase):
         self.assertTrue(dependency_names <= {
             "ark-bn254", "ark-groth16", "ark-relations", "ark-serialize",
             "ark-snark", "ark-std", "blake2b_simd", "blake3", "getrandom",
-            "hex", "hmac", "js-sys", "k256", "kaskold-protocol", "offline-signer", "qrcode",
+            "hex", "hmac", "js-sys", "k256", "kaskold-protocol", "kaspa-portal", "offline-signer",
+            "qrcode",
             "serde", "serde_json", "sha2", "shared-signer", "wasm-bindgen",
             "wasm-bindgen-futures", "web-sys",
         })

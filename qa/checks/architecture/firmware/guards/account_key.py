@@ -2,17 +2,23 @@
 
 from __future__ import annotations
 
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[5] / "qa/checks"))
+from portal_source import kaskold_source, resolve_path  # noqa: E402
+
 from pathlib import Path
 import re
 
 
 def _source(path: Path) -> str:
-    return path.read_text(errors="ignore")
+    return resolve_path(path).read_text(errors="ignore")
 
 
 def check(root: Path) -> list[str]:
     errors: list[str] = []
-    shared_path = root / "crates/shared-signer/src/account_key.rs"
+    shared_path = kaskold_source("crates/shared-signer/src/account_key.rs")
     if not shared_path.is_file():
         return ["shared canonical account-key codec is missing"]
 
@@ -28,14 +34,14 @@ def check(root: Path) -> list[str]:
 
     consumers = {
         "crates/offline-signer/src/derivation/xpub/kpub.rs": (
-            "shared_signer::account_key",
+            "wallet::key::account",
             "encode_account_key_text",
             "decode_account_key_text",
         ),
         "crates/kaskold-protocol/src/account/bip32.rs": (
             "shared_signer::account_key",
             "encode_account_key_text",
-            "decode_account_key_text",
+            "kaspa_portal::wallet::key::xpub::decode_kpub_or_xpub",
         ),
     }
     for relative, required_symbols in consumers.items():
@@ -47,10 +53,9 @@ def check(root: Path) -> list[str]:
                 )
         if re.search(r"\bbs58\b", source, re.IGNORECASE):
             errors.append(f"account-key consumer implements Base58 directly: {relative}")
-        if "decode_legacy_kpub" not in source and "decode_kpub_compatible" not in source:
-            errors.append(
-                f"account-key consumer lacks isolated decode-only legacy recovery: {relative}"
-            )
+        for retired in ("decode_legacy_kpub", "decode_kpub_compatible", "legacy_account_key"):
+            if retired in source:
+                errors.append(f"account-key consumer reintroduced retired Base58 kpub support: {relative}")
 
     online_bip32 = _source(root / "crates/online-watcher/src/account/bip32.rs")
     if "kaskold_protocol" not in online_bip32:

@@ -256,7 +256,7 @@ printf dts > "${out_dir}/${out_name}_bg.wasm.d.ts"
         conformance = (ROOT / 'qa/tests/conformance/protocol_vectors.rs').read_text()
         vector_path = ROOT / 'docs/integration/vectors/kaskold_sdk_v2.json'
         self.assertIn('kaskold_privacy_pairing_vector_is_wire_exact', conformance)
-        self.assertIn('kaskold_kspt_v4_vector_locks_metadata_order', conformance)
+        self.assertIn('kaskold_kspt_vector_locks_metadata_order', conformance)
         self.assertTrue(vector_path.is_file())
 
     def test_distribution_checks_verify_packaged_crates_and_generated_wasm(self):
@@ -295,19 +295,15 @@ printf dts > "${out_dir}/${out_name}_bg.wasm.d.ts"
             self.assertIn(marker, sdk_error)
         self.assertIn('#[non_exhaustive]', network)
 
-    def test_offline_signer_names_adapter_not_second_codec(self):
-        root = ROOT / 'crates/offline-signer/src/transaction/kspt'
-        self.assertTrue((root / 'wire_adapter.rs').is_file())
-        self.assertTrue((root / 'kssn_io.rs').is_file())
-        self.assertFalse((root / 'codec').exists())
-        adapter = (root / 'wire_adapter.rs').read_text()
-        self.assertIn('kaskold_protocol::wire::kspt', adapter)
-        self.assertIn('DecodeLimits::new', adapter)
-        self.assertIn('decode_with_limits', adapter)
-        self.assertIn('Hardware transaction-model adapter', adapter)
-        self.assertIn('use super::{', adapter)
-        self.assertNotIn('use super::super::{\n    error::PsktError', adapter)
-        self.assertIn('KSSN-only', (root / 'kssn_io.rs').read_text())
+    def test_offline_signer_uses_portal_kspt_codec_not_a_copy(self):
+        # The hardware signer links Kaspa Portal's KSPT/KSSN codec; KasKold keeps
+        # no local transaction module that could drift into a second codec.
+        self.assertFalse((ROOT / 'crates/offline-signer/src/transaction').exists())
+        facade = (ROOT / 'crates/offline-signer/src/lib.rs').read_text()
+        self.assertIn('pub use kaspa_portal::transaction::', facade)
+        self.assertIn('interchange::{kspt', facade)
+        manifest = (ROOT / 'crates/offline-signer/Cargo.toml').read_text()
+        self.assertRegex(manifest, r'kaspa-portal = \{ git = "[^"]+", rev = "[0-9a-f]{40}"')
 
 
 if __name__ == '__main__':

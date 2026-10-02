@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """Pin restored original KasKold features so refactors cannot silently retire them."""
 
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
+
 from pathlib import Path
 import re
 import unittest
@@ -9,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def read(relative: str) -> str:
-    return (ROOT / relative).read_text(encoding="utf-8")
+    return kaskold_source(str(relative)).read_text(encoding="utf-8")
 
 
 class OriginalFeatureParityPolicyTests(unittest.TestCase):
@@ -172,7 +178,7 @@ class OriginalFeatureParityPolicyTests(unittest.TestCase):
         self.assertNotIn("OP_TX_INPUT_SPK", script)
         self.assertNotIn("oracleV1Heartbeat", family)
         self.assertIn("salt: &[u8; 16]", script)
-        self.assertIn('STATEMENT_PREFIX: &str = "KasSigner Oracle v1 "', oracle_core)
+        self.assertIn('STATEMENT_PREFIX: &str = "KaspaPortal Oracle v1 "', oracle_core)
         self.assertIn("Sha256::digest(statement.as_bytes())", oracle_core)
         self.assertIn("let mut salt = [0u8; 16]", oracle_core)
         self.assertIn("must be distinct", oracle_core)

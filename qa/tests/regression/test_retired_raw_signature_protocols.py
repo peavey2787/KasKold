@@ -129,7 +129,7 @@ class RetiredRawSignatureProtocolTests(unittest.TestCase):
         self.assertIn("create_oracle_mb_publish", api)
         self.assertIn("covenant_oracle_v1", api)
         self.assertIn("verify_oracle_v1_attestation", api)
-        self.assertIn("KasSigner Oracle v1", oracle_core)
+        self.assertIn("KaspaPortal Oracle v1", oracle_core)
         self.assertIn("oracle_covenant_key_id_hex", family)
         self.assertIn("Sha256::digest(statement.as_bytes())", oracle_core)
         self.assertIn("[0u8; 16]", oracle_core)

@@ -1,3 +1,9 @@
+
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
 from pathlib import Path
 import unittest
 
@@ -6,22 +12,25 @@ ROOT = Path(__file__).resolve().parents[3]
 
 class TransactionReviewCoinControlPolicyTests(unittest.TestCase):
     def read(self, relative: str) -> str:
-        return (ROOT / relative).read_text(errors="ignore")
+        return kaskold_source(str(relative)).read_text(errors="ignore")
 
     def test_transaction_inputs_are_dynamic_and_v4_binds_network(self) -> None:
         model = self.read("crates/offline-signer/src/transaction/model/transaction.rs")
         constants = self.read("crates/offline-signer/src/transaction/model/constants.rs")
         wire_model = self.read("crates/kaskold-protocol/src/wire/kspt/model.rs")
-        offline_codec = self.read("crates/offline-signer/src/transaction/kspt/wire_adapter.rs")
+        capabilities = self.read("crates/kaskold-protocol/src/capabilities/mod.rs")
+        trailers = self.read("crates/offline-signer/src/transaction/kspt/codec/trailers.rs")
         self.assertIn("pub inputs: Vec<TransactionInput>", model)
-        self.assertIn("SIGNER_CAPABILITIES.max_inputs as usize", constants)
-        self.assertIn("count > MAX_INPUTS", model)
-        self.assertIn("GENERATION_CURRENT: u8 = 0x04", wire_model)
+        # Inputs are bounded by the runtime TransactionLimits the device passes,
+        # sourced from the advertised signer capabilities.
+        self.assertIn("pub struct TransactionLimits", constants)
+        self.assertIn("self.limits.max_inputs", model)
+        self.assertIn("SIGNER_TRANSACTION_LIMITS", capabilities)
+        self.assertIn("pub const KSPT_VERSION: u8 = kaspa_portal", wire_model)
         self.assertIn("NETWORK_MARKER", wire_model)
         self.assertIn("OUTPUT_DERIVATION_MARKER", wire_model)
-        self.assertIn("kaskold_protocol::wire::kspt", offline_codec)
-        self.assertIn("kspt::decode", offline_codec)
-        self.assertIn("kspt::encode", offline_codec)
+        self.assertIn("NETWORK_TRAILER_MARKER", trailers)
+        self.assertIn("if !state.saw_network", trailers)
 
     def test_hardware_review_uses_bound_network_and_verified_derivation_hint(self) -> None:
         address = self.read("apps/kaskold-hardware/src/ui/screens/signing/transaction_review/address.rs")

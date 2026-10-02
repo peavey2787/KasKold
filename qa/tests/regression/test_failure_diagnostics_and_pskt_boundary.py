@@ -1,10 +1,16 @@
+
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
 from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 TX = ROOT / "apps/kaskold-hardware/src/runtime/interactions/tx/transaction.rs"
 PSKT_CONTEXT = ROOT / "apps/kaskold-hardware/src/runtime/interactions/tx/transaction/standard_pskt_context.rs"
-STD_PSKT = ROOT / "crates/offline-signer/src/transaction/std_pskt"
+STD_PSKT = kaskold_source("crates/offline-signer/src/transaction/std_pskt")
 CONNECTED = ROOT / "apps/kaskold-hardware/src/runtime/workflow_tests/connected/mod.rs"
 WALLET = ROOT / "apps/kaskold-hardware/src/runtime/workflow_tests/connected/wallet.rs"
 SIGNING = ROOT / "apps/kaskold-hardware/src/runtime/workflow_tests/connected/signing/mod.rs"

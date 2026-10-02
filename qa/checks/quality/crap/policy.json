@@ -393,11 +393,9 @@
         "minimum_branch_coverage_percent": 90.0,
         "paths": [
           "crates/offline-signer/src/crypto/*.rs",
-          "crates/offline-signer/src/transaction/sighash/*.rs",
           "crates/online-watcher/src/protocol/schnorr.rs",
           "crates/online-watcher/src/protocol/private_swap/adaptor/*.rs",
-          "crates/kaskold-hardware-core/src/security.rs",
-          "crates/shared-signer/src/security.rs"
+          "crates/kaskold-hardware-core/src/security.rs"
         ],
         "target_branch_coverage_percent": 100.0
       },
@@ -406,8 +404,6 @@
         "minimum_branch_coverage_percent": 90.0,
         "paths": [
           "crates/offline-signer/src/crypto/*.rs",
-          "crates/offline-signer/src/derivation/**/*.rs",
-          "crates/shared-signer/src/account_key.rs",
           "crates/shared-signer/src/legacy_account_key.rs",
           "crates/online-watcher/src/account/bip32.rs",
           "crates/online-watcher/src/privacy/stealth/derivation.rs",
@@ -422,19 +418,10 @@
         "minimum_branch_coverage_percent": 90.0,
         "paths": [
           "crates/kaskold-hardware-core/src/storage/payload.rs",
-          "crates/shared-signer/src/account_key.rs",
           "crates/shared-signer/src/legacy_account_key.rs",
-          "crates/shared-signer/src/pskt.rs",
-          "crates/shared-signer/src/qr_frame.rs",
           "crates/kaskold-protocol/src/wire/qr_payload.rs",
           "crates/kaskold-protocol/src/wire/multisig_descriptor.rs",
           "crates/kaskold-protocol/src/wire/kspt/*.rs",
-          "crates/offline-signer/src/transaction/kspt/wire_adapter.rs",
-          "crates/offline-signer/src/transaction/kspt/kssn.rs",
-          "crates/offline-signer/src/transaction/kspt/kssn_io.rs",
-          "crates/offline-signer/src/transaction/std_pskt/parser/*.rs",
-          "crates/offline-signer/src/transaction/std_pskt/parser/**/*.rs",
-          "crates/offline-signer/src/transaction/std_pskt/syntax/*.rs",
           "crates/online-watcher/src/network/codec/**/*.rs",
           "crates/online-watcher/src/network/wrpc/error_payload.rs",
           "crates/online-watcher/src/network/wrpc/request.rs",
@@ -451,10 +438,6 @@
         "label": "signing",
         "minimum_branch_coverage_percent": 90.0,
         "paths": [
-          "crates/offline-signer/src/crypto/schnorr.rs",
-          "crates/offline-signer/src/transaction/kspt/signing/*.rs",
-          "crates/offline-signer/src/transaction/sighash/*.rs",
-          "crates/offline-signer/src/transaction/std_pskt/signatures.rs",
           "crates/online-watcher/src/protocol/transaction/sighash.rs",
           "crates/online-watcher/src/protocol/transaction/signed_kspt.rs",
           "crates/online-watcher/src/protocol/pskt/scripts/**/*.rs",
@@ -467,13 +450,7 @@
         "label": "transaction construction",
         "minimum_branch_coverage_percent": 90.0,
         "paths": [
-          "crates/offline-signer/src/transaction/model/*.rs",
           "crates/kaskold-protocol/src/wire/kspt/*.rs",
-          "crates/offline-signer/src/transaction/kspt/wire_adapter.rs",
-          "crates/offline-signer/src/transaction/kspt/kssn.rs",
-          "crates/offline-signer/src/transaction/kspt/kssn_io.rs",
-          "crates/offline-signer/src/transaction/kspt/script.rs",
-          "crates/offline-signer/src/transaction/kspt/validation.rs",
           "crates/online-watcher/src/transaction_builder/**/*.rs",
           "crates/online-watcher/src/wasm_api/transactions/*.rs",
           "crates/online-watcher/src/contracts/**/*.rs",
@@ -486,13 +463,6 @@
         "label": "wallet recovery",
         "minimum_branch_coverage_percent": 90.0,
         "paths": [
-          "crates/offline-signer/src/derivation/bip39/*.rs",
-          "crates/offline-signer/src/derivation/bip32/child.rs",
-          "crates/offline-signer/src/derivation/bip32/extended_private.rs",
-          "crates/offline-signer/src/derivation/bip32/paths.rs",
-          "crates/offline-signer/src/derivation/bip85.rs",
-          "crates/offline-signer/src/derivation/xpub/xprv.rs",
-          "crates/shared-signer/src/account_key.rs",
           "crates/shared-signer/src/legacy_account_key.rs"
         ],
         "supplemental_coverage": "browser_recovery",
@@ -545,13 +515,6 @@
       "apps/kaskold-hardware/src/hw/shared/storage/fat32/lfn/scanner.rs",
       "crates/online-watcher/src/protocol/pskt/kspt_bridge/parser_compact.rs",
       "crates/online-watcher/src/protocol/pskt/kspt_bridge/parser_transaction.rs",
-      "crates/offline-signer/src/address/mod.rs",
-      "crates/offline-signer/src/transaction/std_pskt/parser/global.rs",
-      "crates/offline-signer/src/transaction/std_pskt/parser/inputs/mod.rs",
-      "crates/offline-signer/src/transaction/std_pskt/parser/inputs/details.rs",
-      "crates/offline-signer/src/transaction/std_pskt/parser/outputs.rs",
-      "crates/offline-signer/src/transaction/std_pskt/parser/helpers.rs",
-      "crates/offline-signer/src/transaction/std_pskt/serializer/inputs.rs",
       "crates/kaskold-hardware-core/src/storage/fat32_lfn.rs",
       "crates/kaskold-hardware-core/src/power/battery.rs",
       "crates/kaskold-hardware-core/src/input/keyboard.rs",
@@ -589,82 +552,6 @@
           ".inputs",
           ".signatures",
           "sighash_type"
-        ]
-      },
-      {
-        "function": "bech32_char_to_val",
-        "path": "crates/offline-signer/src/address/mod.rs",
-        "previous_complexity": 34,
-        "required_fragments": [
-          "CHARSET",
-          ".position(",
-          ".map_or("
-        ]
-      },
-      {
-        "function": "parse_global",
-        "path": "crates/offline-signer/src/transaction/std_pskt/parser/global.rs",
-        "previous_complexity": 61,
-        "required_fragments": [
-          "struct GlobalParser",
-          "fn parse_field",
-          "fn parse_pskt_version",
-          "fn parse_input_count"
-        ]
-      },
-      {
-        "function": "parse_input",
-        "path": "crates/offline-signer/src/transaction/std_pskt/parser/inputs/mod.rs",
-        "previous_complexity": 64,
-        "required_fragments": [
-          "struct InputParser",
-          "fn parse_field",
-          "fn parse_redeem_script",
-          "fn parse_final_script_sig"
-        ]
-      },
-      {
-        "function": "skip_until_matching",
-        "path": "crates/offline-signer/src/transaction/std_pskt/parser/helpers.rs",
-        "previous_complexity": 33,
-        "required_fragments": [
-          "process_container_token",
-          "process_object_key_or_end",
-          "process_array_value_or_end",
-          "process_nested_value"
-        ]
-      },
-      {
-        "function": "parse_output",
-        "path": "crates/offline-signer/src/transaction/std_pskt/parser/outputs.rs",
-        "previous_complexity": 38,
-        "required_fragments": [
-          "struct OutputParser",
-          "fn parse_field",
-          "fn parse_redeem_script",
-          "fn parse_preserved_object"
-        ]
-      },
-      {
-        "function": "parse_utxo_entry",
-        "path": "crates/offline-signer/src/transaction/std_pskt/parser/inputs/details.rs",
-        "previous_complexity": 30,
-        "required_fragments": [
-          "struct UtxoParser",
-          "fn parse_field",
-          "fn parse_block_daa_score",
-          "fn parse_is_coinbase"
-        ]
-      },
-      {
-        "function": "emit_input",
-        "path": "crates/offline-signer/src/transaction/std_pskt/serializer/inputs.rs",
-        "previous_complexity": 30,
-        "required_fragments": [
-          "emit_input_identity",
-          "emit_input_signing",
-          "emit_input_scripts",
-          "emit_input_preserved"
         ]
       }
     ],

@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[5] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
+
 from pathlib import Path
 import tomllib
 
@@ -233,7 +239,6 @@ def _check_public_release_contract(root: Path) -> list[str]:
             errors.append(f"kaskold-protocol public error categories are missing {marker}")
     if "#[non_exhaustive]" not in network:
         errors.append("public Network must remain future-extensible without a major version bump")
-    kspt_root = root / "crates/offline-signer/src/transaction/kspt"
-    if (kspt_root / "codec").exists() or not (kspt_root / "wire_adapter.rs").is_file():
-        errors.append("offline-signer must expose a KSPT wire adapter, not a second codec tree")
+    if (root / "crates/offline-signer/src/transaction").exists():
+        errors.append("offline-signer must re-export Kaspa Portal's KSPT codec, not carry its own tree")
     return errors

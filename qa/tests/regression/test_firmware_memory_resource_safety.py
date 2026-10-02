@@ -1,3 +1,9 @@
+
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
 from pathlib import Path
 import sys
 import unittest
@@ -10,7 +16,7 @@ from stack_budget_contract import check_stack_budget_contract  # noqa: E402
 
 class FirmwareMemoryResourceSafetyTests(unittest.TestCase):
     def read(self, relative: str) -> str:
-        return (ROOT / relative).read_text(errors="ignore")
+        return kaskold_source(str(relative)).read_text(errors="ignore")
 
     def test_transaction_inputs_have_product_cap_everywhere(self):
         constants = self.read("crates/offline-signer/src/transaction/model/constants.rs")
@@ -19,7 +25,7 @@ class FirmwareMemoryResourceSafetyTests(unittest.TestCase):
         validation = self.read("crates/offline-signer/src/transaction/kspt/validation.rs")
         standard = self.read("crates/offline-signer/src/transaction/std_pskt/parser/global.rs")
         serializer = self.read("crates/offline-signer/src/transaction/std_pskt/serializer/mod.rs")
-        self.assertIn("SIGNER_CAPABILITIES.max_inputs as usize", constants)
+        self.assertIn("pub struct TransactionLimits", constants)
         for source in (model, compact, validation, standard, serializer):
             self.assertIn("MAX_INPUTS", source)
         self.assertIn("count > MAX_INPUTS", model)
