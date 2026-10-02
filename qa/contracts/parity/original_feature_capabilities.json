@@ -354,12 +354,12 @@
         "status": "parity"
       },
       "id": "protocol.kspt_v4",
-      "original_claim": "KSPT v4 carries derivation/covenant binding needed by the original current release.",
+      "original_claim": "KSPT v1 carries derivation/covenant binding needed by the original current release.",
       "original_paths": [
         "CHANGELOG.md",
         "core/src/wallet/pskt.rs"
       ],
-      "title": "KSPT v4"
+      "title": "KSPT v1"
     },
     {
       "category": "protocol",

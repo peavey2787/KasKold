@@ -87,7 +87,7 @@ Approved/current recovery behavior:
 - The **mnemonic recovery words** plus optional BIP39 passphrase are the permanent cross-device master recovery backup.
 - Device-bound wallet storage and device-bound SD backups are convenience storage and **work only with the KasKold device that created them**; copying ciphertext to another device is expected to fail.
 - Current JPEG Portable mode is a password-only, self-contained Argon2id/AES-256-GCM format whose recovery contract is **JPEG + password**; it does not restore the historical Base64/password-only decoder or the unreleased development password-plus-recovery-key format.
-- Current Oracle-v1, ZK Crowdfunding, Private Swap v2, KSPT v4, and session-bound QR use new current protocols. Historical raw-hash Oracle/Crowdfunding, adaptor-v1, KSSN v1, sessionless QR, and legacy KSPT transaction-session formats are not resumed or signed.
+- Current Oracle-v1, ZK Crowdfunding, Private Swap v2, KSPT v1, and session-bound QR use new current protocols. Historical raw-hash Oracle/Crowdfunding, adaptor-v1, KSSN v1, sessionless QR, and legacy KSPT transaction-session formats are not resumed or signed.
 
 Users recover wallet material and rebuild unfinished historical transactions in the current format rather than exposing the current signer to obsolete transaction/session parsers.
 

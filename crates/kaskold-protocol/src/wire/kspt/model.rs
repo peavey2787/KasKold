@@ -1,5 +1,6 @@
 pub const MAGIC: [u8; 4] = *b"KSPT";
-pub const GENERATION_CURRENT: u8 = 0x04;
+/// Compact KSPT envelope version, shared with Kaspa Portal's codec.
+pub const KSPT_VERSION: u8 = kaspa_portal::transaction::interchange::kspt::KSPT_VERSION;
 pub const FLAG_SIGNED_OR_COMPLETE: u8 = 0x01;
 pub const ALLOWED_FLAGS: u8 = FLAG_SIGNED_OR_COMPLETE;
 pub const MAX_INPUTS: u32 = 32;

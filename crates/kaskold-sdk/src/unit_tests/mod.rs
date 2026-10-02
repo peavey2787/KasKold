@@ -5,8 +5,8 @@ fn public_limits_match_reference_signer_protocol_capabilities() {
     let limits = limits();
     assert_eq!(limits, kaskold_protocol::SIGNER_CAPABILITIES);
     assert_eq!(
-        limits.kspt_generation,
-        kaskold_protocol::wire::kspt::GENERATION_CURRENT
+        limits.kspt_version,
+        kaskold_protocol::wire::kspt::KSPT_VERSION
     );
     assert_eq!(limits.max_inputs, 32);
     assert_eq!(limits.max_outputs, 8);

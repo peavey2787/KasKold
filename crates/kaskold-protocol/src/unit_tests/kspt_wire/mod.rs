@@ -372,7 +372,7 @@ fn canonical_decoder_rejects_consumer_counts_before_rest_of_global_prefix() {
 
     let mut excessive_inputs = [0u8; 12];
     excessive_inputs[..4].copy_from_slice(&MAGIC);
-    excessive_inputs[4] = GENERATION_CURRENT;
+    excessive_inputs[4] = KSPT_VERSION;
     excessive_inputs[8..12].copy_from_slice(&u32::MAX.to_le_bytes());
     assert_eq!(
         decode_with_limits(&excessive_inputs, &mut CaptureSink::default(), limits),
@@ -381,7 +381,7 @@ fn canonical_decoder_rejects_consumer_counts_before_rest_of_global_prefix() {
 
     let mut excessive_outputs = [0u8; 13];
     excessive_outputs[..4].copy_from_slice(&MAGIC);
-    excessive_outputs[4] = GENERATION_CURRENT;
+    excessive_outputs[4] = KSPT_VERSION;
     excessive_outputs[8..12].copy_from_slice(&1u32.to_le_bytes());
     excessive_outputs[12] = 17;
     assert_eq!(
@@ -394,7 +394,7 @@ fn canonical_decoder_rejects_consumer_counts_before_rest_of_global_prefix() {
 fn canonical_decoder_applies_consumer_limits_before_variable_length_consumption() {
     let mut excessive_inputs = [0u8; 51];
     excessive_inputs[..4].copy_from_slice(&MAGIC);
-    excessive_inputs[4] = GENERATION_CURRENT;
+    excessive_inputs[4] = KSPT_VERSION;
     excessive_inputs[8..12].copy_from_slice(&u32::MAX.to_le_bytes());
     excessive_inputs[12] = 1;
     let limits = DecodeLimits::new(16, 16, 1024);
@@ -405,7 +405,7 @@ fn canonical_decoder_applies_consumer_limits_before_variable_length_consumption(
 
     let mut oversized_payload = [0u8; 51];
     oversized_payload[..4].copy_from_slice(&MAGIC);
-    oversized_payload[4] = GENERATION_CURRENT;
+    oversized_payload[4] = KSPT_VERSION;
     oversized_payload[8..12].copy_from_slice(&1u32.to_le_bytes());
     oversized_payload[12] = 1;
     oversized_payload[49..51].copy_from_slice(&1025u16.to_le_bytes());

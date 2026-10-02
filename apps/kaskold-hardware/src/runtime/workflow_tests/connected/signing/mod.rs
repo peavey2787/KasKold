@@ -192,7 +192,7 @@ fn invalid_compact(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
     if !begin_scan(ctx) { return false; }
     log!("KASKOLD_WORKFLOW_TESTS: SIGN TX INVALID KSPT PROCESS BEGIN");
     crate::runtime::interactions::camera_loop::workflow_process_transaction_payload(
-        b"KSPT\x04\x00", false, ctx.ad,
+        b"KSPT\x01\x00", false, ctx.ad,
     );
     log!("KASKOLD_WORKFLOW_TESTS: SIGN TX INVALID KSPT PROCESS RETURNED");
     let rejected = ctx.ad.navigation.app.state == AppState::Rejected;

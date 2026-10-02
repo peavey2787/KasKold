@@ -9,7 +9,7 @@ use offline_signer::{
     derivation::bip32,
     transaction::{
         kspt,
-        model::{Transaction, MAX_INPUTS},
+        model::Transaction,
     },
 };
 use zeroize::Zeroize;
@@ -20,7 +20,7 @@ pub struct AntiKleptoSession {
     session_id: [u8; shared_signer::anti_klepto::SESSION_ID_LEN],
     host_commitment: [u8; shared_signer::anti_klepto::HASH_LEN],
     transaction_digest: [u8; shared_signer::anti_klepto::HASH_LEN],
-    initial_counts: [u8; MAX_INPUTS],
+    initial_counts: Vec<u8>,
     transaction: Transaction,
 }
 

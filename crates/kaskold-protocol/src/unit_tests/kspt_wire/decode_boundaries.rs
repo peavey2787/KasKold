@@ -131,7 +131,7 @@ fn canonical_decoder_rejects_header_capacity_and_required_trailer_boundaries() {
     assert_wire_error(&wire, WireError::InvalidMagic);
 
     let mut wire = encode_vec(&VectorSource::minimal(1)).expect("minimal vector");
-    wire[4] = GENERATION_CURRENT.wrapping_sub(1);
+    wire[4] = KSPT_VERSION.wrapping_sub(1);
     assert_wire_error(&wire, WireError::UnsupportedVersion);
 
     let mut wire = encode_vec(&VectorSource::minimal(1)).expect("minimal vector");

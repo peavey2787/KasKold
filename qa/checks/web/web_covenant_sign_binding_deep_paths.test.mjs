@@ -7,7 +7,7 @@ import {
 
 function responseHex({ kind, session = '00'.repeat(16), keyId, pubkey, token = '00'.repeat(32), commitment = '00'.repeat(32), nonce = '00'.repeat(33), signature = '00'.repeat(64) }) {
   const out = Buffer.alloc(247);
-  out.write('CVSR', 0, 'ascii'); out[4] = 2; out[5] = kind;
+  out.write('CVSR', 0, 'ascii'); out[4] = 1; out[5] = kind;
   Buffer.from(session, 'hex').copy(out, 6);
   Buffer.from(keyId, 'hex').copy(out, 22);
   Buffer.from(pubkey, 'hex').copy(out, 54);
@@ -49,7 +49,7 @@ try {
   const keyId = '12'.repeat(32);
   const pubkey = '23'.repeat(32);
   const token = '34'.repeat(32);
-  const statement = 'KasSigner Oracle v1 00112233445566778899aabbccddeeff: Release invoice 42';
+  const statement = 'KaspaPortal Oracle v1 00112233445566778899aabbccddeeff: Release invoice 42';
   const commitment = createHash('sha256').update(Buffer.from(statement, 'utf8')).digest('hex');
   const scriptHex = '51';
   const scriptHash = createHash('sha256').update(Buffer.from(scriptHex, 'hex')).digest('hex');
@@ -57,7 +57,7 @@ try {
 
   // Device allocation: host sends an all-zero key ID and accepts the fresh ID/pubkey returned by KasKold.
   oracle.showOracleV1KeyRequest();
-  assert.equal(lastQr.slice(0, 12), Buffer.from('CVSG\x02\x00', 'binary').toString('hex'));
+  assert.equal(lastQr.slice(0, 12), Buffer.from('CVSG\x01\x00', 'binary').toString('hex'));
   assert.equal(requestField(lastQr, 56, 32), '00'.repeat(32));
   oracle.scanOracleV1KeyResponse();
   await state.scannerState.scanCallback(Buffer.from(responseHex({ kind: 0, keyId, pubkey }), 'hex'));

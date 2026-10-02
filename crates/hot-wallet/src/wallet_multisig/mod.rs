@@ -243,10 +243,8 @@ fn descriptor_from_config(config: &MultisigConfig) -> Result<String, HotWalletEr
             pubkey: config.cosigner_pubkeys[index],
         };
         let mut encoded = [0u8; xpub::KPUB_MAX_LEN];
-        let length = xpub::serialize_legacy_kpub_parts(&parts, &mut encoded);
-        if length != xpub::LEGACY_KPUB_LEN {
-            return Err(HotWalletError::MultisigInvalid);
-        }
+        let length = xpub::serialize_kpub_parts(&parts, &mut encoded)
+            .map_err(|_| HotWalletError::MultisigInvalid)?;
         descriptor.push_str(
             core::str::from_utf8(&encoded[..length])
                 .map_err(|_| HotWalletError::MultisigInvalid)?,

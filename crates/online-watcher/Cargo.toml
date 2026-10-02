@@ -25,6 +25,7 @@ browser-api = []
 # KasKold protocol/wallet SDK crates disable it and link only reusable protocol logic.
 
 [dependencies]
+kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", rev = "1dd942874a8360cff5516f64e401c410c258de30", default-features = false }
 shared-signer = { version = "=2.0.0", path = "../shared-signer" }
 kaskold-protocol = { version = "=2.0.0", path = "../kaskold-protocol", features = ["companion-compat"] }
 # WASM bindings

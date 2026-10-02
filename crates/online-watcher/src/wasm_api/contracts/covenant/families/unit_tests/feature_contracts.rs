@@ -41,7 +41,7 @@ fn oracle_v1_statement_is_unique_embedded_and_rejects_role_aliasing() {
     assert!(first["attestation_statement"]
         .as_str()
         .unwrap()
-        .starts_with("KasSigner Oracle v1 "));
+        .starts_with("KaspaPortal Oracle v1 "));
     assert!(crate::contracts::covenant::oracle_v1::build_json_with_salt(
         owner, owner, oracle, key_id, "Release", 100, "kaspa", [0x33; 16],
     )

@@ -24,7 +24,9 @@ pub mod qr;
 pub mod wire;
 
 pub const PROTOCOL_VERSION: &str = "2.0.0";
-pub use capabilities::{limits, SignerCapabilities, SIGNER_CAPABILITIES};
+pub use capabilities::{
+    limits, SignerCapabilities, SIGNER_CAPABILITIES, SIGNER_MAX_INPUTS, SIGNER_TRANSACTION_LIMITS,
+};
 
 #[cfg(feature = "host")]
 pub use account::{

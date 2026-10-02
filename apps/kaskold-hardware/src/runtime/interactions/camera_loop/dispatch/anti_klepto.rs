@@ -61,12 +61,15 @@ fn workflow_process_request(request: shared_signer::anti_klepto::Request<'_>, ad
             let initial_counts = offline_signer::transaction::kspt::initial_signature_counts(
                 &ad.signing.transaction.active,
             );
-            ad.signing.anti_klepto.begin(
+            if !ad.signing.anti_klepto.begin(
                 request.session_id,
                 request.host_commitment,
                 request.transaction_digest,
-                initial_counts,
-            );
+                &initial_counts,
+            ) {
+                workflow_reject(ad);
+                return;
+            }
             ad.signing.transaction.input_format = shared_signer::TxInputFormat::KsptCompact;
             let (present, required) = offline_signer::transaction::kspt::signature_status(
                 &ad.signing.transaction.active,
@@ -144,12 +147,15 @@ fn process_request(
             let initial_counts = offline_signer::transaction::kspt::initial_signature_counts(
                 &ad.signing.transaction.active,
             );
-            ad.signing.anti_klepto.begin(
+            if !ad.signing.anti_klepto.begin(
                 request.session_id,
                 request.host_commitment,
                 request.transaction_digest,
-                initial_counts,
-            );
+                &initial_counts,
+            ) {
+                reject(ad, "Transaction has more inputs than this device signs");
+                return;
+            }
             ad.signing.transaction.input_format = shared_signer::TxInputFormat::KsptCompact;
             let (present, required) = offline_signer::transaction::kspt::signature_status(
                 &ad.signing.transaction.active,

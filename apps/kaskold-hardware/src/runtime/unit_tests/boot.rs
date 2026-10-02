@@ -187,7 +187,8 @@ pub fn run_boot_tests() -> bool {
 
     // ── BIP85 child mnemonic derivation test ──
     {
-        let bip85_ok = offline_signer::derivation::bip85::unit_tests::test_bip85_12word_index0();
+        let (bip85_passed, bip85_total) = offline_signer::self_test::bip85::run_bip85_tests();
+        let bip85_ok = bip85_passed == bip85_total;
         all_passed &= bip85_ok;
         log!("   BIP85 test vector: {}", if bip85_ok { "OK" } else { "FAIL" });
     }

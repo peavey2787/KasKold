@@ -3,7 +3,7 @@ mod trailers;
 use super::io::Reader;
 use super::{
     valid_sighash, CovenantExecution, DecodeError, DecodeLimits, DecodedEnvelope, Derivation,
-    Global, Input, Ms45Derivation, Output, Signature, WireError, ALLOWED_FLAGS, GENERATION_CURRENT,
+    Global, Input, Ms45Derivation, Output, Signature, WireError, ALLOWED_FLAGS, KSPT_VERSION,
     MAGIC,
 };
 use trailers::read_trailers;
@@ -200,7 +200,7 @@ fn read_header(reader: &mut Reader<'_>) -> Result<u8, WireError> {
     if reader.bytes(4)? != MAGIC {
         return Err(WireError::InvalidMagic);
     }
-    if reader.u8()? != GENERATION_CURRENT {
+    if reader.u8()? != KSPT_VERSION {
         return Err(WireError::UnsupportedVersion);
     }
     let flags = reader.u8()?;

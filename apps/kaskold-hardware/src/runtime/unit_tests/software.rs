@@ -12,7 +12,7 @@ pub(super) fn run(initial_result: bool) -> bool {
     log!("BIP39 Self-Tests");
     log!("─────────────────────────────");
 
-    let (passed, total) = offline_signer::derivation::bip39::unit_tests::run_bip39_tests();
+    let (passed, total) = offline_signer::self_test::bip39::run_bip39_tests();
     all_passed &= passed == total;
     log!("   BIP39 tests: {}/{} passed", passed, total);
 
@@ -22,7 +22,7 @@ pub(super) fn run(initial_result: bool) -> bool {
         log!("   BIP39 module verified OK");
     }
 
-    let (passed32, total32) = offline_signer::derivation::bip32::unit_tests::run_bip32_tests();
+    let (passed32, total32) = offline_signer::self_test::bip32::run_bip32_tests();
     all_passed &= passed32 == total32;
     log!("   BIP32 tests: {}/{} passed", passed32, total32);
 
@@ -32,7 +32,7 @@ pub(super) fn run(initial_result: bool) -> bool {
         log!("   BIP32 module verified OK");
     }
 
-    let (passed_sc, total_sc) = offline_signer::crypto::schnorr::unit_tests::run_schnorr_tests();
+    let (passed_sc, total_sc) = offline_signer::self_test::schnorr::run_schnorr_tests();
     all_passed &= passed_sc == total_sc;
     log!("   Schnorr tests: {}/{} passed", passed_sc, total_sc);
 
@@ -48,7 +48,7 @@ pub(super) fn run(initial_result: bool) -> bool {
     // belongs to the dedicated hardware-test benchmark instead of this software KAT.
     log!("   Backup compatibility tests: host QA (memory-hard batch not run at boot)");
 
-    let (passed_sh, total_sh) = offline_signer::transaction::sighash::unit_tests::run_sighash_tests();
+    let (passed_sh, total_sh) = offline_signer::self_test::sighash::run_sighash_tests();
     all_passed &= passed_sh == total_sh;
     log!("   SigHash tests: {}/{} passed", passed_sh, total_sh);
 
@@ -58,7 +58,7 @@ pub(super) fn run(initial_result: bool) -> bool {
         log!("   SigHash+Blake2b module verified OK");
     }
 
-    let (passed_ps, total_ps) = offline_signer::transaction::kspt::unit_tests::run_kspt_tests();
+    let (passed_ps, total_ps) = offline_signer::self_test::kspt::run_kspt_tests();
     all_passed &= passed_ps == total_ps;
     log!("   KSPT tests: {}/{} passed", passed_ps, total_ps);
 
@@ -151,7 +151,7 @@ pub(super) fn run(initial_result: bool) -> bool {
     }
 
     // Address encoding tests (verified against official rusty-kaspa vectors)
-    let (passed_addr, total_addr) = offline_signer::address::unit_tests::run_address_tests();
+    let (passed_addr, total_addr) = offline_signer::self_test::address::run_address_tests();
     all_passed &= passed_addr == total_addr;
     log!("   Address tests: {}/{} passed", passed_addr, total_addr);
     if passed_addr != total_addr {
@@ -161,7 +161,7 @@ pub(super) fn run(initial_result: bool) -> bool {
     }
 
     // xpub / kpub tests
-    let (passed_xpub, total_xpub) = offline_signer::derivation::xpub::unit_tests::run_xpub_tests();
+    let (passed_xpub, total_xpub) = offline_signer::self_test::xpub::run_xpub_tests();
     all_passed &= passed_xpub == total_xpub;
     log!("   xpub tests: {}/{} passed", passed_xpub, total_xpub);
     if passed_xpub != total_xpub {

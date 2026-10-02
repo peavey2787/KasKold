@@ -137,7 +137,7 @@ pub fn detect_krc20(tx: &offline_signer::transaction::model::Transaction) -> Krc
     let mut info = Krc20Info::empty();
 
     // Check transaction payload
-    if tx.payload_len > 0 && try_parse_krc20(&tx.payload[..tx.payload_len], &mut info) {
+    if !tx.payload.is_empty() && try_parse_krc20(&tx.payload, &mut info) {
         return info;
     }
 

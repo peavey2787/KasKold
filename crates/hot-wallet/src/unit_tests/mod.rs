@@ -269,13 +269,12 @@ fn generic_vault_review_sign_and_serialize_reject_hidden_sighash_committed_seman
     reject(|tx| tx.locktime = 1);
     reject(|tx| tx.gas = 1);
     reject(|tx| {
-        tx.payload[0] = 0x42;
-        tx.payload_len = 1;
+        tx.payload = vec![0x42];
     });
     reject(|tx| tx.inputs[0].sequence = 1);
     reject(|tx| tx.inputs[0].sig_op_count = 2);
 
-    // Unsigned compact KSPT v4 carries SIGHASH_ALL implicitly, so an in-memory
+    // Unsigned compact KSPT v1 carries SIGHASH_ALL implicitly, so an in-memory
     // model with a different declared sighash must be rejected by the canonical
     // serializer rather than silently normalized into a different wire meaning.
     let mut non_all = Transaction::try_new().expect("transaction allocation");

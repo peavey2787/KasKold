@@ -3,14 +3,14 @@ import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
 const REQUEST_MAGIC = new TextEncoder().encode('CVSG');
 const REVEAL_MAGIC = new TextEncoder().encode('CVRV');
 const RESPONSE_MAGIC = new TextEncoder().encode('CVSR');
-const VERSION = 2;
+const VERSION = 1;
 const SESSION_LEN = 16;
 const REQUEST_HEADER = 156;
 const REVEAL_LEN = 117;
 const RESPONSE_LEN = 247;
 const MAX_SCRIPT = 3072;
 const MAX_CONTEXT = 1024;
-const HOST_COMMIT_DOMAIN = new TextEncoder().encode('KasSigner/anti-klepto/host-commit/v1');
+const HOST_COMMIT_DOMAIN = new TextEncoder().encode('KaspaPortal/anti-klepto/host-commit/v1');
 
 export const CovenantRequestKind = Object.freeze({ KEY_INFO: 0, KNOWN: 1, OPAQUE: 2, BIND: 3 });
 export const CovenantKnownScheme = Object.freeze({ NONE: 0, SHA256_PREIMAGE: 1, ORACLE_V1: 2 });

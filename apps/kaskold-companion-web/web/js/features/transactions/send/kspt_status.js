@@ -1,6 +1,6 @@
 import { hexToBytes } from '../../../core/bytes.js';
 
-// Pure compact-KSPT v4 signature-state inspection.
+// Pure compact-KSPT v1 signature-state inspection.
 
 function u16le(bytes, offset) {
     return bytes[offset] | (bytes[offset + 1] << 8);

@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 use crate::{account::address::network_prefix, serialization::input::decode_pubkey32};
 
 const MAX_ATTEST_TEXT_BYTES: usize = 256;
-const STATEMENT_PREFIX: &str = "KasSigner Oracle v1 ";
+const STATEMENT_PREFIX: &str = "KaspaPortal Oracle v1 ";
 
 type OracleKeys = ([u8; 32], [u8; 32], [u8; 32], [u8; 32]);
 pub(crate) type OracleAttestation = ([u8; 32], [u8; 64], [u8; 32]);

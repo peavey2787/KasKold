@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "host", serde(rename_all = "camelCase"))]
 pub struct SignerCapabilities {
-    pub kspt_generation: u8,
+    pub kspt_version: u8,
     pub max_inputs: u16,
     pub max_outputs: u8,
     pub max_script_bytes: u16,
@@ -32,7 +32,7 @@ pub const QR_MULTI_FRAME_FRAGMENT_BYTES: usize = 91;
 pub const QR_SINGLE_FRAME_PAYLOAD_BYTES: usize = 134;
 
 pub const SIGNER_CAPABILITIES: SignerCapabilities = SignerCapabilities {
-    kspt_generation: crate::wire::kspt::GENERATION_CURRENT,
+    kspt_version: crate::wire::kspt::KSPT_VERSION,
     max_inputs: crate::wire::kspt::MAX_INPUTS as u16,
     max_outputs: crate::wire::kspt::MAX_OUTPUTS,
     max_script_bytes: crate::wire::kspt::MAX_SCRIPT_SIZE as u16,
@@ -47,6 +47,17 @@ pub const SIGNER_CAPABILITIES: SignerCapabilities = SignerCapabilities {
     qr_session_frame_version: shared_signer::qr_frame::FRAME_VERSION,
     qr_session_binding: true,
 };
+
+/// Most inputs the hardware signer accepts in one transaction.
+pub const SIGNER_MAX_INPUTS: usize = crate::wire::kspt::MAX_INPUTS as usize;
+
+/// Transaction bounds the hardware signer enforces while parsing and signing,
+/// matching the advertised [`SIGNER_CAPABILITIES`].
+pub const SIGNER_TRANSACTION_LIMITS: kaspa_portal::transaction::model::TransactionLimits =
+    kaspa_portal::transaction::model::TransactionLimits {
+        max_inputs: SIGNER_MAX_INPUTS,
+        max_payload_bytes: crate::wire::kspt::MAX_PAYLOAD_SIZE,
+    };
 
 #[must_use]
 pub const fn limits() -> SignerCapabilities {

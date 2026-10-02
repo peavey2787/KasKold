@@ -116,9 +116,9 @@ fn kaskold_qr_session_vector_is_exact_and_instance_decodable() {
 }
 
 #[test]
-fn kaskold_kspt_v4_vector_locks_metadata_order() {
+fn kaskold_kspt_vector_locks_metadata_order() {
     let vector = sdk_vectors();
-    let kspt = &vector["ksptV4"];
+    let kspt = &vector["kspt"];
     let request = kaskold_protocol::SigningRequest::from_pskt(
         kspt["pskbHex"].as_str().unwrap(),
         kaskold_protocol::Network::Mainnet,

@@ -16,12 +16,7 @@ fn assert_same_semantic_model(vault: &Transaction, relayed: &Transaction) {
     assert_eq!(vault.locktime, relayed.locktime, "locktime drift");
     assert_eq!(vault.subnetwork_id, relayed.subnetwork_id, "subnetwork drift");
     assert_eq!(vault.gas, relayed.gas, "gas drift");
-    assert_eq!(vault.payload_len, relayed.payload_len, "payload-length drift");
-    assert_eq!(
-        &vault.payload[..vault.payload_len],
-        &relayed.payload[..relayed.payload_len],
-        "payload drift"
-    );
+    assert_eq!(vault.payload, relayed.payload, "payload drift");
 
     for index in 0..vault.num_inputs {
         let left = &vault.inputs[index];

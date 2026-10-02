@@ -178,7 +178,7 @@ LOCK_FEATURE_SCOPES = {
         ("rand_core", "0.6.4"): {"getrandom"},
         ("getrandom", "0.2.17"): {"cfg-if", "libc", "wasi"},
         ("hashbrown", "0.15.5"): {"foldhash"},
-        ("kaskold-protocol", "2.0.0"): {"shared-signer"},
+        ("kaskold-protocol", "2.0.0"): {"kaspa-portal", "shared-signer"},
     },
     ROOT / "qa/Cargo.lock": {
         **BASE_SIGNER_FEATURE_SCOPE,
@@ -186,8 +186,8 @@ LOCK_FEATURE_SCOPES = {
         ("getrandom", "0.2.17"): {"cfg-if", "js-sys", "libc", "wasi", "wasm-bindgen"},
         ("hashbrown", "0.15.5"): {"foldhash"},
         ("kaskold-protocol", "2.0.0"): {
-            "blake2b_simd", "hex", "hmac", "k256", "serde", "serde_json",
-            "sha2", "shared-signer",
+            "blake2b_simd", "hex", "hmac", "k256", "kaspa-portal", "serde",
+            "serde_json", "sha2", "shared-signer",
         },
         ("kaskold-sdk", "2.0.0"): {
             "getrandom", "hex", "js-sys", "kaskold-protocol", "serde",

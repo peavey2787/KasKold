@@ -1,5 +1,4 @@
 const ACCOUNT_KEY_TEXT_RE = /^kpub1:[0-9a-f]{156}$/;
-const LEGACY_ACCOUNT_KEY_RE = /^kpub[1-9A-HJ-NP-Za-km-z]+$/;
 const BIP32_XPUB_RE = /^xpub[1-9A-HJ-NP-Za-km-z]+$/;
 const COMPACT_ACCOUNT_KEY_LENGTH = 79;
 const COMPACT_ACCOUNT_KEY_VERSION = 0x01;
@@ -30,19 +29,13 @@ export function isCanonicalKpubText(value) {
     return ACCOUNT_KEY_TEXT_RE.test(normalizeKpubText(value));
 }
 
-export function isLegacyKpubText(value) {
-    return LEGACY_ACCOUNT_KEY_RE.test(normalizeKpubText(value));
-}
-
 export function isBip32XpubText(value) {
     return BIP32_XPUB_RE.test(normalizeKpubText(value));
 }
 
 export function isSupportedKpubText(value) {
     const text = normalizeKpubText(value);
-    return isCanonicalKpubText(text)
-        || isLegacyKpubText(text)
-        || isBip32XpubText(text);
+    return isCanonicalKpubText(text) || isBip32XpubText(text);
 }
 
 export function classifyKpubQrCode(code) {

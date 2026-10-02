@@ -1,4 +1,4 @@
-//! Canonical compact KSPT generation-4 wire grammar.
+//! Canonical compact KSPT v1 wire grammar.
 //!
 //! This module is allocation-free and available with `default-features = false`.
 //! Host and hardware consumers provide adapters through `EncodeSource` and

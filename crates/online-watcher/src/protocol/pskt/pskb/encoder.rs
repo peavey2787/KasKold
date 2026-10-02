@@ -52,7 +52,7 @@ fn encode_document(
     include_covenant_binding: bool,
 ) -> Result<String, String> {
     let input_count = u32::try_from(inputs.len())
-        .map_err(|_| "PSKB input count exceeds KSPT v4 capacity".to_string())?;
+        .map_err(|_| "PSKB input count exceeds KSPT v1 capacity".to_string())?;
     let output_count =
         u16::try_from(outputs.len()).map_err(|_| "PSKB output count exceeds 65535".to_string())?;
     let inputs_json = inputs

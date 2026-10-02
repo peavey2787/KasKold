@@ -42,7 +42,7 @@ export function createPsktRelayActions() {
     }
     let ksptHex = transactionState._lastKasKoldKsptHex;
     if (ksptHex) {
-      console.log('[Companion] KasKold standard relay: preserving exact signer-returned KSPT v4 (' + ksptHex.length + ' hex chars)');
+      console.log('[Companion] KasKold standard relay: preserving exact signer-returned KSPT v1 (' + ksptHex.length + ' hex chars)');
     } else {
       try {
         const request = JSON.parse(kaskold_sdk_prepare(
@@ -57,7 +57,7 @@ export function createPsktRelayActions() {
       }
       console.log(
         '[Companion] KasKold standard relay: PSKB hex ' + transactionState._psktReviewHex.length
-        + ' → KSPT v4 hex ' + ksptHex.length,
+        + ' → KSPT v1 hex ' + ksptHex.length,
       );
     }
     displayKsptQr(ksptHex, 'Scan with KasKold', {
@@ -86,7 +86,7 @@ export function createPsktRelayActions() {
     }
     console.log(
       '[Companion] Compact relay: PSKB hex ' + transactionState._psktReviewHex.length
-      + ' → KSPT v4 hex ' + ksptHex.length
+      + ' → KSPT v1 hex ' + ksptHex.length
       + ' (' + Math.round((1 - ksptHex.length / transactionState._psktReviewHex.length) * 100) + '% smaller)',
     );
     try {

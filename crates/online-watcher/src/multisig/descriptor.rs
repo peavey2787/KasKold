@@ -176,7 +176,10 @@ fn descriptor_error(value: &str, error: MultisigDescriptorError) -> String {
 fn participant_length_error(value: &str) -> String {
     let length = descriptor_participant_length(value);
     if value.contains("multi_hd45(") {
-        format!("45' cosigner kpub must be 111 characters, got {length}")
+        format!(
+            "45' cosigner kpub must be {} characters of canonical kpub1 text, got {length}",
+            shared_signer::account_key::ACCOUNT_KEY_TEXT_LEN
+        )
     } else if value.contains("multi_hd(") {
         format!("Cosigner xpub must be 130 hex chars, got {length}")
     } else {

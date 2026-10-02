@@ -38,13 +38,16 @@ fn build_multisig_descriptor(ad: &mut AppData) {
                 chain_code: config.cosigner_chain_codes[index],
                 pubkey: config.cosigner_pubkeys[index],
             };
-            let written = offline_signer::derivation::xpub::serialize_legacy_kpub_parts(
-                &parts, &mut ad.qr.outgoing.buffer[pos..],
-            );
-            if written != offline_signer::derivation::xpub::LEGACY_KPUB_LEN {
+            let mut encoded = [0u8; offline_signer::derivation::xpub::KPUB_MAX_LEN];
+            let Ok(written) = offline_signer::derivation::xpub::serialize_kpub_parts(&parts, &mut encoded) else {
                 ad.qr.outgoing.length = 0;
                 return;
-            }
+            };
+            let Some(slot) = ad.qr.outgoing.buffer.get_mut(pos..pos + written) else {
+                ad.qr.outgoing.length = 0;
+                return;
+            };
+            slot.copy_from_slice(&encoded[..written]);
             pos += written;
         } else {
             const HEX: &[u8; 16] = b"0123456789abcdef";

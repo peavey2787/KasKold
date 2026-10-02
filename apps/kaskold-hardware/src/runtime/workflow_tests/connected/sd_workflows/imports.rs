@@ -4,11 +4,11 @@ use crate::runtime::{data::TextFileKind, input::AppState};
 
 static FAILURE_STAGE: AtomicU8 = AtomicU8::new(0);
 
-const KPUB: &[u8] = b"kpub2J937qL9n85s7HrhYyYYdMkzq1kaMiAf9PAcJzRW3jV7NgntNfGGrNgut7ZxcVrJqH42BCT2WyjfnxJh3SBDjLhXHe3UC2RJUu5tcjsViuK";
+const KPUB: &[u8] = b"kpub1:038f332e03405ab68380000000f0453f0894cc8c84ebf6e6208e0c7916e9ddbd14919f9bbb92b0690b4e353392020327c7136972883eab5a7722ec3d4302f888804ecce61658ae962a2c56bb7571";
 const DESCRIPTOR: &[u8] = concat!(
     "multi_hd45(2,",
-    "kpub2J937qL9n85s7HrhYyYYdMkzq1kaMiAf9PAcJzRW3jV7NgntNfGGrNgut7ZxcVrJqH42BCT2WyjfnxJh3SBDjLhXHe3UC2RJUu5tcjsViuK,",
-    "kpub2Jtuqt6WJWZv3fQUnKhuEaCxbAyzLsFn3UEEaM4g7CXa2LZjQZH4o6tpj83tFaewMEyX56qrAF4Q64uqunVyBayuuRNwjru5DWchDEcq5vz",
+    "kpub1:038f332e03405ab68380000000f0453f0894cc8c84ebf6e6208e0c7916e9ddbd14919f9bbb92b0690b4e353392020327c7136972883eab5a7722ec3d4302f888804ecce61658ae962a2c56bb7571,",
+    "kpub1:038f332e03a7457270800000002908be01d75735944f29befbdbcd173ab00df2d44c6d5ab51a839413fda90cbf035b986b584de244f5d6a1939192f676a9f2992a63b0f43cdc452dcb40d9dd7081",
     ")"
 ).as_bytes();
 
@@ -82,7 +82,7 @@ fn transaction_formats(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool {
         return fail(3);
     }
     crate::runtime::interactions::sd::workflow_import_transaction_payload(
-        ctx.ad, ctx.display, ctx.delay, b"KSPT\x04\x00",
+        ctx.ad, ctx.display, ctx.delay, b"KSPT\x01\x00",
     );
     let rejected = ctx.ad.navigation.app.state == AppState::Rejected;
     let reset = ctx.home();

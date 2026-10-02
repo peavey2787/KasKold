@@ -255,4 +255,4 @@ export function openPsktReview(wireHex, requestedContext = null) {
     showScreen('pskt-review');
     return summary;
 }
-/// PSKB (any wallet) or compact KSPT v4 (KasKold devices only).
+/// PSKB (any wallet) or compact KSPT v1 (KasKold devices only).

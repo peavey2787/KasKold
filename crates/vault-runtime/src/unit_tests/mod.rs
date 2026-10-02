@@ -59,8 +59,7 @@ fn owned_compact_kspt(payload_len: usize) -> Vec<u8> {
         script.script[33] = 0xac;
         script.script_len = 34;
     }
-    transaction.payload_len = payload_len;
-    transaction.payload[..payload_len].fill(0x5a);
+    transaction.payload = vec![0x5a; payload_len];
     serialize_compact_kspt_vec(&transaction).expect("compact KSPT fixture serializes")
 }
 

@@ -114,7 +114,7 @@ fn two_of_two_script() -> Vec<u8> {
     script
 }
 
-const SIGNED_COMPACT_KSPT: &str = "4b53505404010000010000000100000000000000000000000000000000000000000000000000000000000000000000000000001111111111111111111111111111111111111111111111111111111111111111010000006400000000000000000000000000000001000022204444444444444444444444444444444444444444444444444444444444444444ac0100012222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222200005a00000000000000000022205555555555555555555555555555555555555555555555555555555555555555ac4e01";
+const SIGNED_COMPACT_KSPT: &str = "4b53505401010000010000000100000000000000000000000000000000000000000000000000000000000000000000000000001111111111111111111111111111111111111111111111111111111111111111010000006400000000000000000000000000000001000022204444444444444444444444444444444444444444444444444444444444444444ac0100012222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222222200005a00000000000000000022205555555555555555555555555555555555555555555555555555555555555555ac4e01";
 #[test]
 fn production_decoder_rejects_placeholder_signature_before_consensus_assembly() {
     let error = decode_signed_kspt(SIGNED_COMPACT_KSPT)
@@ -155,10 +155,10 @@ fn signed_compact_kspt_decodes_to_consensus_transaction() {
 }
 
 #[test]
-fn old_kspt_generations_are_rejected() {
-    for generation in [1u8, 2u8, 3u8] {
+fn unknown_kspt_versions_are_rejected() {
+    for version in [0u8, 2u8, 3u8, 4u8] {
         let mut bytes = hex::decode(SIGNED_COMPACT_KSPT).unwrap();
-        bytes[4] = generation;
+        bytes[4] = version;
         assert!(decode_signed_kspt_unverified_for_test(&hex::encode(bytes)).is_err());
     }
 }
@@ -232,7 +232,7 @@ fn signed_kspt_script_classification_and_extra_signature_boundaries_are_exact() 
 #[test]
 fn signed_kspt_global_fields_cover_payload_and_truncation_boundaries() {
     let mut bytes = hex::decode(SIGNED_COMPACT_KSPT).unwrap();
-    // The compact-v4 global payload length is the final u16 before the first input.
+    // The compact v1 global payload length is the final u16 before the first input.
     // Replace the zero-length payload with two bytes and keep the remaining transaction intact.
     let payload_len_offset = 6 + 2 + 4 + 1 + 8 + 20 + 8;
     bytes[payload_len_offset..payload_len_offset + 2].copy_from_slice(&2u16.to_le_bytes());
@@ -266,7 +266,7 @@ fn signed_kspt_global_fields_cover_payload_and_truncation_boundaries() {
 #[test]
 fn signed_kspt_exact_header_boundary_preserves_wire_error() {
     assert_eq!(
-        decode_signed_kspt_unverified_for_test(&hex::encode(b"KSPT\x04\x01")).unwrap_err(),
+        decode_signed_kspt_unverified_for_test(&hex::encode(b"KSPT\x01\x01")).unwrap_err(),
         "KSPT is truncated",
     );
 }

@@ -2,14 +2,18 @@
 //!
 //! Parsing is allocation-free and available in `no_std` builds. Host consumers may
 //! adapt this bounded representation to richer heap-backed models, but syntax,
-//! threshold validation, legacy-kpub decoding, duplicate detection, and canonical
+//! threshold validation, canonical kpub decoding, duplicate detection, and canonical
 //! HD45 participant ordering live here so hardware and wallet code cannot drift.
 
-use shared_signer::{bytes::decode_hex_nibble, legacy_account_key::decode_legacy_kpub};
+use shared_signer::{
+    account_key::{decode_account_key_text, ACCOUNT_KEY_PAYLOAD_LEN, ACCOUNT_KEY_TEXT_LEN},
+    bytes::decode_hex_nibble,
+};
 
 pub const MAX_DESCRIPTOR_PARTICIPANTS: usize = 5;
 const HD44_PARTICIPANT_HEX_LEN: usize = 130;
-const HD45_KPUB_LEN: usize = 111;
+/// HD45 participants are canonical `kpub1:` account-key text.
+const HD45_KPUB_LEN: usize = ACCOUNT_KEY_TEXT_LEN;
 const STATIC_KEY_HEX_LEN: usize = 64;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -29,8 +33,8 @@ pub enum MultisigDescriptorError {
     InvalidParticipantLength,
     InvalidHex,
     InvalidCompressedPublicKey,
-    InvalidLegacyKpub,
-    InvalidLegacyDepth,
+    InvalidKpub,
+    InvalidKpubDepth,
     DuplicateParticipant,
 }
 
@@ -260,11 +264,10 @@ fn parse_hd45_participants(
             return Err(MultisigDescriptorError::InvalidParticipantLength);
         }
         encoded[index].copy_from_slice(part);
-        let mut payload = [0u8; shared_signer::account_key::ACCOUNT_KEY_PAYLOAD_LEN];
-        decode_legacy_kpub(part, &mut payload)
-            .map_err(|_| MultisigDescriptorError::InvalidLegacyKpub)?;
+        let mut payload = [0u8; ACCOUNT_KEY_PAYLOAD_LEN];
+        decode_account_key_text(part, &mut payload).ok_or(MultisigDescriptorError::InvalidKpub)?;
         if payload[4] != 3 {
-            return Err(MultisigDescriptorError::InvalidLegacyDepth);
+            return Err(MultisigDescriptorError::InvalidKpubDepth);
         }
         parsed.depths[index] = payload[4];
         parsed.parent_fingerprints[index].copy_from_slice(&payload[5..9]);

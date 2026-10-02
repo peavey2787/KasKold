@@ -280,7 +280,7 @@ fn finish_encoded(
 
 fn encoded_kpub_is_valid(encoded: &[u8]) -> bool {
     let mut payload = [0u8; offline_signer::derivation::xpub::XPUB_PAYLOAD_LEN];
-    let valid = offline_signer::derivation::xpub::decode_kpub_compatible(encoded, &mut payload).is_ok();
+    let valid = offline_signer::derivation::xpub::decode_kpub_or_xpub(encoded, &mut payload).is_ok();
     shared_signer::bytes::zeroize_bytes(&mut payload);
     valid
 }

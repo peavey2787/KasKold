@@ -34,23 +34,17 @@ pub struct WalletData {
 // ─── Extended public key ───
 
 use shared_signer::account_key::{
-    decode_account_key_text, encode_account_key_text, validate_account_key_payload,
-    ACCOUNT_KEY_PAYLOAD_LEN, ACCOUNT_KEY_TEXT_LEN,
+    encode_account_key_text, validate_account_key_payload, ACCOUNT_KEY_PAYLOAD_LEN,
+    ACCOUNT_KEY_TEXT_LEN,
 };
-use shared_signer::legacy_account_key::{decode_bip32_xpub, decode_legacy_kpub};
 
 pub fn decode_kpub_text(kpub_text: &str) -> Result<[u8; ACCOUNT_KEY_PAYLOAD_LEN], String> {
     let mut payload = [0u8; ACCOUNT_KEY_PAYLOAD_LEN];
-    if decode_account_key_text(kpub_text.as_bytes(), &mut payload).is_some()
-        || decode_legacy_kpub(kpub_text.as_bytes(), &mut payload).is_ok()
-        || decode_bip32_xpub(kpub_text.as_bytes(), &mut payload).is_ok()
-    {
-        return Ok(payload);
-    }
-    Err(
-        "Account key must be canonical kpub1 text, an original Base58Check kpub, or an account-level BIP32 xpub"
-            .to_string(),
-    )
+    kaspa_portal::wallet::key::xpub::decode_kpub_or_xpub(kpub_text.as_bytes(), &mut payload)
+        .map(|_| payload)
+        .map_err(|_| {
+            "Account key must be canonical kpub1 text or an account-level BIP32 xpub".to_string()
+        })
 }
 
 fn canonical_kpub_text(payload: &[u8; ACCOUNT_KEY_PAYLOAD_LEN]) -> Result<String, String> {

@@ -3,7 +3,7 @@ use shared_signer::account_key::{
     ACCOUNT_KEY_CHILD_INDEX, ACCOUNT_KEY_DEPTH, ACCOUNT_KEY_PAYLOAD_LEN,
     ACCOUNT_KEY_TEXT_LEN, ACCOUNT_KEY_TEXT_PREFIX, ACCOUNT_KEY_VERSION,
 };
-use shared_signer::legacy_account_key::decode_bip32_xpub;
+use kaspa_portal::wallet::key::bip32_xpub::decode_bip32_xpub;
 
 const EVEN_COMPRESSED_KEY_PREFIX: u8 = 0x02;
 const ODD_COMPRESSED_KEY_PREFIX: u8 = 0x03;

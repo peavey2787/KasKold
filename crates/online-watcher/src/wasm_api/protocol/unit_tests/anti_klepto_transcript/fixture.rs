@@ -388,7 +388,7 @@ pub(super) fn minimal_compact_transaction(
 ) -> Vec<u8> {
     let mut wire = Vec::new();
     wire.extend_from_slice(b"KSPT");
-    wire.push(0x04);
+    wire.push(kaskold_protocol::wire::kspt::KSPT_VERSION);
     wire.push(flags);
     wire.extend_from_slice(&1u16.to_le_bytes());
     wire.extend_from_slice(&input_count.to_le_bytes());

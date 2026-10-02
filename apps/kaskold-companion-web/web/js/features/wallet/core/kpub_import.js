@@ -6,7 +6,7 @@ import { syncWalletUnloadAction } from '../reset.js';
 import { isSupportedKpubText, normalizeKpubText } from './kpub_qr_payload.js';
 import { import_kpub, import_kpub_raw } from '../../../wasm/api.js';
 
-const INVALID_KPUB_MESSAGE = 'Invalid account key — expected canonical kpub1 text, an original Base58Check kpub, or an account-level xpub';
+const INVALID_KPUB_MESSAGE = 'Invalid account key — expected canonical kpub1 text or an account-level xpub';
 const COMPACT_ACCOUNT_KEY_LENGTH = 79;
 const COMPACT_ACCOUNT_KEY_VERSION = 0x01;
 const RAW_ACCOUNT_KEY_LENGTH = 78;

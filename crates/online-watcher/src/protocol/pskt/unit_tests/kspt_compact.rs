@@ -43,15 +43,15 @@ fn compact_parser_rejects_noncanonical_covenant_before_stealth_trailer() {
 }
 
 #[test]
-fn compact_parser_rejects_magic_and_generation_mismatches() {
+fn compact_parser_rejects_magic_and_version_mismatches() {
     let mut bad_magic = compact_blob(&[], &[], &[], 0, &[]);
     bad_magic[..4].copy_from_slice(b"NOPE");
     assert_eq!(parse_error(&bad_magic), "invalid KSPT magic");
 
-    let mut bad_generation = compact_blob(&[], &[], &[], 0, &[]);
-    for retired in [0x01, 0x02, 0x03] {
-        bad_generation[4] = retired;
-        assert_eq!(parse_error(&bad_generation), "unsupported KSPT generation");
+    let mut bad_version = compact_blob(&[], &[], &[], 0, &[]);
+    for unknown in [0x00, 0x02, 0x03, 0x04] {
+        bad_version[4] = unknown;
+        assert_eq!(parse_error(&bad_version), "unsupported KSPT version");
     }
 }
 
@@ -180,7 +180,7 @@ fn xonly_position_rejects_malformed_multisig_shapes_and_missing_checksig() {
 fn compact_v4_parser_rejects_impossible_input_count_before_allocation() {
     let mut blob = Vec::new();
     blob.extend_from_slice(b"KSPT");
-    blob.push(0x04);
+    blob.push(kaskold_protocol::wire::kspt::KSPT_VERSION);
     blob.push(0x00);
     blob.extend_from_slice(&0u16.to_le_bytes());
     blob.extend_from_slice(&u32::MAX.to_le_bytes());
@@ -204,11 +204,11 @@ fn compact_v4_parser_covers_network_and_derivation_trailer_contract() {
         trailers.extend(derivation_trailer(1, 1, 0x7fff_ffff));
         let wire = compact_v4_blob(2, &trailers);
         let parsed =
-            parse_compact_kspt_signatures(&wire).expect("valid v4 network and derivation trailers");
+            parse_compact_kspt_signatures(&wire).expect("valid v1 network and derivation trailers");
         assert!(parsed.is_empty());
 
         let transaction =
-            parse_compact_kspt_transaction(&wire).expect("v4 trailer metadata is retained");
+            parse_compact_kspt_transaction(&wire).expect("v1 trailer metadata is retained");
         assert_eq!(transaction.network, network);
         assert_eq!(transaction.outputs[0].derivation, Some((0, 7)));
         assert_eq!(transaction.outputs[1].derivation, Some((1, 0x7fff_ffff)));
@@ -217,7 +217,7 @@ fn compact_v4_parser_covers_network_and_derivation_trailer_contract() {
     let missing_network = compact_v4_blob(1, &[]);
     assert_eq!(
         parse_error(&missing_network),
-        "KSPT v4 is missing its network trailer",
+        "KSPT v1 is missing its network trailer",
     );
 
     for invalid_network in [0u8, 5u8, u8::MAX] {
@@ -284,7 +284,7 @@ fn compact_blob(
     let input_count = u8::from(!signatures.is_empty() || !redeem_script.is_empty());
     let mut blob = Vec::new();
     blob.extend_from_slice(b"KSPT");
-    blob.push(0x04);
+    blob.push(kaskold_protocol::wire::kspt::KSPT_VERSION);
     blob.push(0x00);
     blob.extend_from_slice(&0u16.to_le_bytes());
     blob.extend_from_slice(&u32::from(input_count).to_le_bytes());
@@ -327,7 +327,7 @@ fn compact_blob(
 fn compact_v4_blob(output_count: u8, trailers: &[u8]) -> Vec<u8> {
     let mut blob = Vec::new();
     blob.extend_from_slice(b"KSPT");
-    blob.push(0x04);
+    blob.push(kaskold_protocol::wire::kspt::KSPT_VERSION);
     blob.push(0x00);
     blob.extend_from_slice(&0u16.to_le_bytes());
     blob.extend_from_slice(&0u32.to_le_bytes());
@@ -477,16 +477,16 @@ fn compact_parser_signature_capacity_is_exact_and_duplicate_positions_fail_close
 }
 
 #[test]
-fn compact_parser_rejects_retired_generation_three() {
-    let mut retired = compact_blob(&[], &[], &[], 0, &[]);
-    retired[4] = 0x03;
-    assert_eq!(parse_error(&retired), "unsupported KSPT generation",);
+fn compact_parser_rejects_next_version() {
+    let mut next = compact_blob(&[], &[], &[], 0, &[]);
+    next[4] = kaskold_protocol::wire::kspt::KSPT_VERSION + 1;
+    assert_eq!(parse_error(&next), "unsupported KSPT version");
 }
 
 fn compact_v4_minimal_inputs(declared_inputs: u8, actual_inputs: usize) -> Vec<u8> {
     let mut blob = Vec::new();
     blob.extend_from_slice(b"KSPT");
-    blob.push(0x04);
+    blob.push(kaskold_protocol::wire::kspt::KSPT_VERSION);
     blob.push(0x00);
     blob.extend_from_slice(&0u16.to_le_bytes());
     blob.extend_from_slice(&u32::from(declared_inputs).to_le_bytes());

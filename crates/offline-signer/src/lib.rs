@@ -19,4 +19,7 @@ pub use privacy::pairing as privacy_pairing;
 pub use privacy::stealth;
 pub mod transaction;
 
+/// Power-on known-answer self-tests for the signing core, run at boot.
+pub use kaspa_portal::self_test;
+
 pub use facade::{OfflineSigner, TransactionEnvelopeError};

@@ -1,14 +1,11 @@
-//! Cryptographic primitives used by the offline signer.
+//! Cryptographic primitives. The signing core comes from Kaspa Portal; the
+//! encrypted-container formats below are KasKold's own.
 
-pub mod adaptor;
-pub mod anti_klepto;
+pub use kaspa_portal::crypto::{adaptor, anti_klepto, ecies, kdf::password as password_kdf, message, schnorr};
+
 pub mod container_framing;
 pub mod credential;
 pub mod device_bound_storage;
-pub mod ecies;
-pub mod message;
-pub mod password_kdf;
-pub mod schnorr;
 
 #[cfg(test)]
 #[path = "unit_tests/external_input_hardening.rs"]

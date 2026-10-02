@@ -31,7 +31,7 @@ The firmware signing path is bare-metal `no_std` Rust. Companion uses the watch-
 - **Seed generation** — BIP39 12/24 words from mandatory health-checked hardware RNG + camera + board IMU + timing/context mixing, with optional additive dice; BIP32, BIP85, passphrases, and Touch Seed are supported. See [Entropy Sources](docs/security/ENTROPY_SOURCES.md).
 - **Optionally stateless** — **Always Start Fresh** keeps key material in RAM and destroys it on power-off; encrypted device-bound persistence is opt-in.
 - **Backups** — mnemonic/SeedQR, authenticated SD backups, and a **steganographic backup tool** that hides encrypted seeds inside ordinary JPEG photos.
-- **Transactions** — Schnorr signing, PSKT/PSKB, session-bound KSPT v4, multisig, stealth, and current Covenants++ workflows.
+- **Transactions** — Schnorr signing, PSKT/PSKB, session-bound KSPT v1, multisig, stealth, and current Covenants++ workflows.
 - **Companions** — KasKold Companion Web plus Android and iOS shells around the same Rust/WASM wallet runtime.
 - **Wallet integration SDK** — official network-free Rust crate/WASM SDK for third-party wallets to pair directly with KasKold; Companion is the reference consumer, not an intermediary.
 - **Assurance** — reproducible builds, pinned toolchains, mutation/fuzz/coverage/CRAP gates, architecture checks, and explicit release evidence requirements.

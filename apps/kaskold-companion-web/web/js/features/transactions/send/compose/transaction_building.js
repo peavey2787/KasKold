@@ -132,7 +132,7 @@ export async function handleCreateTx() {
         hideLoading();
         console.log(`[Companion] PSKB created: ${pskbHex.length} hex chars`);
         // Route through the existing PSKT review screen — same flow as
-        // multisig: Review → Relay (standard PSKB or compact KSPT v4
+        // multisig: Review → Relay (standard PSKB or compact KSPT v1
         // for KasKold) → Finalize & Broadcast.
         const summary = openPsktReview(pskbHex);
         if (plan.kind === 'standard' && summary) {

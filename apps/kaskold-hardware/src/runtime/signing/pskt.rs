@@ -3,9 +3,10 @@
 
 pub(super) fn serialize_transaction(ad: &mut crate::runtime::data::AppData) -> bool {
     let scratch_copy = if ad.signing.transaction.pskt_parsed.unknowns_count > 0 {
-        let length = usize::from(ad.signing.transaction.pskt_parsed.json_len);
+        let Ok(length) = usize::try_from(ad.signing.transaction.pskt_parsed.json_len) else { return false; };
+        let Some(source) = ad.qr.outgoing.buffer.get(..length) else { return false; };
         let Ok(mut copy) = crate::services::memory::zeroed_bytes(length) else { return false; };
-        copy.copy_from_slice(&ad.qr.outgoing.buffer[..length]);
+        copy.copy_from_slice(source);
         Some(copy)
     } else {
         None

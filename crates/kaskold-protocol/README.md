@@ -8,7 +8,7 @@ Companion is a reference consumer. Third-party wallets communicate directly with
 
 ## Boundary
 
-The crate owns descriptor/privacy pairing, typed networks and derived addresses, the **single canonical compact KSPT v4 wire codec**, PSKT/PSKB → KSPT adaptation, raw QR framing and instance-owned reassembly, signed-response validation/merge, derivation-metadata encoding, and optional standard finalization. It does not choose UTXOs, fees, outputs, change policy, providers, or broadcast behavior.
+The crate owns descriptor/privacy pairing, typed networks and derived addresses, the **single canonical compact KSPT v1 wire codec**, PSKT/PSKB → KSPT adaptation, raw QR framing and instance-owned reassembly, signed-response validation/merge, derivation-metadata encoding, and optional standard finalization. It does not choose UTXOs, fees, outputs, change policy, providers, or broadcast behavior.
 
 ## `no_std` wire core
 
@@ -55,7 +55,7 @@ let merged = response.merge_into(&request.original_pskt_hex, request.network)?;
 
 Privacy requests carry explicit receive/change ranges plus a wallet-generated nonce. Responses echo the request and include a stable account fingerprint. Returned entries are typed `DerivedAddress { address, branch, index }` values. The signer stores no per-host address cursor.
 
-Use `attach_input_derivation` / `attach_output_derivation` rather than hand-authoring KasKold proprietary PSKT fields. KSPT v4 treats an input derivation as untrusted and verifies the derived key against the UTXO script before signing.
+Use `attach_input_derivation` / `attach_output_derivation` rather than hand-authoring KasKold proprietary PSKT fields. KSPT v1 treats an input derivation as untrusted and verifies the derived key against the UTXO script before signing.
 
 ## WebAssembly
 

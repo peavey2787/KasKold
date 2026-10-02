@@ -74,7 +74,7 @@ fn classify_address(input: &[u8]) -> Option<QrPayloadKind> {
 }
 
 fn classify_compact_kspt(input: &[u8]) -> Option<QrPayloadKind> {
-    (input.len() >= 5 && input.starts_with(&kspt::MAGIC) && input[4] == kspt::GENERATION_CURRENT)
+    (input.len() >= 5 && input.starts_with(&kspt::MAGIC) && input[4] == kspt::KSPT_VERSION)
         .then_some(QrPayloadKind::CompactKspt)
 }
 

@@ -35,9 +35,9 @@ fuzz_target!(|data: &[u8]| {
         p2pk(&mut tx.outputs[0].script_public_key.script, byte(11));
     tx.locktime = u64::from(byte(12));
     let payload = data.get(13..).unwrap_or_default();
-    let payload_len = payload.len().min(tx.payload.len()).min(64);
-    tx.payload[..payload_len].copy_from_slice(&payload[..payload_len]);
-    tx.payload_len = payload_len;
+    if tx.set_payload(&payload[..payload.len().min(64)]).is_err() {
+        return;
+    }
 
     let mut encoded = [0u8; 8192];
     let written = serialize_compact_kspt(&tx, &mut encoded).expect("bounded transaction encodes");
@@ -52,7 +52,7 @@ fuzz_target!(|data: &[u8]| {
     assert_eq!(parsed.inputs[0].previous_outpoint.index, tx.inputs[0].previous_outpoint.index);
     assert_eq!(parsed.inputs[0].utxo_entry.amount, tx.inputs[0].utxo_entry.amount);
     assert_eq!(parsed.outputs[0].value, tx.outputs[0].value);
-    assert_eq!(&parsed.payload[..parsed.payload_len], &tx.payload[..tx.payload_len]);
+    assert_eq!(parsed.payload, tx.payload);
 
     let mut canonical = [0u8; 8192];
     let canonical_len = serialize_compact_kspt(&parsed, &mut canonical).expect("parsed transaction re-encodes");

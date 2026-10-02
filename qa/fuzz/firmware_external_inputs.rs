@@ -40,7 +40,7 @@ fuzz_target!(|data: &[u8]| {
         8 => { let _ = advanced_policy::parse_utc_yyyymmddhhmm(body); let _ = advanced_policy::parse_weekly_windows(body); }
         9 => {
             let mut out = [0u8; 78];
-            let _ = xpub::decode_kpub_compatible(body, &mut out);
+            let _ = xpub::decode_kpub_or_xpub(body, &mut out);
             let _ = xpub::parse_kpub_parts(body);
         }
         10 => { let _ = password_kdf::parse_metadata(body); }

@@ -27,7 +27,7 @@ fn draw_kpub_export(
         return;
     }
     let mut payload = [0u8; offline_signer::derivation::xpub::XPUB_PAYLOAD_LEN];
-    if offline_signer::derivation::xpub::decode_kpub_compatible(
+    if offline_signer::derivation::xpub::decode_kpub_or_xpub(
         &ad.export.kpub_data[..ad.export.kpub_len],
         &mut payload,
     )

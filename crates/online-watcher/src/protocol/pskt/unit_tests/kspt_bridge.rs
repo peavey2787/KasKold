@@ -2,7 +2,7 @@ use serde_json::{json, Map, Value};
 
 use super::super::{merge_signed_kspt_into_pskb, relay_pskb_as_kspt_hex_for_network};
 
-const RELAY_KSPT_HEX: &str = "4b53505404000000010000000100000000000000000000000000000000000000000000000000000000000000000000000000001111111111111111111111111111111111111111111111111111111111111111010000006400000000000000000000000000000001000022204444444444444444444444444444444444444444444444444444444444444444ac0000005a00000000000000000022205555555555555555555555555555555555555555555555555555555555555555ac4e01";
+const RELAY_KSPT_HEX: &str = "4b53505401000000010000000100000000000000000000000000000000000000000000000000000000000000000000000000001111111111111111111111111111111111111111111111111111111111111111010000006400000000000000000000000000000001000022204444444444444444444444444444444444444444444444444444444444444444ac0000005a00000000000000000022205555555555555555555555555555555555555555555555555555555555555555ac4e01";
 
 pub(super) fn test_secret(seed: u8) -> [u8; 32] {
     let mut secret = [0u8; 32];
@@ -214,7 +214,7 @@ fn relay_v4_encodes_explicit_networks_and_derivation_hints() {
             relay_pskb_as_kspt_hex_for_network(&wire, network).expect("network-aware relay"),
         )
         .expect("relay hex");
-        assert_eq!(bytes[4], 0x04);
+        assert_eq!(bytes[4], kaskold_protocol::wire::kspt::KSPT_VERSION);
         assert!(
             bytes.ends_with(&[b'N', code, b'A', 0, 0, 0xf4, 0x01, 0, 0, b'D', 0, 1, 37, 0, 0, 0,])
         );
@@ -291,7 +291,7 @@ fn signed_kspt_merge_populates_p2pk_signatures_and_rejects_bad_envelopes() {
     assert!(
         merge_signed_kspt_into_pskb(&hex::encode(unsupported), &unsigned_pskb)
             .unwrap_err()
-            .contains("unsupported KSPT generation")
+            .contains("unsupported KSPT version")
     );
 
     let signature_bytes = hex::decode(&signature_hex).expect("signature hex");

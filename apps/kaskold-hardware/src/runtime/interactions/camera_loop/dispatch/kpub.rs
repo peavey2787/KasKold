@@ -19,7 +19,7 @@ fn decode_payload(
         }
         return false;
     }
-    offline_signer::derivation::xpub::decode_kpub_compatible(input, output).is_ok()
+    offline_signer::derivation::xpub::decode_kpub_or_xpub(input, output).is_ok()
 }
 
 pub(super) fn matches(data: &[u8], length: usize) -> bool {

@@ -75,9 +75,9 @@ fn draw_transaction_class(
 }
 
 fn draw_payload_check(display: &mut BootDisplay<'_>, tx: &offline_signer::transaction::model::Transaction) {
-    if tx.payload_len == 0 { return; }
+    if tx.payload.is_empty() { return; }
     use sha2::{Digest, Sha256};
-    let hash = Sha256::digest(&tx.payload[..tx.payload_len]);
+    let hash = Sha256::digest(&tx.payload);
     let hex = b"0123456789abcdef";
     let mut text = heapless::String::<24>::new();
     let _ = core::fmt::Write::write_str(&mut text, "PL ");

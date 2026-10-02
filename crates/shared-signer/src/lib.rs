@@ -3,20 +3,25 @@
 #[cfg(test)]
 extern crate std;
 
-pub mod account_key;
 pub mod advanced_policy;
-pub mod anti_klepto;
-pub mod bytes;
 pub mod covenant_backup;
-pub mod covenant_branch;
-pub mod covenant_sign;
 pub mod creation_flow;
-pub mod legacy_account_key;
 pub mod pairing;
-pub mod pskt;
-pub mod qr_frame;
-pub mod security;
 pub mod seed_entropy;
+
+// The shared wire formats and byte helpers come from Kaspa Portal.
+pub use kaspa_portal::contract::covenant::branch as covenant_branch;
+pub use kaspa_portal::primitives::bytes;
+pub use kaspa_portal::transaction::interchange::pskt::shared as pskt;
+pub use kaspa_portal::transaction::interchange::qr::{frame as qr_frame, security};
+pub use kaspa_portal::transaction::signing::covenant::protocol as covenant_sign;
+pub use kaspa_portal::wallet::key::account as account_key;
+
+/// Anti-klepto signing: host-scalar derivation and the commit/reveal wire.
+pub mod anti_klepto {
+    pub use kaspa_portal::crypto::anti_klepto::{host_scalar_material, SESSION_ID_LEN};
+    pub use kaspa_portal::transaction::signing::anti_klepto::protocol::*;
+}
 
 /// SeedSigner-compatible SeedQR and CompactSeedQR codecs shared by hardware
 /// and software Vault backup workflows.

@@ -2,7 +2,7 @@ use super::*;
 
 fn transaction() -> CompactKsptTransaction {
     CompactKsptTransaction {
-        generation: 4,
+        generation: kaskold_protocol::wire::kspt::KSPT_VERSION,
         flags: 0,
         version: 0,
         locktime: 0,

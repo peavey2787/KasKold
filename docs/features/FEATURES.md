@@ -11,7 +11,7 @@ KasKold 2.0.0 combines an air-gapped ESP32-S3 signer, the Companion watch-only c
 - **BIP32 / BIP85** — Kaspa HD derivation, optional BIP39 passphrase (25th word), and deterministic child mnemonics.
 - **Optionally stateless** — **Always Start Fresh** keeps wallet secrets in RAM only and destroys them on power-off; device-bound encrypted persistence is optional.
 - **Schnorr signing** — Kaspa transactions and arbitrary-message signing using secp256k1.
-- **PSKT/PSKB + compact KSPT v4** — session-bound QR framing, conflict checks, and payload digests for air-gapped exchange.
+- **PSKT/PSKB + compact KSPT v1** — session-bound QR framing, conflict checks, and payload digests for air-gapped exchange.
 - **Multisig** — M-of-N P2SH creation, co-signing, relay, and broadcast workflows, with descriptor save/manage/backup/restore/delete under Wallet → Multisig → Descriptors. Recovery no longer duplicates multisig descriptor restore.
 - **Secure boot / firmware verification** — normal production uses software self-verification and omits provisioning UI/request logic. The opt-in CoreS3 `secure-provisioning` profile adds vendor + optional owner Secure Boot v2 authority, while `secure-owner-only` restores the original model where the owner RSA-3072 key is the sole hardware authority. Both defer irreversible eFuse transitions to explicit Owner/Pop It actions; development firmware only simulates those paths.
 

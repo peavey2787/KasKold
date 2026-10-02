@@ -11,7 +11,7 @@ fn qr_classifier_routes_structured_payloads_before_ambiguous_entropy_lengths() {
     let cases: &[(&[u8], QrPayloadKind)] = &[
         (b"kaspa:qq", QrPayloadKind::KaspaAddress),
         (b"KASPA:QQ", QrPayloadKind::KaspaAddress),
-        (b"KSPT\x04payload", QrPayloadKind::CompactKspt),
+        (b"KSPT\x01payload", QrPayloadKind::CompactKspt),
         (&pairing_request, QrPayloadKind::PairingRequest),
         (b"PSKBpayload", QrPayloadKind::StandardPskt),
         (b"PSKTpayload", QrPayloadKind::StandardPskt),
@@ -63,11 +63,11 @@ fn qr_classifier_clamps_declared_length_and_rejects_malformed_hex_covenants() {
         QrPayloadKind::Unknown
     );
     assert_eq!(
-        classify_qr_payload(b"KSPT\x04", usize::MAX),
+        classify_qr_payload(b"KSPT\x01", usize::MAX),
         QrPayloadKind::CompactKspt
     );
     assert_eq!(
-        classify_qr_payload(b"KSPT\x03", usize::MAX),
+        classify_qr_payload(b"KSPT\x02", usize::MAX),
         QrPayloadKind::Unknown
     );
     assert!(!is_covenant_hex(b"434f5642zz"));

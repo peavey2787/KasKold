@@ -96,11 +96,11 @@ fn v106_hd45_cross_implementation_vector_is_exact() {
     // address came from rusty-kaspa 2.0.1 and, there, from the Go
     // implementation. Parent kpub strings are intentionally unsorted.
     const KPUBS: [&str; 5] = [
-        "kpub2J937qL9n85s7HrhYyYYdMkzq1kaMiAf9PAcJzRW3jV7NgntNfGGrNgut7ZxcVrJqH42BCT2WyjfnxJh3SBDjLhXHe3UC2RJUu5tcjsViuK",
-        "kpub2Jtuqt6WJWZv3fQUnKhuEaCxbAyzLsFn3UEEaM4g7CXa2LZjQZH4o6tpj83tFaewMEyX56qrAF4Q64uqunVyBayuuRNwjru5DWchDEcq5vz",
-        "kpub2JZg9pofE54nqvkhFRRx18pAMhYDPL2CpYqBx2AkzvsEknCh8V4rtez9ZYeab3HCW1Xsm9f4d6J5dfJVg9NADWN7rtqNft21batcii1SjXy",
-        "kpub2HuRXjAmhs3KwQ9WpHVaiHRjBP37TQUiUGFQBTwp7cdbArCo5s2MT6415nd3ZYaELvNbZ4qTJjCGTavExv514tWftaGQzCK8gQz6BQJNySp",
-        "kpub2KCvcuKVgfy1h7PvCw4xFcdLAPoerVZBG4qTo8vRGH2Qe6p5AgLyRek5CEnuCDkduXHqgwtvaVfYYBS7gQBR1J4XowdvqvPXsHZGA5WyRJF",
+        "kpub1:038f332e03405ab68380000000f0453f0894cc8c84ebf6e6208e0c7916e9ddbd14919f9bbb92b0690b4e353392020327c7136972883eab5a7722ec3d4302f888804ecce61658ae962a2c56bb7571",
+        "kpub1:038f332e03a7457270800000002908be01d75735944f29befbdbcd173ab00df2d44c6d5ab51a839413fda90cbf035b986b584de244f5d6a1939192f676a9f2992a63b0f43cdc452dcb40d9dd7081",
+        "kpub1:038f332e037a262d628000000037234957045cdffdb77c3fdcb25649de3326bd8eb6459276a96ba0b14b99cf05034cf53938d64f4a3d4554e18e9ec0d113b251be5b974386807e95a58530e837e1",
+        "kpub1:038f332e03206bbc9880000000d67b1d630674ca46e41e4bc5f6fc953a832efc679d85f80f7c01e494d993684402c0b5ff5ef462947cef268431e0ea913e6b5f51c5d8a572b10ba25ebbbca11440",
+        "kpub1:038f332e03d18681ae80000000524d81044c2fad73c8d8e07cf3ec0d21b1b0bfb9163b78b900f4b9ba60f7658a036c8c95588515593aa406c778888410de0a7df460483529d10ae241adf6e2a19f",
     ];
     const EXPECTED: &str = "kaspa:pqvgkyjeuxmd8k70egrrzpdz5rqj0acmr6y94mwsltxfp6nc50742295c3998";
 
@@ -156,7 +156,7 @@ fn v106_legacy_hd44_vector_remains_exact() {
 
 #[test]
 fn hd45_parser_rejects_duplicates_bad_length_and_invalid_base58() {
-    const KPUB: &str = "kpub2J937qL9n85s7HrhYyYYdMkzq1kaMiAf9PAcJzRW3jV7NgntNfGGrNgut7ZxcVrJqH42BCT2WyjfnxJh3SBDjLhXHe3UC2RJUu5tcjsViuK";
+    const KPUB: &str = "kpub1:038f332e03405ab68380000000f0453f0894cc8c84ebf6e6208e0c7916e9ddbd14919f9bbb92b0690b4e353392020327c7136972883eab5a7722ec3d4302f888804ecce61658ae962a2c56bb7571";
     assert!(
         MultisigDescriptor::parse(&format!("multi_hd45(1,{KPUB},{KPUB})"))
             .unwrap_err()
@@ -164,8 +164,8 @@ fn hd45_parser_rejects_duplicates_bad_length_and_invalid_base58() {
     );
     assert!(MultisigDescriptor::parse("multi_hd45(1,short,also-short)")
         .unwrap_err()
-        .contains("111 characters"));
-    let invalid = "x".repeat(111);
+        .contains("characters of canonical kpub1 text"));
+    let invalid = "x".repeat(shared_signer::account_key::ACCOUNT_KEY_TEXT_LEN);
     assert!(
         MultisigDescriptor::parse(&format!("multi_hd45(1,{KPUB},{invalid})"))
             .unwrap_err()
@@ -176,8 +176,8 @@ fn hd45_parser_rejects_duplicates_bad_length_and_invalid_base58() {
 #[test]
 fn hd45_address_path_resolution_covers_cosigner_and_change_branches() {
     use super::resolve_address_path;
-    const FIRST: &str = "kpub2J937qL9n85s7HrhYyYYdMkzq1kaMiAf9PAcJzRW3jV7NgntNfGGrNgut7ZxcVrJqH42BCT2WyjfnxJh3SBDjLhXHe3UC2RJUu5tcjsViuK";
-    const SECOND: &str = "kpub2Jtuqt6WJWZv3fQUnKhuEaCxbAyzLsFn3UEEaM4g7CXa2LZjQZH4o6tpj83tFaewMEyX56qrAF4Q64uqunVyBayuuRNwjru5DWchDEcq5vz";
+    const FIRST: &str = "kpub1:038f332e03405ab68380000000f0453f0894cc8c84ebf6e6208e0c7916e9ddbd14919f9bbb92b0690b4e353392020327c7136972883eab5a7722ec3d4302f888804ecce61658ae962a2c56bb7571";
+    const SECOND: &str = "kpub1:038f332e03a7457270800000002908be01d75735944f29befbdbcd173ab00df2d44c6d5ab51a839413fda90cbf035b986b584de244f5d6a1939192f676a9f2992a63b0f43cdc452dcb40d9dd7081";
     let descriptor = MultisigDescriptor::parse(&format!("multi_hd45(1,{FIRST},{SECOND})"))
         .expect("45' descriptor");
     let keys = descriptor.public_keys_at(2, 1, 1).expect("change keys");

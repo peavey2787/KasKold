@@ -178,7 +178,7 @@ fn validate_generic_transaction_header(transaction: &Transaction) -> Result<(), 
         || transaction.locktime != 0
         || transaction.subnetwork_id != SUBNETWORK_ID_NATIVE
         || transaction.gas != 0
-        || transaction.payload_len != 0
+        || !transaction.payload.is_empty()
     {
         return Err(HotWalletError::InvalidToolInput);
     }

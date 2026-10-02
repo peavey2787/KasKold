@@ -10,7 +10,7 @@ const { state, response } = await setupDeepHarness();
 try {
   const oracleV1Attestation = await import(moduleUrl('features/oracle/v1/attestation.js'));
   const covenantSignProtocol = await import(moduleUrl('features/covenants/signing/protocol.js'));
-  const oracleV1Statement = 'KasSigner Oracle v1 00112233445566778899aabbccddeeff: Release invoice 42';
+  const oracleV1Statement = 'KaspaPortal Oracle v1 00112233445566778899aabbccddeeff: Release invoice 42';
   const oracleV1Commitment = createHash('sha256').update(Buffer.from(oracleV1Statement, 'utf8')).digest('hex');
   assert.equal(await oracleV1Attestation.oracleV1MessageCommitment(oracleV1Statement), oracleV1Commitment);
   const responseHex = covenantSignProtocol.covenantSignatureResponseHex({

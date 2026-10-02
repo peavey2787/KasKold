@@ -13,7 +13,7 @@ pub(super) fn exercise(ctx: &mut QrContext<'_, '_, '_>) -> bool {
     let swap_hex = hex_envelope(b"50535752", shared_signer::covenant_sign::private_swap::REVEAL_LEN * 2);
     let cases: [(&[u8], QrPayloadKind); 16] = [
         (b"kaspa:test", QrPayloadKind::KaspaAddress),
-        (b"KSPT\x04", QrPayloadKind::CompactKspt),
+        (b"KSPT\x01", QrPayloadKind::CompactKspt),
         (b"PSKT", QrPayloadKind::StandardPskt),
         (b"000000000000000000000000000000000000000000000000", QrPayloadKind::SeedQr),
         (&[0u8; 16], QrPayloadKind::RawSeedEntropy),

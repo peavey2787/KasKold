@@ -2,7 +2,7 @@ use super::io::Writer;
 use super::{
     valid_covenant_execution, valid_derivation, valid_ms45, valid_network, valid_sighash, Covenant,
     CovenantExecution, Derivation, Global, Input, Ms45Derivation, Output, Signature, WireError,
-    ALLOWED_FLAGS, COVENANT_EXECUTION_MARKER, COVENANT_MARKER, GENERATION_CURRENT,
+    ALLOWED_FLAGS, COVENANT_EXECUTION_MARKER, COVENANT_MARKER, KSPT_VERSION,
     INPUT_DERIVATION_MARKER, MAGIC, MAX_SIGNATURE_RECORDS, MS45_INPUT_MARKER, MS45_OUTPUT_MARKER,
     NETWORK_MARKER, OUTPUT_DERIVATION_MARKER, STEALTH_MARKER,
 };
@@ -64,7 +64,7 @@ fn validate_global(global: Global<'_>) -> Result<(), WireError> {
 
 fn write_header(writer: &mut Writer<'_>, flags: u8) -> Result<(), WireError> {
     writer.bytes(&MAGIC)?;
-    writer.u8(GENERATION_CURRENT)?;
+    writer.u8(KSPT_VERSION)?;
     writer.u8(flags)
 }
 

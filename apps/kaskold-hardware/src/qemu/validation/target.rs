@@ -7,25 +7,25 @@
 use super::report::Report;
 
 pub(crate) fn run(report: &mut Report) {
-    let (passed, total) = offline_signer::derivation::bip39::unit_tests::run_bip39_tests();
+    let (passed, total) = offline_signer::self_test::bip39::run_bip39_tests();
     report.counted("BIP39 vectors", passed, total);
 
-    let (passed, total) = offline_signer::derivation::bip32::unit_tests::run_bip32_tests();
+    let (passed, total) = offline_signer::self_test::bip32::run_bip32_tests();
     report.counted("BIP32 vectors", passed, total);
 
-    let (passed, total) = offline_signer::crypto::schnorr::unit_tests::run_schnorr_tests();
+    let (passed, total) = offline_signer::self_test::schnorr::run_schnorr_tests();
     report.counted("BIP340 Schnorr vectors", passed, total);
 
-    let (passed, total) = offline_signer::transaction::sighash::unit_tests::run_sighash_tests();
+    let (passed, total) = offline_signer::self_test::sighash::run_sighash_tests();
     report.counted("transaction sighash vectors", passed, total);
 
-    let (passed, total) = offline_signer::transaction::kspt::unit_tests::run_kspt_tests();
+    let (passed, total) = offline_signer::self_test::kspt::run_kspt_tests();
     report.counted("KSPT vectors", passed, total);
 
-    let (passed, total) = offline_signer::address::unit_tests::run_address_tests();
+    let (passed, total) = offline_signer::self_test::address::run_address_tests();
     report.counted("Kaspa address vectors", passed as u32, total as u32);
 
-    let (passed, total) = offline_signer::derivation::xpub::unit_tests::run_xpub_tests();
+    let (passed, total) = offline_signer::self_test::xpub::run_xpub_tests();
     report.counted("kpub/xpub vectors", passed, total);
 
     report.check(

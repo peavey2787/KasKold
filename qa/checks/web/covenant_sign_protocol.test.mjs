@@ -32,7 +32,7 @@ const sha256 = value => createHash('sha256').update(value).digest('hex');
 // Key IDs are allocated by KasKold, never selected by the host.
 const keyRequest = bytes(covenantKeyRequestHex());
 assert.equal(ascii(keyRequest.subarray(0, 4)), 'CVSG');
-assert.equal(keyRequest[4], 2);
+assert.equal(keyRequest[4], 1);
 assert.equal(keyRequest[5], 0);
 assert.equal(hex(keyRequest.subarray(56, 88)), '00'.repeat(32));
 assert.equal(hex(keyRequest.subarray(88, 120)), '00'.repeat(32));
@@ -42,7 +42,7 @@ const pubkey = '22'.repeat(32);
 const bindingToken = '33'.repeat(32);
 const challenge = await createCovenantSigningChallenge();
 const expectedHostCommitment = sha256(Buffer.concat([
-    Buffer.from('KasSigner/anti-klepto/host-commit/v1', 'utf8'),
+    Buffer.from('KaspaPortal/anti-klepto/host-commit/v1', 'utf8'),
     bytes(challenge.hostSecret),
 ]));
 assert.equal(challenge.hostCommitment, expectedHostCommitment,
@@ -61,7 +61,7 @@ const bind = bytes(covenantBindRequestHex({
     context,
     scheme: CovenantKnownScheme.SHA256_PREIMAGE,
 }));
-assert.equal(bind[4], 2);
+assert.equal(bind[4], 1);
 assert.equal(bind[5], 3);
 assert.equal(hex(bind.subarray(56, 88)), keyId);
 assert.equal(hex(bind.subarray(88, 120)), '00'.repeat(32));
@@ -150,7 +150,7 @@ assert.throws(() => covenantKnownRequestHex({
     context,
 }), /32 bytes/);
 
-console.log('PASS: universal COVENANT SIGN browser protocol v2');
+console.log('PASS: universal COVENANT SIGN browser protocol v1');
 
 // Shape/error hardening: every wire family rejects an independently malformed
 // security field instead of silently coercing it into another request kind.
@@ -183,7 +183,7 @@ assert.throws(() => covenantRevealHex({
 
 function rawResponse(kind, overrides = {}) {
     const out = Buffer.alloc(247);
-    out.write('CVSR', 0, 'ascii'); out[4] = 2; out[5] = kind;
+    out.write('CVSR', 0, 'ascii'); out[4] = 1; out[5] = kind;
     Buffer.from(overrides.sessionId ?? challenge.sessionId, 'hex').copy(out, 6);
     Buffer.from(overrides.keyId ?? keyId, 'hex').copy(out, 22);
     Buffer.from(overrides.pubkey ?? pubkey, 'hex').copy(out, 54);

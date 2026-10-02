@@ -21,7 +21,10 @@ pub struct TransactionSigningState {
 impl TransactionSigningState {
     fn try_new() -> Result<Self, ()> {
         Ok(Self {
-            active: offline_signer::transaction::model::Transaction::try_new().map_err(|_| ())?,
+            active: offline_signer::transaction::model::Transaction::try_new_with(
+                kaskold_protocol::SIGNER_TRANSACTION_LIMITS,
+            )
+            .map_err(|_| ())?,
             signatures_present: 0,
             signatures_required: 0,
             input_format: TxInputFormat::PsktPskb,
@@ -29,7 +32,7 @@ impl TransactionSigningState {
             output_ownership: [OutputOwnership::External; offline_signer::transaction::model::MAX_OUTPUTS],
             initial_signature_counts: {
                 let mut counts = alloc::vec::Vec::new();
-                counts.try_reserve_exact(offline_signer::transaction::model::MAX_INPUTS).map_err(|_| ())?;
+                counts.try_reserve_exact(kaskold_protocol::SIGNER_MAX_INPUTS).map_err(|_| ())?;
                 counts
             },
         })

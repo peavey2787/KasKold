@@ -428,7 +428,7 @@
         {
           "path": "crates/online-watcher/src/contracts/covenant/oracle_v1.rs",
           "contains": [
-            "KasSigner Oracle v1",
+            "KaspaPortal Oracle v1",
             "Sha256::digest(statement.as_bytes())",
             "oracle_covenant_key_id_hex",
             "let mut salt = [0u8; 16]",

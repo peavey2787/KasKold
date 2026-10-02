@@ -93,7 +93,7 @@ fn kpub_import_raw_import_and_extension_preserve_watch_only_state() {
 
     let text = canonical_account_text();
     let wallet = import_kpub(&text, "kaspa").expect("text import");
-    const ORIGINAL_V105_KPUB: &str = "kpub2JigDdskmLLjkiA8PVnrGyEaCvwGrzET2X26crHBHDtGZERboYT4SnGXXRc7vyyNgvfuJF2XaFxqQ9uBVpU9FosVzcDhe5nfHyi2CLLzpPm";
+    const ORIGINAL_V105_KPUB: &str = "kpub1:038f332e038f435e7f800000007e95e6109b69e2e5b5e50203169f298429c77481cfcb17b553a490ddb65b89e703f62a4603cd37d40686e1ffb25466f5330e4fecc5eab55fed43dabc4cc728718b";
     let migrated = import_kpub(ORIGINAL_V105_KPUB, "kaspa").expect("legacy text import");
     assert!(migrated.kpub.starts_with("kpub1:"));
     assert_eq!(migrated.receive_addresses.len(), 20);

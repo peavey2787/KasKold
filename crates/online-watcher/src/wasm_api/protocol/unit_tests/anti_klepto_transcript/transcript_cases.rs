@@ -232,8 +232,7 @@ fn change_gas(transaction: &mut Transaction) {
 }
 
 fn change_payload(transaction: &mut Transaction) {
-    transaction.payload[0] = 0x51;
-    transaction.payload_len = 1;
+    transaction.payload = vec![0x51];
 }
 
 fn change_stealth_tweak(transaction: &mut Transaction) {

@@ -13,7 +13,7 @@ pub struct AntiKleptoSigningState {
     pub session_id: [u8; shared_signer::anti_klepto::SESSION_ID_LEN],
     pub host_commitment: [u8; 32],
     pub transaction_digest: [u8; 32],
-    pub initial_sig_counts: [u8; offline_signer::transaction::model::MAX_INPUTS],
+    pub initial_sig_counts: [u8; kaskold_protocol::SIGNER_MAX_INPUTS],
 }
 
 impl AntiKleptoSigningState {
@@ -23,22 +23,30 @@ impl AntiKleptoSigningState {
             session_id: [0; shared_signer::anti_klepto::SESSION_ID_LEN],
             host_commitment: [0; 32],
             transaction_digest: [0; 32],
-            initial_sig_counts: [0u8; offline_signer::transaction::model::MAX_INPUTS],
+            initial_sig_counts: [0u8; kaskold_protocol::SIGNER_MAX_INPUTS],
         }
     }
 
+    /// Start a session. Refuses (returns `false`) when the transaction has more
+    /// inputs than the device signs, which parsing with the device limits
+    /// already rules out.
+    #[must_use]
     pub fn begin(
         &mut self,
         session_id: [u8; shared_signer::anti_klepto::SESSION_ID_LEN],
         host_commitment: [u8; 32],
         transaction_digest: [u8; 32],
-        initial_sig_counts: [u8; offline_signer::transaction::model::MAX_INPUTS],
-    ) {
+        initial_sig_counts: &[u8],
+    ) -> bool {
+        let Some(slots) = self.initial_sig_counts.get_mut(..initial_sig_counts.len()) else {
+            return false;
+        };
+        slots.copy_from_slice(initial_sig_counts);
         self.phase = AntiKleptoPhase::Reviewing;
         self.session_id = session_id;
         self.host_commitment = host_commitment;
         self.transaction_digest = transaction_digest;
-        self.initial_sig_counts = initial_sig_counts;
+        true
     }
 
     pub fn reset(&mut self) {

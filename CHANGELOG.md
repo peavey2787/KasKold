@@ -1,5 +1,9 @@
 <!-- KasKold: Kaspa signing and wallet platform -->
 
+- Move the signer core onto Kaspa Portal 1.4: `offline-signer` and `shared-signer` now re-export Portal's keys, derivation, mnemonics, transaction model, sighash, KSPT/PSKT codecs, anti-klepto, covenant and Private Swap protocols, QR framing and power-on self-tests instead of carrying copies. Only KasKold's own formats (device-bound storage, containers, pairing, stealth, seed QR, stego) remain local.
+- Compact KSPT and covenant-sign wires are version 1 everywhere; hosts and the hardware share one version byte from Portal. The companion's covenant-sign host commitment and Oracle statements use Portal's domains, and Private Swap adaptor math on the host is Portal's.
+- The hardware parses and signs with `kaskold_protocol::SIGNER_TRANSACTION_LIMITS` (32 inputs, 768 payload bytes), the same caps advertised in `SIGNER_CAPABILITIES`.
+- Account keys are canonical `kpub1:` text or an account-level BIP32 xpub; the retired Base58Check kpub and the 111-character `multi_hd45` descriptor form are no longer accepted or exported.
 - Harden Vault PSKT consensus semantics: `subnetworkId`, `gas`, and `txPayload` are now first-class transaction fields and are serialized canonically from the signed model rather than preserved as opaque extensions.
 - Replace count-only PSKT/KSPT completion and consumer signature-progress status with key-bound BIP340 verification over the exact SIGHASH_ALL transaction digest; invalid, duplicate, extra, or misbound signatures cannot satisfy completion.
 - Companion wallet selection now returns to the dashboard immediately after local kpub activation while balance/UTXO refresh continues in the background, and Advanced → View kpub renders the generated QR code as an image instead of escaped SVG text.

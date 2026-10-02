@@ -31,7 +31,7 @@ pub(crate) struct CompanionSink {
 impl CompanionSink {
     pub(crate) fn finish(self, flags: u8) -> Result<CompactKsptTransaction, String> {
         Ok(CompactKsptTransaction {
-            generation: kspt::GENERATION_CURRENT,
+            generation: kspt::KSPT_VERSION,
             flags,
             version: self
                 .version

@@ -201,12 +201,12 @@ export function handleSignedScan(data, options = {}) {
 
             const sigStatus = inspectKsptSignatureStatus(result);
 
-            // Compact-relay return path: if we sent a KSPT v4 to the
+            // Compact-relay return path: if we sent a KSPT v1 to the
             // device via handlePsktRelayCompact, _psktReviewHex still
             // holds the canonical PSKB. Merge the new partial sigs
-            // from the KSPT v4 back into the PSKB and re-open review.
+            // from the KSPT v1 back into the PSKB and re-open review.
             if ((sigStatus === 'partial' || sigStatus === 'signed') && transactionState._psktReviewHex) {
-                console.log('[Companion] KSPT v4 return with canonical PSKB held — merging');
+                console.log('[Companion] KSPT v1 return with canonical PSKB held — merging');
                 try {
                     const signed = JSON.parse(kaskold_sdk_complete(
                         transactionState._psktReviewHex,
@@ -289,7 +289,7 @@ export async function handleBroadcastHex() {
 
     const sigStatus = inspectKsptSignatureStatus(hex);
     if (sigStatus === 'unsupported') {
-        toast('Unsupported KSPT generation — only KSPT v4 is accepted', 'error', 5000);
+        toast('Unsupported KSPT generation — only KSPT v1 is accepted', 'error', 5000);
         return;
     }
     if (sigStatus === 'unsigned') {

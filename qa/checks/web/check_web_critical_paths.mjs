@@ -81,7 +81,6 @@ const {
     classifyKpubQrCode,
     isBip32XpubText,
     isCanonicalKpubText,
-    isLegacyKpubText,
     isSupportedKpubText,
     normalizeKpubText,
 } = await import(kpubPayloadUrl);
@@ -90,13 +89,9 @@ assert.equal(isCanonicalKpubText(canonicalKpub), true,
     'manual kpub input must accept the canonical text format');
 assert.equal(isCanonicalKpubText(canonicalKpub.toUpperCase()), false,
     'manual kpub input must reject noncanonical uppercase text');
-const legacyKpub = 'kpub2JigDdskmLLjkiA8PVnrGyEaCvwGrzET2X26crHBHDtGZERboYT4SnGXXRc7vyyNgvfuJF2XaFxqQ9uBVpU9FosVzcDhe5nfHyi2CLLzpPm';
-assert.equal(isLegacyKpubText(legacyKpub), true,
-    'manual kpub input must accept original Base58Check exports');
-assert.equal(isSupportedKpubText(legacyKpub), true,
-    'the browser must pass legacy account keys to the Rust compatibility parser');
-assert.equal(isLegacyKpubText(`${legacyKpub}0`), false,
-    'legacy account-key prevalidation must reject non-Base58 characters');
+const base58Kpub = 'kpub2J937qL9n85s7HrhYyYYdMkzq1kaMiAf9PAcJzRW3jV7NgntNfGGrNgut7ZxcVrJqH42BCT2WyjfnxJh3SBDjLhXHe3UC2RJUu5tcjsViuK';
+assert.equal(isSupportedKpubText(base58Kpub), false,
+    'manual kpub input must reject retired Base58Check kpub text');
 const kaspaCliXpub = 'xpub6BtkpE81MZgN8a3jn6A8ZnivpLvZfei6iJm43BeRrqscqPZNJoTzS5LAHvkDPmn2NCiqhs342s78kGiwibgGnpjabYPkCHqLtzd82ATmiF6';
 assert.equal(isBip32XpubText(kaspaCliXpub), true,
     'manual account-key input must accept account-level xpubs from the Kaspa CLI');
@@ -111,9 +106,11 @@ assert.deepEqual(classifyKpubQrCode({ binaryData: compactKpub, data: '' }), {
 assert.deepEqual(classifyKpubQrCode({ binaryData: [], data: canonicalKpub }), {
     kind: 'text', payload: canonicalKpub,
 }, 'QR image import must accept canonical textual kpub QR codes');
-assert.deepEqual(classifyKpubQrCode({ binaryData: [], data: legacyKpub }), {
-    kind: 'text', payload: legacyKpub,
-}, 'QR image import must accept original Base58Check kpub QR codes');
+assert.throws(
+    () => classifyKpubQrCode({ binaryData: [], data: base58Kpub }),
+    /does not contain a valid KasKold kpub/,
+    'QR image import must reject retired Base58Check kpub QR codes',
+);
 assert.deepEqual(classifyKpubQrCode({ binaryData: [], data: kaspaCliXpub }), {
     kind: 'text', payload: kaspaCliXpub,
 }, 'QR image import must accept account-level Kaspa CLI xpub QR codes');

@@ -6,7 +6,7 @@ use crate::{
 pub(super) fn draw_guide(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {
     // Before scanning the transaction, the network is unknown. Do not render a
     // guessed mainnet address; the transaction review verifies and displays
-    // the explicit network/HRP carried by KSPT v4.
+    // the explicit network/HRP carried by KSPT v1.
     boot_display.draw_sign_tx_guide(ad.wallet.seeds.seed_loaded, "");
 }
 

@@ -212,7 +212,7 @@ fn persist_policy_floor(
 
 pub(super) fn rollback_session(ad: &mut AppData) {
     if !ad.signing.transaction.initial_signature_counts.is_empty() {
-        let mut counts = [0u8; offline_signer::transaction::model::MAX_INPUTS];
+        let mut counts = [0u8; kaskold_protocol::SIGNER_MAX_INPUTS];
         let count = ad.signing.transaction.initial_signature_counts.len().min(counts.len());
         counts[..count].copy_from_slice(&ad.signing.transaction.initial_signature_counts[..count]);
         super::rollback_added_signatures(ad, &counts[..count]);
