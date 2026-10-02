@@ -78,8 +78,12 @@ pub(crate) fn verify_bip340(
     message_hash: &[u8; 32],
     signature: &[u8; 64],
 ) -> Result<(), String> {
-    schnorr_verify(public_x, message_hash, &SchnorrSignature { bytes: *signature })
-        .map_err(|_| "invalid completed BIP340 signature".to_string())
+    schnorr_verify(
+        public_x,
+        message_hash,
+        &SchnorrSignature { bytes: *signature },
+    )
+    .map_err(|_| "invalid completed BIP340 signature".to_string())
 }
 
 #[cfg(test)]

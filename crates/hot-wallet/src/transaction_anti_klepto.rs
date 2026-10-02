@@ -7,10 +7,7 @@
 
 use offline_signer::{
     derivation::bip32,
-    transaction::{
-        kspt,
-        model::Transaction,
-    },
+    transaction::{kspt, model::Transaction},
 };
 use zeroize::Zeroize;
 

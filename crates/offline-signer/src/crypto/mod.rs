@@ -1,7 +1,9 @@
 //! Cryptographic primitives. The signing core comes from Kaspa Portal; the
 //! encrypted-container formats below are KasKold's own.
 
-pub use kaspa_portal::crypto::{adaptor, anti_klepto, ecies, kdf::password as password_kdf, message, schnorr};
+pub use kaspa_portal::crypto::{
+    adaptor, anti_klepto, ecies, kdf::password as password_kdf, message, schnorr,
+};
 
 pub mod container_framing;
 pub mod credential;
