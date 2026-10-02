@@ -20,7 +20,7 @@
     {"name":"sd-import-payload-detection","target":"firmware_external_inputs","token":"detect_payload"},
     {"name":"fat32-boot-directory-metadata","target":"firmware_external_inputs","token":"parse_boot_sector"},
     {"name":"advanced-policy-text","target":"firmware_external_inputs","token":"parse_weekly_windows"},
-    {"name":"kpub-compatible-import","target":"firmware_external_inputs","token":"decode_kpub_compatible"},
+    {"name":"kpub-import","target":"firmware_external_inputs","token":"decode_kpub_or_xpub"},
     {"name":"password-kdf-metadata","target":"firmware_external_inputs","token":"parse_metadata"},
     {"name":"device-bound-backup-framing","target":"firmware_external_inputs","token":"parse_backup_header"},
     {"name":"encrypted-transport-framing","target":"firmware_external_inputs","token":"parse_transport_header"},
