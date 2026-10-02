@@ -1,0 +1,65 @@
+name: qa
+
+# `make qa`: the complete non-hardware QA catalog (coverage/CRAP, Core CI,
+# static, security, firmware builds/lints, QEMU emulation, real-node
+# integration, benchmarks, mutation and fuzzing). The funded testnet E2E needs
+# an interactive maintainer terminal and reports itself as skipped here.
+
+on:
+  push:
+    branches: [v2]
+    paths-ignore:
+      - 'apps/kaskold-companion-android/**'
+      - 'apps/kaskold-companion-ios/**'
+      - 'apps/kaskold-vault-android/**'
+      - 'apps/kaskold-vault-ios/**'
+  workflow_dispatch:
+
+concurrency:
+  group: qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  make-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Free runner disk space
+        shell: bash
+        run: |
+          sudo rm -rf /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+      - uses: actions/checkout@v6
+      - name: Export pinned toolchain policy
+        shell: bash
+        run: grep -E '^[A-Za-z_][A-Za-z0-9_]*=' qa/config/toolchains.env >> "$GITHUB_ENV"
+      - name: Install pinned stable Rust
+        shell: bash
+        run: rustup toolchain install "$KASKOLD_STABLE_RUST" --profile minimal --component rustfmt --component clippy --component llvm-tools-preview
+      - name: Install pinned ESP Rust toolchain
+        uses: esp-rs/xtensa-toolchain@v1.7.0
+        with:
+          default: false
+          override: false
+          export: true
+          buildtargets: esp32s3
+          version: ${{ env.KASKOLD_ESP_RUST }}
+          ldproxy: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Install host build libraries
+        shell: bash
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libudev-dev pkg-config
+      - name: make qa
+        shell: bash
+        run: make qa STRICT_LOCKFILES=1
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: make-qa-evidence
+          path: target/qa
+          if-no-files-found: warn

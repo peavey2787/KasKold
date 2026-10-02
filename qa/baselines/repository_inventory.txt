@@ -831,6 +831,7 @@ F	.github/workflows/core.yml
 F	.github/workflows/fuzz.yml
 F	.github/workflows/ios.yml
 F	.github/workflows/kaskold-companion-ci.yml
+F	.github/workflows/qa.yml
 F	.github/workflows/rqrr.yml
 F	.gitignore
 F	CHANGELOG.md
