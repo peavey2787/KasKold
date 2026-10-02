@@ -2,7 +2,7 @@
 name = "kaskold-protocol"
 version = "2.0.0"
 edition = "2021"
-license = "MIT OR Apache-2.0"
+license = "GPL-3.0-only"
 description = "Low-level network-free KasKold pairing, PSKT/KSPT, QR, and response-validation protocol"
 repository = "https://github.com/peavey2787/KasKold"
 keywords = ["kaspa", "hardware-wallet", "wasm", "protocol", "pskt"]

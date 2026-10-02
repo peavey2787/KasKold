@@ -152,8 +152,8 @@ def _check_licensing_boundaries(root: Path) -> list[str]:
         errors.append("canonical public raw QR envelope must live in kaskold-protocol::wire::qr_payload")
     else:
         text = qr_payload.read_text(errors="ignore")
-        if "MIT OR Apache-2.0" not in text or "moved from" not in text:
-            errors.append("QR payload ownership/relicensing provenance must remain explicit")
+        if "GPL-3.0-only" not in text:
+            errors.append("QR payload module must state its GPL-3.0-only license")
 
     credential_meta = root / "crates/offline-signer/src/crypto/credential.rs"
     credential_policy = root / "crates/kaskold-hardware-core/src/security/credential.rs"
@@ -163,13 +163,15 @@ def _check_licensing_boundaries(root: Path) -> list[str]:
         errors.append("PIN/password acceptance and retry policy must live in kaskold-hardware-core")
 
     contributing = (root / "CONTRIBUTING.md").read_text(errors="ignore")
-    for marker in ("shared-signer", "kaskold-protocol", "kaskold-sdk", "MIT OR Apache-2.0", "GPL-3.0-only"):
+    for marker in ("shared-signer", "kaskold-protocol", "kaskold-sdk", "GPL-3.0-only", "UPSTREAM_ATTRIBUTION.md"):
         if marker not in contributing:
-            errors.append(f"contribution licensing policy is missing per-crate marker: {marker}")
+            errors.append(f"contribution licensing policy is missing marker: {marker}")
+    if "MIT OR Apache-2.0" in contributing:
+        errors.append("first-party KasKold code must not be offered under a permissive license")
 
     bip32 = (root / "crates/kaskold-protocol/src/account/bip32.rs").read_text(errors="ignore")
-    if "intentionally dual-licensed" not in bip32 or "project-owned" not in bip32:
-        errors.append("permissive BIP32 provenance must state intentional project-owned relicensing")
+    if "License: GPL-3.0-only" not in bip32 or "KasSigner" not in bip32:
+        errors.append("BIP32 module must keep its KasSigner provenance and GPL-3.0-only license")
     return errors
 
 def _check_wallet_policy_boundary(root: Path) -> list[str]:
@@ -198,11 +200,11 @@ def _check_public_release_contract(root: Path) -> list[str]:
     errors: list[str] = []
     manifests = {name: _manifest(root, name) for name in ("shared-signer", "kaskold-protocol", "kaskold-sdk")}
     for name, manifest in manifests.items():
-        if manifest.get("package", {}).get("license") != "MIT OR Apache-2.0":
-            errors.append(f"{name} must keep the public SDK dependency graph dual MIT/Apache-2.0")
+        if manifest.get("package", {}).get("license") != "GPL-3.0-only":
+            errors.append(f"{name} must be licensed GPL-3.0-only like the KasSigner upstream")
         for license_name in ("LICENSE-MIT", "LICENSE-APACHE"):
-            if not (root / "crates" / name / license_name).is_file():
-                errors.append(f"{name} is missing {license_name}")
+            if (root / "crates" / name / license_name).exists():
+                errors.append(f"{name} must not ship a permissive {license_name}")
     protocol = manifests["kaskold-protocol"]
     host_features = set(protocol.get("features", {}).get("host", []))
     if any("wasm-bindgen" in feature or "js-sys" in feature for feature in host_features):

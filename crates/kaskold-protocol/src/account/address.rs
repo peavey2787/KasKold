@@ -1,6 +1,6 @@
 // KasKold Companion Web — Kaspa address encoding
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
-// License: MIT OR Apache-2.0
+// License: GPL-3.0-only
 //
 // address.rs — Encode/decode Kaspa addresses.
 // Format: "{prefix}:" + bech32-like encoding of [version_byte][payload]

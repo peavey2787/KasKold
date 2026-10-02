@@ -62,7 +62,7 @@ See `docs/integration/WALLET_INTEGRATION.md` for pairing, derivation metadata, p
 
 ## License
 
-`kaskold-sdk`, `kaskold-protocol`, and their low-level `shared-signer` dependency are dual-licensed under **MIT OR Apache-2.0** so GPL, permissive, and proprietary wallets can integrate the hardware SDK without inheriting the application GPL. KasKold/Companion application code, firmware, `kaskold-hardware-core`, `offline-signer`, and `online-watcher` remain GPL-3.0.
+`kaskold-sdk`, `kaskold-protocol`, and `shared-signer` are licensed **GPL-3.0-only**, like all of KasKold, which is a fork of [KasSigner](https://github.com/InKasWeRust/KasSigner) (GPL-3.0). Wallets that integrate the SDK are distributed under the GPL's terms.
 
 ## Signer capabilities
 

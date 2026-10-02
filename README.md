@@ -23,6 +23,8 @@ KasKold keeps spending keys out of Companion entirely. Wallet creation, restorat
 
 The firmware signing path is bare-metal `no_std` Rust. Companion uses the watch-only Rust/WASM `online-watcher` runtime with browser/native shells. Vault is a separate signer application family built around the shared Rust `vault-runtime`; it is not an offline switch or hidden custody mode inside Companion.
 
+**Fork of KasSigner.** KasKold is a modified fork of [KasSigner](https://github.com/InKasWeRust/KasSigner) by the KasSigner Project / InKasWeRust, licensed GPL-3.0. KasKold stays GPL-3.0-only; see [upstream attribution](docs/legal/UPSTREAM_ATTRIBUTION.md).
+
 **Documentation:** [Overview](docs/README.md) · [Features](docs/features/FEATURES.md) · [Building](docs/development/BUILDING.md) · [Companion](docs/companion/COMPANION.md) · [Security](docs/security/SECURITY_OVERVIEW.md) · [Hardware](docs/hardware/HARDWARE.md)
 
 ## Features

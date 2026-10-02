@@ -69,18 +69,11 @@ Unacceptable behavior can be reported to `kaskold@proton.me`.
 
 ## License
 
-KasKold uses path-specific contribution licensing so the public wallet SDK
-remains permissive without relicensing the GPL application/device code:
+All first-party KasKold code, including `crates/shared-signer`,
+`crates/kaskold-protocol`, and `crates/kaskold-sdk`, is licensed
+**GPL-3.0-only**, the license of the KasSigner project KasKold is forked from
+(see [docs/legal/UPSTREAM_ATTRIBUTION.md](docs/legal/UPSTREAM_ATTRIBUTION.md)).
+Third-party code under `external/` keeps its own license.
 
-- Contributions to `crates/shared-signer`, `crates/kaskold-protocol`, and
-  `crates/kaskold-sdk` are accepted under **MIT OR Apache-2.0**, matching
-  those crates' `Cargo.toml` declarations and bundled license files.
-- Contributions to the remaining first-party application/device crates and
-  repository code are accepted under **GPL-3.0-only**, unless a file or
-  directory carries an explicit different license.
-- A change spanning both groups is licensed per destination file/path; moving
-  code across the GPL/permissive boundary requires explicit provenance and
-  relicensing authority rather than an implicit copy.
-
-By contributing, you agree that your contribution may be distributed under the
-license terms applicable to each destination path above.
+By contributing, you agree that your contribution is distributed under
+GPL-3.0-only.

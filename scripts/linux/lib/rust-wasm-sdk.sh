@@ -55,8 +55,7 @@ WASM_INPUT="${TARGET_DIR}/${WASM_TARGET}/release/${WASM_STEM}.wasm"
 [[ -s "${WASM_INPUT}" ]] || { echo "ERROR: missing ${WASM_INPUT}" >&2; exit 2; }
 rm -rf "${PKG_DIR}"
 mkdir -p "${PKG_DIR}"
-cp "${ROOT_DIR}/crates/${PACKAGE}/LICENSE-MIT" "${PKG_DIR}/LICENSE-MIT"
-cp "${ROOT_DIR}/crates/${PACKAGE}/LICENSE-APACHE" "${PKG_DIR}/LICENSE-APACHE"
+cp "${ROOT_DIR}/LICENSE" "${PKG_DIR}/LICENSE"
 host_env "${WASM_BINDGEN_BIN}" --target web --out-dir "${PKG_DIR}" \
     --out-name "${WASM_STEM}" "${WASM_INPUT}"
 for generated in "${WASM_STEM}.js" "${WASM_STEM}_bg.wasm"; do
@@ -69,8 +68,8 @@ cat > "${PKG_DIR}/package.json" <<JSON
   "type": "module",
   "module": "./${WASM_STEM}.js",
   "types": "./${WASM_STEM}.d.ts",
-  "license": "MIT OR Apache-2.0",
-  "files": ["${WASM_STEM}.js", "${WASM_STEM}.d.ts", "${WASM_STEM}_bg.wasm", "${WASM_STEM}_bg.wasm.d.ts", "LICENSE-MIT", "LICENSE-APACHE"]
+  "license": "GPL-3.0-only",
+  "files": ["${WASM_STEM}.js", "${WASM_STEM}.d.ts", "${WASM_STEM}_bg.wasm", "${WASM_STEM}_bg.wasm.d.ts", "LICENSE"]
 }
 JSON
 printf '%s built: %s\n' "${LABEL}" "${PKG_DIR}/${WASM_STEM}_bg.wasm"

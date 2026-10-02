@@ -2,7 +2,7 @@
 name = "kaskold-sdk"
 version = "2.0.0"
 edition = "2021"
-license = "MIT OR Apache-2.0"
+license = "GPL-3.0-only"
 description = "Friendly network-free Rust/WASM SDK for integrating KasKold hardware into wallets"
 repository = "https://github.com/peavey2787/KasKold"
 keywords = ["kaspa", "wallet", "hardware-wallet", "wasm", "sdk"]

@@ -1,10 +1,6 @@
 //! Canonical raw-binary QR payload envelope.
 //!
-//! This public wire module is intentionally licensed with the surrounding
-//! `kaskold-protocol` crate under MIT OR Apache-2.0. It was moved from
-//! `shared-signer` so the public envelope has one explicit
-//! permissive owner instead of carrying a stale GPL-only source header inside
-//! a permissively licensed crate.
+//! Licensed GPL-3.0-only with the rest of KasKold.
 
 /// Raw-binary QR payload header.
 pub const PAYLOAD_V1_RAW: u8 = 0x01;

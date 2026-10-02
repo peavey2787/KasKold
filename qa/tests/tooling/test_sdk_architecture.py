@@ -122,8 +122,6 @@ class KasKoldSdkArchitectureTests(unittest.TestCase):
                 destination.write_text(source.read_text())
             crate = root / 'crates/kaskold-sdk'
             crate.mkdir(parents=True)
-            for license_name in ('LICENSE-MIT', 'LICENSE-APACHE'):
-                (crate / license_name).write_text(license_name)
 
             # The production helper deliberately prepends $HOME/.cargo/bin to PATH.
             # Give this regression an isolated HOME and put the fake rustup there so
@@ -278,10 +276,10 @@ printf dts > "${out_dir}/${out_name}_bg.wasm.d.ts"
         sdk = tomllib.loads((ROOT / 'crates/kaskold-sdk/Cargo.toml').read_text())
         shared = tomllib.loads((ROOT / 'crates/shared-signer/Cargo.toml').read_text())
         for name, manifest in (('shared-signer', shared), ('kaskold-protocol', protocol), ('kaskold-sdk', sdk)):
-            self.assertEqual(manifest['package']['license'], 'MIT OR Apache-2.0', name)
+            self.assertEqual(manifest['package']['license'], 'GPL-3.0-only', name)
             crate_root = ROOT / 'crates' / name
-            self.assertTrue((crate_root / 'LICENSE-MIT').is_file(), name)
-            self.assertTrue((crate_root / 'LICENSE-APACHE').is_file(), name)
+            self.assertFalse((crate_root / 'LICENSE-MIT').exists(), name)
+            self.assertFalse((crate_root / 'LICENSE-APACHE').exists(), name)
         self.assertNotIn('wasm-bindgen', protocol['features']['host'])
         self.assertIn('wasm', protocol['features'])
         self.assertIn('wasm', sdk['features'])

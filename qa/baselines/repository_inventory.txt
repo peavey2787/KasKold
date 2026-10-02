@@ -2356,8 +2356,6 @@ F	crates/kaskold-hardware-core/src/update/manifest/mod.rs
 F	crates/kaskold-hardware-core/src/update/mod.rs
 F	crates/kaskold-hardware-core/src/update/release.rs
 F	crates/kaskold-protocol/Cargo.toml
-F	crates/kaskold-protocol/LICENSE-APACHE
-F	crates/kaskold-protocol/LICENSE-MIT
 F	crates/kaskold-protocol/README.md
 F	crates/kaskold-protocol/build.ps1
 F	crates/kaskold-protocol/build.sh
@@ -2409,8 +2407,6 @@ F	crates/kaskold-protocol/src/wire/pskt_envelope.rs
 F	crates/kaskold-protocol/src/wire/pskt_schema.rs
 F	crates/kaskold-protocol/src/wire/qr_payload.rs
 F	crates/kaskold-sdk/Cargo.toml
-F	crates/kaskold-sdk/LICENSE-APACHE
-F	crates/kaskold-sdk/LICENSE-MIT
 F	crates/kaskold-sdk/README.md
 F	crates/kaskold-sdk/build.ps1
 F	crates/kaskold-sdk/build.sh
@@ -2848,8 +2844,6 @@ F	crates/online-watcher/src/wasm_api/wallet/mod.rs
 F	crates/online-watcher/src/wasm_api/wallet/unit_tests/mod.rs
 F	crates/online-watcher/src/wasm_api/wallet/watcher.rs
 F	crates/shared-signer/Cargo.toml
-F	crates/shared-signer/LICENSE-APACHE
-F	crates/shared-signer/LICENSE-MIT
 F	crates/shared-signer/src/advanced_policy/mod.rs
 F	crates/shared-signer/src/advanced_policy/parsing.rs
 F	crates/shared-signer/src/covenant_backup.rs

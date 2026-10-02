@@ -1,12 +1,10 @@
 // KasKold Companion Web — BIP32 key derivation
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
-// License: MIT OR Apache-2.0
+// License: GPL-3.0-only
 //
 // bip32.rs — Parse kpub, derive receive/change addresses.
 // Pure Rust using k256 crate (no C, no ring).
-// Derived from project-owned KasKold offline-signer and historical Companion implementations.
-// The KasKold Project copyright holder intentionally dual-licensed this public watch-only
-// protocol implementation under MIT OR Apache-2.0; the GPL application copies remain GPL.
+// Derived from the KasSigner offline-signer and Companion implementations (GPL-3.0).
 
 //! BIP-32 hierarchical key derivation and the watch-only wallet descriptor model.
 

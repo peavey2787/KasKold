@@ -57,12 +57,7 @@ foreach ($name in $expected.Keys) {
     if ($text -notmatch "(?m)^name\s*=\s*`"$([regex]::Escape($name))`"" -or $text -notmatch '(?m)^version\s*=\s*"2\.0\.0"') {
         throw "normalized package identity mismatch: $manifest"
     }
-    if ($text -notmatch '(?m)^license\s*=\s*"MIT OR Apache-2\.0"') { throw "public SDK crate is not dual MIT/Apache: $manifest" }
-    foreach ($licenseName in @('LICENSE-MIT', 'LICENSE-APACHE')) {
-        if (-not (Test-Path -LiteralPath (Join-Path (Split-Path -Parent $manifest) $licenseName) -PathType Leaf)) {
-            throw "packaged crate is missing ${licenseName}: $manifest"
-        }
-    }
+    if ($text -notmatch '(?m)^license\s*=\s*"GPL-3\.0-only"') { throw "public SDK crate is not GPL-3.0-only: $manifest" }
     $dependency = $expected[$name]
     if ($dependency) {
         $depName = [regex]::Escape($dependency[0])

@@ -53,13 +53,12 @@ $WasmInput = Join-Path $TargetDir "$WasmTarget/release/$WasmStem.wasm"
 if (-not (Test-Path -LiteralPath $WasmInput -PathType Leaf)) { throw "missing $WasmInput" }
 Remove-KasKoldPath $PkgDir
 New-Item -ItemType Directory -Force -Path $PkgDir | Out-Null
-Copy-Item -LiteralPath (Join-Path $Root "crates/$Package/LICENSE-MIT") -Destination (Join-Path $PkgDir 'LICENSE-MIT')
-Copy-Item -LiteralPath (Join-Path $Root "crates/$Package/LICENSE-APACHE") -Destination (Join-Path $PkgDir 'LICENSE-APACHE')
+Copy-Item -LiteralPath (Join-Path $Root 'LICENSE') -Destination (Join-Path $PkgDir 'LICENSE')
 Invoke-KasKoldCommand -Command $WasmBindgen -Arguments @('--target','web','--out-dir',$PkgDir,'--out-name',$WasmStem,$WasmInput) -WorkingDirectory $Root | Out-Null
 foreach ($name in @("$WasmStem.js","${WasmStem}_bg.wasm")) {
     $path = Join-Path $PkgDir $name
     if (-not (Test-Path -LiteralPath $path -PathType Leaf) -or (Get-Item $path).Length -eq 0) { throw "missing $path" }
 }
-$packageJson = @{ name = $NpmName; version = '2.0.0'; type = 'module'; module = "./$WasmStem.js"; types = "./$WasmStem.d.ts"; license = 'MIT OR Apache-2.0'; files = @("$WasmStem.js", "$WasmStem.d.ts", "${WasmStem}_bg.wasm", "${WasmStem}_bg.wasm.d.ts", 'LICENSE-MIT', 'LICENSE-APACHE') } | ConvertTo-Json -Depth 3
+$packageJson = @{ name = $NpmName; version = '2.0.0'; type = 'module'; module = "./$WasmStem.js"; types = "./$WasmStem.d.ts"; license = 'GPL-3.0-only'; files = @("$WasmStem.js", "$WasmStem.d.ts", "${WasmStem}_bg.wasm", "${WasmStem}_bg.wasm.d.ts", 'LICENSE') } | ConvertTo-Json -Depth 3
 Set-Content -LiteralPath (Join-Path $PkgDir 'package.json') -Value $packageJson -Encoding UTF8
 Write-Host "$Label built: $(Join-Path $PkgDir "${WasmStem}_bg.wasm")"

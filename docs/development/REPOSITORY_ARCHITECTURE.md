@@ -14,15 +14,15 @@ Arrows below mean **consumer → dependency**. Dependencies must point toward sm
 apps/kaskold-hardware (GPL, ESP32-S3 application)
   ├──> offline-signer (GPL, private-key/signing domain)
   ├──> kaskold-hardware-core (GPL, host-testable device policy)
-  ├──> kaskold-protocol (MIT/Apache, no_std protocol core)
-  └──> shared-signer (MIT/Apache, smallest shared primitives)
+  ├──> kaskold-protocol (GPL-3.0, no_std protocol core)
+  └──> shared-signer (GPL-3.0, smallest shared primitives)
 
 kaskold-hardware-core ──> kaskold-protocol ──> shared-signer
 offline-signer       ──> kaskold-protocol ──> shared-signer
 
 apps/kaskold-companion-web (GPL, strictly watch-only browser/WASM application)
   ├──> online-watcher (GPL, watch-only wallet/domain/network logic)
-  └──> kaskold-sdk (MIT/Apache, third-party wallet facade)
+  └──> kaskold-sdk (GPL-3.0, third-party wallet facade)
              └──> kaskold-protocol ──> shared-signer
 
 online-watcher ──> kaskold-protocol

@@ -11,12 +11,27 @@ proof of concept. It is preserved in Git history on the `legacy/kaskold-poc`
 branch and `kaskold-poc-2025` tag, but its JavaScript wallet/security
 implementation is not used as the security foundation of current KasKold.
 
+## Upstream project
+
+- Project: KasSigner — offline signer, seed manager and stego backup for Kaspa
+- Source: <https://github.com/InKasWeRust/KasSigner>
+- Copyright: KasSigner Project (kassigner@proton.me), maintained by InKasWeRust
+- License: GNU General Public License v3.0 (GPL-3.0-only)
+
+KasKold is a modified version of KasSigner. As GPL-3.0 section 5 requires, the
+modifications are released under the same license, every source file keeps
+its original copyright notice, and the changes are recorded in this
+repository's Git history and `CHANGELOG.md`. The signing core that KasKold now
+imports from Kaspa Portal was contributed from this codebase and is likewise
+GPL-3.0.
+
 ## Licensing
 
-The repository-level GPL-3.0 license and all original source-file copyright
-notices remain intact. Components that were already distributed under
-MIT/Apache-2.0 retain those licenses. Third-party and `external/` notices and
-licenses remain authoritative for those components.
+All first-party KasKold code is **GPL-3.0-only** (see the root `LICENSE`).
+This includes `shared-signer`, `kaskold-protocol`, and `kaskold-sdk`, which an
+earlier revision labelled MIT/Apache-2.0; because they contain KasSigner-derived
+GPL code, GPL-3.0-only is the license that applies. Third-party code under
+`external/` keeps its own notices and licenses.
 
 ## Compatibility identifiers
 

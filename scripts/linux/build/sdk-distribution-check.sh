@@ -75,11 +75,8 @@ for name, dependency in expected.items():
     package = manifest["package"]
     if package["name"] != name or package["version"] != "2.0.0":
         raise SystemExit(f"ERROR: normalized package identity mismatch: {manifest_path}")
-    if package.get("license") != "MIT OR Apache-2.0":
-        raise SystemExit(f"ERROR: public SDK crate is not dual MIT/Apache: {manifest_path}")
-    for license_name in ("LICENSE-MIT", "LICENSE-APACHE"):
-        if not (manifest_path.parent / license_name).is_file():
-            raise SystemExit(f"ERROR: packaged crate is missing {license_name}: {manifest_path}")
+    if package.get("license") != "GPL-3.0-only":
+        raise SystemExit(f"ERROR: public SDK crate is not GPL-3.0-only: {manifest_path}")
     for section in ("dependencies", "dev-dependencies", "build-dependencies"):
         for dep_name, spec in manifest.get(section, {}).items():
             if isinstance(spec, dict) and "path" in spec:
