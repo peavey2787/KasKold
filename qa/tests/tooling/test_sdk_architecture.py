@@ -122,6 +122,7 @@ class KasKoldSdkArchitectureTests(unittest.TestCase):
                 destination.write_text(source.read_text())
             crate = root / 'crates/kaskold-sdk'
             crate.mkdir(parents=True)
+            (root / 'LICENSE').write_text('GNU General Public License v3.0')
 
             # The production helper deliberately prepends $HOME/.cargo/bin to PATH.
             # Give this regression an isolated HOME and put the fake rustup there so

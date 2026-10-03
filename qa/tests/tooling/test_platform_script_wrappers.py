@@ -1388,6 +1388,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
         (fixture / "Android/Sdk/platform-tools").mkdir(parents=True)
         (fixture / "Android/Sdk/cmdline-tools/latest/bin").mkdir(parents=True)
         command = (
+            'unset ANDROID_SDK_ROOT ANDROID_HOME JAVA_HOME; '
             f'export HOME="{fixture}"; export PATH="/usr/bin:/bin"; '
             f'ROOT_DIR="{ROOT}"; source "{ROOT / "qa/linux/runner/environment.sh"}"; '
             'initialize_test_environment; '

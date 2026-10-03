@@ -124,7 +124,7 @@ class RepositoryOrganizationTests(unittest.TestCase):
         linux = {
             path.relative_to(QA / "linux").with_suffix("").as_posix()
             for path in (QA / "linux").rglob("*.sh")
-            if "runner" not in path.parts and "lib" not in path.parts
+            if not {"runner", "lib"} & set(path.relative_to(QA / "linux").parts)
         }
         windows = {
             path.relative_to(QA / "windows").with_suffix("").as_posix()
