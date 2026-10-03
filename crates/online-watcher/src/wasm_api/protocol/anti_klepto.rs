@@ -82,7 +82,6 @@ pub(super) fn anti_klepto_begin_with_secret_string(
 fn anti_klepto_begin_string(kspt_hex: &str) -> Result<String, String> {
     let mut host_secret = [0u8; 32];
     let result = crate::infrastructure::fill_secure_random(&mut host_secret)
-        .map_err(|_| "browser cryptographic randomness unavailable".to_string())
         .and_then(|_| anti_klepto_begin_with_secret_string(kspt_hex, &host_secret));
     shared_signer::bytes::zeroize_bytes(&mut host_secret);
     result

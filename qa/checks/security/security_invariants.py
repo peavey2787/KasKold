@@ -6,10 +6,14 @@ from __future__ import annotations
 import argparse
 import glob
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "qa/checks"))
+from portal_source import display_path, kaskold_source  # noqa: E402
+
 CONTRACT = ROOT / "qa/contracts/security/invariants.json"
 DEFAULT_OUTPUT = ROOT / "target/qa/security/invariants.json"
 
@@ -24,10 +28,10 @@ def load_json(path: Path) -> dict[str, Any]:
 def paths_for(spec: dict[str, Any]) -> list[Path]:
     paths: list[Path] = []
     if isinstance(spec.get("path"), str):
-        paths.append(ROOT / spec["path"])
+        paths.append(kaskold_source(spec["path"]))
     for value in spec.get("paths", []):
         if isinstance(value, str):
-            paths.append(ROOT / value)
+            paths.append(kaskold_source(value))
     for pattern in spec.get("globs", []):
         if isinstance(pattern, str):
             paths.extend(Path(value) for value in glob.glob(str(ROOT / pattern), recursive=True))
@@ -44,19 +48,19 @@ def check_invariant(invariant: dict[str, Any]) -> dict[str, Any]:
             continue
         for path in requirement_paths:
             if not path.is_file():
-                errors.append(f"missing evidence file: {path.relative_to(ROOT)}")
+                errors.append(f"missing evidence file: {display_path(path)}")
                 continue
             text = path.read_text(errors="replace")
             missing = [term for term in requirement.get("contains", []) if term not in text]
             evidence.append(
                 {
-                    "path": str(path.relative_to(ROOT)),
+                    "path": str(display_path(path)),
                     "required_terms": requirement.get("contains", []),
                     "missing_terms": missing,
                 }
             )
             for term in missing:
-                errors.append(f"{path.relative_to(ROOT)} missing required term {term!r}")
+                errors.append(f"{display_path(path)} missing required term {term!r}")
 
     for prohibition in invariant.get("forbidden", []):
         for path in paths_for(prohibition):
@@ -66,13 +70,13 @@ def check_invariant(invariant: dict[str, Any]) -> dict[str, Any]:
             present = [term for term in prohibition.get("terms", []) if term in text]
             evidence.append(
                 {
-                    "path": str(path.relative_to(ROOT)),
+                    "path": str(display_path(path)),
                     "forbidden_terms": prohibition.get("terms", []),
                     "present_terms": present,
                 }
             )
             for term in present:
-                errors.append(f"{path.relative_to(ROOT)} contains forbidden term {term!r}")
+                errors.append(f"{display_path(path)} contains forbidden term {term!r}")
 
     return {
         "id": invariant.get("id"),

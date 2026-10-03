@@ -130,14 +130,6 @@ fn explicit_change_and_thread_policy_helpers_have_direct_function_coverage() {
     assert_eq!(sequence, 0);
 }
 
-#[test]
-fn oracle_publish_parser_entrypoint_has_direct_fail_closed_coverage() {
-    let error = crate::transaction_builder::oracle_publish::parse_request_json("not-json")
-        .err()
-        .expect("malformed oracle publish request must fail closed");
-    assert!(error.contains("oracle publish request"));
-}
-
 fn selected_utxos_json(entries: &[(u8, u32, u64)]) -> String {
     serde_json::to_string(
         &entries
@@ -334,22 +326,4 @@ fn measured_domain_uncovered_entries_have_direct_native_coverage() {
     }
     .uses_tagged_genesis_policy());
     assert!(!CovenantEncoding::BoundGenesis.uses_tagged_genesis_policy());
-
-    let encoded = crate::transaction_builder::covenant::shipping::plan::encode_pskb(
-        serde_json::json!({
-            "version": 0,
-            "txVersion": 0,
-            "fallbackLockTime": null,
-            "inputsModifiable": false,
-            "outputsModifiable": false,
-            "inputCount": 0,
-            "outputCount": 0,
-            "xpubs": {},
-            "proprietaries": {}
-        }),
-        Vec::new(),
-        serde_json::json!([]),
-    )
-    .expect("shipping PSKB encoding");
-    assert!(!encoded.is_empty());
 }

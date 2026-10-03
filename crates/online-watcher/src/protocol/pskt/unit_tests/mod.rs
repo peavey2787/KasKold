@@ -4,10 +4,9 @@
 
 use serde_json::Value;
 
-use super::wire::{decode_root, inject_tx_payload};
+use super::wire::decode_root;
 use super::*;
 
-mod consensus;
 mod consensus_finalizer;
 mod exact_json;
 mod kspt_bridge;
@@ -20,38 +19,6 @@ fn detects_supported_wire_magics() {
     assert_eq!(detect_format_hex("50534b42"), PsktFormat::Pskb);
     assert_eq!(detect_format_hex("50534b54"), PsktFormat::PsktSingle);
     assert_eq!(detect_format_hex("4b535054"), PsktFormat::Unknown);
-}
-
-#[test]
-fn payload_mutation_preserves_pskb_envelope() {
-    let wire = pskb_wire(serde_json::json!([{
-        "global": {},
-        "inputs": [],
-        "outputs": []
-    }]));
-
-    let result = inject_tx_payload(&wire, &[1, 2, 3]).unwrap();
-    assert_eq!(detect_format_hex(&result), PsktFormat::Pskb);
-
-    let (_, root) = decode_root(&result).unwrap();
-    assert_eq!(
-        root[0]["global"]["txPayload"],
-        Value::String("010203".into())
-    );
-}
-
-#[test]
-fn payload_mutation_changes_only_first_pskb_entry() {
-    let wire = pskb_wire(serde_json::json!([
-        {"global": {}, "inputs": [], "outputs": []},
-        {"global": {"sentinel": true}, "inputs": [], "outputs": []}
-    ]));
-
-    let error = inject_tx_payload(&wire, &[0xaa]).unwrap_err();
-    assert!(
-        error.contains("exactly 1 PSKT"),
-        "unexpected error: {error}"
-    );
 }
 
 #[test]
@@ -75,9 +42,6 @@ fn transaction_lane_mutation_sets_all_lane_fields() {
 
 #[test]
 fn transaction_lane_and_payload_mutation_reject_invalid_envelopes_and_subnetworks() {
-    assert!(inject_tx_payload("4b535054", &[1])
-        .unwrap_err()
-        .contains("not a PSKB"));
     assert!(set_tx_lane("4b535054", &"11".repeat(20), 0, 0, &[])
         .unwrap_err()
         .contains("not a PSKB"));
@@ -98,9 +62,6 @@ fn transaction_lane_and_payload_mutation_reject_invalid_envelopes_and_subnetwork
         "inputs": [],
         "outputs": []
     }]));
-    assert!(inject_tx_payload(&missing_global, &[1])
-        .unwrap_err()
-        .contains("missing PSKT.global"));
     assert!(set_tx_lane(&missing_global, &"11".repeat(20), 0, 0, &[])
         .unwrap_err()
         .contains("missing PSKT.global"));
@@ -169,3 +130,16 @@ pub(super) fn canonical_test_pskt(mut value: Value) -> Value {
 }
 
 mod wire;
+
+#[test]
+fn transaction_lane_rejects_uppercase_subnetworks_and_oversized_payloads() {
+    let wire = pskb_wire(serde_json::json!([{"global": {}, "inputs": [], "outputs": []}]));
+    assert!(set_tx_lane(&wire, &"AA".repeat(20), 0, 0, &[])
+        .unwrap_err()
+        .contains("lowercase hexadecimal"));
+    let oversized =
+        vec![0u8; usize::from(kaskold_protocol::SIGNER_CAPABILITIES.max_payload_bytes) + 1];
+    assert!(set_tx_lane(&wire, &"00".repeat(20), 0, 0, &oversized)
+        .unwrap_err()
+        .contains("exceeds signer capability"));
+}

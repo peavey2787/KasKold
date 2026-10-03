@@ -47,6 +47,19 @@ class KasKoldBrandingTests(unittest.TestCase):
             self._track(root)
             self.assertEqual(check_kaskold_brand.check(root), [])
 
+    def test_audit_allows_upstream_attribution_only_with_the_legal_record_link(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            self._init_repo(root)
+            (root / "README.md").write_text(
+                "A fork of [KasSigner](https://github.com/InKasWeRust/KasSigner); see "
+                "[attribution](docs/legal/UPSTREAM_ATTRIBUTION.md).\n"
+                "KasSigner settings\n"
+            )
+            self._track(root)
+            errors = check_kaskold_brand.check(root)
+            self.assertEqual(errors, ["README.md:2: unexpected KasSigner/kassigner branding"])
+
     def test_audit_allows_only_the_owned_compatibility_documentation_copy(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

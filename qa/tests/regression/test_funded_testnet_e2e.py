@@ -1,3 +1,9 @@
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
+
 from pathlib import Path
 import importlib.util
 import os
@@ -142,8 +148,8 @@ class FundedTestnetE2EContractTests(unittest.TestCase):
                 runner.query_funding_status(1234, "testnet-10", "kpub1:test", "kaspatest:qexample")
 
     def test_browser_websocket_reports_close_and_timeout_stage(self):
-        transport = (ROOT / "crates/online-watcher/src/infrastructure/browser_websocket.rs").read_text()
-        errors = (ROOT / "crates/online-watcher/src/network/error.rs").read_text()
+        transport = kaskold_source("crates/online-watcher/src/infrastructure/browser_websocket.rs").read_text()
+        errors = kaskold_source("crates/online-watcher/src/network/error.rs").read_text()
         cargo = (ROOT / "crates/online-watcher/Cargo.toml").read_text()
 
         self.assertIn('"CloseEvent"', cargo)
@@ -177,7 +183,7 @@ class FundedTestnetE2EContractTests(unittest.TestCase):
         self.assertLess(main.index("ensure_tools_lock_current()"), main.index("ensure_wallet(network)"))
 
     def test_browser_close_reason_keeps_browser_only_adapter_complexity_bounded(self):
-        transport = (ROOT / "crates/online-watcher/src/infrastructure/browser_websocket.rs").read_text()
+        transport = kaskold_source("crates/online-watcher/src/infrastructure/browser_websocket.rs").read_text()
         helper = transport[transport.index("fn close_reason") : transport.index("fn complete")]
         self.assertNotIn("if ", helper)
         self.assertNotIn("match ", helper)

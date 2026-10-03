@@ -1,7 +1,5 @@
 mod anti_klepto;
 mod covenant_sign;
-#[cfg(test)]
-pub(crate) mod pskb_planning;
 mod pskt;
 mod qr;
 

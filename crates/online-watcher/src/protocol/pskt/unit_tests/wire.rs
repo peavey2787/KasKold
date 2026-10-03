@@ -83,27 +83,16 @@ fn exact_four_byte_magic_is_not_misclassified_as_a_short_outer_envelope() {
 
 #[test]
 fn pskt_shape_and_output_optional_boundaries_are_exercised_through_strict_decode() {
-    use crate::protocol::pskt::{
-        wire::{pskt_from_root, pskt_from_root_for_review},
-        PsktFormat,
-    };
+    use crate::protocol::pskt::{wire::pskt_from_root_for_review, PsktFormat};
 
-    assert!(pskt_from_root(&json!({}), PsktFormat::Pskb)
-        .unwrap_err()
-        .contains("PSKB not array"));
     assert!(pskt_from_root_for_review(&json!({}), PsktFormat::Pskb)
         .unwrap_err()
         .contains("PSKB body is not an array"));
-    assert!(pskt_from_root(&json!([]), PsktFormat::Pskb)
-        .unwrap_err()
-        .contains("must have 1 entry"));
     assert!(
         pskt_from_root_for_review(&json!([{}, {}]), PsktFormat::Pskb)
             .unwrap_err()
             .contains("exactly 1 PSKT")
     );
-    assert!(pskt_from_root(&json!({}), PsktFormat::Unknown).is_err());
-    assert!(pskt_from_root(&json!({}), PsktFormat::PsktSingle).is_ok());
 
     let base = || {
         json!([{
@@ -181,7 +170,10 @@ fn strict_decode_covers_global_input_output_and_nested_schema_rejection_matrix()
             "covenantBinding": null
         }]
     }]));
-    decode_root(&raw_pskb(&base)).expect("canonical strict-decode fixture");
+    assert!(
+        decode_root(&raw_pskb(&base)).is_ok(),
+        "canonical strict-decode fixture"
+    );
 
     for key in ["global", "inputs", "outputs"] {
         assert_strict_rejects(base.clone(), |root| {

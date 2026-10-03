@@ -1,7 +1,5 @@
 //! Covenant-family WASM adapters grouped behind the covenant façade.
 
-#[cfg(test)]
-use super::sweep;
 use super::{logging, JsValue};
 
 mod additive;

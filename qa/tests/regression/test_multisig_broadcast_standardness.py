@@ -1,19 +1,25 @@
 #!/usr/bin/env python3
 """Contracts for funded multisig finalize/broadcast standardness and UI containment."""
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source, portal_path  # noqa: E402
+
 from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
-CONSENSUS = ROOT / "crates/online-watcher/src/protocol/transaction/consensus.rs"
-SUBMIT_ENCODER = ROOT / "crates/online-watcher/src/network/submission/encoder.rs"
-SUBMIT_DECODER = ROOT / "crates/online-watcher/src/network/codec/responses/submission.rs"
+CONSENSUS = kaskold_source("crates/online-watcher/src/protocol/transaction/consensus.rs")
+SUBMIT_ENCODER = kaskold_source("crates/online-watcher/src/network/submission/encoder.rs")
+SUBMIT_DECODER = kaskold_source("crates/online-watcher/src/network/codec/responses/submission.rs")
 FINALIZER = ROOT / "crates/online-watcher/src/protocol/pskt/consensus/finalizer.rs"
 VERIFIED_MATERIALIZER = ROOT / "crates/online-watcher/src/protocol/transaction/verified.rs"
 AMOUNTS = ROOT / "crates/online-watcher/src/transaction_builder/planning/amounts.rs"
 MULTISIG = ROOT / "crates/online-watcher/src/transaction_builder/multisig.rs"
 MULTISIG_TESTS = ROOT / "crates/online-watcher/src/transaction_builder/multisig/unit_tests/mod.rs"
-SUBMISSION_TESTS = ROOT / "crates/online-watcher/src/network/unit_tests/submission.rs"
-FINALIZER_TESTS = ROOT / "crates/online-watcher/src/protocol/pskt/unit_tests/consensus_finalizer.rs"
+SUBMISSION_TESTS = kaskold_source("crates/online-watcher/src/network/unit_tests/submission.rs")
+FINALIZER_TESTS = portal_path("transaction/interchange/pskt/unit-tests/consensus_finalizer.rs")
 CSS = ROOT / "apps/kaskold-companion-web/web/css/app/components/qr_and_address.css"
 SELECTION_MOD = ROOT / "crates/online-watcher/src/transaction_builder/selection/mod.rs"
 SELECTION_AUTO = ROOT / "crates/online-watcher/src/transaction_builder/selection/automatic.rs"

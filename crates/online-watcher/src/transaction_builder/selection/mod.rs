@@ -38,7 +38,7 @@ pub fn checked_total(utxos: &[UtxoEntry]) -> Result<CheckedTotal, String> {
         .try_fold(0u64, |total, utxo| {
             total
                 .checked_add(utxo.amount)
-                .ok_or_else(|| "UTXO total exceeds supported monetary range".to_string())
+                .ok_or("UTXO total exceeds supported monetary range".to_string())
         })
         .map(CheckedTotal)
 }

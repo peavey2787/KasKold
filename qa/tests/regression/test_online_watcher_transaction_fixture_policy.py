@@ -16,13 +16,6 @@ class OnlineWatcherTransactionFixturePolicyTests(unittest.TestCase):
         self.assertNotIn("utxo(0xb2, 1, 30_000_000)", test)
 
     def test_contract_success_fixtures_use_economic_sompi_amounts(self) -> None:
-        shipping = (
-            WATCHER
-            / "wasm_api/contracts/covenant/families/escrow/shipping/unit_tests/mod.rs"
-        ).read_text()
-        self.assertIn("utxo(1, 200_000_000)", shipping)
-        self.assertIn("build_deposit(&plan, 50_000_000, 10_000_000)", shipping)
-
         allowance = (
             WATCHER / "wasm_api/contracts/covenant/families/unit_tests/mod.rs"
         ).read_text()

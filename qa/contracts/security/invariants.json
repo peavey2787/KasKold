@@ -40,7 +40,7 @@
           "contains": [
             "authorize_frame_session",
             "MixedSession",
-            "TotalChanged"
+            "FrameCountChanged"
           ]
         },
         {
@@ -606,7 +606,7 @@
         {
           "path": "crates/offline-signer/src/crypto/message.rs",
           "contains": [
-            "KasSigner Signed Message v1",
+            "KaspaPortal Signed Message v1",
             "message_digest(message)",
             "sign_message_with_entropy"
           ]
@@ -667,7 +667,7 @@
         {
           "path": "crates/online-watcher/src/contracts/covenant/script/private_swap.rs",
           "contains": [
-            "Private Swap v2 covenant: adaptor-signature claim + timed owner refund.",
+            "Private Swap v1 covenant: adaptor-signature claim + timed owner refund.",
             "ordinary OP_CHECKSIG over the Kaspa transaction",
             "no preimage or",
             "PRIVATE_SWAP_MAX_FEE_SOMPI"

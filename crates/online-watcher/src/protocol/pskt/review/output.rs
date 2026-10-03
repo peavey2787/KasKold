@@ -38,18 +38,15 @@ pub(crate) fn parse_output_summary(
     out: &Value,
     network_prefix: &str,
 ) -> Result<OutputSummary, String> {
-    let obj = out
-        .as_object()
-        .ok_or_else(|| "output not object".to_string())?;
+    let obj = out.as_object().ok_or("output not object".to_string())?;
     let amount_sompi = parse_exact_u64(
-        obj.get("amount")
-            .ok_or_else(|| "missing amount".to_string())?,
+        obj.get("amount").ok_or("missing amount".to_string())?,
         "amount",
     )?;
     let spk_full = obj
         .get("scriptPublicKey")
         .and_then(|v| v.as_str())
-        .ok_or_else(|| "missing scriptPublicKey".to_string())?;
+        .ok_or("missing scriptPublicKey".to_string())?;
     let (_spk_version, spk_script) = parse_spk_hex(spk_full)?;
     let (kind, address) = classify_output_script(&spk_script, network_prefix);
     let (derivation_branch, derivation_index) = parse_derivation_hint(obj);

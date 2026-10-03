@@ -96,31 +96,19 @@
       "message\\("
     ],
     "include_globs": [
-      "crates/shared-signer/src/account_key.rs",
-      "crates/shared-signer/src/anti_klepto.rs",
-      "crates/shared-signer/src/bytes.rs",
       "crates/kaskold-hardware-core/src/entropy/**/*.rs",
       "crates/kaskold-hardware-core/src/security.rs",
       "crates/kaskold-hardware-core/src/security/**/*.rs",
-      "crates/shared-signer/src/legacy_account_key.rs",
       "crates/kaskold-hardware-core/src/security/credential.rs",
-      "crates/shared-signer/src/security.rs",
       "crates/kaskold-protocol/src/wire/multisig_descriptor.rs",
       "crates/offline-signer/src/crypto/**/*.rs",
-      "crates/offline-signer/src/derivation/**/*.rs",
-      "crates/offline-signer/src/transaction/sighash/**/*.rs",
-      "crates/offline-signer/src/transaction/kspt/signing/**/*.rs",
       "crates/online-watcher/src/protocol/pskt/anti_klepto.rs",
       "crates/online-watcher/src/protocol/transaction/sighash.rs",
-      "crates/online-watcher/src/privacy/stealth/derivation.rs",
-      "crates/shared-signer/src/covenant_branch.rs",
       "crates/kaskold-protocol/src/account/address.rs",
       "crates/kaskold-protocol/src/pskt/**/*.rs",
       "crates/kaskold-protocol/src/wire/kspt/**/*.rs",
       "crates/vault-runtime/src/**/*.rs",
       "crates/hot-wallet/src/**/*.rs",
-      "crates/offline-signer/src/transaction/signature_verification.rs",
-      "crates/offline-signer/src/transaction/kspt/signing/covenant.rs",
       "crates/online-watcher/src/protocol/pskt/consensus/finalizer.rs",
       "crates/online-watcher/src/protocol/transaction/signed_kspt.rs",
       "crates/online-watcher/src/protocol/pskt/kspt_bridge/parser_compact.rs",
@@ -133,7 +121,8 @@
     ],
     "equivalent_mutants": [],
     "scope_limitations": [
-      "The cargo-mutants claim covers the enumerated host-testable source domain only; ESP32-S3 hardware-bound cryptographic adapters and eFuse/HMAC peripheral orchestration are validated by firmware, QEMU/source-contract, reproducible-build, and HIL evidence rather than counted in this mutation percentage."
+      "The cargo-mutants claim covers the enumerated host-testable source domain only; ESP32-S3 hardware-bound cryptographic adapters and eFuse/HMAC peripheral orchestration are validated by firmware, QEMU/source-contract, reproducible-build, and HIL evidence rather than counted in this mutation percentage.",
+      "The signing core that moved to Kaspa Portal (keys, derivation, sighash, KSPT/PSKT signing, anti-klepto, covenant branches, stealth derivation) is outside this KasKold workspace; cargo-mutants can mutate only workspace packages, so that code is certified by Kaspa Portal QA."
     ]
   }
 }

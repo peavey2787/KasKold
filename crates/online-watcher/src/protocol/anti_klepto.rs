@@ -32,14 +32,13 @@ pub(crate) fn verify_nonce_relation(
         return Err("anti-klepto host contribution is invalid".into());
     }
     let expected = provisional.to_projective() + ProjectivePoint::GENERATOR * contribution;
-    let expected_x =
-        point_x(&expected).ok_or_else(|| "anti-klepto nonce point is invalid".to_string())?;
+    let expected_x = point_x(&expected).ok_or("anti-klepto nonce point is invalid".to_string())?;
     let final_x: [u8; 32] = final_signature[..32]
         .try_into()
         .map_err(|_| "anti-klepto final signature is invalid".to_string())?;
     shared_signer::bytes::constant_time_eq_32(&expected_x, &final_x)
         .then_some(())
-        .ok_or_else(|| "anti-klepto final nonce does not include the host contribution".to_string())
+        .ok_or("anti-klepto final nonce does not include the host contribution".to_string())
 }
 
 fn point_x(point: &ProjectivePoint) -> Option<[u8; 32]> {

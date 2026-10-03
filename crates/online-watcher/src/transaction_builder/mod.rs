@@ -16,8 +16,6 @@ pub use standard::{
     create_send_limited, create_send_selected,
 };
 
-#[cfg(test)]
-pub(crate) mod oracle_publish;
 pub(crate) mod stealth;
 pub(crate) mod zk;
 

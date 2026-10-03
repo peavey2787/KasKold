@@ -145,8 +145,7 @@ fn calculate_amounts(
 }
 
 fn required_fee(input_count: usize) -> Result<u64, String> {
-    let input_count =
-        u64::try_from(input_count).map_err(|_| "PayJoin input count overflow".to_string())?;
+    let input_count = input_count as u64;
     let compute_mass = input_count
         .checked_mul(1_300)
         .and_then(|value| value.checked_add(429))

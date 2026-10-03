@@ -4,8 +4,6 @@ mod fee;
 mod model;
 pub(crate) mod payjoin;
 mod selection;
-#[cfg(test)]
-pub(crate) mod shipping;
 pub(crate) mod sweep;
 pub(crate) mod vault;
 

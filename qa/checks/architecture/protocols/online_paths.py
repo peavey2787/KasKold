@@ -58,10 +58,19 @@ def check(root: Path) -> list[str]:
                 f"{path.relative_to(root)}; use the covenant extract_* adapter"
             )
     for path in (online_root / "protocol/pskt").rglob("*.rs"):
+        if "unit_tests" in path.parts:
+            continue
         if "pub(super)" in rust_code_only(path.read_text(errors="ignore")):
             errors.append(f"PSKT sibling façade item is too narrow: {path.relative_to(root)}")
 
     kspt_tests = online_root / "protocol/pskt/unit_tests/kspt_bridge.rs"
+    bridge_source = "\n".join(
+        path.read_text(errors="ignore")
+        for path in (online_root / "protocol/pskt/kspt_bridge").glob("*.rs")
+    )
+    bridge_internals = all(
+        name in bridge_source for name in ("fn collect_signatures", "enum KsptEncodingMode")
+    )
     if kspt_tests.is_file():
         source = rust_code_only(kspt_tests.read_text(errors="ignore"))
         stale_test_import = re.compile(
@@ -73,7 +82,9 @@ def check(root: Path) -> list[str]:
             r"[^}]*\bKsptEncodingMode\b[^}]*\};",
             re.DOTALL,
         )
-        if stale_test_import.search(source) or not direct_test_import.search(source):
+        if stale_test_import.search(source) or (
+            bridge_internals and not direct_test_import.search(source)
+        ):
             errors.append(
                 "KSPT bridge tests must import collect_signatures and KsptEncodingMode "
                 "from the kspt_bridge module rather than the PSKT public façade"

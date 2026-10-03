@@ -140,12 +140,12 @@ pub(super) fn consolidation_standard_fee(
 
     let first = inputs
         .first()
-        .ok_or_else(|| "Multisig consolidation has no inputs".to_string())?;
+        .ok_or("Multisig consolidation has no inputs".to_string())?;
     let redeem_script_len = first
         .redeem_script
         .as_ref()
         .map(Vec::len)
-        .ok_or_else(|| "Multisig consolidation input is missing redeem script".to_string())?;
+        .ok_or("Multisig consolidation input is missing redeem script".to_string())?;
     let sig_op_count = first.sig_op_count;
     if inputs.iter().any(|input| {
         input.sig_op_count != sig_op_count
@@ -331,7 +331,7 @@ pub(super) fn required_total(amount: u64, fee: u64) -> Result<u64, String> {
 pub(super) fn consolidation_change(total: u64, required: u64) -> Result<u64, String> {
     total
         .checked_sub(required)
-        .ok_or_else(|| "selected multisig total is below required total".to_string())
+        .ok_or("selected multisig total is below required total".to_string())
 }
 pub(super) fn require_selected_total(total: u64, required: u64) -> Result<(), String> {
     if total >= required {

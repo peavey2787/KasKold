@@ -271,23 +271,22 @@ pub(super) fn multisig_standard_fee_for_shape(
     )?;
     let script_mass =
         multisig_output_script_mass_for_shape(destination_script_len, change_script_len)?;
-    let input_count = u64::try_from(input_count)
-        .map_err(|_| "Multisig input count exceeds supported range".to_string())?;
+    let input_count = input_count as u64;
     let sig_op_mass = input_count
         .checked_mul(u64::from(sig_op_count))
         .and_then(|value| value.checked_mul(MASS_PER_SIG_OP))
-        .ok_or_else(|| "Multisig sig-op mass exceeds supported range".to_string())?;
+        .ok_or("Multisig sig-op mass exceeds supported range".to_string())?;
     let compute_mass = tx_size
         .checked_add(script_mass)
         .and_then(|value| value.checked_add(sig_op_mass))
-        .ok_or_else(|| "Multisig compute mass exceeds supported range".to_string())?;
+        .ok_or("Multisig compute mass exceeds supported range".to_string())?;
     let transient_mass = tx_size
         .checked_mul(TRANSIENT_MASS_PER_BYTE)
-        .ok_or_else(|| "Multisig transient mass exceeds supported range".to_string())?;
+        .ok_or("Multisig transient mass exceeds supported range".to_string())?;
     let standard_fee = compute_mass
         .max(transient_mass)
         .checked_mul(MIN_STANDARD_FEE_PER_GRAM)
-        .ok_or_else(|| "Multisig standard fee exceeds supported range".to_string())?;
+        .ok_or("Multisig standard fee exceeds supported range".to_string())?;
     Ok(requested_fee.max(standard_fee))
 }
 
@@ -304,25 +303,22 @@ fn multisig_signed_tx_size_for_shape(
 
     let signature_script_len =
         multisig_signature_script_len(minimum_signatures, redeem_script_len)?;
-    let input_count = u64::try_from(input_count)
-        .map_err(|_| "Multisig input count exceeds supported range".to_string())?;
-    let destination_len = u64::try_from(destination_script_len)
-        .map_err(|_| "Multisig destination script exceeds supported range".to_string())?;
-    let change_len = u64::try_from(change_script_len)
-        .map_err(|_| "Multisig change script exceeds supported range".to_string())?;
+    let input_count = input_count as u64;
+    let destination_len = destination_script_len as u64;
+    let change_len = change_script_len as u64;
     let input_bytes = INPUT_FIXED_BYTES
         .checked_add(signature_script_len)
         .and_then(|value| value.checked_mul(input_count))
-        .ok_or_else(|| "Multisig signed input size exceeds supported range".to_string())?;
+        .ok_or("Multisig signed input size exceeds supported range".to_string())?;
     let output_bytes = OUTPUT_FIXED_BYTES
         .checked_mul(2)
         .and_then(|value| value.checked_add(destination_len))
         .and_then(|value| value.checked_add(change_len))
-        .ok_or_else(|| "Multisig output size exceeds supported range".to_string())?;
+        .ok_or("Multisig output size exceeds supported range".to_string())?;
     TX_FIXED_BYTES
         .checked_add(input_bytes)
         .and_then(|value| value.checked_add(output_bytes))
-        .ok_or_else(|| "Multisig transaction size exceeds supported range".to_string())
+        .ok_or("Multisig transaction size exceeds supported range".to_string())
 }
 
 fn multisig_output_script_mass_for_shape(
@@ -331,20 +327,17 @@ fn multisig_output_script_mass_for_shape(
 ) -> Result<u64, String> {
     const MASS_PER_SCRIPT_PUBLIC_KEY_BYTE: u64 = 10;
 
-    let destination_len = u64::try_from(destination_script_len)
-        .map_err(|_| "Multisig destination script exceeds supported range".to_string())?;
-    let change_len = u64::try_from(change_script_len)
-        .map_err(|_| "Multisig change script exceeds supported range".to_string())?;
+    let destination_len = destination_script_len as u64;
+    let change_len = change_script_len as u64;
     destination_len
         .checked_add(change_len)
         .and_then(|value| value.checked_add(4))
         .and_then(|value| value.checked_mul(MASS_PER_SCRIPT_PUBLIC_KEY_BYTE))
-        .ok_or_else(|| "Multisig script-public-key mass exceeds supported range".to_string())
+        .ok_or("Multisig script-public-key mass exceeds supported range".to_string())
 }
 
 fn multisig_signature_script_len(threshold: u8, redeem_len: usize) -> Result<u64, String> {
-    let redeem_len = u64::try_from(redeem_len)
-        .map_err(|_| "Multisig redeem script exceeds supported range".to_string())?;
+    let redeem_len = redeem_len as u64;
     let push_prefix = if redeem_len <= 75 {
         1
     } else if redeem_len <= 255 {
@@ -356,7 +349,7 @@ fn multisig_signature_script_len(threshold: u8, redeem_len: usize) -> Result<u64
         .checked_mul(66)
         .and_then(|value| value.checked_add(push_prefix))
         .and_then(|value| value.checked_add(redeem_len))
-        .ok_or_else(|| "Multisig signature script exceeds supported range".to_string())
+        .ok_or("Multisig signature script exceeds supported range".to_string())
 }
 
 fn select_multisig_utxos(
@@ -375,7 +368,7 @@ fn select_multisig_utxos(
             for utxo in utxos {
                 total = total
                     .checked_add(utxo.amount)
-                    .ok_or_else(|| "UTXO total exceeds supported monetary range".to_string())?;
+                    .ok_or("UTXO total exceeds supported monetary range".to_string())?;
                 selected.push(utxo);
                 let fee = multisig_standard_fee(prepared, selected.len(), request.fee)?;
                 if total >= amounts::checked_required(request.amount, fee)? {

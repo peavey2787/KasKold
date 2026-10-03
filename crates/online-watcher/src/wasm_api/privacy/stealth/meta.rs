@@ -1,15 +1,14 @@
+use crate::privacy::stealth;
 use crate::wasm_api::utilities::common::js_error;
 use crate::wasm_api::utilities::common::network_to_prefix;
 use crate::wasm_api::JsValue;
-use crate::{account::bip32, privacy::stealth};
 // ─── Stealth Addresses ───
 
 /// Derive a stealth meta-address from a kpub string.
 /// Returns JSON: { scan_pubkey: "hex", spend_pubkey: "hex", meta_address: "hex128" }
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 pub fn stealth_meta_from_kpub(kpub_str: &str) -> Result<String, JsValue> {
-    let xpub = bip32::ExtPubKey::from_kpub(kpub_str).map_err(js_error)?;
-    let meta = stealth::derive_stealth_meta(&xpub).map_err(js_error)?;
+    let meta = stealth::derive_stealth_meta_from_kpub(kpub_str).map_err(js_error)?;
     let encoded = stealth::encode_stealth_meta(&meta);
     let scan_x = hex::encode(stealth::x_only_pub(&meta.scan_pubkey));
     let spend_x = hex::encode(stealth::x_only_pub(&meta.spend_pubkey));

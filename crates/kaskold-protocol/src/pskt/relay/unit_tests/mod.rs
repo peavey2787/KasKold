@@ -59,3 +59,32 @@ fn first_outpoint_covers_every_required_shape_and_numeric_boundary() {
     .expect("present outpoint");
     assert_eq!(parsed, ([0x11; 32], 7));
 }
+
+#[test]
+fn transaction_payload_decoding_covers_default_hex_type_and_capability_limits() {
+    let global = |payload: Option<serde_json::Value>| {
+        let mut map = serde_json::Map::new();
+        if let Some(payload) = payload {
+            map.insert("txPayload".to_string(), payload);
+        }
+        map
+    };
+    assert_eq!(decode_payload(&global(None)), Ok(Vec::new()));
+    assert_eq!(decode_payload(&global(Some(json!(null)))), Ok(Vec::new()));
+    assert_eq!(
+        decode_payload(&global(Some(json!("0aff")))),
+        Ok(vec![0x0a, 0xff])
+    );
+    assert!(decode_payload(&global(Some(json!("0AFF")))).is_err());
+    assert_eq!(
+        decode_payload(&global(Some(json!(7)))),
+        Err("txPayload must be a hex string or null".to_string())
+    );
+    let limit = usize::from(crate::SIGNER_CAPABILITIES.max_payload_bytes);
+    assert_eq!(
+        decode_payload(&global(Some(json!("00".repeat(limit))))).map(|payload| payload.len()),
+        Ok(limit)
+    );
+    let error = decode_payload(&global(Some(json!("00".repeat(limit + 1))))).unwrap_err();
+    assert!(error.contains("exceeds signer capabilities"), "{error}");
+}

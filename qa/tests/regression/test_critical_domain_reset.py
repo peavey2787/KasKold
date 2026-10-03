@@ -15,7 +15,6 @@ class CriticalDomainResetTests(unittest.TestCase):
             "build_oracle_mb_genesis_redeem",
             "crowdfund::decode_hex",
             "uses_tagged_genesis_policy",
-            "shipping::plan::encode_pskb",
         ):
             self.assertIn(token, text)
         owner = (ROOT / "crates/online-watcher/src/transaction_builder/pskb/thread_input.rs").read_text()

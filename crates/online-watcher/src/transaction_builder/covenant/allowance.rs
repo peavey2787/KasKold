@@ -124,7 +124,7 @@ fn require_utxos(utxos: &[UtxoEntry]) -> Result<(), String> {
 fn required_amount(withdraw_sompi: u64, fee: u64) -> Result<u64, String> {
     withdraw_sompi
         .checked_add(fee)
-        .ok_or_else(|| "Withdraw amount plus fee overflows u64".to_string())
+        .ok_or("Withdraw amount plus fee overflows u64".to_string())
 }
 
 fn ensure_funded(
@@ -158,7 +158,7 @@ fn checked_total(utxos: &[UtxoEntry]) -> Result<u64, String> {
     utxos.iter().try_fold(0u64, |total, utxo| {
         total
             .checked_add(utxo.amount)
-            .ok_or_else(|| "Covenant balance overflows u64".to_string())
+            .ok_or("Covenant balance overflows u64".to_string())
     })
 }
 

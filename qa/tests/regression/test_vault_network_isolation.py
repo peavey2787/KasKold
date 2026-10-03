@@ -125,7 +125,7 @@ class VaultNetworkIsolationTests(unittest.TestCase):
         ).read_text()
         self.assertIn("writeSealedWallet", storage)
         self.assertIn("CURRENT_SEALED_WALLET_LENGTH = 216", storage)
-        self.assertIn("LEGACY_SEALED_WALLET_LENGTH = 96", storage)
+        self.assertNotIn("LEGACY_SEALED_WALLET_LENGTH", storage)
         self.assertIn("INVENTORY_MAGIC", storage)
         self.assertNotIn("Cipher.getInstance", storage)
         self.assertNotIn("SecretKey", storage)
@@ -149,8 +149,10 @@ class VaultNetworkIsolationTests(unittest.TestCase):
         self.assertIn('b"KVI1"', runtime)
         self.assertIn("seal_for_platform", hot_wallet)
         self.assertIn("restore_platform_sealed", hot_wallet)
-        self.assertIn('b"KasKold/vault/platform-sealed-wallet/v2"', hot_wallet)
-        self.assertIn('b"KasKold/vault/platform-sealed-wallet/v1"', hot_wallet)
+        # Only the current sealed-wallet format exists; KHV1/KHV2 were retired.
+        self.assertIn('b"KasKold/vault/platform-sealed-wallet/v3"', hot_wallet)
+        self.assertNotIn('b"KasKold/vault/platform-sealed-wallet/v2"', hot_wallet)
+        self.assertNotIn('b"KasKold/vault/platform-sealed-wallet/v1"', hot_wallet)
         self.assertNotIn("pub fn seed", hot_wallet)
         self.assertNotIn("pub fn private_key", hot_wallet)
 

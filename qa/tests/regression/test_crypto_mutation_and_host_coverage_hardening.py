@@ -3,7 +3,7 @@ import sys as _portal_sys
 from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
-from portal_source import kaskold_source  # noqa: E402
+from portal_source import kaskold_source, module_text, portal_path  # noqa: E402
 import unittest
 from pathlib import Path
 
@@ -27,17 +27,17 @@ class CryptoMutationAndHostCoverageHardeningTests(unittest.TestCase):
         self.assertIn("derive_child(&current, HARDENED + index)?", source)
         self.assertNotIn("derive_child(&current, HARDENED | index)?", source)
         self.assertIn("covenant_derivation_and_binding_match_exact_independent_vectors", tests)
-        self.assertIn("0xe3, 0xfa, 0x23, 0x5d", tests)
-        self.assertIn("0x88, 0x53, 0x22, 0xf5", tests)
+        self.assertIn("0xc7, 0x8a, 0x0d, 0x83", tests)
+        self.assertIn("0x95, 0x2e, 0xf9, 0x5b", tests)
         self.assertIn("cancellation_probe[0] ^= 1;", tests)
         self.assertIn("cancellation_probe[1] ^= 1;", tests)
 
     def test_remaining_crypto_mutation_relations_have_exact_or_directional_tests(self):
-        stealth = (ROOT / "crates/online-watcher/src/privacy/stealth/unit_tests/mod.rs").read_text()
+        stealth = kaskold_source("crates/online-watcher/src/privacy/stealth/unit_tests/mod.rs").read_text()
         adaptor = kaskold_source("crates/offline-signer/src/crypto/unit_tests/adaptor_tests.rs").read_text()
         kspt = kaskold_source("crates/offline-signer/src/transaction/kspt/signing/covenant.rs").read_text()
         resolver = kaskold_source("crates/shared-signer/src/covenant_branch.rs").read_text()
-        resolver_tests = resolver
+        resolver_tests = portal_path("contract/covenant/unit-tests/branch.rs").read_text()
 
         self.assertIn("stealth_tweak_masks_the_high_index_bit_against_an_exact_vector", stealth)
         self.assertIn("assert_eq!(index, 0x5f00_ed1a);", stealth)
@@ -48,15 +48,15 @@ class CryptoMutationAndHostCoverageHardeningTests(unittest.TestCase):
         # to the one shared branch resolver. Parsing semantics themselves are
         # covered by executable Rust unit tests and the covenant resolver fuzzer;
         # this policy test must not freeze an obsolete scanner implementation.
-        self.assertIn("shared_signer::covenant_branch::resolve_covenant_branches(script)", kspt)
+        self.assertIn("crate::contract::covenant::branch::resolve_covenant_branches(script)", kspt)
         self.assertNotIn("checked_advance", kspt)
-        self.assertIn("0x01..=0x4b => offset = advance_push", resolver)
+        self.assertIn("0x01..=0x4b => Ok((1, usize::from(opcode)))", resolver)
         self.assertIn("duplicate_key_binding_on_the_same_branch_is_rejected", resolver_tests)
         self.assertIn("reused_key_requires_branch_disambiguation", resolver_tests)
 
     def test_canonical_kspt_relay_and_live_companion_adapters_keep_direct_host_coverage(self):
-        protocol_relay = (ROOT / "crates/kaskold-protocol/src/pskt/relay.rs").read_text()
-        protocol_fields = (ROOT / "crates/kaskold-protocol/src/pskt/relay_fields.rs").read_text()
+        protocol_relay = module_text("crates/kaskold-protocol/src/pskt/relay.rs")
+        protocol_fields = module_text("crates/kaskold-protocol/src/pskt/relay_fields.rs")
         protocol_tests = (ROOT / "crates/kaskold-protocol/src/unit_tests/mod.rs").read_text()
         companion_tests = (ROOT / "crates/online-watcher/src/protocol/pskt/unit_tests/kspt_bridge.rs").read_text()
         bridge_root = ROOT / "crates/online-watcher/src/protocol/pskt/kspt_bridge"

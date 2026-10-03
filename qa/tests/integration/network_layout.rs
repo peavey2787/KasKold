@@ -7,27 +7,30 @@ fn rpc_subsystem_is_grouped_by_responsibility() {
     let network = online.join("network");
 
     assert!(!network.join("rpc.rs").exists());
-    for required in [
-        "codec/primitives/reader.rs",
-        "codec/primitives/writer.rs",
-        "queries/utxos.rs",
-        "submission/encoder.rs",
-        "wrpc/request.rs",
-        "wrpc/response.rs",
-    ] {
-        assert!(network.join(required).exists(), "missing network/{required}");
+    // The wRPC codec, transport and submission encoder are Kaspa Portal's; the
+    // Companion keeps only its URL-addressed query and submission helpers.
+    for required in ["mod.rs", "queries/utxos.rs", "submission.rs"] {
+        assert!(
+            network.join(required).exists(),
+            "missing network/{required}"
+        );
     }
-
+    for retired in ["codec", "wrpc", "model", "error.rs", "submission"] {
+        assert!(
+            !network.join(retired).exists(),
+            "network/{retired} duplicates Kaspa Portal"
+        );
+    }
     assert!(
-        online.join("infrastructure/browser_websocket.rs").exists(),
-        "missing browser WebSocket infrastructure adapter"
+        !online.join("infrastructure/browser_websocket.rs").exists(),
+        "the browser WebSocket transport comes from Kaspa Portal"
     );
+    let network_mod = std::fs::read_to_string(network.join("mod.rs")).expect("network/mod.rs");
+    assert!(network_mod.contains("kaspa_portal::network"));
 
     for required in [
         "protocol/transaction/signed_kspt.rs",
         "protocol/transaction/sighash.rs",
-        "privacy/stealth/scanner.rs",
-        "contracts/vault/script.rs",
         "wasm_api/contracts/vault/genesis.rs",
         "wasm_api/contracts/vault/spend.rs",
         "wasm_api/contracts/vault/split.rs",

@@ -113,14 +113,13 @@ class BranchCoverage90ContractTests(unittest.TestCase):
 
     def test_transaction_construction_branch_boundaries_have_direct_host_vectors(self) -> None:
         private_swap = (
-            ROOT
-            / "crates/online-watcher/src/contracts/covenant/script/private_swap/unit_tests/mod.rs"
+            kaskold_source("crates/online-watcher/src/contracts/covenant/script/private_swap/unit_tests/mod.rs")
         ).read_text()
         construction = (
             ROOT / "crates/online-watcher/src/contracts/unit_tests/construction.rs"
         ).read_text()
         script_tests = (
-            ROOT / "crates/online-watcher/src/protocol/script/unit_tests/mod.rs"
+            kaskold_source("crates/online-watcher/src/protocol/script/unit_tests/mod.rs")
         ).read_text()
         self.assertIn("private_swap_rejects_invalid_configuration_boundaries", private_swap)
         self.assertIn("crowdfund_configuration_validation_boundaries_are_covered", construction)

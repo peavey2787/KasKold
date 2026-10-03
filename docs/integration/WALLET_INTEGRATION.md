@@ -232,7 +232,7 @@ Native Rust is the default SDK path. `kaskold-protocol`'s normal `host` feature 
 
 ## Licensing boundary
 
-Every KasKold crate, including `shared-signer`, `kaskold-protocol`, and `kaskold-sdk`, is licensed **GPL-3.0-only**, the license of the upstream [KasSigner](https://github.com/InKasWeRust/KasSigner) project. A wallet that links the SDK is distributed under the GPL's terms. The signing core comes from [Kaspa Portal](https://github.com/peavey2787/kaspa-portal), which is also GPL-3.0.
+Every KasKold crate, including `shared-signer`, `kaskold-protocol`, and `kaskold-sdk`, is licensed **GPL-3.0-only**, the license of the upstream [KasSigner](https://github.com/InKasWeRust/KasSigner) project (see [upstream attribution](../legal/UPSTREAM_ATTRIBUTION.md), docs/legal/UPSTREAM_ATTRIBUTION.md). A wallet that links the SDK is distributed under the GPL's terms. The signing core comes from [Kaspa Portal](https://github.com/peavey2787/kaspa-portal), which is also GPL-3.0.
 
 ## Distribution verification
 

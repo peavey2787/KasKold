@@ -132,10 +132,11 @@ def _check_firmware_core_ownership(root: Path) -> list[str]:
     for forbidden in ("firmware", "entropy", "release"):
         if f"pub mod {forbidden};" in shared_lib:
             errors.append(f"shared-signer must not expose firmware-owned module: {forbidden}")
-    shared_policy = root / "crates/shared-signer/src/advanced_policy/mod.rs"
     hardware_time = root / "crates/kaskold-hardware-core/src/time/mod.rs"
-    if not shared_policy.is_file():
-        errors.append("portable signing policy must live in shared-signer/src/advanced_policy")
+    if "pub use kaspa_portal::transaction::policy::time as advanced_policy;" not in shared_lib:
+        errors.append("portable signing policy must be Kaspa Portal's transaction::policy::time")
+    if (root / "crates/shared-signer/src/advanced_policy").exists():
+        errors.append("shared-signer must not keep a copy of Kaspa Portal's signing policy")
     if not hardware_time.is_file() or "pub use shared_signer::advanced_policy;" not in hardware_time.read_text(errors="ignore"):
         errors.append("hardware-core advanced policy must remain a thin re-export of shared-signer")
     shared_stego = root / "crates/shared-signer/src/stego_picture/mod.rs"

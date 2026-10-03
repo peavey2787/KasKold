@@ -546,7 +546,7 @@
     },
     {
       "path": "apps/kaskold-hardware/src/runtime/data/signing.rs",
-      "line": 124,
+      "line": 127,
       "source": "pub(super) unsafe fn initialize_in_place(",
       "fingerprint": "b74bfb1e62e079dab2fcf424942be1fbf5f34b5481b14e0e750de5261be43288",
       "rationale": "Reviewed signing-state placement boundary: the pointer targets an exclusively owned, uninitialized SigningState field inside the claimed AppData slot. Each child is written exactly once, the only fallible transaction allocation is completed before StaticCell claim, and no signing state is read until every child has been initialized. The no-inline boundary prevents aggregate stack temporaries.",
@@ -637,7 +637,7 @@
       "line": 50,
       "source": "unsafe {",
       "fingerprint": "9fca258016cc09585d91ed4a2a458cdb07cd96c20b1bbf02b124a32d953fab20",
-      "rationale": "Reviewed Argon2 workspace cast: PsramAllocation now validates the requested PasswordKdfBlock alignment and runtime PSRAM provenance and zero-initializes the complete raw allocation before any reference is exposed. All-zero bytes are a valid argon2::Block representation, and the exact block-count \u00d7 block-size length is checked before forming the exclusive typed slice.",
+      "rationale": "Reviewed Argon2 workspace cast: PsramAllocation now validates the requested PasswordKdfBlock alignment and runtime PSRAM provenance and zero-initializes the complete raw allocation before any reference is exposed. All-zero bytes are a valid argon2::Block representation, and the exact block-count × block-size length is checked before forming the exclusive typed slice.",
       "reviewed": true
     },
     {
@@ -830,14 +830,6 @@
       "source": "let bytes = unsafe {",
       "fingerprint": "c7dadaefa506ddcfcef25dec6a3ad66eb3cd0216dce099d15479578caf34bed5",
       "rationale": "Reviewed typed cross-core mailbox boundary: UnsafeCell/MaybeUninit are centralized here and access is serialized by WorkerLifecycle ownership plus acquire/release initialization state. Writes occur before publication, reads require initialized ownership, and retired slot storage is volatile-zeroized without reading uninitialized bytes.",
-      "reviewed": true
-    },
-    {
-      "path": "crates/shared-signer/src/bytes.rs",
-      "line": 99,
-      "source": "unsafe { core::ptr::write_volatile(value, zero) };",
-      "fingerprint": "bc7a940e840497f5eba078977df31fe0f4817bcd0a91475f98050c04d46ba24f",
-      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     }
   ]

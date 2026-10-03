@@ -1,6 +1,4 @@
-use kaskold_protocol::wire::qr_payload::{
-    unwrap_v1_raw, wrap_v1_raw, MAX_RAW_LEN, PAYLOAD_V1_RAW,
-};
+use kaskold_protocol::wire::qr_payload::{unwrap_v1_raw, wrap_v1_raw, MAX_RAW_LEN, PAYLOAD_V1_RAW};
 
 #[test]
 fn raw_payload_round_trips_through_v1_framing() {
@@ -36,8 +34,10 @@ fn raw_payload_rejects_invalid_capacity() {
 }
 
 fn sdk_vectors() -> serde_json::Value {
-    serde_json::from_str(include_str!("../../../docs/integration/vectors/kaskold_sdk_v2.json"))
-        .expect("KasKold SDK conformance vector JSON")
+    serde_json::from_str(include_str!(
+        "../../../docs/integration/vectors/kaskold_sdk_v2.json"
+    ))
+    .expect("KasKold SDK conformance vector JSON")
 }
 
 #[test]
@@ -48,7 +48,9 @@ fn kaskold_privacy_pairing_vector_is_wire_exact() {
     let vector = sdk_vectors();
     let pairing = &vector["privacyPairing"];
     let nonce: [u8; 16] = hex::decode(pairing["nonceHex"].as_str().unwrap())
-        .unwrap().try_into().unwrap();
+        .unwrap()
+        .try_into()
+        .unwrap();
     let request = AddressBatchRequest::new(
         nonce,
         pairing["receiveStart"].as_u64().unwrap() as u32,
@@ -58,38 +60,69 @@ fn kaskold_privacy_pairing_vector_is_wire_exact() {
     );
     let mut request_wire = vec![0u8; shared_signer::pairing::REQUEST_LEN];
     encode_request(request, &mut request_wire).expect("request encode");
-    assert_eq!(hex::encode(&request_wire), pairing["requestHex"].as_str().unwrap());
+    assert_eq!(
+        hex::encode(&request_wire),
+        pairing["requestHex"].as_str().unwrap()
+    );
 
     let pubkey: [u8; 33] = hex::decode(pairing["compressedAccountPubkeyHex"].as_str().unwrap())
-        .unwrap().try_into().unwrap();
+        .unwrap()
+        .try_into()
+        .unwrap();
     let chain: [u8; 32] = hex::decode(pairing["chainCodeHex"].as_str().unwrap())
-        .unwrap().try_into().unwrap();
+        .unwrap()
+        .try_into()
+        .unwrap();
     let fingerprint = account_fingerprint(&pubkey, &chain);
-    assert_eq!(hex::encode(fingerprint), pairing["accountFingerprintHex"].as_str().unwrap());
+    assert_eq!(
+        hex::encode(fingerprint),
+        pairing["accountFingerprintHex"].as_str().unwrap()
+    );
 
     let mut response = vec![0u8; request.response_len()];
-    let mut cursor = encode_response_header(request, fingerprint, &mut response).expect("response header");
-    for key in pairing["receivePublicKeysHex"].as_array().unwrap()
-        .iter().chain(pairing["changePublicKeysHex"].as_array().unwrap())
+    let mut cursor =
+        encode_response_header(request, fingerprint, &mut response).expect("response header");
+    for key in pairing["receivePublicKeysHex"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .chain(pairing["changePublicKeysHex"].as_array().unwrap())
     {
         let bytes = hex::decode(key.as_str().unwrap()).unwrap();
         response[cursor..cursor + bytes.len()].copy_from_slice(&bytes);
         cursor += bytes.len();
     }
-    assert_eq!(hex::encode(&response), pairing["responseHex"].as_str().unwrap());
+    assert_eq!(
+        hex::encode(&response),
+        pairing["responseHex"].as_str().unwrap()
+    );
 
     let protocol_request = kaskold_protocol::create_privacy_pairing_request(
-        nonce, request.receive_start, request.receive_count, request.change_start, request.change_count,
-    ).expect("protocol request");
+        nonce,
+        request.receive_start,
+        request.receive_count,
+        request.change_start,
+        request.change_count,
+    )
+    .expect("protocol request");
     assert_eq!(protocol_request.payload, request_wire);
     let batch = kaskold_protocol::accept_privacy_pairing_response(
-        &protocol_request, &response, kaskold_protocol::Network::Mainnet,
+        &protocol_request,
+        &response,
+        kaskold_protocol::Network::Mainnet,
         Some(pairing["accountFingerprintHex"].as_str().unwrap()),
-    ).expect("protocol response");
-    assert_eq!(batch.receive_addresses[0].branch, kaskold_protocol::AddressBranch::Receive);
+    )
+    .expect("protocol response");
+    assert_eq!(
+        batch.receive_addresses[0].branch,
+        kaskold_protocol::AddressBranch::Receive
+    );
     assert_eq!(batch.receive_addresses[0].index, 500);
     assert_eq!(batch.receive_addresses[1].index, 501);
-    assert_eq!(batch.change_addresses[0].branch, kaskold_protocol::AddressBranch::Change);
+    assert_eq!(
+        batch.change_addresses[0].branch,
+        kaskold_protocol::AddressBranch::Change
+    );
     assert_eq!(batch.change_addresses[0].index, 700);
     assert_eq!(batch.change_addresses[1].index, 701);
 }
@@ -122,7 +155,8 @@ fn kaskold_kspt_vector_locks_metadata_order() {
     let request = kaskold_protocol::SigningRequest::from_pskt(
         kspt["pskbHex"].as_str().unwrap(),
         kaskold_protocol::Network::Mainnet,
-    ).expect("signing request");
+    )
+    .expect("signing request");
     assert_eq!(request.kspt_hex, kspt["expectedKsptHex"].as_str().unwrap());
 }
 

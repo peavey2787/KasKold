@@ -91,7 +91,7 @@ pub(crate) fn encode_pskt_value(mut pskt: Value) -> Result<String, String> {
     let global = pskt
         .get_mut("global")
         .and_then(Value::as_object_mut)
-        .ok_or_else(|| "PSKT missing global object".to_string())?;
+        .ok_or("PSKT missing global object".to_string())?;
     global
         .entry("subnetworkId".to_string())
         .or_insert_with(|| Value::String("00".repeat(20)));

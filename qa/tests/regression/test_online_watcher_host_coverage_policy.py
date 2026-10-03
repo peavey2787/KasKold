@@ -1,3 +1,9 @@
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
+
 import json
 from pathlib import Path
 import sys
@@ -37,14 +43,14 @@ class OnlineWatcherHostCoveragePolicyTests(unittest.TestCase):
         self.assertTrue(RATCHET_PATH.is_file())
 
     def test_native_host_coverage_reaches_browser_transport_and_public_facades(self) -> None:
-        websocket = (ROOT / "crates/online-watcher/src/infrastructure/browser_websocket.rs").read_text()
+        websocket = kaskold_source("crates/online-watcher/src/infrastructure/browser_websocket.rs").read_text()
         queries = (ROOT / "crates/online-watcher/src/network/unit_tests/queries.rs").read_text()
         oracle = (ROOT / "crates/online-watcher/src/wasm_api/contracts/oracle/publish/unit_tests/mod.rs").read_text()
         vault = (ROOT / "crates/online-watcher/src/wasm_api/contracts/vault/unit_tests/mod.rs").read_text()
         self.assertIn('#[cfg(not(target_arch = "wasm32"))]', websocket)
         self.assertIn("browser WebSocket transport is unavailable on native hosts", websocket)
         self.assertIn("submission::submit", queries)
-        self.assertIn("oracle_publish_async_boundaries_are_native_host_covered", oracle)
+        self.assertIn("oracle_publish_export_fails_closed_until_its_witness_plan_is_typed", oracle)
         self.assertIn("vault_async_builders_and_public_wrappers_reach_native_transport_fail_closed", vault)
 
     def test_crap_classifier_retains_effective_and_raw_assessment_fields(self) -> None:

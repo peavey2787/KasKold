@@ -61,7 +61,7 @@ fn validate_host_commitment(
     for index in 0..commitment.len() {
         let record = commitment
             .record(index)
-            .ok_or_else(|| "invalid anti-klepto proof".to_string())?;
+            .ok_or("invalid anti-klepto proof".to_string())?;
         let position = (record.input_index, record.signature_slot);
         if previous.is_some_and(|value| value >= position) {
             return Err("anti-klepto commitments are not strictly ordered".into());
@@ -81,7 +81,7 @@ fn validate_commitment_record(
     let input = original
         .inputs
         .get(input_index)
-        .ok_or_else(|| "anti-klepto input index is out of range".to_string())?;
+        .ok_or("anti-klepto input index is out of range".to_string())?;
     let slot = usize::from(record.signature_slot);
     if slot < input.signatures.len() || slot >= MAX_SIGNATURES_PER_INPUT {
         return Err("anti-klepto signature slot is invalid".into());
@@ -233,7 +233,7 @@ fn added_signature_count(
             }
             total
                 .checked_add(after.signatures.len() - before.signatures.len())
-                .ok_or_else(|| "anti-klepto signature count overflow".to_string())
+                .ok_or("anti-klepto signature count overflow".to_string())
         })
 }
 
@@ -247,10 +247,10 @@ fn verify_transcript_proof(
 ) -> Result<(), String> {
     let commitment_record = commitment
         .record(proof_index)
-        .ok_or_else(|| "anti-klepto commitment proof is missing".to_string())?;
+        .ok_or("anti-klepto commitment proof is missing".to_string())?;
     let proof = signed_message
         .proof(proof_index)
-        .ok_or_else(|| "anti-klepto signature proof is missing".to_string())?;
+        .ok_or("anti-klepto signature proof is missing".to_string())?;
     let (input_index, slot) = validate_proof_position(signed, &commitment_record, &proof)?;
     let actual = &signed.inputs[input_index].signatures[slot];
     validate_signature_metadata(original, signed, input_index, &commitment_record, actual)?;
@@ -280,7 +280,7 @@ fn validate_proof_position(
     let input = signed
         .inputs
         .get(input_index)
-        .ok_or_else(|| "anti-klepto proof input index is invalid".to_string())?;
+        .ok_or("anti-klepto proof input index is invalid".to_string())?;
     if slot >= input.signatures.len() {
         return Err("anti-klepto proof signature slot is invalid".into());
     }
@@ -299,14 +299,14 @@ fn validate_signature_metadata(
         .signatures
         .first()
         .map(|signature| signature.sighash_type)
-        .ok_or_else(|| "anti-klepto signed input has no signatures".to_string())?;
+        .ok_or("anti-klepto signed input has no signatures".to_string())?;
     if actual.sighash_type != input_sighash
         || actual.sighash_type != expected_added_sighash(&original.inputs[input_index])
     {
         return Err("anti-klepto sighash metadata changed".into());
     }
     let expected_xonly = signing_pubkey_xonly(signed_input, actual.pubkey_pos)
-        .ok_or_else(|| "anti-klepto signing public key is invalid".to_string())?;
+        .ok_or("anti-klepto signing public key is invalid".to_string())?;
     if commitment.public_key[1..33] != expected_xonly[..] {
         return Err("anti-klepto commitment public key does not match signature".into());
     }
@@ -333,7 +333,7 @@ fn verify_signature_and_nonce(
     actual: &super::model::CompactKsptSignature,
 ) -> Result<(), String> {
     let expected_xonly = signing_pubkey_xonly(&signed.inputs[input_index], actual.pubkey_pos)
-        .ok_or_else(|| "anti-klepto signing public key is invalid".to_string())?;
+        .ok_or("anti-klepto signing public key is invalid".to_string())?;
     let message = transaction_sighash(signed, input_index, actual.sighash_type)?;
     if !bip340_verify(&expected_xonly, &message, &actual.signature)? {
         return Err("anti-klepto final signature is invalid".into());

@@ -899,6 +899,14 @@
       "commands": [
         "make qa"
       ],
+      "path": "qa/fuzz/covenant_branch_resolver.rs",
+      "role": "fuzz-target",
+      "step": "fuzz.repository-security-targets"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
       "path": "qa/fuzz/firmware_external_inputs.rs",
       "role": "fuzz-target",
       "step": "fuzz.repository-security-targets"
@@ -908,6 +916,22 @@
         "make qa"
       ],
       "path": "qa/fuzz/firmware_protocol_parsing.rs",
+      "role": "fuzz-target",
+      "step": "fuzz.repository-security-targets"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/fuzz/pskt_parser_differential.rs",
+      "role": "fuzz-target",
+      "step": "fuzz.repository-security-targets"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/fuzz/public_host_parsers.rs",
       "role": "fuzz-target",
       "step": "fuzz.repository-security-targets"
     },
@@ -1351,6 +1375,14 @@
       "commands": [
         "make qa"
       ],
+      "path": "qa/tests/regression/test_hardware_home_and_multisig_descriptors.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
       "path": "qa/tests/regression/test_hardware_reboot_detection.py",
       "role": "test",
       "step": "unit.repository-python-qa"
@@ -1745,6 +1777,14 @@
         "make qa"
       ],
       "path": "qa/tests/regression/test_vault_network_isolation.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/tests/regression/test_verified_model_finalization_boundary.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -2173,14 +2213,6 @@
       "path": "qa/windows/runner/run_all.py",
       "role": "runner",
       "step": "catalog"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/tests/regression/test_hardware_home_and_multisig_descriptors.py",
-      "role": "test",
-      "step": "unit.repository-python-qa"
     }
   ],
   "schema_version": 1

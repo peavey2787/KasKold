@@ -26,14 +26,12 @@ def check_pskt(root: Path) -> list[str]:
         pskt_root / "error.rs",
         pskt_root / "model/mod.rs",
         pskt_root / "model/format.rs",
-        pskt_root / "model/signatures.rs",
         pskt_root / "model/summary.rs",
         pskt_root / "wire/mod.rs",
         pskt_root / "wire/json.rs",
         pskt_root / "review/mod.rs",
         pskt_root / "kspt_bridge/mod.rs",
         pskt_root / "consensus/mod.rs",
-        pskt_root / "scripts/mod.rs",
         pskt_root / "unit_tests/mod.rs",
     ):
         if not required.exists():
@@ -66,18 +64,38 @@ def check_pskt(root: Path) -> list[str]:
             errors.append(f"PSKT protocol subsystem contains forbidden concern: {forbidden}")
     if len(re.findall(r"\bfn\s+decode_wire\b", pskt_source)) != 1:
         errors.append("PSKT subsystem must contain exactly one wire decoder")
-    if len(re.findall(r"serde_json::from_slice", pskt_core_source)) != 1:
-        errors.append("PSKT subsystem must contain exactly one JSON body decoder")
-    if len(re.findall(r"serde_json::to_vec", pskt_core_source)) != 1:
-        errors.append("PSKT subsystem must contain exactly one JSON body encoder")
+    # The PSKT JSON body codec has exactly one owner, kaskold-protocol; the
+    # Companion PSKT/PSKB layers delegate to it instead of serializing JSON bodies.
+    protocol_wire = (ROOT / "crates/kaskold-protocol/src/pskt/wire.rs").read_text(errors="ignore")
+    if len(re.findall(r"serde_json::from_slice", protocol_wire)) != 1:
+        errors.append("kaskold-protocol must contain exactly one PSKT JSON body decoder")
+    if len(re.findall(r"serde_json::to_vec", protocol_wire)) != 1:
+        errors.append("kaskold-protocol must contain exactly one PSKT JSON body encoder")
+    if re.search(r"serde_json::(?:from_slice|to_vec)", pskt_core_source + pskb_source):
+        errors.append("Companion PSKT/PSKB layers must delegate JSON body coding to kaskold-protocol")
+    json_adapter = (pskt_root / "wire/json.rs").read_text(errors="ignore")
+    for delegated in ("compat::decode_pskt_json_body", "compat::encode_pskt_json_body"):
+        if delegated not in json_adapter:
+            errors.append(f"Companion PSKT JSON adapter must delegate to kaskold-protocol: {delegated}")
     if re.search(r"\bfn\s+encode_compact_kspt_input\b", pskt_source):
         errors.append("Companion must not own a duplicate compact KSPT input wire encoder")
-    if len(re.findall(r"serde_json::to_vec", pskb_source)) != 1:
-        errors.append("PSKB subsystem must contain exactly one JSON encoder")
-    subnetwork_decoder = pskt_root / "wire/json_fields.rs"
-    subnetwork_source = subnetwork_decoder.read_text(errors="ignore") if subnetwork_decoder.exists() else ""
-    if "missing subnetworkId" not in subnetwork_source or "unwrap_or_default" in subnetwork_source:
-        errors.append("PSKT subnetwork decoding must require a valid explicit identifier")
+    relay_root = ROOT / "crates/kaskold-protocol/src/pskt"
+    relay_source = chr(10).join(
+        path.read_text(errors="ignore")
+        for path in (relay_root / "relay.rs", *sorted((relay_root / "relay").glob("*.rs")))
+    )
+    subnetwork_source = re.split(
+        r"\n(?:pub(?:\([^)]*\))? )?fn ",
+        relay_source.split("fn decode_subnetwork", 1)[-1],
+        maxsplit=1,
+    )[0]
+    if (
+        "fn decode_subnetwork" not in relay_source
+        or "subnetworkId must be 20 bytes" not in subnetwork_source
+        or "pskt_schema::default_rule(" not in subnetwork_source
+        or "unwrap_or_default" in subnetwork_source
+    ):
+        errors.append("PSKT subnetwork decoding must use the canonical schema default and require 20 bytes")
     canonical_pskb_encoder = pskt_root / "pskb/encoder.rs"
     canonical_pskb_source = canonical_pskb_encoder.read_text(errors="ignore") if canonical_pskb_encoder.exists() else ""
     if '.entry("subnetworkId".to_string())' not in canonical_pskb_source:
@@ -198,9 +216,8 @@ def check_monetary_arithmetic(root: Path) -> list[str]:
     covenant = (online_root / "transaction_builder/covenant/builder.rs").read_text(errors="ignore")
     covenant_fee = (online_root / "transaction_builder/covenant/fee.rs").read_text(errors="ignore")
     amounts = (online_root / "transaction_builder/planning/amounts.rs").read_text(errors="ignore")
-    shipping_script = (online_root / "contracts/shipping_escrow/script.rs").read_text(errors="ignore")
-    shipping_withdraw = (
-        online_root / "transaction_builder/covenant/shipping/withdraw.rs"
+    shipping_script = kaskold_source(
+        "crates/online-watcher/src/contracts/shipping_escrow/script.rs"
     ).read_text(errors="ignore")
     payjoin = (
         online_root / "transaction_builder/covenant/payjoin.rs"
@@ -281,13 +298,6 @@ def check_monetary_arithmetic(root: Path) -> list[str]:
         if required not in shipping_script:
             errors.append(f"shipping-escrow script checked arithmetic contract changed: {required}")
 
-    for forbidden in ("plan.funding_total - fee", "withdraw_sompi + funding_after_fee"):
-        if forbidden in shipping_withdraw:
-            errors.append(f"shipping withdrawal arithmetic bypasses checked operations: {forbidden}")
-    for required in (".checked_sub(fee)", ".checked_add(funding_after_fee)"):
-        if required not in shipping_withdraw:
-            errors.append(f"shipping withdrawal checked arithmetic contract changed: {required}")
-
     for forbidden in ("fee - covenant_fee", ".saturating_sub("):
         if forbidden in payjoin:
             errors.append(f"PayJoin monetary arithmetic bypasses checked operations: {forbidden}")
@@ -351,7 +361,6 @@ def check_kspt(root: Path) -> list[str]:
     )
     required_bridge = (
         bridge_root / "mod.rs",
-        bridge_root / "signatures.rs",
         bridge_root / "parser_compact.rs",
         bridge_root / "parser_transaction.rs",
         bridge_root / "relay.rs",
@@ -502,8 +511,13 @@ def check_kspt(root: Path) -> list[str]:
             errors.append(f"offline anti-klepto transaction comparison must bind v4 metadata: {required}")
 
     signed_source = (root / "crates/online-watcher/src/protocol/transaction/signed_kspt.rs").read_text(errors="ignore")
-    if "kaskold_protocol::wire::kspt" not in signed_source or "kspt::decode(&bytes, &mut sink)" not in signed_source:
-        errors.append("signed compact KSPT conversion must delegate to the canonical protocol decoder")
+    # Signed KSPT is authorized once by kaskold-protocol (canonical decoder plus
+    # signature verification); only that typed result is materialized here.
+    if (
+        "kaskold_protocol::compat::verify_complete_kspt(&bytes)" not in signed_source
+        or "materialize_verified_transaction(verified" not in signed_source
+    ):
+        errors.append("signed compact KSPT conversion must delegate to the canonical verified protocol decoder")
     for duplicate in ('b"KSPT"', "COMPACT_KSPT_V4", "GENERATION_CURRENT: u8", "NETWORK_MARKER"):
         if duplicate in signed_source:
             errors.append(f"signed KSPT adapter reintroduced KSPT wire grammar: {duplicate}")

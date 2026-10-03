@@ -47,13 +47,13 @@ fn parse_manual_indices(csv: &str) -> Vec<usize> {
 fn checked_target(send_amount: u64, fee: u64) -> Result<u64, String> {
     send_amount
         .checked_add(fee)
-        .ok_or_else(|| "Send amount plus fee exceeds supported monetary range".to_string())
+        .ok_or("Send amount plus fee exceeds supported monetary range".to_string())
 }
 
 fn checked_total(total: u64, amount: u64) -> Result<u64, String> {
     total
         .checked_add(amount)
-        .ok_or_else(|| "Selected UTXO total exceeds supported monetary range".to_string())
+        .ok_or("Selected UTXO total exceeds supported monetary range".to_string())
 }
 
 fn select_manual(
@@ -66,9 +66,11 @@ fn select_manual(
     let mut selected = Vec::with_capacity(indices.len());
     let mut total = 0u64;
     for &index in indices {
-        let utxo = utxos
-            .get(index)
-            .ok_or_else(|| format!("UTXO index {} out of range (have {})", index, utxos.len()))?;
+        let utxo = utxos.get(index).ok_or(format!(
+            "UTXO index {} out of range (have {})",
+            index,
+            utxos.len()
+        ))?;
         total = checked_total(total, utxo.amount)?;
         selected.push(utxo.clone());
     }

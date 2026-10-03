@@ -1,3 +1,8 @@
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
 from pathlib import Path
 import re
 import unittest
@@ -46,7 +51,7 @@ class CompanionCompleteUtxoScanTests(unittest.TestCase):
         self.assertNotIn("Max 8", deep)
 
     def test_multi_entry_wrpc_reply_is_regressed(self):
-        response_tests = (ROOT / "crates/online-watcher/src/network/unit_tests/utxo_response.rs").read_text()
+        response_tests = kaskold_source("crates/online-watcher/src/network/unit_tests/utxo_response.rs").read_text()
         self.assertIn("utxo_response_preserves_every_entry_in_multi_entry_reply", response_tests)
         self.assertRegex(response_tests, r"repeated_entry_response\([^\n]+, 5\)")
         self.assertIn("assert_eq!(entries.len(), 5);", response_tests)

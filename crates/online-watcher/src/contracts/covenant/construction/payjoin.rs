@@ -19,12 +19,12 @@ pub(crate) fn build_json(
     );
     let address =
         crate::protocol::script::p2sh::script_to_address(&script, network_prefix(network))?;
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "address": address,
         "redeem_script_hex": hex::encode(&script),
         "locktime_daa": locktime_daa.to_string(),
         "min_inputs": min_inputs,
         "min_outputs": min_outputs,
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }

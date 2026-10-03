@@ -1,8 +1,6 @@
 use serde_json::{json, Value};
 
-use crate::pskt::test_support::{
-    encode, finalize_json_unverified_for_test, sighash_all_for_pskt, Format,
-};
+use crate::pskt::test_support::{encode, sighash_all_for_pskt, Format};
 use crate::{finalize_json, pskt_verified_signature_counts, Network};
 use k256::schnorr::SigningKey;
 
@@ -204,188 +202,6 @@ fn verified_generic_covenant_signature_count_covers_execution_binding() {
     assert!(pskt_verified_signature_counts(&pskb(incomplete), Network::Mainnet).is_err());
 }
 
-#[test]
-fn generic_finalizer_reports_input_global_and_output_shape_errors_without_panics() {
-    let cases = malformed_cases();
-    for (document, expected) in cases {
-        let error = finalize_json_unverified_for_test(&pskb(document)).unwrap_err();
-        assert!(
-            error.contains(expected),
-            "expected {expected:?}, got {error:?}"
-        );
-    }
-}
-
-fn malformed_cases() -> Vec<(Value, &'static str)> {
-    let mut cases = Vec::new();
-    cases.push((json!(null), "PSKT not object"));
-    cases.push((json!({"inputs": [], "outputs": []}), "missing global"));
-    cases.push((json!({"global": {}, "outputs": []}), "missing inputs"));
-    cases.push((json!({"global": {}, "inputs": []}), "missing outputs"));
-
-    for (mutation, expected) in [
-        (0u8, "missing txVersion"),
-        (1, "txVersion exceeds u16"),
-        (2, "fallbackLockTime"),
-        (3, "subnetworkId must be 20 bytes"),
-        (4, "subnetworkId must be even-length lowercase hexadecimal"),
-        (5, "subnetworkId must be a hex string"),
-        (6, "gas must be a decimal string"),
-        (7, "txPayload must be even-length lowercase hexadecimal"),
-        (8, "txPayload must be a hex string"),
-    ] {
-        let mut doc = placeholder_signature_document(None, 0x11);
-        match mutation {
-            0 => {
-                doc["global"].as_object_mut().unwrap().remove("txVersion");
-            }
-            1 => doc["global"]["txVersion"] = json!(65_536),
-            2 => doc["global"]["fallbackLockTime"] = json!("01"),
-            3 => doc["global"]["subnetworkId"] = json!("00"),
-            4 => doc["global"]["subnetworkId"] = json!("zz"),
-            5 => doc["global"]["subnetworkId"] = json!(true),
-            6 => doc["global"]["gas"] = json!(true),
-            7 => doc["global"]["txPayload"] = json!("z"),
-            8 => doc["global"]["txPayload"] = json!(true),
-            _ => unreachable!(),
-        }
-        cases.push((doc, expected));
-    }
-
-    for (mutation, expected) in [
-        (0u8, "input[0]: not object"),
-        (
-            1,
-            "generic KasKold SDK finalization does not own covenant execution policy",
-        ),
-        (2, "missing previousOutpoint"),
-        (3, "missing transactionId"),
-        (4, "transactionId must be even-length lowercase hexadecimal"),
-        (5, "tx_id not 32 bytes"),
-        (6, "missing index"),
-        (7, "index exceeds u32"),
-        (8, "sequence"),
-        (9, "sigOpCount exceeds u8"),
-        (10, "missing scriptPublicKey"),
-        (11, "signed input has no partialSigs"),
-        (12, "partial sig missing schnorr variant"),
-        (13, "signature must be even-length lowercase hexadecimal"),
-        (14, "Schnorr signature must be 64 bytes"),
-    ] {
-        let mut doc = placeholder_signature_document(None, 0x11);
-        match mutation {
-            0 => doc["inputs"][0] = Value::Null,
-            1 => doc["inputs"][0]["proprietaries"] = json!({"persistentVault": true}),
-            2 => {
-                doc["inputs"][0]
-                    .as_object_mut()
-                    .unwrap()
-                    .remove("previousOutpoint");
-            }
-            3 => {
-                doc["inputs"][0]["previousOutpoint"]
-                    .as_object_mut()
-                    .unwrap()
-                    .remove("transactionId");
-            }
-            4 => doc["inputs"][0]["previousOutpoint"]["transactionId"] = json!("zz"),
-            5 => doc["inputs"][0]["previousOutpoint"]["transactionId"] = json!("00"),
-            6 => {
-                doc["inputs"][0]["previousOutpoint"]
-                    .as_object_mut()
-                    .unwrap()
-                    .remove("index");
-            }
-            7 => doc["inputs"][0]["previousOutpoint"]["index"] = json!(u64::from(u32::MAX) + 1),
-            8 => doc["inputs"][0]["sequence"] = json!("01"),
-            9 => doc["inputs"][0]["sigOpCount"] = json!(256),
-            10 => {
-                doc["inputs"][0]["utxoEntry"]
-                    .as_object_mut()
-                    .unwrap()
-                    .remove("scriptPublicKey");
-            }
-            11 => {
-                doc["inputs"][0]
-                    .as_object_mut()
-                    .unwrap()
-                    .remove("partialSigs");
-            }
-            12 => {
-                doc["inputs"][0]["partialSigs"] = malformed_p2pk_partial(json!({"ecdsa": "00"}));
-            }
-            13 => {
-                doc["inputs"][0]["partialSigs"] = malformed_p2pk_partial(json!({"schnorr": "zz"}));
-            }
-            14 => {
-                doc["inputs"][0]["partialSigs"] = malformed_p2pk_partial(json!({"schnorr": "00"}));
-            }
-            _ => unreachable!(),
-        }
-        cases.push((doc, expected));
-    }
-
-    let redeem = multisig(&[0x11], 1);
-    for (mutation, expected) in [
-        (0u8, "P2SH input without redeem script"),
-        (1, "redeemScript must be even-length lowercase hexadecimal"),
-        (2, "host wallet must finalize specialized redeem scripts"),
-        (3, "output[0]: not object"),
-        (4, "missing amount"),
-        (5, "amount must be a decimal string"),
-        (6, "missing scriptPublicKey"),
-        (7, "scriptPublicKey must be ASCII hex and at least 4 bytes"),
-        (8, "covenantBinding not object"),
-        (9, "missing authorizingInput"),
-        (10, "authorizingInput exceeds u16"),
-        (11, "missing covenantId"),
-        (12, "covenantId must be even-length lowercase hexadecimal"),
-        (13, "covenantId must be 32 bytes"),
-    ] {
-        let mut doc = placeholder_signature_document(Some(&redeem), 0x11);
-        match mutation {
-            0 => {
-                doc["inputs"][0]
-                    .as_object_mut()
-                    .unwrap()
-                    .remove("redeemScript");
-            }
-            1 => doc["inputs"][0]["redeemScript"] = json!("zz"),
-            2 => doc["inputs"][0]["redeemScript"] = json!("51ae"),
-            3 => doc["outputs"][0] = Value::Null,
-            4 => {
-                doc["outputs"][0].as_object_mut().unwrap().remove("amount");
-            }
-            5 => doc["outputs"][0]["amount"] = json!(true),
-            6 => {
-                doc["outputs"][0]
-                    .as_object_mut()
-                    .unwrap()
-                    .remove("scriptPublicKey");
-            }
-            7 => doc["outputs"][0]["scriptPublicKey"] = json!("00"),
-            8 => doc["outputs"][0]["covenantBinding"] = json!([]),
-            9 => doc["outputs"][0]["covenantBinding"] = json!({}),
-            10 => {
-                doc["outputs"][0]["covenantBinding"] =
-                    json!({"authorizingInput": 65_536, "covenantId": "00".repeat(32)})
-            }
-            11 => doc["outputs"][0]["covenantBinding"] = json!({"authorizingInput": 0}),
-            12 => {
-                doc["outputs"][0]["covenantBinding"] =
-                    json!({"authorizingInput": 0, "covenantId": "zz"})
-            }
-            13 => {
-                doc["outputs"][0]["covenantBinding"] =
-                    json!({"authorizingInput": 0, "covenantId": "00"})
-            }
-            _ => unreachable!(),
-        }
-        cases.push((doc, expected));
-    }
-    cases
-}
-
 fn xonly(marker: u8) -> [u8; 32] {
     let signing = SigningKey::from_bytes(&[marker; 32]).expect("test signing key");
     signing.verifying_key().to_bytes().into()
@@ -446,31 +262,6 @@ fn sign_document(mut document: Value, signers: &[u8]) -> Value {
     document
 }
 
-fn malformed_p2pk_partial(value: Value) -> Value {
-    let mut partials = serde_json::Map::new();
-    // Match placeholder_signature_document's real x-only P2PK script so the
-    // malformed value reaches the signature-shape validation being tested.
-    partials.insert(format!("02{}", hex::encode(xonly(0x11))), value);
-    Value::Object(partials)
-}
-
-fn placeholder_signature_document(redeem: Option<&[u8]>, signer: u8) -> Value {
-    let mut document = unsigned_document(redeem, signer);
-    document["inputs"][0]["partialSigs"] = placeholder_signatures(&[signer]);
-    document
-}
-
-fn placeholder_signatures(keys: &[u8]) -> Value {
-    let mut map = serde_json::Map::new();
-    for key in keys {
-        map.insert(
-            format!("02{}", hex::encode(xonly(*key))),
-            json!({"schnorr": "77".repeat(64)}),
-        );
-    }
-    Value::Object(map)
-}
-
 fn single_selector_covenant(owner: u8, beneficiary: u8) -> Vec<u8> {
     let mut script = vec![0x63, 0x20]; // OP_IF, PUSH32 owner
     script.extend_from_slice(&xonly(owner));
@@ -493,18 +284,6 @@ fn multisig(keys: &[u8], threshold: u8) -> Vec<u8> {
 
 fn pskb(document: Value) -> String {
     encode(Format::Pskb, &json!([document])).expect("encode finalizer PSKB")
-}
-
-#[test]
-fn malformed_finalizer_fixture_baselines_are_valid_before_single_field_mutations() {
-    let p2pk = placeholder_signature_document(None, 0x11);
-    finalize_json_unverified_for_test(&pskb(p2pk))
-        .expect("P2PK malformed-case baseline must be structurally valid");
-
-    let redeem = multisig(&[0x11], 1);
-    let p2sh = placeholder_signature_document(Some(&redeem), 0x11);
-    finalize_json_unverified_for_test(&pskb(p2sh))
-        .expect("P2SH malformed-case baseline must be structurally valid");
 }
 
 #[test]

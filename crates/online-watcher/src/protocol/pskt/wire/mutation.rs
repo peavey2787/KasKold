@@ -7,22 +7,6 @@ use serde_json::Value;
 use super::{decode_root, detect_format_hex, encode_root, first_pskt_from_pskb_mut};
 use crate::protocol::pskt::PsktFormat;
 
-/// Set `global.txPayload` on the first PSKT in an existing PSKB wire.
-#[cfg(test)]
-pub fn inject_tx_payload(wire_hex: &str, payload: &[u8]) -> Result<String, String> {
-    if detect_format_hex(wire_hex) != PsktFormat::Pskb {
-        return Err("inject_tx_payload: not a PSKB wire".into());
-    }
-    let (format, mut root) = decode_root(wire_hex)?;
-    let pskt = first_pskt_from_pskb_mut(&mut root)?;
-    let global = pskt
-        .get_mut("global")
-        .and_then(Value::as_object_mut)
-        .ok_or_else(|| "missing global".to_string())?;
-    global.insert("txPayload".to_string(), Value::String(hex::encode(payload)));
-    encode_root(format, &root)
-}
-
 /// Stamp a transaction lane and payload into an existing PSKB wire.
 pub fn set_tx_lane(
     wire_hex: &str,
@@ -59,7 +43,7 @@ pub fn set_tx_lane(
     let global = pskt
         .get_mut("global")
         .and_then(Value::as_object_mut)
-        .ok_or_else(|| "missing global".to_string())?;
+        .ok_or("missing global".to_string())?;
     global.insert(
         "subnetworkId".to_string(),
         Value::String(hex::encode(subnetwork_id)),

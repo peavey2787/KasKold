@@ -341,8 +341,8 @@ class SecurityHardeningTests(unittest.TestCase):
                 "Mutant": {
                     "name": name,
                     "package": "shared-signer",
-                    "file": "crates/shared-signer/src/bytes.rs",
-                    "function": {"function_name": "constant_time_eq_32"},
+                    "file": "crates/kaskold-hardware-core/src/security.rs",
+                    "function": {"function_name": "timing_observations_usable"},
                     "replacement": "false",
                     "genre": "FnValue",
                 }
@@ -387,7 +387,7 @@ class SecurityHardeningTests(unittest.TestCase):
         self.assertEqual(policy["minimum_score_percent"], 100.0)
         self.assertEqual(policy["maximum_timeouts"], 0)
         self.assertEqual(policy["equivalent_mutants"], [])
-        self.assertIn("crates/online-watcher/src/privacy/stealth/derivation.rs", policy["include_globs"])
+        self.assertIn("crates/online-watcher/src/protocol/transaction/sighash.rs", policy["include_globs"])
         self.assertNotIn("crates/online-watcher/src/contracts/zk/rng.rs", policy["include_globs"])
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -419,7 +419,7 @@ class SecurityHardeningTests(unittest.TestCase):
             output_parent = root / "mutation"
             output = output_parent / "mutants.out"
             caught = self._crypto_outcome("crypto-windows-path", "CaughtMutant")
-            caught["scenario"]["Mutant"]["file"] = r"crates\shared-signer\src\bytes.rs"
+            caught["scenario"]["Mutant"]["file"] = r"crates\kaskold-hardware-core\src\security.rs"
             self._write_crypto_evidence(output, [caught])
             old_run_dir = os.environ.get("KASKOLD_SECURITY_RUN_DIR")
             os.environ["KASKOLD_SECURITY_RUN_DIR"] = str(root / "persisted")
@@ -435,7 +435,7 @@ class SecurityHardeningTests(unittest.TestCase):
             self.assertEqual(errors, [])
             self.assertEqual(
                 report["domain_files_with_mutants"],
-                ["crates/shared-signer/src/bytes.rs"],
+                ["crates/kaskold-hardware-core/src/security.rs"],
             )
 
     def test_crypto_mutation_domain_rejects_missed_and_timeout_mutants(self) -> None:
@@ -463,11 +463,11 @@ class SecurityHardeningTests(unittest.TestCase):
     def test_crypto_equivalent_mutant_requires_exact_current_miss_and_refactor_record(self) -> None:
         policy = mutation._load_crypto_policy()
         equivalent_name = "equivalent-after-refactor"
-        source_file = "crates/shared-signer/src/bytes.rs"
+        source_file = "crates/kaskold-hardware-core/src/security.rs"
         policy["equivalent_mutants"] = [{
             "name": equivalent_name,
             "file": source_file,
-            "function": "constant_time_eq_32",
+            "function": "timing_observations_usable",
             "replacement": "false",
             "source_sha256": mutation._sha256_file(ROOT / source_file),
             "justification": "The replacement is mathematically identical for disjoint bit lanes.",
@@ -507,12 +507,12 @@ class SecurityHardeningTests(unittest.TestCase):
 
     def test_crypto_equivalent_mutant_rejects_test_difficulty_and_identity_drift(self) -> None:
         policy = mutation._load_crypto_policy()
-        source_file = "crates/shared-signer/src/bytes.rs"
+        source_file = "crates/kaskold-hardware-core/src/security.rs"
         equivalent_name = "equivalent-after-refactor"
         base_entry = {
             "name": equivalent_name,
             "file": source_file,
-            "function": "constant_time_eq_32",
+            "function": "timing_observations_usable",
             "replacement": "false",
             "source_sha256": mutation._sha256_file(ROOT / source_file),
             "justification": "The replacement is mathematically identical after the attempted simplification.",
@@ -1321,7 +1321,7 @@ class SecurityHardeningTests(unittest.TestCase):
         self.assertIn('_cargo_metadata(toolchain, "--locked")', mutation_support)
         self.assertIn('lockfile.write_bytes(original)', mutation_support)
         targets = registered_targets()
-        self.assertEqual(len(targets), 10)
+        self.assertEqual(len(targets), 13)
 
         manifest = (ROOT / "qa/fuzz/Cargo.toml").read_text()
         self.assertIn('libfuzzer-sys = "=0.4.13"', manifest)

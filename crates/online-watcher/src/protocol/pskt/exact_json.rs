@@ -11,7 +11,7 @@ pub(crate) fn parse_exact_u64(value: &Value, field: &str) -> Result<u64, String>
 pub(crate) fn canonicalize_pskt_exact_fields(pskt: &mut Value) -> Result<(), String> {
     let document = pskt
         .as_object_mut()
-        .ok_or_else(|| "PSKT must be an object".to_string())?;
+        .ok_or("PSKT must be an object".to_string())?;
     canonicalize_global(document)?;
     canonicalize_inputs(document)?;
     canonicalize_outputs(document)
@@ -38,7 +38,7 @@ fn canonicalize_inputs(document: &mut Map<String, Value>) -> Result<(), String> 
 fn canonicalize_input(input: &mut Value, index: usize) -> Result<(), String> {
     let object = input
         .as_object_mut()
-        .ok_or_else(|| format!("input[{index}] must be an object"))?;
+        .ok_or(format!("input[{index}] must be an object"))?;
     canonicalize_optional_field(object, "sequence")?;
     canonicalize_optional_field(object, "minTime")?;
     if let Some(utxo) = object.get_mut("utxoEntry").and_then(Value::as_object_mut) {
@@ -55,16 +55,14 @@ fn canonicalize_outputs(document: &mut Map<String, Value>) -> Result<(), String>
     for (index, output) in outputs.iter_mut().enumerate() {
         let object = output
             .as_object_mut()
-            .ok_or_else(|| format!("output[{index}] must be an object"))?;
+            .ok_or(format!("output[{index}] must be an object"))?;
         canonicalize_required_field(object, "amount")?;
     }
     Ok(())
 }
 
 fn canonicalize_required_field(object: &mut Map<String, Value>, field: &str) -> Result<(), String> {
-    let value = object
-        .get(field)
-        .ok_or_else(|| format!("missing {field}"))?;
+    let value = object.get(field).ok_or(format!("missing {field}"))?;
     let parsed = parse_exact_u64(value, field)?;
     object.insert(field.to_string(), Value::String(parsed.to_string()));
     Ok(())
@@ -85,14 +83,12 @@ fn canonicalize_optional_field(object: &mut Map<String, Value>, field: &str) -> 
 fn parse_decimal_u64(text: &str, field: &str) -> Result<u64, String> {
     kaskold_protocol::wire::pskt_schema::parse_canonical_u64_bytes(text.as_bytes()).map_err(
         |error| match error {
-            kaskold_protocol::wire::pskt_schema::JsonNumberError::NonCanonical => {
-                format!("{field} must be a canonical unsigned decimal string")
-            }
             kaskold_protocol::wire::pskt_schema::JsonNumberError::Overflow => {
                 format!("{field} exceeds u64")
             }
-            kaskold_protocol::wire::pskt_schema::JsonNumberError::LegacyUnsafeInteger => {
-                unreachable!()
+            kaskold_protocol::wire::pskt_schema::JsonNumberError::NonCanonical
+            | kaskold_protocol::wire::pskt_schema::JsonNumberError::LegacyUnsafeInteger => {
+                format!("{field} must be a canonical unsigned decimal string")
             }
         },
     )
@@ -101,7 +97,7 @@ fn parse_decimal_u64(text: &str, field: &str) -> Result<u64, String> {
 fn parse_legacy_safe_number(number: &Number, field: &str) -> Result<u64, String> {
     let value = number
         .as_u64()
-        .ok_or_else(|| format!("{field} must be an unsigned integer"))?;
+        .ok_or(format!("{field} must be an unsigned integer"))?;
     if !kaskold_protocol::wire::pskt_schema::legacy_json_integer_is_exact(value) {
         return Err(format!(
             "legacy numeric {field} exceeds JavaScript's exact integer range; encode it as a decimal string"

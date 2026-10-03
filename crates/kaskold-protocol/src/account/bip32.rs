@@ -4,7 +4,8 @@
 //
 // bip32.rs — Parse kpub, derive receive/change addresses.
 // Pure Rust using k256 crate (no C, no ring).
-// Derived from the KasSigner offline-signer and Companion implementations (GPL-3.0).
+// Derived from the upstream offline-signer and Companion implementations (GPL-3.0);
+// see docs/legal/UPSTREAM_ATTRIBUTION.md.
 
 //! BIP-32 hierarchical key derivation and the watch-only wallet descriptor model.
 

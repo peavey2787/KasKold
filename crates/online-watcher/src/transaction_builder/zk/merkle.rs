@@ -102,7 +102,7 @@ pub(crate) fn parse_merkle_proof(value: &str) -> Result<Vec<serde_json::Value>, 
 pub(crate) fn merkle_total(utxos: &[crate::account::utxo::UtxoEntry]) -> Result<u64, String> {
     utxos.iter().try_fold(0u64, |sum, utxo| {
         sum.checked_add(utxo.amount)
-            .ok_or_else(|| "Merkle covenant balance overflow".to_string())
+            .ok_or("Merkle covenant balance overflow".to_string())
     })
 }
 
@@ -124,7 +124,7 @@ pub(crate) fn require_merkle_send(send_amount: u64) -> Result<(), String> {
 pub(crate) fn merkle_required(send_amount: u64, fee: u64) -> Result<u64, String> {
     send_amount
         .checked_add(fee)
-        .ok_or_else(|| "Merkle spend amount overflow".to_string())
+        .ok_or("Merkle spend amount overflow".to_string())
 }
 
 pub(crate) fn require_merkle_balance(
@@ -236,21 +236,19 @@ pub(crate) fn merkle_spend_fee(
     input_count: usize,
     proof_depth: usize,
 ) -> Result<u64, String> {
-    let input_count =
-        u64::try_from(input_count).map_err(|_| "Merkle input count overflow".to_string())?;
-    let proof_depth =
-        u64::try_from(proof_depth).map_err(|_| "Merkle proof depth overflow".to_string())?;
+    let input_count = input_count as u64;
+    let proof_depth = proof_depth as u64;
     let per_input_mass = proof_depth
         .checked_mul(40)
         .and_then(|value| value.checked_add(1270))
-        .ok_or_else(|| "Merkle mass overflow".to_string())?;
+        .ok_or("Merkle mass overflow".to_string())?;
     let compute_mass = input_count
         .checked_mul(per_input_mass)
         .and_then(|value| value.checked_add(769))
-        .ok_or_else(|| "Merkle mass overflow".to_string())?;
+        .ok_or("Merkle mass overflow".to_string())?;
     let mass_fee = compute_mass
         .checked_mul(115)
-        .ok_or_else(|| "Merkle fee overflow".to_string())?;
+        .ok_or("Merkle fee overflow".to_string())?;
     Ok(requested_fee.max(mass_fee))
 }
 

@@ -17,7 +17,7 @@ pub fn select_automatic_with_limit(
     for utxo in utxos.into_iter().take(max_inputs) {
         total = total
             .checked_add(utxo.amount)
-            .ok_or_else(|| "UTXO total exceeds supported monetary range".to_string())?;
+            .ok_or("UTXO total exceeds supported monetary range".to_string())?;
         selected.push(utxo);
         if total >= required {
             return Ok(selected);

@@ -784,3 +784,30 @@ fn allowance_prepare_material_has_host_native_coverage() {
         Err(error) if error.contains("too small")
     ));
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn automatic_covenant_sweep_fails_closed_without_a_browser_transport() {
+    use super::sweep::{build_automatic, CovenantSweepConfig, CovenantSweepSpec};
+    use crate::wasm_api::test_support::ready;
+
+    let covenant = crate::account::address::encode_p2pk_address(&[0x61; 32], "kaspa");
+    let destination = crate::account::address::encode_p2pk_address(&[0x62; 32], "kaspa");
+    let spec = CovenantSweepSpec {
+        covenant_address: &covenant,
+        destination_address: &destination,
+        fee: 1_000_000,
+        empty_error: "no covenant UTXOs",
+        low_balance_error: "covenant balance too low",
+        config: CovenantSweepConfig {
+            redeem_script: &[0x51],
+            input_sequence: 0,
+            lock_time: 0,
+            branch: None,
+            minimum_signatures: None,
+        },
+    };
+    let error =
+        ready(build_automatic("ws://unused", spec)).expect_err("native host has no transport");
+    assert!(error.contains("unavailable on native hosts"), "{error}");
+}

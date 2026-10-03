@@ -3,7 +3,7 @@ import sys as _portal_sys
 from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
-from portal_source import kaskold_source  # noqa: E402
+from portal_source import kaskold_source, module_text  # noqa: E402
 import json
 import sys
 import unittest
@@ -27,12 +27,7 @@ class ZeroWarningRemediationTests(unittest.TestCase):
         self.assertEqual(warnings, [], "production source-complexity warnings must stay at zero")
 
     def test_value_narrowing_in_restored_pskt_paths_is_checked(self):
-        consensus_input = (ROOT / "crates/online-watcher/src/protocol/pskt/consensus/input.rs").read_text()
-        consensus_output = (ROOT / "crates/online-watcher/src/protocol/pskt/consensus/output.rs").read_text()
         review_input = (ROOT / "crates/online-watcher/src/protocol/pskt/review/input.rs").read_text()
-        self.assertIn("u32::try_from", consensus_input)
-        self.assertIn("u8::try_from", consensus_input)
-        self.assertIn("u16::try_from", consensus_output)
         self.assertIn("u32::try_from", review_input)
 
     def test_offline_parser_result_contracts_compile_cleanly(self):
@@ -54,32 +49,14 @@ class ZeroWarningRemediationTests(unittest.TestCase):
 
 
 
-    def test_native_online_watcher_excludes_wasm_response_only_helpers(self):
-        websocket = (ROOT / "crates/online-watcher/src/infrastructure/browser_websocket.rs").read_text()
-        wrpc_mod = (ROOT / "crates/online-watcher/src/network/wrpc/mod.rs").read_text()
-        operation = (ROOT / "crates/online-watcher/src/network/wrpc/operation.rs").read_text()
-
-        self.assertIn(
-            '#[cfg(any(target_arch = "wasm32", test))]\npub(super) fn validate_response(',
-            websocket,
-        )
-        self.assertIn(
-            '#[cfg(any(target_arch = "wasm32", test))]\npub(crate) mod error_payload;',
-            wrpc_mod,
-        )
-        self.assertIn(
-            '#[cfg(any(target_arch = "wasm32", test))]\npub(crate) mod response;',
-            wrpc_mod,
-        )
-        self.assertIn(
-            '#[cfg(any(target_arch = "wasm32", test))]\n    GetSink,',
-            operation,
-        )
-        self.assertIn(
-            '#[cfg(any(target_arch = "wasm32", test))]\n    pub const fn from_code',
-            operation,
-        )
-        self.assertNotIn('#[allow(dead_code)]', websocket + wrpc_mod + operation)
+    def test_native_online_watcher_has_no_browser_transport_on_host(self):
+        # The wRPC codec and browser transport are Kaspa Portal's; native
+        # Companion builds must fail closed instead of opening sockets.
+        network = (ROOT / "crates/online-watcher/src/network/mod.rs").read_text()
+        self.assertIn('#[cfg(target_arch = "wasm32")]', network)
+        self.assertIn('#[cfg(not(target_arch = "wasm32"))]', network)
+        self.assertIn("unavailable on native hosts", network)
+        self.assertNotIn("#[allow(dead_code)]", network)
 
     def test_board_specific_display_and_gpio_primitives_live_with_their_board(self):
         shared_display = (ROOT / "apps/kaskold-hardware/src/hw/shared/display.rs").read_text()
@@ -96,23 +73,18 @@ class ZeroWarningRemediationTests(unittest.TestCase):
         self.assertEqual({path.name for path in (ROOT / "apps/kaskold-hardware/src/hw").iterdir() if path.is_dir()}, {"m5stack", "shared"})
 
     def test_final_measured_warning_targets_remain_decomposed_and_covered(self):
-        utxo = (ROOT / "crates/online-watcher/src/network/codec/responses/utxo.rs").read_text()
-        utxo_tests = (ROOT / "crates/online-watcher/src/network/unit_tests/utxo_response.rs").read_text()
         signed = (ROOT / "crates/online-watcher/src/protocol/transaction/signed_kspt.rs").read_text()
         signed_tests = (ROOT / "crates/online-watcher/src/protocol/transaction/unit_tests/signed_kspt.rs").read_text()
 
-        self.assertIn("fn skip_present_entry_metadata", utxo)
-        self.assertIn("utxo_response_skips_present_optional_metadata_and_rejects_truncation", utxo_tests)
-        canonical_decode = (ROOT / "crates/kaskold-protocol/src/wire/kspt/decode.rs").read_text()
+        canonical_decode = module_text("crates/kaskold-protocol/src/wire/kspt/decode.rs")
         canonical_tests = (ROOT / "crates/kaskold-protocol/src/unit_tests/kspt_wire/mod.rs").read_text()
-        self.assertIn("kspt::decode(bytes, &mut sink)", signed)
-        self.assertIn("signed_kspt_global_fields_cover_payload_and_truncation_boundaries", signed_tests)
+        self.assertIn("verify_complete_kspt(&bytes)", signed)
+        self.assertIn("production_decoder_rejects_placeholder_signature_before_consensus_assembly", signed_tests)
         self.assertIn("fn read_global", canonical_decode)
         self.assertIn("canonical_codec_round_trips_every_v4_trailer", canonical_tests)
 
         records = production_records(ROOT)
         targets = {
-            ("crates/online-watcher/src/network/codec/responses/utxo.rs", "skip_entry_metadata"),
             ("crates/online-watcher/src/protocol/transaction/signed_kspt.rs", "decode_signed_kspt"),
         }
         found = {(record.path, record.name): record.decisions for record in records if (record.path, record.name) in targets}
@@ -123,8 +95,6 @@ class ZeroWarningRemediationTests(unittest.TestCase):
         records = production_records(ROOT)
         targets = {
             ("crates/online-watcher/src/protocol/transaction/signed_kspt.rs", "decode_signed_kspt"),
-            ("crates/online-watcher/src/protocol/pskt/consensus/input.rs", "build_consensus_input"),
-            ("crates/online-watcher/src/protocol/pskt/consensus/output.rs", "build_consensus_output"),
         }
         found = {(record.path, record.name): record.decisions for record in records if (record.path, record.name) in targets}
         self.assertEqual(set(found), targets)

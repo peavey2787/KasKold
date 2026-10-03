@@ -1,3 +1,5 @@
+mod export_fail_closed;
+
 use serde::Deserialize;
 
 use super::common::{

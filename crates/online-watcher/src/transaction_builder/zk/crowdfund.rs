@@ -62,22 +62,22 @@ pub(super) fn summarize_contributions(
         let total = checked_total(&utxos)?;
         grand_total = grand_total
             .checked_add(total)
-            .ok_or_else(|| "Crowdfund total overflow".to_string())?;
+            .ok_or("Crowdfund total overflow".to_string())?;
         input_count = input_count
             .checked_add(utxos.len())
-            .ok_or_else(|| "Crowdfund input count overflow".to_string())?;
+            .ok_or("Crowdfund input count overflow".to_string())?;
         totals.push(serde_json::json!({
             "address": contribution.address,
             "amount_sompi": total.to_string(),
             "utxo_count": utxos.len(),
         }));
     }
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "contributions": totals,
         "total_sompi": grand_total.to_string(),
         "input_count": input_count,
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -158,7 +158,7 @@ pub(crate) fn prepare_crowdfund_sweep(
     let fee = calculate_fee(request.requested_fee, inputs.len())?;
     let send_amount = actual_total
         .checked_sub(fee)
-        .ok_or_else(|| "Crowdfunding balance does not cover its fee".to_string())?;
+        .ok_or("Crowdfunding balance does not cover its fee".to_string())?;
     let output = ConsensusOutput {
         value: send_amount,
         spk_version: 0,
@@ -256,7 +256,7 @@ fn build_campaign_inputs(
             }
             actual_total = actual_total
                 .checked_add(utxo.amount)
-                .ok_or_else(|| "Crowdfunding transaction total overflow".to_string())?;
+                .ok_or("Crowdfunding transaction total overflow".to_string())?;
             inputs.push(build_input(
                 utxo,
                 &material.public_input,
@@ -403,13 +403,12 @@ fn validate_sweep_totals(
 }
 
 fn calculate_fee(requested: u64, input_count: usize) -> Result<u64, String> {
-    let count = u64::try_from(input_count)
-        .map_err(|_| "Crowdfunding input count is too large".to_string())?;
+    let count = input_count as u64;
     let floor = cost::groth16_min_fee_sompi(1)
         .checked_mul(count)
         .and_then(|value| value.checked_mul(12))
         .map(|value| value / 10)
-        .ok_or_else(|| "Crowdfunding fee estimate overflow".to_string())?;
+        .ok_or("Crowdfunding fee estimate overflow".to_string())?;
     let fee = requested.max(floor);
     if fee > CROWDFUND_MAX_SWEEP_FEE_SOMPI {
         return Err(format!(
@@ -423,7 +422,7 @@ fn calculate_fee(requested: u64, input_count: usize) -> Result<u64, String> {
 fn checked_total(utxos: &[UtxoEntry]) -> Result<u64, String> {
     utxos.iter().try_fold(0u64, |sum, utxo| {
         sum.checked_add(utxo.amount)
-            .ok_or_else(|| "Crowdfunding balance overflow".to_string())
+            .ok_or("Crowdfunding balance overflow".to_string())
     })
 }
 
@@ -431,7 +430,7 @@ fn address_prefix(address: &str) -> Result<&str, String> {
     address
         .split_once(':')
         .map(|(prefix, _)| prefix)
-        .ok_or_else(|| "Crowdfunding address is missing a network prefix".to_string())
+        .ok_or("Crowdfunding address is missing a network prefix".to_string())
 }
 
 fn decode_hex_bounded(value: &str, field: &str, max_bytes: usize) -> Result<Vec<u8>, String> {

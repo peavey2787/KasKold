@@ -260,3 +260,83 @@ fn touch_tracker_defaults_match_fresh_trackers() {
         TouchAction::None
     );
 }
+
+#[test]
+fn camera_parameter_grid_covers_every_row_column_and_dead_zone() {
+    let select = |x, y, current| {
+        classify_immediate_touch(CameraTouchInput {
+            selected_parameter: current,
+            ..camera_input(x, y)
+        })
+    };
+    assert_eq!(
+        select(210, 40, 9),
+        CameraTouchEffect::SelectParameter(Some(0))
+    );
+    assert_eq!(
+        select(270, 40, 9),
+        CameraTouchEffect::SelectParameter(Some(1))
+    );
+    assert_eq!(
+        select(270, 100, 9),
+        CameraTouchEffect::SelectParameter(Some(3))
+    );
+    assert_eq!(
+        select(210, 140, 9),
+        CameraTouchEffect::SelectParameter(Some(4))
+    );
+    // Gaps between rows, the strip below the grid, and the current row are inert.
+    assert_eq!(select(210, 83, 9), CameraTouchEffect::SelectParameter(None));
+    assert_eq!(
+        select(210, 180, 9),
+        CameraTouchEffect::SelectParameter(None)
+    );
+    assert_eq!(select(210, 40, 0), CameraTouchEffect::SelectParameter(None));
+    // The tuning-exit strip ends at y = 36 and parameters end above y = 190.
+    assert_eq!(select(197, 30, 9), CameraTouchEffect::PassThrough);
+    assert_eq!(select(210, 190, 9), CameraTouchEffect::PassThrough);
+    assert_eq!(select(197, 100, 9), CameraTouchEffect::PassThrough);
+}
+
+#[test]
+fn transaction_review_and_confirm_regions_map_to_exact_effects() {
+    use crate::presentation::transaction::{reduce_touch, TransactionEffect, TransactionScreen};
+
+    let effect = |screen, x, y| reduce_touch(screen, x, y, false).effect;
+    assert_eq!(
+        effect(TransactionScreen::Review, 250, 200),
+        TransactionEffect::ReviewAdvance
+    );
+    assert_eq!(
+        effect(TransactionScreen::Review, 250, 100),
+        TransactionEffect::None
+    );
+    assert_eq!(
+        effect(TransactionScreen::Review, 100, 200),
+        TransactionEffect::None
+    );
+    assert_eq!(
+        effect(TransactionScreen::Confirm, 50, 200),
+        TransactionEffect::ConfirmChoice(0)
+    );
+    assert_eq!(
+        effect(TransactionScreen::Confirm, 250, 200),
+        TransactionEffect::ConfirmChoice(1)
+    );
+    assert_eq!(
+        effect(TransactionScreen::Confirm, 150, 200),
+        TransactionEffect::ConfirmChoice(2)
+    );
+    assert_eq!(
+        effect(TransactionScreen::Confirm, 150, 100),
+        TransactionEffect::None
+    );
+    assert_eq!(
+        effect(TransactionScreen::Confirm, 310, 200),
+        TransactionEffect::None
+    );
+    assert_eq!(
+        reduce_touch(TransactionScreen::Confirm, 0, 0, true).effect,
+        TransactionEffect::ConfirmBack
+    );
+}

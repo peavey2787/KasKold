@@ -68,3 +68,79 @@ fn oracle_and_zk_helpers_have_direct_function_coverage() {
 
     assert!(crate::contracts::covenant::oracle_v1::verify_attestation("00", "00", "00").is_err());
 }
+
+#[test]
+fn merkle_application_rejects_malformed_whitelists_proofs_and_roots() {
+    use crate::contracts::merkle::application::{
+        build_whitelist_json, proof_for_address, root_from_addresses,
+    };
+
+    let member = crate::account::address::encode_p2pk_address(&[0x11; 32], "kaspa");
+    let outsider = crate::account::address::encode_p2pk_address(&[0x99; 32], "kaspa");
+    let addresses = serde_json::to_string(&vec![member.clone()]).expect("addresses JSON");
+
+    assert!(root_from_addresses("not-json")
+        .unwrap_err()
+        .starts_with("Bad JSON"));
+    assert!(root_from_addresses(r#"["not-an-address"]"#).is_err());
+    assert!(proof_for_address("not-json", &member)
+        .unwrap_err()
+        .starts_with("Bad JSON"));
+    assert!(proof_for_address(r#"["not-an-address"]"#, &member).is_err());
+    assert!(proof_for_address(&addresses, "not-an-address").is_err());
+    assert_eq!(
+        proof_for_address(&addresses, &outsider),
+        Err("Address not found in whitelist".to_string())
+    );
+
+    let owner = "33".repeat(32);
+    assert!(build_whitelist_json("zz", &"44".repeat(32), 1, 0, "kaspa").is_err());
+    assert!(build_whitelist_json(&owner, "zz", 1, 0, "kaspa")
+        .unwrap_err()
+        .starts_with("Bad root hex"));
+    assert_eq!(
+        build_whitelist_json(&owner, &"44".repeat(31), 1, 0, "kaspa"),
+        Err("Merkle root must be 32 bytes, got 31".to_string())
+    );
+}
+
+#[test]
+fn oracle_v1_attestation_and_keys_reject_malformed_hex_and_points() {
+    use crate::contracts::covenant::oracle_v1::{
+        build_json_with_salt, checked_redeem_and_attestation, decode_attestation,
+    };
+
+    let key = |seed: u8| crate::wasm_api::test_support::xonly_key(seed);
+    let (owner, beneficiary, oracle) = (key(1), key(2), key(3));
+    let not_on_curve = "ff".repeat(32);
+
+    assert_eq!(
+        decode_attestation(&not_on_curve, &"11".repeat(64), &"22".repeat(32)).unwrap_err(),
+        "Oracle oracle key is not a valid secp256k1 x-only public key"
+    );
+    assert!(decode_attestation(&oracle, "zz", &"22".repeat(32))
+        .unwrap_err()
+        .starts_with("Bad oracle signature hex"));
+    assert!(decode_attestation(&oracle, &"11".repeat(64), "zz")
+        .unwrap_err()
+        .starts_with("Bad message commitment hex"));
+    assert!(
+        checked_redeem_and_attestation("zz", &oracle, &"11".repeat(64), &"22".repeat(32))
+            .unwrap_err()
+            .starts_with("Bad redeem hex")
+    );
+    assert_eq!(
+        build_json_with_salt(
+            &owner,
+            &beneficiary,
+            &oracle,
+            "zz",
+            "release",
+            1,
+            "kaspa",
+            [7; 16]
+        )
+        .unwrap_err(),
+        "Oracle covenant key ID must be 32-byte hex"
+    );
+}

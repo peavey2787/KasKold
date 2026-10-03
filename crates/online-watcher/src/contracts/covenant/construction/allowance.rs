@@ -19,15 +19,15 @@ pub(crate) fn build_local_json(
     );
     let address =
         crate::protocol::script::p2sh::script_to_address(&script, network_prefix(network))?;
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "address": address,
         "redeem_script_hex": hex::encode(&script),
         "max_withdraw_sompi": max_withdraw_sompi.to_string(),
         "min_sequence": min_sequence.to_string(),
         "start_daa": start_daa.to_string(),
         "type": "allowance",
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }
 
 pub(crate) fn build_global_json(
@@ -41,8 +41,7 @@ pub(crate) fn build_global_json(
     let owner = decode_pubkey32(owner_pubkey_hex)?;
     let beneficiary = decode_pubkey32(beneficiary_pubkey_hex)?;
     let mut salt = [0u8; 8];
-    crate::infrastructure::fill_secure_random(&mut salt)
-        .map_err(|error| format!("RNG failed: {error}"))?;
+    crate::infrastructure::fill_secure_random(&mut salt)?;
     let script = crate::contracts::covenant::script::build_global_allowance_script(
         &owner,
         &beneficiary,
@@ -53,7 +52,7 @@ pub(crate) fn build_global_json(
     );
     let address =
         crate::protocol::script::p2sh::script_to_address(&script, network_prefix(network))?;
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "address": address,
         "redeem_script_hex": hex::encode(&script),
         "max_withdraw_sompi": max_withdraw_sompi.to_string(),
@@ -61,6 +60,6 @@ pub(crate) fn build_global_json(
         "start_daa": start_daa.to_string(),
         "salt": hex::encode(salt),
         "type": "global_allowance",
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }

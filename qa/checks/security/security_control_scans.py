@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 from typing import Any, Iterable
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "qa/checks"))
+from portal_source import display_path, kaskold_source  # noqa: E402
 
 OFFLINE_FORBIDDEN = (
     "web-sys",
@@ -41,7 +44,7 @@ PANIC_PATTERN = re.compile(r"\.(?:unwrap|expect)\(|\b(?:panic|unreachable)!\(")
 
 
 def relative(path: Path) -> str:
-    return path.relative_to(ROOT).as_posix()
+    return display_path(path)
 
 
 def rust_files(roots: Iterable[str]) -> list[Path]:
@@ -68,7 +71,7 @@ def is_production_source(path: Path) -> bool:
 
 
 def collect_text(relative_path: str) -> tuple[list[str], str]:
-    path = ROOT / relative_path
+    path = kaskold_source(relative_path)
     if path.is_file():
         return [relative_path], path.read_text(encoding="utf-8", errors="replace")
     return [], ""
@@ -266,7 +269,7 @@ def strip_comment_only_evidence(text: str, suffix: str) -> str:
 
 def evidence_matches(relative_path: str, term: str) -> list[dict[str, Any]]:
     """Return non-comment, token-aware evidence locations and source fingerprints."""
-    path = ROOT / relative_path
+    path = kaskold_source(relative_path)
     if not path.is_file():
         return []
     original = path.read_text(encoding="utf-8", errors="replace")

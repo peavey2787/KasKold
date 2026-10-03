@@ -225,7 +225,7 @@ pub(super) fn encode_branch_summary(
     next_receive_address: &str,
     next_change_address: &str,
 ) -> Result<String, String> {
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "balance_sompi": summary.balance.to_string(),
         "utxo_count": summary.labelled.len(),
         "utxos": summary.labelled,
@@ -235,8 +235,8 @@ pub(super) fn encode_branch_summary(
         "next_change_address": next_change_address,
         "cosigner_index": cosigner,
         "depth": depth,
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }
 
 pub(super) async fn next_change_index(

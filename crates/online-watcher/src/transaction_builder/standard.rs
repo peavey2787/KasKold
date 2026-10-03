@@ -218,12 +218,11 @@ pub(super) fn storage_mass_fee(
     requested_fee: u64,
 ) -> Result<u64, String> {
     let minimum_fee = 300_000u64;
-    let input_count = u64::try_from(selected.len())
-        .map_err(|_| "Input count exceeds supported range".to_string())?;
+    let input_count = selected.len() as u64;
     let compute_mass = input_count
         .checked_mul(800)
         .and_then(|mass| mass.checked_add(2_000))
-        .ok_or_else(|| "Compute mass exceeds supported range".to_string())?;
+        .ok_or("Compute mass exceeds supported range".to_string())?;
     let inputs = selected
         .iter()
         .map(|utxo| (utxo.amount, 1u64))
@@ -240,7 +239,7 @@ pub(super) fn storage_mass_fee(
         let mass = amounts::storage_mass_estimate(&inputs, &outputs)?.max(compute_mass);
         fee = mass
             .checked_mul(110)
-            .ok_or_else(|| "Estimated fee exceeds supported range".to_string())?
+            .ok_or("Estimated fee exceeds supported range".to_string())?
             .max(minimum_fee);
     }
     Ok(fee.max(requested_fee))

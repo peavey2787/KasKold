@@ -394,7 +394,7 @@
         "paths": [
           "crates/offline-signer/src/crypto/*.rs",
           "crates/online-watcher/src/protocol/schnorr.rs",
-          "crates/online-watcher/src/protocol/private_swap/adaptor/*.rs",
+          "crates/online-watcher/src/protocol/private_swap/adaptor.rs",
           "crates/kaskold-hardware-core/src/security.rs"
         ],
         "target_branch_coverage_percent": 100.0
@@ -404,10 +404,7 @@
         "minimum_branch_coverage_percent": 90.0,
         "paths": [
           "crates/offline-signer/src/crypto/*.rs",
-          "crates/shared-signer/src/legacy_account_key.rs",
           "crates/online-watcher/src/account/bip32.rs",
-          "crates/online-watcher/src/privacy/stealth/derivation.rs",
-          "crates/online-watcher/src/privacy/stealth/keys.rs",
           "crates/online-watcher/src/wasm_api/wallet/keys.rs",
           "crates/online-watcher/src/protocol/schnorr.rs"
         ],
@@ -418,18 +415,12 @@
         "minimum_branch_coverage_percent": 90.0,
         "paths": [
           "crates/kaskold-hardware-core/src/storage/payload.rs",
-          "crates/shared-signer/src/legacy_account_key.rs",
           "crates/kaskold-protocol/src/wire/qr_payload.rs",
           "crates/kaskold-protocol/src/wire/multisig_descriptor.rs",
-          "crates/kaskold-protocol/src/wire/kspt/*.rs",
-          "crates/online-watcher/src/network/codec/**/*.rs",
-          "crates/online-watcher/src/network/wrpc/error_payload.rs",
-          "crates/online-watcher/src/network/wrpc/request.rs",
-          "crates/online-watcher/src/network/wrpc/response.rs",
+          "crates/kaskold-protocol/src/wire/kspt/**/*.rs",
           "crates/online-watcher/src/protocol/pskt/kspt_bridge/parser_compact.rs",
-          "crates/online-watcher/src/protocol/pskt/kspt_bridge/reader.rs",
           "crates/online-watcher/src/protocol/pskt/review/parser.rs",
-          "crates/online-watcher/src/protocol/pskt/wire/*.rs",
+          "crates/online-watcher/src/protocol/pskt/wire/**/*.rs",
           "crates/online-watcher/src/protocol/transaction/signed_kspt.rs"
         ],
         "target_branch_coverage_percent": 90.0
@@ -440,7 +431,6 @@
         "paths": [
           "crates/online-watcher/src/protocol/transaction/sighash.rs",
           "crates/online-watcher/src/protocol/transaction/signed_kspt.rs",
-          "crates/online-watcher/src/protocol/pskt/scripts/**/*.rs",
           "crates/kaskold-hardware-core/src/security.rs",
           "crates/online-watcher/src/protocol/schnorr.rs"
         ],
@@ -450,12 +440,11 @@
         "label": "transaction construction",
         "minimum_branch_coverage_percent": 90.0,
         "paths": [
-          "crates/kaskold-protocol/src/wire/kspt/*.rs",
+          "crates/kaskold-protocol/src/wire/kspt/**/*.rs",
           "crates/online-watcher/src/transaction_builder/**/*.rs",
           "crates/online-watcher/src/wasm_api/transactions/*.rs",
           "crates/online-watcher/src/contracts/**/*.rs",
-          "crates/online-watcher/src/protocol/pskt/consensus/*.rs",
-          "crates/online-watcher/src/protocol/pskt/scripts/**/*.rs"
+          "crates/online-watcher/src/protocol/pskt/consensus/*.rs"
         ],
         "target_branch_coverage_percent": 90.0
       },
@@ -463,7 +452,7 @@
         "label": "wallet recovery",
         "minimum_branch_coverage_percent": 90.0,
         "paths": [
-          "crates/shared-signer/src/legacy_account_key.rs"
+          "crates/hot-wallet/src/recovery_import.rs"
         ],
         "supplemental_coverage": "browser_recovery",
         "target_branch_coverage_percent": 90.0
@@ -541,17 +530,6 @@
           "LfnAccumulator",
           "scan_cluster",
           "read_fat_entry"
-        ]
-      },
-      {
-        "function": "parse_compact_kspt_signatures",
-        "path": "crates/online-watcher/src/protocol/pskt/kspt_bridge/parser_compact.rs",
-        "previous_complexity": 39,
-        "required_fragments": [
-          "parse_compact_kspt_transaction",
-          ".inputs",
-          ".signatures",
-          "sighash_type"
         ]
       }
     ],

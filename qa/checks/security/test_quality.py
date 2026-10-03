@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import glob
+import sys
 import json
 import re
 from pathlib import Path
@@ -12,6 +13,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[3]
 POLICY = ROOT / "qa/checks/security/policy.json"
+sys.path.insert(0, str(ROOT / "qa/checks"))
+from portal_source import display_path, kaskold_glob  # noqa: E402
 DEFAULT_OUTPUT = ROOT / "target/qa/security/test-quality.json"
 TEST_HEADER = re.compile(r"#\s*\[\s*(?:[A-Za-z_][\w:]*::)?test(?:\([^]]*\))?\s*\]")
 FUNCTION = re.compile(r"\bfn\s+([A-Za-z_][A-Za-z0-9_]*)\s*\([^)]*\)[^{]*\{")
@@ -276,10 +279,9 @@ def audit(policy_path: Path = POLICY) -> tuple[list[str], dict[str, Any]]:
         contents = []
         resolved = []
         for pattern in requirement.get("files", []):
-            matches = [Path(value) for value in glob.glob(str(ROOT / pattern), recursive=True)]
-            for path in matches:
+            for path in kaskold_glob(pattern):
                 if path.is_file():
-                    resolved.append(str(path.relative_to(ROOT)))
+                    resolved.append(display_path(path))
                     contents.append(path.read_text(errors="replace"))
         combined = "\n".join(contents).lower()
         missing = [term for term in requirement.get("terms", []) if term.lower() not in combined]

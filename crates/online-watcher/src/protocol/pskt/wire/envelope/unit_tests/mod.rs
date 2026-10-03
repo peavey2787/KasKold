@@ -244,9 +244,9 @@ fn canonical_input() -> Value {
 #[test]
 fn input_and_output_validation_cover_nested_optional_and_range_boundaries() {
     let limits = kaskold_protocol::SIGNER_CAPABILITIES;
-    assert!(validate_input(&json!(1), 0, 1, limits).is_err());
+    assert!(validate_input(&json!(1), 0, limits).is_err());
     let valid = canonical_input();
-    assert!(validate_input(&valid, 0, 1, limits).is_ok());
+    assert!(validate_input(&valid, 0, limits).is_ok());
 
     for mutate in [
         ("utxoEntry", json!([])),
@@ -255,24 +255,24 @@ fn input_and_output_validation_cover_nested_optional_and_range_boundaries() {
     ] {
         let mut input = canonical_input();
         input[mutate.0] = mutate.1;
-        assert!(validate_input(&input, 0, 1, limits).is_err());
+        assert!(validate_input(&input, 0, limits).is_err());
     }
 
     let mut input = canonical_input();
     input["utxoEntry"]["isCoinbase"] = Value::Null;
-    assert!(validate_input(&input, 0, 1, limits).is_err());
+    assert!(validate_input(&input, 0, limits).is_err());
     let mut input = canonical_input();
     input["utxoEntry"]["covenantId"] = json!("11");
-    assert!(validate_input(&input, 0, 1, limits).is_err());
+    assert!(validate_input(&input, 0, limits).is_err());
     let mut input = canonical_input();
     input["previousOutpoint"]["transactionId"] = json!("11");
-    assert!(validate_input(&input, 0, 1, limits).is_err());
+    assert!(validate_input(&input, 0, limits).is_err());
     let mut input = canonical_input();
     input["previousOutpoint"]["index"] = json!(u64::from(u32::MAX) + 1);
-    assert!(validate_input(&input, 0, 1, limits).is_err());
+    assert!(validate_input(&input, 0, limits).is_err());
     let mut input = canonical_input();
     input["sighashType"] = json!(2);
-    assert!(validate_input(&input, 0, 1, limits).is_err());
+    assert!(validate_input(&input, 0, limits).is_err());
 
     let valid_output = json!({"amount": 1, "scriptPublicKey": "0000", "proprietaries": {}});
     assert!(validate_output(&valid_output, 0, 1, limits).is_ok());
@@ -398,4 +398,118 @@ fn global_validation_covers_counts_payload_routes_and_every_supported_covenant_b
     let mut global = base();
     global.insert("covenantBranch".into(), json!("unknown-branch"));
     assert!(validate_global_fields(&global, 1, 1, limits).is_err());
+}
+
+#[test]
+fn input_signing_fields_cover_capability_shape_and_selector_boundaries() {
+    let limits = kaskold_protocol::SIGNER_CAPABILITIES;
+    let key = |byte: u8| format!("02{}", format!("{byte:02x}").repeat(32));
+    let schnorr = || json!({"schnorr": "11".repeat(64)});
+
+    let mut input = canonical_input();
+    input["finalScriptSig"] = json!("51");
+    assert!(validate_input(&input, 0, limits).is_ok());
+    input["finalScriptSig"] = json!("5");
+    assert!(validate_input(&input, 0, limits).is_err());
+
+    let too_many = usize::from(limits.max_signatures_per_input) + 1;
+    let mut input = canonical_input();
+    input["partialSigs"] = Value::Object(
+        (0..too_many)
+            .map(|i| (key(i as u8 + 1), schnorr()))
+            .collect(),
+    );
+    assert!(validate_input(&input, 0, limits)
+        .unwrap_err()
+        .contains("exceeds signer capability"));
+    let mut input = canonical_input();
+    input["bip32Derivations"] = Value::Object(
+        (0..too_many)
+            .map(|i| (key(i as u8 + 1), Value::Null))
+            .collect(),
+    );
+    assert!(validate_input(&input, 0, limits)
+        .unwrap_err()
+        .contains("exceeds signer capability"));
+
+    assert!(validate_partial_signature(&key(1), &schnorr(), 0).is_ok());
+    assert!(validate_partial_signature(&key(1), &json!({}), 0).is_err());
+    assert!(validate_partial_signature(
+        &key(1),
+        &json!({"schnorr": "11".repeat(64), "extra": 1}),
+        0
+    )
+    .is_err());
+    assert!(validate_derivation_entry(&key(1), &Value::Null, 0).is_ok());
+    assert!(validate_derivation_entry(&key(1), &json!({}), 0).is_ok());
+    assert!(validate_derivation_entry(&key(1), &json!(1), 0)
+        .unwrap_err()
+        .contains("object or null"));
+
+    let execution = |value: Value| value.as_object().cloned().expect("object");
+    assert!(validate_covenant_execution_shape(
+        &execution(json!({"suppliedMask": 1, "suppliedTrueMask": 1})),
+        0
+    )
+    .is_ok());
+    for bad_shape in [
+        json!({"suppliedMask": 1}),
+        json!({"suppliedMask": 1, "other": 1}),
+        json!({"suppliedMask": 1, "suppliedTrueMask": 1, "x": 1}),
+    ] {
+        assert!(validate_covenant_execution_shape(&execution(bad_shape), 0).is_err());
+    }
+    assert!(validate_covenant_execution_values(
+        &execution(json!({"suppliedMask": 3, "suppliedTrueMask": 1})),
+        0
+    )
+    .is_ok());
+    for bad_values in [
+        json!({"suppliedMask": 65_536, "suppliedTrueMask": 0}),
+        json!({"suppliedMask": 1, "suppliedTrueMask": 65_536}),
+        json!({"suppliedMask": 1, "suppliedTrueMask": 2}),
+    ] {
+        assert!(validate_covenant_execution_values(&execution(bad_values), 0).is_err());
+    }
+}
+
+#[test]
+fn output_binding_and_field_helpers_cover_remaining_rejections() {
+    let limits = kaskold_protocol::SIGNER_CAPABILITIES;
+    let output = |extra: Value| {
+        let mut value = json!({"amount": 1, "scriptPublicKey": "0000", "proprietaries": {}});
+        for (key, field) in extra.as_object().unwrap() {
+            value[key] = field.clone();
+        }
+        value
+    };
+    assert!(validate_output(&output(json!({"redeemScript": "51"})), 0, 1, limits).is_ok());
+    assert!(validate_output(&output(json!({"redeemScript": "5"})), 0, 1, limits).is_err());
+    let binding = |value: Value| output(json!({"covenantBinding": value}));
+    assert!(validate_output(&binding(json!({"authorizingInput": 0})), 0, 1, limits).is_err());
+    assert!(validate_output(
+        &binding(json!({"covenantId": "11".repeat(32)})),
+        0,
+        1,
+        limits
+    )
+    .is_err());
+    assert!(validate_output(
+        &binding(json!({"authorizingInput": 1, "covenantId": "11".repeat(32)})),
+        0,
+        1,
+        limits
+    )
+    .is_err());
+    assert!(validate_output(
+        &binding(json!({"authorizingInput": 0, "covenantId": "11".repeat(32)})),
+        0,
+        1,
+        limits
+    )
+    .is_ok());
+
+    assert!(validate_compressed_pubkey(&format!("04{}", "11".repeat(32)), "key").is_err());
+    let oversized = "00".repeat(usize::from(limits.max_script_bytes) + 3);
+    assert!(validate_output(&output(json!({"scriptPublicKey": oversized})), 0, 1, limits).is_err());
 }

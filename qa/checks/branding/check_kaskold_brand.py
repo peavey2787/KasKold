@@ -156,6 +156,16 @@ def _is_legal_history(relative: str) -> bool:
     )
 
 
+# GPL-3.0 attribution of the upstream project is legal text, not product
+# branding. A product-surface line may name the upstream only while it links the
+# authoritative attribution record in the same sentence.
+_ATTRIBUTION_LINK = "docs/legal/UPSTREAM_ATTRIBUTION.md"
+
+
+def _is_upstream_attribution(line: str) -> bool:
+    return _ATTRIBUTION_LINK in line
+
+
 def _is_upstream_copyright(line: str) -> bool:
     return "Copyright" in line and (
         "KasSigner Project" in line or "kassigner@proton.me" in line
@@ -204,7 +214,7 @@ def check(root: Path = ROOT) -> list[str]:
             continue
 
         for line_number, line in enumerate(text.splitlines(), 1):
-            if _is_upstream_copyright(line):
+            if _is_upstream_copyright(line) or _is_upstream_attribution(line):
                 continue
             forbidden = [token for token in _FORBIDDEN_ALWAYS if token in line]
             if forbidden:

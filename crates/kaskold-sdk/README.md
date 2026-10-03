@@ -62,7 +62,7 @@ See `docs/integration/WALLET_INTEGRATION.md` for pairing, derivation metadata, p
 
 ## License
 
-`kaskold-sdk`, `kaskold-protocol`, and `shared-signer` are licensed **GPL-3.0-only**, like all of KasKold, which is a fork of [KasSigner](https://github.com/InKasWeRust/KasSigner) (GPL-3.0). Wallets that integrate the SDK are distributed under the GPL's terms.
+`kaskold-sdk`, `kaskold-protocol`, and `shared-signer` are licensed **GPL-3.0-only**, like all of KasKold, which is a fork of [KasSigner](https://github.com/InKasWeRust/KasSigner) (GPL-3.0). See [upstream attribution](../../docs/legal/UPSTREAM_ATTRIBUTION.md). Wallets that integrate the SDK are distributed under the GPL's terms.
 
 ## Signer capabilities
 

@@ -23,7 +23,7 @@ Use this page as the navigation hub for project documentation. Component READMEs
 ## Build, qualify, and recover
 
 - [Build, Sign & Flash](development/BUILD_FLASH_GUIDE.md) and [Reproducible Builds](development/REPRODUCIBLE_BUILD.md).
-- [eFuse Runbook](EFUSE_RUNBOOK.md), [Entropy Sources](security/ENTROPY_SOURCES.md), [Pop It! and owner-authorized firmware](security/POP_IT_SECURE_BOOT.md), and [Steganographic Backup](security/STEGANOGRAPHY.md).
+- [eFuse Runbook](EFUSE_RUNBOOK.md), [Entropy Sources](security/ENTROPY_SOURCES.md), [Pop It! and owner-authorized firmware](security/POP_IT_SECURE_BOOT.md), [Steganographic Backup](security/STEGANOGRAPHY.md), and [PSKT parser and covenant hardening](security/PSKT_PARSER_COVENANT_HARDENING.md).
 - Printable/user-facing PDFs remain under [`docs/guides/`](guides/).
 
 For vulnerability reporting and repository security policy, use the top-level [SECURITY.md](../SECURITY.md). For release and compatibility history, use [CHANGELOG.md](../CHANGELOG.md).

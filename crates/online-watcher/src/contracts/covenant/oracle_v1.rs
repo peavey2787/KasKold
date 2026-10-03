@@ -27,8 +27,7 @@ pub(crate) fn build_json(
         locktime_daa,
     )?;
     let mut salt = [0u8; 16];
-    crate::infrastructure::fill_secure_random(&mut salt)
-        .map_err(|error| format!("RNG failed: {error}"))?;
+    crate::infrastructure::fill_secure_random(&mut salt)?;
     build_json_with_checked_inputs(
         owner_pubkey_hex,
         beneficiary_pubkey_hex,
@@ -104,7 +103,7 @@ fn build_json_with_checked_inputs(
     );
     let address =
         crate::protocol::script::p2sh::script_to_address(&script, network_prefix(network))?;
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "address": address,
         "redeem_script_hex": hex::encode(script),
         "locktime_daa": locktime_daa.to_string(),
@@ -116,8 +115,8 @@ fn build_json_with_checked_inputs(
         "attestation_statement": statement,
         "message_commitment_hex": hex::encode(commitment),
         "type": "oracle-v1",
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }
 
 pub(crate) fn verify_attestation(

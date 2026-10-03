@@ -46,7 +46,7 @@ pub(crate) fn compute_full_sighash(request: FullSighashRequest<'_>) -> Result<[u
     let input = request
         .inputs
         .get(request.input_index)
-        .ok_or_else(|| "sighash input index is out of range".to_string())?;
+        .ok_or("sighash input index is out of range".to_string())?;
     let parameters = signing_hash_parameters();
     let previous_outputs = full_previous_outputs_hash(&parameters, request.inputs, mode);
     let sequences = full_sequences_hash(&parameters, request.inputs, mode);

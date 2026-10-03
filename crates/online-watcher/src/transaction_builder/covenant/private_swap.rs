@@ -72,17 +72,17 @@ fn partial_signatures(
     let inputs = pskt
         .get_mut("inputs")
         .and_then(Value::as_array_mut)
-        .ok_or_else(|| "Private Swap PSKB inputs missing".to_string())?;
+        .ok_or("Private Swap PSKB inputs missing".to_string())?;
     if inputs.len() != 1 {
         return Err("Private Swap claim must have exactly one input".to_string());
     }
     let input = inputs[0]
         .as_object_mut()
-        .ok_or_else(|| "Private Swap input invalid".to_string())?;
+        .ok_or("Private Swap input invalid".to_string())?;
     let signatures = input
         .get_mut("partialSigs")
         .and_then(Value::as_object_mut)
-        .ok_or_else(|| "Private Swap partialSigs missing".to_string())?;
+        .ok_or("Private Swap partialSigs missing".to_string())?;
     if !signatures.is_empty() {
         return Err("Private Swap claim already has a signature".to_string());
     }

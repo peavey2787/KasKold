@@ -5,7 +5,7 @@ import sys as _portal_sys
 from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
-from portal_source import kaskold_source  # noqa: E402
+from portal_source import kaskold_source, module_text  # noqa: E402
 
 from pathlib import Path
 import re
@@ -155,7 +155,7 @@ class OriginalFeatureParityPolicyTests(unittest.TestCase):
         family = read("crates/online-watcher/src/wasm_api/contracts/covenant/families/oracle_v1.rs")
         oracle_core = read("crates/online-watcher/src/contracts/covenant/oracle_v1.rs")
         oracle_claim = read("crates/online-watcher/src/transaction_builder/covenant/oracle_v1.rs")
-        pskt = read("crates/online-watcher/src/protocol/pskt/scripts/contracts/oracle.rs")
+        pskt = module_text("crates/kaskold-protocol/src/pskt/specialized.rs")
         builder = read("apps/kaskold-companion-web/web/js/features/covenants/generation/builders/advanced/oracle_v1.js")
         controller = read("apps/kaskold-companion-web/web/js/features/oracle/v1/controller.js")
         attestation = read("apps/kaskold-companion-web/web/js/features/oracle/v1/attestation.js")
@@ -190,11 +190,11 @@ class OriginalFeatureParityPolicyTests(unittest.TestCase):
         self.assertIn("crate::transaction_builder::covenant::oracle_v1::build_claim", family)
         self.assertNotIn("Sha256::digest(statement.as_bytes())", family)
         self.assertNotIn("let mut salt = [0u8; 16]", family)
-        self.assertIn("build_p2sh_oracle_v1_claim_sig_script", pskt)
-        self.assertIn("oracle_v1_role_signature", pskt)
-        self.assertIn("oracle_v1_attestation_binding", pskt)
-        self.assertIn("transaction signature is ambiguous", pskt)
-        self.assertIn("is_ascii_hexdigit", pskt)
+        self.assertIn("fn bind_oracle_v1", pskt)
+        self.assertIn("fn verify_oracle_attestation", pskt)
+        self.assertIn("key.verify_raw(&template.commitment, &signature)", pskt)
+        self.assertIn("fn oracle_claim_script", pskt)
+        self.assertIn("exactly_one_signature", pskt)
         self.assertIn("covenant_oracle_v1", builder)
         self.assertIn("oracle_covenant_key_id_hex", builder)
         self.assertIn("covenantKnownRequestHex", controller)

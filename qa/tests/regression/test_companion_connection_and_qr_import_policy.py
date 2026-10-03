@@ -1,3 +1,9 @@
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
+
 from pathlib import Path
 import unittest
 
@@ -8,7 +14,7 @@ BROADCAST = WEB_JS / "features/transactions/send/broadcast.js"
 SIGNED_IMAGE = WEB_JS / "features/transactions/send/signed_qr_image_import.js"
 TRANSACTION_EVENTS = WEB_JS / "app/events/transactions/transactions.js"
 BROADCAST_HTML = ROOT / "apps/kaskold-companion-web/web/html/screens/transactions/broadcast.html"
-BROWSER_WEBSOCKET = ROOT / "crates/online-watcher/src/infrastructure/browser_websocket.rs"
+BROWSER_WEBSOCKET = kaskold_source("crates/online-watcher/src/infrastructure/browser_websocket.rs")
 BIP32 = ROOT / "crates/online-watcher/src/account/bip32.rs"
 DOM = WEB_JS / "core/dom.js"
 SETTINGS_EVENTS = WEB_JS / "app/events/wallet/settings_and_wallet.js"

@@ -71,8 +71,8 @@ Unacceptable behavior can be reported to `kaskold@proton.me`.
 
 All first-party KasKold code, including `crates/shared-signer`,
 `crates/kaskold-protocol`, and `crates/kaskold-sdk`, is licensed
-**GPL-3.0-only**, the license of the KasSigner project KasKold is forked from
-(see [docs/legal/UPSTREAM_ATTRIBUTION.md](docs/legal/UPSTREAM_ATTRIBUTION.md)).
+**GPL-3.0-only**, the license of the upstream project KasKold is forked from
+([KasSigner, see docs/legal/UPSTREAM_ATTRIBUTION.md](docs/legal/UPSTREAM_ATTRIBUTION.md)).
 Third-party code under `external/` keeps its own license.
 
 By contributing, you agree that your contribution is distributed under

@@ -1045,3 +1045,24 @@ fn private_swap_session_covers_key_bind_presign_reveal_and_completion() {
     assert_eq!(completed.kind, ResponseKind::Completed);
     assert_ne!(completed.signature, [0; 64]);
 }
+
+#[test]
+fn recovery_material_routes_words_and_rejects_malformed_inputs() {
+    let expected_kpub = restored_wallet().export_kpub().unwrap();
+    let from_words = HotWallet::restore_recovery_material(MNEMONIC_12.as_bytes(), "")
+        .expect("UTF-8 recovery words restore");
+    assert_eq!(from_words.export_kpub().unwrap(), expected_kpub);
+
+    // Standard SeedQR digits whose word indices exceed the 2048-word list.
+    assert!(matches!(
+        HotWallet::restore_recovery_material(&[b'9'; 48], ""),
+        Err(HotWalletError::InvalidToolInput)
+    ));
+    // Non-UTF-8 bytes of a length that is neither SeedQR form.
+    assert!(matches!(
+        HotWallet::restore_recovery_material(&[0xff; 5], ""),
+        Err(HotWalletError::InvalidToolInput)
+    ));
+    // 48 bytes that are not all digits are treated as words and rejected.
+    assert!(HotWallet::restore_recovery_material(&[b'a'; 48], "").is_err());
+}

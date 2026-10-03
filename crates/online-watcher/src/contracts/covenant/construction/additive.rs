@@ -8,8 +8,7 @@ pub(crate) fn build_json(
 ) -> Result<String, String> {
     let owner = decode_pubkey32(owner_pubkey_hex)?;
     let mut salt = [0u8; 8];
-    crate::infrastructure::fill_secure_random(&mut salt)
-        .map_err(|error| format!("RNG failed: {error}"))?;
+    crate::infrastructure::fill_secure_random(&mut salt)?;
     let script = crate::contracts::covenant::script::build_piggy_bank_script(
         &owner,
         threshold_sompi,
@@ -18,12 +17,12 @@ pub(crate) fn build_json(
     );
     let address =
         crate::protocol::script::p2sh::script_to_address(&script, network_prefix(network))?;
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "address": address,
         "redeem_script_hex": hex::encode(&script),
         "threshold_sompi": threshold_sompi.to_string(),
         "deadline_daa": deadline_daa.to_string(),
         "salt": hex::encode(salt),
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }

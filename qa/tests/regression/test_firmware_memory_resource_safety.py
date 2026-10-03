@@ -26,9 +26,11 @@ class FirmwareMemoryResourceSafetyTests(unittest.TestCase):
         standard = self.read("crates/offline-signer/src/transaction/std_pskt/parser/global.rs")
         serializer = self.read("crates/offline-signer/src/transaction/std_pskt/serializer/mod.rs")
         self.assertIn("pub struct TransactionLimits", constants)
-        for source in (model, compact, validation, standard, serializer):
-            self.assertIn("MAX_INPUTS", source)
-        self.assertIn("count > MAX_INPUTS", model)
+        # Every input count is capped by the transaction's runtime limits.
+        for source in (model, validation, standard, serializer):
+            self.assertIn("limits.max_inputs", source)
+        self.assertIn("TooManyInputs", compact)
+        self.assertIn("count > self.limits.max_inputs", model)
         self.assertIn("PsktError::TooManyInputs", validation)
         self.assertIn("PskError::TooManyInputs", serializer)
 

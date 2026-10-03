@@ -11,7 +11,7 @@ skip-tests = []
 verbose-boot = []
 
 [dependencies]
-kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", rev = "2e07bd4eac05791fe8cdddf5976051c7f429c189", default-features = false, features = ["self-test"] }
+kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", rev = "00b71cbbb0381afba4b5b3d40b93fe1c43e8e1f7", default-features = false, features = ["self-test"] }
 shared-signer = { path = "../shared-signer" }
 kaskold-protocol = { version = "=2.0.0", path = "../kaskold-protocol", default-features = false }
 sha2 = { version = "0.10", default-features = false }

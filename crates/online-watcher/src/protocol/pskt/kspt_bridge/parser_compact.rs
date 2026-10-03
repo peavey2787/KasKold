@@ -1,32 +1,3 @@
-#[cfg(test)]
-use crate::protocol::pskt::model::KsptSigRecord;
-
-#[cfg(test)]
-use super::parse_compact_kspt_transaction;
-
-#[cfg(test)]
-pub(crate) fn parse_compact_kspt_signatures(
-    data: &[u8],
-) -> Result<Vec<Vec<KsptSigRecord>>, String> {
-    parse_compact_kspt_transaction(data).map(|transaction| {
-        transaction
-            .inputs
-            .into_iter()
-            .map(|input| {
-                input
-                    .signatures
-                    .into_iter()
-                    .map(|signature| KsptSigRecord {
-                        pubkey_pos: signature.pubkey_pos,
-                        sighash_type: signature.sighash_type,
-                        sig: signature.signature,
-                    })
-                    .collect()
-            })
-            .collect()
-    })
-}
-
 fn standard_multisig_key_count(script: &[u8]) -> Option<usize> {
     crate::protocol::pskt::review::parse_multisig_redeem(script)
         .map(|(_, key_count)| usize::from(key_count))

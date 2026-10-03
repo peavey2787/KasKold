@@ -14,8 +14,6 @@ mod kspt_bridge;
 mod model;
 pub mod pskb;
 mod review;
-#[cfg(test)]
-pub(crate) mod scripts;
 pub(crate) mod wire;
 
 pub(crate) use anti_klepto::{
@@ -25,11 +23,7 @@ pub(crate) use anti_klepto::{
 pub(crate) use consensus::finalize_to_consensus;
 pub use kspt_bridge::{merge_signed_kspt_into_pskb, relay_pskb_as_kspt_hex_for_network};
 pub use model::{InputSummary, OutputSummary, PartialSigInfo, PsktFormat, PsktSummary};
-#[cfg(test)]
-pub(crate) use review::parse_multisig_redeem;
 pub use review::parse_summary;
-#[cfg(test)]
-pub use scripts::push_redeem_script;
 pub use wire::{detect_format_hex, set_tx_lane};
 
 #[cfg(test)]

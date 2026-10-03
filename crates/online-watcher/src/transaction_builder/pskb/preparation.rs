@@ -141,7 +141,7 @@ fn checked_total(utxos: &[UtxoEntry]) -> Result<u64, String> {
     utxos.iter().try_fold(0u64, |total, utxo| {
         total
             .checked_add(utxo.amount)
-            .ok_or_else(|| "UTXO total overflow".to_string())
+            .ok_or("UTXO total overflow".to_string())
     })
 }
 

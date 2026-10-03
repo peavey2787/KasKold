@@ -1,14 +1,8 @@
 use std::collections::HashSet;
 
-use crate::{
-    account::bip32::WalletData,
-    account::utxo::UtxoEntry,
-    infrastructure::BrowserWebSocketTransport,
-    network::{
-        codec::{requests::utxo, responses},
-        wrpc::operation::Operation,
-    },
-};
+use kaspa_portal::network::queries::utxos;
+
+use crate::{account::bip32::WalletData, account::utxo::UtxoEntry};
 
 pub async fn fetch_all(websocket_url: &str, wallet: &WalletData) -> Result<Vec<UtxoEntry>, String> {
     let addresses = wallet
@@ -76,11 +70,5 @@ pub(crate) async fn fetch_for_addresses(
     websocket_url: &str,
     addresses: &[String],
 ) -> Result<Vec<UtxoEntry>, String> {
-    let payload = utxo::encode(addresses).map_err(String::from)?;
-    let transport = BrowserWebSocketTransport::new(websocket_url).map_err(String::from)?;
-    let response = transport
-        .call(Operation::GetUtxosByAddresses, &payload)
-        .await
-        .map_err(String::from)?;
-    responses::utxo::decode(&response).map_err(String::from)
+    utxos::fetch_for_addresses(&super::super::client(websocket_url)?, addresses).await
 }

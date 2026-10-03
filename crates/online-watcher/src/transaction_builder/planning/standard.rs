@@ -20,7 +20,7 @@ pub fn plan_payment(
         let address = wallet
             .change_addresses
             .get(wallet.next_change_index)
-            .ok_or_else(|| "No more change addresses. Re-import kpub.".to_string())?;
+            .ok_or("No more change addresses. Re-import kpub.".to_string())?;
         let index = u32::try_from(wallet.next_change_index)
             .map_err(|_| "Change derivation index exceeds u32".to_string())?;
         append_change(&mut recipients, change, address, index)?;
@@ -92,14 +92,14 @@ pub fn plan_consolidation(
     let total = checked_total(&selected)?.0;
     let amount = total
         .checked_sub(fee)
-        .ok_or_else(|| "Balance too low to cover fee".to_string())?;
+        .ok_or("Balance too low to cover fee".to_string())?;
     if amount == 0 {
         return Err("Balance too low to cover fee".into());
     }
     let address = wallet
         .receive_addresses
         .first()
-        .ok_or_else(|| "Wallet has no receive address".to_string())?;
+        .ok_or("Wallet has no receive address".to_string())?;
     let script = crate::account::address::address_to_script_pubkey(address)?;
     Ok(UnsignedTransactionPlan::standard(
         selected,

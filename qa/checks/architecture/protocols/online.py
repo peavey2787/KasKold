@@ -25,7 +25,6 @@ def _check_browser_boundary(root: Path) -> list[str]:
         wasm_boundary_root / "privacy/mod.rs",
         wasm_boundary_root / "privacy/stealth.rs",
         infrastructure_root / "browser_log.rs",
-        infrastructure_root / "browser_websocket.rs",
     )
     for required in required_wasm_boundary_paths:
         if not required.exists():
@@ -58,22 +57,12 @@ def _check_contract_inventory(root: Path) -> list[str]:
         wasm_boundary_root / "contracts/covenant/families/payjoin.rs",
         wasm_boundary_root / "contracts/oracle/genesis.rs",
         wasm_boundary_root / "contracts/oracle/publish.rs",
-        wasm_boundary_root / "contracts/oracle/publish/request.rs",
-        wasm_boundary_root / "contracts/oracle/publish/context.rs",
-        wasm_boundary_root / "contracts/oracle/publish/plan.rs",
         wasm_boundary_root / "contracts/zk/hashes.rs",
         wasm_boundary_root / "contracts/zk/merkle.rs",
         wasm_boundary_root / "contracts/zk/commit_reveal.rs",
         wasm_boundary_root / "privacy/stealth/meta.rs",
         wasm_boundary_root / "privacy/stealth/spend.rs",
         wasm_boundary_root / "privacy/stealth/payment.rs",
-        online_root / "contracts/covenant/script/savings.rs",
-        online_root / "contracts/covenant/script/escrow.rs",
-        online_root / "contracts/covenant/script/spending_limit.rs",
-        online_root / "contracts/covenant/script/allowance.rs",
-        online_root / "contracts/covenant/script/dms.rs",
-        online_root / "contracts/covenant/script/private_swap.rs",
-        online_root / "contracts/covenant/script/payjoin.rs",
         online_root / "transaction_builder/pskb/mod.rs",
         online_root / "transaction_builder/pskb/model.rs",
         online_root / "transaction_builder/pskb/global_thread.rs",
@@ -82,7 +71,6 @@ def _check_contract_inventory(root: Path) -> list[str]:
         online_root / "transaction_builder/pskb/thread_request.rs",
         online_root / "transaction_builder/pskb/sweep.rs",
         online_root / "transaction_builder/pskb/encoder.rs",
-        wasm_boundary_root / "protocol/pskb_planning.rs",
     )
     for required in required_contract_family_paths:
         if not required.exists():
@@ -160,39 +148,27 @@ def _check_rpc_subsystem(root: Path) -> list[str]:
     ROOT = root
     errors: list[str] = []
     online_root = ROOT / "crates/online-watcher/src"
-    wasm_boundary_root = online_root / "wasm_api"
-    infrastructure_root = online_root / "infrastructure"
-    # transport stays in infrastructure; domain transaction logic stays outside
-    # network; WatchWallet remains the only online business facade.
-    legacy_rpc = ROOT / "crates/online-watcher/src/network/rpc.rs"
-    online_root = ROOT / "crates/online-watcher/src"
     network_root = online_root / "network"
-    if legacy_rpc.exists():
+    # The wRPC codec, browser transport and submission encoder are Kaspa
+    # Portal's. The Companion keeps only URL-addressed query helpers over them.
+    if (network_root / "rpc.rs").exists():
         errors.append("legacy monolithic network/rpc.rs must not exist")
     if (network_root / "transport").exists():
-        errors.append("browser transport must live under infrastructure/, not network/")
+        errors.append("browser transport must come from Kaspa Portal, not network/")
 
     required_rpc_paths = (
         network_root / "mod.rs",
-        network_root / "error.rs",
-        network_root / "codec/primitives/reader.rs",
-        network_root / "codec/primitives/writer.rs",
-        network_root / "wrpc/request.rs",
-        network_root / "wrpc/response.rs",
         network_root / "queries/utxos.rs",
-        network_root / "submission/encoder.rs",
+        network_root / "submission.rs",
         network_root / "unit_tests/mod.rs",
         online_root / "infrastructure/browser_log.rs",
-        online_root / "infrastructure/browser_websocket.rs",
-        online_root / "protocol/transaction/consensus.rs",
         online_root / "protocol/transaction/signed_kspt.rs",
         online_root / "protocol/transaction/sighash.rs",
-        online_root / "privacy/stealth/scanner.rs",
         online_root / "wasm_api/contracts/vault/spend.rs",
     )
     for required in required_rpc_paths:
         if not required.exists():
-            errors.append(f"required RPC extraction module is missing: {required.relative_to(ROOT)}")
+            errors.append(f"required RPC module is missing: {required.relative_to(ROOT)}")
 
     network_production_files = [
         path for path in network_root.rglob("*.rs") if "unit_tests" not in path.parts
@@ -235,16 +211,18 @@ def _check_rpc_subsystem(root: Path) -> list[str]:
         (r"\brpc::", "rpc compatibility path"),
         (r"\bmod\s+rpc\b", "rpc compatibility module"),
         (r"\b(?:build_request|bw_u8|bw_u16|bw_u32|bw_bytes|borsh_write_address)_pub\b", "legacy RPC wrapper"),
+        (r"\bstruct\s+WireReader\b", "copy of Kaspa Portal's WireReader"),
+        (r"\bstruct\s+WireWriter\b", "copy of Kaspa Portal's WireWriter"),
+        (r"\bfn\s+encode_submit_request\b", "copy of Kaspa Portal's submission encoder"),
+        (r"\bstruct\s+BrowserWebSocketTransport\b", "copy of Kaspa Portal's browser transport"),
     ):
         if re.search(forbidden_pattern, online_source):
             errors.append(f"online watcher retains {description}")
+    if "kaspa_portal::network" not in (network_root / "mod.rs").read_text(errors="ignore"):
+        errors.append("Companion network layer must import Kaspa Portal's wRPC stack")
+    if "broadcast::submit(" not in (network_root / "submission.rs").read_text(errors="ignore"):
+        errors.append("Companion submission must use Kaspa Portal's broadcast encoder")
 
-    if len(re.findall(r"\bstruct\s+WireReader\b", network_source)) != 1:
-        errors.append("network subsystem must contain exactly one bounded WireReader")
-    if len(re.findall(r"\bstruct\s+WireWriter\b", network_source)) != 1:
-        errors.append("network subsystem must contain exactly one checked WireWriter")
-    if len(re.findall(r"\bfn\s+encode_submit_request\b", network_source)) != 1:
-        errors.append("network subsystem must contain exactly one consensus submission encoder")
     if re.search(r"\bfn\s+compute_sighash\b", online_source):
         errors.append("retired simple sighash implementation must not return")
     if len(re.findall(r"\bfn\s+compute_full_sighash\b", online_source)) != 1:
@@ -253,20 +231,6 @@ def _check_rpc_subsystem(root: Path) -> list[str]:
         errors.append("online watcher must contain exactly one signed KSPT decoder")
     if "create_oracle_mb_heartbeat_roll" in online_source:
         errors.append("obsolete standalone Oracle heartbeat-roll API must not return")
-
-    opcode_source = (online_root / "protocol/script/opcode.rs").read_text(errors="ignore")
-    dead_opcode_constants = {
-        "OP_ROLL", "OP_SIZE", "OP_AND", "OP_OR_BITWISE", "OP_XOR",
-        "OP_MUL", "OP_DIV", "OP_MOD", "OP_NUMEQUAL",
-        "OP_TX_LOCKTIME", "OP_TX_PAYLOAD_SUBSTR", "OP_TX_INPUT_SPK_SUBSTR",
-        "OP_AUTH_OUTPUT_IDX", "OP_OUTPUT_AUTHORIZING_INPUT",
-    }
-    restored_dead_opcodes = sorted(
-        name for name in dead_opcode_constants
-        if re.search(rf"(?m)^pub const {name}\b", opcode_source)
-    )
-    if restored_dead_opcodes:
-        errors.append(f"unused opcode constants must not return: {restored_dead_opcodes}")
 
     return errors
 

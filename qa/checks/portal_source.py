@@ -100,6 +100,31 @@ MOVED_TO_PORTAL = {
     "crates/shared-signer/src/pskt.rs": "transaction/interchange/pskt/shared.rs",
     "crates/shared-signer/src/qr_frame.rs": "transaction/interchange/qr/frame.rs",
     "crates/shared-signer/src/security.rs": "transaction/interchange/qr/security.rs",
+    "crates/shared-signer/src/advanced_policy/mod.rs": "transaction/policy/time.rs",
+    "crates/shared-signer/src/advanced_policy/parsing.rs": "transaction/policy/time.rs",
+    "crates/online-watcher/src/contracts/commit_reveal/script.rs": "contract/commit_reveal/script.rs",
+    "crates/online-watcher/src/contracts/crowdfund/script.rs": "contract/crowdfund/script.rs",
+    "crates/online-watcher/src/contracts/merkle/script.rs": "contract/merkle/script.rs",
+    "crates/online-watcher/src/contracts/oracle/script/": "contract/oracle/script/",
+    "crates/online-watcher/src/contracts/vault/script.rs": "contract/vault/script.rs",
+    "crates/online-watcher/src/contracts/shipping_escrow/script.rs": "contract/shipping_escrow/script.rs",
+    "crates/online-watcher/src/contracts/shipping_escrow/state_one.rs": "contract/shipping_escrow/state_one.rs",
+    "crates/online-watcher/src/contracts/shipping_escrow/state_zero.rs": "contract/shipping_escrow/state_zero.rs",
+    "crates/online-watcher/src/contracts/covenant/script.rs": "contract/covenant/script.rs",
+    "crates/online-watcher/src/contracts/covenant/script/": "contract/covenant/script/",
+    "crates/online-watcher/src/contracts/zk/cost.rs": "contract/zk/cost.rs",
+    "crates/online-watcher/src/contracts/zk/proof.rs": "contract/zk/proof.rs",
+    "crates/online-watcher/src/protocol/script/": "contract/script/",
+    "crates/online-watcher/src/protocol/transaction/consensus.rs": "transaction/consensus/model.rs",
+    "crates/online-watcher/src/network/codec/": "network/codec/",
+    "crates/online-watcher/src/network/wrpc/": "network/wrpc/",
+    "crates/online-watcher/src/network/model/": "network/model/",
+    "crates/online-watcher/src/network/error.rs": "network/error.rs",
+    "crates/online-watcher/src/network/submission/encoder.rs": "transaction/broadcast/encoder.rs",
+    "crates/online-watcher/src/network/unit_tests/submission.rs": "transaction/broadcast/unit-tests/mod.rs",
+    "crates/online-watcher/src/network/unit_tests/utxo_response.rs": "network/unit-tests/utxo_response.rs",
+    "crates/online-watcher/src/privacy/stealth/": "privacy/stealth/",
+    "crates/online-watcher/src/infrastructure/browser_websocket.rs": "platform/browser/websocket.rs",
 }
 
 
@@ -141,3 +166,55 @@ def kaskold_source(relative: str) -> Path:
             return portal_root() / directory.rstrip("/")
         return local
     return portal_path(moved)
+
+
+def display_path(path: Path) -> str:
+    """Repository-relative path, or `kaspa-portal/src/...` for a Portal file."""
+    path = Path(path)
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        pass
+    try:
+        return "kaspa-portal/src/" + path.relative_to(portal_root()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def kaskold_glob(pattern: str) -> list[Path]:
+    """Glob a repository-relative pattern; patterns whose files moved to Kaspa
+    Portal are matched inside the locked Portal checkout instead."""
+    import glob as _glob
+
+    matches = [Path(value) for value in _glob.glob(str(ROOT / pattern), recursive=True)]
+    if matches:
+        return matches
+    if not any(token in pattern for token in "*?["):
+        resolved = kaskold_source(pattern)
+        return [resolved] if resolved.exists() else []
+    prefix = pattern[: min(pattern.index(token) for token in "*?[" if token in pattern)]
+    directory = prefix[: prefix.rfind("/") + 1]
+    moved = _portal_relative(directory)
+    if moved is None:
+        return []
+    portal_pattern = moved + pattern[len(directory):].replace("/unit_tests/", "/unit-tests/")
+    return [
+        Path(value)
+        for value in _glob.glob(str(portal_root() / portal_pattern), recursive=True)
+    ]
+
+
+def module_text(relative: str) -> str:
+    """Source of a Rust file module together with its child module files.
+
+    A large module split into `name.rs` plus `name/*.rs` children is still one
+    module; source contracts read it whole regardless of how it is partitioned.
+    """
+    path = kaskold_source(relative)
+    parts = [path.read_text(encoding="utf-8", errors="replace")]
+    children = path.with_suffix("")
+    if path.suffix == ".rs" and children.is_dir():
+        for child in sorted(children.rglob("*.rs")):
+            if "unit_tests" not in child.parts and "unit-tests" not in child.parts:
+                parts.append(child.read_text(encoding="utf-8", errors="replace"))
+    return "\n".join(parts)

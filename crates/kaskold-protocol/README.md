@@ -65,7 +65,7 @@ See `docs/integration/WALLET_INTEGRATION.md` and `docs/integration/vectors/kasko
 
 ## License
 
-`kaskold-protocol` is licensed **GPL-3.0-only**, like all of KasKold, which is a fork of [KasSigner](https://github.com/InKasWeRust/KasSigner) (GPL-3.0).
+`kaskold-protocol` is licensed **GPL-3.0-only**, like all of KasKold, which is a fork of [KasSigner](https://github.com/InKasWeRust/KasSigner) (GPL-3.0). See [upstream attribution](../../docs/legal/UPSTREAM_ATTRIBUTION.md).
 
 ## Reference signer capability contract
 

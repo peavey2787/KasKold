@@ -10,9 +10,7 @@ use crate::protocol::pskt::exact_json::parse_exact_u64;
 use crate::protocol::pskt::{InputSummary, PartialSigInfo};
 
 pub(crate) fn parse_input_summary(inp: &Value) -> Result<InputSummary, String> {
-    let obj = inp
-        .as_object()
-        .ok_or_else(|| "input not object".to_string())?;
+    let obj = inp.as_object().ok_or("input not object".to_string())?;
     let (amount_sompi, spk_script) = summary_utxo(obj)?;
     let (prev_tx_id, prev_index) = summary_outpoint(obj)?;
     let (redeem_script_hex, redeem_bytes) = summary_redeem_script(obj)?;
@@ -40,16 +38,15 @@ fn summary_utxo(obj: &Map<String, Value>) -> Result<(u64, Vec<u8>), String> {
     let utxo = obj
         .get("utxoEntry")
         .and_then(Value::as_object)
-        .ok_or_else(|| "missing utxoEntry".to_string())?;
+        .ok_or("missing utxoEntry".to_string())?;
     let amount_sompi = parse_exact_u64(
-        utxo.get("amount")
-            .ok_or_else(|| "missing amount".to_string())?,
+        utxo.get("amount").ok_or("missing amount".to_string())?,
         "amount",
     )?;
     let spk_full = utxo
         .get("scriptPublicKey")
         .and_then(Value::as_str)
-        .ok_or_else(|| "missing scriptPublicKey".to_string())?;
+        .ok_or("missing scriptPublicKey".to_string())?;
     parse_spk_hex(spk_full).map(|(_, script)| (amount_sompi, script))
 }
 
@@ -57,16 +54,16 @@ fn summary_outpoint(obj: &Map<String, Value>) -> Result<(String, u32), String> {
     let outpoint = obj
         .get("previousOutpoint")
         .and_then(Value::as_object)
-        .ok_or_else(|| "missing previousOutpoint".to_string())?;
+        .ok_or("missing previousOutpoint".to_string())?;
     let transaction_id = outpoint
         .get("transactionId")
         .and_then(Value::as_str)
-        .ok_or_else(|| "missing transactionId".to_string())?
+        .ok_or("missing transactionId".to_string())?
         .to_string();
     let index = outpoint
         .get("index")
         .and_then(Value::as_u64)
-        .ok_or_else(|| "missing index".to_string())?;
+        .ok_or("missing index".to_string())?;
     let index = u32::try_from(index).map_err(|_| "index exceeds u32".to_string())?;
     Ok((transaction_id, index))
 }
@@ -95,7 +92,7 @@ fn parse_partial_sigs_map(
     };
     let map = value
         .as_object()
-        .ok_or_else(|| "partialSigs not object".to_string())?;
+        .ok_or("partialSigs not object".to_string())?;
     let sigs = map
         .iter()
         .map(|(pubkey, signature)| parse_partial_sig_entry(pubkey, signature, redeem))
@@ -128,11 +125,11 @@ fn validate_partial_pubkey(pubkey_hex: &str) -> Result<(), String> {
 fn validate_partial_signature(signature: &Value) -> Result<(), String> {
     let object = signature
         .as_object()
-        .ok_or_else(|| "sig value not object".to_string())?;
+        .ok_or("sig value not object".to_string())?;
     let schnorr = object
         .get("schnorr")
         .and_then(Value::as_str)
-        .ok_or_else(|| "schnorr sig missing (ECDSA not supported)".to_string())?;
+        .ok_or("schnorr sig missing (ECDSA not supported)".to_string())?;
     if schnorr.len() == 128 {
         Ok(())
     } else {

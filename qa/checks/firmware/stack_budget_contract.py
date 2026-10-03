@@ -84,7 +84,14 @@ def check_critical_memory_shapes(errors: list[str]) -> None:
         "firmware transactions must use the canonical signer capability limits",
     )
     capabilities = (ROOT / "crates/kaskold-protocol/src/capabilities/mod.rs").read_text(errors="replace")
-    require(errors, "max_inputs: 32" in capabilities, "reference signer input capability must remain 32")
+    kspt_model = (ROOT / "crates/kaskold-protocol/src/wire/kspt/model.rs").read_text(errors="replace")
+    require(
+        errors,
+        "pub const MAX_INPUTS: u32 = 32;" in kspt_model
+        and "max_inputs: crate::wire::kspt::MAX_INPUTS as u16" in capabilities
+        and "SIGNER_MAX_INPUTS: usize = crate::wire::kspt::MAX_INPUTS as usize" in capabilities,
+        "reference signer input capability must remain 32",
+    )
     for field in ("outputs: Box<", "payload: Vec<u8>", "redeem_pool: Box<"):
         require(errors, field in tx, f"Transaction bulk store must remain heap-backed: {field}")
     require(errors, "pub fn try_new() -> Result<Self, TransactionStorageError>" in tx, "Transaction must retain typed fallible constructor")

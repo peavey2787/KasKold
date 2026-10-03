@@ -4,8 +4,6 @@
 
 mod compact;
 mod format;
-#[cfg(test)]
-mod signatures;
 mod summary;
 
 pub(crate) use compact::{
@@ -13,6 +11,4 @@ pub(crate) use compact::{
 };
 pub use format::PsktFormat;
 pub(crate) use format::{PSKB_MAGIC, PSKT_MAGIC};
-#[cfg(test)]
-pub(crate) use signatures::KsptSigRecord;
 pub use summary::{InputSummary, OutputSummary, PartialSigInfo, PsktSummary};

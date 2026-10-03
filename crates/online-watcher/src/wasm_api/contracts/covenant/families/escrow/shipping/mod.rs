@@ -2,7 +2,6 @@
 
 mod address;
 mod deposit;
-mod plan;
 mod withdraw;
 
 #[cfg(test)]

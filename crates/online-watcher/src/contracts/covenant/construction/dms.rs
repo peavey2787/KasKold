@@ -12,10 +12,10 @@ pub(crate) fn build_json(
         crate::contracts::covenant::script::build_dms_csv_script(&owner, &heir, inactivity_daa);
     let address =
         crate::protocol::script::p2sh::script_to_address(&script, network_prefix(network))?;
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "address": address,
         "redeem_script_hex": hex::encode(&script),
         "inactivity_daa": inactivity_daa.to_string(),
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }

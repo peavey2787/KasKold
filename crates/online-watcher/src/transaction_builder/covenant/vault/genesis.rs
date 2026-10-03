@@ -122,14 +122,14 @@ pub(crate) fn encode_vault_genesis_response(
     pskb_hex: &str,
     covenant_id: [u8; 32],
 ) -> Result<String, String> {
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "pskb_hex": pskb_hex,
         "covenant_id_hex": hex::encode(covenant_id),
         "covenant_address": material.covenant_address,
         "redeem_script_hex": hex::encode(&material.redeem_script),
         "send_amount": send_amount.to_string(),
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }
 
 #[cfg(test)]

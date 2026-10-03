@@ -39,13 +39,13 @@ pub(crate) fn build_heartbeat_json(network: &str) -> Result<String, String> {
     let redeem = crate::contracts::oracle::script::build_oracle_mb_heartbeat_script();
     let address =
         crate::protocol::script::p2sh::script_to_address(&redeem, network_prefix(network))?;
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "address": address,
         "redeem_script_hex": hex::encode(&redeem),
         "redeem_len": redeem.len(),
         "sig_op_count": crate::contracts::oracle::script::ORACLE_MB_HEARTBEAT_SIG_OP_COUNT,
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }
 
 fn decode(request: OracleGenesisRequest) -> Result<OracleGenesisMaterial, String> {
@@ -67,7 +67,7 @@ fn decode_hashfn(value: &str) -> Result<u8, String> {
         .first()
         .copied()
         .filter(|_| bytes.len() == 1)
-        .ok_or_else(|| "hashfn must be 1 byte".to_string())
+        .ok_or("hashfn must be 1 byte".to_string())
 }
 
 fn serialize(material: OracleGenesisMaterial) -> Result<String, String> {
@@ -84,7 +84,7 @@ fn serialize(material: OracleGenesisMaterial) -> Result<String, String> {
         &redeem,
         network_prefix(&material.request.network),
     )?;
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "address": address,
         "redeem_script_hex": hex::encode(&redeem),
         "genesis_price": material.genesis_price,
@@ -94,6 +94,6 @@ fn serialize(material: OracleGenesisMaterial) -> Result<String, String> {
         "set_root": material.request.set_root_hex,
         "redeem_len": redeem.len(),
         "sig_op_count": crate::contracts::oracle::script::ORACLE_MB_SIG_OP_COUNT,
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }

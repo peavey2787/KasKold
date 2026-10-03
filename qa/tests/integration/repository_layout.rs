@@ -8,7 +8,7 @@ fn workspaces_and_qa_layout_are_present() {
         "apps/kaskold-hardware/Cargo.lock",
         "apps/kaskold-hardware/rust-toolchain.toml",
         "apps/kaskold-companion-web/Cargo.lock",
-    "apps/kaskold-vault-web/Cargo.lock",
+        "apps/kaskold-vault-web/Cargo.lock",
         "external/rqrr-nostd/Cargo.lock",
         "tools/Cargo.lock",
         "qa/Cargo.lock",
@@ -46,7 +46,18 @@ fn only_the_two_business_facades_exist() {
 #[test]
 fn removed_wrapper_layers_do_not_return() {
     let root = workspace_root();
-    for relative in ["src", "tests", "benches", "fuzz", "platforms", "vendor", "hardware"] {
-        assert!(!root.join(relative).exists(), "unexpected top-level {relative}");
+    for relative in [
+        "src",
+        "tests",
+        "benches",
+        "fuzz",
+        "platforms",
+        "vendor",
+        "hardware",
+    ] {
+        assert!(
+            !root.join(relative).exists(),
+            "unexpected top-level {relative}"
+        );
     }
 }

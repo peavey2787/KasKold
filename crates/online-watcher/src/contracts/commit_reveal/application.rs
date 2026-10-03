@@ -18,11 +18,11 @@ pub(crate) fn build_json(
         &script,
         crate::account::address::network_prefix(network),
     )?;
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "address": address,
         "redeem_script_hex": hex::encode(&script),
         "committed_hash": committed_hash_hex,
         "locktime_daa": locktime_daa.to_string(),
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }

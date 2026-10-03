@@ -21,7 +21,7 @@ fn signed_network(signed_kspt_hex: &str) -> Result<kaskold_protocol::Network, St
     let index = code.checked_sub(1).map(usize::from);
     index
         .and_then(|value| NETWORKS.get(value).copied())
-        .ok_or_else(|| "invalid compact KSPT network trailer".to_string())
+        .ok_or("invalid compact KSPT network trailer".to_string())
 }
 
 fn find_network_trailer(bytes: &[u8]) -> Result<u8, String> {

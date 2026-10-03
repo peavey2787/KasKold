@@ -45,22 +45,7 @@ pub(crate) fn build_timelocked_escrow_json(
 /// Timeout-refund consumer route. Currently fail-closed until the keyless
 /// branch has a typed zero-signature `VerifiedWitnessPlan`.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-pub async fn create_covenant_timeout_refund(
-    covenant_address: &str,
-    dest_address: &str,
-    redeem_script_hex: &str,
-    locktime_daa: u64,
-    fee: u64,
-    ws_url: &str,
-) -> Result<String, JsValue> {
-    let _ = (
-        covenant_address,
-        dest_address,
-        redeem_script_hex,
-        locktime_daa,
-        fee,
-        ws_url,
-    );
+pub async fn create_covenant_timeout_refund() -> Result<String, JsValue> {
     Err(wasm_error!("Timeout-refund is disabled until its zero-signature covenant branch has a typed verified witness plan"))
 }
 

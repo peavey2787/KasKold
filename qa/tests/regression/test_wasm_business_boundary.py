@@ -73,7 +73,6 @@ class WasmBusinessBoundaryTests(unittest.TestCase):
             "crates/online-watcher/src/transaction_builder/covenant/sweep.rs",
             "crates/online-watcher/src/transaction_builder/covenant/vault/spend.rs",
             "crates/online-watcher/src/transaction_builder/covenant/global_thread.rs",
-            "crates/online-watcher/src/transaction_builder/oracle_publish/plan.rs",
             "crates/online-watcher/src/transaction_builder/zk/crowdfund.rs",
             "crates/online-watcher/src/transaction_builder/zk/merkle.rs",
         )
@@ -94,8 +93,6 @@ class WasmBusinessBoundaryTests(unittest.TestCase):
                 "crate::contracts::covenant::construction::escrow::build_timelocked_json",
             "crates/online-watcher/src/wasm_api/contracts/oracle/genesis.rs":
                 "crate::contracts::oracle::genesis",
-            "crates/online-watcher/src/wasm_api/contracts/oracle/publish.rs":
-                "crate::transaction_builder::oracle_publish",
             "crates/online-watcher/src/wasm_api/contracts/zk/crowdfund/sweep.rs":
                 "crate::transaction_builder::zk::crowdfund",
         }

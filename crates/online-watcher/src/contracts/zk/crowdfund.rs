@@ -32,13 +32,13 @@ pub(crate) fn encode_setup_json(
         return Err("Crowdfunding verifying key exceeds the supported size limit".to_string());
     }
     let verifying_key_hash = p2sh::blake2b_hash(&verifying_key);
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "pk_hex": hex::encode(proving_key),
         "vk_hex": hex::encode(&verifying_key),
         "vk_hash_hex": hex::encode(verifying_key_hash),
         "vk_len": verifying_key.len(),
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }
 
 pub(crate) fn build_proof_json(
@@ -71,14 +71,14 @@ pub(crate) fn build_proof_json(
     if !proof::verify_proof(&verifying_key, &proof_bytes, &public_input)? {
         return Err("Generated crowdfunding proof failed local verification".to_string());
     }
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "proof_hex": hex::encode(proof_bytes),
         "public_input_hex": hex::encode(public_input),
         "total_sompi": total.to_string(),
         "contribution_count": amounts.len(),
         "verified": true,
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }
 
 pub(crate) fn compute_campaign_id_hex(
@@ -124,8 +124,7 @@ pub(crate) fn build_address_json(
         return Err("Crowdfunding verifying key is empty".to_string());
     }
     let mut salt = [0u8; 8];
-    crate::infrastructure::fill_secure_random(&mut salt)
-        .map_err(|error| format!("Crowdfunding RNG failed: {error}"))?;
+    crate::infrastructure::fill_secure_random(&mut salt)?;
     if salt.iter().all(|byte| *byte == 0) {
         return Err("Crowdfunding RNG returned an invalid all-zero salt".to_string());
     }
@@ -141,7 +140,7 @@ pub(crate) fn build_address_json(
         salt: &salt,
     })?;
     let covenant_address = p2sh::script_to_address(&redeem_script, network_prefix(network))?;
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "address": covenant_address,
         "redeem_script_hex": hex::encode(redeem_script),
         "contributor_pubkey_hex": contributor_pubkey_hex,
@@ -158,8 +157,8 @@ pub(crate) fn build_address_json(
         )),
         "crowdfund_salt_hex": hex::encode(salt),
         "crowdfund_role": "contributor",
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }
 
 pub(crate) fn versioned_spk(script: &[u8]) -> Vec<u8> {

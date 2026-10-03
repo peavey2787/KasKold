@@ -1,5 +1,6 @@
 mod boundaries;
 mod function_coverage;
+mod sweep_preparation;
 
 use crate::account::utxo::UtxoEntry;
 

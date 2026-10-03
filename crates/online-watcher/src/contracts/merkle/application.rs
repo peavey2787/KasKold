@@ -8,12 +8,12 @@ pub(crate) fn root_from_addresses(addresses_json: &str) -> Result<String, String
     let leaves = leaves_from_addresses(&addresses)?;
     let depth = (leaves.len() as f64).log2().ceil() as u8;
     let root = crate::contracts::merkle::script::compute_merkle_root(&leaves);
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "root": hex::encode(root),
         "depth": depth,
         "leaf_count": addresses.len(),
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }
 
 pub(crate) fn proof_for_address(
@@ -27,7 +27,7 @@ pub(crate) fn proof_for_address(
     let leaf_index = leaves
         .iter()
         .position(|leaf| *leaf == target_spk)
-        .ok_or_else(|| "Address not found in whitelist".to_string())?;
+        .ok_or("Address not found in whitelist".to_string())?;
     let proof = crate::contracts::merkle::script::generate_merkle_proof(&leaves, leaf_index);
     let proof_json: Vec<_> = proof
         .iter()
@@ -38,12 +38,12 @@ pub(crate) fn proof_for_address(
             })
         })
         .collect();
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "proof": proof_json,
         "leaf_spk_hex": hex::encode(&target_spk),
         "leaf_index": leaf_index,
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }
 
 pub(crate) fn build_whitelist_json(
@@ -69,14 +69,14 @@ pub(crate) fn build_whitelist_json(
         &script,
         address::network_prefix(network),
     )?;
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "address": covenant_address,
         "redeem_script_hex": hex::encode(&script),
         "merkle_root": merkle_root_hex,
         "depth": depth,
         "locktime_daa": locktime_daa.to_string(),
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }
 
 fn leaves_from_addresses(addresses: &[String]) -> Result<Vec<Vec<u8>>, String> {

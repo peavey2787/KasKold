@@ -63,6 +63,7 @@ class RepositoryOrganizationTests(unittest.TestCase):
             "security/EFUSE_RUNBOOK.md",
             "security/ENTROPY_SOURCES.md",
             "security/POP_IT_SECURE_BOOT.md",
+            "security/PSKT_PARSER_COVENANT_HARDENING.md",
             "security/SECURITY_OVERVIEW.md",
             "security/STEGANOGRAPHY.md",
             "vault/AIR_GAP_MODEL.md",

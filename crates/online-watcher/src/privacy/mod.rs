@@ -1,1 +1,1 @@
-pub(crate) mod stealth;
+pub(crate) use kaspa_portal::privacy::stealth;

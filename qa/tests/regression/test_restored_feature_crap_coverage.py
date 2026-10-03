@@ -73,7 +73,6 @@ class RestoredFeatureCrapCoverageTests(unittest.TestCase):
         private_validation = read("crates/shared-signer/src/covenant_sign/private_swap/validation.rs")
         covenant = read("crates/shared-signer/src/covenant_sign/script_int.rs")
         claim = read("crates/offline-signer/src/transaction/private_swap.rs")
-        scripts = read("crates/online-watcher/src/protocol/pskt/scripts/unit_tests/mod.rs")
         for term in ("fn checked_inputs", "fn bound_statement"):
             self.assertIn(term, oracle)
         self.assertIn("crate::contracts::covenant::oracle_v1::build_json", oracle_wasm)
@@ -85,10 +84,6 @@ class RestoredFeatureCrapCoverageTests(unittest.TestCase):
             self.assertIn(term, covenant)
         for term in ("fn parse_claim_salt", "fn parse_claim_pubkey", "fn parse_claim_destination", "fn parse_claim_fee_policy"):
             self.assertIn(term, claim)
-        self.assertIn("private_swap_claim_sigscript_requires_one_canonical_schnorr_signature", scripts)
-        self.assertIn("assert_eq!(script[0], 65)", scripts)
-        self.assertIn("assert_eq!(script[65], 0x01)", scripts)
-        self.assertIn("assert_eq!(script[66], 0x51)", scripts)
 
 
 if __name__ == "__main__":

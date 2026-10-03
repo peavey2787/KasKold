@@ -6,147 +6,12 @@
   },
   "parser_targets": [
     {
-      "estimated_source_lines": 16,
-      "function": "write_address",
-      "line": 3,
-      "path": "crates/online-watcher/src/network/codec/requests/address.rs",
-      "test_seams": [
-        "crates/online-watcher/src/network/unit_tests/request.rs"
-      ]
-    },
-    {
-      "estimated_source_lines": 13,
-      "function": "decode_tagged_error",
-      "line": 33,
-      "path": "crates/online-watcher/src/network/codec/responses/submission.rs",
-      "test_seams": [
-        "crates/online-watcher/src/network/unit_tests/submission.rs"
-      ]
-    },
-    {
-      "estimated_source_lines": 9,
-      "function": "encode",
-      "line": 5,
-      "path": "crates/online-watcher/src/network/codec/requests/utxo.rs",
-      "test_seams": [
-        "crates/online-watcher/src/network/unit_tests/request.rs",
-        "crates/online-watcher/src/network/unit_tests/submission.rs",
-        "crates/online-watcher/src/protocol/pskt/pskb/unit_tests/mod.rs",
-        "crates/online-watcher/src/protocol/pskt/scripts/unit_tests/mod.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/consensus.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/kspt_bridge.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/mod.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/review.rs",
-        "crates/online-watcher/src/protocol/transaction/unit_tests/sighash.rs",
-        "crates/online-watcher/src/protocol/transaction/unit_tests/signed_kspt.rs",
-        "crates/online-watcher/src/protocol/unit_tests/qr_tests.rs",
-        "crates/online-watcher/src/transaction_builder/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/payjoin/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/covenant/global_thread/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/oracle/publish/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/vault/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/zk/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/protocol/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "estimated_source_lines": 5,
-      "function": "is_session_frame",
-      "line": 126,
-      "path": "crates/shared-signer/src/qr_frame.rs",
-      "test_seams": [
-        "crates/shared-signer/src/unit_tests/qr_frame_tests.rs"
-      ]
-    },
-    {
-      "estimated_source_lines": 7,
-      "function": "utxos_changed",
-      "line": 39,
-      "path": "crates/online-watcher/src/network/codec/requests/subscription.rs",
-      "test_seams": [
-        "crates/online-watcher/src/network/unit_tests/request.rs"
-      ]
-    },
-    {
       "estimated_source_lines": 12,
       "function": "DetectedPayload::trimmed_len",
       "line": 21,
       "path": "crates/kaskold-hardware-core/src/storage/payload.rs",
       "test_seams": [
         "crates/kaskold-hardware-core/src/unit_tests/firmware_decisions/payload.rs"
-      ]
-    },
-    {
-      "estimated_source_lines": 5,
-      "function": "encode",
-      "line": 3,
-      "path": "crates/online-watcher/src/network/codec/requests/fee.rs",
-      "test_seams": [
-        "crates/online-watcher/src/network/unit_tests/request.rs",
-        "crates/online-watcher/src/network/unit_tests/submission.rs",
-        "crates/online-watcher/src/protocol/pskt/pskb/unit_tests/mod.rs",
-        "crates/online-watcher/src/protocol/pskt/scripts/unit_tests/mod.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/consensus.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/kspt_bridge.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/mod.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/review.rs",
-        "crates/online-watcher/src/protocol/transaction/unit_tests/sighash.rs",
-        "crates/online-watcher/src/protocol/transaction/unit_tests/signed_kspt.rs",
-        "crates/online-watcher/src/protocol/unit_tests/qr_tests.rs",
-        "crates/online-watcher/src/transaction_builder/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/payjoin/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/covenant/global_thread/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/oracle/publish/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/vault/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/zk/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/protocol/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "estimated_source_lines": 6,
-      "function": "encode_empty_query",
-      "line": 3,
-      "path": "crates/online-watcher/src/network/codec/requests/block.rs",
-      "test_seams": [
-        "crates/online-watcher/src/network/unit_tests/request.rs"
-      ]
-    },
-    {
-      "estimated_source_lines": 7,
-      "function": "encode_get_block",
-      "line": 9,
-      "path": "crates/online-watcher/src/network/codec/requests/block.rs",
-      "test_seams": [
-        "crates/online-watcher/src/network/unit_tests/request.rs"
-      ]
-    },
-    {
-      "estimated_source_lines": 32,
-      "function": "TxInputFormat::is_pskt",
-      "line": 14,
-      "path": "crates/shared-signer/src/pskt.rs",
-      "test_seams": [
-        "crates/shared-signer/src/unit_tests/pskt_tests.rs"
-      ]
-    },
-    {
-      "estimated_source_lines": 4,
-      "function": "PsktParsed::default",
-      "line": 118,
-      "path": "crates/shared-signer/src/pskt.rs",
-      "test_seams": [
-        "crates/shared-signer/src/unit_tests/pskt_tests.rs"
-      ]
-    },
-    {
-      "estimated_source_lines": 3,
-      "function": "hex_encode_lower",
-      "line": 58,
-      "path": "crates/offline-signer/src/transaction/std_pskt/syntax/hex.rs",
-      "test_seams": [
-        "crates/offline-signer/src/transaction/std_pskt/unit_tests/parser.rs"
       ]
     }
   ],
@@ -277,36 +142,6 @@
       ]
     },
     {
-      "baseline_complexity": 5,
-      "baseline_status": "warning",
-      "function": "write_address",
-      "line": 3,
-      "path": "crates/online-watcher/src/network/codec/requests/address.rs",
-      "test_seams": [
-        "crates/online-watcher/src/network/unit_tests/request.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 4,
-      "baseline_status": "warning",
-      "function": "read_pushdata1",
-      "line": 61,
-      "path": "crates/online-watcher/src/protocol/script/number.rs",
-      "test_seams": [
-        "crates/online-watcher/src/protocol/script/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 4,
-      "baseline_status": "warning",
-      "function": "read_pushdata2",
-      "line": 75,
-      "path": "crates/online-watcher/src/protocol/script/number.rs",
-      "test_seams": [
-        "crates/online-watcher/src/protocol/script/unit_tests/mod.rs"
-      ]
-    },
-    {
       "baseline_complexity": 4,
       "baseline_status": "warning",
       "function": "create_withdrawal",
@@ -397,64 +232,6 @@
       ]
     },
     {
-      "baseline_complexity": 4,
-      "baseline_status": "warning",
-      "function": "decode_tagged_error",
-      "line": 33,
-      "path": "crates/online-watcher/src/network/codec/responses/submission.rs",
-      "test_seams": [
-        "crates/online-watcher/src/network/unit_tests/submission.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 4,
-      "baseline_status": "warning",
-      "function": "encode",
-      "line": 5,
-      "path": "crates/online-watcher/src/network/codec/requests/utxo.rs",
-      "test_seams": [
-        "crates/online-watcher/src/network/unit_tests/request.rs",
-        "crates/online-watcher/src/network/unit_tests/submission.rs",
-        "crates/online-watcher/src/protocol/pskt/pskb/unit_tests/mod.rs",
-        "crates/online-watcher/src/protocol/pskt/scripts/unit_tests/mod.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/consensus.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/kspt_bridge.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/mod.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/review.rs",
-        "crates/online-watcher/src/protocol/transaction/unit_tests/sighash.rs",
-        "crates/online-watcher/src/protocol/transaction/unit_tests/signed_kspt.rs",
-        "crates/online-watcher/src/protocol/unit_tests/qr_tests.rs",
-        "crates/online-watcher/src/transaction_builder/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/payjoin/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/covenant/global_thread/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/oracle/publish/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/vault/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/zk/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/protocol/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 3,
-      "baseline_status": "warning",
-      "function": "derive_stealth_meta",
-      "line": 10,
-      "path": "crates/online-watcher/src/privacy/stealth/metadata.rs",
-      "test_seams": [
-        "crates/online-watcher/src/privacy/stealth/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 3,
-      "baseline_status": "warning",
-      "function": "build_p2sh_single_path_sig_script",
-      "line": 12,
-      "path": "crates/online-watcher/src/protocol/pskt/scripts/multisig.rs",
-      "test_seams": [
-        "crates/online-watcher/src/protocol/pskt/scripts/unit_tests/mod.rs"
-      ]
-    },
-    {
       "baseline_complexity": 3,
       "baseline_status": "warning",
       "function": "create_commit_reveal_spend",
@@ -487,51 +264,11 @@
     {
       "baseline_complexity": 3,
       "baseline_status": "warning",
-      "function": "SweepSourceKind::choose",
-      "line": 16,
-      "path": "crates/online-watcher/src/transaction_builder/covenant/sweep.rs",
-      "test_seams": [
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 3,
-      "baseline_status": "warning",
-      "function": "encode_covenant_sweep",
-      "line": 37,
-      "path": "crates/online-watcher/src/wasm_api/contracts/covenant/sweep.rs",
-      "test_seams": [
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 3,
-      "baseline_status": "warning",
-      "function": "finalize_covenant_sweep",
-      "line": 59,
-      "path": "crates/online-watcher/src/wasm_api/contracts/covenant/sweep.rs",
-      "test_seams": [
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 3,
-      "baseline_status": "warning",
       "function": "create_global_allowance_topup",
       "line": 39,
       "path": "crates/online-watcher/src/wasm_api/contracts/covenant/families/allowance/global.rs",
       "test_seams": [
         "crates/online-watcher/src/wasm_api/contracts/covenant/global_thread/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 3,
-      "baseline_status": "warning",
-      "function": "create_covenant_owner_spend_selected",
-      "line": 84,
-      "path": "crates/online-watcher/src/wasm_api/contracts/covenant/families/spending_limit/local.rs",
-      "test_seams": [
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs"
       ]
     },
     {
@@ -653,17 +390,13 @@
       "path": "crates/online-watcher/src/wasm_api/wallet/address.rs",
       "test_seams": [
         "crates/online-watcher/src/account/unit_tests/mod.rs",
-        "crates/online-watcher/src/network/unit_tests/request.rs",
         "crates/online-watcher/src/transaction_builder/covenant/unit_tests/mod.rs",
         "crates/online-watcher/src/transaction_builder/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/shipping/unit_tests/mod.rs",
         "crates/online-watcher/src/wasm_api/contracts/covenant/families/payjoin/unit_tests/mod.rs",
         "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs",
         "crates/online-watcher/src/wasm_api/contracts/covenant/global_thread/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/oracle/publish/unit_tests/mod.rs",
         "crates/online-watcher/src/wasm_api/contracts/vault/unit_tests/mod.rs",
         "crates/online-watcher/src/wasm_api/contracts/zk/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/protocol/unit_tests/mod.rs",
         "crates/online-watcher/src/wasm_api/transactions/multisig/unit_tests/mod.rs",
         "crates/online-watcher/src/wasm_api/transactions/standard/unit_tests/mod.rs",
         "crates/online-watcher/src/wasm_api/utilities/unit_tests/mod.rs",
@@ -709,18 +442,7 @@
       "line": 32,
       "path": "crates/online-watcher/src/transaction_builder/covenant/builder.rs",
       "test_seams": [
-        "crates/online-watcher/src/transaction_builder/covenant/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/oracle/publish/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 3,
-      "baseline_status": "warning",
-      "function": "virtual_daa_score",
-      "line": 9,
-      "path": "crates/online-watcher/src/network/queries/chain.rs",
-      "test_seams": [
-        "crates/online-watcher/src/network/unit_tests/dag.rs"
+        "crates/online-watcher/src/transaction_builder/covenant/unit_tests/mod.rs"
       ]
     },
     {
@@ -798,26 +520,6 @@
     {
       "baseline_complexity": 2,
       "baseline_status": "pass",
-      "function": "prepare_and_finalize_selected",
-      "line": 109,
-      "path": "crates/online-watcher/src/wasm_api/contracts/covenant/sweep.rs",
-      "test_seams": [
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 2,
-      "baseline_status": "pass",
-      "function": "create_covenant_beneficiary_spend_selected",
-      "line": 118,
-      "path": "crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/timelocked.rs",
-      "test_seams": [
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 2,
-      "baseline_status": "pass",
       "function": "covenant_escrow",
       "line": 12,
       "path": "crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/address.rs",
@@ -831,16 +533,6 @@
       "function": "covenant_ship_escrow",
       "line": 22,
       "path": "crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/shipping/address.rs",
-      "test_seams": [
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 2,
-      "baseline_status": "pass",
-      "function": "create_covenant_timelocked_savings_claim_selected",
-      "line": 76,
-      "path": "crates/online-watcher/src/wasm_api/contracts/covenant/families/savings.rs",
       "test_seams": [
         "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs"
       ]
@@ -999,66 +691,6 @@
       ]
     },
     {
-      "baseline_complexity": 2,
-      "baseline_status": "pass",
-      "function": "utxos_changed",
-      "line": 39,
-      "path": "crates/online-watcher/src/network/codec/requests/subscription.rs",
-      "test_seams": [
-        "crates/online-watcher/src/network/unit_tests/request.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 2,
-      "baseline_status": "pass",
-      "function": "BrowserWebSocketTransport::new",
-      "line": 35,
-      "path": "crates/online-watcher/src/infrastructure/browser_websocket.rs",
-      "test_seams": [
-        "crates/online-watcher/src/infrastructure/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 2,
-      "baseline_status": "pass",
-      "function": "complete",
-      "line": 171,
-      "path": "crates/online-watcher/src/infrastructure/browser_websocket.rs",
-      "test_seams": [
-        "crates/online-watcher/src/protocol/unit_tests/qr_tests.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
-      "function": "encode_stealth_meta",
-      "line": 20,
-      "path": "crates/online-watcher/src/privacy/stealth/metadata.rs",
-      "test_seams": [
-        "crates/online-watcher/src/privacy/stealth/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
-      "function": "announcement_address",
-      "line": 5,
-      "path": "crates/online-watcher/src/privacy/stealth/announcement.rs",
-      "test_seams": [
-        "crates/online-watcher/src/privacy/stealth/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
-      "function": "hex_field",
-      "line": 154,
-      "path": "crates/online-watcher/src/protocol/pskt/scripts/router.rs",
-      "test_seams": [
-        "crates/online-watcher/src/protocol/pskt/scripts/unit_tests/mod.rs"
-      ]
-    },
-    {
       "baseline_complexity": 1,
       "baseline_status": "pass",
       "function": "encode_covenant",
@@ -1162,28 +794,6 @@
     {
       "baseline_complexity": 1,
       "baseline_status": "pass",
-      "function": "extract_csv_sequence",
-      "line": 18,
-      "path": "crates/online-watcher/src/wasm_api/contracts/covenant.rs",
-      "test_seams": [
-        "crates/online-watcher/src/protocol/script/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/covenant/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
-      "function": "extract_cltv_locktime",
-      "line": 22,
-      "path": "crates/online-watcher/src/wasm_api/contracts/covenant.rs",
-      "test_seams": [
-        "crates/online-watcher/src/protocol/script/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/covenant/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
       "function": "covenant_oracle_mb",
       "line": 21,
       "path": "crates/online-watcher/src/wasm_api/contracts/oracle/genesis.rs",
@@ -1219,26 +829,6 @@
       "path": "crates/online-watcher/src/wasm_api/contracts/wasm.rs",
       "test_seams": [
         "crates/online-watcher/src/wasm_api/contracts/wasm/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
-      "function": "build_withdrawal",
-      "line": 52,
-      "path": "crates/online-watcher/src/wasm_api/contracts/covenant/global_thread/planning.rs",
-      "test_seams": [
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/shipping/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
-      "function": "decode_redeem_script",
-      "line": 32,
-      "path": "crates/online-watcher/src/wasm_api/contracts/covenant/sweep.rs",
-      "test_seams": [
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs"
       ]
     },
     {
@@ -1374,36 +964,6 @@
     {
       "baseline_complexity": 1,
       "baseline_status": "pass",
-      "function": "prepare_sweep_from_utxos",
-      "line": 43,
-      "path": "crates/online-watcher/src/wasm_api/protocol/pskb_planning.rs",
-      "test_seams": [
-        "crates/online-watcher/src/wasm_api/protocol/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
-      "function": "encode_prepared_sweep",
-      "line": 128,
-      "path": "crates/online-watcher/src/wasm_api/protocol/pskb_planning.rs",
-      "test_seams": [
-        "crates/online-watcher/src/wasm_api/protocol/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
-      "function": "prepare_selected_sweep",
-      "line": 186,
-      "path": "crates/online-watcher/src/wasm_api/protocol/pskb_planning.rs",
-      "test_seams": [
-        "crates/online-watcher/src/wasm_api/protocol/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
       "function": "generate_qr_svg_text",
       "line": 14,
       "path": "crates/online-watcher/src/wasm_api/protocol/qr.rs",
@@ -1451,7 +1011,6 @@
       "test_seams": [
         "crates/online-watcher/src/account/unit_tests/mod.rs",
         "crates/online-watcher/src/protocol/pskt/unit_tests/kspt_bridge.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/review.rs",
         "crates/online-watcher/src/wasm_api/protocol/unit_tests/mod.rs",
         "crates/online-watcher/src/wasm_api/wallet/unit_tests/mod.rs"
       ]
@@ -1645,54 +1204,6 @@
       "test_seams": [
         "crates/online-watcher/src/network/unit_tests/queries.rs"
       ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
-      "function": "encode",
-      "line": 3,
-      "path": "crates/online-watcher/src/network/codec/requests/fee.rs",
-      "test_seams": [
-        "crates/online-watcher/src/network/unit_tests/request.rs",
-        "crates/online-watcher/src/network/unit_tests/submission.rs",
-        "crates/online-watcher/src/protocol/pskt/pskb/unit_tests/mod.rs",
-        "crates/online-watcher/src/protocol/pskt/scripts/unit_tests/mod.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/consensus.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/kspt_bridge.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/mod.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/review.rs",
-        "crates/online-watcher/src/protocol/transaction/unit_tests/sighash.rs",
-        "crates/online-watcher/src/protocol/transaction/unit_tests/signed_kspt.rs",
-        "crates/online-watcher/src/protocol/unit_tests/qr_tests.rs",
-        "crates/online-watcher/src/transaction_builder/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/payjoin/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/covenant/global_thread/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/oracle/publish/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/vault/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/zk/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/protocol/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
-      "function": "encode_empty_query",
-      "line": 3,
-      "path": "crates/online-watcher/src/network/codec/requests/block.rs",
-      "test_seams": [
-        "crates/online-watcher/src/network/unit_tests/request.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
-      "function": "encode_get_block",
-      "line": 9,
-      "path": "crates/online-watcher/src/network/codec/requests/block.rs",
-      "test_seams": [
-        "crates/online-watcher/src/network/unit_tests/request.rs"
-      ]
     }
   ],
   "transaction_construction_targets": [
@@ -1753,8 +1264,7 @@
       "line": 32,
       "path": "crates/online-watcher/src/transaction_builder/covenant/builder.rs",
       "test_seams": [
-        "crates/online-watcher/src/transaction_builder/covenant/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/contracts/oracle/publish/unit_tests/mod.rs"
+        "crates/online-watcher/src/transaction_builder/covenant/unit_tests/mod.rs"
       ]
     },
     {

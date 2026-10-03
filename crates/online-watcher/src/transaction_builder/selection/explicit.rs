@@ -16,9 +16,11 @@ pub fn select_explicit(
         if !seen.insert(index) {
             return Err(format!("Duplicate UTXO index {}", index));
         }
-        let utxo = utxos
-            .get(index)
-            .ok_or_else(|| format!("UTXO index {} out of range (have {})", index, utxos.len()))?;
+        let utxo = utxos.get(index).ok_or(format!(
+            "UTXO index {} out of range (have {})",
+            index,
+            utxos.len()
+        ))?;
         selected.push(utxo.clone());
     }
 

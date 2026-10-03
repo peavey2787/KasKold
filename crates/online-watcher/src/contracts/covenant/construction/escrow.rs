@@ -12,8 +12,7 @@ pub(crate) fn build_random_json(
     network: &str,
 ) -> Result<String, String> {
     let mut salt = [0u8; 8];
-    crate::infrastructure::fill_secure_random(&mut salt)
-        .map_err(|error| format!("RNG failed: {error}"))?;
+    crate::infrastructure::fill_secure_random(&mut salt)?;
     build_json(
         alice_pubkey_hex,
         bob_pubkey_hex,
@@ -51,12 +50,12 @@ pub(crate) fn build_json(
         &script,
         address::network_prefix(network),
     )?;
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "address": covenant_address,
         "redeem_script_hex": hex::encode(&script),
         "salt": hex::encode(salt),
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }
 
 pub(crate) fn build_timelocked_json(
@@ -82,10 +81,10 @@ pub(crate) fn build_timelocked_json(
         &script,
         address::network_prefix(network),
     )?;
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "address": covenant_address,
         "redeem_script_hex": hex::encode(&script),
         "locktime_daa": locktime_daa.to_string(),
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }

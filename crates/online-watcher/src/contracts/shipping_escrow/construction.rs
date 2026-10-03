@@ -36,8 +36,7 @@ struct ShippingEscrowMaterial {
 
 pub(crate) fn build_random_json(request_json: &str) -> Result<String, String> {
     let mut salt = [0u8; 8];
-    crate::infrastructure::fill_secure_random(&mut salt)
-        .map_err(|error| format!("RNG failed: {error}"))?;
+    crate::infrastructure::fill_secure_random(&mut salt)?;
     build_json(request_json, salt)
 }
 
@@ -101,7 +100,7 @@ fn serialize(material: ShippingEscrowMaterial) -> Result<String, String> {
         &script,
         network_prefix(&material.request.network),
     )?;
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "address": address,
         "redeem_script_hex": hex::encode(&script),
         "salt": hex::encode(material.salt),
@@ -114,6 +113,6 @@ fn serialize(material: ShippingEscrowMaterial) -> Result<String, String> {
         "cltv1_deadline": material.first_deadline.to_string(),
         "cltv2_deadline": material.second_deadline.to_string(),
         "type": "ship-escrow",
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }

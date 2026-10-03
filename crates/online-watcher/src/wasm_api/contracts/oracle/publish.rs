@@ -35,18 +35,6 @@ use crate::wasm_api::JsValue;
 ///
 /// This route is currently fail-closed: the keyless branch is not exposed to
 /// consumers until it has a typed zero-signature `VerifiedWitnessPlan`.
-#[cfg(test)]
-mod context;
-#[cfg(test)]
-mod plan;
-#[cfg(test)]
-mod request;
-
-#[cfg(test)]
-fn parse_publish_request_string(request_json: &str) -> Result<request::PublishRequest, String> {
-    crate::transaction_builder::oracle_publish::parse_request_json(request_json)
-}
-
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 pub async fn create_oracle_mb_publish(request_json: &str) -> Result<String, JsValue> {
     let _ = request_json;

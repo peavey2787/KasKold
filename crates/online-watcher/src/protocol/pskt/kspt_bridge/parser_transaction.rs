@@ -35,14 +35,14 @@ impl CompanionSink {
             flags,
             version: self
                 .version
-                .ok_or_else(|| "compact KSPT global record is missing".to_string())?,
+                .ok_or("compact KSPT global record is missing".to_string())?,
             locktime: self.locktime,
             subnetwork_id: self.subnetwork_id,
             gas: self.gas,
             payload: self.payload,
             network: self
                 .network
-                .ok_or_else(|| "compact KSPT network is missing".to_string())?,
+                .ok_or("compact KSPT network is missing".to_string())?,
             inputs: self.inputs,
             outputs: self.outputs,
             stealth_tweak: self.stealth_tweak,
@@ -110,7 +110,7 @@ impl DecodeSink for CompanionSink {
         let target = self
             .inputs
             .get_mut(input as usize)
-            .ok_or_else(|| "compact KSPT signature input is invalid".to_string())?;
+            .ok_or("compact KSPT signature input is invalid".to_string())?;
         target.signatures.push(CompactKsptSignature {
             pubkey_pos: value.position,
             sighash_type: value.sighash,
@@ -122,7 +122,7 @@ impl DecodeSink for CompanionSink {
     fn redeem(&mut self, input: u32, value: &[u8]) -> Result<(), Self::Error> {
         self.inputs
             .get_mut(input as usize)
-            .ok_or_else(|| "compact KSPT redeem input is invalid".to_string())?
+            .ok_or("compact KSPT redeem input is invalid".to_string())?
             .redeem_script = value.to_vec();
         Ok(())
     }
@@ -154,7 +154,7 @@ impl DecodeSink for CompanionSink {
     fn input_derivation(&mut self, input: u8, value: Derivation) -> Result<(), Self::Error> {
         self.inputs
             .get_mut(usize::from(input))
-            .ok_or_else(|| "compact KSPT input derivation target is invalid".to_string())?
+            .ok_or("compact KSPT input derivation target is invalid".to_string())?
             .derivation = Some((value.branch, value.index));
         Ok(())
     }
@@ -162,7 +162,7 @@ impl DecodeSink for CompanionSink {
     fn output_derivation(&mut self, output: u8, value: Derivation) -> Result<(), Self::Error> {
         self.outputs
             .get_mut(usize::from(output))
-            .ok_or_else(|| "compact KSPT output derivation target is invalid".to_string())?
+            .ok_or("compact KSPT output derivation target is invalid".to_string())?
             .derivation = Some((value.branch, value.index));
         Ok(())
     }
@@ -170,7 +170,7 @@ impl DecodeSink for CompanionSink {
     fn input_ms45(&mut self, input: u8, value: Ms45Derivation) -> Result<(), Self::Error> {
         self.inputs
             .get_mut(usize::from(input))
-            .ok_or_else(|| "compact KSPT multisig input target is invalid".to_string())?
+            .ok_or("compact KSPT multisig input target is invalid".to_string())?
             .ms45_derivation = Some((value.cosigner, value.chain, value.index));
         Ok(())
     }
@@ -178,7 +178,7 @@ impl DecodeSink for CompanionSink {
     fn output_ms45(&mut self, output: u8, value: Ms45Derivation) -> Result<(), Self::Error> {
         self.outputs
             .get_mut(usize::from(output))
-            .ok_or_else(|| "compact KSPT multisig output target is invalid".to_string())?
+            .ok_or("compact KSPT multisig output target is invalid".to_string())?
             .ms45_derivation = Some((value.cosigner, value.chain, value.index));
         Ok(())
     }
@@ -190,7 +190,7 @@ impl DecodeSink for CompanionSink {
     ) -> Result<(), Self::Error> {
         self.inputs
             .get_mut(usize::from(input))
-            .ok_or_else(|| "compact KSPT covenant execution target is invalid".to_string())?
+            .ok_or("compact KSPT covenant execution target is invalid".to_string())?
             .covenant_execution = Some((value.supplied_mask, value.supplied_true_mask));
         Ok(())
     }
@@ -203,7 +203,7 @@ impl DecodeSink for CompanionSink {
     ) -> Result<(), Self::Error> {
         self.outputs
             .get_mut(usize::from(output))
-            .ok_or_else(|| "compact KSPT covenant output target is invalid".to_string())?
+            .ok_or("compact KSPT covenant output target is invalid".to_string())?
             .covenant = Some((authorizing_input, id));
         Ok(())
     }
@@ -228,5 +228,5 @@ pub(crate) fn require_compact_trailer_progress(
 ) -> Result<(), String> {
     shared_signer::bytes::strict_forward_progress(before_remaining, after_remaining)
         .then_some(())
-        .ok_or_else(|| "compact KSPT trailer made no forward progress".to_string())
+        .ok_or("compact KSPT trailer made no forward progress".to_string())
 }

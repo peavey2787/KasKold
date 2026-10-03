@@ -26,7 +26,7 @@ pub(crate) fn build_json(
         &script,
         address::network_prefix(network),
     )?;
-    serde_json::to_string(&serde_json::json!({
+    Ok(serde_json::json!({
         "type": "private-swap",
         "address": covenant_address,
         "redeem_script_hex": hex::encode(script),
@@ -35,6 +35,6 @@ pub(crate) fn build_json(
         "claimer_pubkey": claimer_pubkey_hex,
         "owner_pubkey": owner_pubkey_hex,
         "salt": salt_hex,
-    }))
-    .map_err(|error| error.to_string())
+    })
+    .to_string())
 }

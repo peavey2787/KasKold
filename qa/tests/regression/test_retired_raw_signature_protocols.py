@@ -1,3 +1,9 @@
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
+
 from pathlib import Path
 import tomllib
 import unittest
@@ -47,7 +53,7 @@ class RetiredRawSignatureProtocolTests(unittest.TestCase):
 
     def test_current_crowdfunding_is_restored_without_wallet_raw_hash_signing(self) -> None:
         api = (ROOT / "apps/kaskold-companion-web/web/js/wasm/api.js").read_text()
-        script = (ROOT / "crates/online-watcher/src/contracts/crowdfund/script.rs").read_text()
+        script = kaskold_source("crates/online-watcher/src/contracts/crowdfund/script.rs").read_text()
         sweep = (ROOT / "crates/online-watcher/src/wasm_api/contracts/zk/crowdfund/sweep.rs").read_text()
         sweep_core = (ROOT / "crates/online-watcher/src/transaction_builder/zk/crowdfund.rs").read_text()
         web = "\n".join(path.read_text(errors="ignore") for path in (ROOT / "apps/kaskold-companion-web/web/js").rglob("*.js"))
@@ -124,7 +130,7 @@ class RetiredRawSignatureProtocolTests(unittest.TestCase):
         api = (ROOT / "apps/kaskold-companion-web/web/js/wasm/api.js").read_text()
         family = (ROOT / "crates/online-watcher/src/wasm_api/contracts/covenant/families/oracle_v1.rs").read_text()
         oracle_core = (ROOT / "crates/online-watcher/src/contracts/covenant/oracle_v1.rs").read_text()
-        script = (ROOT / "crates/online-watcher/src/contracts/covenant/script/oracle_v1.rs").read_text()
+        script = kaskold_source("crates/online-watcher/src/contracts/covenant/script/oracle_v1.rs").read_text()
         self.assertIn("covenant_oracle_mb", api)
         self.assertIn("create_oracle_mb_publish", api)
         self.assertIn("covenant_oracle_v1", api)

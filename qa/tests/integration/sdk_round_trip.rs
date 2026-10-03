@@ -29,8 +29,12 @@ fn sdk_round_trip_uses_actual_offline_signer_at_high_derivation_index() {
     let request = prepare(&original, Network::Mainnet).expect("SDK prepare");
     let signed_hex = sign_request(&request, &account).expect("offline signing");
     let signed = complete(&request, &signed_hex).expect("SDK complete");
-    let finalized: Value = serde_json::from_str(&finalize(&signed).expect("SDK finalize")).expect("JSON");
-    assert!(!finalized["inputs"][0]["signatureScript"].as_str().unwrap_or_default().is_empty());
+    let finalized: Value =
+        serde_json::from_str(&finalize(&signed).expect("SDK finalize")).expect("JSON");
+    assert!(!finalized["inputs"][0]["signatureScript"]
+        .as_str()
+        .unwrap_or_default()
+        .is_empty());
 }
 
 #[test]
@@ -45,7 +49,10 @@ fn sdk_offline_signer_rejects_wrong_derivation_hint() {
         499,
     )
     .expect("wrong derivation");
-    assert_signer_refuses(&prepare(&original, Network::Mainnet).expect("request"), &account);
+    assert_signer_refuses(
+        &prepare(&original, Network::Mainnet).expect("request"),
+        &account,
+    );
 }
 
 #[test]
@@ -60,7 +67,10 @@ fn sdk_offline_signer_rejects_right_index_for_wrong_pubkey() {
         500,
     )
     .expect("derivation");
-    assert_signer_refuses(&prepare(&original, Network::Mainnet).expect("request"), &account);
+    assert_signer_refuses(
+        &prepare(&original, Network::Mainnet).expect("request"),
+        &account,
+    );
 }
 
 #[test]
@@ -69,13 +79,17 @@ fn sdk_complete_rejects_response_from_different_transaction() {
     let account = derive_account_key(&seed).expect("account");
     let child = derive_address_key(&account, 12).expect("child");
     let key = child.public_key_x_only().expect("x-only key");
-    let first = attach_input_derivation(&pskb(key, 0x81), 0, AddressBranch::Receive, 12).expect("first");
-    let second = attach_input_derivation(&pskb(key, 0x82), 0, AddressBranch::Receive, 12).expect("second");
+    let first =
+        attach_input_derivation(&pskb(key, 0x81), 0, AddressBranch::Receive, 12).expect("first");
+    let second =
+        attach_input_derivation(&pskb(key, 0x82), 0, AddressBranch::Receive, 12).expect("second");
     let first_request = prepare(&first, Network::Mainnet).expect("first request");
     let second_request = prepare(&second, Network::Mainnet).expect("second request");
     let second_response = sign_request(&second_request, &account).expect("second response");
     assert_eq!(
-        complete(&first_request, &second_response).unwrap_err().kind(),
+        complete(&first_request, &second_response)
+            .unwrap_err()
+            .kind(),
         SdkErrorKind::TransactionMismatch,
     );
 }
@@ -103,7 +117,8 @@ fn sign_request(
     account: &offline_signer::derivation::bip32::ExtendedPrivKey,
 ) -> Result<String, String> {
     let wire = hex::decode(&request.kspt_hex).map_err(|error| error.to_string())?;
-    let mut transaction = Transaction::try_new().map_err(|_| "transaction allocation".to_string())?;
+    let mut transaction =
+        Transaction::try_new().map_err(|_| "transaction allocation".to_string())?;
     parse_compact_kspt(&wire, &mut transaction).map_err(|error| format!("parse: {error:?}"))?;
     sign_transaction_account_multi_addr_with_entropy(
         &mut transaction,

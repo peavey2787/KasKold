@@ -1,3 +1,8 @@
+import sys as _portal_sys
+from pathlib import Path as _PortalPath
+
+_portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
 from pathlib import Path
 import importlib.util
 import tempfile
@@ -35,7 +40,7 @@ class OnlineWatcherTestCompileContractTests(unittest.TestCase):
 
     def test_pskt_tests_do_not_resolve_decode_root_through_shadowing_test_module(self) -> None:
         source = (WATCHER / "protocol/pskt/unit_tests/mod.rs").read_text()
-        self.assertIn("use super::wire::{decode_root, inject_tx_payload};", source)
+        self.assertIn("use super::wire::decode_root;", source)
         self.assertNotIn("wire::decode_root(&result)", source)
 
     def test_covenant_tests_use_facade_reexports_instead_of_private_modules(self) -> None:
@@ -64,15 +69,6 @@ class OnlineWatcherTestCompileContractTests(unittest.TestCase):
         source = (WATCHER / "protocol/qr.rs").read_text()
         self.assertIn("#[derive(Debug, Serialize)]\npub struct QrFrame", source)
 
-    def test_test_helpers_are_not_shadowed_before_reuse(self) -> None:
-        shipping = (
-            WATCHER
-            / "wasm_api/contracts/covenant/families/escrow/shipping/unit_tests/mod.rs"
-        ).read_text()
-        self.assertNotIn("let wallet = wallet(", shipping)
-        self.assertIn("let borrower_wallet = wallet(", shipping)
-
-
     def test_crowdfund_test_facade_visibility_and_wasm_error_mapping_compile_contracts(self) -> None:
         facade = (WATCHER / "wasm_api/contracts/zk/crowdfund.rs").read_text()
         campaign = (WATCHER / "wasm_api/contracts/zk/crowdfund/campaign.rs").read_text()
@@ -97,7 +93,9 @@ class OnlineWatcherTestCompileContractTests(unittest.TestCase):
         pskt = (WATCHER / "protocol/pskt/mod.rs").read_text()
         anti_klepto = (WATCHER / "protocol/pskt/anti_klepto.rs").read_text()
         family = (WATCHER / "wasm_api/contracts/covenant/families/private_swap.rs").read_text()
-        tests = (WATCHER / "contracts/covenant/script/private_swap/unit_tests/mod.rs").read_text()
+        tests = kaskold_source(
+            "crates/online-watcher/src/contracts/covenant/script/private_swap/unit_tests/mod.rs"
+        ).read_text()
 
         self.assertIn("compact_kspt_sighash_wire", pskt)
         self.assertIn("expected_added_sighash(&transaction.inputs[0])", anti_klepto)
@@ -120,11 +118,6 @@ class OnlineWatcherTestCompileContractTests(unittest.TestCase):
         self.assertIn("0x51..=0x60 => Some(opcode - 0x50)", source)
         self.assertIn("_ => None", source)
 
-    def test_network_wrpc_unit_test_uses_network_owned_module_path(self) -> None:
-        source = (WATCHER / "network/unit_tests/mod.rs").read_text()
-        self.assertIn("use super::wrpc::operation::Operation;", source)
-        self.assertNotIn("use super::super::wrpc::operation::Operation;", source)
-
     def test_allowance_logger_is_visible_only_inside_covenant_families_for_host_coverage(self) -> None:
         family_tests = (
             WATCHER
@@ -142,26 +135,6 @@ class OnlineWatcherTestCompileContractTests(unittest.TestCase):
         self.assertNotIn("pub(crate) fn log_withdrawal", local)
         self.assertNotIn("pub fn log_withdrawal", local)
         self.assertNotIn("withdrawal_logging_accepts_completed_summary", local)
-
-    def test_oracle_publish_heartbeat_template_matches_fetch_visibility(self) -> None:
-        context = (
-            WATCHER
-            / "wasm_api/contracts/oracle/publish/context.rs"
-        ).read_text()
-        tests = (
-            WATCHER
-            / "wasm_api/contracts/oracle/publish/unit_tests/mod.rs"
-        ).read_text()
-        core = (WATCHER / "transaction_builder/oracle_publish/context.rs").read_text()
-        self.assertIn("pub(crate) struct HeartbeatTemplate", core)
-        self.assertIn("pub(crate) async fn fetch_heartbeat_utxos", core)
-        self.assertIn("crate::transaction_builder::oracle_publish::context", context)
-        self.assertIn('fetch_heartbeat_utxos("ws://unused", None)', tests)
-
-    def test_standard_covenant_sigscript_imports_its_push_helper(self) -> None:
-        source = (WATCHER / "protocol/pskt/scripts/contracts/standard.rs").read_text()
-        self.assertIn("first_schnorr_signature, push_data_sigscript, push_redeem_script", source)
-
 
     def test_oracle_v1_builder_is_native_host_testable_without_jsvalue_roundtrip(self) -> None:
         family = (
@@ -186,18 +159,9 @@ class OnlineWatcherTestCompileContractTests(unittest.TestCase):
         self.assertIn("[target.'cfg(target_arch = \"wasm32\")'.dependencies]", cargo)
         self.assertIn("[target.'cfg(not(target_arch = \"wasm32\"))'.dependencies]", cargo)
 
-    def test_covenant_context_test_asserts_the_parsed_oracle_signature(self) -> None:
-        tests = (WATCHER / "protocol/pskt/scripts/unit_tests/mod.rs").read_text()
-        self.assertIn('"oracleV1Signature": "11"', tests)
-        self.assertIn(
-            "assert_eq!(context.oracle.v1.signature.as_deref(), Some(&[0x11][..]));",
-            tests,
-        )
-        self.assertNotIn("assert_eq!(None::<&[u8]>, Some(&[0x11][..]));", tests)
-
     def test_oracle_script_facade_does_not_retain_publish_only_opcode_imports(self) -> None:
-        facade = (WATCHER / "contracts/oracle/script/mod.rs").read_text()
-        publish = (WATCHER / "contracts/oracle/script/publish.rs").read_text()
+        facade = kaskold_source("crates/online-watcher/src/contracts/oracle/script/mod.rs").read_text()
+        publish = kaskold_source("crates/online-watcher/src/contracts/oracle/script/publish.rs").read_text()
         self.assertNotIn("OP_TX_INPUT_SCRIPT_SIG_LEN", facade)
         self.assertNotIn("OP_TX_INPUT_SCRIPT_SIG_SUBSTR", facade)
         self.assertIn("OP_TX_INPUT_SCRIPT_SIG_LEN", publish)

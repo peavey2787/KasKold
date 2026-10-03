@@ -1,8 +1,6 @@
 //! PSKT/KSPT translation and response-processing primitives.
 
 mod compact;
-#[cfg(test)]
-mod finalize;
 mod relay;
 mod relay_fields;
 mod schema_validate;
@@ -139,11 +137,5 @@ pub(crate) mod test_support {
             .get(input_index)
             .map(|input| input.covenant_execution)
             .ok_or_else(|| "KSPT input index out of range".to_string())
-    }
-
-    /// Structural finalizer seam for malformed-shape unit tests. Public callers must
-    /// use `crate::finalize_json`, which first requires cryptographic completion.
-    pub(crate) fn finalize_json_unverified_for_test(pskt_hex: &str) -> Result<String, String> {
-        super::finalize::finalize_json(pskt_hex)
     }
 }

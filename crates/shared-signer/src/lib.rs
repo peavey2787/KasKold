@@ -3,7 +3,6 @@
 #[cfg(test)]
 extern crate std;
 
-pub mod advanced_policy;
 pub mod covenant_backup;
 pub mod creation_flow;
 pub mod pairing;
@@ -14,6 +13,7 @@ pub use kaspa_portal::contract::covenant::branch as covenant_branch;
 pub use kaspa_portal::primitives::bytes;
 pub use kaspa_portal::transaction::interchange::pskt::shared as pskt;
 pub use kaspa_portal::transaction::interchange::qr::{frame as qr_frame, security};
+pub use kaspa_portal::transaction::policy::time as advanced_policy;
 pub use kaspa_portal::transaction::signing::covenant::protocol as covenant_sign;
 pub use kaspa_portal::wallet::key::account as account_key;
 

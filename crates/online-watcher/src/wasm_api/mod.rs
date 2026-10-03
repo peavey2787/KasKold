@@ -66,12 +66,13 @@ pub(crate) mod test_support {
         }
     }
 
-    /// Deterministic, curve-valid x-only Schnorr public key for host fixtures.
+    /// Deterministic, curve-valid x-only public key (`seed·G`) for host fixtures.
     pub(crate) fn xonly_key(seed: u8) -> String {
-        let mut secret = [0u8; 32];
-        secret[31] = seed.max(1);
-        let signing = k256::schnorr::SigningKey::from_bytes(&secret)
-            .expect("deterministic host test signing key");
-        hex::encode(signing.verifying_key().to_bytes())
+        use k256::elliptic_curve::sec1::ToEncodedPoint;
+
+        let point = (k256::ProjectivePoint::GENERATOR * k256::Scalar::from(u64::from(seed.max(1))))
+            .to_affine()
+            .to_encoded_point(true);
+        hex::encode(&point.as_bytes()[1..])
     }
 }

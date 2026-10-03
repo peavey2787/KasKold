@@ -132,20 +132,10 @@ def _check_protocol_boundaries(root: Path) -> list[str]:
 
 def _check_licensing_boundaries(root: Path) -> list[str]:
     errors: list[str] = []
-    permissive = ("shared-signer", "kaskold-protocol", "kaskold-sdk")
-    for crate_name in permissive:
-        crate_root = root / "crates" / crate_name / "src"
-        for path in crate_root.rglob("*.rs"):
-            header = "\n".join(path.read_text(errors="ignore").splitlines()[:14])
-            if "License: GPL" in header or "GNU General Public License" in header:
-                errors.append(
-                    f"permissive SDK source carries a GPL-only source header: {path.relative_to(root)}"
-                )
-
     shared_lib = (root / "crates/shared-signer/src/lib.rs").read_text()
     for retired in ("persistent_credential", "qr_payload"):
         if f"pub mod {retired};" in shared_lib or (root / f"crates/shared-signer/src/{retired}.rs").exists():
-            errors.append(f"shared-signer must not retain non-shared/permissive ownership of {retired}")
+            errors.append(f"shared-signer must not retain non-shared ownership of {retired}")
 
     qr_payload = root / "crates/kaskold-protocol/src/wire/qr_payload.rs"
     if not qr_payload.is_file():
@@ -170,8 +160,8 @@ def _check_licensing_boundaries(root: Path) -> list[str]:
         errors.append("first-party KasKold code must not be offered under a permissive license")
 
     bip32 = (root / "crates/kaskold-protocol/src/account/bip32.rs").read_text(errors="ignore")
-    if "License: GPL-3.0-only" not in bip32 or "KasSigner" not in bip32:
-        errors.append("BIP32 module must keep its KasSigner provenance and GPL-3.0-only license")
+    if "License: GPL-3.0-only" not in bip32 or "UPSTREAM_ATTRIBUTION.md" not in bip32:
+        errors.append("BIP32 module must keep its upstream provenance and GPL-3.0-only license")
     return errors
 
 def _check_wallet_policy_boundary(root: Path) -> list[str]:
@@ -201,7 +191,7 @@ def _check_public_release_contract(root: Path) -> list[str]:
     manifests = {name: _manifest(root, name) for name in ("shared-signer", "kaskold-protocol", "kaskold-sdk")}
     for name, manifest in manifests.items():
         if manifest.get("package", {}).get("license") != "GPL-3.0-only":
-            errors.append(f"{name} must be licensed GPL-3.0-only like the KasSigner upstream")
+            errors.append(f"{name} must be licensed GPL-3.0-only like the upstream project")
         for license_name in ("LICENSE-MIT", "LICENSE-APACHE"):
             if (root / "crates" / name / license_name).exists():
                 errors.append(f"{name} must not ship a permissive {license_name}")

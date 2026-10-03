@@ -79,3 +79,75 @@ fn account_fingerprint_is_domain_bound_and_stable() {
     assert_eq!(first, account_fingerprint(&pubkey, &chain));
     assert_ne!(first, account_fingerprint(&[0x04; 33], &chain));
 }
+
+#[test]
+fn pairing_codecs_reject_each_size_magic_version_and_batch_boundary() {
+    let nonce = [7u8; NONCE_LEN];
+    let empty = AddressBatchRequest::new(nonce, 0, 0, 0, 0);
+    assert_eq!(empty.validate(), Err(PairingError::EmptyBatch));
+    let receive_only = AddressBatchRequest::new(nonce, 0, 1, 0, 0);
+    assert!(receive_only.validate().is_ok());
+    let change_only = AddressBatchRequest::new(nonce, 0, 0, 0, 1);
+    assert!(change_only.validate().is_ok());
+    for oversized in [
+        AddressBatchRequest::new(nonce, 0, MAX_BATCH_PER_CHAIN + 1, 0, 0),
+        AddressBatchRequest::new(nonce, 0, 1, 0, MAX_BATCH_PER_CHAIN + 1),
+    ] {
+        assert_eq!(oversized.validate(), Err(PairingError::BatchTooLarge));
+    }
+
+    let valid = AddressBatchRequest::new(nonce, 3, 2, 5, 1);
+    let mut short = [0u8; REQUEST_LEN - 1];
+    assert_eq!(
+        encode_request(valid, &mut short),
+        Err(PairingError::OutputTooSmall)
+    );
+    let mut wire = [0u8; REQUEST_LEN];
+    assert_eq!(encode_request(valid, &mut wire), Ok(REQUEST_LEN));
+    assert_eq!(
+        parse_request(&wire[..REQUEST_LEN - 1]),
+        Err(PairingError::InvalidLength)
+    );
+    let mut bad_magic = wire;
+    bad_magic[0] ^= 1;
+    assert_eq!(parse_request(&bad_magic), Err(PairingError::InvalidMagic));
+    let mut bad_version = wire;
+    bad_version[4] ^= 1;
+    assert_eq!(
+        parse_request(&bad_version),
+        Err(PairingError::UnsupportedVersion)
+    );
+
+    let fingerprint = [9u8; ACCOUNT_FINGERPRINT_LEN];
+    let mut too_small = vec![0u8; valid.response_len() - 1];
+    assert_eq!(
+        encode_response_header(valid, fingerprint, &mut too_small),
+        Err(PairingError::OutputTooSmall)
+    );
+    let mut response = vec![0u8; valid.response_len()];
+    assert_eq!(
+        encode_response_header(valid, fingerprint, &mut response),
+        Ok(RESPONSE_HEADER_LEN)
+    );
+    assert!(matches!(
+        parse_response(&response[..RESPONSE_HEADER_LEN - 1]),
+        Err(PairingError::InvalidLength)
+    ));
+    let mut response_magic = response.clone();
+    response_magic[0] ^= 1;
+    assert!(matches!(
+        parse_response(&response_magic),
+        Err(PairingError::InvalidMagic)
+    ));
+    let mut response_version = response.clone();
+    response_version[4] ^= 1;
+    assert!(matches!(
+        parse_response(&response_version),
+        Err(PairingError::UnsupportedVersion)
+    ));
+    let parsed = parse_response(&response).expect("response parses");
+    assert!(parsed.receive_key(1).is_some());
+    assert!(parsed.receive_key(2).is_none());
+    assert!(parsed.change_key(0).is_some());
+    assert!(parsed.change_key(1).is_none());
+}

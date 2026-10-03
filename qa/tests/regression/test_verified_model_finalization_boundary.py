@@ -3,7 +3,7 @@ import sys as _portal_sys
 from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
-from portal_source import kaskold_source  # noqa: E402
+from portal_source import kaskold_source, module_text  # noqa: E402
 from pathlib import Path
 import re
 import unittest
@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def text(path: str) -> str:
-    return kaskold_source(str(path)).read_text(encoding="utf-8")
+    return module_text(str(path))
 
 
 def fn_body(source: str, name: str) -> str:
@@ -81,7 +81,9 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
             self.assertNotIn(forbidden, body)
 
         protocol = text("crates/kaskold-protocol/src/pskt/mod.rs")
-        self.assertIn("#[cfg(test)]\nmod finalize;", protocol)
+        # The unverified structural finalizer is retired, not kept for tests.
+        self.assertNotIn("mod finalize;", protocol)
+        self.assertFalse((ROOT / "crates/kaskold-protocol/src/pskt/finalize.rs").exists())
         finalize = fn_body(protocol, "finalize_json")
         self.assertIn("verify_complete_transaction", finalize)
         self.assertIn("verified::from_compact", finalize)
@@ -122,7 +124,9 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
     def test_specialized_covenant_routing_is_typed_template_bound_and_fail_closed(self):
         relay = text("crates/kaskold-protocol/src/pskt/relay.rs")
         verify = fn_body(relay, "verify_complete_transaction")
-        self.assertLess(verify.index("bind_specialized_witnesses"), verify.index("verified_complete"))
+        build = fn_body(relay, "build_verified_transaction")
+        self.assertIn("bind_specialized_witnesses", build)
+        self.assertLess(verify.index("build_verified_transaction"), verify.index("verified_complete"))
 
         specialized = text("crates/kaskold-protocol/src/pskt/specialized.rs")
         for binder in [
@@ -154,7 +158,11 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         schema = text("crates/kaskold-protocol/src/wire/pskt_schema.rs")
         vault = text("crates/offline-signer/src/transaction/std_pskt/parser/inputs/details.rs")
         host = text("crates/kaskold-protocol/src/pskt/relay_fields.rs")
-        self.assertIn('field("covenantId", false, NullRule::AllowedAsDefault, ValueKind::HexString, DefaultRule::None)', schema)
+        self.assertRegex(
+            schema,
+            r'field\(\s*"covenantId",\s*false,\s*NullRule::AllowedAsDefault,\s*'
+            r'ValueKind::HexString,\s*DefaultRule::None,?\s*\)',
+        )
         self.assertIn('b"covenantId" => self.parse_covenant_id', vault)
         self.assertIn('utxo.get("covenantId")', host)
 
@@ -169,16 +177,24 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
 
         compact = text("crates/kaskold-protocol/src/pskt/compact.rs")
         complete = fn_body(compact, "verified_complete")
-        self.assertIn("branches.selector_mask() != 0b1", complete)
-        self.assertIn("active.len() != 1", complete)
+        self.assertIn("required_signature_count(index, input)", complete)
+        generic = fn_body(compact, "generic_covenant_required")
+        self.assertIn("branches.selector_mask() != 0b1", generic)
+        self.assertIn("active.len() != 1", generic)
         verified = text("crates/kaskold-protocol/src/pskt/verified.rs")
         self.assertIn("verified generic covenant selector plan is invalid", verified)
 
     def test_completion_uses_executable_shared_schema_and_zero_signature_routes_are_disabled(self):
         relay = text("crates/kaskold-protocol/src/pskt/relay.rs")
+        build = fn_body(relay, "build_verified_transaction")
+        self.assertIn("schema_validate::validate_document", build)
+        self.assertLess(
+            build.index("schema_validate::validate_document"),
+            build.index("build_base_transaction"),
+        )
         for name in ["verified_signature_counts", "is_complete", "verify_complete_transaction"]:
             body = fn_body(relay, name)
-            self.assertIn("schema_validate::validate_document", body)
+            self.assertIn("build_verified_transaction(pskt_hex, network)", body)
         validator = text("crates/kaskold-protocol/src/pskt/schema_validate.rs")
         self.assertIn("pskt_schema::fields", validator)
         self.assertIn("pskt_schema::default_rule", validator)

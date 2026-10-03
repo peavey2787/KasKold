@@ -10,18 +10,11 @@ pub(crate) fn parse_spk_hex(s: &str) -> Result<(u16, Vec<u8>), String> {
             bytes.len()
         ));
     }
-    // Version: 2 bytes BE = 4 ASCII hex chars. Validate bytes before converting
-    // so arbitrary Unicode can never put a fixed index inside a UTF-8 code point.
-    let ver_hex =
-        core::str::from_utf8(&bytes[..4]).map_err(|_| "bad script version ASCII".to_string())?;
-    let script_hex =
-        core::str::from_utf8(&bytes[4..]).map_err(|_| "bad script ASCII".to_string())?;
-    let v0 = u8::from_str_radix(&ver_hex[..2], 16).map_err(|e| format!("bad version hi: {}", e))?;
-    let v1 =
-        u8::from_str_radix(&ver_hex[2..4], 16).map_err(|e| format!("bad version lo: {}", e))?;
-    let version = u16::from_be_bytes([v0, v1]);
-    let script = hex::decode(script_hex).map_err(|e| format!("bad script hex: {}", e))?;
-    Ok((version, script))
+    // The input is validated ASCII hex, so one decode yields the 2-byte BE
+    // version followed by the script; only an odd length can still fail.
+    let decoded = hex::decode(s).map_err(|e| format!("bad script hex: {}", e))?;
+    let version = u16::from_be_bytes([decoded[0], decoded[1]]);
+    Ok((version, decoded[2..].to_vec()))
 }
 
 pub(crate) fn classify_input_script(

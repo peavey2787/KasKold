@@ -57,7 +57,7 @@ def main() -> int:
         full_output.write_text("CRAP JSON source: " + str(arguments.input) + "\n")
     for scope in SCOPES:
         filename = "crap_report_prod.txt" if scope == "production" else f"crap_report_{scope}.txt"
-        (arguments.output_dir / filename).write_text(render_scope_report(report, scope))
+        (arguments.output_dir / filename).write_text(render_scope_report(report, scope), encoding="utf-8")
     write_json(arguments.output_dir / "crap_summary.json", report_summary(report))
     source_label = (
         arguments.source_label

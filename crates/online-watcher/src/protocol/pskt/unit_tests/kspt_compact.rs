@@ -3,9 +3,20 @@
 // License: GPL-3.0
 
 use super::super::kspt_bridge::{
-    parse_compact_kspt_signatures, parse_compact_kspt_transaction,
-    require_compact_trailer_progress, xonly_at_position,
+    parse_compact_kspt_transaction, require_compact_trailer_progress, xonly_at_position,
 };
+use super::super::model::CompactKsptSignature;
+
+/// Per-input signatures of a compact KSPT, through the live transaction parser.
+fn parse_compact_kspt_signatures(data: &[u8]) -> Result<Vec<Vec<CompactKsptSignature>>, String> {
+    parse_compact_kspt_transaction(data).map(|transaction| {
+        transaction
+            .inputs
+            .into_iter()
+            .map(|input| input.signatures)
+            .collect()
+    })
+}
 
 const SIGNATURE: [u8; 64] = [0x5a; 64];
 const KEY_A: [u8; 32] = [0x11; 32];
@@ -23,7 +34,7 @@ fn compact_parser_extracts_signatures_and_accepts_supported_trailers() {
     assert_eq!(parsed[0].len(), 1);
     assert_eq!(parsed[0][0].pubkey_pos, 0);
     assert_eq!(parsed[0][0].sighash_type, 0x01);
-    assert_eq!(parsed[0][0].sig, SIGNATURE);
+    assert_eq!(parsed[0][0].signature, SIGNATURE);
 }
 
 #[test]
@@ -456,7 +467,7 @@ fn compact_parser_signature_capacity_is_exact_and_duplicate_positions_fail_close
     for (position, signature) in parsed[0].iter().enumerate() {
         assert_eq!(usize::from(signature.pubkey_pos), position);
         assert_eq!(signature.sighash_type, 0x01);
-        assert_eq!(signature.sig, SIGNATURE);
+        assert_eq!(signature.signature, SIGNATURE);
     }
 
     let six = [SIGNATURE; 6];

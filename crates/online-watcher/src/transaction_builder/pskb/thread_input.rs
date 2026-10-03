@@ -84,10 +84,10 @@ pub(crate) fn select_wallet_utxos(
     indices
         .into_iter()
         .map(|index| {
-            utxos
-                .get(index)
-                .cloned()
-                .ok_or_else(|| format!("UTXO index {index} out of range (have {})", utxos.len()))
+            utxos.get(index).cloned().ok_or(format!(
+                "UTXO index {index} out of range (have {})",
+                utxos.len()
+            ))
         })
         .collect()
 }

@@ -63,3 +63,26 @@ fn canonicalizer_allows_missing_input_amount_but_requires_output_amount() {
         "missing amount"
     );
 }
+
+#[test]
+fn canonicalization_tolerates_absent_sections_and_rejects_non_object_entries() {
+    let mut sparse = serde_json::json!({});
+    canonicalize_pskt_exact_fields(&mut sparse).expect("absent sections are left alone");
+    assert_eq!(sparse, serde_json::json!({}));
+
+    let mut no_utxo = serde_json::json!({"inputs": [{"sequence": 3}], "outputs": []});
+    canonicalize_pskt_exact_fields(&mut no_utxo).expect("input without utxoEntry");
+    assert_eq!(no_utxo["inputs"][0]["sequence"], serde_json::json!("3"));
+
+    let mut bad_input = serde_json::json!({"inputs": [1]});
+    assert_eq!(
+        canonicalize_pskt_exact_fields(&mut bad_input),
+        Err("input[0] must be an object".to_string())
+    );
+    let mut bad_output = serde_json::json!({"outputs": [1]});
+    assert_eq!(
+        canonicalize_pskt_exact_fields(&mut bad_output),
+        Err("output[0] must be an object".to_string())
+    );
+    assert!(canonicalize_pskt_exact_fields(&mut serde_json::json!([])).is_err());
+}
