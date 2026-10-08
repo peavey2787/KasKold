@@ -28,10 +28,8 @@ pub(crate) fn run(report: &mut Report) {
     let (passed, total) = offline_signer::self_test::xpub::run_xpub_tests();
     report.counted("kpub/xpub vectors", passed, total);
 
-    report.check(
-        "BIP85 child mnemonic vector",
-        offline_signer::derivation::bip85::unit_tests::test_bip85_12word_index0(),
-    );
+    let (passed, total) = offline_signer::self_test::bip85::run_bip85_tests();
+    report.counted("BIP85 child mnemonic vectors", passed, total);
 
     let (passed, total) = crate::qr::encoder::unit_tests::run_tests();
     report.counted("QR encoder vectors", passed, total);

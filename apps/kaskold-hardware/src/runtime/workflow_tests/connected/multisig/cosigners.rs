@@ -82,9 +82,7 @@ fn kpub_for_slot(ad: &mut crate::runtime::data::AppData, slot_index: usize) -> O
     let mut seed = crate::runtime::signing::derive_slot_seed(slot).ok()?;
     let parts = offline_signer::derivation::xpub::derive_multisig_account_parts(&seed.bytes, 0).ok()?;
     crate::runtime::signing::zeroize_seed(&mut seed.bytes);
-    let mut out = alloc::vec![0u8; offline_signer::derivation::xpub::KPUB_MAX_LEN];
-    let length = offline_signer::derivation::xpub::serialize_legacy_kpub_parts(&parts, &mut out);
-    if length != offline_signer::derivation::xpub::LEGACY_KPUB_LEN { return None; }
-    out.truncate(length);
-    Some(out)
+    let mut out = [0u8; offline_signer::derivation::xpub::KPUB_MAX_LEN];
+    let length = offline_signer::derivation::xpub::serialize_kpub_parts(&parts, &mut out).ok()?;
+    Some(out[..length].to_vec())
 }

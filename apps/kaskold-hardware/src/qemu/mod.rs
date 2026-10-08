@@ -8,7 +8,6 @@
 //! UART, timer, and RNG register path. External board peripherals remain behind
 //! focused stubs because QEMU does not model the physical board wiring.
 
-#[cfg(feature = "qemu-tests")]
 pub(crate) mod allocator;
 pub(crate) mod boot;
 pub(crate) mod hw;
@@ -21,7 +20,6 @@ use esp_hal::{clock::CpuClock, delay::Delay};
 pub(crate) fn run() -> ! {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let _peripherals = esp_hal::init(config);
-    #[cfg(feature = "qemu-tests")]
     allocator::initialize();
     let delay = Delay::new();
     let (display, touch) = boot::initialize();
