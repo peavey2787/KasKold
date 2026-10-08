@@ -135,14 +135,14 @@ assert prefetch.prefetch_toolchains.__module__ == 'scripts.linux.build.reproduci
         self.assertIn("sources.container.list", base)
 
 
-    def test_companion_reproducible_workspace_declares_rust_187_and_keeps_independent_resolver2(self) -> None:
+    def test_companion_reproducible_workspace_declares_rust_195_and_keeps_independent_resolver2(self) -> None:
         manifest = (ROOT / "apps/kaskold-companion-web/Cargo.toml").read_text()
-        self.assertIn('rust-version = "1.87"', manifest)
+        self.assertIn('rust-version = "1.95"', manifest)
         self.assertIn('[workspace]\nresolver = "2"', manifest)
 
-    def test_vault_web_reproducible_workspace_declares_rust_187_and_keeps_independent_resolver2(self) -> None:
+    def test_vault_web_reproducible_workspace_declares_rust_195_and_keeps_independent_resolver2(self) -> None:
         manifest = (ROOT / "apps/kaskold-vault-web/Cargo.toml").read_text()
-        self.assertIn('rust-version = "1.87"', manifest)
+        self.assertIn('rust-version = "1.95"', manifest)
         self.assertIn('[workspace]\nresolver = "2"', manifest)
 
     def test_companion_lock_reconciliation_is_repro_msrv_aware(self) -> None:
