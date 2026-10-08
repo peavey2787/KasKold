@@ -232,7 +232,7 @@ def http_server():
         server.server_close()
 
 
-def wait_for_chromium_debugger(debug_port: int, process: subprocess.Popen[str], timeout: float = 10.0) -> None:
+def wait_for_chromium_debugger(debug_port: int, process: subprocess.Popen[str], timeout: float = 30.0) -> None:
     endpoint = f"http://127.0.0.1:{debug_port}/json/version"
     deadline = time.monotonic() + timeout
     last_error: Exception | None = None
@@ -362,7 +362,11 @@ def chromium_run(port: int, timeout: int) -> dict[str, object]:
                 start_new_session=os.name == "posix",
             )
             try:
-                wait_for_chromium_debugger(debug_port, process)
+                try:
+                    wait_for_chromium_debugger(debug_port, process)
+                except RealNodeBrowserError as error:
+                    output = browser_log_tail(browser_log)
+                    raise RealNodeBrowserError(f"{error}\nLast browser output:\n{output}") from error
                 open_chromium_target(
                     debug_port,
                     f"http://127.0.0.1:{port}/__qa_real_node__?network=mainnet",
