@@ -25,7 +25,7 @@ browser-api = []
 # KasKold protocol/wallet SDK crates disable it and link only reusable protocol logic.
 
 [dependencies]
-kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", rev = "9b0c22e41d171e007fdf30e106b63965ddb2cace" }
+kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", rev = "237fa7b9def34e4176406355ded98bae5d175c18" }
 shared-signer = { version = "=2.0.0", path = "../shared-signer" }
 kaskold-protocol = { version = "=2.0.0", path = "../kaskold-protocol", features = ["companion-compat"] }
 # WASM bindings
@@ -77,7 +77,7 @@ ark-snark = { version = "0.5", default-features = false }
 # use the operating-system backend and must never cross the wasm-bindgen ABI.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", features = ["js"] }
-kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", rev = "9b0c22e41d171e007fdf30e106b63965ddb2cace", features = ["browser"] }
+kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", rev = "237fa7b9def34e4176406355ded98bae5d175c18", features = ["browser"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 getrandom = "0.2"

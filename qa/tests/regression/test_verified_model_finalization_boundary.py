@@ -3,7 +3,7 @@ import sys as _portal_sys
 from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
-from portal_source import kaskold_source, module_text, portal_root  # noqa: E402
+from portal_source import kaskold_source, module_text, portal_root, portal_text  # noqa: E402
 from pathlib import Path
 import re
 import unittest
@@ -13,6 +13,14 @@ ROOT = Path(__file__).resolve().parents[3]
 
 def text(path: str) -> str:
     return module_text(str(path))
+
+
+def schema_text() -> str:
+    """The canonical PSKT schema, which kaskold-protocol re-exports from Kaspa Portal."""
+    return "\n".join(
+        portal_text(f"transaction/interchange/pskt/schema/{name}")
+        for name in ("mod.rs", "tables.rs", "json.rs", "numbers.rs")
+    )
 
 
 def fn_body(source: str, name: str) -> str:
@@ -33,7 +41,7 @@ def fn_body(source: str, name: str) -> str:
 
 class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
     def test_recursive_duplicate_keys_have_one_authoritative_grammar(self):
-        schema = text("crates/kaskold-protocol/src/wire/pskt_schema.rs")
+        schema = schema_text()
         host = text("crates/kaskold-protocol/src/pskt/wire.rs")
         companion = text("crates/online-watcher/src/protocol/pskt/wire/json.rs")
         vault = text("crates/offline-signer/src/transaction/std_pskt/parser/mod.rs")
@@ -117,7 +125,8 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         parser = text("crates/kaskold-protocol/src/pskt/compact/parser.rs")
         self.assertIn("covenant_execution", parser)
         verified = text("crates/kaskold-protocol/src/pskt/verified.rs")
-        self.assertRegex(verified, r"input\s*\.covenant_execution")
+        self.assertIn("compact::covenant_path(index, input)", verified)
+        self.assertIn("compact::require_path_signatures(index, input, &path)", verified)
         self.assertIn("supplied_true_mask", verified)
         self.assertIn("materialize_signature_script", verified)
 
@@ -142,7 +151,7 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         self.assertIn("SpecializedCovenant", verified)
         self.assertNotIn("minimumSignatures", verified)
 
-        schema = text("crates/kaskold-protocol/src/wire/pskt_schema.rs")
+        schema = schema_text()
         self.assertIn("SUPPORTED_SPECIALIZED_COVENANT_ROUTING_FIELDS", schema)
         for marker in [
             "escrowBranch", "privateSwapClaim", "oracleV1Claim", "risc0OracleMb",
@@ -155,7 +164,7 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         self.assertIn("unsupported_and_zero_signature_covenant_routes_are_disabled_at_public_finalization", e2e)
 
     def test_covenant_id_presence_is_shared_schema_not_host_only_extension(self):
-        schema = text("crates/kaskold-protocol/src/wire/pskt_schema.rs")
+        schema = schema_text()
         vault = text("crates/offline-signer/src/transaction/std_pskt/parser/inputs/details.rs")
         host = text("crates/kaskold-protocol/src/pskt/relay_fields.rs")
         self.assertRegex(
@@ -179,10 +188,11 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         complete = fn_body(compact, "verified_complete")
         self.assertIn("required_signature_count(index, input)", complete)
         generic = fn_body(compact, "generic_covenant_required")
-        self.assertIn("branches.selector_mask() != 0b1", generic)
-        self.assertIn("active.len() != 1", generic)
+        self.assertIn("input.covenant_execution else", generic)
+        self.assertIn("trace_witness(&input.redeem, mask, truth)", generic)
+        self.assertIn("require_path_signatures(index, input, &path)", generic)
         verified = text("crates/kaskold-protocol/src/pskt/verified.rs")
-        self.assertIn("verified generic covenant selector plan is invalid", verified)
+        self.assertIn("materialize_covenant(witness, redeem_script)", verified)
 
     def test_completion_uses_executable_shared_schema_and_zero_signature_routes_are_disabled(self):
         relay = text("crates/kaskold-protocol/src/pskt/relay.rs")
@@ -234,7 +244,8 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         self.assertIn('"src/transaction/interchange/pskt/**/*.rs"', portal_profile)
         self.assertIn('"src/transaction/interchange/kspt/**/*.rs"', portal_profile)
         self.assertNotIn('"crates/kaskold-protocol/src/pskt/**/*.rs"', profile)
-        self.assertIn('"crates/kaskold-protocol/src/wire/pskt_schema.rs"', profile)
+        self.assertNotIn('"crates/kaskold-protocol/src/wire/pskt_schema.rs"', profile)
+        self.assertNotIn('"crates/kaskold-protocol/src/wire/kspt/**/*.rs"', profile)
         self.assertIn('"crates/online-watcher/src/protocol/**/*.rs"', profile)
 
 

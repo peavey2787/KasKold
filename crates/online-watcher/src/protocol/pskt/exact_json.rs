@@ -87,7 +87,7 @@ fn parse_decimal_u64(text: &str, field: &str) -> Result<u64, String> {
                 format!("{field} exceeds u64")
             }
             kaskold_protocol::wire::pskt_schema::JsonNumberError::NonCanonical
-            | kaskold_protocol::wire::pskt_schema::JsonNumberError::LegacyUnsafeInteger => {
+            | kaskold_protocol::wire::pskt_schema::JsonNumberError::UnsafeInteger => {
                 format!("{field} must be a canonical unsigned decimal string")
             }
         },
@@ -98,7 +98,7 @@ fn parse_legacy_safe_number(number: &Number, field: &str) -> Result<u64, String>
     let value = number
         .as_u64()
         .ok_or(format!("{field} must be an unsigned integer"))?;
-    if !kaskold_protocol::wire::pskt_schema::legacy_json_integer_is_exact(value) {
+    if !kaskold_protocol::wire::pskt_schema::json_number_is_exact_integer(value) {
         return Err(format!(
             "legacy numeric {field} exceeds JavaScript's exact integer range; encode it as a decimal string"
         ));

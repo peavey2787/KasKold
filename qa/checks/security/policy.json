@@ -105,7 +105,6 @@
       "crates/online-watcher/src/protocol/pskt/anti_klepto.rs",
       "crates/online-watcher/src/protocol/transaction/sighash.rs",
       "crates/kaskold-protocol/src/account/address.rs",
-      "crates/kaskold-protocol/src/wire/kspt/**/*.rs",
       "crates/vault-runtime/src/**/*.rs",
       "crates/hot-wallet/src/**/*.rs",
       "crates/online-watcher/src/protocol/pskt/consensus/finalizer.rs",

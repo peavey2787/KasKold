@@ -1,6 +1,5 @@
 mod coverage_ratchet;
 mod multisig_descriptor;
-mod pskt_schema;
 mod qr_payload;
 
 use serde_json::json;
