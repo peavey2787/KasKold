@@ -167,7 +167,8 @@ class QemuScriptTests(unittest.TestCase):
 
     def test_qemu_test_image_initializes_internal_heap(self) -> None:
         qemu_entry = self.read("apps/kaskold-hardware/src/qemu/mod.rs")
-        self.assertIn('\n    allocator::initialize();', qemu_entry)
+        self.assertIn("\npub(crate) mod allocator;", qemu_entry)
+        self.assertIn("esp_hal::init(config);\n    allocator::initialize();", qemu_entry)
 
         allocator = self.read("apps/kaskold-hardware/src/qemu/allocator.rs")
         self.assertIn("esp_alloc::HEAP.add_region(HeapRegion::new", allocator)

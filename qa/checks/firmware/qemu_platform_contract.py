@@ -58,8 +58,7 @@ def check_features(read, require) -> None:
 def check_guest_tests(read, require) -> None:
     qemu_mod = read("apps/kaskold-hardware/src/qemu/mod.rs")
     for fragment in (
-        "let _peripherals = esp_hal::init(config);",
-        '#[cfg(feature = "qemu-tests")]\n    allocator::initialize();',
+        "let _peripherals = esp_hal::init(config);\n    allocator::initialize();",
         "let delay = Delay::new();",
         "let (display, touch) = boot::initialize();",
         '#[cfg(feature = "qemu-tests")]\n    let (display, delay) = {',
@@ -67,6 +66,8 @@ def check_guest_tests(read, require) -> None:
         "validation::halt(&mut delay)",
     ):
         require(fragment in qemu_mod, f"QEMU entry point is missing {fragment}")
+    # esp-alloc's #[global_allocator] links only when referenced, so every QEMU image owns the heap.
+    require("\npub(crate) mod allocator;" in qemu_mod, "QEMU allocator module must not be feature-gated")
     for forbidden in ("let mut delay = Delay::new();", "let (mut display, touch)"):
         require(forbidden not in qemu_mod, f"QEMU entry point has unconditional mutability: {forbidden}")
 
