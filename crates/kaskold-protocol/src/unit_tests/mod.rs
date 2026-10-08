@@ -1,6 +1,5 @@
 mod coverage_ratchet;
 mod finalization;
-mod kspt_wire;
 mod multisig_descriptor;
 mod pskt_schema;
 mod qr_payload;

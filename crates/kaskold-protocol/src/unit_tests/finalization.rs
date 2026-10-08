@@ -136,9 +136,12 @@ fn verified_covenant_execution_is_preserved_across_pskt_and_kspt_materialization
         crate::pskt::test_support::compact_covenant_execution_for_test(&kspt, 0)
             .expect("parse signed KSPT");
     assert_eq!(covenant_execution, Some((1, 1)));
-    let error = crate::compat::verify_complete_kspt(&kspt)
-        .expect_err("raw covenant KSPT broadcast must be disabled");
-    assert!(error.contains("merge the signed KSPT into its original PSKT"));
+    #[cfg(feature = "companion-compat")]
+    {
+        let error = crate::compat::verify_complete_kspt(&kspt)
+            .expect_err("raw covenant KSPT broadcast must be disabled");
+        assert!(error.contains("merge the signed KSPT into its original PSKT"));
+    }
 
     // Branch proof mutation leaves the transaction digest/signature unchanged,
     // so this specifically proves branch binding rather than signature failure.

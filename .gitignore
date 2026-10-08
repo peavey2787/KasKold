@@ -36,3 +36,4 @@ Thumbs.db
 
 # Nested build output
 **/target/
+/.claude/

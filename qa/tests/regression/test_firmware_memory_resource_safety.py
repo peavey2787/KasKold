@@ -29,7 +29,7 @@ class FirmwareMemoryResourceSafetyTests(unittest.TestCase):
         # Every input count is capped by the transaction's runtime limits.
         for source in (model, validation, standard, serializer):
             self.assertIn("limits.max_inputs", source)
-        self.assertIn("TooManyInputs", compact)
+        self.assertIn("tx.limits.max_inputs", compact)
         self.assertIn("count > self.limits.max_inputs", model)
         self.assertIn("PsktError::TooManyInputs", validation)
         self.assertIn("PskError::TooManyInputs", serializer)

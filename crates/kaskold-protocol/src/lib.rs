@@ -332,7 +332,7 @@ impl SigningResponse {
 fn validate_kspt_envelope(payload_hex: &str) -> ProtocolResult<()> {
     let bytes = hex::decode(payload_hex)
         .map_err(|error| ProtocolError::malformed(format!("invalid KSPT hex: {error}")))?;
-    wire::kspt::validate(&bytes)
+    wire::kspt::validate(&bytes, wire::kspt::SIGNER_LIMITS)
         .map(|_| ())
         .map_err(|error| ProtocolError::decoding(error.to_string()))
 }

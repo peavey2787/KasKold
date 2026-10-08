@@ -124,17 +124,14 @@ class BranchCoverage90ContractTests(unittest.TestCase):
         self.assertIn("private_swap_rejects_invalid_configuration_boundaries", private_swap)
         self.assertIn("crowdfund_configuration_validation_boundaries_are_covered", construction)
         self.assertIn("allowance_builders_cover_absent_optional_locktimes", script_tests)
-        canonical_decode = (
-            ROOT
-            / "crates/kaskold-protocol/src/unit_tests/kspt_wire/decode_boundaries.rs"
+        canonical_decode = kaskold_source(
+            "crates/kaskold-protocol/src/unit_tests/kspt_wire/decode_boundaries.rs"
         ).read_text()
-        canonical_encode = (
-            ROOT
-            / "crates/kaskold-protocol/src/unit_tests/kspt_wire/encode_boundaries.rs"
+        canonical_encode = kaskold_source(
+            "crates/kaskold-protocol/src/unit_tests/kspt_wire/encode_boundaries.rs"
         ).read_text()
-        canonical_sink = (
-            ROOT
-            / "crates/kaskold-protocol/src/unit_tests/kspt_wire/sink_boundaries.rs"
+        canonical_sink = kaskold_source(
+            "crates/kaskold-protocol/src/unit_tests/kspt_wire/sink_boundaries.rs"
         ).read_text()
         self.assertIn(
             "canonical_decoder_rejects_duplicate_and_out_of_range_trailers",

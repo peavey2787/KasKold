@@ -19,18 +19,18 @@ class TransactionReviewCoinControlPolicyTests(unittest.TestCase):
         constants = self.read("crates/offline-signer/src/transaction/model/constants.rs")
         wire_model = self.read("crates/kaskold-protocol/src/wire/kspt/model.rs")
         capabilities = self.read("crates/kaskold-protocol/src/capabilities/mod.rs")
-        trailers = self.read("crates/offline-signer/src/transaction/kspt/codec/trailers.rs")
+        trailers = self.read("crates/kaskold-protocol/src/wire/kspt/decode/trailers.rs")
         self.assertIn("pub inputs: Vec<TransactionInput>", model)
         # Inputs are bounded by the runtime TransactionLimits the device passes,
         # sourced from the advertised signer capabilities.
         self.assertIn("pub struct TransactionLimits", constants)
         self.assertIn("self.limits.max_inputs", model)
         self.assertIn("SIGNER_TRANSACTION_LIMITS", capabilities)
-        self.assertIn("pub const KSPT_VERSION: u8 = kaspa_portal", wire_model)
+        self.assertIn("KSPT_VERSION_CURRENT as KSPT_VERSION", wire_model)
         self.assertIn("NETWORK_MARKER", wire_model)
         self.assertIn("OUTPUT_DERIVATION_MARKER", wire_model)
-        self.assertIn("NETWORK_TRAILER_MARKER", trailers)
-        self.assertIn("if !state.saw_network", trailers)
+        self.assertIn("NETWORK_MARKER", trailers)
+        self.assertIn("if !state.network", trailers)
 
     def test_hardware_review_uses_bound_network_and_verified_derivation_hint(self) -> None:
         address = self.read("apps/kaskold-hardware/src/ui/screens/signing/transaction_review/address.rs")
@@ -92,7 +92,7 @@ class TransactionReviewCoinControlPolicyTests(unittest.TestCase):
         online = self.read("crates/online-watcher/src/protocol/pskt/anti_klepto.rs")
         offline = self.read("crates/offline-signer/src/transaction/kspt/signing/anti_klepto/transaction_body.rs")
         self.assertIn("kaskold_protocol::wire::kspt", parser)
-        self.assertIn("kspt::decode(data, &mut sink)", parser)
+        self.assertIn("kspt::decode(data, &mut sink, kspt::SIGNER_LIMITS)", parser)
         self.assertIn("compact_v4_parser_covers_network_and_derivation_trailer_contract", parser_tests)
         self.assertIn("assert_eq!(transaction.network, network)", parser_tests)
         self.assertIn("assert_eq!(transaction.outputs[0].derivation, Some((0, 7)))", parser_tests)

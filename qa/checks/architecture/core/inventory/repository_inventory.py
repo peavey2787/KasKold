@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 
 INVENTORY_RELATIVE = Path("qa/baselines/repository_inventory.txt")
-EXCLUDED_TOP_LEVEL = {".git", "release", "target"}
+EXCLUDED_TOP_LEVEL = {".claude", ".git", "release", "target"}
 
 FORBIDDEN_LOCAL_DIRS = {".idea", ".vscode"}
 FORBIDDEN_LOCAL_FILE_NAMES = {"local.properties"}

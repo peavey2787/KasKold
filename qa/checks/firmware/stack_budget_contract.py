@@ -84,7 +84,7 @@ def check_critical_memory_shapes(errors: list[str]) -> None:
         "firmware transactions must use the canonical signer capability limits",
     )
     capabilities = (ROOT / "crates/kaskold-protocol/src/capabilities/mod.rs").read_text(errors="replace")
-    kspt_model = (ROOT / "crates/kaskold-protocol/src/wire/kspt/model.rs").read_text(errors="replace")
+    kspt_model = (ROOT / "crates/kaskold-protocol/src/wire/kspt/mod.rs").read_text(errors="replace")
     require(
         errors,
         "pub const MAX_INPUTS: u32 = 32;" in kspt_model

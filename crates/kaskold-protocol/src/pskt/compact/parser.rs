@@ -3,7 +3,7 @@ use crate::wire::kspt::{self, DecodeError, DecodeSink};
 
 pub(super) fn parse(data: &[u8]) -> Result<Transaction, String> {
     let mut sink = HostSink::default();
-    let envelope = kspt::decode(data, &mut sink).map_err(decode_error)?;
+    let envelope = kspt::decode(data, &mut sink, kspt::SIGNER_LIMITS).map_err(decode_error)?;
     let mut transaction = sink.finish()?;
     transaction.flags = envelope.flags;
     Ok(transaction)

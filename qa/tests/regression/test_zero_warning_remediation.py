@@ -77,7 +77,7 @@ class ZeroWarningRemediationTests(unittest.TestCase):
         signed_tests = (ROOT / "crates/online-watcher/src/protocol/transaction/unit_tests/signed_kspt.rs").read_text()
 
         canonical_decode = module_text("crates/kaskold-protocol/src/wire/kspt/decode.rs")
-        canonical_tests = (ROOT / "crates/kaskold-protocol/src/unit_tests/kspt_wire/mod.rs").read_text()
+        canonical_tests = kaskold_source("crates/kaskold-protocol/src/unit_tests/kspt_wire/mod.rs").read_text()
         self.assertIn("verify_complete_kspt(&bytes)", signed)
         self.assertIn("production_decoder_rejects_placeholder_signature_before_consensus_assembly", signed_tests)
         self.assertIn("fn read_global", canonical_decode)

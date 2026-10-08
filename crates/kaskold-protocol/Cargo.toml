@@ -26,7 +26,7 @@ wasm = ["host", "dep:wasm-bindgen", "dep:js-sys"]
 companion-compat = ["host"]
 
 [dependencies]
-kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", rev = "e758f706944dfc54ec0d76cb7e29c5e6c46d0b2c", default-features = false }
+kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", rev = "2f5aaa4c695289c2f6977542f7ca1eccfe4141e2", default-features = false }
 shared-signer = { version = "=2.0.0", path = "../shared-signer" }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", optional = true }

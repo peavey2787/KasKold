@@ -32,7 +32,7 @@ pub(crate) fn encode_pskt(pskt_hex: &str, network: Network) -> Result<Vec<u8>, S
         .and_then(Value::as_array)
         .ok_or_else(|| "missing outputs".to_string())?;
     let transaction = build_transaction(global, inputs, outputs, network)?;
-    kspt::encode_vec(&transaction).map_err(|error| error.to_string())
+    kspt::encode_vec(&transaction, kspt::SIGNER_LIMITS).map_err(|error| error.to_string())
 }
 
 pub(crate) fn verified_signature_counts(

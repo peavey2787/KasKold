@@ -11,7 +11,7 @@ pub(crate) fn parse_compact_kspt_transaction(
     data: &[u8],
 ) -> Result<CompactKsptTransaction, String> {
     let mut sink = CompanionSink::default();
-    let envelope = kspt::decode(data, &mut sink).map_err(decode_error)?;
+    let envelope = kspt::decode(data, &mut sink, kspt::SIGNER_LIMITS).map_err(decode_error)?;
     sink.finish(envelope.flags)
 }
 

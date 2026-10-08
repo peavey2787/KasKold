@@ -341,17 +341,21 @@ def check_kspt(root: Path) -> list[str]:
     errors: list[str] = []
     offline_root = kaskold_source("crates/offline-signer/src/transaction/kspt")
     bridge_root = root / "crates/online-watcher/src/protocol/pskt/kspt_bridge"
-    protocol_wire = root / "crates/kaskold-protocol/src/wire/kspt"
+    # Kaspa Portal owns the canonical grammar; kaskold-protocol re-exports it.
+    protocol_wire = offline_root / "wire"
+    protocol_facade = root / "crates/kaskold-protocol/src/wire/kspt/mod.rs"
 
     required_offline = (
         offline_root / "mod.rs",
         offline_root / "codec/partial_signed.rs",
-        offline_root / "codec/trailers.rs",
+        offline_root / "codec/sink.rs",
+        offline_root / "codec/source.rs",
         offline_root / "kssn.rs",
         offline_root / "signing/mod.rs",
         offline_root / "validation.rs",
     )
     required_protocol = (
+        protocol_facade,
         protocol_wire / "mod.rs",
         protocol_wire / "model.rs",
         protocol_wire / "io.rs",
@@ -385,7 +389,7 @@ def check_kspt(root: Path) -> list[str]:
     production_files = [
         path for base in (protocol_wire, bridge_root)
         for path in base.rglob("*.rs")
-        if "unit_tests" not in path.parts
+        if "unit_tests" not in path.parts and "unit-tests" not in path.parts
     ]
     source = "\n".join(path.read_text(errors="ignore") for path in production_files)
     for path in production_files:
@@ -393,13 +397,13 @@ def check_kspt(root: Path) -> list[str]:
         if line_count > 400:
             errors.append(
                 f"compact KSPT module exceeds 400-line SRP limit: "
-                f"{path.relative_to(root)} ({line_count} lines)"
+                f"{_display(path, root)} ({line_count} lines)"
             )
         for function_name, function_lines in rust_function_lengths(path.read_text()):
             if function_lines > 100:
                 errors.append(
                     f"compact KSPT function exceeds 100-line SRP target: "
-                    f"{path.relative_to(root)}::{function_name} ({function_lines} lines)"
+                    f"{_display(path, root)}::{function_name} ({function_lines} lines)"
                 )
 
     for forbidden in (
@@ -412,7 +416,7 @@ def check_kspt(root: Path) -> list[str]:
     wire_model = (protocol_wire / "model.rs").read_text(errors="ignore")
     wire_decode = (protocol_wire / "decode.rs").read_text(errors="ignore")
     wire_encode = (protocol_wire / "encode.rs").read_text(errors="ignore")
-    if "pub const KSPT_VERSION: u8 = kaspa_portal::transaction::interchange::kspt::KSPT_VERSION;" not in wire_model:
+    if "KSPT_VERSION_CURRENT as KSPT_VERSION" not in wire_model:
         errors.append("canonical compact KSPT version must be Kaspa Portal's v1 constant")
     duplicate_grammar_files = []
     for path in production_files:
@@ -420,7 +424,7 @@ def check_kspt(root: Path) -> list[str]:
             continue
         text = path.read_text(errors="ignore")
         if 'b"KSPT"' in text or re.search(r"(?:KSPT|COMPACT_KSPT).*0x04", text):
-            duplicate_grammar_files.append(path.relative_to(root))
+            duplicate_grammar_files.append(_display(path, root))
     if duplicate_grammar_files:
         errors.append(f"KSPT magic/generation wire knowledge must have one owner: {duplicate_grammar_files}")
     for marker in ("NETWORK_MARKER", "MS45_INPUT_MARKER", "MS45_OUTPUT_MARKER", "STEALTH_MARKER", "COVENANT_MARKER", "INPUT_DERIVATION_MARKER", "OUTPUT_DERIVATION_MARKER"):
@@ -463,9 +467,9 @@ def check_kspt(root: Path) -> list[str]:
         errors.append("offline signer must pin kaspa-portal by revision with std features disabled")
     if 'default-features = false' not in offline_manifest or 'kaskold-protocol' not in offline_manifest:
         errors.append("offline signer must consume kaskold-protocol with host features disabled")
-    wire_model = (root / "crates/kaskold-protocol/src/wire/kspt/model.rs").read_text(errors="ignore")
-    if "pub const KSPT_VERSION: u8 = kaspa_portal::transaction::interchange::kspt::KSPT_VERSION;" not in wire_model:
-        errors.append("kaskold-protocol must take the KSPT version byte from Kaspa Portal")
+    wire_facade = (root / "crates/kaskold-protocol/src/wire/kspt/mod.rs").read_text(errors="ignore")
+    if "pub use kaspa_portal::transaction::interchange::kspt::wire::*;" not in wire_facade:
+        errors.append("kaskold-protocol must take the canonical KSPT grammar from Kaspa Portal")
     if "online-watcher" in protocol_manifest or "offline-signer" in protocol_manifest:
         errors.append("kaskold-protocol must not depend upward on host or hardware consumers")
 
@@ -490,7 +494,7 @@ def check_kspt(root: Path) -> list[str]:
         errors.append("kaskold-hardware-core must consume no_std kaskold-protocol constants directly")
 
     parser_source = (bridge_root / "parser_transaction.rs").read_text(errors="ignore")
-    if "kaskold_protocol::wire::kspt" not in parser_source or "kspt::decode(data, &mut sink)" not in parser_source:
+    if "kaskold_protocol::wire::kspt" not in parser_source or "kspt::decode(data, &mut sink, kspt::SIGNER_LIMITS)" not in parser_source:
         errors.append("Companion compact KSPT parsing must delegate to the canonical protocol decoder")
     for duplicate in ('b"KSPT"', "KSPT_V4", "KSPT_VERSION: u8", "NETWORK_MARKER"):
         if duplicate in parser_source:
@@ -523,7 +527,7 @@ def check_kspt(root: Path) -> list[str]:
             errors.append(f"signed KSPT adapter reintroduced KSPT wire grammar: {duplicate}")
 
     kssn_source = (offline_root / "kssn.rs").read_text(errors="ignore")
-    if "KSSN_VERSION_CURRENT" not in kssn_source or "reader.read_u8()? != KSSN_VERSION_CURRENT" not in kssn_source:
+    if "KSSN_VERSION_CURRENT" not in kssn_source or "reader.u8()? != KSSN_VERSION_CURRENT" not in kssn_source:
         errors.append("KSSN parser must accept only the current protocol version")
     if "KSSN_VERSION_LEGACY" in kssn_source:
         errors.append("KSSN parser retains retired version-v1 compatibility")
