@@ -331,6 +331,51 @@ def cleanup_chromium_profile(
         )
 
 
+def browser_environment() -> dict[str, str]:
+    """Headless Chromium needs no D-Bus; a stale bus address stalls its startup."""
+    return {key: value for key, value in os.environ.items() if not key.startswith("DBUS_")}
+
+
+def launch_chromium(chromium: str, debug_port: int, profile_dir: Path, browser_log) -> subprocess.Popen[str]:
+    """Start headless Chromium and wait for DevTools, relaunching once.
+
+    Browser startup is test infrastructure, not the behaviour under test, so a
+    single stalled start is retried before the run fails with the browser log.
+    """
+    command = [
+        chromium,
+        "--headless=new",
+        "--no-sandbox",
+        "--disable-gpu",
+        "--disable-dev-shm-usage",
+        "--no-first-run",
+        "--no-default-browser-check",
+        "--remote-debugging-address=127.0.0.1",
+        f"--remote-debugging-port={debug_port}",
+        f"--user-data-dir={profile_dir}",
+        "about:blank",
+    ]
+    for attempt in range(1, 3):
+        process = subprocess.Popen(
+            command,
+            cwd=ROOT,
+            env=browser_environment(),
+            stdout=browser_log,
+            stderr=subprocess.STDOUT,
+            text=True,
+            start_new_session=os.name == "posix",
+        )
+        try:
+            wait_for_chromium_debugger(debug_port, process)
+            return process
+        except RealNodeBrowserError as error:
+            stop_chromium(process)
+            if attempt == 2:
+                output = browser_log_tail(browser_log)
+                raise RealNodeBrowserError(f"{error}\nLast browser output:\n{output}") from error
+    raise AssertionError("unreachable: launch loop always returns or raises")
+
+
 def chromium_run(port: int, timeout: int) -> dict[str, object]:
     chromium = browser_executable()
     debug_port = free_port()
@@ -340,33 +385,8 @@ def chromium_run(port: int, timeout: int) -> dict[str, object]:
 
     try:
         with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as browser_log:
-            command = [
-                chromium,
-                "--headless=new",
-                "--no-sandbox",
-                "--disable-gpu",
-                "--disable-dev-shm-usage",
-                "--no-first-run",
-                "--no-default-browser-check",
-                "--remote-debugging-address=127.0.0.1",
-                f"--remote-debugging-port={debug_port}",
-                f"--user-data-dir={profile_dir}",
-                "about:blank",
-            ]
-            process = subprocess.Popen(
-                command,
-                cwd=ROOT,
-                stdout=browser_log,
-                stderr=subprocess.STDOUT,
-                text=True,
-                start_new_session=os.name == "posix",
-            )
+            process = launch_chromium(chromium, debug_port, profile_dir, browser_log)
             try:
-                try:
-                    wait_for_chromium_debugger(debug_port, process)
-                except RealNodeBrowserError as error:
-                    output = browser_log_tail(browser_log)
-                    raise RealNodeBrowserError(f"{error}\nLast browser output:\n{output}") from error
                 open_chromium_target(
                     debug_port,
                     f"http://127.0.0.1:{port}/__qa_real_node__?network=mainnet",
