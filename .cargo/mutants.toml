@@ -5,7 +5,6 @@ additional_cargo_args = ["--locked"]
 output = "target/qa/mutation"
 examine_globs = [
   "crates/kaskold-protocol/src/account/address.rs",
-  "crates/kaskold-protocol/src/pskt/**/*.rs",
   "crates/kaskold-protocol/src/wire/kspt/**/*.rs",
   "crates/kaskold-protocol/src/wire/pskt_schema.rs",
   "crates/vault-runtime/src/**/*.rs",

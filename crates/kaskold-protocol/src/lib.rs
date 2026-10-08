@@ -52,32 +52,18 @@ pub mod compat {
         import_kpub_raw, ExtPubKey,
     };
 
-    /// Signer-compatible decoded JSON ceiling used by both host and Vault PSKT parsers.
-    pub const MAX_PSKT_JSON_BYTES: usize = crate::pskt::COMPAT_MAX_PSKT_JSON_BYTES;
-    /// Maximum hexadecimal outer envelope length accepted before allocation.
-    pub const MAX_PSKT_WIRE_HEX_CHARS: usize = crate::pskt::COMPAT_MAX_PSKT_WIRE_HEX_CHARS;
-
-    /// Parse the inner ASCII-hex PSKT JSON body with the exact canonical host grammar.
-    pub fn decode_pskt_json_body(body_hex: &[u8]) -> Result<serde_json::Value, String> {
-        crate::pskt::compat_decode_json_body(body_hex)
-    }
-
-    /// Encode the inner PSKT JSON body only if it satisfies the signer grammar.
-    pub fn encode_pskt_json_body(root: &serde_json::Value) -> Result<Vec<u8>, String> {
-        crate::pskt::compat_encode_json_body(root)
-    }
-
-    pub use crate::pskt::verified::{
+    pub use kaspa_portal::transaction::interchange::pskt::pipeline::{
+        decode_json_body as decode_pskt_json_body, encode_json_body as encode_pskt_json_body,
         VerifiedCovenantRoute, VerifiedInput, VerifiedOutput, VerifiedSignature,
-        VerifiedTransaction, VerifiedWitnessPlan,
+        VerifiedTransaction, VerifiedWitnessPlan, MAX_PSKT_JSON_BYTES, MAX_PSKT_WIRE_HEX_CHARS,
     };
 
-    /// Verify every signature and completion invariant in a compact KSPT and
-    /// return the exact typed transaction/witness plan that was authorized.
-    /// Finalizers must serialize this object directly; reparsing the KSPT after
-    /// authorization is forbidden.
+    /// Verify every signature and completion invariant in a compact KSPT at
+    /// the signer's capacity and return the exact typed transaction/witness
+    /// plan that was authorized. Finalizers must serialize this object
+    /// directly; reparsing the KSPT after authorization is forbidden.
     pub fn verify_complete_kspt(data: &[u8]) -> Result<VerifiedTransaction, String> {
-        crate::pskt::compat_verify_complete_kspt(data)
+        crate::pskt::verify_complete_kspt(data)
     }
 
     /// Canonically parse and cryptographically authorize a standard PSKT once,
@@ -86,7 +72,7 @@ pub mod compat {
         pskt_hex: &str,
         network: crate::Network,
     ) -> Result<VerifiedTransaction, String> {
-        crate::pskt::compat_verify_complete_pskt(pskt_hex, network)
+        crate::pskt::verify_complete_pskt(pskt_hex, network)
     }
 }
 

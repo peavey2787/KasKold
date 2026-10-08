@@ -66,7 +66,7 @@ def check_pskt(root: Path) -> list[str]:
         errors.append("PSKT subsystem must contain exactly one wire decoder")
     # The PSKT JSON body codec has exactly one owner, kaskold-protocol; the
     # Companion PSKT/PSKB layers delegate to it instead of serializing JSON bodies.
-    protocol_wire = (ROOT / "crates/kaskold-protocol/src/pskt/wire.rs").read_text(errors="ignore")
+    protocol_wire = kaskold_source("crates/kaskold-protocol/src/pskt/wire.rs").read_text(errors="ignore")
     if len(re.findall(r"serde_json::from_slice", protocol_wire)) != 1:
         errors.append("kaskold-protocol must contain exactly one PSKT JSON body decoder")
     if len(re.findall(r"serde_json::to_vec", protocol_wire)) != 1:
@@ -79,7 +79,7 @@ def check_pskt(root: Path) -> list[str]:
             errors.append(f"Companion PSKT JSON adapter must delegate to kaskold-protocol: {delegated}")
     if re.search(r"\bfn\s+encode_compact_kspt_input\b", pskt_source):
         errors.append("Companion must not own a duplicate compact KSPT input wire encoder")
-    relay_root = ROOT / "crates/kaskold-protocol/src/pskt"
+    relay_root = kaskold_source("crates/kaskold-protocol/src/pskt")
     relay_source = chr(10).join(
         path.read_text(errors="ignore")
         for path in (relay_root / "relay.rs", *sorted((relay_root / "relay").glob("*.rs")))

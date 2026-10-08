@@ -3,7 +3,7 @@ import sys as _portal_sys
 from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
-from portal_source import kaskold_source, module_text  # noqa: E402
+from portal_source import kaskold_source, module_text, portal_root  # noqa: E402
 from pathlib import Path
 import re
 import unittest
@@ -99,7 +99,7 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         self.assertNotIn("DecodeSink", body)
 
         protocol = text("crates/kaskold-protocol/src/pskt/mod.rs")
-        verify = fn_body(protocol, "compat_verify_complete_kspt")
+        verify = fn_body(protocol, "verify_complete_kspt")
         self.assertEqual(verify.count("compact::parse"), 1)
         self.assertIn("compact::verified_complete", verify)
         self.assertIn("verified::from_compact", verify)
@@ -194,7 +194,7 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         )
         for name in ["verified_signature_counts", "is_complete", "verify_complete_transaction"]:
             body = fn_body(relay, name)
-            self.assertIn("build_verified_transaction(pskt_hex, network)", body)
+            self.assertIn("build_verified_transaction(pskt_hex, network, limits)", body)
         validator = text("crates/kaskold-protocol/src/pskt/schema_validate.rs")
         self.assertIn("pskt_schema::fields", validator)
         self.assertIn("pskt_schema::default_rule", validator)
@@ -228,8 +228,12 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
 
     def test_new_security_boundary_is_in_mutation_scope(self):
         profile = text(".cargo/mutants.toml")
-        self.assertIn('"crates/kaskold-protocol/src/pskt/**/*.rs"', profile)
-        self.assertIn('"crates/kaskold-protocol/src/wire/kspt/**/*.rs"', profile)
+        # The verify-once pipeline and KSPT grammar live in Kaspa Portal, whose
+        # mutation gate requires every viable mutant to be caught.
+        portal_profile = (portal_root().parent / ".cargo/mutants.toml").read_text()
+        self.assertIn('"src/transaction/interchange/pskt/**/*.rs"', portal_profile)
+        self.assertIn('"src/transaction/interchange/kspt/**/*.rs"', portal_profile)
+        self.assertNotIn('"crates/kaskold-protocol/src/pskt/**/*.rs"', profile)
         self.assertIn('"crates/kaskold-protocol/src/wire/pskt_schema.rs"', profile)
         self.assertIn('"crates/online-watcher/src/protocol/**/*.rs"', profile)
 

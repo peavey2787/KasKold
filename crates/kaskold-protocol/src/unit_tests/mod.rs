@@ -1,5 +1,4 @@
 mod coverage_ratchet;
-mod finalization;
 mod multisig_descriptor;
 mod pskt_schema;
 mod qr_payload;
@@ -98,8 +97,7 @@ fn derivation_helpers_own_kaskold_proprietary_encoding() {
     let original = test_pskb([0x11; 32], 500);
     let attached =
         attach_input_derivation(&original, 0, AddressBranch::Receive, 500).expect("attach hint");
-    let (format, root) = crate::pskt::test_support::decode(&attached).expect("decode");
-    let doc = crate::pskt::test_support::document(&root, format).expect("document");
+    let doc = pskb_document(&attached);
     assert_eq!(
         doc["inputs"][0]["proprietaries"]["kassignerDerivation"]["branch"],
         0
@@ -111,9 +109,7 @@ fn derivation_helpers_own_kaskold_proprietary_encoding() {
 
     let attached_output = attach_output_derivation(&attached, 0, AddressBranch::Change, 700)
         .expect("attach output hint");
-    let (format, root) =
-        crate::pskt::test_support::decode(&attached_output).expect("decode output hint");
-    let doc = crate::pskt::test_support::document(&root, format).expect("output document");
+    let doc = pskb_document(&attached_output);
     assert_eq!(
         doc["outputs"][0]["proprietaries"]["kassignerDerivation"]["branch"],
         1
@@ -152,6 +148,21 @@ fn test_pskb(input_key: [u8; 32], _index: u32) -> String {
         }],
         "outputs": [{ "amount": "90000", "scriptPublicKey": output_script, "proprietaries": {} }]
     });
-    crate::pskt::test_support::encode(crate::pskt::test_support::Format::Pskb, &json!([document]))
-        .expect("encode PSKB")
+    pskb_wire(&json!([document]))
+}
+
+fn pskb_wire(root: &serde_json::Value) -> String {
+    let body = kaspa_portal::transaction::interchange::pskt::pipeline::encode_json_body(root)
+        .expect("canonical PSKB body");
+    let mut wire = b"PSKB".to_vec();
+    wire.extend_from_slice(&body);
+    hex::encode(wire)
+}
+
+fn pskb_document(wire_hex: &str) -> serde_json::Value {
+    let wire = hex::decode(wire_hex).expect("outer hex");
+    assert_eq!(&wire[..4], b"PSKB");
+    let root = kaspa_portal::transaction::interchange::pskt::pipeline::decode_json_body(&wire[4..])
+        .expect("canonical PSKB body");
+    root[0].clone()
 }

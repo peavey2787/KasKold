@@ -105,7 +105,6 @@
       "crates/online-watcher/src/protocol/pskt/anti_klepto.rs",
       "crates/online-watcher/src/protocol/transaction/sighash.rs",
       "crates/kaskold-protocol/src/account/address.rs",
-      "crates/kaskold-protocol/src/pskt/**/*.rs",
       "crates/kaskold-protocol/src/wire/kspt/**/*.rs",
       "crates/vault-runtime/src/**/*.rs",
       "crates/hot-wallet/src/**/*.rs",
@@ -122,7 +121,7 @@
     "equivalent_mutants": [],
     "scope_limitations": [
       "The cargo-mutants claim covers the enumerated host-testable source domain only; ESP32-S3 hardware-bound cryptographic adapters and eFuse/HMAC peripheral orchestration are validated by firmware, QEMU/source-contract, reproducible-build, and HIL evidence rather than counted in this mutation percentage.",
-      "The signing core that moved to Kaspa Portal (keys, derivation, sighash, KSPT/PSKT signing, anti-klepto, covenant branches, stealth derivation) is outside this KasKold workspace; cargo-mutants can mutate only workspace packages, so that code is certified by Kaspa Portal QA."
+      "The signing core that moved to Kaspa Portal (keys, derivation, sighash, KSPT/PSKT signing, the KSPT grammar and verify-once PSKT pipeline, anti-klepto, covenant branches, stealth derivation) is outside this KasKold workspace; cargo-mutants can mutate only workspace packages, so that code is certified by Kaspa Portal QA."
     ]
   }
 }
