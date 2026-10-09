@@ -481,7 +481,6 @@ D	crates/kaskold-protocol/src/wire
 D	crates/kaskold-protocol/src/wire/kspt
 D	crates/kaskold-protocol/src/wire/multisig_descriptor
 D	crates/kaskold-protocol/src/wire/multisig_descriptor/unit_tests
-D	crates/kaskold-protocol/src/wire/pskt_schema
 D	crates/kaskold-sdk
 D	crates/kaskold-sdk/src
 D	crates/kaskold-sdk/src/error
@@ -2334,12 +2333,10 @@ F	crates/kaskold-protocol/src/error/mod.rs
 F	crates/kaskold-protocol/src/lib.rs
 F	crates/kaskold-protocol/src/network/mod.rs
 F	crates/kaskold-protocol/src/pairing/mod.rs
-F	crates/kaskold-protocol/src/pskt.rs
 F	crates/kaskold-protocol/src/qr/mod.rs
 F	crates/kaskold-protocol/src/unit_tests/coverage_ratchet.rs
 F	crates/kaskold-protocol/src/unit_tests/mod.rs
 F	crates/kaskold-protocol/src/unit_tests/multisig_descriptor.rs
-F	crates/kaskold-protocol/src/unit_tests/pskt_schema.rs
 F	crates/kaskold-protocol/src/unit_tests/qr_payload.rs
 F	crates/kaskold-protocol/src/wasm/mod.rs
 F	crates/kaskold-protocol/src/wire/kspt/mod.rs
@@ -2347,9 +2344,8 @@ F	crates/kaskold-protocol/src/wire/mod.rs
 F	crates/kaskold-protocol/src/wire/multisig_descriptor.rs
 F	crates/kaskold-protocol/src/wire/multisig_descriptor/unit_tests/mod.rs
 F	crates/kaskold-protocol/src/wire/pskt_envelope.rs
+F	crates/kaskold-protocol/src/wire/pskt_pipeline.rs
 F	crates/kaskold-protocol/src/wire/pskt_schema.rs
-F	crates/kaskold-protocol/src/wire/pskt_schema/fields.rs
-F	crates/kaskold-protocol/src/wire/pskt_schema/json.rs
 F	crates/kaskold-protocol/src/wire/qr_payload.rs
 F	crates/kaskold-sdk/Cargo.toml
 F	crates/kaskold-sdk/README.md

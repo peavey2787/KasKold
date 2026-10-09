@@ -92,7 +92,7 @@ def check_pskt(root: Path) -> list[str]:
     if (
         "fn decode_subnetwork" not in relay_source
         or "subnetworkId must be 20 bytes" not in subnetwork_source
-        or "pskt_schema::default_rule(" not in subnetwork_source
+        or "schema::default_rule(" not in subnetwork_source
         or "unwrap_or_default" in subnetwork_source
     ):
         errors.append("PSKT subnetwork decoding must use the canonical schema default and require 20 bytes")

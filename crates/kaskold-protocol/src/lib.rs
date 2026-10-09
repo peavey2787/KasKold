@@ -18,7 +18,6 @@ mod network;
 #[cfg(feature = "host")]
 mod pairing;
 #[cfg(feature = "host")]
-mod pskt;
 #[cfg(feature = "host")]
 pub mod qr;
 pub mod wire;
@@ -63,7 +62,7 @@ pub mod compat {
     /// plan that was authorized. Finalizers must serialize this object
     /// directly; reparsing the KSPT after authorization is forbidden.
     pub fn verify_complete_kspt(data: &[u8]) -> Result<VerifiedTransaction, String> {
-        crate::pskt::verify_complete_kspt(data)
+        crate::wire::pskt_pipeline::verify_complete_kspt(data)
     }
 
     /// Canonically parse and cryptographically authorize a standard PSKT once,
@@ -72,7 +71,7 @@ pub mod compat {
         pskt_hex: &str,
         network: crate::Network,
     ) -> Result<VerifiedTransaction, String> {
-        crate::pskt::verify_complete_pskt(pskt_hex, network)
+        crate::wire::pskt_pipeline::verify_complete_pskt(pskt_hex, network)
     }
 }
 
@@ -191,7 +190,7 @@ pub(crate) fn accept_privacy_pairing_response_text(
 
 #[cfg(feature = "host")]
 pub fn encode_pskt(pskt_hex: &str, network: Network) -> ProtocolResult<Vec<u8>> {
-    pskt::encode_pskt(pskt_hex, network).map_err(ProtocolError::encoding)
+    wire::pskt_pipeline::encode_pskt(pskt_hex, network).map_err(ProtocolError::encoding)
 }
 
 #[cfg(feature = "host")]
@@ -205,7 +204,7 @@ pub fn merge_signed_kspt(
     signed_kspt: &[u8],
     network: Network,
 ) -> ProtocolResult<String> {
-    pskt::merge_signed_kspt(original_pskt_hex, signed_kspt, network)
+    wire::pskt_pipeline::merge_signed_kspt(original_pskt_hex, signed_kspt, network)
         .map_err(ProtocolError::transaction_mismatch)
 }
 
@@ -222,17 +221,17 @@ pub fn merge_signed_kspt_hex(
 
 #[cfg(feature = "host")]
 pub fn pskt_is_complete(pskt_hex: &str, network: Network) -> ProtocolResult<bool> {
-    pskt::is_complete(pskt_hex, network).map_err(ProtocolError::finalization)
+    wire::pskt_pipeline::is_complete(pskt_hex, network).map_err(ProtocolError::finalization)
 }
 
 #[cfg(feature = "host")]
 pub fn pskt_verified_signature_counts(pskt_hex: &str, network: Network) -> ProtocolResult<Vec<u8>> {
-    pskt::verified_signature_counts(pskt_hex, network).map_err(ProtocolError::finalization)
+    wire::pskt_pipeline::verified_signature_counts(pskt_hex, network).map_err(ProtocolError::finalization)
 }
 
 #[cfg(feature = "host")]
 pub fn finalize_json(pskt_hex: &str) -> ProtocolResult<String> {
-    pskt::finalize_json(pskt_hex).map_err(ProtocolError::finalization)
+    wire::pskt_pipeline::finalize_json(pskt_hex).map_err(ProtocolError::finalization)
 }
 
 #[cfg(feature = "host")]
@@ -242,7 +241,7 @@ pub fn attach_input_derivation(
     branch: AddressBranch,
     index: u32,
 ) -> ProtocolResult<String> {
-    pskt::attach_input_derivation(pskt_hex, input_index, branch, index)
+    wire::pskt_pipeline::attach_input_derivation(pskt_hex, input_index, branch, index)
         .map_err(ProtocolError::derivation)
 }
 
@@ -253,7 +252,7 @@ pub fn attach_output_derivation(
     branch: AddressBranch,
     index: u32,
 ) -> ProtocolResult<String> {
-    pskt::attach_output_derivation(pskt_hex, output_index, branch, index)
+    wire::pskt_pipeline::attach_output_derivation(pskt_hex, output_index, branch, index)
         .map_err(ProtocolError::derivation)
 }
 

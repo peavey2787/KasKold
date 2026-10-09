@@ -174,10 +174,11 @@ def kaskold_source(relative: str) -> Path:
         return local
     moved = _portal_relative(relative)
     if moved is None:
-        directory = _portal_relative(relative.rstrip("/") + "/")
-        if directory is not None and (portal_root() / directory).is_dir():
-            return portal_root() / directory.rstrip("/")
-        return local
+        moved = _portal_relative(relative.rstrip("/") + "/")
+        if moved is None:
+            return local
+    if (portal_root() / moved).is_dir():
+        return portal_root() / moved.rstrip("/")
     return portal_path(moved)
 
 

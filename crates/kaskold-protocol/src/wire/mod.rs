@@ -3,6 +3,7 @@
 pub mod kspt;
 pub mod multisig_descriptor;
 
+pub(crate) mod pskt_pipeline;
 pub mod pskt_envelope;
 pub mod pskt_schema;
 pub mod qr_payload;
