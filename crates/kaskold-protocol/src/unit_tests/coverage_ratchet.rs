@@ -1,4 +1,3 @@
-
 use crate::{decode_account, AddressBranch, Network, ProtocolErrorKind, QrDecoder, SigningRequest};
 
 #[test]
@@ -115,4 +114,3 @@ fn canonical_account_key() -> (
         payload,
     )
 }
-
