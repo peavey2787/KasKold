@@ -474,6 +474,7 @@ D	crates/kaskold-protocol/src/capabilities
 D	crates/kaskold-protocol/src/error
 D	crates/kaskold-protocol/src/network
 D	crates/kaskold-protocol/src/pairing
+D	crates/kaskold-protocol/src/portal_pipeline
 D	crates/kaskold-protocol/src/qr
 D	crates/kaskold-protocol/src/unit_tests
 D	crates/kaskold-protocol/src/wasm
@@ -2333,6 +2334,7 @@ F	crates/kaskold-protocol/src/error/mod.rs
 F	crates/kaskold-protocol/src/lib.rs
 F	crates/kaskold-protocol/src/network/mod.rs
 F	crates/kaskold-protocol/src/pairing/mod.rs
+F	crates/kaskold-protocol/src/portal_pipeline/mod.rs
 F	crates/kaskold-protocol/src/qr/mod.rs
 F	crates/kaskold-protocol/src/unit_tests/coverage_ratchet.rs
 F	crates/kaskold-protocol/src/unit_tests/mod.rs
@@ -2344,7 +2346,6 @@ F	crates/kaskold-protocol/src/wire/mod.rs
 F	crates/kaskold-protocol/src/wire/multisig_descriptor.rs
 F	crates/kaskold-protocol/src/wire/multisig_descriptor/unit_tests/mod.rs
 F	crates/kaskold-protocol/src/wire/pskt_envelope.rs
-F	crates/kaskold-protocol/src/wire/pskt_pipeline.rs
 F	crates/kaskold-protocol/src/wire/pskt_schema.rs
 F	crates/kaskold-protocol/src/wire/qr_payload.rs
 F	crates/kaskold-sdk/Cargo.toml
