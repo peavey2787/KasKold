@@ -226,7 +226,8 @@ pub fn pskt_is_complete(pskt_hex: &str, network: Network) -> ProtocolResult<bool
 
 #[cfg(feature = "host")]
 pub fn pskt_verified_signature_counts(pskt_hex: &str, network: Network) -> ProtocolResult<Vec<u8>> {
-    wire::pskt_pipeline::verified_signature_counts(pskt_hex, network).map_err(ProtocolError::finalization)
+    wire::pskt_pipeline::verified_signature_counts(pskt_hex, network)
+        .map_err(ProtocolError::finalization)
 }
 
 #[cfg(feature = "host")]
