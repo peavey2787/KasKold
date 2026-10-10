@@ -162,8 +162,6 @@ def _check_rpc_subsystem(root: Path) -> list[str]:
         network_root / "submission.rs",
         network_root / "unit_tests/mod.rs",
         online_root / "infrastructure/browser_log.rs",
-        online_root / "protocol/transaction/signed_kspt.rs",
-        online_root / "protocol/transaction/sighash.rs",
         online_root / "wasm_api/contracts/vault/spend.rs",
     )
     for required in required_rpc_paths:
@@ -225,10 +223,11 @@ def _check_rpc_subsystem(root: Path) -> list[str]:
 
     if re.search(r"\bfn\s+compute_sighash\b", online_source):
         errors.append("retired simple sighash implementation must not return")
-    if len(re.findall(r"\bfn\s+compute_full_sighash\b", online_source)) != 1:
-        errors.append("online watcher must contain exactly one full consensus sighash implementation")
-    if len(re.findall(r"\bfn\s+decode_signed_kspt\b", online_source)) != 1:
-        errors.append("online watcher must contain exactly one signed KSPT decoder")
+    # Consensus sighash and signed-KSPT decoding are Kaspa Portal's.
+    if re.search(r"\bfn\s+compute_full_sighash\b", online_source):
+        errors.append("online watcher must not fork Kaspa Portal's consensus sighash")
+    if re.search(r"\bfn\s+decode_signed_kspt\b", online_source):
+        errors.append("online watcher must not fork Kaspa Portal's signed KSPT decoder")
     if "create_oracle_mb_heartbeat_roll" in online_source:
         errors.append("obsolete standalone Oracle heartbeat-roll API must not return")
 

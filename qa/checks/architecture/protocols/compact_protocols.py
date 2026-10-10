@@ -26,12 +26,8 @@ def check_pskt(root: Path) -> list[str]:
         pskt_root / "error.rs",
         pskt_root / "model/mod.rs",
         pskt_root / "model/format.rs",
-        pskt_root / "model/summary.rs",
         pskt_root / "wire/mod.rs",
         pskt_root / "wire/json.rs",
-        pskt_root / "review/mod.rs",
-        pskt_root / "kspt_bridge/mod.rs",
-        pskt_root / "consensus/mod.rs",
         pskt_root / "unit_tests/mod.rs",
     ):
         if not required.exists():
@@ -226,8 +222,8 @@ def check_monetary_arithmetic(root: Path) -> list[str]:
         online_root / "transaction_builder/covenant/vault/spend.rs"
     ).read_text(errors="ignore")
     vault_split = vault_spend
-    review_parser = (
-        online_root / "protocol/pskt/review/parser.rs"
+    review_parser = kaskold_source(
+        "crates/online-watcher/src/protocol/pskt/review/parser.rs"
     ).read_text(errors="ignore")
 
     if ".sum()" in balance or ".sum::<u64>()" in balance:
@@ -363,14 +359,7 @@ def check_kspt(root: Path) -> list[str]:
         protocol_wire / "encode.rs",
         protocol_wire / "error.rs",
     )
-    required_bridge = (
-        bridge_root / "mod.rs",
-        bridge_root / "parser_compact.rs",
-        bridge_root / "parser_transaction.rs",
-        bridge_root / "relay.rs",
-        bridge_root / "merger.rs",
-    )
-    for required in (*required_offline, *required_protocol, *required_bridge):
+    for required in (*required_offline, *required_protocol):
         if not required.exists():
             errors.append(f"required compact KSPT module is missing: {_display(required, root)}")
 
