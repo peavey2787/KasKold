@@ -19,7 +19,7 @@ AMOUNTS = ROOT / "crates/online-watcher/src/transaction_builder/planning/amounts
 MULTISIG = ROOT / "crates/online-watcher/src/transaction_builder/multisig.rs"
 MULTISIG_TESTS = ROOT / "crates/online-watcher/src/transaction_builder/multisig/unit_tests/mod.rs"
 SUBMISSION_TESTS = kaskold_source("crates/online-watcher/src/network/unit_tests/submission.rs")
-FINALIZER_TESTS = portal_path("transaction/interchange/pskt/unit-tests/consensus_finalizer.rs")
+FINALIZER_TESTS = portal_path("transaction/interchange/pskt/pipeline/unit-tests/consensus.rs")
 CSS = ROOT / "apps/kaskold-companion-web/web/css/app/components/qr_and_address.css"
 SELECTION_MOD = ROOT / "crates/online-watcher/src/transaction_builder/selection/mod.rs"
 SELECTION_AUTO = ROOT / "crates/online-watcher/src/transaction_builder/selection/automatic.rs"
@@ -61,8 +61,8 @@ class MultisigBroadcastStandardnessTests(unittest.TestCase):
         decoder = SUBMIT_DECODER.read_text(encoding="utf-8")
         self.assertIn("committed.storage_mass = 10_111;", submission)
         self.assertIn("submission_error_decoder_strips_borsh_prefix_and_keeps_full_node_reason", submission)
-        self.assertIn("finalized_transaction_commits_kip9_storage_mass_from_pskt_utxos", finalizer)
-        self.assertIn("assert_eq!(finalized.storage_mass, 10_111);", finalizer)
+        self.assertIn("storage_mass_charges_a_spent_covenant_identity", finalizer)
+        self.assertIn("assert_eq!(plain.storage_mass, 1_111_111);", finalizer)
         self.assertIn('"Rejected transaction"', decoder)
         self.assertIn(".take(2_048)", decoder)
 

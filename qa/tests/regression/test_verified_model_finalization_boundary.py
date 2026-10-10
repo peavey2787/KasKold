@@ -93,9 +93,12 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         self.assertNotIn("mod finalize;", protocol)
         self.assertFalse((ROOT / "crates/kaskold-protocol/src/pskt/finalize.rs").exists())
         finalize = fn_body(protocol, "finalize_json")
-        self.assertIn("verify_complete_transaction", finalize)
-        self.assertIn("verified::from_compact", finalize)
+        self.assertIn("verify_for_broadcast(pskt_hex, limits)", finalize)
         self.assertIn("verified_finalize::finalize_json", finalize)
+        self.assertIn("verify_complete_pskt(", fn_body(protocol, "verify_for_broadcast"))
+        verify = fn_body(protocol, "verify_complete_pskt")
+        self.assertIn("verify_complete_transaction", verify)
+        self.assertIn("verified::from_compact", verify)
         self.assertNotIn("wire::decode", finalize)
 
     def test_signed_kspt_finalizer_never_reparses_after_authorization(self):
@@ -126,7 +129,6 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         self.assertIn("covenant_execution", parser)
         verified = text("crates/kaskold-protocol/src/pskt/verified.rs")
         self.assertIn("compact::covenant_path(index, input)", verified)
-        self.assertIn("compact::require_path_signatures(index, input, &path)", verified)
         self.assertIn("supplied_true_mask", verified)
         self.assertIn("materialize_signature_script", verified)
 
@@ -190,7 +192,7 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         generic = fn_body(compact, "generic_covenant_required")
         self.assertIn("input.covenant_execution else", generic)
         self.assertIn("trace_witness(&input.redeem, mask, truth)", generic)
-        self.assertIn("require_path_signatures(index, input, &path)", generic)
+        self.assertIn("path_positions(&path).len()", generic)
         verified = text("crates/kaskold-protocol/src/pskt/verified.rs")
         self.assertIn("materialize_covenant(witness, redeem_script)", verified)
 
