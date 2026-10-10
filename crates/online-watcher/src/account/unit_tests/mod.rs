@@ -32,10 +32,7 @@ fn address_decoder_rejects_prefix_length_character_and_checksum_errors() {
         decode_address("bitcoin:anything").unwrap_err(),
         "Unknown address prefix"
     );
-    assert_eq!(
-        decode_address("kaspa:q").unwrap_err(),
-        "Address data must be exactly 61 characters"
-    );
+    assert_eq!(decode_address("kaspa:q").unwrap_err(), "Address too short");
     let valid = encode_p2pk_address(&[0x33; 32], "kaspa");
     let mut invalid_character = valid.clone().into_bytes();
     invalid_character["kaspa:".len() + 8] = b'!';
@@ -177,74 +174,6 @@ fn kpub_import_rejects_malformed_text_payloads_and_hardened_children() {
 
     let xpub = ExtPubKey::from_kpub(&canonical_account_text()).expect("extended public key");
     assert!(xpub.derive_child(0x8000_0000).is_err());
-}
-
-#[test]
-fn balance_summary_tracks_funded_receive_and_change_addresses() {
-    use super::{
-        address::address_to_script_pubkey, balance::summarize_balance, bip32::import_kpub,
-        utxo::UtxoEntry,
-    };
-
-    let wallet = import_kpub(&canonical_account_text(), "kaspa").expect("wallet");
-    let receive_script = address_to_script_pubkey(&wallet.receive_addresses[2]).unwrap();
-    let change_script = address_to_script_pubkey(&wallet.change_addresses[3]).unwrap();
-    let utxos = vec![
-        UtxoEntry {
-            tx_id: "11".repeat(32),
-            index: 0,
-            amount: 125_000_000,
-            script_public_key: receive_script,
-            block_daa_score: 10,
-            covenant_id: None,
-        },
-        UtxoEntry {
-            tx_id: "22".repeat(32),
-            index: 1,
-            amount: 75_000_000,
-            script_public_key: change_script,
-            block_daa_score: 11,
-            covenant_id: None,
-        },
-    ];
-
-    let summary = summarize_balance(&wallet, &utxos).expect("balance summary");
-    assert_eq!(summary.total_sompi, 200_000_000);
-    assert_eq!(summary.total_kas, 2.0);
-    assert_eq!(summary.utxo_count, 2);
-    assert_eq!(summary.funded_addresses, 2);
-    assert_eq!(summary.funded_receive_indices, vec![2]);
-    assert_eq!(summary.funded_change_indices, vec![3]);
-}
-
-#[test]
-fn balance_summary_reports_overflow_instead_of_panicking() {
-    use super::{balance::summarize_balance, bip32::import_kpub, utxo::UtxoEntry};
-
-    let wallet = import_kpub(&canonical_account_text(), "kaspa").expect("wallet");
-    let utxos = vec![
-        UtxoEntry {
-            tx_id: "33".repeat(32),
-            index: 0,
-            amount: u64::MAX,
-            script_public_key: Vec::new(),
-            block_daa_score: 0,
-            covenant_id: None,
-        },
-        UtxoEntry {
-            tx_id: "44".repeat(32),
-            index: 1,
-            amount: 1,
-            script_public_key: Vec::new(),
-            block_daa_score: 0,
-            covenant_id: None,
-        },
-    ];
-
-    assert_eq!(
-        summarize_balance(&wallet, &utxos).unwrap_err(),
-        "Wallet balance exceeds supported monetary range"
-    );
 }
 
 #[test]

@@ -14,8 +14,8 @@ ROOT = Path(__file__).resolve().parents[3]
 class AndroidGradleBootstrapTests(unittest.TestCase):
     def test_protocol_extpubkey_compat_export_is_feature_scoped(self) -> None:
         source = (ROOT / "crates/kaskold-protocol/src/account/mod.rs").read_text()
-        self.assertIn('#[cfg(feature = "companion-compat")]\npub use bip32::ExtPubKey;', source)
-        unconditional = re.search(r"pub use bip32::\{([^}]+)\};", source, re.S)
+        self.assertIn('#[cfg(feature = "companion-compat")]\npub use derivation::ExtPubKey;', source)
+        unconditional = re.search(r"pub use derivation::\{([^}]+)\};", source, re.S)
         self.assertIsNotNone(unconditional)
         self.assertNotIn("ExtPubKey", unconditional.group(1))
 

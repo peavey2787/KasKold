@@ -39,9 +39,8 @@ def check(root: Path) -> list[str]:
             "decode_account_key_text",
         ),
         "crates/kaskold-protocol/src/account/bip32.rs": (
-            "shared_signer::account_key",
             "encode_account_key_text",
-            "kaspa_portal::wallet::key::xpub::decode_kpub_or_xpub",
+            "decode_kpub_or_xpub",
         ),
     }
     for relative, required_symbols in consumers.items():

@@ -228,7 +228,7 @@ def check_wallet_recovery_contract(root: Path, errors: list[str]) -> None:
     protocol_bip32 = read("crates/kaskold-protocol/src/account/bip32.rs")
     watcher_bip32 = read("crates/online-watcher/src/account/bip32.rs")
     require(
-        "kaspa_portal::wallet::key::xpub::decode_kpub_or_xpub" in protocol_bip32
+        "decode_kpub_or_xpub" in protocol_bip32
         and "canonical_kpub_text" in protocol_bip32
         and not any(token in protocol_bip32 for token in retired_kpub),
         "wallet recovery: protocol-owned watcher import must accept kpub1/BIP32 xpub through Kaspa Portal and canonicalize output",

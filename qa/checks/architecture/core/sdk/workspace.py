@@ -159,9 +159,16 @@ def _check_licensing_boundaries(root: Path) -> list[str]:
     if "MIT OR Apache-2.0" in contributing:
         errors.append("first-party KasKold code must not be offered under a permissive license")
 
-    bip32 = (root / "crates/kaskold-protocol/src/account/bip32.rs").read_text(errors="ignore")
-    if "License: GPL-3.0-only" not in bip32 or "UPSTREAM_ATTRIBUTION.md" not in bip32:
-        errors.append("BIP32 module must keep its upstream provenance and GPL-3.0-only license")
+    # BIP32 derivation and address encoding are Kaspa Portal's; KasKold must
+    # not carry a second copy of either.
+    account = root / "crates/kaskold-protocol/src/account"
+    for fork in ("bip32.rs", "address.rs"):
+        if (account / fork).exists():
+            errors.append(f"kaskold-protocol forks Kaspa Portal account code: account/{fork}")
+    account_mod = (account / "mod.rs").read_text(errors="ignore")
+    for owner in ("kaspa_portal::wallet::account::derivation", "kaspa_portal::primitives::address"):
+        if owner not in account_mod:
+            errors.append(f"kaskold-protocol account model must import {owner}")
     return errors
 
 def _check_wallet_policy_boundary(root: Path) -> list[str]:

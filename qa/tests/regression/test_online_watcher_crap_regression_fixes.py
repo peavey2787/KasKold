@@ -73,7 +73,6 @@ LATEST_CRAP_REFACTOR_LIMITS = {
 }
 
 CHECKED_ARITHMETIC_ERROR_PATHS = (
-    "crates/online-watcher/src/account/balance.rs",
     "crates/online-watcher/src/transaction_builder/covenant/fee.rs",
     "crates/online-watcher/src/transaction_builder/covenant/builder.rs",
     "crates/online-watcher/src/transaction_builder/planning/amounts.rs",

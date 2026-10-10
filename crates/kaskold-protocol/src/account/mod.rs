@@ -1,17 +1,39 @@
-mod address;
-mod bip32;
+//! Watch-only account model. Address encoding and BIP32 derivation are Kaspa
+//! Portal's; KasKold adds its branch/descriptor vocabulary on top.
 
 use serde::{Deserialize, Serialize};
 
 use crate::{error::ProtocolError, Network};
 
-pub use address::{
-    address_to_script_pubkey, decode_address, encode_address, encode_p2pk_address,
-    encode_p2sh_address,
-};
 #[cfg(feature = "companion-compat")]
-pub use bip32::ExtPubKey;
-pub use bip32::{decode_kpub_text, extend_addresses, import_kpub, import_kpub_raw, WalletData};
+pub use derivation::ExtPubKey;
+pub use derivation::{
+    decode_kpub_text, extend_addresses, import_kpub, import_kpub_raw, WalletData,
+};
+pub use kaspa_portal::primitives::address::{
+    address_to_script_pubkey, decode_address, encode_p2pk_address, encode_p2sh_address,
+};
+use kaspa_portal::wallet::account::derivation;
+
+const ADDRESS_PREFIXES: [&str; 4] = ["kaspa", "kaspatest", "kaspasim", "kaspadev"];
+
+/// Encode a P2PK (`0x00`) or P2SH (`0x08`) payload under a Kaspa prefix; any
+/// other version or prefix yields an empty string.
+#[must_use]
+pub fn encode_address(payload: &[u8; 32], version: u8, prefix: &str) -> String {
+    if !ADDRESS_PREFIXES.contains(&prefix) {
+        return String::new();
+    }
+    match version {
+        0x00 => encode_p2pk_address(payload, prefix),
+        0x08 => encode_p2sh_address(payload, prefix),
+        _ => String::new(),
+    }
+}
+
+#[cfg(test)]
+#[path = "unit_tests/address.rs"]
+mod hardening_tests;
 
 #[non_exhaustive]
 #[repr(u8)]
@@ -64,7 +86,7 @@ pub struct AccountDescriptor {
 pub fn decode_account(payload: &str, network: Network) -> Result<AccountDescriptor, String> {
     let raw = decode_account_payload(payload)?;
     let canonical = canonical_account_text(&raw)?;
-    let xpub = bip32::ExtPubKey::from_kpub(&canonical)?;
+    let xpub = derivation::ExtPubKey::from_kpub(&canonical)?;
     let account_fingerprint = account_fingerprint(&xpub)?;
     let receive_addresses = derive_addresses(&xpub, network, AddressBranch::Receive, 0, 20)?;
     let change_addresses = derive_addresses(&xpub, network, AddressBranch::Change, 0, 20)?;
@@ -88,10 +110,10 @@ fn decode_account_payload(
                 .map_err(|_| "invalid account payload length".to_string());
         }
         if let Ok(text) = core::str::from_utf8(&raw) {
-            return bip32::decode_kpub_text(text);
+            return decode_kpub_text(text);
         }
     }
-    bip32::decode_kpub_text(payload)
+    decode_kpub_text(payload)
 }
 
 fn canonical_account_text(
@@ -105,7 +127,7 @@ fn canonical_account_text(
         .map_err(|_| "Canonical account-key text is not UTF-8".to_string())
 }
 
-fn account_fingerprint(xpub: &bip32::ExtPubKey) -> Result<String, String> {
+fn account_fingerprint(xpub: &derivation::ExtPubKey) -> Result<String, String> {
     use k256::elliptic_curve::sec1::ToEncodedPoint;
     let point = xpub.key.to_encoded_point(true);
     let compressed: [u8; 33] = point
@@ -119,7 +141,7 @@ fn account_fingerprint(xpub: &bip32::ExtPubKey) -> Result<String, String> {
 }
 
 pub fn derive_addresses(
-    account: &bip32::ExtPubKey,
+    account: &derivation::ExtPubKey,
     network: Network,
     branch: AddressBranch,
     start: u32,
@@ -137,10 +159,7 @@ pub fn derive_addresses(
             let index = start + offset;
             let child = chain.derive_child(index)?;
             Ok(DerivedAddress {
-                address: address::encode_p2pk_address(
-                    &child.x_only_bytes(),
-                    network.address_prefix(),
-                ),
+                address: encode_p2pk_address(&child.x_only_bytes(), network.address_prefix()),
                 branch,
                 index,
             })
@@ -154,7 +173,7 @@ pub fn derive_public_batch(
 ) -> Vec<DerivedAddress> {
     keys.into_iter()
         .map(|(key, branch, index)| DerivedAddress {
-            address: address::encode_p2pk_address(&key, network.address_prefix()),
+            address: encode_p2pk_address(&key, network.address_prefix()),
             branch,
             index,
         })

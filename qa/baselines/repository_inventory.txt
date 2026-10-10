@@ -2319,8 +2319,6 @@ F	crates/kaskold-protocol/Cargo.toml
 F	crates/kaskold-protocol/README.md
 F	crates/kaskold-protocol/build.ps1
 F	crates/kaskold-protocol/build.sh
-F	crates/kaskold-protocol/src/account/address.rs
-F	crates/kaskold-protocol/src/account/bip32.rs
 F	crates/kaskold-protocol/src/account/mod.rs
 F	crates/kaskold-protocol/src/account/unit_tests/address.rs
 F	crates/kaskold-protocol/src/capabilities/mod.rs
@@ -2370,7 +2368,6 @@ F	crates/offline-signer/src/privacy/unit_tests/pairing.rs
 F	crates/offline-signer/src/privacy/unit_tests/stealth.rs
 F	crates/online-watcher/Cargo.toml
 F	crates/online-watcher/src/account/address.rs
-F	crates/online-watcher/src/account/balance.rs
 F	crates/online-watcher/src/account/bip32.rs
 F	crates/online-watcher/src/account/mod.rs
 F	crates/online-watcher/src/account/unit_tests/mod.rs

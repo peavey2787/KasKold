@@ -203,7 +203,9 @@ def check_monetary_arithmetic(root: Path) -> list[str]:
     """Keep wallet/transaction values on explicit checked-error paths."""
     errors: list[str] = []
     online_root = root / "crates/online-watcher/src"
-    balance = (online_root / "account/balance.rs").read_text(errors="ignore")
+    balance = kaskold_source("crates/online-watcher/src/account/balance.rs").read_text(
+        errors="ignore"
+    )
     global_thread_path = online_root / "transaction_builder/pskb/global_thread.rs"
     global_thread = global_thread_path.read_text(errors="ignore")
     global_thread_topup = global_thread_path.with_suffix("") / "topup.rs"

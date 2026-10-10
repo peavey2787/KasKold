@@ -1088,16 +1088,6 @@
     {
       "baseline_complexity": 1,
       "baseline_status": "pass",
-      "function": "summarize_balance",
-      "line": 19,
-      "path": "crates/online-watcher/src/account/balance.rs",
-      "test_seams": [
-        "crates/online-watcher/src/account/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
       "function": "WatchWallet::new",
       "line": 26,
       "path": "crates/online-watcher/src/facade.rs",

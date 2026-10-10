@@ -102,7 +102,6 @@
       "crates/kaskold-hardware-core/src/security/credential.rs",
       "crates/kaskold-protocol/src/wire/multisig_descriptor.rs",
       "crates/offline-signer/src/crypto/**/*.rs",
-      "crates/kaskold-protocol/src/account/address.rs",
       "crates/vault-runtime/src/**/*.rs",
       "crates/hot-wallet/src/**/*.rs",
       "crates/online-watcher/src/multisig/redeem_script.rs"

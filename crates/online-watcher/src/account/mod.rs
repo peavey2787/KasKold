@@ -1,5 +1,5 @@
 pub(crate) mod address;
-pub mod balance;
+pub use kaspa_portal::wallet::account::balance;
 pub(crate) mod bip32;
 pub mod utxo;
 

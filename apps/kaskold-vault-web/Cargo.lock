@@ -435,14 +435,11 @@ dependencies = [
 name = "kaskold-protocol"
 version = "2.0.0"
 dependencies = [
- "blake2b_simd",
  "hex",
- "hmac",
  "k256",
  "kaspa-portal",
  "serde",
  "serde_json",
- "sha2",
  "shared-signer",
 ]
 
@@ -462,7 +459,7 @@ dependencies = [
 [[package]]
 name = "kaspa-portal"
 version = "1.4.0"
-source = "git+https://github.com/peavey2787/kaspa-portal.git?rev=de51c1fba31c60ebc2e87341854110097bccf41a#de51c1fba31c60ebc2e87341854110097bccf41a"
+source = "git+https://github.com/peavey2787/kaspa-portal.git?rev=c54ecbf8c812dad7e933873d9c64d06c65d54648#c54ecbf8c812dad7e933873d9c64d06c65d54648"
 dependencies = [
  "aes-gcm",
  "argon2",
