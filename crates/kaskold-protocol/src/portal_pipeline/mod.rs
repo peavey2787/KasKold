@@ -41,6 +41,7 @@ pub(crate) fn merge_signed_kspt(
 
 /// Merge a signer response at the network its own trailer names; the merge
 /// then binds the response to the original PSKT exactly as `merge_signed_kspt`.
+#[cfg(feature = "companion-compat")]
 pub(crate) fn merge_signed_kspt_at_trailer_network(
     original_pskt_hex: &str,
     signed_kspt: &[u8],

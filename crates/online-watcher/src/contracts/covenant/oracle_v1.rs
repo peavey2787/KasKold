@@ -157,12 +157,12 @@ pub(crate) fn checked_redeem_and_attestation(
     ) {
         return Err("Oracle attestation commitment/key do not belong to this covenant".to_string());
     }
-    if !kaspa_portal::crypto::schnorr::schnorr_verify(
+    if kaspa_portal::crypto::schnorr::schnorr_verify(
         &public_key,
         &commitment,
         &kaspa_portal::crypto::schnorr::SchnorrSignature { bytes: signature },
     )
-    .is_ok()
+    .is_err()
     {
         return Err("Oracle signature is invalid for this covenant".to_string());
     }
