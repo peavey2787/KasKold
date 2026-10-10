@@ -56,27 +56,6 @@ fn standard_pskb_relays_to_compact_kspt_with_explicit_native_subnetwork() {
 }
 
 #[test]
-fn multisig_redeem_script_is_carried_in_the_pskb_input() {
-    let plan = UnsignedTransactionPlan::multisig(
-        vec![UtxoEntry {
-            tx_id: "22".repeat(32),
-            index: 0,
-            amount: 50_000_000,
-            script_public_key: vec![0xaa; 34],
-            block_daa_score: 1,
-            covenant_id: None,
-        }],
-        vec![PlannedOutput::new(49_000_000, vec![0xbb; 34])],
-        &[0x51, 0xae],
-        1,
-    );
-    let wire = hex::decode(super::encode_plan(&plan).expect("encode")).expect("outer hex");
-    let body = hex::decode(std::str::from_utf8(&wire[4..]).expect("body hex")).expect("body");
-    let value: serde_json::Value = serde_json::from_slice(&body).expect("json");
-    assert_eq!(value[0]["inputs"][0]["redeemScript"], "51ae");
-}
-
-#[test]
 fn payload_encoder_preserves_an_explicit_empty_payload_field() {
     let inputs = vec![UtxoEntry {
         tx_id: "33".repeat(32),

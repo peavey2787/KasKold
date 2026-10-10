@@ -104,8 +104,14 @@ impl WatchWallet {
     pub async fn build_multisig_transaction(
         &self,
         request: transaction_builder::MultisigTransactionRequest<'_>,
+        websocket_url: &str,
     ) -> Result<String, String> {
-        transaction_builder::create_multisig(request).await
+        crate::multisig::require_signer_descriptor(request.descriptor_text)?;
+        kaspa_portal::transaction::builder::create_multisig(
+            &crate::network::client(websocket_url)?,
+            request,
+        )
+        .await
     }
 
     pub fn build_pskb_with_utxos(

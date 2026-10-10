@@ -4,7 +4,7 @@ import sys as _portal_sys
 from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[5] / "qa/checks"))
-from portal_source import kaskold_source  # noqa: E402
+from portal_source import kaskold_source, portal_text  # noqa: E402
 
 from pathlib import Path
 import tomllib
@@ -89,23 +89,26 @@ def _check_protocol_boundaries(root: Path) -> list[str]:
         if marker not in pairing:
             errors.append(f"privacy pairing binding is missing {marker}")
 
+    # Portal owns the canonical grammar; KasKold binds it at signer capacity.
     descriptor = (protocol_root / "wire/multisig_descriptor.rs").read_text()
     for marker in (
+        "kaspa_portal::wallet::multisig::grammar",
         "pub const MAX_DESCRIPTOR_PARTICIPANTS",
+        "SIGNER_CAPABILITIES.max_multisig_keys",
         "pub fn parse_multisig_descriptor",
-        "multi_hd45(",
-        "multi_hd(",
-        "multi(",
-        "DuplicateParticipant",
     ):
         if marker not in descriptor:
-            errors.append(f"canonical multisig descriptor parser is missing {marker}")
-    watcher_descriptor = (root / "crates/online-watcher/src/multisig/descriptor.rs").read_text()
-    if "parse_multisig_descriptor(value.as_bytes())" not in watcher_descriptor:
-        errors.append("Companion multisig descriptor facade must delegate syntax parsing to kaskold-protocol")
-    for duplicate_parser in ("fn parse_hd44", "fn parse_hd45", "fn parse_static", "fn decode_legacy_kpub"):
-        if duplicate_parser in watcher_descriptor:
-            errors.append(f"Companion must not re-own canonical descriptor grammar: {duplicate_parser}")
+            errors.append(f"KasKold multisig descriptor binding is missing {marker}")
+    grammar = portal_text("wallet/multisig/grammar.rs")
+    for marker in ("multi_hd45(", "multi_hd(", "multi(", "DuplicateParticipant", "fn sort_hd45_by_encoded"):
+        if marker not in grammar:
+            errors.append(f"canonical multisig descriptor grammar is missing {marker}")
+    for fork in ("crates/online-watcher/src/multisig/descriptor.rs", "crates/kaskold-protocol/src/wire/multisig_descriptor/"):
+        if (root / fork).exists():
+            errors.append(f"KasKold must not re-own the canonical descriptor grammar: {fork}")
+    companion_policy = (root / "crates/online-watcher/src/multisig/mod.rs").read_text()
+    if "kaskold_protocol::wire::multisig_descriptor::parse_multisig_descriptor" not in companion_policy:
+        errors.append("Companion multisig must enforce the KasKold signer descriptor capacity")
     firmware_descriptor = (root / "apps/kaskold-hardware/src/runtime/interactions/camera_loop/dispatch/descriptor.rs").read_text()
     sd_descriptor = (root / "apps/kaskold-hardware/src/runtime/interactions/sd/common/shared.rs").read_text()
     if "kaskold_protocol::wire::multisig_descriptor::parse_multisig_descriptor" not in firmware_descriptor:

@@ -23,7 +23,7 @@ pub(super) fn process(
         ad.signing.multisig.store.configs[slot] = ad.signing.multisig.creating.clone();
     }
     log!("   → multisig descriptor QR imported ({}-of-{}, v45={})",
-        parsed.threshold, parsed.participant_count, parsed.v45);
+        parsed.threshold, parsed.participant_count, parsed.is_hd45());
     sound::qr_decoded();
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigDescriptor));
     crate::runtime::effects::redraw(ad);

@@ -480,8 +480,6 @@ D	crates/kaskold-protocol/src/unit_tests
 D	crates/kaskold-protocol/src/wasm
 D	crates/kaskold-protocol/src/wire
 D	crates/kaskold-protocol/src/wire/kspt
-D	crates/kaskold-protocol/src/wire/multisig_descriptor
-D	crates/kaskold-protocol/src/wire/multisig_descriptor/unit_tests
 D	crates/kaskold-sdk
 D	crates/kaskold-sdk/src
 D	crates/kaskold-sdk/src/error
@@ -557,8 +555,6 @@ D	crates/online-watcher/src/transaction_builder/covenant/vault
 D	crates/online-watcher/src/transaction_builder/covenant/vault/genesis
 D	crates/online-watcher/src/transaction_builder/covenant/vault/genesis/unit_tests
 D	crates/online-watcher/src/transaction_builder/model
-D	crates/online-watcher/src/transaction_builder/multisig
-D	crates/online-watcher/src/transaction_builder/multisig/unit_tests
 D	crates/online-watcher/src/transaction_builder/planning
 D	crates/online-watcher/src/transaction_builder/planning/amounts
 D	crates/online-watcher/src/transaction_builder/planning/amounts/unit_tests
@@ -2336,7 +2332,6 @@ F	crates/kaskold-protocol/src/wasm/mod.rs
 F	crates/kaskold-protocol/src/wire/kspt/mod.rs
 F	crates/kaskold-protocol/src/wire/mod.rs
 F	crates/kaskold-protocol/src/wire/multisig_descriptor.rs
-F	crates/kaskold-protocol/src/wire/multisig_descriptor/unit_tests/mod.rs
 F	crates/kaskold-protocol/src/wire/pskt_envelope.rs
 F	crates/kaskold-protocol/src/wire/pskt_schema.rs
 F	crates/kaskold-protocol/src/wire/qr_payload.rs
@@ -2409,10 +2404,7 @@ F	crates/online-watcher/src/infrastructure/entropy.rs
 F	crates/online-watcher/src/infrastructure/mod.rs
 F	crates/online-watcher/src/infrastructure/unit_tests/mod.rs
 F	crates/online-watcher/src/lib.rs
-F	crates/online-watcher/src/multisig/address_index.rs
-F	crates/online-watcher/src/multisig/descriptor.rs
 F	crates/online-watcher/src/multisig/mod.rs
-F	crates/online-watcher/src/multisig/redeem_script.rs
 F	crates/online-watcher/src/multisig/unit_tests/mod.rs
 F	crates/online-watcher/src/network/mod.rs
 F	crates/online-watcher/src/network/queries/blocks.rs
@@ -2489,15 +2481,10 @@ F	crates/online-watcher/src/transaction_builder/model/mod.rs
 F	crates/online-watcher/src/transaction_builder/model/plan.rs
 F	crates/online-watcher/src/transaction_builder/model/planned_input.rs
 F	crates/online-watcher/src/transaction_builder/model/planned_output.rs
-F	crates/online-watcher/src/transaction_builder/multisig.rs
-F	crates/online-watcher/src/transaction_builder/multisig/branch.rs
-F	crates/online-watcher/src/transaction_builder/multisig/consolidation.rs
-F	crates/online-watcher/src/transaction_builder/multisig/unit_tests/mod.rs
 F	crates/online-watcher/src/transaction_builder/planning/amounts.rs
 F	crates/online-watcher/src/transaction_builder/planning/amounts/unit_tests/mod.rs
 F	crates/online-watcher/src/transaction_builder/planning/change.rs
 F	crates/online-watcher/src/transaction_builder/planning/mod.rs
-F	crates/online-watcher/src/transaction_builder/planning/multisig.rs
 F	crates/online-watcher/src/transaction_builder/planning/standard.rs
 F	crates/online-watcher/src/transaction_builder/planning/standard/unit_tests/mod.rs
 F	crates/online-watcher/src/transaction_builder/pskb/application.rs

@@ -1,5 +1,3 @@
-use serde_json::json;
-
 use crate::{
     account::utxo::UtxoEntry,
     transaction_builder::{
@@ -59,18 +57,11 @@ fn amount_and_sort_helpers_have_direct_function_coverage() {
 
 #[test]
 fn transaction_plan_model_helpers_have_direct_function_coverage() {
-    let derivations = json!([{"branch": 0, "index": 7}]);
-    let input = PlannedInput::p2pk(utxo(0x41, 0, 50))
-        .with_bip32_derivations(derivations.clone())
-        .with_derivation(0, 7);
-    assert_eq!(input.bip32_derivations, Some(derivations.clone()));
+    let input = PlannedInput::p2pk(utxo(0x41, 0, 50)).with_derivation(0, 7);
     assert_eq!(input.derivation_hint, Some((0, 7)));
 
-    let output = PlannedOutput::new(40, vec![0x51])
-        .with_derivation(1, 9)
-        .with_bip32_derivations(derivations.clone());
+    let output = PlannedOutput::new(40, vec![0x51]).with_derivation(1, 9);
     assert_eq!(output.derivation_hint, Some((1, 9)));
-    assert_eq!(output.bip32_derivations, Some(derivations));
 
     let derived = UnsignedTransactionPlan::standard_with_derivations(
         vec![(utxo(0x42, 1, 50), Some((0, 8))), (utxo(0x43, 2, 60), None)],
@@ -79,24 +70,9 @@ fn transaction_plan_model_helpers_have_direct_function_coverage() {
     assert_eq!(derived.inputs[0].derivation_hint, Some((0, 8)));
     assert_eq!(derived.inputs[1].derivation_hint, None);
 
-    let multisig_input = PlannedInput::p2sh_multisig(utxo(0x44, 3, 70), &[0x51, 0xae], 2);
-    assert_eq!(multisig_input.sig_op_count, 2);
-    assert_eq!(
-        multisig_input.redeem_script.as_deref(),
-        Some(&[0x51, 0xae][..])
-    );
-
     let standard = UnsignedTransactionPlan::standard(vec![utxo(0x45, 4, 80)], vec![output.clone()]);
     assert_eq!(standard.inputs.len(), 1);
     assert_eq!(standard.outputs.len(), 1);
-
-    let multisig =
-        UnsignedTransactionPlan::multisig(vec![utxo(0x46, 5, 70)], vec![output], &[0x51, 0xae], 2);
-    assert_eq!(multisig.inputs[0].sig_op_count, 2);
-    assert_eq!(
-        multisig.inputs[0].redeem_script.as_deref(),
-        Some(&[0x51, 0xae][..])
-    );
 }
 
 #[test]

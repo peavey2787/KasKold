@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import os
-import re
 import subprocess
 import tempfile
 import unittest
@@ -12,12 +11,11 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class AndroidGradleBootstrapTests(unittest.TestCase):
-    def test_protocol_extpubkey_compat_export_is_feature_scoped(self) -> None:
+    def test_protocol_does_not_export_extended_public_keys(self) -> None:
+        # BIP32 extended keys are Kaspa Portal's; kaskold-protocol re-exports
+        # only the watch-only import surface.
         source = (ROOT / "crates/kaskold-protocol/src/account/mod.rs").read_text()
-        self.assertIn('#[cfg(feature = "companion-compat")]\npub use derivation::ExtPubKey;', source)
-        unconditional = re.search(r"pub use derivation::\{([^}]+)\};", source, re.S)
-        self.assertIsNotNone(unconditional)
-        self.assertNotIn("ExtPubKey", unconditional.group(1))
+        self.assertNotRegex(source, r"pub use [^;]*ExtPubKey")
 
     def test_signing_authorization_quality_evidence_follows_firmware_core_owner(self) -> None:
         policy = json.loads((ROOT / "qa/checks/security/policy.json").read_text())

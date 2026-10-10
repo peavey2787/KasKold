@@ -49,7 +49,7 @@ pub use qr::{QrDecoder, QrFrame, QrProgress};
 pub mod compat {
     pub use crate::account::{
         address_to_script_pubkey, decode_address, decode_kpub_text, extend_addresses, import_kpub,
-        import_kpub_raw, ExtPubKey,
+        import_kpub_raw,
     };
 
     pub use kaspa_portal::transaction::interchange::pskt::pipeline::{

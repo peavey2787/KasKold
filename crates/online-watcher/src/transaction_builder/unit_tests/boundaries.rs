@@ -1,5 +1,5 @@
 use crate::transaction_builder::planning::amounts::storage_mass_estimate;
-use crate::transaction_builder::{model::PlannedOutput, planning::amounts::utxo_plurality};
+use crate::transaction_builder::planning::amounts::utxo_plurality;
 
 #[test]
 fn consolidation_rejects_empty_and_singleton_sets_before_sorting() {
@@ -50,51 +50,6 @@ fn smallest_first_sort_is_not_a_noop() {
 }
 
 #[test]
-fn multisig_accepts_exactly_three_inputs_and_rejects_four() {
-    let destination = PlannedOutput::new(25, vec![0x51]);
-    let three = vec![
-        super::utxo(0x11, 0, 10),
-        super::utxo(0x22, 1, 10),
-        super::utxo(0x33, 2, 10),
-    ];
-    let (plan, change) = super::super::planning::plan_multisig(
-        three.clone(),
-        destination.clone(),
-        5,
-        vec![0x52],
-        &[0x51],
-        1,
-    )
-    .expect("three inputs are the protocol maximum");
-    assert_eq!(change, 0);
-    assert_eq!(plan.inputs.len(), 3);
-    assert_eq!(plan.outputs.len(), 1);
-
-    let mut four = three;
-    four.push(super::utxo(0x44, 3, 10));
-    let error = super::super::planning::plan_multisig(four, destination, 5, vec![0x52], &[0x51], 1)
-        .unwrap_err();
-    assert!(error.contains("limited to 3 inputs"));
-}
-
-#[test]
-fn multisig_adds_only_positive_non_dust_change() {
-    let destination = PlannedOutput::new(20_000_000, vec![0x51]);
-    let (plan, change) = super::super::planning::plan_multisig(
-        vec![super::utxo(0x11, 0, 40_000_001)],
-        destination,
-        1,
-        vec![0x52],
-        &[0x51],
-        1,
-    )
-    .expect("multisig plan");
-    assert_eq!(change, 20_000_000);
-    assert_eq!(plan.outputs.len(), 2);
-    assert_eq!(plan.outputs[1].amount, 20_000_000);
-}
-
-#[test]
 fn storage_mass_uses_relaxed_harmonic_rule_for_two_by_two_plurality() {
     let mass = storage_mass_estimate(
         &[(90_000_000, 1), (10_000_000, 1)],
@@ -140,38 +95,6 @@ fn standard_input_count_follows_public_signer_capability() {
     assert!(super::super::standard::validate_signer_input_count(1).is_ok());
     assert!(super::super::standard::validate_signer_input_count(limit).is_ok());
     assert!(super::super::standard::validate_signer_input_count(limit + 1).is_err());
-}
-
-#[test]
-fn multisig_standard_fee_shape_covers_push_prefix_and_requested_fee_boundaries() {
-    let fee_75 = super::super::multisig::multisig_standard_fee_for_shape(1, 75, 1, 1, 34, 34, 0)
-        .expect("75-byte redeem fee");
-    let fee_76 = super::super::multisig::multisig_standard_fee_for_shape(1, 76, 1, 1, 34, 34, 0)
-        .expect("76-byte redeem fee");
-    let fee_255 = super::super::multisig::multisig_standard_fee_for_shape(2, 255, 2, 2, 34, 34, 0)
-        .expect("255-byte redeem fee");
-    let fee_256 = super::super::multisig::multisig_standard_fee_for_shape(2, 256, 2, 2, 34, 34, 0)
-        .expect("256-byte redeem fee");
-    assert!(fee_76 >= fee_75);
-    assert!(fee_256 >= fee_255);
-
-    let requested = fee_256.saturating_add(1_000_000);
-    assert_eq!(
-        super::super::multisig::multisig_standard_fee_for_shape(2, 256, 2, 2, 34, 34, requested,)
-            .expect("requested fee dominates"),
-        requested
-    );
-
-    assert!(super::super::multisig::multisig_standard_fee_for_shape(
-        u8::MAX,
-        usize::MAX,
-        u8::MAX,
-        usize::MAX,
-        usize::MAX,
-        usize::MAX,
-        0,
-    )
-    .is_err());
 }
 
 #[test]

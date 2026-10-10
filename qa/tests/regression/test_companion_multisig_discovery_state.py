@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Companion sealed-state contracts, including multisig branch discovery."""
+import sys as _portal_sys
 from pathlib import Path
 import re
 import unittest
+
+_portal_sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import kaskold_source  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
 WEB_JS = ROOT / "apps/kaskold-companion-web/web/js"
@@ -23,7 +27,7 @@ class CompanionMultisigDiscoveryStateTests(unittest.TestCase):
 
     def test_discovery_renders_addresses_and_never_succeeds_silently(self) -> None:
         multisig = (WEB_JS / "features/transactions/pskt_multisig/multisig.js").read_text()
-        branch = (ROOT / "crates/online-watcher/src/transaction_builder/multisig/branch.rs").read_text()
+        branch = kaskold_source("crates/online-watcher/src/transaction_builder/multisig/branch.rs").read_text()
         self.assertIn("setDiscoveryStatus(`Scanning 45' cosigner branch S${cosigner}…`, 'loading')", multisig)
         self.assertIn("next_receive_address", multisig)
         self.assertIn("next_change_address", multisig)

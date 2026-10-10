@@ -25,10 +25,4 @@ impl PlannedOutput {
         self.derivation_hint = Some((branch, index));
         self
     }
-
-    #[must_use]
-    pub fn with_bip32_derivations(mut self, derivations: Value) -> Self {
-        self.bip32_derivations = Some(derivations);
-        self
-    }
 }

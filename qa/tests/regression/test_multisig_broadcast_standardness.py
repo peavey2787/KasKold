@@ -16,8 +16,9 @@ SUBMIT_DECODER = kaskold_source("crates/online-watcher/src/network/codec/respons
 FINALIZER = ROOT / "crates/online-watcher/src/facade.rs"
 VERIFIED_MATERIALIZER = kaskold_source("crates/online-watcher/src/protocol/transaction/verified.rs")
 AMOUNTS = ROOT / "crates/online-watcher/src/transaction_builder/planning/amounts.rs"
-MULTISIG = ROOT / "crates/online-watcher/src/transaction_builder/multisig.rs"
-MULTISIG_TESTS = ROOT / "crates/online-watcher/src/transaction_builder/multisig/unit_tests/mod.rs"
+MULTISIG = kaskold_source("crates/online-watcher/src/transaction_builder/multisig.rs")
+MULTISIG_TESTS = kaskold_source("crates/online-watcher/src/transaction_builder/multisig/unit_tests/mod.rs")
+MASS = portal_path("transaction/mass.rs")
 SUBMISSION_TESTS = kaskold_source("crates/online-watcher/src/network/unit_tests/submission.rs")
 FINALIZER_TESTS = portal_path("transaction/interchange/pskt/pipeline/unit-tests/consensus.rs")
 CSS = ROOT / "apps/kaskold-companion-web/web/css/app/components/qr_and_address.css"
@@ -47,9 +48,13 @@ class MultisigBroadcastStandardnessTests(unittest.TestCase):
     def test_multisig_builder_enforces_post_toccata_signed_transaction_fee_floor(self) -> None:
         source = MULTISIG.read_text(encoding="utf-8")
         tests = MULTISIG_TESTS.read_text(encoding="utf-8")
+        mass = MASS.read_text(encoding="utf-8")
         self.assertIn("fn multisig_standard_fee(", source)
-        self.assertIn("const MIN_STANDARD_FEE_PER_GRAM: u64 = 100;", source)
-        self.assertIn("const TRANSIENT_MASS_PER_BYTE: u64 = 2;", source)
+        # The signed multisig shape is priced by Portal's single mass model.
+        self.assertIn("estimate_non_contextual_fee_for_shape(", source)
+        self.assertIn("MIN_STANDARD_FEE_RATE_SOMPI_PER_GRAM", source)
+        self.assertIn("pub const MIN_STANDARD_FEE_RATE_SOMPI_PER_GRAM: u64 = 100;", mass)
+        self.assertIn("pub const TRANSIENT_BYTE_TO_MASS_FACTOR: u64 = 4;", mass)
         self.assertIn("prepared.minimum_signatures", source)
         self.assertIn("let fee = multisig_standard_fee(prepared, selected.len(), request.fee)?;", source)
         self.assertIn("fn toccata_multisig_fee_uses_final_signed_shape()", tests)
@@ -76,7 +81,6 @@ class MultisigBroadcastStandardnessTests(unittest.TestCase):
         self.assertNotIn("select_automatic, select_automatic_with_limit", selection_mod)
         self.assertNotIn("pub fn select_automatic(", selection_auto)
         self.assertIn("super::selection::select_automatic_with_limit(", builder_tests)
-        self.assertIn("minimum_signatures: 1,", builder_tests)
 
     def test_multisig_branch_utxo_address_wraps_inside_card(self) -> None:
         css = CSS.read_text(encoding="utf-8")

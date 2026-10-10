@@ -11,7 +11,7 @@ pub(crate) fn config_from_descriptor(
     let mut config = MultisigConfig::new();
     config.m = descriptor.threshold;
     config.n = descriptor.participant_count;
-    config.v45 = descriptor.v45;
+    config.v45 = descriptor.is_hd45();
     config.cosigner_pubkeys = descriptor.public_keys;
     config.cosigner_chain_codes = descriptor.chain_codes;
     config.cosigner_depth = descriptor.depths;

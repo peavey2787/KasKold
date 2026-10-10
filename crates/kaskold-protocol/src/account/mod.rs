@@ -5,8 +5,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::{error::ProtocolError, Network};
 
-#[cfg(feature = "companion-compat")]
-pub use derivation::ExtPubKey;
 pub use derivation::{
     decode_kpub_text, extend_addresses, import_kpub, import_kpub_raw, WalletData,
 };

@@ -5,7 +5,7 @@ import sys as _portal_sys
 from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
-from portal_source import kaskold_source, module_text  # noqa: E402
+from portal_source import kaskold_source, module_text, portal_text  # noqa: E402
 
 from pathlib import Path
 import re
@@ -278,7 +278,7 @@ class OriginalFeatureParityPolicyTests(unittest.TestCase):
 
 
     def test_multisig_descriptor_backup_and_safe_message_qr_are_live(self) -> None:
-        shared_descriptor = read("crates/kaskold-protocol/src/wire/multisig_descriptor.rs")
+        shared_descriptor = portal_text("wallet/multisig/grammar.rs")
         firmware_descriptor = read("apps/kaskold-hardware/src/runtime/interactions/sd/common/shared.rs")
         camera_descriptor = read("apps/kaskold-hardware/src/runtime/interactions/camera_loop/dispatch/descriptor.rs")
         sd_text = read("apps/kaskold-hardware/src/runtime/interactions/sd/exports/kpub.rs")
@@ -340,7 +340,7 @@ class OriginalFeatureParityPolicyTests(unittest.TestCase):
 
     def test_multisig_relay_discovery_consolidation_and_change_binding_are_live(self) -> None:
         descriptor = read("crates/online-watcher/src/multisig/descriptor.rs")
-        canonical_descriptor = read("crates/kaskold-protocol/src/wire/multisig_descriptor.rs")
+        canonical_descriptor = portal_text("wallet/multisig/grammar.rs")
         builder = (
             read("crates/online-watcher/src/transaction_builder/multisig.rs")
             + read("crates/online-watcher/src/transaction_builder/multisig/branch.rs")
@@ -423,7 +423,9 @@ class OriginalFeatureParityPolicyTests(unittest.TestCase):
         self.assertNotIn("&seed.bytes, 0, &mut encoded", watch_only)
         self.assertIn("let Some(parts) = offline_signer::derivation::xpub::parse_kpub_parts", camera_kpub)
         self.assertIn("pub(in crate::runtime::interactions::camera_loop::dispatch) fn is_pending", camera_message)
-        self.assertIn("create_multi_address, scan_branch_json, MultiAddressRequest, MULTISIG_BRANCH_SCAN_DEPTH", transaction_builder)
+        multisig_api = read("crates/online-watcher/src/wasm_api/transactions/multisig.rs")
+        for portal_builder in ("scan_multisig_branch(", "create_multisig_consolidation(", "MULTISIG_BRANCH_SCAN_DEPTH"):
+            self.assertIn(f"kaspa_portal::transaction::builder::{portal_builder}", multisig_api)
         self.assertGreaterEqual(covenant_builder.count("bip32_derivations: None"), 2)
         self.assertIn("change_index_hint: 0", multisig_api_tests)
         fat_files = read("apps/kaskold-hardware/src/hw/shared/storage/fat32/files.rs")

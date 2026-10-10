@@ -235,7 +235,7 @@ fn v106_hd45_descriptor_round_trip_parser_is_order_canonical_and_header_tolerant
     let parsed = parse_multisig_descriptor(unsorted.as_bytes()).expect("v1.0.6 descriptor");
     let canonical_parsed =
         parse_multisig_descriptor(canonical.as_bytes()).expect("canonical descriptor");
-    assert!(parsed.v45);
+    assert!(parsed.is_hd45());
     assert_eq!(parsed.threshold, 2);
     assert_eq!(parsed.participant_count, 5);
     assert_eq!(parsed, canonical_parsed);

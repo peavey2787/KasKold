@@ -89,7 +89,7 @@ impl HotWallet {
         index: u32,
     ) -> Result<String, HotWalletError> {
         let mut config = config_from_descriptor(parsed, chain, index);
-        self.resolve_imported_cosigner(&mut config, parsed.v45)?;
+        self.resolve_imported_cosigner(&mut config, parsed.is_hd45())?;
         if config.build_script() == 0 {
             return Err(HotWalletError::MultisigInvalid);
         }
@@ -219,7 +219,7 @@ fn config_from_descriptor(
     let mut config = MultisigConfig::new();
     config.m = parsed.threshold;
     config.n = parsed.participant_count;
-    config.v45 = parsed.v45;
+    config.v45 = parsed.is_hd45();
     config.cosigner_pubkeys = parsed.public_keys;
     config.cosigner_chain_codes = parsed.chain_codes;
     config.cosigner_depth = parsed.depths;

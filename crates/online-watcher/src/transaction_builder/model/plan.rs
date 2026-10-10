@@ -42,22 +42,4 @@ impl UnsignedTransactionPlan {
             payload: Vec::new(),
         }
     }
-
-    #[must_use]
-    pub fn multisig(
-        inputs: Vec<UtxoEntry>,
-        outputs: Vec<PlannedOutput>,
-        redeem_script: &[u8],
-        sig_op_count: u8,
-    ) -> Self {
-        Self {
-            tx_version: 0,
-            inputs: inputs
-                .into_iter()
-                .map(|utxo| PlannedInput::p2sh_multisig(utxo, redeem_script, sig_op_count))
-                .collect(),
-            outputs,
-            payload: Vec::new(),
-        }
-    }
 }

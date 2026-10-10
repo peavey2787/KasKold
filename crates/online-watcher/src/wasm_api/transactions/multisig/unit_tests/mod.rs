@@ -9,12 +9,12 @@ fn hd45_descriptor() -> String {
 }
 
 fn hd45_source(descriptor_text: &str) -> String {
-    let descriptor =
-        crate::multisig::MultisigDescriptor::parse(descriptor_text).expect("45' descriptor");
+    let descriptor = kaspa_portal::wallet::multisig::MultisigDescriptor::parse(descriptor_text)
+        .expect("45' descriptor");
     let keys = descriptor
         .public_keys_at(0, 0, 0)
         .expect("45' receive keys");
-    let redeem = crate::multisig::build_redeem_script(descriptor.threshold(), &keys)
+    let redeem = kaspa_portal::wallet::multisig::build_redeem_script(descriptor.threshold(), &keys)
         .expect("45' redeem script");
     crate::protocol::script::p2sh::script_to_address(&redeem, "kaspa").expect("45' source address")
 }

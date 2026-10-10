@@ -163,7 +163,7 @@ fn kaspa_cli_account_xpub_imports_and_normalizes_to_canonical_text() {
 
 #[test]
 fn kpub_import_rejects_malformed_text_payloads_and_hardened_children() {
-    use super::bip32::{import_kpub, import_kpub_raw, ExtPubKey};
+    use super::bip32::{import_kpub, import_kpub_raw};
 
     assert!(import_kpub("kpub1:00", "kaspa").is_err());
     assert!(import_kpub_raw(&[0u8; 77], "kaspa").is_err());
@@ -171,9 +171,6 @@ fn kpub_import_rejects_malformed_text_payloads_and_hardened_children() {
     let mut invalid = canonical_account_payload();
     invalid[45] = 0x04;
     assert!(import_kpub_raw(&invalid, "kaspa").is_err());
-
-    let xpub = ExtPubKey::from_kpub(&canonical_account_text()).expect("extended public key");
-    assert!(xpub.derive_child(0x8000_0000).is_err());
 }
 
 #[test]

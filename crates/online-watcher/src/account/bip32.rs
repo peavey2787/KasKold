@@ -1,6 +1,5 @@
 //! Companion compatibility facade over protocol-owned watch-only BIP32 primitives.
 
-pub(crate) use kaskold_protocol::compat::ExtPubKey;
 pub use kaskold_protocol::WalletData;
 
 pub(crate) fn decode_kpub_text(

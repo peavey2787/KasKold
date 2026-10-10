@@ -54,12 +54,11 @@ fn facade_import_signing_and_transaction_boundaries_are_host_testable() {
         amount: 0,
         fee: 0,
         change_address: "bad",
-        websocket_url: "ws://unused",
         requested_index: 0,
         change_index_hint: u32::MAX,
         selection: MultisigSelection::Automatic,
     };
-    assert!(ready(facade.build_multisig_transaction(request)).is_err());
+    assert!(ready(facade.build_multisig_transaction(request, "ws://unused")).is_err());
 
     assert_ne!(
         facade.verify_message(&[2; 32], &[3; 32], &[4; 64]),

@@ -53,18 +53,20 @@ struct MultisigRequest<'a> {
 
 async fn create_multisig(request: MultisigRequest<'_>) -> Result<String, JsValue> {
     WatchWallet::new()
-        .build_multisig_transaction(transaction_builder::MultisigTransactionRequest {
-            descriptor_text: request.descriptor,
-            source_address: request.source_address,
-            destination_address: request.dest_address,
-            amount: request.amount_sompi,
-            fee: request.fee_sompi,
-            change_address: request.change_address,
-            websocket_url: request.ws_url,
-            requested_index: request.addr_index,
-            change_index_hint: request.change_index_hint,
-            selection: request.selection,
-        })
+        .build_multisig_transaction(
+            transaction_builder::MultisigTransactionRequest {
+                descriptor_text: request.descriptor,
+                source_address: request.source_address,
+                destination_address: request.dest_address,
+                amount: request.amount_sompi,
+                fee: request.fee_sompi,
+                change_address: request.change_address,
+                requested_index: request.addr_index,
+                change_index_hint: request.change_index_hint,
+                selection: request.selection,
+            },
+            request.ws_url,
+        )
         .await
         .map_err(js_error)
 }
@@ -116,7 +118,7 @@ struct MultisigBranchScanRequest {
     address_prefix: String,
 }
 fn default_scan_depth() -> u32 {
-    transaction_builder::MULTISIG_BRANCH_SCAN_DEPTH
+    kaspa_portal::transaction::builder::MULTISIG_BRANCH_SCAN_DEPTH
 }
 fn default_address_prefix() -> String {
     "kaspa".to_string()
@@ -126,11 +128,13 @@ fn default_address_prefix() -> String {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 pub async fn scan_multisig_branch_js(request_json: &str) -> Result<String, JsValue> {
     let request: MultisigBranchScanRequest = parse_request(request_json, "multisig branch scan")?;
-    transaction_builder::scan_branch_json(
+    crate::multisig::require_signer_descriptor(&request.descriptor).map_err(js_error)?;
+    let client = crate::network::client(&request.ws_url).map_err(js_error)?;
+    kaspa_portal::transaction::builder::scan_multisig_branch(
         &request.descriptor,
         request.cosigner_index,
         request.depth,
-        &request.ws_url,
+        &client,
         &request.address_prefix,
     )
     .await
@@ -155,7 +159,8 @@ struct MultisigMultiRequest {
 pub async fn create_multisig_pskb_multi_js(request_json: &str) -> Result<String, JsValue> {
     let request: MultisigMultiRequest =
         parse_request(request_json, "multi-address multisig request")?;
-    transaction_builder::create_multi_address(transaction_builder::MultiAddressRequest {
+    crate::multisig::require_signer_descriptor(&request.descriptor).map_err(js_error)?;
+    let consolidation = kaspa_portal::transaction::builder::MultisigConsolidationRequest {
         descriptor_text: &request.descriptor,
         sources_json: &request.sources_json,
         destination_address: &request.dest_address,
@@ -163,10 +168,11 @@ pub async fn create_multisig_pskb_multi_js(request_json: &str) -> Result<String,
         fee: parse_u64_field(&request.fee_sompi, "fee_sompi")?,
         cosigner: request.cosigner_index,
         change_index_hint: request.change_index_hint,
-        websocket_url: &request.ws_url,
-    })
-    .await
-    .map_err(js_error)
+    };
+    let client = crate::network::client(&request.ws_url).map_err(js_error)?;
+    kaspa_portal::transaction::builder::create_multisig_consolidation(&client, &consolidation)
+        .await
+        .map_err(js_error)
 }
 
 #[cfg(test)]

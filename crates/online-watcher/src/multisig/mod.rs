@@ -1,10 +1,13 @@
-mod address_index;
-mod descriptor;
-mod redeem_script;
+//! KasKold multisig policy over Kaspa Portal's multisig wallet model.
 
-pub use address_index::{resolve_address_path, ResolvedMultisigPath};
-pub use descriptor::MultisigDescriptor;
-pub use redeem_script::build_redeem_script;
+/// Reject descriptors the KasKold signer cannot co-sign.
+pub(crate) fn require_signer_descriptor(descriptor_text: &str) -> Result<(), String> {
+    kaskold_protocol::wire::multisig_descriptor::parse_multisig_descriptor(
+        descriptor_text.as_bytes(),
+    )
+    .map(|_| ())
+    .map_err(|error| error.message().to_string())
+}
 
 #[cfg(test)]
 mod unit_tests;
