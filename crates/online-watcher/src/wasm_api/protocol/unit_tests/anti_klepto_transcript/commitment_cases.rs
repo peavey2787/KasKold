@@ -11,43 +11,23 @@ fn commitments_are_strictly_ordered_and_each_record_is_independently_validated()
 
     let mut reversed = fixture.commitment_records.clone();
     reversed.swap(0, 1);
-    assert_unsafe_commitment(
-        &fixture,
-        &reversed,
-        "anti-klepto commitments are not strictly ordered",
-    );
+    assert_unsafe_commitment(&fixture, &reversed, "InvalidProof");
 
     let duplicate = vec![fixture.commitment_records[0], fixture.commitment_records[0]];
-    assert_unsafe_commitment(
-        &fixture,
-        &duplicate,
-        "anti-klepto commitments are not strictly ordered",
-    );
+    assert_unsafe_commitment(&fixture, &duplicate, "InvalidProof");
 
     let mut invalid_slot = fixture.commitment_records.clone();
     invalid_slot[0].signature_slot = 5;
-    assert_unsafe_commitment(
-        &fixture,
-        &invalid_slot,
-        "anti-klepto signature slot is invalid",
-    );
+    assert_unsafe_commitment(&fixture, &invalid_slot, "InvalidProof");
 
     let occupied = TranscriptFixture::p2sh_with_existing_signature();
     let mut occupied_slot = occupied.commitment_records.clone();
     occupied_slot[0].signature_slot = 0;
-    assert_unsafe_commitment(
-        &occupied,
-        &occupied_slot,
-        "anti-klepto signature slot is invalid",
-    );
+    assert_unsafe_commitment(&occupied, &occupied_slot, "InvalidProof");
 
     let mut unexpected_key = fixture.commitment_records.clone();
     unexpected_key[0].public_key = canonical_public_key([2u8; 32]);
-    assert_unsafe_commitment(
-        &fixture,
-        &unexpected_key,
-        "anti-klepto commitment uses an unexpected signing key",
-    );
+    assert_unsafe_commitment(&fixture, &unexpected_key, "InvalidPublicKey");
 }
 
 #[test]
@@ -57,37 +37,21 @@ fn commitment_points_require_canonical_even_y_and_valid_curve_points() {
 
     let mut odd_public_key = fixture.commitment_records.clone();
     odd_public_key[0].public_key[0] = 0x03;
-    assert_unsafe_commitment(
-        &fixture,
-        &odd_public_key,
-        "anti-klepto points must use even-Y compressed encoding",
-    );
+    assert_unsafe_commitment(&fixture, &odd_public_key, "InvalidProof");
 
     let mut odd_nonce = fixture.commitment_records.clone();
     odd_nonce[0].nonce_point[0] = 0x03;
-    assert_unsafe_commitment(
-        &fixture,
-        &odd_nonce,
-        "anti-klepto points must use even-Y compressed encoding",
-    );
+    assert_unsafe_commitment(&fixture, &odd_nonce, "InvalidProof");
 
     let mut invalid_public_key = fixture.commitment_records.clone();
     invalid_public_key[0].public_key = [0xff; 33];
     invalid_public_key[0].public_key[0] = 0x02;
-    assert_unsafe_commitment(
-        &fixture,
-        &invalid_public_key,
-        "anti-klepto public key is invalid",
-    );
+    assert_unsafe_commitment(&fixture, &invalid_public_key, "InvalidProof");
 
     let mut invalid_nonce = fixture.commitment_records.clone();
     invalid_nonce[0].nonce_point = [0xff; 33];
     invalid_nonce[0].nonce_point[0] = 0x02;
-    assert_unsafe_commitment(
-        &fixture,
-        &invalid_nonce,
-        "anti-klepto nonce point is invalid",
-    );
+    assert_unsafe_commitment(&fixture, &invalid_nonce, "InvalidProof");
 }
 
 #[test]
@@ -108,10 +72,7 @@ fn p2pk_commitment_validation_rejects_each_structural_script_boundary() {
         let error = fixture
             .validate_commitment_against(&wire, &fixture.commitment_records)
             .expect_err(label);
-        assert_eq!(
-            error, "anti-klepto commitment uses an unexpected signing key",
-            "{label}"
-        );
+        assert_eq!(error, "InvalidPublicKey", "{label}");
     }
 }
 
@@ -125,11 +86,7 @@ fn redeem_script_signing_keys_are_required_for_p2sh_commitments() {
 
     let mut unexpected_key = fixture.commitment_records.clone();
     unexpected_key[0].public_key = canonical_public_key([3u8; 32]);
-    assert_unsafe_commitment(
-        &fixture,
-        &unexpected_key,
-        "anti-klepto commitment uses an unexpected signing key",
-    );
+    assert_unsafe_commitment(&fixture, &unexpected_key, "InvalidPublicKey");
 }
 
 fn assert_unsafe_commitment(

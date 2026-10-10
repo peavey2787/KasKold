@@ -116,55 +116,34 @@ fn object_and_hex_helpers_cover_canonical_boundaries() {
 }
 
 #[test]
-fn pskt_shape_and_error_styles_cover_standard_review_and_unknown_paths() {
+fn pskt_shape_and_error_messages_cover_every_path() {
     let object = json!({});
-    assert!(
-        validate_single_pskt(&object, PsktFormat::PsktSingle, PskbShapeStyle::Standard).is_ok()
-    );
-    assert!(validate_single_pskt(&object, PsktFormat::Unknown, PskbShapeStyle::Standard).is_err());
-    assert!(validate_single_pskt(&object, PsktFormat::Pskb, PskbShapeStyle::Standard).is_err());
-    assert!(validate_single_pskt(&object, PsktFormat::Pskb, PskbShapeStyle::Review).is_err());
-    assert!(validate_single_pskt(&json!([]), PsktFormat::Pskb, PskbShapeStyle::Standard).is_err());
-    assert!(
-        validate_single_pskt(&json!([{}, {}]), PsktFormat::Pskb, PskbShapeStyle::Review).is_err()
-    );
-    assert!(validate_single_pskt(&json!([{}]), PsktFormat::Pskb, PskbShapeStyle::Standard).is_ok());
+    assert!(validate_single_pskt(&object, PsktFormat::PsktSingle).is_ok());
+    assert!(validate_single_pskt(&object, PsktFormat::Unknown).is_err());
+    assert!(validate_single_pskt(&object, PsktFormat::Pskb).is_err());
+    assert!(validate_single_pskt(&json!([]), PsktFormat::Pskb).is_err());
+    assert!(validate_single_pskt(&json!([{}, {}]), PsktFormat::Pskb).is_err());
+    assert!(validate_single_pskt(&json!([{}]), PsktFormat::Pskb).is_ok());
 
     assert_eq!(
-        format_wire_error(PsktWireError::UnknownFormat, ErrorStyle::Standard),
+        format_wire_error(PsktWireError::UnknownFormat),
         "Not a PSKT/PSKB payload"
     );
-    assert!(
-        format_wire_error(PsktWireError::OuterHex("bad".into()), ErrorStyle::Standard)
-            .starts_with("outer hex:")
-    );
-    assert!(
-        format_wire_error(PsktWireError::OuterHex("bad".into()), ErrorStyle::Review)
-            .starts_with("Bad outer hex:")
+    assert_eq!(
+        format_wire_error(PsktWireError::OuterHex("bad".into())),
+        "outer hex: bad"
     );
     assert_eq!(
-        format_wire_error(PsktWireError::TooShort, ErrorStyle::Standard),
+        format_wire_error(PsktWireError::TooShort),
         "payload too short"
     );
     assert_eq!(
-        format_wire_error(PsktWireError::TooShort, ErrorStyle::Review),
-        "Payload too short"
-    );
-    assert_eq!(
-        format_wire_error(PsktWireError::MagicMismatch, ErrorStyle::Review),
+        format_wire_error(PsktWireError::MagicMismatch),
         "wire magic does not match detected format"
     );
-    assert!(
-        format_wire_error(PsktWireError::InnerHex("bad".into()), ErrorStyle::Standard)
-            .starts_with("inner hex:")
-    );
-    assert!(
-        format_wire_error(PsktWireError::InnerHex("bad".into()), ErrorStyle::Review)
-            .starts_with("Bad inner hex:")
-    );
-    assert!(
-        format_wire_error(PsktWireError::Json("bad".into()), ErrorStyle::Standard)
-            .starts_with("JSON parse:")
+    assert_eq!(
+        format_wire_error(PsktWireError::Json("bad".into())),
+        "JSON parse: bad"
     );
 }
 

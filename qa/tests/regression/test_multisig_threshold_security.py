@@ -8,7 +8,7 @@ FW = ROOT / "apps/kaskold-hardware"
 SIGNING = FW / "src/runtime/workflow_tests/connected/multisig/signing.rs"
 LOADED = FW / "src/runtime/signing/loaded_accounts.rs"
 KSPT = FW / "src/runtime/signing/kspt.rs"
-KSPT_BRIDGE_TEST = ROOT / "crates/online-watcher/src/protocol/pskt/unit_tests/kspt_bridge.rs"
+KSPT_BRIDGE_TEST = ROOT / "crates/online-watcher/src/wasm_api/protocol/unit_tests/kspt_relay.rs"
 
 
 class MultisigThresholdSecurityTests(unittest.TestCase):

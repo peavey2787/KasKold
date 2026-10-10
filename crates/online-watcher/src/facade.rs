@@ -5,11 +5,7 @@ use crate::{
         utxo::UtxoEntry,
     },
     network::{queries, submission},
-    protocol::{
-        pskt,
-        schnorr::bip340_verify,
-        transaction::{consensus::ConsensusTransaction, signed_kspt},
-    },
+    protocol::transaction::consensus::ConsensusTransaction,
     transaction_builder, WalletData,
 };
 use std::vec::Vec;
@@ -148,7 +144,12 @@ impl WatchWallet {
         message_hash: &[u8; 32],
         signature: &[u8; 64],
     ) -> Result<bool, String> {
-        bip340_verify(public_key, message_hash, signature)
+        Ok(kaspa_portal::crypto::schnorr::schnorr_verify(
+            public_key,
+            message_hash,
+            &kaspa_portal::crypto::schnorr::SchnorrSignature { bytes: *signature },
+        )
+        .is_ok())
     }
 
     pub async fn finalize_and_broadcast(
@@ -156,9 +157,13 @@ impl WatchWallet {
         signed_envelope_hex: &str,
         websocket_url: &str,
     ) -> Result<String, String> {
-        let finalized = pskt::finalize_to_consensus(signed_envelope_hex)?;
-        self.submit_transaction(&finalized.into_consensus_transaction(), websocket_url)
-            .await
+        let transaction = kaskold_protocol::compat::verify_complete_pskt(
+            signed_envelope_hex,
+            kaskold_protocol::Network::Mainnet,
+        )
+        .map_err(|error| format!("PSKT cryptographic verification failed: {error}"))?
+        .to_consensus()?;
+        self.submit_transaction(&transaction, websocket_url).await
     }
 
     pub async fn broadcast(
@@ -166,7 +171,9 @@ impl WatchWallet {
         signed_transaction_hex: &str,
         websocket_url: &str,
     ) -> Result<String, String> {
-        let transaction = signed_kspt::decode_signed_kspt(signed_transaction_hex)?;
+        let bytes =
+            hex::decode(signed_transaction_hex).map_err(|error| format!("Invalid hex: {error}"))?;
+        let transaction = kaskold_protocol::compat::verify_complete_kspt(&bytes)?.to_consensus()?;
         self.submit_transaction(&transaction, websocket_url).await
     }
 

@@ -66,6 +66,15 @@ pub mod compat {
         crate::portal_pipeline::verify_complete_kspt(data)
     }
 
+    /// Merge a signer's compact KSPT response into its original PSKT at the
+    /// network the response's trailer names.
+    pub fn merge_signed_kspt_at_trailer_network(
+        original_pskt_hex: &str,
+        signed_kspt: &[u8],
+    ) -> Result<String, String> {
+        crate::portal_pipeline::merge_signed_kspt_at_trailer_network(original_pskt_hex, signed_kspt)
+    }
+
     /// Canonically parse and cryptographically authorize a standard PSKT once,
     /// returning the only semantic object consumer finalization may use.
     pub fn verify_complete_pskt(

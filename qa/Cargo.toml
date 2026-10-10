@@ -8,7 +8,7 @@ description = "Repository-wide conformance, integration, and regression checks"
 
 [dev-dependencies]
 firmware-tools = { path = "../tools" }
-kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", rev = "abcabab596f29b9a0e688ddeb521866a1438a911", default-features = false }
+kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", rev = "de51c1fba31c60ebc2e87341854110097bccf41a", default-features = false }
 offline-signer = { path = "../crates/offline-signer" }
 kaskold-protocol = { path = "../crates/kaskold-protocol" }
 kaskold-sdk = { path = "../crates/kaskold-sdk" }

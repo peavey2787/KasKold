@@ -1,4 +1,4 @@
-use crate::protocol::pskt;
+use kaspa_portal::transaction::interchange::pskt;
 
 const KSTL_SUBNETWORK_ID_HEX: &str = "4b53544c00000000000000000000000000000000";
 const KSTL_GAS: u64 = 0;

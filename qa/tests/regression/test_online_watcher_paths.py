@@ -43,37 +43,6 @@ class OnlineWatcherPathPolicyTests(unittest.TestCase):
 
 
 
-    def test_rejects_kspt_test_import_from_pskt_facade(self) -> None:
-        errors = self._check(
-            "protocol/pskt/unit_tests/kspt_bridge.rs",
-            "use super::super::{collect_signatures, KsptEncodingMode};\n",
-        )
-        self.assertTrue(any("KSPT bridge tests" in error for error in errors))
-
-    def test_accepts_kspt_test_import_from_owning_module(self) -> None:
-        errors = self._check(
-            "protocol/pskt/unit_tests/kspt_bridge.rs",
-            "use super::super::kspt_bridge::{collect_signatures, KsptEncodingMode};\n",
-        )
-        self.assertEqual(errors, [])
-
-    def test_rejects_pskt_review_test_import_from_public_facade(self) -> None:
-        errors = self._check(
-            "protocol/pskt/unit_tests/review.rs",
-            "use super::super::{parse_input_summary, parse_spk_hex};\n",
-        )
-        self.assertTrue(any("PSKT review tests" in error for error in errors))
-
-    def test_accepts_pskt_review_test_import_from_owning_module(self) -> None:
-        errors = self._check(
-            "protocol/pskt/unit_tests/review.rs",
-            "use super::super::parse_summary;\n"
-            "use super::super::review::{find_pubkey_position_in_redeem, "
-            "parse_input_summary, parse_multisig_redeem, parse_output_summary, "
-            "parse_spk_hex};\n",
-        )
-        self.assertEqual(errors, [])
-
     def test_rejects_low_level_locktime_parser_in_wasm_family(self) -> None:
         errors = self._check(
             "wasm_api/contracts/covenant/families/escrow/timelocked.rs",

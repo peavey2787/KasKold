@@ -2,10 +2,12 @@
 
 use crate::wasm_api::JsValue;
 
-use crate::{
-    protocol::{anti_klepto::verify_nonce_relation, schnorr::bip340_verify},
-    wasm_api::utilities::common::js_error,
+use kaspa_portal::crypto::{
+    anti_klepto::verify_nonce_relation,
+    schnorr::{schnorr_verify, SchnorrSignature},
 };
+
+use crate::wasm_api::utilities::common::js_error;
 
 fn decode_fixed<const N: usize>(value: &str, label: &str) -> Result<[u8; N], String> {
     let bytes = hex::decode(value).map_err(|_| format!("invalid {label} hex"))?;
@@ -37,10 +39,13 @@ pub(super) fn verify_covenant_anti_klepto_string(
     let mut public_key = [0u8; 33];
     public_key[0] = 0x02;
     public_key[1..].copy_from_slice(&pubkey_x);
-    let result = bip340_verify(&pubkey_x, &commitment, &signature_bytes).unwrap_or(false)
+    let signature = SchnorrSignature {
+        bytes: signature_bytes,
+    };
+    let result = schnorr_verify(&pubkey_x, &commitment, &signature).is_ok()
         && verify_nonce_relation(
             &nonce_point,
-            &signature_bytes,
+            &signature,
             &session_id,
             &host_secret,
             0,

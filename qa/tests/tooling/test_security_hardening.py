@@ -387,7 +387,8 @@ class SecurityHardeningTests(unittest.TestCase):
         self.assertEqual(policy["minimum_score_percent"], 100.0)
         self.assertEqual(policy["maximum_timeouts"], 0)
         self.assertEqual(policy["equivalent_mutants"], [])
-        self.assertIn("crates/online-watcher/src/protocol/transaction/sighash.rs", policy["include_globs"])
+        # Sighash is Kaspa Portal's (and its mutation gate's); the Companion keeps no copy.
+        self.assertNotIn("crates/online-watcher/src/protocol/transaction/sighash.rs", policy["include_globs"])
         self.assertNotIn("crates/online-watcher/src/contracts/zk/rng.rs", policy["include_globs"])
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

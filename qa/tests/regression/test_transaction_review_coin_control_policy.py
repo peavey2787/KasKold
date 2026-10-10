@@ -87,17 +87,11 @@ class TransactionReviewCoinControlPolicyTests(unittest.TestCase):
         self.assertGreaterEqual(redraw.count("Invalid monetary totals"), 2)
 
     def test_anti_klepto_binds_v4_network_and_derivation_metadata(self) -> None:
-        parser = self.read("crates/online-watcher/src/protocol/pskt/kspt_bridge/parser_transaction.rs")
-        parser_tests = self.read("crates/online-watcher/src/protocol/pskt/unit_tests/kspt_compact.rs")
-        online = self.read("crates/online-watcher/src/protocol/pskt/anti_klepto.rs")
+        # One host verifier binds the transcript: Kaspa Portal's, used by both
+        # the Companion and the firmware.
+        self.assertFalse((ROOT / "crates/online-watcher/src/protocol/pskt/anti_klepto.rs").exists())
         offline = self.read("crates/offline-signer/src/transaction/kspt/signing/anti_klepto/transaction_body.rs")
-        self.assertIn("kaskold_protocol::wire::kspt", parser)
-        self.assertIn("kspt::decode(data, &mut sink, kspt::SIGNER_LIMITS)", parser)
-        self.assertIn("compact_v4_parser_covers_network_and_derivation_trailer_contract", parser_tests)
-        self.assertIn("assert_eq!(transaction.network, network)", parser_tests)
-        self.assertIn("assert_eq!(transaction.outputs[0].derivation, Some((0, 7)))", parser_tests)
-        self.assertIn("left.network", online)
-        self.assertIn("right.network", online)
+        self.assertIn("right.network", offline)
         self.assertIn("left.network", offline)
         self.assertIn("left.has_derivation_hint", offline)
         self.assertIn("left.derivation_branch", offline)

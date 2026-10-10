@@ -26,17 +26,17 @@ fn anti_klepto_begin_rejects_structurally_unsafe_compact_transactions() {
         (
             "no inputs",
             fixture::minimal_compact_transaction(0, 1, 0),
-            "compact KSPT has no inputs",
+            "NoInputs",
         ),
         (
             "no outputs",
             fixture::minimal_compact_transaction(1, 0, 0),
-            "compact KSPT has no outputs",
+            "NoOutputs",
         ),
         (
             "unsupported flags",
             fixture::minimal_compact_transaction(1, 1, 0x02),
-            "invalid KSPT flags",
+            "InvalidFlags",
         ),
     ] {
         let error = crate::wasm_api::protocol::anti_klepto::anti_klepto_begin_with_secret_string(

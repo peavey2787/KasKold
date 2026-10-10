@@ -35,7 +35,7 @@ fn every_bound_transaction_and_input_field_rejects_single_field_mutation() {
             .verify_public_with(&fixture.commitment_records, &fixture.proofs, &wire)
             .expect_err(label);
         assert_eq!(
-            error, "anti-klepto verification failed: anti-klepto transaction body changed",
+            error, "anti-klepto verification failed: TransactionMismatch",
             "{label}",
         );
     }
@@ -90,10 +90,7 @@ fn signature_metadata_binds_sighash_and_the_committed_signing_key() {
             &multisig.signed_tx_wire,
         )
         .expect_err("commitment/signature key mismatch accepted");
-    assert_eq!(
-        error,
-        "anti-klepto verification failed: anti-klepto commitment public key does not match signature",
-    );
+    assert_eq!(error, "anti-klepto verification failed: InvalidPublicKey",);
 }
 
 #[test]
@@ -120,7 +117,7 @@ fn existing_signature_count_sighash_and_bytes_remain_bound_when_one_signature_is
         .expect_err("existing signature mutation accepted");
     assert_eq!(
         error,
-        "anti-klepto verification failed: anti-klepto transaction body changed",
+        "anti-klepto verification failed: TransactionMismatch",
     );
 }
 
@@ -136,7 +133,7 @@ fn provisional_signature_is_valid_bip340_but_fails_the_host_nonce_relation() {
         .expect_err("provisional signatures accepted as final");
     assert_eq!(
         error,
-        "anti-klepto verification failed: anti-klepto final nonce does not include the host contribution",
+        "anti-klepto verification failed: InvalidNonceRelation",
     );
 }
 
@@ -155,7 +152,7 @@ fn session_and_transaction_digest_metadata_cannot_be_changed() {
     signed_wire[6] ^= 1;
     let signed = anti_klepto::parse_signed(&signed_wire).expect("session-mutated response");
     assert_eq!(
-        crate::protocol::pskt::verify_host_transcript_wire(
+        kaspa_portal::transaction::interchange::kspt::verify_host_transcript_wire(
             fixture.original_transaction(),
             &fixture.signed_tx_wire,
             &commitment,
@@ -163,7 +160,7 @@ fn session_and_transaction_digest_metadata_cannot_be_changed() {
             &fixture.host_secret,
         )
         .unwrap_err(),
-        "anti-klepto session binding changed",
+        kaspa_portal::transaction::interchange::kspt::AntiKleptoVerifyError::SessionMismatch,
     );
 
     let mut signed_wire =
@@ -172,7 +169,7 @@ fn session_and_transaction_digest_metadata_cannot_be_changed() {
     signed_wire[22] ^= 1;
     let signed = anti_klepto::parse_signed(&signed_wire).expect("digest-mutated response");
     assert_eq!(
-        crate::protocol::pskt::verify_host_transcript_wire(
+        kaspa_portal::transaction::interchange::kspt::verify_host_transcript_wire(
             fixture.original_transaction(),
             &fixture.signed_tx_wire,
             &commitment,
@@ -180,7 +177,7 @@ fn session_and_transaction_digest_metadata_cannot_be_changed() {
             &fixture.host_secret,
         )
         .unwrap_err(),
-        "anti-klepto session binding changed",
+        kaspa_portal::transaction::interchange::kspt::AntiKleptoVerifyError::SessionMismatch,
     );
 }
 
@@ -194,7 +191,7 @@ fn assert_transaction_binding_error(
         .expect_err("invalid transcript count accepted");
     assert_eq!(
         error,
-        "anti-klepto verification failed: anti-klepto transaction body changed",
+        "anti-klepto verification failed: TransactionMismatch",
     );
 }
 
@@ -205,10 +202,7 @@ fn assert_proof_position_error(
     let error = fixture
         .verify_public_with(&fixture.commitment_records, proofs, &fixture.signed_tx_wire)
         .expect_err("invalid proof position accepted");
-    assert_eq!(
-        error,
-        "anti-klepto verification failed: anti-klepto proof position does not match commitment",
-    );
+    assert_eq!(error, "anti-klepto verification failed: InvalidProof",);
 }
 
 fn change_network(transaction: &mut Transaction) {

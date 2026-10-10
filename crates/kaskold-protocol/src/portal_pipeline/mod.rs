@@ -39,6 +39,16 @@ pub(crate) fn merge_signed_kspt(
     )
 }
 
+/// Merge a signer response at the network its own trailer names; the merge
+/// then binds the response to the original PSKT exactly as `merge_signed_kspt`.
+pub(crate) fn merge_signed_kspt_at_trailer_network(
+    original_pskt_hex: &str,
+    signed_kspt: &[u8],
+) -> Result<String, String> {
+    let network = pipeline::signed_kspt_network(signed_kspt, SIGNER_LIMITS)?;
+    pipeline::merge_signed_kspt(original_pskt_hex, signed_kspt, network, SIGNER_LIMITS)
+}
+
 pub(crate) fn is_complete(pskt_hex: &str, network: Network) -> Result<bool, String> {
     pipeline::is_complete(pskt_hex, portal_network(network)?, SIGNER_LIMITS)
 }

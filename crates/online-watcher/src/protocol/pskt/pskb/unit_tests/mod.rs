@@ -49,7 +49,8 @@ fn standard_pskb_relays_to_compact_kspt_with_explicit_native_subnetwork() {
         vec![PlannedOutput::new(49_000_000, vec![0x21; 34])],
     );
     let wire = super::encode_plan(&plan).expect("encode standard PSKB");
-    let kspt = crate::protocol::pskt::relay_pskb_as_kspt_hex_for_network(&wire, "testnet-10")
+    let network = kaskold_protocol::Network::parse("testnet-10").expect("network");
+    let kspt = kaskold_protocol::encode_pskt_hex(&wire, network)
         .expect("standard PSKB must relay to compact KSPT");
     assert!(kspt.starts_with("4b535054"));
 }

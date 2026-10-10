@@ -8,7 +8,5 @@ pub(crate) enum PsktWireError {
     OuterHex(String),
     TooShort,
     MagicMismatch,
-    #[cfg(test)]
-    InnerHex(String),
     Json(String),
 }

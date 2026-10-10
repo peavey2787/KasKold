@@ -48,12 +48,6 @@ REPORTED_FUNCTIONS = {
 
 
 LATEST_CRAP_REFACTOR_LIMITS = {
-    "crates/online-watcher/src/protocol/pskt/consensus/finalizer.rs": {
-        "finalize_to_consensus": 6,
-    },
-    "crates/online-watcher/src/protocol/pskt/review/parser.rs": {
-        "parse_pskt_object": 8,
-    },
     "crates/online-watcher/src/transaction_builder/planning/amounts.rs": {
         "storage_mass_estimate": 7,
     },
@@ -76,14 +70,6 @@ LATEST_CRAP_REFACTOR_LIMITS = {
         "prepare_topup_material": 6,
         "build_topup": 3,
     },
-    "crates/online-watcher/src/protocol/pskt/anti_klepto.rs": {
-        "same_transaction_body": 4,
-    },
-    "crates/online-watcher/src/protocol/pskt/kspt_bridge/merger.rs": {
-        "merge_signed_kspt_into_pskb": 2,
-        "signed_network": 8,
-        "find_network_trailer": 2,
-    },
 }
 
 CHECKED_ARITHMETIC_ERROR_PATHS = (
@@ -95,7 +81,6 @@ CHECKED_ARITHMETIC_ERROR_PATHS = (
     "crates/online-watcher/src/wasm_api/contracts/vault/split.rs",
     "crates/online-watcher/src/transaction_builder/covenant/payjoin.rs",
     "crates/online-watcher/src/contracts/shipping_escrow/construction.rs",
-    "crates/online-watcher/src/protocol/pskt/review/parser.rs",
 )
 
 REMOVED_COMBINED_FETCHERS = {

@@ -31,16 +31,16 @@ class OnlineWatcherTestCompileContractTests(unittest.TestCase):
 
 
     def test_consensus_finalizer_has_no_second_pskt_decoder_after_authorization(self) -> None:
-        source = (WATCHER / "protocol/pskt/consensus/finalizer.rs").read_text()
+        facade = (WATCHER / "facade.rs").read_text()
+        source = facade.split("pub async fn finalize_and_broadcast(", 1)[1].split("\n    }\n", 1)[0]
         self.assertNotIn("fn decode_pskt", source)
         self.assertNotIn("decode_root", source)
         self.assertNotIn("pskt_from_root", source)
         self.assertIn("verify_complete_pskt", source)
-        self.assertIn("materialize_verified_transaction", source)
+        self.assertIn(".to_consensus()", source)
 
     def test_pskt_tests_do_not_resolve_decode_root_through_shadowing_test_module(self) -> None:
         source = (WATCHER / "protocol/pskt/unit_tests/mod.rs").read_text()
-        self.assertIn("use super::wire::decode_root;", source)
         self.assertNotIn("wire::decode_root(&result)", source)
 
     def test_covenant_tests_use_facade_reexports_instead_of_private_modules(self) -> None:
@@ -90,19 +90,14 @@ class OnlineWatcherTestCompileContractTests(unittest.TestCase):
         self.assertNotIn("network::queries", sweep)
 
     def test_private_swap_watcher_compile_contracts_follow_current_pskt_and_adaptor_apis(self) -> None:
-        pskt = (WATCHER / "protocol/pskt/mod.rs").read_text()
-        anti_klepto = (WATCHER / "protocol/pskt/anti_klepto.rs").read_text()
         family = (WATCHER / "wasm_api/contracts/covenant/families/private_swap.rs").read_text()
         tests = kaskold_source(
             "crates/online-watcher/src/contracts/covenant/script/private_swap/unit_tests/mod.rs"
         ).read_text()
 
-        self.assertIn("compact_kspt_sighash_wire", pskt)
-        self.assertIn("expected_added_sighash(&transaction.inputs[0])", anti_klepto)
-        self.assertNotIn("input.sighash_type", anti_klepto)
         compact_family = "".join(family.split())
-        self.assertIn("crate::protocol::pskt::compact_kspt_sighash_wire(&kspt)", compact_family)
-        self.assertNotIn("pskt::anti_klepto::compact_kspt_sighash_wire", compact_family)
+        self.assertIn("private_swap::claim_sighash(&kspt)", compact_family)
+        self.assertNotIn("compact_kspt_sighash_wire", compact_family)
         self.assertIn("extract_secret(&final_sig,&p)", compact_family)
         self.assertNotIn("extract_secret(&p,&final_sig)", compact_family)
         self.assertIn("OP_BLAKE2B, OP_CHECKSIGFROMSTACK, OP_SHA256", tests)
@@ -113,10 +108,9 @@ class OnlineWatcherTestCompileContractTests(unittest.TestCase):
         self.assertNotIn("planning::storage_mass_estimate", source)
 
     def test_multisig_small_int_decoder_cannot_eagerly_underflow_on_invalid_opcode(self) -> None:
-        source = (WATCHER / "protocol/pskt/review/classification.rs").read_text()
+        source = kaskold_source("crates/kaskold-protocol/src/pskt/relay_fields/scripts.rs").read_text()
         self.assertNotIn("then_some(opcode - 0x50)", source)
-        self.assertIn("0x51..=0x60 => Some(opcode - 0x50)", source)
-        self.assertIn("_ => None", source)
+        self.assertIn("(0x51..=0x60).contains(&opcode).then(|| opcode - 0x50)", source)
 
     def test_allowance_logger_is_visible_only_inside_covenant_families_for_host_coverage(self) -> None:
         family_tests = (

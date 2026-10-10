@@ -433,7 +433,7 @@
             "oracle_covenant_key_id_hex",
             "let mut salt = [0u8; 16]",
             "oracle_v1_script_commits_to",
-            "bip340_verify"
+            "schnorr_verify"
           ]
         },
         {

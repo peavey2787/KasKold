@@ -81,10 +81,10 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         self.assertIn("pub const fn witness(&self)", verified)
 
     def test_standard_pskt_finalizer_never_reparses_after_authorization(self):
-        source = text("crates/online-watcher/src/protocol/pskt/consensus/finalizer.rs")
-        body = fn_body(source, "finalize_to_consensus")
+        source = text("crates/online-watcher/src/facade.rs")
+        body = fn_body(source, "finalize_and_broadcast")
         self.assertIn("verify_complete_pskt", body)
-        self.assertIn("materialize_verified_transaction", body)
+        self.assertIn(".to_consensus()", body)
         for forbidden in ["decode_root", "serde_json", "from_str", "from_slice", "decode_wire", "build_consensus_input"]:
             self.assertNotIn(forbidden, body)
 
@@ -102,10 +102,10 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         self.assertNotIn("wire::decode", finalize)
 
     def test_signed_kspt_finalizer_never_reparses_after_authorization(self):
-        source = text("crates/online-watcher/src/protocol/transaction/signed_kspt.rs")
-        body = fn_body(source, "decode_signed_kspt")
+        source = text("crates/online-watcher/src/facade.rs")
+        body = fn_body(source, "broadcast")
         self.assertIn("verify_complete_kspt", body)
-        self.assertIn("materialize_verified_transaction", body)
+        self.assertIn(".to_consensus()", body)
         self.assertNotIn("kspt::decode", body)
         self.assertNotIn("DecodeSink", body)
 

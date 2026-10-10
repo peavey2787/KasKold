@@ -64,7 +64,7 @@ class CriticalDomainCoveragePolicyTests(unittest.TestCase):
         )
         self.assert_contains(
             "crates/online-watcher/src/protocol/pskt/anti_klepto.rs",
-            ("verify_host_transcript_wire", "schnorr::bip340_verify"),
+            ("pub fn verify_host_transcript", "schnorr_verify"),
         )
 
     def test_key_handling_has_raw_roundtrip_recovery_and_validation_tests(self) -> None:

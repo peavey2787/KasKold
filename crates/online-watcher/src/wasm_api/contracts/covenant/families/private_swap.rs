@@ -219,9 +219,9 @@ fn private_swap_parse_response_string(response_hex: &str) -> Result<String, Stri
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 pub fn private_swap_claim_sighash(kspt_hex: &str) -> Result<String, JsValue> {
     let kspt = hex::decode(kspt_hex).map_err(|error| js_error(format!("Bad KSPT: {error}")))?;
-    crate::protocol::pskt::compact_kspt_sighash_wire(&kspt)
+    kaspa_portal::transaction::signing::covenant::protocol::private_swap::claim_sighash(&kspt)
         .map(hex::encode)
-        .map_err(js_error)
+        .map_err(|error| js_error(format!("Private Swap claim: {error:?}")))
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]

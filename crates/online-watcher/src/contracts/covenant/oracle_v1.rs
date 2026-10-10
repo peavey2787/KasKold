@@ -129,7 +129,12 @@ pub(crate) fn verify_attestation(
         oracle_signature_hex,
         message_commitment_hex,
     )?;
-    crate::protocol::schnorr::bip340_verify(&public_key, &commitment, &signature)
+    Ok(kaspa_portal::crypto::schnorr::schnorr_verify(
+        &public_key,
+        &commitment,
+        &kaspa_portal::crypto::schnorr::SchnorrSignature { bytes: signature },
+    )
+    .is_ok())
 }
 
 pub(crate) fn checked_redeem_and_attestation(
@@ -152,7 +157,13 @@ pub(crate) fn checked_redeem_and_attestation(
     ) {
         return Err("Oracle attestation commitment/key do not belong to this covenant".to_string());
     }
-    if !crate::protocol::schnorr::bip340_verify(&public_key, &commitment, &signature)? {
+    if !kaspa_portal::crypto::schnorr::schnorr_verify(
+        &public_key,
+        &commitment,
+        &kaspa_portal::crypto::schnorr::SchnorrSignature { bytes: signature },
+    )
+    .is_ok()
+    {
         return Err("Oracle signature is invalid for this covenant".to_string());
     }
     Ok(redeem)

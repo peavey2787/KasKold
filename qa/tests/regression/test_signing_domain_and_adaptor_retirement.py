@@ -64,10 +64,13 @@ class SigningBoundary(unittest.TestCase):
             self.assertNotIn(retired_token, production)
 
     def test_active_bip340_verifier_is_neutral_anti_klepto_support(self):
-        schnorr = (ROOT / 'crates/online-watcher/src/protocol/schnorr.rs').read_text()
-        anti_klepto = (ROOT / 'crates/online-watcher/src/protocol/pskt/anti_klepto.rs').read_text()
-        self.assertIn('pub(crate) fn bip340_verify', schnorr)
-        self.assertIn('schnorr::bip340_verify', anti_klepto)
+        # The Companion verifies BIP340 and anti-klepto transcripts with Kaspa
+        # Portal's neutral verifier; it carries no Schnorr implementation.
+        self.assertFalse((ROOT / 'crates/online-watcher/src/protocol/schnorr.rs').exists())
+        schnorr = kaskold_source('crates/online-watcher/src/protocol/schnorr.rs').read_text()
+        anti_klepto = kaskold_source('crates/online-watcher/src/protocol/pskt/anti_klepto.rs').read_text()
+        self.assertIn('pub fn schnorr_verify', schnorr)
+        self.assertIn('schnorr_verify', anti_klepto)
         self.assertNotIn('adaptor', schnorr.lower())
 
 

@@ -58,12 +58,9 @@ class CryptoMutationAndHostCoverageHardeningTests(unittest.TestCase):
         protocol_relay = module_text("crates/kaskold-protocol/src/pskt/relay.rs")
         protocol_fields = module_text("crates/kaskold-protocol/src/pskt/relay_fields.rs")
         protocol_tests = (ROOT / "crates/kaskold-protocol/src/unit_tests/mod.rs").read_text()
-        companion_tests = (ROOT / "crates/online-watcher/src/protocol/pskt/unit_tests/kspt_bridge.rs").read_text()
-        bridge_root = ROOT / "crates/online-watcher/src/protocol/pskt/kspt_bridge"
-
-        self.assertFalse((bridge_root / "encoder.rs").exists())
-        self.assertFalse((bridge_root / "merger/unit_tests").exists())
-        self.assertFalse((bridge_root / "relay/unit_tests").exists())
+        companion_tests = (ROOT / "crates/online-watcher/src/wasm_api/protocol/unit_tests/kspt_relay.rs").read_text()
+        # The Companion relays and merges through Kaspa Portal's pipeline.
+        self.assertFalse((ROOT / "crates/online-watcher/src/protocol/pskt/kspt_bridge").exists())
         for needle in ("InputFields::parse", "collect_signatures", "apply_ms45", "apply_derivations", "apply_covenants"):
             self.assertIn(needle, protocol_relay)
         for needle in ("parse_utxo_fields", "parse_outpoint", "collect_signatures", "parse_ms45"):

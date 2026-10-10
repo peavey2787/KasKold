@@ -60,7 +60,6 @@ REQUIRED_FILES = (
     "qa/contracts/quality/crap_ratchets.json",
     "qa/tests/tooling/test_crap_reporting.py",
     "qa/tests/tooling/test_crap_check.py",
-    "crates/online-watcher/src/protocol/pskt/unit_tests/kspt_compact.rs",
 )
 
 
@@ -77,20 +76,6 @@ def _check_verification_ownership(root: Path) -> list[str]:
     for relative in REQUIRED_FILES:
         if not (root / relative).is_file():
             errors.append(f"required repository ownership file is missing: {relative}")
-
-    compact_tests = root / "crates/online-watcher/src/protocol/pskt/unit_tests/kspt_compact.rs"
-    compact_mod = root / "crates/online-watcher/src/protocol/pskt/unit_tests/mod.rs"
-    if compact_tests.is_file() and compact_mod.is_file():
-        if "mod kspt_compact;" not in compact_mod.read_text(errors="ignore"):
-            errors.append("compact KSPT parser characterization tests are not registered")
-        source = compact_tests.read_text(errors="ignore")
-        for case in (
-            "compact_parser_rejects_every_truncated_required_prefix",
-            "compact_parser_rejects_invalid_covenant_trailer_indexes",
-            "xonly_position_honors_all_pushdata_lengths",
-        ):
-            if case not in source:
-                errors.append(f"compact KSPT parser coverage is missing: {case}")
 
     for owner in (root / "scripts", root / "tools"):
         for directory in owner.rglob("tests"):

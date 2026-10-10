@@ -493,38 +493,39 @@ def check_kspt(root: Path) -> list[str]:
     if 'kaskold-protocol = { version = "=2.0.0", path = "../kaskold-protocol", default-features = false }' not in firmware_core_manifest:
         errors.append("kaskold-hardware-core must consume no_std kaskold-protocol constants directly")
 
-    parser_source = (bridge_root / "parser_transaction.rs").read_text(errors="ignore")
-    if "kaskold_protocol::wire::kspt" not in parser_source or "kspt::decode(data, &mut sink, kspt::SIGNER_LIMITS)" not in parser_source:
-        errors.append("Companion compact KSPT parsing must delegate to the canonical protocol decoder")
-    for duplicate in ('b"KSPT"', "KSPT_V4", "KSPT_VERSION: u8", "NETWORK_MARKER"):
-        if duplicate in parser_source:
-            errors.append(f"Companion compact parser reintroduced KSPT wire grammar: {duplicate}")
-    parser_tests = (root / "crates/online-watcher/src/protocol/pskt/unit_tests/kspt_compact.rs").read_text(errors="ignore")
-    if "compact_v4_parser_covers_network_and_derivation_trailer_contract" not in parser_tests:
-        errors.append("Companion canonical KSPT adapter must retain network/derivation behavior coverage")
-    if "assert_eq!(transaction.network, network)" not in parser_tests or "transaction.outputs[0].derivation" not in parser_tests:
-        errors.append("Companion canonical KSPT adapter tests must bind decoded network and derivation metadata")
-
-    online_anti_klepto = (root / "crates/online-watcher/src/protocol/pskt/anti_klepto.rs").read_text(errors="ignore")
-    if "left.network" not in online_anti_klepto or "right.network" not in online_anti_klepto:
-        errors.append("online anti-klepto transcript comparison must bind the KSPT v4 network")
+    # The Companion relays, merges and verifies anti-klepto transcripts through
+    # Kaspa Portal; it keeps no compact KSPT parser or host verifier of its own.
+    for fork in (
+        bridge_root,
+        root / "crates/online-watcher/src/protocol/pskt/anti_klepto.rs",
+        root / "crates/online-watcher/src/protocol/transaction/signed_kspt.rs",
+    ):
+        if fork.exists():
+            errors.append(f"Companion forks Kaspa Portal KSPT handling: {_display(fork, root)}")
 
     offline_anti_klepto = (offline_root / "signing/anti_klepto/transaction_body.rs").read_text(errors="ignore")
-    for required in ("left.network", "left.has_derivation_hint", "left.derivation_branch", "left.derivation_index"):
+    for required in (
+        "left.network",
+        "right.network",
+        "left.has_derivation_hint",
+        "left.derivation_branch",
+        "left.derivation_index",
+    ):
         if required not in offline_anti_klepto:
             errors.append(f"offline anti-klepto transaction comparison must bind v4 metadata: {required}")
 
-    signed_source = (root / "crates/online-watcher/src/protocol/transaction/signed_kspt.rs").read_text(errors="ignore")
-    # Signed KSPT is authorized once by kaskold-protocol (canonical decoder plus
-    # signature verification); only that typed result is materialized here.
+    facade = (root / "crates/online-watcher/src/facade.rs").read_text(errors="ignore")
+    broadcast = facade.split("pub async fn broadcast(", 1)[-1].split("\n    }\n", 1)[0]
+    # Signed KSPT is authorized once by the canonical verified pipeline; only
+    # that typed result becomes the consensus transaction.
     if (
-        "kaskold_protocol::compat::verify_complete_kspt(&bytes)" not in signed_source
-        or "materialize_verified_transaction(verified" not in signed_source
+        "kaskold_protocol::compat::verify_complete_kspt(&bytes)" not in broadcast
+        or ".to_consensus()" not in broadcast
     ):
-        errors.append("signed compact KSPT conversion must delegate to the canonical verified protocol decoder")
+        errors.append("signed compact KSPT broadcast must delegate to the canonical verified pipeline")
     for duplicate in ('b"KSPT"', "COMPACT_KSPT_V4", "GENERATION_CURRENT: u8", "NETWORK_MARKER"):
-        if duplicate in signed_source:
-            errors.append(f"signed KSPT adapter reintroduced KSPT wire grammar: {duplicate}")
+        if duplicate in broadcast:
+            errors.append(f"signed KSPT broadcast reintroduced KSPT wire grammar: {duplicate}")
 
     kssn_source = (offline_root / "kssn.rs").read_text(errors="ignore")
     if "KSSN_VERSION_CURRENT" not in kssn_source or "reader.u8()? != KSSN_VERSION_CURRENT" not in kssn_source:

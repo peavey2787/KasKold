@@ -1,16 +1,22 @@
+//! Companion relay/merge adapters against the hardware signer's import rules.
+
 use serde_json::{json, Map, Value};
 
-use super::super::{merge_signed_kspt_into_pskb, relay_pskb_as_kspt_hex_for_network};
+use crate::wasm_api::protocol::pskt::{
+    pskt_merge_signed_kspt_string as merge_signed_kspt_into_pskb,
+    pskt_relay_to_kspt_string as relay_pskb_as_kspt_hex_for_network,
+};
+use crate::wasm_api::test_support::canonical_test_pskt;
 
 const RELAY_KSPT_HEX: &str = "4b53505401000000010000000100000000000000000000000000000000000000000000000000000000000000000000000000001111111111111111111111111111111111111111111111111111111111111111010000006400000000000000000000000000000001000022204444444444444444444444444444444444444444444444444444444444444444ac0000005a00000000000000000022205555555555555555555555555555555555555555555555555555555555555555ac4e01";
 
-pub(super) fn test_secret(seed: u8) -> [u8; 32] {
+fn test_secret(seed: u8) -> [u8; 32] {
     let mut secret = [0u8; 32];
     secret[31] = seed.max(1);
     secret
 }
 
-pub(super) fn test_xonly(seed: u8) -> [u8; 32] {
+fn test_xonly(seed: u8) -> [u8; 32] {
     let signing = k256::schnorr::SigningKey::from_bytes(&test_secret(seed))
         .expect("deterministic test signing key");
     let bytes = signing.verifying_key().to_bytes();
@@ -19,31 +25,29 @@ pub(super) fn test_xonly(seed: u8) -> [u8; 32] {
     out
 }
 
-pub(super) fn test_compressed_key(seed: u8) -> String {
+fn test_compressed_key(seed: u8) -> String {
     format!("02{}", hex::encode(test_xonly(seed)))
 }
 
 fn encode_document(document: &Value) -> String {
-    let document = super::canonical_test_pskt(document.clone());
+    let document = canonical_test_pskt(document.clone());
     let json = serde_json::to_vec(&document).expect("PSKB JSON");
     let mut wire = b"PSKB".to_vec();
     wire.extend_from_slice(hex::encode(json).as_bytes());
     hex::encode(wire)
 }
 
-pub(super) fn sign_first_input_document(
-    mut document: Value,
-    seeds: &[u8],
-) -> (String, String, Vec<String>) {
-    document = super::canonical_test_pskt(document);
+fn sign_first_input_document(mut document: Value, seeds: &[u8]) -> (String, String, Vec<String>) {
+    document = canonical_test_pskt(document);
     document[0]["inputs"][0]["partialSigs"] = json!({});
     let unsigned = encode_document(&document);
     let unsigned_kspt =
         relay_pskb_as_kspt_hex_for_network(&unsigned, "mainnet").expect("unsigned relay");
-    let digest = crate::protocol::pskt::compact_kspt_sighash_wire(
-        &hex::decode(unsigned_kspt).expect("unsigned KSPT hex"),
-    )
-    .expect("SIGHASH_ALL digest");
+    let digest =
+        kaspa_portal::transaction::signing::covenant::protocol::private_swap::claim_sighash(
+            &hex::decode(unsigned_kspt).expect("unsigned KSPT hex"),
+        )
+        .expect("SIGHASH_ALL digest");
 
     let partials = document[0]["inputs"][0]["partialSigs"]
         .as_object_mut()
@@ -186,7 +190,7 @@ fn pskb_wire(signed: bool) -> String {
             "scriptPublicKey": format!("000020{}ac", output_public_key)
         }]
     }]);
-    let document = super::canonical_test_pskt(document);
+    let document = canonical_test_pskt(document);
     let json = serde_json::to_vec(&document).unwrap();
     let mut wire = b"PSKB".to_vec();
     wire.extend_from_slice(hex::encode(json).as_bytes());
@@ -305,7 +309,7 @@ fn signed_kspt_merge_populates_p2pk_signatures_and_rejects_bad_envelopes() {
     changed_sighash[signature_offset + 1] = 0x02;
     assert_eq!(
         merge_signed_kspt_into_pskb(&hex::encode(changed_sighash), &unsigned_pskb).unwrap_err(),
-        "TransactionMismatch: input[0] signed KSPT changed sighash type to 0x02",
+        "input[0] signed KSPT changed sighash type to 0x02",
     );
 }
 
@@ -390,15 +394,6 @@ fn relay_preserves_explicit_covenant_bindings_and_count_boundaries() {
         relay_pskb_as_kspt_hex_for_network(&unchecked(outputs_9), "mainnet").unwrap_err(),
         "Encoding: too many outputs for signer capabilities: 9 > 8",
     );
-}
-
-#[test]
-fn compact_private_swap_sighash_wire_covers_current_single_input_relay() {
-    let wire = hex::decode(RELAY_KSPT_HEX).expect("relay KSPT");
-    let digest =
-        crate::protocol::pskt::compact_kspt_sighash_wire(&wire).expect("SIGHASH_ALL digest");
-    assert_ne!(digest, [0u8; 32]);
-    assert!(crate::protocol::pskt::compact_kspt_sighash_wire(b"KSPT").is_err());
 }
 
 #[test]

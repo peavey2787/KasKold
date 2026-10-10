@@ -13,8 +13,8 @@ ROOT = Path(__file__).resolve().parents[3]
 CONSENSUS = kaskold_source("crates/online-watcher/src/protocol/transaction/consensus.rs")
 SUBMIT_ENCODER = kaskold_source("crates/online-watcher/src/network/submission/encoder.rs")
 SUBMIT_DECODER = kaskold_source("crates/online-watcher/src/network/codec/responses/submission.rs")
-FINALIZER = ROOT / "crates/online-watcher/src/protocol/pskt/consensus/finalizer.rs"
-VERIFIED_MATERIALIZER = ROOT / "crates/online-watcher/src/protocol/transaction/verified.rs"
+FINALIZER = ROOT / "crates/online-watcher/src/facade.rs"
+VERIFIED_MATERIALIZER = kaskold_source("crates/online-watcher/src/protocol/transaction/verified.rs")
 AMOUNTS = ROOT / "crates/online-watcher/src/transaction_builder/planning/amounts.rs"
 MULTISIG = ROOT / "crates/online-watcher/src/transaction_builder/multisig.rs"
 MULTISIG_TESTS = ROOT / "crates/online-watcher/src/transaction_builder/multisig/unit_tests/mod.rs"
@@ -36,11 +36,12 @@ class MultisigBroadcastStandardnessTests(unittest.TestCase):
         self.assertIn("pub storage_mass: u64", consensus)
         self.assertIn("writer.write_u64(transaction.storage_mass);", encoder)
         self.assertNotIn("writer.write_u64(0);\n    writer.write_bytes(&[0])?;", encoder)
-        self.assertIn("materialize_verified_transaction", finalizer)
+        self.assertIn("verify_complete_pskt(", finalizer)
+        self.assertIn(".to_consensus()", finalizer)
         self.assertNotIn("calculate_storage_mass(document.inputs", finalizer)
-        self.assertIn("storage_mass_estimate(", materializer)
+        self.assertIn("ConsensusTransaction::storage_mass_for(&spent, &outputs)", materializer)
         self.assertIn("input.has_covenant_id()", materializer)
-        self.assertIn("output.covenant().is_some()", materializer)
+        self.assertIn("covenant: output.covenant()", materializer)
         self.assertIn("pub fn utxo_plurality(script_len: usize, has_covenant_id: bool)", amounts)
 
     def test_multisig_builder_enforces_post_toccata_signed_transaction_fee_floor(self) -> None:

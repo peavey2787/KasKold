@@ -66,10 +66,12 @@ class OnlineWatcherCoverageTargetsTests(unittest.TestCase):
         manifest_text = MANIFEST.read_text().lower()
         self.assertNotIn("privacy/adaptor", manifest_text)
         self.assertNotIn("adaptor_generate_keypair", manifest_text)
-        self.assertTrue((ROOT / "crates/online-watcher/src/protocol/schnorr.rs").is_file())
+        # BIP340 verification is Kaspa Portal's; the Companion keeps only the
+        # adaptor wrappers that map Portal's errors to user-facing text.
+        self.assertFalse((ROOT / "crates/online-watcher/src/protocol/schnorr.rs").exists())
         self.assertTrue((ROOT / "crates/online-watcher/src/protocol/private_swap/adaptor.rs").is_file())
         signing_policy = (ROOT / "qa/checks/quality/crap/policy.json").read_text()
-        self.assertIn("crates/online-watcher/src/protocol/schnorr.rs", signing_policy)
+        self.assertNotIn("crates/online-watcher/src/protocol/schnorr.rs", signing_policy)
 
     def test_branch_coverage_has_reproducible_internal_runner_and_bundle(self):
         makefile = (ROOT / "Makefile").read_text()

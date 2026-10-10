@@ -1,3 +1,4 @@
+mod kspt_relay;
 #[test]
 fn wasm_qr_boundaries_cover_generation_decoding_progress_and_version() {
     use super::qr::{

@@ -32,16 +32,6 @@
   },
   "targets": [
     {
-      "baseline_complexity": 3,
-      "baseline_status": "warning",
-      "function": "CompanionSink::input",
-      "line": 72,
-      "path": "crates/online-watcher/src/protocol/pskt/kspt_bridge/parser_transaction.rs",
-      "test_seams": [
-        "crates/online-watcher/src/protocol/pskt/unit_tests/kspt_compact.rs"
-      ]
-    },
-    {
       "baseline_complexity": 5,
       "baseline_status": "warning",
       "function": "merkle_proof_for_address",
@@ -1010,7 +1000,7 @@
       "path": "crates/online-watcher/src/wasm_api/protocol/qr.rs",
       "test_seams": [
         "crates/online-watcher/src/account/unit_tests/mod.rs",
-        "crates/online-watcher/src/protocol/pskt/unit_tests/kspt_bridge.rs",
+        "crates/online-watcher/src/wasm_api/protocol/unit_tests/kspt_relay.rs",
         "crates/online-watcher/src/wasm_api/protocol/unit_tests/mod.rs",
         "crates/online-watcher/src/wasm_api/wallet/unit_tests/mod.rs"
       ]

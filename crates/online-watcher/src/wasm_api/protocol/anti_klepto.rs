@@ -3,13 +3,11 @@
 use crate::wasm_api::JsValue;
 use shared_signer::anti_klepto;
 
-use crate::{
-    protocol::pskt::{
-        validate_anti_klepto_transaction_wire, validate_host_commitment_wire,
-        verify_host_transcript_wire,
-    },
-    wasm_api::utilities::common::js_error,
+use kaspa_portal::transaction::interchange::kspt::{
+    decode_compact_kspt, validate_host_commitment_wire, verify_host_transcript_wire,
 };
+
+use crate::wasm_api::utilities::common::js_error;
 
 type SignedWireSet = (Vec<u8>, Vec<u8>, Vec<u8>);
 
@@ -67,8 +65,8 @@ pub(super) fn anti_klepto_begin_with_secret_string(
     host_secret: &[u8; 32],
 ) -> Result<String, String> {
     let transaction = decode_wire_string(kspt_hex, "KSPT")?;
-    validate_anti_klepto_transaction_wire(&transaction)
-        .map_err(|error| format!("invalid compact KSPT: {error}"))?;
+    decode_compact_kspt(&transaction)
+        .map_err(|error| format!("invalid compact KSPT: {error:?}"))?;
     let mut request = vec![0u8; transaction.len() + 128];
     let request_len = anti_klepto::encode_request(host_secret, &transaction, &mut request)
         .map_err(|error| format!("anti-klepto request failed: {error:?}"))?;
@@ -113,7 +111,7 @@ fn accept_commitment_inner_string(
         return Err("anti-klepto transcript mismatch".to_string());
     }
     validate_host_commitment_wire(request.transaction, &commitment)
-        .map_err(|error| format!("unsafe signer commitment: {error}"))?;
+        .map_err(|error| format!("unsafe signer commitment: {error:?}"))?;
     let mut reveal = [0u8; 96];
     let reveal_len = anti_klepto::encode_reveal(&request.session_id, host_secret, &mut reveal)
         .map_err(|error| format!("anti-klepto reveal failed: {error:?}"))?;
@@ -162,7 +160,7 @@ fn verify_signed_inner_string(
         &signed,
         host_secret,
     )
-    .map_err(|error| format!("anti-klepto verification failed: {error}"))?;
+    .map_err(|error| format!("anti-klepto verification failed: {error:?}"))?;
     Ok(hex::encode(signed.transaction))
 }
 

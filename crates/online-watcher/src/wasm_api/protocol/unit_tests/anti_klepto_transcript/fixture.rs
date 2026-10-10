@@ -255,7 +255,11 @@ impl TranscriptFixture {
     ) -> Result<(), String> {
         let commitment_wire = hex::decode(self.commitment_hex(records)).expect("commitment wire");
         let commitment = anti_klepto::parse_commitment(&commitment_wire).expect("commitment parse");
-        crate::protocol::pskt::validate_host_commitment_wire(transaction, &commitment)
+        kaspa_portal::transaction::interchange::kspt::validate_host_commitment_wire(
+            transaction,
+            &commitment,
+        )
+        .map_err(|error| format!("{error:?}"))
     }
 }
 

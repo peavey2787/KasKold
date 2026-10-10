@@ -21,20 +21,8 @@ use outputs::*;
 #[cfg(test)]
 mod unit_tests;
 
-#[derive(Clone, Copy)]
-pub(crate) enum ErrorStyle {
-    Standard,
-    Review,
-}
-
-#[derive(Clone, Copy)]
-enum PskbShapeStyle {
-    Standard,
-    Review,
-}
-
 /// Detect the outer PSKT/PSKB wire envelope without decoding the payload.
-pub fn detect_format_hex(hex_str: &str) -> PsktFormat {
+fn detect_format_hex(hex_str: &str) -> PsktFormat {
     let bytes = hex_str.as_bytes();
     let Some(prefix) = bytes.get(..8) else {
         return PsktFormat::Unknown;
@@ -167,67 +155,30 @@ fn validate_collection_limits(
     Ok(())
 }
 
-fn decode_root_with_style(
-    wire_hex: &str,
-    style: ErrorStyle,
-) -> Result<(PsktFormat, Value), String> {
-    decode_wire(wire_hex).map_err(|error| format_wire_error(error, style))
-}
-
-pub(crate) fn format_wire_error(error: PsktWireError, style: ErrorStyle) -> String {
-    match (style, error) {
-        (_, PsktWireError::UnknownFormat) => "Not a PSKT/PSKB payload".to_string(),
-        (ErrorStyle::Standard, PsktWireError::OuterHex(message)) => {
+pub(crate) fn format_wire_error(error: PsktWireError) -> String {
+    match error {
+        PsktWireError::UnknownFormat => "Not a PSKT/PSKB payload".to_string(),
+        PsktWireError::OuterHex(message) => {
             format!("outer hex: {message}")
         }
-        (ErrorStyle::Review, PsktWireError::OuterHex(message)) => {
-            format!("Bad outer hex: {message}")
-        }
-        (ErrorStyle::Standard, PsktWireError::TooShort) => "payload too short".to_string(),
-        (ErrorStyle::Review, PsktWireError::TooShort) => "Payload too short".to_string(),
-        (_, PsktWireError::MagicMismatch) => {
-            "wire magic does not match detected format".to_string()
-        }
-        #[cfg(test)]
-        (ErrorStyle::Standard, PsktWireError::InnerHex(message)) => {
-            format!("inner hex: {message}")
-        }
-        #[cfg(test)]
-        (ErrorStyle::Review, PsktWireError::InnerHex(message)) => {
-            format!("Bad inner hex: {message}")
-        }
-        (_, PsktWireError::Json(message)) => format!("JSON parse: {message}"),
+        PsktWireError::TooShort => "payload too short".to_string(),
+        PsktWireError::MagicMismatch => "wire magic does not match detected format".to_string(),
+        PsktWireError::Json(message) => format!("JSON parse: {message}"),
     }
 }
 
 pub(crate) fn decode_root(wire_hex: &str) -> Result<(PsktFormat, Value), String> {
-    decode_root_with_style(wire_hex, ErrorStyle::Standard)
+    decode_wire(wire_hex).map_err(format_wire_error)
 }
 
-pub(crate) fn decode_root_for_review(wire_hex: &str) -> Result<(PsktFormat, Value), String> {
-    decode_root_with_style(wire_hex, ErrorStyle::Review)
-}
-
-fn validate_single_pskt(
-    root: &Value,
-    format: PsktFormat,
-    style: PskbShapeStyle,
-) -> Result<(), String> {
+fn validate_single_pskt(root: &Value, format: PsktFormat) -> Result<(), String> {
     match format {
         PsktFormat::Pskb => {
-            let entries = root.as_array().ok_or_else(|| match style {
-                PskbShapeStyle::Standard => "PSKB not array".to_string(),
-                PskbShapeStyle::Review => "PSKB body is not an array".to_string(),
-            })?;
+            let entries = root
+                .as_array()
+                .ok_or_else(|| "PSKB not array".to_string())?;
             if entries.len() != 1 {
-                return Err(match style {
-                    PskbShapeStyle::Standard => {
-                        format!("PSKB must have 1 entry, got {}", entries.len())
-                    }
-                    PskbShapeStyle::Review => {
-                        format!("PSKB must wrap exactly 1 PSKT, got {}", entries.len())
-                    }
-                });
+                return Err(format!("PSKB must have 1 entry, got {}", entries.len()));
             }
             Ok(())
         }
@@ -236,46 +187,16 @@ fn validate_single_pskt(
     }
 }
 
-fn validated_pskt(
-    root: &Value,
-    format: PsktFormat,
-    style: PskbShapeStyle,
-) -> Result<&Value, String> {
-    validate_single_pskt(root, format, style)?;
-    Ok(match format {
-        PsktFormat::Pskb => &root.as_array().expect("validated PSKB array")[0],
-        PsktFormat::PsktSingle => root,
-        PsktFormat::Unknown => unreachable!("validated format"),
-    })
-}
-
-pub(crate) fn pskt_from_root_for_review(
-    root: &Value,
-    format: PsktFormat,
-) -> Result<&Value, String> {
-    validated_pskt(root, format, PskbShapeStyle::Review)
-}
-
 pub(crate) fn pskt_from_root_mut(
     root: &mut Value,
     format: PsktFormat,
 ) -> Result<&mut Value, String> {
-    validate_single_pskt(root, format, PskbShapeStyle::Standard)?;
+    validate_single_pskt(root, format)?;
     Ok(match format {
         PsktFormat::Pskb => &mut root.as_array_mut().expect("validated PSKB array")[0],
         PsktFormat::PsktSingle => root,
         PsktFormat::Unknown => unreachable!("validated format"),
     })
-}
-
-pub(crate) fn first_pskt_from_pskb_mut(root: &mut Value) -> Result<&mut Value, String> {
-    pskb_entries_mut(root)?
-        .first_mut()
-        .ok_or("empty PSKB".to_string())
-}
-
-fn pskb_entries_mut(root: &mut Value) -> Result<&mut Vec<Value>, String> {
-    root.as_array_mut().ok_or("PSKB not array".to_string())
 }
 
 pub(crate) fn encode_root(format: PsktFormat, root: &Value) -> Result<String, String> {

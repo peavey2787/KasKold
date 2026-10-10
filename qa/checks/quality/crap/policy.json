@@ -393,7 +393,6 @@
         "minimum_branch_coverage_percent": 90.0,
         "paths": [
           "crates/offline-signer/src/crypto/*.rs",
-          "crates/online-watcher/src/protocol/schnorr.rs",
           "crates/online-watcher/src/protocol/private_swap/adaptor.rs",
           "crates/kaskold-hardware-core/src/security.rs"
         ],
@@ -405,8 +404,7 @@
         "paths": [
           "crates/offline-signer/src/crypto/*.rs",
           "crates/online-watcher/src/account/bip32.rs",
-          "crates/online-watcher/src/wasm_api/wallet/keys.rs",
-          "crates/online-watcher/src/protocol/schnorr.rs"
+          "crates/online-watcher/src/wasm_api/wallet/keys.rs"
         ],
         "target_branch_coverage_percent": 90.0
       },
@@ -418,10 +416,7 @@
           "crates/kaskold-protocol/src/wire/qr_payload.rs",
           "crates/kaskold-protocol/src/wire/multisig_descriptor.rs",
           "crates/kaskold-protocol/src/wire/kspt/**/*.rs",
-          "crates/online-watcher/src/protocol/pskt/kspt_bridge/parser_compact.rs",
-          "crates/online-watcher/src/protocol/pskt/review/parser.rs",
-          "crates/online-watcher/src/protocol/pskt/wire/**/*.rs",
-          "crates/online-watcher/src/protocol/transaction/signed_kspt.rs"
+          "crates/online-watcher/src/protocol/pskt/wire/**/*.rs"
         ],
         "target_branch_coverage_percent": 90.0
       },
@@ -429,10 +424,7 @@
         "label": "signing",
         "minimum_branch_coverage_percent": 90.0,
         "paths": [
-          "crates/online-watcher/src/protocol/transaction/sighash.rs",
-          "crates/online-watcher/src/protocol/transaction/signed_kspt.rs",
-          "crates/kaskold-hardware-core/src/security.rs",
-          "crates/online-watcher/src/protocol/schnorr.rs"
+          "crates/kaskold-hardware-core/src/security.rs"
         ],
         "target_branch_coverage_percent": 90.0
       },
@@ -443,8 +435,7 @@
           "crates/kaskold-protocol/src/wire/kspt/**/*.rs",
           "crates/online-watcher/src/transaction_builder/**/*.rs",
           "crates/online-watcher/src/wasm_api/transactions/*.rs",
-          "crates/online-watcher/src/contracts/**/*.rs",
-          "crates/online-watcher/src/protocol/pskt/consensus/*.rs"
+          "crates/online-watcher/src/contracts/**/*.rs"
         ],
         "target_branch_coverage_percent": 90.0
       },
@@ -502,8 +493,6 @@
       "apps/kaskold-hardware/src/ui/display/icons/drawing.rs",
       "apps/kaskold-hardware/src/hw/shared/storage/fat32/lfn.rs",
       "apps/kaskold-hardware/src/hw/shared/storage/fat32/lfn/scanner.rs",
-      "crates/online-watcher/src/protocol/pskt/kspt_bridge/parser_compact.rs",
-      "crates/online-watcher/src/protocol/pskt/kspt_bridge/parser_transaction.rs",
       "crates/kaskold-hardware-core/src/storage/fat32_lfn.rs",
       "crates/kaskold-hardware-core/src/power/battery.rs",
       "crates/kaskold-hardware-core/src/input/keyboard.rs",

@@ -27,7 +27,7 @@ class ZeroWarningRemediationTests(unittest.TestCase):
         self.assertEqual(warnings, [], "production source-complexity warnings must stay at zero")
 
     def test_value_narrowing_in_restored_pskt_paths_is_checked(self):
-        review_input = (ROOT / "crates/online-watcher/src/protocol/pskt/review/input.rs").read_text()
+        review_input = kaskold_source("crates/online-watcher/src/protocol/pskt/review/input.rs").read_text()
         self.assertIn("u32::try_from", review_input)
 
     def test_offline_parser_result_contracts_compile_cleanly(self):
@@ -73,19 +73,19 @@ class ZeroWarningRemediationTests(unittest.TestCase):
         self.assertEqual({path.name for path in (ROOT / "apps/kaskold-hardware/src/hw").iterdir() if path.is_dir()}, {"m5stack", "shared"})
 
     def test_final_measured_warning_targets_remain_decomposed_and_covered(self):
-        signed = (ROOT / "crates/online-watcher/src/protocol/transaction/signed_kspt.rs").read_text()
-        signed_tests = (ROOT / "crates/online-watcher/src/protocol/transaction/unit_tests/signed_kspt.rs").read_text()
+        signed = (ROOT / "crates/online-watcher/src/facade.rs").read_text()
+        signed_tests = kaskold_source("crates/online-watcher/src/protocol/pskt/unit_tests/consensus_finalizer.rs").read_text()
 
         canonical_decode = module_text("crates/kaskold-protocol/src/wire/kspt/decode.rs")
         canonical_tests = kaskold_source("crates/kaskold-protocol/src/unit_tests/kspt_wire/mod.rs").read_text()
         self.assertIn("verify_complete_kspt(&bytes)", signed)
-        self.assertIn("production_decoder_rejects_placeholder_signature_before_consensus_assembly", signed_tests)
+        self.assertIn("placeholder_signatures_and_unsupported_versions_never_reach_consensus_bytes", signed_tests)
         self.assertIn("fn read_global", canonical_decode)
         self.assertIn("canonical_codec_round_trips_every_v4_trailer", canonical_tests)
 
         records = production_records(ROOT)
         targets = {
-            ("crates/online-watcher/src/protocol/transaction/signed_kspt.rs", "decode_signed_kspt"),
+            ("crates/online-watcher/src/facade.rs", "broadcast"),
         }
         found = {(record.path, record.name): record.decisions for record in records if (record.path, record.name) in targets}
         self.assertEqual(set(found), targets)
@@ -94,7 +94,7 @@ class ZeroWarningRemediationTests(unittest.TestCase):
     def test_security_sensitive_crap_targets_remain_decomposed(self):
         records = production_records(ROOT)
         targets = {
-            ("crates/online-watcher/src/protocol/transaction/signed_kspt.rs", "decode_signed_kspt"),
+            ("crates/online-watcher/src/facade.rs", "broadcast"),
         }
         found = {(record.path, record.name): record.decisions for record in records if (record.path, record.name) in targets}
         self.assertEqual(set(found), targets)

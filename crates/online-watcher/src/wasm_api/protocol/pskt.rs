@@ -1,6 +1,7 @@
 use crate::wasm_api::utilities::common::{js_error, network_to_prefix};
 use crate::wasm_api::JsValue;
-use crate::{protocol::pskt, WatchWallet};
+use crate::WatchWallet;
+use kaspa_portal::transaction::interchange::pskt;
 
 /// Inspect a hex payload (output of the multi-frame QR decoder) and
 /// return the detected format as a short string: "pskb", "pskt", or
@@ -35,7 +36,8 @@ pub fn pskt_summary(wire_hex: &str, network: &str) -> Result<String, JsValue> {
 /// sigs per input. Flags byte = 0x00 (partial).
 ///
 pub(super) fn pskt_relay_to_kspt_string(wire_hex: &str, network: &str) -> Result<String, String> {
-    pskt::relay_pskb_as_kspt_hex_for_network(wire_hex, network)
+    let network = kaskold_protocol::Network::parse(network).map_err(|error| error.to_string())?;
+    kaskold_protocol::encode_pskt_hex(wire_hex, network).map_err(|error| error.to_string())
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
@@ -55,7 +57,8 @@ pub(super) fn pskt_merge_signed_kspt_string(
     signed_kspt_hex: &str,
     pskb_wire_hex: &str,
 ) -> Result<String, String> {
-    pskt::merge_signed_kspt_into_pskb(signed_kspt_hex, pskb_wire_hex)
+    let signed = hex::decode(signed_kspt_hex).map_err(|error| format!("KSPT hex: {error}"))?;
+    kaskold_protocol::compat::merge_signed_kspt_at_trailer_network(pskb_wire_hex, &signed)
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]

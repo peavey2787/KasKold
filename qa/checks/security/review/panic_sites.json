@@ -3,7 +3,7 @@
     {
       "path": "apps/kaskold-hardware/src/boot/m5stack/mod.rs",
       "line": 27,
-      "source": ".expect(\"I2C0 init failed — hardware fault\")",
+      "source": ".expect(\"I2C0 init failed \u2014 hardware fault\")",
       "fingerprint": "6405992fdcc448b8094c7a7121e0c15ab7f5527ae293273326ee30cfdf87456d",
       "rationale": "Reviewed fail-stop hardware invariant: continuing after this boot/peripheral invariant fails would be unsafe; the device intentionally halts rather than entering signing operation in a partially initialized state.",
       "reviewed": true
@@ -11,7 +11,7 @@
     {
       "path": "apps/kaskold-hardware/src/boot/m5stack/mod.rs",
       "line": 40,
-      "source": ".expect(\"SPI2 init failed — hardware fault\")",
+      "source": ".expect(\"SPI2 init failed \u2014 hardware fault\")",
       "fingerprint": "0a02384657bcd5cc23f70f226cc8ccc2be53a60e6597033750d208c338c26500",
       "rationale": "Reviewed fail-stop hardware invariant: continuing after this boot/peripheral invariant fails would be unsafe; the device intentionally halts rather than entering signing operation in a partially initialized state.",
       "reviewed": true
@@ -19,7 +19,7 @@
     {
       "path": "apps/kaskold-hardware/src/boot/m5stack/mod.rs",
       "line": 46,
-      "source": ".expect(\"CoreS3 shared SPI2 init failed — hardware fault\");",
+      "source": ".expect(\"CoreS3 shared SPI2 init failed \u2014 hardware fault\");",
       "fingerprint": "646e1c5ea312c03b6445aa2bd414a8c429b48bd9607eb151df4cdb37a1cdda99",
       "rationale": "Reviewed fail-stop hardware invariant: the shared SPI2 owner must exist before either LCD or SD can operate; continuing without that sole owner would reintroduce split peripheral ownership, so boot intentionally halts.",
       "reviewed": true
@@ -58,23 +58,7 @@
     },
     {
       "path": "crates/online-watcher/src/protocol/pskt/wire/envelope.rs",
-      "line": 246,
-      "source": "PsktFormat::Pskb => &root.as_array().expect(\"validated PSKB array\")[0],",
-      "fingerprint": "2517eb699295189423f93a71aa7fff530f9fd600ca72336bb8d85cb79f898a7d",
-      "rationale": "Reviewed fail-stop invariant: this path represents an internal invariant violation, not attacker-controlled validation; external inputs are validated before reaching it.",
-      "reviewed": true
-    },
-    {
-      "path": "crates/online-watcher/src/protocol/pskt/wire/envelope.rs",
-      "line": 248,
-      "source": "PsktFormat::Unknown => unreachable!(\"validated format\"),",
-      "fingerprint": "6c8b24a3bb81261837977b0ac03c49a834b3ac313198478cb7ae88767bb8187d",
-      "rationale": "Reviewed fail-stop invariant: this path represents an internal invariant violation, not attacker-controlled validation; external inputs are validated before reaching it.",
-      "reviewed": true
-    },
-    {
-      "path": "crates/online-watcher/src/protocol/pskt/wire/envelope.rs",
-      "line": 265,
+      "line": 196,
       "source": "PsktFormat::Pskb => &mut root.as_array_mut().expect(\"validated PSKB array\")[0],",
       "fingerprint": "f2add52bf42d90cc55b380d1dae55ea050583bc73e6fe186b3f0a079ada1aaea",
       "rationale": "Reviewed fail-stop invariant: this path represents an internal invariant violation, not attacker-controlled validation; external inputs are validated before reaching it.",
@@ -82,7 +66,7 @@
     },
     {
       "path": "crates/online-watcher/src/protocol/pskt/wire/envelope.rs",
-      "line": 267,
+      "line": 198,
       "source": "PsktFormat::Unknown => unreachable!(\"validated format\"),",
       "fingerprint": "6c8b24a3bb81261837977b0ac03c49a834b3ac313198478cb7ae88767bb8187d",
       "rationale": "Reviewed fail-stop invariant: this path represents an internal invariant violation, not attacker-controlled validation; external inputs are validated before reaching it.",
