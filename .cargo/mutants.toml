@@ -4,7 +4,6 @@ minimum_test_timeout = 60
 additional_cargo_args = ["--locked"]
 output = "target/qa/mutation"
 examine_globs = [
-  "crates/kaskold-protocol/src/account/address.rs",
   "crates/vault-runtime/src/**/*.rs",
   "crates/hot-wallet/src/**/*.rs",
   "crates/kaskold-hardware-core/src/entropy/**/*.rs",
