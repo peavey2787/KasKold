@@ -29,8 +29,6 @@ fn rpc_subsystem_is_grouped_by_responsibility() {
     assert!(network_mod.contains("kaspa_portal::network"));
 
     for required in [
-        "protocol/transaction/signed_kspt.rs",
-        "protocol/transaction/sighash.rs",
         "wasm_api/contracts/vault/genesis.rs",
         "wasm_api/contracts/vault/spend.rs",
         "wasm_api/contracts/vault/split.rs",
@@ -38,6 +36,16 @@ fn rpc_subsystem_is_grouped_by_responsibility() {
         "contracts/seq_commit/proof.rs",
     ] {
         assert!(online.join(required).exists(), "missing {required}");
+    }
+    // Signed-KSPT authorization and sighash are Kaspa Portal's.
+    for retired in [
+        "protocol/transaction/signed_kspt.rs",
+        "protocol/transaction/sighash.rs",
+    ] {
+        assert!(
+            !online.join(retired).exists(),
+            "{retired} duplicates Kaspa Portal"
+        );
     }
     assert!(
         !online.join("contracts/vault/transactions.rs").exists(),
