@@ -1,4 +1,3 @@
-mod boundaries;
 mod function_coverage;
 mod sweep_preparation;
 
@@ -21,71 +20,6 @@ fn utxo(transaction_byte: u8, index: u32, amount: u64) -> UtxoEntry {
         block_daa_score: 0,
         covenant_id: None,
     }
-}
-
-#[test]
-fn explicit_selection_rejects_duplicate_indices() {
-    let result =
-        super::selection::select_explicit(vec![utxo(0x11, 0, 10), utxo(0x22, 1, 20)], &[0, 0]);
-    assert!(result.is_err());
-}
-
-#[test]
-fn automatic_selection_is_largest_first() {
-    let selected = super::selection::select_automatic_with_limit(
-        vec![utxo(0x11, 0, 10), utxo(0x22, 1, 30), utxo(0x33, 2, 20)],
-        40,
-        usize::MAX,
-    )
-    .expect("selection");
-    assert_eq!(
-        selected
-            .iter()
-            .map(|entry| entry.amount)
-            .collect::<Vec<_>>(),
-        vec![30, 20]
-    );
-}
-
-#[test]
-fn automatic_selection_limit_requires_an_explicit_power_user_override() {
-    let utxos = vec![utxo(0x11, 0, 30), utxo(0x22, 1, 20), utxo(0x33, 2, 10)];
-    let limited = super::selection::select_automatic_with_limit(utxos.clone(), 55, 2);
-    assert!(limited
-        .unwrap_err()
-        .contains("Raise the Advanced UTXO limit"));
-
-    let selected = super::selection::select_automatic_with_limit(utxos, 55, 3)
-        .expect("power-user limit permits the required input count");
-    assert_eq!(selected.len(), 3);
-}
-
-#[test]
-fn change_calculation_absorbs_dust() {
-    assert_eq!(
-        super::planning::calculate_change(100_000_000, 98_999_999, 1),
-        Ok(0),
-    );
-}
-
-#[test]
-fn change_calculation_preserves_non_dust_change() {
-    assert_eq!(
-        super::planning::calculate_change(100_000_000, 80_000_000, 1),
-        Ok(19_999_999),
-    );
-}
-
-#[test]
-fn change_calculation_rejects_monetary_overflow_and_insufficient_selection() {
-    assert_eq!(
-        super::planning::calculate_change(u64::MAX, u64::MAX, 1).unwrap_err(),
-        "Spend plus fee exceeds supported monetary range",
-    );
-    assert_eq!(
-        super::planning::calculate_change(10, 11, 0).unwrap_err(),
-        "Selected UTXOs: 10 sompi, need 11 sompi",
-    );
 }
 
 fn decode_pskb_wire(wire: &str) -> serde_json::Value {
@@ -171,7 +105,7 @@ fn typed_sweep_matches_the_browser_pskb_shape() {
         "global": {
             "version": 0,
             "txVersion": 0,
-            "fallbackLockTime": 77,
+            "fallbackLockTime": "77",
             "covenantBranch": "savings",
             "inputsModifiable": false,
             "outputsModifiable": false,
@@ -185,13 +119,13 @@ fn typed_sweep_matches_the_browser_pskb_shape() {
                 "transactionId": inputs[0].tx_id,
                 "index": inputs[0].index
             },
-            "sequence": 0,
+            "sequence": "0",
             "sighashType": 1,
             "sigOpCount": 1,
             "utxoEntry": {
-                "amount": inputs[0].amount,
+                "amount": inputs[0].amount.to_string(),
                 "scriptPublicKey": "0000aabb",
-                "blockDaaScore": 0,
+                "blockDaaScore": "0",
                 "isCoinbase": false
             },
             "redeemScript": "51ac",
@@ -200,10 +134,10 @@ fn typed_sweep_matches_the_browser_pskb_shape() {
             "bip32Derivations": {},
             "proprietaries": {},
             "finalScriptSig": serde_json::Value::Null,
-            "minTime": 0
+            "minTime": "0"
         }],
         "outputs": [{
-            "amount": 41_000,
+            "amount": "41000",
             "scriptPublicKey": "0000ccdd",
             "bip32Derivations": {},
             "proprietaries": {}
@@ -247,13 +181,13 @@ fn typed_p2pk_sweep_matches_the_stealth_pskb_shape() {
                 "transactionId": inputs[0].tx_id,
                 "index": inputs[0].index
             },
-            "sequence": 0,
+            "sequence": "0",
             "sighashType": 1,
             "sigOpCount": 1,
             "utxoEntry": {
-                "amount": inputs[0].amount,
+                "amount": inputs[0].amount.to_string(),
                 "scriptPublicKey": "00001122",
-                "blockDaaScore": 0,
+                "blockDaaScore": "0",
                 "isCoinbase": false
             },
             "redeemScript": serde_json::Value::Null,
@@ -262,10 +196,10 @@ fn typed_p2pk_sweep_matches_the_stealth_pskb_shape() {
             "bip32Derivations": {},
             "proprietaries": { "stealthTweak": "aa".repeat(32) },
             "finalScriptSig": serde_json::Value::Null,
-            "minTime": 0
+            "minTime": "0"
         }],
         "outputs": [{
-            "amount": 59_000,
+            "amount": "59000",
             "scriptPublicKey": "00003344",
             "bip32Derivations": {},
             "proprietaries": {}
@@ -317,7 +251,7 @@ fn global_thread_allowance_withdrawal_matches_browser_wire_shape() {
         "global": {
             "version": 0,
             "txVersion": 1,
-            "fallbackLockTime": 123,
+            "fallbackLockTime": "123",
             "covenantBranch": "beneficiary",
             "inputsModifiable": false,
             "outputsModifiable": false,
@@ -331,13 +265,13 @@ fn global_thread_allowance_withdrawal_matches_browser_wire_shape() {
                 "transactionId": thread.tx_id,
                 "index": thread.index
             },
-            "sequence": 9,
+            "sequence": "9",
             "sighashType": 1,
             "sigOpCount": 1,
             "utxoEntry": {
-                "amount": thread.amount,
+                "amount": thread.amount.to_string(),
                 "scriptPublicKey": "0000aabb",
-                "blockDaaScore": 0,
+                "blockDaaScore": "0",
                 "isCoinbase": false
             },
             "redeemScript": "51ac",
@@ -346,10 +280,10 @@ fn global_thread_allowance_withdrawal_matches_browser_wire_shape() {
             "bip32Derivations": {},
             "proprietaries": {},
             "finalScriptSig": serde_json::Value::Null,
-            "minTime": 0
+            "minTime": "0"
         }],
         "outputs": [{
-            "amount": 80_000_000,
+            "amount": "80000000",
             "scriptPublicKey": "0000aabb",
             "covenantBinding": {
                 "authorizingInput": 0,
@@ -358,7 +292,7 @@ fn global_thread_allowance_withdrawal_matches_browser_wire_shape() {
             "bip32Derivations": {},
             "proprietaries": {}
         }, {
-            "amount": 19_000_000,
+            "amount": "19000000",
             "scriptPublicKey": "0000ccdd",
             "covenantBinding": serde_json::Value::Null,
             "bip32Derivations": {},
@@ -420,7 +354,7 @@ fn global_thread_topup_matches_mixed_input_shape() {
         "global": {
             "version": 0,
             "txVersion": 1,
-            "fallbackLockTime": 0,
+            "fallbackLockTime": "0",
             "covenantBranch": serde_json::Value::Null,
             "inputsModifiable": false,
             "outputsModifiable": false,
@@ -431,13 +365,13 @@ fn global_thread_topup_matches_mixed_input_shape() {
         },
         "inputs": [{
             "previousOutpoint": { "transactionId": thread.tx_id, "index": thread.index },
-            "sequence": 11,
+            "sequence": "11",
             "sighashType": 1,
             "sigOpCount": 1,
             "utxoEntry": {
-                "amount": thread.amount,
+                "amount": thread.amount.to_string(),
                 "scriptPublicKey": "0000aabb",
-                "blockDaaScore": 0,
+                "blockDaaScore": "0",
                 "isCoinbase": false
             },
             "redeemScript": "51ac",
@@ -446,16 +380,16 @@ fn global_thread_topup_matches_mixed_input_shape() {
             "bip32Derivations": {},
             "proprietaries": {},
             "finalScriptSig": serde_json::Value::Null,
-            "minTime": 0
+            "minTime": "0"
         }, {
             "previousOutpoint": { "transactionId": wallet_one.tx_id, "index": wallet_one.index },
-            "sequence": 0,
+            "sequence": "0",
             "sighashType": 1,
             "sigOpCount": 1,
             "utxoEntry": {
-                "amount": wallet_one.amount,
+                "amount": wallet_one.amount.to_string(),
                 "scriptPublicKey": "00001122",
-                "blockDaaScore": wallet_one.block_daa_score,
+                "blockDaaScore": wallet_one.block_daa_score.to_string(),
                 "isCoinbase": false
             },
             "redeemScript": serde_json::Value::Null,
@@ -464,16 +398,16 @@ fn global_thread_topup_matches_mixed_input_shape() {
             "bip32Derivations": {},
             "proprietaries": {},
             "finalScriptSig": serde_json::Value::Null,
-            "minTime": 0
+            "minTime": "0"
         }, {
             "previousOutpoint": { "transactionId": wallet_two.tx_id, "index": wallet_two.index },
-            "sequence": 0,
+            "sequence": "0",
             "sighashType": 1,
             "sigOpCount": 1,
             "utxoEntry": {
-                "amount": wallet_two.amount,
+                "amount": wallet_two.amount.to_string(),
                 "scriptPublicKey": "00003344",
-                "blockDaaScore": wallet_two.block_daa_score,
+                "blockDaaScore": wallet_two.block_daa_score.to_string(),
                 "isCoinbase": false
             },
             "redeemScript": serde_json::Value::Null,
@@ -482,10 +416,10 @@ fn global_thread_topup_matches_mixed_input_shape() {
             "bip32Derivations": {},
             "proprietaries": {},
             "finalScriptSig": serde_json::Value::Null,
-            "minTime": 0
+            "minTime": "0"
         }],
         "outputs": [{
-            "amount": 99_000_000,
+            "amount": "99000000",
             "scriptPublicKey": "0000aabb",
             "covenantBinding": {
                 "authorizingInput": 0,
@@ -499,311 +433,6 @@ fn global_thread_topup_matches_mixed_input_shape() {
     assert_eq!(
         super::pskb::encode_wire(&planned.plan).expect("typed wire"),
         super::pskb::encode_pskt_value(source).expect("source wire")
-    );
-}
-
-fn watch_wallet() -> crate::account::bip32::WalletData {
-    let receive = crate::account::address::encode_p2pk_address(&[0x81; 32], "kaspa");
-    let change = crate::account::address::encode_p2pk_address(&[0x82; 32], "kaspa");
-    crate::account::bip32::WalletData {
-        kpub: "test-only".to_string(),
-        receive_addresses: vec![receive],
-        change_addresses: vec![change],
-        next_receive_index: 0,
-        next_change_index: 0,
-    }
-}
-
-#[test]
-fn storage_mass_estimation_covers_relaxed_arithmetic_and_zero_amounts() {
-    use super::planning::amounts::storage_mass_estimate;
-
-    assert_eq!(
-        storage_mass_estimate(&[(10_000_000, 1)], &[(10_000_000, 1)]).unwrap(),
-        0
-    );
-    assert!(
-        storage_mass_estimate(
-            &[(50_000_000, 1), (25_000_000, 1), (25_000_000, 1)],
-            &[(20_000_000, 1), (30_000_000, 1), (50_000_000, 1)],
-        )
-        .unwrap()
-            > 0
-    );
-    assert_eq!(storage_mass_estimate(&[(0, 1)], &[(0, 1)]).unwrap(), 0);
-    assert_eq!(storage_mass_estimate(&[], &[]).unwrap(), 0);
-    assert!(storage_mass_estimate(&[], &[(1, u64::MAX)]).is_err());
-    assert!(storage_mass_estimate(&[(u64::MAX, 3), (1, 3), (1, 3)], &[(1, 3)]).is_err());
-}
-
-#[test]
-fn standard_payment_planning_covers_change_exact_spend_and_address_exhaustion() {
-    use super::{model::PlannedOutput, planning::plan_payment};
-
-    let wallet = watch_wallet();
-    let destination_script = vec![0x20; 34];
-    let with_change = plan_payment(
-        &wallet,
-        vec![utxo(0x91, 0, 50_000_000)],
-        vec![PlannedOutput::new(20_000_000, destination_script.clone())],
-        1_000_000,
-    )
-    .expect("payment with change");
-    assert_eq!(with_change.outputs.len(), 2);
-    assert_eq!(with_change.outputs[0].amount, 20_000_000);
-    assert_eq!(with_change.outputs[1].amount, 29_000_000);
-    assert_eq!(with_change.outputs[1].derivation_hint, Some((1, 0)));
-
-    let exact = plan_payment(
-        &wallet,
-        vec![utxo(0x92, 0, 21_000_000)],
-        vec![PlannedOutput::new(20_000_000, destination_script.clone())],
-        1_000_000,
-    )
-    .expect("exact payment");
-    assert_eq!(exact.outputs.len(), 1);
-
-    let mut exhausted = wallet.clone();
-    exhausted.change_addresses.clear();
-    assert!(plan_payment(
-        &exhausted,
-        vec![utxo(0x93, 0, 50_000_000)],
-        vec![PlannedOutput::new(20_000_000, destination_script)],
-        1_000_000,
-    )
-    .unwrap_err()
-    .contains("No more change addresses"));
-}
-
-#[test]
-fn explicit_change_planning_preserves_privacy_input_derivation_hints() {
-    use super::{model::PlannedOutput, planning::plan_payment_with_change_and_derivations};
-
-    let wallet = watch_wallet();
-    let plan = plan_payment_with_change_and_derivations(
-        vec![(utxo(0x95, 0, 50_000_000), Some((0, 500)))],
-        vec![PlannedOutput::new(20_000_000, vec![0x20; 34])],
-        1_000_000,
-        &wallet.change_addresses[0],
-        700,
-    )
-    .expect("privacy-hinted payment");
-    assert_eq!(plan.inputs[0].derivation_hint, Some((0, 500)));
-    assert_eq!(plan.outputs[1].derivation_hint, Some((1, 700)));
-}
-
-#[test]
-fn consolidation_planning_covers_success_and_balance_failures() {
-    use super::planning::plan_consolidation;
-
-    let wallet = watch_wallet();
-    let plan = plan_consolidation(
-        &wallet,
-        vec![utxo(0xa1, 0, 30_000_000), utxo(0xa2, 1, 20_000_000)],
-        1_000_000,
-    )
-    .expect("consolidation plan");
-    assert_eq!(plan.outputs.len(), 1);
-    assert_eq!(plan.outputs[0].amount, 49_000_000);
-    assert_eq!(plan.outputs[0].derivation_hint, Some((0, 0)));
-
-    assert!(
-        plan_consolidation(&wallet, vec![utxo(0xa3, 0, 1_000_000)], 1_000_000,)
-            .unwrap_err()
-            .contains("Balance too low")
-    );
-
-    let mut no_receive = wallet;
-    no_receive.receive_addresses.clear();
-    assert!(
-        plan_consolidation(&no_receive, vec![utxo(0xa4, 0, 2_000_000)], 1_000_000,)
-            .unwrap_err()
-            .contains("Wallet has no receive address")
-    );
-}
-
-#[test]
-fn standard_send_preparation_and_utxo_paths_are_host_testable() {
-    use super::standard::{
-        create_consolidation_from_utxos, create_send_from_utxos, create_send_selected_from_utxos,
-        prepare_send, storage_mass_fee, validate_recipient_amount,
-    };
-
-    let wallet = watch_wallet();
-    let destination = crate::account::address::encode_p2pk_address(&[0x83; 32], "kaspa");
-
-    assert!(validate_recipient_amount(0)
-        .unwrap_err()
-        .contains("must be > 0"));
-    assert!(validate_recipient_amount(1)
-        .unwrap_err()
-        .contains("too small"));
-    assert!(prepare_send("not-an-address", 20_000_000, 1_000_000).is_err());
-
-    let prepared = prepare_send(&destination, 20_000_000, 1_000_000).expect("prepared send");
-    let automatic = create_send_from_utxos(
-        &wallet,
-        &prepared,
-        vec![utxo(0xb1, 0, 10_000_000), utxo(0xb2, 1, 40_000_000)],
-    )
-    .expect("automatic send");
-    let automatic_doc = decode_pskb_wire(&automatic);
-    assert_eq!(automatic_doc[0]["inputs"].as_array().unwrap().len(), 1);
-    assert_eq!(automatic_doc[0]["outputs"].as_array().unwrap().len(), 2);
-
-    let selected = create_send_selected_from_utxos(
-        &wallet,
-        &prepared,
-        &[0, 1],
-        vec![utxo(0xb3, 0, 12_000_000), utxo(0xb4, 1, 12_000_000)],
-    )
-    .expect("selected send");
-    assert_eq!(
-        decode_pskb_wire(&selected)[0]["inputs"]
-            .as_array()
-            .unwrap()
-            .len(),
-        2,
-    );
-    assert!(create_send_selected_from_utxos(
-        &wallet,
-        &prepared,
-        &[0, 0],
-        vec![utxo(0xb5, 0, 25_000_000)],
-    )
-    .is_err());
-
-    let consolidation = create_consolidation_from_utxos(
-        &wallet,
-        1_000_000,
-        vec![utxo(0xb6, 0, 30_000_000), utxo(0xb7, 1, 20_000_000)],
-    )
-    .expect("consolidation wire");
-    assert_eq!(
-        decode_pskb_wire(&consolidation)[0]["inputs"]
-            .as_array()
-            .unwrap()
-            .len(),
-        2,
-    );
-    assert!(
-        create_consolidation_from_utxos(&wallet, 1_000_000, vec![utxo(0xb8, 0, 30_000_000)],)
-            .is_err()
-    );
-
-    let fee = storage_mass_fee(
-        &[utxo(0xb9, 0, 50_000_000)],
-        50_000_000,
-        20_000_000,
-        500_000,
-    )
-    .expect("storage fee");
-    assert!(fee >= 500_000);
-    assert!(storage_mass_fee(&[utxo(0xba, 0, u64::MAX)], u64::MAX, u64::MAX, 0,).is_err());
-}
-
-#[test]
-fn limited_send_api_is_host_covered_before_network_io() {
-    use super::standard::{create_limited_send_from_utxos, prepare_send};
-    use crate::wasm_api::test_support::ready;
-
-    let wallet = watch_wallet();
-    let result = ready(super::standard::create_send_limited(
-        &wallet,
-        "not-an-address",
-        20_000_000,
-        300_000,
-        8,
-        "ws://unused",
-    ));
-    assert!(result.is_err());
-
-    let destination = crate::account::address::encode_p2pk_address(&[0x84; 32], "kaspa");
-    let prepared = prepare_send(&destination, 20_000_000, 300_000).expect("prepared limited send");
-    let wire = create_limited_send_from_utxos(
-        &wallet,
-        &prepared,
-        vec![utxo(0xbd, 0, 30_000_000), utxo(0xbe, 1, 10_000_000)],
-        2,
-    )
-    .expect("limited send from supplied utxos");
-    assert!(!wire.is_empty());
-    assert!(create_limited_send_from_utxos(
-        &wallet,
-        &prepared,
-        vec![utxo(0xbf, 0, 10_000_000), utxo(0xc0, 1, 11_000_000)],
-        1,
-    )
-    .is_err());
-
-    #[cfg(not(target_arch = "wasm32"))]
-    assert!(ready(super::standard::create_consolidation(
-        &wallet,
-        300_000,
-        "ws://unused"
-    ))
-    .expect_err("native consolidation transport")
-    .contains("unavailable on native hosts"));
-
-    assert!(super::selection::select_automatic_with_limit(
-        vec![utxo(0xbc, 0, 50_000_000)],
-        20_000_000,
-        0,
-    )
-    .unwrap_err()
-    .contains("at least 1"));
-}
-
-#[test]
-fn explicit_pskb_creation_covers_empty_inputs_and_success() {
-    let wallet = watch_wallet();
-    let destination = crate::account::address::encode_p2pk_address(&[0x84; 32], "kaspa");
-
-    assert!(super::standard::create_pskb_with_utxos(
-        &wallet,
-        &destination,
-        20_000_000,
-        300_000,
-        Vec::new(),
-    )
-    .unwrap_err()
-    .contains("No UTXOs"));
-
-    let wire = super::standard::create_pskb_with_utxos(
-        &wallet,
-        &destination,
-        20_000_000,
-        300_000,
-        vec![utxo(0xbb, 0, 50_000_000)],
-    )
-    .expect("explicit PSKB");
-    assert_eq!(
-        decode_pskb_wire(&wire)[0]["inputs"]
-            .as_array()
-            .unwrap()
-            .len(),
-        1
-    );
-
-    let explicit_change = super::standard::create_pskb_with_utxos_and_change(
-        &destination,
-        20_000_000,
-        300_000,
-        vec![utxo(0xbc, 1, 50_000_000)],
-        &wallet.change_addresses[0],
-        7,
-    )
-    .expect("explicit-change PSKB");
-    let decoded = decode_pskb_wire(&explicit_change);
-    let outputs = decoded[0]["outputs"].as_array().expect("outputs");
-    assert_eq!(outputs.len(), 2);
-    assert_eq!(
-        outputs[1]["proprietaries"]["kassignerDerivation"]["branch"],
-        1
-    );
-    assert_eq!(
-        outputs[1]["proprietaries"]["kassignerDerivation"]["index"],
-        "7"
     );
 }
 
@@ -826,32 +455,6 @@ fn global_thread_plan_errors_have_specific_actionable_messages() {
         assert!(!message.is_empty());
         assert!(message.contains(|character: char| character.is_ascii_digit()));
     }
-}
-
-#[test]
-fn storage_mass_estimation_distinguishes_each_relaxed_plurality_gate() {
-    use super::planning::amounts::storage_mass_estimate;
-
-    // outputs plurality == 1 is independently sufficient for the relaxed formula.
-    assert_eq!(
-        storage_mass_estimate(&[(100_000_000, 3)], &[(10_000_000, 1)]).unwrap(),
-        10_000,
-    );
-    // inputs plurality == 1 is independently sufficient.
-    assert_eq!(
-        storage_mass_estimate(&[(100_000_000, 1)], &[(10_000_000, 3)]).unwrap(),
-        890_000,
-    );
-    // The 2-in/2-out special case is relaxed even though neither side is singular.
-    assert_eq!(
-        storage_mass_estimate(&[(100_000_000, 2)], &[(10_000_000, 2)]).unwrap(),
-        360_000,
-    );
-    // 3-in/3-out uses the arithmetic-input branch.
-    assert_eq!(
-        storage_mass_estimate(&[(100_000_000, 3)], &[(10_000_000, 3)]).unwrap(),
-        810_000,
-    );
 }
 
 #[test]
@@ -978,37 +581,4 @@ fn global_thread_planning_reports_monetary_overflow_instead_of_panicking() {
             operation: "adding thread and wallet balances"
         })
     ));
-}
-
-#[test]
-fn amount_planning_boundaries_are_exact() {
-    use super::planning::amounts::{is_dust, storage_mass_estimate};
-
-    assert!(is_dust(0));
-    assert!(is_dust(9_999_900));
-    assert!(!is_dust(9_999_901));
-    assert!(!is_dust(10_000_000));
-    assert!(!is_dust(19_999_999));
-    assert!(!is_dust(20_000_000));
-
-    assert_eq!(
-        storage_mass_estimate(&[(100_000_000, 2)], &[(10_000_000, 1)]).unwrap(),
-        60_000
-    );
-    assert_eq!(
-        storage_mass_estimate(&[(100_000_000, 1)], &[(10_000_000, 2)]).unwrap(),
-        390_000
-    );
-    assert_eq!(
-        storage_mass_estimate(&[(100_000_000, 2)], &[(10_000_000, 2)]).unwrap(),
-        360_000
-    );
-    assert_eq!(
-        storage_mass_estimate(&[(100_000_000, 2)], &[(10_000_000, 3)]).unwrap(),
-        860_000
-    );
-    assert_eq!(
-        storage_mass_estimate(&[(100_000_000, 3)], &[(10_000_000, 2)]).unwrap(),
-        310_000
-    );
 }

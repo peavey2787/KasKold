@@ -6,7 +6,7 @@ import sys as _portal_sys
 from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[4] / "qa/checks"))
-from portal_source import kaskold_source  # noqa: E402
+from portal_source import kaskold_source, portal_text  # noqa: E402
 
 from pathlib import Path
 import re
@@ -16,50 +16,11 @@ from architecture.core.common import rust_function_lengths
 def check_pskt(root: Path) -> list[str]:
     ROOT = root
     errors: list[str] = []
-    # PSKT is a grouped protocol subsystem, never a monolithic source file.
-    legacy_pskt = ROOT / "crates/online-watcher/src/protocol/pskt.rs"
-    pskt_root = ROOT / "crates/online-watcher/src/protocol/pskt"
-    if legacy_pskt.exists():
-        errors.append("legacy monolithic protocol/pskt.rs must not exist")
-    for required in (
-        pskt_root / "mod.rs",
-        pskt_root / "error.rs",
-        pskt_root / "model/mod.rs",
-        pskt_root / "model/format.rs",
-        pskt_root / "wire/mod.rs",
-        pskt_root / "wire/json.rs",
-        pskt_root / "unit_tests/mod.rs",
-    ):
-        if not required.exists():
-            errors.append(f"required PSKT module is missing: {required.relative_to(ROOT)}")
-
-    pskt_production_files = [
-        path for path in pskt_root.rglob("*.rs") if "unit_tests" not in path.parts
-    ]
-    for path in pskt_production_files:
-        line_count = len(path.read_text().splitlines())
-        if line_count > 1000:
-            errors.append(
-                f"PSKT module exceeds 1,000-line SRP limit: "
-                f"{path.relative_to(ROOT)} ({line_count} lines)"
-            )
-
-    pskt_source = "\n".join(path.read_text(errors="ignore") for path in pskt_production_files)
-    pskt_core_source = "\n".join(
-        path.read_text(errors="ignore")
-        for path in pskt_production_files
-        if "pskb" not in path.parts
-    )
-    pskb_source = "\n".join(
-        path.read_text(errors="ignore")
-        for path in pskt_production_files
-        if "pskb" in path.parts
-    )
-    for forbidden in ("web_sys", "submit_consensus_tx", "encode_compact_kspt_input_relay"):
-        if forbidden in pskt_source:
-            errors.append(f"PSKT protocol subsystem contains forbidden concern: {forbidden}")
-    if len(re.findall(r"\bfn\s+decode_wire\b", pskt_source)) != 1:
-        errors.append("PSKT subsystem must contain exactly one wire decoder")
+    # PSKT parsing, encoding, review and relay are Kaspa Portal's; the
+    # Companion keeps no PSKT protocol subsystem of its own.
+    for fork in ("crates/online-watcher/src/protocol/pskt.rs", "crates/online-watcher/src/protocol/pskt"):
+        if (ROOT / fork).exists():
+            errors.append(f"Companion forks Kaspa Portal's PSKT protocol: {fork}")
     # The PSKT JSON body codec has exactly one owner, kaskold-protocol; the
     # Companion PSKT/PSKB layers delegate to it instead of serializing JSON bodies.
     protocol_wire = kaskold_source("crates/kaskold-protocol/src/pskt/wire.rs").read_text(errors="ignore")
@@ -67,14 +28,6 @@ def check_pskt(root: Path) -> list[str]:
         errors.append("kaskold-protocol must contain exactly one PSKT JSON body decoder")
     if len(re.findall(r"serde_json::to_vec", protocol_wire)) != 1:
         errors.append("kaskold-protocol must contain exactly one PSKT JSON body encoder")
-    if re.search(r"serde_json::(?:from_slice|to_vec)", pskt_core_source + pskb_source):
-        errors.append("Companion PSKT/PSKB layers must delegate JSON body coding to kaskold-protocol")
-    json_adapter = (pskt_root / "wire/json.rs").read_text(errors="ignore")
-    for delegated in ("compat::decode_pskt_json_body", "compat::encode_pskt_json_body"):
-        if delegated not in json_adapter:
-            errors.append(f"Companion PSKT JSON adapter must delegate to kaskold-protocol: {delegated}")
-    if re.search(r"\bfn\s+encode_compact_kspt_input\b", pskt_source):
-        errors.append("Companion must not own a duplicate compact KSPT input wire encoder")
     relay_root = kaskold_source("crates/kaskold-protocol/src/pskt")
     relay_source = chr(10).join(
         path.read_text(errors="ignore")
@@ -92,26 +45,15 @@ def check_pskt(root: Path) -> list[str]:
         or "unwrap_or_default" in subnetwork_source
     ):
         errors.append("PSKT subnetwork decoding must use the canonical schema default and require 20 bytes")
-    canonical_pskb_encoder = pskt_root / "pskb/encoder.rs"
-    canonical_pskb_source = canonical_pskb_encoder.read_text(errors="ignore") if canonical_pskb_encoder.exists() else ""
+    canonical_pskb_source = portal_text("transaction/interchange/pskt/pskb/encoder.rs")
     if '.entry("subnetworkId".to_string())' not in canonical_pskb_source:
         errors.append("canonical PSKB encoding must explicitly supply the native subnetwork")
     pskb_encoder = ROOT / "crates/online-watcher/src/transaction_builder/pskb/encoder.rs"
     pskb_encoder_source = pskb_encoder.read_text(errors="ignore") if pskb_encoder.exists() else ""
-    if 'crate::protocol::pskt::pskb::encode_pskt_value(pskt)' not in pskb_encoder_source:
-        errors.append("transaction-builder PSKB encoding must delegate to the canonical PSKB wire encoder")
+    if "kaspa_portal::transaction::builder::PskbApi" not in pskb_encoder_source or ".encode_document(pskt)" not in pskb_encoder_source:
+        errors.append("transaction-builder PSKB encoding must delegate to Kaspa Portal's canonical PSKB encoder")
     if '.entry("subnetworkId".to_string())' in pskb_encoder_source:
         errors.append("transaction-builder PSKB encoding must not duplicate native-subnetwork insertion")
-    if re.search(r"\bfn\s+finalize_and_broadcast\b", pskt_source):
-        errors.append("network broadcast orchestration must remain in WatchWallet")
-
-    for path in pskt_production_files:
-        for function_name, line_count in rust_function_lengths(path.read_text()):
-            if line_count > 100:
-                errors.append(
-                    f"PSKT function exceeds 100-line SRP limit: "
-                    f"{path.relative_to(ROOT)}::{function_name} ({line_count} lines)"
-                )
 
     errors.extend(check_monetary_arithmetic(root))
     errors.extend(check_thin_covenant_boundaries(root))
@@ -126,7 +68,7 @@ def check_thin_covenant_boundaries(root: Path) -> list[str]:
     core_global = online_root / "transaction_builder/pskb/global_thread.rs"
     core_thread_input = online_root / "transaction_builder/pskb/thread_input.rs"
     core_thread_request = online_root / "transaction_builder/pskb/thread_request.rs"
-    core_fee = online_root / "transaction_builder/covenant/fee.rs"
+    core_fee = kaskold_source("crates/online-watcher/src/transaction_builder/covenant/fee.rs")
     browser_planner = root / "apps/kaskold-companion-web/web/js/features/transactions/send/compose/planners/covenant.js"
 
     for required in (core_preparation, core_global, core_thread_input, core_thread_request, core_fee, browser_planner):
@@ -211,9 +153,13 @@ def check_monetary_arithmetic(root: Path) -> list[str]:
     global_thread_topup = global_thread_path.with_suffix("") / "topup.rs"
     if global_thread_topup.exists():
         global_thread += "\n" + global_thread_topup.read_text(errors="ignore")
-    covenant = (online_root / "transaction_builder/covenant/builder.rs").read_text(errors="ignore")
-    covenant_fee = (online_root / "transaction_builder/covenant/fee.rs").read_text(errors="ignore")
-    amounts = (online_root / "transaction_builder/planning/amounts.rs").read_text(errors="ignore")
+    covenant = kaskold_source("crates/online-watcher/src/transaction_builder/covenant/builder.rs").read_text(errors="ignore")
+    # The covenant fee shape lives in Portal's mass model.
+    covenant_fee = (
+        kaskold_source("crates/online-watcher/src/transaction_builder/covenant/fee.rs").read_text(errors="ignore")
+        + portal_text("transaction/mass.rs")
+    )
+    amounts = kaskold_source("crates/online-watcher/src/transaction_builder/planning/amounts.rs").read_text(errors="ignore")
     shipping_script = kaskold_source(
         "crates/online-watcher/src/contracts/shipping_escrow/script.rs"
     ).read_text(errors="ignore")
@@ -255,9 +201,9 @@ def check_monetary_arithmetic(root: Path) -> list[str]:
         errors.append("covenant output planning must return an explicit underflow error")
 
     for required in (
-        ".checked_mul(45 + 66 + 4)",
+        ".checked_mul(PER_P2PK_INPUT_BYTES)",
         ".checked_add(self.payload_bytes)",
-        ".checked_mul(FEE_RATE)",
+        ".checked_mul(MIN_STANDARD_FEE_RATE_SOMPI_PER_GRAM)",
         "Result<u64, String>",
     ):
         if required not in covenant_fee:

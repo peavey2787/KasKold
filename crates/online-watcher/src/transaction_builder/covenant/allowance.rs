@@ -202,7 +202,7 @@ fn encode_allowance_withdrawal(
         "global": {
             "version": 0,
             "txVersion": 1,
-            "fallbackLockTime": (material.locktime > 0).then_some(material.locktime),
+            "fallbackLockTime": (material.locktime > 0).then(|| material.locktime.to_string()),
             "covenantBranch": "beneficiary",
             "inputsModifiable": false,
             "outputsModifiable": false,
@@ -231,13 +231,13 @@ fn input_value(
 ) -> serde_json::Value {
     serde_json::json!({
         "previousOutpoint": {"transactionId": utxo.tx_id.as_str(), "index": utxo.index},
-        "sequence": sequence,
+        "sequence": sequence.to_string(),
         "sighashType": 1,
         "sigOpCount": 1,
         "utxoEntry": {
-            "amount": utxo.amount,
+            "amount": utxo.amount.to_string(),
             "scriptPublicKey": covenant_spk_hex,
-            "blockDaaScore": 0,
+            "blockDaaScore": "0",
             "isCoinbase": false
         },
         "redeemScript": redeem_script_hex,
@@ -246,13 +246,13 @@ fn input_value(
         "bip32Derivations": {},
         "proprietaries": {},
         "finalScriptSig": null,
-        "minTime": 0
+        "minTime": "0"
     })
 }
 
 fn output_value(amount: u64, script_public_key: &str) -> serde_json::Value {
     serde_json::json!({
-        "amount": amount,
+        "amount": amount.to_string(),
         "scriptPublicKey": script_public_key,
         "bip32Derivations": {},
         "proprietaries": {}

@@ -1,5 +1,9 @@
+import sys
 from pathlib import Path
 import unittest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "qa/checks"))
+from portal_source import portal_text  # noqa: E402
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -8,7 +12,7 @@ WATCHER = ROOT / "crates/online-watcher/src"
 
 class OnlineWatcherTransactionFixturePolicyTests(unittest.TestCase):
     def test_standard_send_fixture_preserves_non_dust_change(self) -> None:
-        source = (WATCHER / "transaction_builder/unit_tests/mod.rs").read_text()
+        source = portal_text("transaction/builder/unit-tests/mod.rs")
         test = source.split(
             "fn standard_send_preparation_and_utxo_paths_are_host_testable()", 1
         )[1].split("\n#[test]", 1)[0]

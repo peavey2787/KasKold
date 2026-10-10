@@ -428,22 +428,11 @@
     {
       "baseline_complexity": 3,
       "baseline_status": "warning",
-      "function": "build",
-      "line": 32,
-      "path": "crates/online-watcher/src/transaction_builder/covenant/builder.rs",
-      "test_seams": [
-        "crates/online-watcher/src/transaction_builder/covenant/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 3,
-      "baseline_status": "warning",
       "function": "get",
       "line": 10,
       "path": "crates/online-watcher/src/network/queries/fees.rs",
       "test_seams": [
-        "crates/online-watcher/src/protocol/pskt/unit_tests/mod.rs",
-        "crates/online-watcher/src/transaction_builder/unit_tests/mod.rs"
+        "crates/online-watcher/src/network/unit_tests/queries.rs"
       ]
     },
     {
@@ -678,16 +667,6 @@
       "path": "crates/online-watcher/src/facade.rs",
       "test_seams": [
         "crates/online-watcher/src/facade/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
-      "function": "encode_covenant",
-      "line": 13,
-      "path": "crates/online-watcher/src/protocol/pskt/pskb/encoder.rs",
-      "test_seams": [
-        "crates/online-watcher/src/protocol/pskt/pskb/unit_tests/mod.rs"
       ]
     },
     {

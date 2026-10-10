@@ -125,25 +125,6 @@ impl WatchWallet {
         transaction_builder::create_pskb_with_utxos(wallet, destination, amount, fee, selected)
     }
 
-    pub fn build_pskb_with_explicit_change(
-        &self,
-        destination: &str,
-        amount: u64,
-        fee: u64,
-        selected: Vec<UtxoEntry>,
-        change_address: &str,
-        change_index: u32,
-    ) -> Result<String, String> {
-        transaction_builder::create_pskb_with_utxos_and_change(
-            destination,
-            amount,
-            fee,
-            selected,
-            change_address,
-            change_index,
-        )
-    }
-
     pub fn verify_message(
         &self,
         public_key: &[u8; 32],

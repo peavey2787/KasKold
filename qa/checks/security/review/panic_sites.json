@@ -55,22 +55,6 @@
       "fingerprint": "caf8a4d6bc0579e3f3d26af67b6d815ca2873667ea17dd5885a5a6256a167dd9",
       "rationale": "Reviewed fail-stop hardware invariant: continuing after this boot/peripheral invariant fails would be unsafe; the device intentionally halts rather than entering signing operation in a partially initialized state.",
       "reviewed": true
-    },
-    {
-      "path": "crates/online-watcher/src/protocol/pskt/wire/envelope.rs",
-      "line": 196,
-      "source": "PsktFormat::Pskb => &mut root.as_array_mut().expect(\"validated PSKB array\")[0],",
-      "fingerprint": "f2add52bf42d90cc55b380d1dae55ea050583bc73e6fe186b3f0a079ada1aaea",
-      "rationale": "Reviewed fail-stop invariant: this path represents an internal invariant violation, not attacker-controlled validation; external inputs are validated before reaching it.",
-      "reviewed": true
-    },
-    {
-      "path": "crates/online-watcher/src/protocol/pskt/wire/envelope.rs",
-      "line": 198,
-      "source": "PsktFormat::Unknown => unreachable!(\"validated format\"),",
-      "fingerprint": "6c8b24a3bb81261837977b0ac03c49a834b3ac313198478cb7ae88767bb8187d",
-      "rationale": "Reviewed fail-stop invariant: this path represents an internal invariant violation, not attacker-controlled validation; external inputs are validated before reaching it.",
-      "reviewed": true
     }
   ]
 }

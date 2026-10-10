@@ -216,13 +216,13 @@ fn input_value(
             "transactionId": utxo.tx_id.as_str(),
             "index": utxo.index
         },
-        "sequence": 0,
+        "sequence": "0",
         "sighashType": 1,
         "sigOpCount": 1,
         "utxoEntry": {
-            "amount": utxo.amount,
+            "amount": utxo.amount.to_string(),
             "scriptPublicKey": script_public_key,
-            "blockDaaScore": 0,
+            "blockDaaScore": "0",
             "isCoinbase": false
         },
         "redeemScript": redeem_script,
@@ -231,7 +231,7 @@ fn input_value(
         "bip32Derivations": {},
         "proprietaries": {},
         "finalScriptSig": null,
-        "minTime": 0
+        "minTime": "0"
     })
 }
 
@@ -245,7 +245,7 @@ fn build_outputs(scripts: &Scripts, send: u64, change: u64) -> Vec<serde_json::V
 
 fn output_value(amount: u64, script_public_key: &str) -> serde_json::Value {
     serde_json::json!({
-        "amount": amount,
+        "amount": amount.to_string(),
         "scriptPublicKey": script_public_key,
         "bip32Derivations": {},
         "proprietaries": {}

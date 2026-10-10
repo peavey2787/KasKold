@@ -372,7 +372,7 @@
         "paths": [
           "crates/kaskold-protocol/src/pskt",
           "crates/offline-signer/src/transaction/std_pskt",
-          "crates/online-watcher/src/protocol/pskt"
+          "crates/online-watcher/src/transaction_builder/pskb"
         ],
         "status": "parity"
       },
@@ -1415,7 +1415,7 @@
         ],
         "paths": [
           "crates/kaskold-protocol/src",
-          "crates/online-watcher/src/protocol/pskt",
+          "crates/online-watcher/src/wasm_api/protocol",
           "crates/kaskold-sdk/src"
         ],
         "status": "parity"

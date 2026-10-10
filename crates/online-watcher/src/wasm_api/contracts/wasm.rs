@@ -1,5 +1,5 @@
 use crate::transaction_builder::covenant::{
-    build, CovenantBuildRequest, CovenantEncoding, CovenantFeeShape,
+    build, dust_policy_for, CovenantBuildRequest, CovenantEncoding, CovenantFeeShape,
 };
 use crate::wasm_api::utilities::common::{parse_request, parse_u64_field, parse_wallet};
 use crate::wasm_api::JsValue;
@@ -39,20 +39,22 @@ pub async fn create_covenant_pskb_with_payload(request_json: &str) -> Result<Str
     let request: CovenantPskbApiRequest = parse_request(request_json, "covenant payload request")?;
     let wallet = parse_wallet(&request.wallet_json, "Bad wallet JSON")?;
 
-    build(CovenantBuildRequest {
-        wallet: &wallet,
-        covenant_address: &request.covenant_address,
-        covenant_type: &request.covenant_type,
-        send_amount: request.send_amount()?,
-        fee: request.fee()?,
-        change_address: &request.change_address,
-        utxo_indices_csv: &request.utxo_indices_csv,
-        websocket_url: &request.ws_url,
-        encoding: CovenantEncoding::Payload {
-            payload_hex: &request.payload_hex,
-            tag_genesis: request.tag_genesis,
+    build(
+        &request.ws_url,
+        CovenantBuildRequest {
+            wallet: &wallet,
+            covenant_address: &request.covenant_address,
+            send_amount: request.send_amount()?,
+            fee: request.fee()?,
+            change_address: &request.change_address,
+            utxo_indices_csv: &request.utxo_indices_csv,
+            dust_policy: dust_policy_for(&request.covenant_type),
+            encoding: CovenantEncoding::Payload {
+                payload_hex: &request.payload_hex,
+                tag_genesis: request.tag_genesis,
+            },
         },
-    })
+    )
     .await
     .map_err(|error| wasm_error!(&error))
 }
@@ -63,17 +65,19 @@ pub async fn create_covenant_pskb(request_json: &str) -> Result<String, JsValue>
     let request: CovenantPskbApiRequest = parse_request(request_json, "covenant request")?;
     let wallet = parse_wallet(&request.wallet_json, "Bad wallet JSON")?;
 
-    build(CovenantBuildRequest {
-        wallet: &wallet,
-        covenant_address: &request.covenant_address,
-        covenant_type: &request.covenant_type,
-        send_amount: request.send_amount()?,
-        fee: request.fee()?,
-        change_address: &request.change_address,
-        utxo_indices_csv: &request.utxo_indices_csv,
-        websocket_url: &request.ws_url,
-        encoding: CovenantEncoding::BoundGenesis,
-    })
+    build(
+        &request.ws_url,
+        CovenantBuildRequest {
+            wallet: &wallet,
+            covenant_address: &request.covenant_address,
+            send_amount: request.send_amount()?,
+            fee: request.fee()?,
+            change_address: &request.change_address,
+            utxo_indices_csv: &request.utxo_indices_csv,
+            dust_policy: dust_policy_for(&request.covenant_type),
+            encoding: CovenantEncoding::BoundGenesis,
+        },
+    )
     .await
     .map_err(|error| wasm_error!(&error))
 }

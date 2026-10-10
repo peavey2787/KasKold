@@ -39,10 +39,6 @@ class OnlineWatcherTestCompileContractTests(unittest.TestCase):
         self.assertIn("verify_complete_pskt", source)
         self.assertIn(".to_consensus()", source)
 
-    def test_pskt_tests_do_not_resolve_decode_root_through_shadowing_test_module(self) -> None:
-        source = (WATCHER / "protocol/pskt/unit_tests/mod.rs").read_text()
-        self.assertNotIn("wire::decode_root(&result)", source)
-
     def test_covenant_tests_use_facade_reexports_instead_of_private_modules(self) -> None:
         source = (
             WATCHER
@@ -101,11 +97,6 @@ class OnlineWatcherTestCompileContractTests(unittest.TestCase):
         self.assertIn("extract_secret(&final_sig,&p)", compact_family)
         self.assertNotIn("extract_secret(&p,&final_sig)", compact_family)
         self.assertIn("OP_BLAKE2B, OP_CHECKSIGFROMSTACK, OP_SHA256", tests)
-
-    def test_transaction_builder_boundary_test_imports_storage_mass_from_amounts_owner(self) -> None:
-        source = (WATCHER / "transaction_builder/unit_tests/boundaries.rs").read_text()
-        self.assertIn("planning::amounts::storage_mass_estimate", source)
-        self.assertNotIn("planning::storage_mass_estimate", source)
 
     def test_multisig_small_int_decoder_cannot_eagerly_underflow_on_invalid_opcode(self) -> None:
         source = kaskold_source("crates/kaskold-protocol/src/pskt/relay_fields/scripts.rs").read_text()

@@ -1,14 +1,4 @@
-use crate::{
-    account::utxo::UtxoEntry,
-    transaction_builder::{
-        model::{PlannedInput, PlannedOutput, UnsignedTransactionPlan},
-        planning::{
-            amounts::{checked_required, checked_sum},
-            plan_payment_with_change,
-        },
-        selection::{checked_total, sort_for_display, sort_largest_first, sort_smallest_first},
-    },
-};
+use crate::account::utxo::UtxoEntry;
 
 fn utxo(byte: u8, index: u32, amount: u64) -> UtxoEntry {
     UtxoEntry {
@@ -22,73 +12,7 @@ fn utxo(byte: u8, index: u32, amount: u64) -> UtxoEntry {
 }
 
 #[test]
-fn amount_and_sort_helpers_have_direct_function_coverage() {
-    assert_eq!(checked_required(40, 2), Ok(42));
-    assert!(checked_required(u64::MAX, 1).is_err());
-    assert_eq!(checked_sum([1, 2, 3]), Ok(6));
-    assert!(checked_sum([u64::MAX, 1]).is_err());
-    assert_eq!(
-        checked_total(&[utxo(0x01, 0, 10), utxo(0x02, 1, 20)])
-            .expect("checked UTXO total")
-            .0,
-        30,
-    );
-    assert!(checked_total(&[utxo(0x03, 0, u64::MAX), utxo(0x04, 1, 1)]).is_err());
-
-    let mut entries = vec![utxo(0x22, 2, 20), utxo(0x11, 1, 30), utxo(0x33, 0, 10)];
-    sort_largest_first(&mut entries);
-    assert_eq!(
-        entries.iter().map(|entry| entry.amount).collect::<Vec<_>>(),
-        vec![30, 20, 10]
-    );
-
-    sort_smallest_first(&mut entries);
-    assert_eq!(
-        entries.iter().map(|entry| entry.amount).collect::<Vec<_>>(),
-        vec![10, 20, 30]
-    );
-
-    entries = vec![utxo(0x22, 1, 20), utxo(0x11, 2, 20), utxo(0x11, 1, 20)];
-    sort_for_display(&mut entries);
-    assert_eq!(entries[0].tx_id, "11".repeat(32));
-    assert_eq!(entries[0].index, 1);
-    assert_eq!(entries[1].index, 2);
-}
-
-#[test]
-fn transaction_plan_model_helpers_have_direct_function_coverage() {
-    let input = PlannedInput::p2pk(utxo(0x41, 0, 50)).with_derivation(0, 7);
-    assert_eq!(input.derivation_hint, Some((0, 7)));
-
-    let output = PlannedOutput::new(40, vec![0x51]).with_derivation(1, 9);
-    assert_eq!(output.derivation_hint, Some((1, 9)));
-
-    let derived = UnsignedTransactionPlan::standard_with_derivations(
-        vec![(utxo(0x42, 1, 50), Some((0, 8))), (utxo(0x43, 2, 60), None)],
-        vec![output.clone()],
-    );
-    assert_eq!(derived.inputs[0].derivation_hint, Some((0, 8)));
-    assert_eq!(derived.inputs[1].derivation_hint, None);
-
-    let standard = UnsignedTransactionPlan::standard(vec![utxo(0x45, 4, 80)], vec![output.clone()]);
-    assert_eq!(standard.inputs.len(), 1);
-    assert_eq!(standard.outputs.len(), 1);
-}
-
-#[test]
-fn explicit_change_and_thread_policy_helpers_have_direct_function_coverage() {
-    let change_address = crate::account::address::encode_p2pk_address(&[0x55; 32], "kaspa");
-    let plan = plan_payment_with_change(
-        vec![utxo(0x51, 0, 50_000_000)],
-        vec![PlannedOutput::new(20_000_000, vec![0x20; 34])],
-        1_000_000,
-        &change_address,
-        12,
-    )
-    .expect("explicit change plan");
-    assert_eq!(plan.outputs.len(), 2);
-    assert_eq!(plan.outputs[1].derivation_hint, Some((1, 12)));
-
+fn thread_policy_helpers_have_direct_function_coverage() {
     use crate::transaction_builder::pskb::{
         topup_policy_for, withdrawal_policy_for, GlobalThreadFamily, GlobalThreadPolicy,
     };
@@ -246,35 +170,10 @@ fn global_thread_request_material_and_wire_wrappers_have_direct_coverage() {
 }
 
 #[test]
-fn selected_send_network_boundary_enters_before_transport() {
-    use crate::wasm_api::test_support::ready;
-
-    let wallet = crate::account::bip32::WalletData {
-        kpub: "coverage".to_string(),
-        receive_addresses: vec![],
-        change_addresses: vec![],
-        next_receive_index: 0,
-        next_change_index: 0,
-    };
-    let result = ready(crate::transaction_builder::standard::create_send_selected(
-        &wallet,
-        "not-an-address",
-        20_000_000,
-        300_000,
-        &[0],
-        "ws://unused",
-    ));
-    assert!(result.is_err());
-}
-
-#[test]
 fn measured_domain_uncovered_entries_have_direct_native_coverage() {
-    use crate::{
-        contracts::{
-            oracle::script::{build_oracle_mb_genesis_redeem, build_oracle_mb_heartbeat_script},
-            zk::crowdfund,
-        },
-        transaction_builder::covenant::CovenantEncoding,
+    use crate::contracts::{
+        oracle::script::{build_oracle_mb_genesis_redeem, build_oracle_mb_heartbeat_script},
+        zk::crowdfund,
     };
 
     let heartbeat = build_oracle_mb_heartbeat_script();
@@ -295,11 +194,4 @@ fn measured_domain_uncovered_entries_have_direct_native_coverage() {
         Ok(vec![0x00, 0xff])
     );
     assert!(crowdfund::decode_hex("0z", "fixture").is_err());
-
-    assert!(CovenantEncoding::Payload {
-        payload_hex: "00",
-        tag_genesis: true
-    }
-    .uses_tagged_genesis_policy());
-    assert!(!CovenantEncoding::BoundGenesis.uses_tagged_genesis_policy());
 }

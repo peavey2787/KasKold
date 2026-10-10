@@ -1,58 +1,135 @@
 use super::*;
+use crate::wasm_api::test_support::ready;
 
 fn utxo(byte: u8, index: u32, amount: u64) -> UtxoEntry {
     UtxoEntry {
         tx_id: format!("{byte:02x}").repeat(32),
         index,
         amount,
-        script_public_key: vec![0x51],
+        script_public_key: vec![0x20; 34],
         block_daa_score: 0,
         covenant_id: None,
     }
 }
 
-#[test]
-fn selected_send_preparation_covers_input_amount_fee_and_storage_boundaries() {
-    let destination = crate::account::address::encode_p2pk_address(&[0x66; 32], "kaspa");
-    assert!(prepare_selected_send(
-        "not-an-address",
-        20_000_000,
-        300_000,
-        &[utxo(1, 0, 30_000_000)]
-    )
-    .is_err());
-    assert!(prepare_selected_send(&destination, 0, 300_000, &[utxo(1, 0, 30_000_000)]).is_err());
-    assert!(prepare_selected_send(&destination, 1, 300_000, &[utxo(1, 0, 30_000_000)]).is_err());
-    assert!(prepare_selected_send(&destination, 20_000_000, 300_000, &[]).is_err());
-
-    let too_many = (0..=SIGNER_MAX_INPUTS)
-        .map(|index| utxo((index as u8).wrapping_add(1), index as u32, 1_000_000))
-        .collect::<Vec<_>>();
-    assert!(prepare_selected_send(&destination, 20_000_000, 300_000, &too_many).is_err());
-
-    let overflow = [utxo(0x71, 0, u64::MAX), utxo(0x72, 1, 1)];
-    assert!(prepare_selected_send(&destination, 20_000_000, 300_000, &overflow).is_err());
-
-    let selected = [utxo(0x73, 0, 80_000_000)];
-    let (prepared, fee) = prepare_selected_send(&destination, 20_000_000, 300_000, &selected)
-        .expect("valid selected send");
-    assert_eq!(prepared.output.amount, 20_000_000);
-    assert!(fee >= 300_000);
+fn wallet() -> WalletData {
+    WalletData {
+        kpub: "coverage".to_string(),
+        receive_addresses: vec![],
+        change_addresses: vec![crate::account::address::encode_p2pk_address(
+            &[0x55; 32],
+            "kaspa",
+        )],
+        next_receive_index: 0,
+        next_change_index: 0,
+    }
 }
 
 #[test]
-fn storage_mass_fee_covers_requested_fee_dust_and_arithmetic_error_paths() {
-    let one = [utxo(0x74, 0, 50_000_000)];
-    let computed = storage_mass_fee(&one, 50_000_000, 20_000_000, 0).expect("computed fee");
-    assert!(computed >= 300_000);
+fn signer_input_count_follows_the_public_signer_capability() {
     assert_eq!(
-        storage_mass_fee(&one, 50_000_000, 20_000_000, computed + 1).expect("requested fee"),
-        computed + 1
+        validate_signer_input_count(0),
+        Err("No UTXOs provided".to_string())
     );
-    assert!(storage_mass_fee(&one, 0, u64::MAX, 1).is_err());
+    assert_eq!(validate_signer_input_count(1), Ok(()));
+    assert_eq!(validate_signer_input_count(SIGNER_MAX_INPUTS), Ok(()));
+    assert!(validate_signer_input_count(SIGNER_MAX_INPUTS + 1)
+        .unwrap_err()
+        .contains("KasKold supports at most"));
+}
 
-    let dust_change = [utxo(0x75, 0, 15_000_000)];
-    let non_dust_change = [utxo(0x76, 0, 40_000_000)];
-    assert!(storage_mass_fee(&dust_change, 15_000_000, 10_000_000, 0).is_ok());
-    assert!(storage_mass_fee(&non_dust_change, 40_000_000, 10_000_000, 0).is_ok());
+#[test]
+fn selected_utxo_sends_are_bounded_by_the_signer_before_building() {
+    let destination = crate::account::address::encode_p2pk_address(&[0x66; 32], "kaspa");
+    let too_many = (0..=SIGNER_MAX_INPUTS)
+        .map(|index| utxo((index as u8).wrapping_add(1), index as u32, 1_000_000))
+        .collect::<Vec<_>>();
+    assert!(
+        create_pskb_with_utxos(&wallet(), &destination, 20_000_000, 300_000, too_many)
+            .unwrap_err()
+            .contains("KasKold supports at most")
+    );
+    assert_eq!(
+        create_pskb_with_utxos(&wallet(), &destination, 20_000_000, 300_000, Vec::new()),
+        Err("No UTXOs provided".to_string())
+    );
+    let wire = create_pskb_with_utxos(
+        &wallet(),
+        &destination,
+        20_000_000,
+        300_000,
+        vec![utxo(0x73, 0, 80_000_000)],
+    )
+    .expect("selected send");
+    assert!(hex::decode(wire).expect("wire hex").starts_with(b"PSKB"));
+}
+
+#[test]
+fn networked_sends_check_signer_capacity_before_reaching_the_node() {
+    let wallet = wallet();
+    let too_many = vec![0usize; SIGNER_MAX_INPUTS + 1];
+    for result in [
+        ready(create_send_limited(
+            &wallet,
+            "kaspa:any",
+            1,
+            1,
+            0,
+            "ws://unused",
+        )),
+        ready(create_send_limited(
+            &wallet,
+            "kaspa:any",
+            1,
+            1,
+            SIGNER_MAX_INPUTS + 1,
+            "ws://unused",
+        )),
+        ready(create_send_selected(
+            &wallet,
+            "kaspa:any",
+            1,
+            1,
+            &[],
+            "ws://unused",
+        )),
+        ready(create_send_selected(
+            &wallet,
+            "kaspa:any",
+            1,
+            1,
+            &too_many,
+            "ws://unused",
+        )),
+    ] {
+        let error = result.unwrap_err();
+        assert!(
+            error == "No UTXOs provided" || error.contains("KasKold supports at most"),
+            "{error}"
+        );
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    for result in [
+        ready(create_send(&wallet, "kaspa:any", 1, 1, "ws://unused")),
+        ready(create_send_limited(
+            &wallet,
+            "kaspa:any",
+            1,
+            1,
+            2,
+            "ws://unused",
+        )),
+        ready(create_send_selected(
+            &wallet,
+            "kaspa:any",
+            1,
+            1,
+            &[0],
+            "ws://unused",
+        )),
+        ready(create_consolidation(&wallet, 1, "ws://unused")),
+    ] {
+        assert!(result.unwrap_err().contains("unavailable on native hosts"));
+    }
 }

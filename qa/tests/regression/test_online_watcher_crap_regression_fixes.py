@@ -48,12 +48,6 @@ REPORTED_FUNCTIONS = {
 
 
 LATEST_CRAP_REFACTOR_LIMITS = {
-    "crates/online-watcher/src/transaction_builder/planning/amounts.rs": {
-        "storage_mass_estimate": 7,
-    },
-    "crates/online-watcher/src/transaction_builder/covenant/builder.rs": {
-        "adjusted_send": 4,
-    },
     "crates/online-watcher/src/transaction_builder/covenant/allowance.rs": {
         "build_remote_result": 2,
         "prepare_material": 10,
@@ -73,9 +67,6 @@ LATEST_CRAP_REFACTOR_LIMITS = {
 }
 
 CHECKED_ARITHMETIC_ERROR_PATHS = (
-    "crates/online-watcher/src/transaction_builder/covenant/fee.rs",
-    "crates/online-watcher/src/transaction_builder/covenant/builder.rs",
-    "crates/online-watcher/src/transaction_builder/planning/amounts.rs",
     "crates/online-watcher/src/transaction_builder/covenant/vault/spend.rs",
     "crates/online-watcher/src/wasm_api/contracts/vault/split.rs",
     "crates/online-watcher/src/transaction_builder/covenant/payjoin.rs",

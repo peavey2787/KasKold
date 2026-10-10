@@ -15,16 +15,13 @@ SUBMIT_ENCODER = kaskold_source("crates/online-watcher/src/network/submission/en
 SUBMIT_DECODER = kaskold_source("crates/online-watcher/src/network/codec/responses/submission.rs")
 FINALIZER = ROOT / "crates/online-watcher/src/facade.rs"
 VERIFIED_MATERIALIZER = kaskold_source("crates/online-watcher/src/protocol/transaction/verified.rs")
-AMOUNTS = ROOT / "crates/online-watcher/src/transaction_builder/planning/amounts.rs"
+AMOUNTS = kaskold_source("crates/online-watcher/src/transaction_builder/planning/amounts.rs")
 MULTISIG = kaskold_source("crates/online-watcher/src/transaction_builder/multisig.rs")
 MULTISIG_TESTS = kaskold_source("crates/online-watcher/src/transaction_builder/multisig/unit_tests/mod.rs")
 MASS = portal_path("transaction/mass.rs")
 SUBMISSION_TESTS = kaskold_source("crates/online-watcher/src/network/unit_tests/submission.rs")
 FINALIZER_TESTS = portal_path("transaction/interchange/pskt/pipeline/unit-tests/consensus.rs")
 CSS = ROOT / "apps/kaskold-companion-web/web/css/app/components/qr_and_address.css"
-SELECTION_MOD = ROOT / "crates/online-watcher/src/transaction_builder/selection/mod.rs"
-SELECTION_AUTO = ROOT / "crates/online-watcher/src/transaction_builder/selection/automatic.rs"
-BUILDER_TESTS = ROOT / "crates/online-watcher/src/transaction_builder/unit_tests/mod.rs"
 
 
 class MultisigBroadcastStandardnessTests(unittest.TestCase):
@@ -72,15 +69,6 @@ class MultisigBroadcastStandardnessTests(unittest.TestCase):
         self.assertIn('"Rejected transaction"', decoder)
         self.assertIn(".take(2_048)", decoder)
 
-
-    def test_transaction_builder_test_fixtures_track_current_selection_and_multisig_shape(self) -> None:
-        selection_mod = SELECTION_MOD.read_text(encoding="utf-8")
-        selection_auto = SELECTION_AUTO.read_text(encoding="utf-8")
-        builder_tests = BUILDER_TESTS.read_text(encoding="utf-8")
-        self.assertIn("pub use automatic::select_automatic_with_limit;", selection_mod)
-        self.assertNotIn("select_automatic, select_automatic_with_limit", selection_mod)
-        self.assertNotIn("pub fn select_automatic(", selection_auto)
-        self.assertIn("super::selection::select_automatic_with_limit(", builder_tests)
 
     def test_multisig_branch_utxo_address_wraps_inside_card(self) -> None:
         css = CSS.read_text(encoding="utf-8")

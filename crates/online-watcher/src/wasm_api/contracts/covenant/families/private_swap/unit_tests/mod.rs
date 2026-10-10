@@ -7,7 +7,6 @@ use k256::elliptic_curve::sec1::ToEncodedPoint;
 use serde_json::{json, Value};
 
 use super::*;
-use crate::protocol::pskt::PsktFormat;
 
 fn h(byte: u8, len: usize) -> String {
     format!("{byte:02x}").repeat(len)
@@ -256,20 +255,23 @@ fn unsigned_pskt(input_count: usize, partial_sigs: Value) -> String {
             })
         })
         .collect::<Vec<_>>();
-    crate::protocol::pskt::wire::encode_root(
-        PsktFormat::PsktSingle,
-        &json!({
-            "global": {
-                "version": 0,
-                "txVersion": 0,
-                "inputCount": input_count,
-                "outputCount": 0
-            },
-            "inputs": inputs,
-            "outputs": []
-        }),
-    )
-    .unwrap()
+    let document = json!({
+        "global": {
+            "version": 0,
+            "txVersion": 0,
+            "inputCount": input_count,
+            "outputCount": 0
+        },
+        "inputs": inputs,
+        "outputs": []
+    });
+    raw_pskt(&document)
+}
+
+fn raw_pskt(document: &Value) -> String {
+    let mut wire = b"PSKT".to_vec();
+    wire.extend_from_slice(hex::encode(serde_json::to_vec(document).unwrap()).as_bytes());
+    hex::encode(wire)
 }
 
 #[test]
@@ -277,7 +279,9 @@ fn completed_signature_insertion_requires_one_unsigned_input_and_preserves_sigha
     let wire = unsigned_pskt(1, json!({}));
     let signed = private_swap_insert_completed_signature_string(&wire, &h(0x22, 32), &h(0x33, 64))
         .expect("insert completed signature");
-    let (_, root) = crate::protocol::pskt::wire::decode_root(&signed).unwrap();
+    let signed = hex::decode(signed).unwrap();
+    assert_eq!(&signed[..4], b"PSKT");
+    let root: Value = serde_json::from_slice(&hex::decode(&signed[4..]).unwrap()).unwrap();
     let partial = root["inputs"][0]["partialSigs"].as_object().unwrap();
     let entry = partial.get(&format!("02{}", h(0x22, 32))).unwrap();
     assert!(entry.get("sighashType").is_none());
@@ -298,11 +302,7 @@ fn completed_signature_insertion_requires_one_unsigned_input_and_preserves_sigha
         &[2; 64]
     )
     .is_err());
-    let mut malformed = b"PSKT".to_vec();
-    malformed.extend_from_slice(
-        hex::encode(serde_json::to_vec(&json!({"inputs": [{}]})).unwrap()).as_bytes(),
-    );
-    let missing = hex::encode(malformed);
+    let missing = raw_pskt(&json!({"inputs": [{}]}));
     assert!(insert_completed_signature(&missing, &[1; 32], &[2; 64]).is_err());
 }
 

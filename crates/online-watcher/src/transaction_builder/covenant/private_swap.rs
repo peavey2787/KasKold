@@ -52,41 +52,13 @@ pub(crate) fn insert_completed_signature_hex(
     claim_pubkey_x: &[u8; 32],
     signature: &[u8; 64],
 ) -> Result<String, String> {
-    let (format, mut root) = crate::protocol::pskt::wire::decode_root(pskb_hex)?;
-    let partial_signatures = partial_signatures(&mut root, format)?;
-    let mut full_public_key = String::from("02");
-    full_public_key.push_str(&hex::encode(claim_pubkey_x));
-    partial_signatures.insert(
-        full_public_key,
-        serde_json::json!({"schnorr": hex::encode(signature)}),
-    );
-    crate::protocol::pskt::wire::encode_root(format, &root)
-}
-
-fn partial_signatures(
-    root: &mut serde_json::Value,
-    format: crate::protocol::pskt::PsktFormat,
-) -> Result<&mut serde_json::Map<String, serde_json::Value>, String> {
-    use serde_json::Value;
-    let pskt = crate::protocol::pskt::wire::pskt_from_root_mut(root, format)?;
-    let inputs = pskt
-        .get_mut("inputs")
-        .and_then(Value::as_array_mut)
-        .ok_or("Private Swap PSKB inputs missing".to_string())?;
-    if inputs.len() != 1 {
-        return Err("Private Swap claim must have exactly one input".to_string());
-    }
-    let input = inputs[0]
-        .as_object_mut()
-        .ok_or("Private Swap input invalid".to_string())?;
-    let signatures = input
-        .get_mut("partialSigs")
-        .and_then(Value::as_object_mut)
-        .ok_or("Private Swap partialSigs missing".to_string())?;
-    if !signatures.is_empty() {
-        return Err("Private Swap claim already has a signature".to_string());
-    }
-    Ok(signatures)
+    let mut public_key = [0x02; 33];
+    public_key[1..].copy_from_slice(claim_pubkey_x);
+    kaspa_portal::transaction::interchange::pskt::pipeline::attach_sole_signature(
+        pskb_hex,
+        &public_key,
+        signature,
+    )
 }
 
 #[cfg(test)]

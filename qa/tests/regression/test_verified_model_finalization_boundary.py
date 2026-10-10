@@ -43,7 +43,6 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
     def test_recursive_duplicate_keys_have_one_authoritative_grammar(self):
         schema = schema_text()
         host = text("crates/kaskold-protocol/src/pskt/wire.rs")
-        companion = text("crates/online-watcher/src/protocol/pskt/wire/json.rs")
         vault = text("crates/offline-signer/src/transaction/std_pskt/parser/mod.rs")
         tests = text("crates/kaskold-protocol/src/unit_tests/pskt_schema.rs")
 
@@ -53,7 +52,6 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         parse = fn_body(host, "parse_strict_json")
         self.assertLess(parse.index("validate_canonical_json"), parse.index("serde_json::from_slice"))
         self.assertNotIn("StrictVisitor", host)
-        self.assertIn("compat::decode_pskt_json_body", companion)
         self.assertIn("validate_canonical_json(json)", vault)
         self.assertIn("canonical_json_rejects_duplicate_keys_recursively_in_every_container_shape", tests)
         for fixture in [

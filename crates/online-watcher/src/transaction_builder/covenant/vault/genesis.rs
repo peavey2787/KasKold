@@ -3,7 +3,9 @@
 use crate::{
     account::{address::network_prefix, bip32::WalletData},
     serialization::input::{decode_pubkey32, parse_json},
-    transaction_builder::covenant::{build_with_binding, CovenantBuildRequest, CovenantEncoding},
+    transaction_builder::covenant::{
+        build_with_binding, dust_policy_for, CovenantBuildRequest, CovenantEncoding,
+    },
 };
 
 #[derive(Clone, Copy)]
@@ -89,17 +91,19 @@ async fn build_vault_genesis_wire(
     fee: u64,
     ws_url: &str,
 ) -> Result<(String, Option<[u8; 32]>), String> {
-    build_with_binding(CovenantBuildRequest {
-        wallet: &prepared.wallet,
-        covenant_address: &prepared.material.covenant_address,
-        covenant_type: "vault",
-        send_amount,
-        fee,
-        change_address: &prepared.change_address,
-        utxo_indices_csv: "",
-        websocket_url: ws_url,
-        encoding: CovenantEncoding::BoundGenesis,
-    })
+    build_with_binding(
+        ws_url,
+        CovenantBuildRequest {
+            wallet: &prepared.wallet,
+            covenant_address: &prepared.material.covenant_address,
+            send_amount,
+            fee,
+            change_address: &prepared.change_address,
+            utxo_indices_csv: "",
+            dust_policy: dust_policy_for("vault"),
+            encoding: CovenantEncoding::BoundGenesis,
+        },
+    )
     .await
 }
 

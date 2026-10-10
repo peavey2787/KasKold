@@ -57,10 +57,4 @@ def check(root: Path) -> list[str]:
                 f"covenant WASM family bypasses the normalized locktime façade in "
                 f"{path.relative_to(root)}; use the covenant extract_* adapter"
             )
-    for path in (online_root / "protocol/pskt").rglob("*.rs"):
-        if "unit_tests" in path.parts:
-            continue
-        if "pub(super)" in rust_code_only(path.read_text(errors="ignore")):
-            errors.append(f"PSKT sibling façade item is too narrow: {path.relative_to(root)}")
-
     return errors
