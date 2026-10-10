@@ -126,3 +126,50 @@ fn contribution_count_sweep_totals_fee_and_hex_boundaries_are_exact() {
     );
     assert!(decode_hex_bounded("aabbcc", "field", 2).is_err());
 }
+
+#[test]
+fn contribution_fetch_results_require_utxos_at_every_address() {
+    let reference = contribution("kaspa:campaign".into(), "51");
+    let Err(error) = require_nonempty_contribution(&reference, Vec::new()) else {
+        panic!("an unfunded contribution address must be rejected");
+    };
+    assert_eq!(error, "No UTXOs at crowdfunding address kaspa:campaign");
+    let utxo = UtxoEntry {
+        tx_id: "33".repeat(32),
+        index: 0,
+        amount: 10,
+        script_public_key: vec![0x51],
+        block_daa_score: 0,
+        covenant_id: None,
+    };
+    let Ok((kept, utxos)) = require_nonempty_contribution(&reference, vec![utxo.clone()]) else {
+        panic!("a funded contribution address must be kept");
+    };
+    assert_eq!(kept.address, "kaspa:campaign");
+    assert_eq!(utxos, vec![utxo]);
+}
+
+#[test]
+fn sweep_totals_must_match_the_proven_public_total() {
+    let proven = proof::serialize_total(99).unwrap();
+    assert_eq!(
+        validate_sweep_totals(100, 100, 1, &proven),
+        Err("Crowdfunding proof public total does not match the actual UTXO total".to_string())
+    );
+}
+
+#[test]
+fn sweep_material_rejects_undecodable_proof_and_public_input() {
+    let mut request = invalid_request("[]");
+    request.proof_hex = "zz";
+    let Err(error) = verified_sweep_material(&request) else {
+        panic!("an undecodable proof must be rejected");
+    };
+    assert!(error.contains("crowdfunding proof"), "{error}");
+    request.proof_hex = "00";
+    request.public_input_hex = "zz";
+    let Err(error) = verified_sweep_material(&request) else {
+        panic!("an undecodable public input must be rejected");
+    };
+    assert!(error.contains("crowdfunding public input"), "{error}");
+}

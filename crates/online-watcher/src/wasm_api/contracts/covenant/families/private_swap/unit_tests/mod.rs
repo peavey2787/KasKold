@@ -343,3 +343,32 @@ fn private_swap_claim_sighash_wasm_boundary_rejects_malformed_wire() {
     assert!(private_swap_claim_sighash("zz").is_err());
     assert!(private_swap_claim_sighash("00").is_err());
 }
+
+#[test]
+fn verifiers_reject_each_malformed_field_before_cryptography() {
+    let key = h(0x11, 32);
+    let message = h(0x22, 32);
+    let signature = h(0x33, 64);
+    assert!(!private_swap_verify_completed("zz", &message, &signature));
+    assert!(!private_swap_verify_completed(&key, "zz", &signature));
+    assert!(!private_swap_verify_host_relation(
+        &key,
+        &message,
+        &h(0x44, 32),
+        "zz",
+        &h(0x55, 32),
+        &h(0x02, 33),
+        &h(0x66, 32),
+        false,
+    ));
+    assert!(!private_swap_verify_host_relation(
+        &key,
+        &message,
+        &h(0x44, 32),
+        &h(0x77, 16),
+        &h(0x55, 32),
+        "zz",
+        &h(0x66, 32),
+        false,
+    ));
+}
