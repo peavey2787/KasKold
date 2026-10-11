@@ -88,3 +88,28 @@ fn only_mnemonic_wallets_may_start_a_private_swap() {
         Err(HotWalletError::UnsupportedForWalletType)
     ));
 }
+
+#[test]
+fn only_mnemonic_wallets_may_bind_a_private_swap_key() {
+    use shared_signer::covenant_sign::private_swap::{
+        self as wire, PrivateSwapRequest, RequestKind,
+    };
+
+    let raw = crate::HotWallet::import_raw_private_key_hex(&format!("{:064x}", 1u8)).unwrap();
+    let bind = PrivateSwapRequest {
+        kind: RequestKind::Bind,
+        session_id: [0; wire::SESSION_ID_LEN],
+        host_commitment: [0; 32],
+        key_id: [1; 32],
+        binding_token: [0; 32],
+        adaptor_point: [2; 32],
+        presignature: [0; 64],
+        presignature_negated: false,
+        payload: &[0x51],
+    };
+    let mut session = PrivateSwapSession::new();
+    assert!(matches!(
+        session.prepare_request(&raw, &crate::unit_tests::encode_private_swap_request(&bind)),
+        Err(HotWalletError::UnsupportedForWalletType)
+    ));
+}

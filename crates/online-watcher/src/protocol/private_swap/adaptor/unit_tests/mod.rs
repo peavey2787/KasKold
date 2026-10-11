@@ -195,3 +195,22 @@ fn adaptor_verifiers_fail_closed_for_wrong_points_messages_scalars_and_host_secr
     assert!(extract_secret(&wrong_nonce, &f.presig).is_err());
     assert!(extract_secret(&f.presig.bytes, &f.presig).is_err());
 }
+
+#[test]
+fn every_adaptor_error_has_a_distinct_message() {
+    use kaspa_portal::crypto::adaptor::AdaptorError;
+    let messages = [
+        AdaptorError::InvalidPrivateKey,
+        AdaptorError::InvalidAdaptorPoint,
+        AdaptorError::InvalidNonce,
+        AdaptorError::InvalidPreSignature,
+        AdaptorError::InvalidCompletedSignature,
+        AdaptorError::InvalidHostContribution,
+    ]
+    .map(super::super::adaptor::message);
+    assert_eq!(messages[2], "invalid adaptor nonce");
+    for (index, message) in messages.iter().enumerate() {
+        assert!(message.starts_with("invalid") || message.contains("adaptor"));
+        assert!(!messages[..index].contains(message), "{message}");
+    }
+}
