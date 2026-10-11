@@ -433,3 +433,6 @@ const fn script_type_label(script_type: ScriptType) -> &'static str {
         ScriptType::Unknown => "Unknown",
     }
 }
+
+#[cfg(test)]
+mod unit_tests;

@@ -774,6 +774,7 @@ dependencies = [
 name = "vault-runtime"
 version = "2.0.0"
 dependencies = [
+ "hmac",
  "hot-wallet",
  "kaskold-protocol",
  "serde_json",

@@ -340,12 +340,7 @@ impl VaultRuntime {
             .wallet
             .export_kpub()
             .map_err(VaultRuntimeError::Custody)?;
-        self.clear_signing_session();
-        self.covenant.clear_all();
-        self.wallets.push(created.wallet);
-        self.wallet_names
-            .push(default_wallet_name(self.wallets.len() - 1));
-        self.active_wallet = Some(self.wallets.len() - 1);
+        self.install_new_wallet(created.wallet);
         Ok(VaultCreation {
             recovery_phrase: created.recovery_phrase,
             kpub,
@@ -354,12 +349,7 @@ impl VaultRuntime {
 
     fn add_wallet(&mut self, wallet: HotWallet) -> Result<String, VaultRuntimeError> {
         let kpub = wallet.export_kpub().map_err(VaultRuntimeError::Custody)?;
-        self.clear_signing_session();
-        self.covenant.clear_all();
-        self.wallets.push(wallet);
-        self.wallet_names
-            .push(default_wallet_name(self.wallets.len() - 1));
-        self.active_wallet = Some(self.wallets.len() - 1);
+        self.install_new_wallet(wallet);
         Ok(kpub)
     }
 
@@ -367,12 +357,7 @@ impl VaultRuntime {
         &mut self,
         wallet: HotWallet,
     ) -> Result<WalletSummary, VaultRuntimeError> {
-        self.clear_signing_session();
-        self.covenant.clear_all();
-        self.wallets.push(wallet);
-        let index = self.wallets.len() - 1;
-        self.wallet_names.push(default_wallet_name(index));
-        self.active_wallet = Some(index);
+        let index = self.install_new_wallet(wallet);
         let wallet = &self.wallets[index];
         Ok(WalletSummary {
             index,
@@ -382,6 +367,17 @@ impl VaultRuntime {
             fingerprint: wallet.fingerprint_hex().ok(),
             kpub: wallet.export_kpub().ok(),
         })
+    }
+
+    /// Append a wallet under its default name and make it the active slot.
+    fn install_new_wallet(&mut self, wallet: HotWallet) -> usize {
+        self.clear_signing_session();
+        self.covenant.clear_all();
+        self.wallets.push(wallet);
+        let index = self.wallets.len() - 1;
+        self.wallet_names.push(default_wallet_name(index));
+        self.active_wallet = Some(index);
+        index
     }
 
     fn ensure_wallet_capacity(&self) -> Result<(), VaultRuntimeError> {

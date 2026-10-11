@@ -12,6 +12,7 @@ crate-type = ["rlib", "staticlib"]
 hot-wallet = { version = "=2.0.0", path = "../hot-wallet" }
 kaskold-protocol = { version = "=2.0.0", path = "../kaskold-protocol", features = ["host"] }
 shared-signer = { version = "=2.0.0", path = "../shared-signer" }
+hmac = "0.12"
 sha2 = { version = "0.10.9", default-features = false }
 zeroize = { version = "1.8.2", default-features = false, features = ["alloc"] }
 serde_json = "1.0"

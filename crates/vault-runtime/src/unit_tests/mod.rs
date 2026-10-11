@@ -309,7 +309,10 @@ fn signing_session_rejects_locked_and_missing_review_states() {
     ));
 }
 
+mod covenant_guards;
 mod native_ffi;
+mod native_ffi_outputs;
+mod wallet_inventory;
 
 #[test]
 fn wallet_inventory_receive_and_switching_follow_active_wallet() {

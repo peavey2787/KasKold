@@ -4,7 +4,7 @@ use offline_signer::{
     address::{encode_address_for_network, AddressType, KaspaNetwork, MAX_ADDR_LEN},
     derivation::xpub::{self, KpubParts},
     transaction::{
-        model::{MultisigConfig, MAX_MULTISIG_KEYS, OP_CHECKMULTISIG, OP_DATA_32},
+        model::{MultisigConfig, MAX_MULTISIG_KEYS},
         sighash::blake2b_hash,
     },
 };
@@ -268,17 +268,12 @@ fn static_multisig_address(
     network: KaspaNetwork,
 ) -> Result<String, HotWalletError> {
     let count = usize::from(parsed.participant_count);
-    if !(2..=MAX_MULTISIG_KEYS).contains(&count) || parsed.threshold == 0 {
-        return Err(HotWalletError::MultisigInvalid);
-    }
-    let mut script = Vec::with_capacity(2 + count * 33);
-    script.push(0x50u8.saturating_add(parsed.threshold));
-    for key in &parsed.static_public_keys[..count] {
-        script.push(OP_DATA_32);
-        script.extend_from_slice(key);
-    }
-    script.push(0x50u8.saturating_add(parsed.participant_count));
-    script.push(OP_CHECKMULTISIG);
+    // Static cosigner keys are sorted before scripting, exactly as every
+    // watch-only wallet reproduces the same descriptor's address.
+    let mut keys = parsed.static_public_keys[..count].to_vec();
+    keys.sort_unstable();
+    let script = offline_signer::derivation::multisig::build_redeem_script(parsed.threshold, &keys)
+        .map_err(|_| HotWalletError::MultisigInvalid)?;
     address_from_hash(&blake2b_hash(&script), network)
 }
 
@@ -292,3 +287,6 @@ fn address_from_hash(hash: &[u8; 32], network: KaspaNetwork) -> Result<String, H
         .map(str::to_owned)
         .map_err(|_| HotWalletError::InvalidToolInput)
 }
+
+#[cfg(test)]
+mod unit_tests;

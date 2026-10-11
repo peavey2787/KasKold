@@ -259,17 +259,14 @@ pub extern "C" fn kaskold_vault_workflow_text_with_bytes(
     data: *const u8,
     data_len: usize,
 ) -> i32 {
-    with_handle_mut(handle, |vault| {
-        with_input_text(operation, operation_len, |operation| {
-            with_input_text(input_json, input_json_len, |input_json| {
-                with_input_bytes(data, data_len, |data| {
-                    vault.workflow_bytes(operation, input_json, data)
-                })
-                .unwrap_or_else(|| vault.fail("invalid native workflow byte buffer"))
-            })
-            .unwrap_or_else(|| vault.fail("invalid native workflow JSON UTF-8"))
-        })
-        .unwrap_or_else(|| vault.fail("invalid native workflow operation UTF-8"))
-    })
-    .unwrap_or(ERROR)
+    // The same byte workflow; native callers read its result as text.
+    kaskold_vault_workflow_bytes(
+        handle,
+        operation,
+        operation_len,
+        input_json,
+        input_json_len,
+        data,
+        data_len,
+    )
 }

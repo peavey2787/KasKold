@@ -6,6 +6,8 @@
 
 mod privacy_pairing;
 mod stealth;
+#[cfg(test)]
+mod unit_tests;
 
 use offline_signer::{
     address::{encode_address_for_network, AddressType, KaspaNetwork, MAX_ADDR_LEN},

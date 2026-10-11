@@ -5,8 +5,9 @@
 //! with a wrapping-key HMAC so Android/iOS can persist the shared runtime
 //! inventory without inventing a platform-specific plaintext wallet catalog.
 
+use hmac::{Hmac, Mac};
 use hot_wallet::{HotWallet, PLATFORM_WRAPPING_KEY_LEN};
-use sha2::{Digest, Sha256};
+use sha2::Sha256;
 use zeroize::Zeroize;
 
 use crate::{wallet_tools::validate_wallet_name, VaultRuntime, VaultRuntimeError};
@@ -14,7 +15,6 @@ use crate::{wallet_tools::validate_wallet_name, VaultRuntime, VaultRuntimeError}
 const MAGIC: &[u8; 4] = b"KVI1";
 const HEADER_LEN: usize = 8;
 const TAG_LEN: usize = 32;
-const HMAC_BLOCK_LEN: usize = 64;
 const HMAC_DOMAIN: &[u8] = b"KasKold/VaultInventory/v1";
 const MAX_SEALED_SLOT_LEN: usize = 1024;
 
@@ -39,9 +39,10 @@ impl VaultRuntime {
             append_inventory_slot(self, index, wallet, wrapping_key, &mut output)?;
         }
 
-        let mut tag = hmac_sha256(wrapping_key, &output);
+        let tag = inventory_mac(wrapping_key, &output)?
+            .finalize()
+            .into_bytes();
         output.extend_from_slice(&tag);
-        tag.zeroize();
         Ok(output)
     }
 
@@ -146,12 +147,10 @@ fn authenticated_inventory_body<'a>(
     }
     let body_len = sealed.len() - TAG_LEN;
     let (body, supplied_tag) = sealed.split_at(body_len);
-    let mut expected_tag = hmac_sha256(wrapping_key, body);
-    let valid = constant_time_eq(&expected_tag, supplied_tag);
-    expected_tag.zeroize();
-    valid
-        .then_some(body)
-        .ok_or(VaultRuntimeError::InvalidSealedInventory)
+    inventory_mac(wrapping_key, body)?
+        .verify_slice(supplied_tag)
+        .map(|()| body)
+        .map_err(|_| VaultRuntimeError::InvalidSealedInventory)
 }
 
 fn parse_inventory_header(body: &[u8]) -> Result<(usize, usize), VaultRuntimeError> {
@@ -234,40 +233,17 @@ fn read_slice<'a>(
     Ok(value)
 }
 
-fn hmac_sha256(key: &[u8; 32], message: &[u8]) -> [u8; 32] {
-    let mut inner_pad = [0x36u8; HMAC_BLOCK_LEN];
-    let mut outer_pad = [0x5cu8; HMAC_BLOCK_LEN];
-    for (index, byte) in key.iter().enumerate() {
-        inner_pad[index] ^= byte;
-        outer_pad[index] ^= byte;
-    }
-
-    let mut inner = Sha256::new();
-    inner.update(inner_pad);
-    inner.update(HMAC_DOMAIN);
-    inner.update(message);
-    let mut inner_digest = inner.finalize();
-
-    let mut outer = Sha256::new();
-    outer.update(outer_pad);
-    outer.update(inner_digest.as_slice());
-    let digest = outer.finalize();
-    let mut output = [0u8; 32];
-    output.copy_from_slice(&digest);
-
-    inner_pad.zeroize();
-    outer_pad.zeroize();
-    inner_digest.as_mut_slice().zeroize();
-    output
+/// HMAC-SHA256 under the wrapping key over the inventory domain and body.
+fn inventory_mac(
+    wrapping_key: &[u8; PLATFORM_WRAPPING_KEY_LEN],
+    body: &[u8],
+) -> Result<Hmac<Sha256>, VaultRuntimeError> {
+    let mut mac = <Hmac<Sha256> as Mac>::new_from_slice(wrapping_key)
+        .map_err(|_| VaultRuntimeError::InvalidSealedInventory)?;
+    mac.update(HMAC_DOMAIN);
+    mac.update(body);
+    Ok(mac)
 }
 
-fn constant_time_eq(expected: &[u8; TAG_LEN], supplied: &[u8]) -> bool {
-    if supplied.len() != TAG_LEN {
-        return false;
-    }
-    let mut different = 0u8;
-    for (left, right) in expected.iter().zip(supplied) {
-        different |= left ^ right;
-    }
-    different == 0
-}
+#[cfg(test)]
+mod unit_tests;

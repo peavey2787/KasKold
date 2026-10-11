@@ -21,6 +21,7 @@ pub mod derivation {
         derivation::{bip32, bip85, covenant, hmac},
         key::xpub,
         mnemonic::{bip39, wordlist as bip39_wordlist},
+        multisig,
     };
 }
 pub mod facade;
