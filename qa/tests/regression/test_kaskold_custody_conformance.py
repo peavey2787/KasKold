@@ -93,7 +93,7 @@ class KasKoldCustodyConformanceTests(unittest.TestCase):
         hot = "\n".join(path.read_text() for path in sorted((ROOT / "crates/hot-wallet/src").rglob("*.rs")))
         vault = "\n".join(path.read_text() for path in sorted((ROOT / "crates/vault-runtime/src").rglob("*.rs")))
         web = "\n".join(path.read_text() for path in sorted((ROOT / "apps/kaskold-vault-web/src").rglob("*.rs")))
-        self.assertIn("sign_transaction_multi_addr_with_entropy", hot)
+        self.assertIn("sign_transaction_multisig_with_entropy", hot)
         self.assertIn(".sign_transaction(request)", vault)
         self.assertIn("VaultRuntime", web)
         self.assertNotIn("schnorr_sign", web)
