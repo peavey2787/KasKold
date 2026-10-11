@@ -40,7 +40,13 @@ fuzz_target!(|data: &[u8]| {
     }
 
     let mut encoded = [0u8; 8192];
-    let written = serialize_compact_kspt(&tx, &mut encoded).expect("bounded transaction encodes");
+    let encoded_len = serialize_compact_kspt(&tx, &mut encoded);
+    // Only transaction versions 0 and 1 exist; any other version must be refused.
+    if tx.version > 1 {
+        assert!(encoded_len.is_err(), "unsupported version {} encoded", tx.version);
+        return;
+    }
+    let written = encoded_len.expect("bounded transaction encodes");
     let Ok(mut parsed) = Transaction::try_new() else {
         return;
     };
