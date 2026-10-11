@@ -328,3 +328,6 @@ fn valid_recovery_passphrase(passphrase: &[u8; MAX_BIP39_PASSPHRASE_LEN], len: u
     passphrase[len..].iter().all(|byte| *byte == 0)
         && core::str::from_utf8(&passphrase[..len]).is_ok()
 }
+
+#[cfg(test)]
+mod unit_tests;

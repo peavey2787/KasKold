@@ -921,13 +921,23 @@ fn encode_private_swap_request(
     encoded
 }
 
-#[test]
-fn private_swap_session_covers_key_bind_presign_reveal_and_completion() {
+struct SwapAwaitingReveal {
+    session: super::PrivateSwapSession,
+    key_info: shared_signer::covenant_sign::private_swap::PrivateSwapResponse,
+    binding_token: [u8; 32],
+    session_id: [u8; shared_signer::covenant_sign::private_swap::SESSION_ID_LEN],
+    sighash: [u8; 32],
+    host_secret: [u8; 32],
+    claim_wire: Vec<u8>,
+}
+
+/// Drive a fresh session through key info, binding and pre-sign to the
+/// point where it awaits the host's reveal.
+fn private_swap_awaiting_reveal(wallet: &HotWallet) -> SwapAwaitingReveal {
     use shared_signer::covenant_sign::private_swap::{
-        self as wire, PrivateSwapRequest, PrivateSwapReveal, RequestKind, ResponseKind,
+        self as wire, PrivateSwapRequest, RequestKind, ResponseKind,
     };
 
-    let wallet = restored_wallet();
     let mut session = super::PrivateSwapSession::new();
     let empty = PrivateSwapRequest {
         kind: RequestKind::KeyInfo,
@@ -941,7 +951,7 @@ fn private_swap_session_covers_key_bind_presign_reveal_and_completion() {
         payload: &[],
     };
     let key_info = match session
-        .prepare_request(&wallet, &encode_private_swap_request(&empty))
+        .prepare_request(wallet, &encode_private_swap_request(&empty))
         .expect("key-info prepares")
     {
         super::PrivateSwapPrepared::Response(response) => {
@@ -958,22 +968,18 @@ fn private_swap_session_covers_key_bind_presign_reveal_and_completion() {
 
     let bind = PrivateSwapRequest {
         kind: RequestKind::Bind,
-        session_id: [0; wire::SESSION_ID_LEN],
-        host_commitment: [0; 32],
         key_id: key_info.key_id,
-        binding_token: [0; 32],
         adaptor_point: key_info.adaptor_point,
-        presignature: [0; 64],
-        presignature_negated: false,
         payload: &redeem,
+        ..empty
     };
     assert!(matches!(
         session
-            .prepare_request(&wallet, &encode_private_swap_request(&bind))
+            .prepare_request(wallet, &encode_private_swap_request(&bind))
             .expect("binding prepares"),
         super::PrivateSwapPrepared::Review(_)
     ));
-    let binding = wire::parse_response(&session.confirm(&wallet).expect("binding confirms"))
+    let binding = wire::parse_response(&session.confirm(wallet).expect("binding confirms"))
         .expect("binding response parses");
     assert_eq!(binding.kind, ResponseKind::Binding);
 
@@ -992,58 +998,206 @@ fn private_swap_session_covers_key_bind_presign_reveal_and_completion() {
         key_id: key_info.key_id,
         binding_token: binding.binding_token,
         adaptor_point: key_info.adaptor_point,
-        presignature: [0; 64],
-        presignature_negated: false,
         payload: &claim_wire,
+        ..empty
     };
     assert!(matches!(
         session
-            .prepare_request(&wallet, &encode_private_swap_request(&presign))
+            .prepare_request(wallet, &encode_private_swap_request(&presign))
             .expect("presign prepares"),
         super::PrivateSwapPrepared::Review(_)
     ));
-    let nonce = wire::parse_response(&session.confirm(&wallet).expect("presign confirms"))
+    let nonce = wire::parse_response(&session.confirm(wallet).expect("presign confirms"))
         .expect("nonce response parses");
     assert_eq!(nonce.kind, ResponseKind::Nonce);
     assert!(session.awaiting_reveal());
-
-    let reveal = PrivateSwapReveal {
+    SwapAwaitingReveal {
+        session,
+        key_info,
+        binding_token: binding.binding_token,
         session_id,
-        key_id: key_info.key_id,
         sighash: nonce.commitment,
         host_secret,
+        claim_wire,
+    }
+}
+
+fn swap_reveal(
+    reveal: &shared_signer::covenant_sign::private_swap::PrivateSwapReveal,
+) -> [u8; shared_signer::covenant_sign::private_swap::REVEAL_LEN] {
+    use shared_signer::covenant_sign::private_swap as wire;
+    let mut out = [0u8; wire::REVEAL_LEN];
+    wire::encode_reveal(reveal, &mut out).expect("reveal encodes");
+    out
+}
+
+#[test]
+fn private_swap_session_covers_key_bind_presign_reveal_and_completion() {
+    use shared_signer::covenant_sign::private_swap::{
+        self as wire, PrivateSwapRequest, PrivateSwapReveal, RequestKind, ResponseKind,
     };
-    let mut reveal_wire = [0u8; wire::REVEAL_LEN];
-    wire::encode_reveal(&reveal, &mut reveal_wire).expect("reveal encodes");
+
+    let wallet = restored_wallet();
+    let mut swap = private_swap_awaiting_reveal(&wallet);
+    let reveal = PrivateSwapReveal {
+        session_id: swap.session_id,
+        key_id: swap.key_info.key_id,
+        sighash: swap.sighash,
+        host_secret: swap.host_secret,
+    };
     let presignature = wire::parse_response(
-        &session
-            .finalize_reveal(&wallet, &reveal_wire)
+        &swap
+            .session
+            .finalize_reveal(&wallet, &swap_reveal(&reveal))
             .expect("reveal finalizes"),
     )
     .expect("presignature response parses");
     assert_eq!(presignature.kind, ResponseKind::PreSignature);
+    assert!(!swap.session.awaiting_reveal());
 
     let complete = PrivateSwapRequest {
         kind: RequestKind::Complete,
         session_id: [0; wire::SESSION_ID_LEN],
         host_commitment: [0; 32],
-        key_id: key_info.key_id,
-        binding_token: binding.binding_token,
-        adaptor_point: key_info.adaptor_point,
+        key_id: swap.key_info.key_id,
+        binding_token: swap.binding_token,
+        adaptor_point: swap.key_info.adaptor_point,
         presignature: presignature.signature,
         presignature_negated: presignature.negated,
-        payload: &claim_wire,
+        payload: &swap.claim_wire,
     };
     assert!(matches!(
-        session
+        swap.session
             .prepare_request(&wallet, &encode_private_swap_request(&complete))
             .expect("completion prepares"),
         super::PrivateSwapPrepared::Review(_)
     ));
-    let completed = wire::parse_response(&session.confirm(&wallet).expect("completion confirms"))
-        .expect("completed response parses");
+    let completed =
+        wire::parse_response(&swap.session.confirm(&wallet).expect("completion confirms"))
+            .expect("completed response parses");
     assert_eq!(completed.kind, ResponseKind::Completed);
     assert_ne!(completed.signature, [0; 64]);
+
+    // A completion carrying another presignature is refused.
+    let tampered = PrivateSwapRequest {
+        presignature: [0x11; 64],
+        ..complete
+    };
+    assert!(swap
+        .session
+        .prepare_request(&wallet, &encode_private_swap_request(&tampered))
+        .is_err());
+}
+
+#[test]
+fn private_swap_rejects_every_mismatched_reveal_field_and_out_of_order_steps() {
+    use shared_signer::covenant_sign::private_swap::PrivateSwapReveal;
+
+    let wallet = restored_wallet();
+    let mut swap = private_swap_awaiting_reveal(&wallet);
+    let good = PrivateSwapReveal {
+        session_id: swap.session_id,
+        key_id: swap.key_info.key_id,
+        sighash: swap.sighash,
+        host_secret: swap.host_secret,
+    };
+    for bad in [
+        PrivateSwapReveal {
+            session_id: [0x01; shared_signer::covenant_sign::private_swap::SESSION_ID_LEN],
+            ..good
+        },
+        PrivateSwapReveal {
+            key_id: [0x02; 32],
+            ..good
+        },
+        PrivateSwapReveal {
+            sighash: [0x03; 32],
+            ..good
+        },
+        PrivateSwapReveal {
+            host_secret: [0x04; 32],
+            ..good
+        },
+    ] {
+        assert!(matches!(
+            swap.session.finalize_reveal(&wallet, &swap_reveal(&bad)),
+            Err(HotWalletError::CryptoOperationFailed)
+        ));
+        assert!(swap.session.awaiting_reveal());
+    }
+    // Confirming again while awaiting the reveal is out of order.
+    assert!(matches!(
+        swap.session.confirm(&wallet),
+        Err(HotWalletError::InvalidToolInput)
+    ));
+    // Raw-key wallets cannot run the protocol at all.
+    let raw = HotWallet::import_raw_private_key_hex(&format!("{:064x}", 1u8)).unwrap();
+    assert!(swap.session.confirm(&raw).is_err());
+    assert!(swap
+        .session
+        .finalize_reveal(&raw, &swap_reveal(&good))
+        .is_err());
+
+    swap.session.reset_active();
+    assert!(!swap.session.awaiting_reveal());
+    assert!(matches!(
+        swap.session.finalize_reveal(&wallet, &swap_reveal(&good)),
+        Err(HotWalletError::CryptoOperationFailed)
+    ));
+}
+
+#[test]
+fn private_swap_binding_requires_the_allocated_key_and_adaptor_point() {
+    use shared_signer::covenant_sign::private_swap::{
+        self as wire, PrivateSwapRequest, RequestKind,
+    };
+
+    let wallet = restored_wallet();
+    let swap = private_swap_awaiting_reveal(&wallet);
+    let mut session = super::PrivateSwapSession::new();
+    let key_request = PrivateSwapRequest {
+        kind: RequestKind::KeyInfo,
+        session_id: [0; wire::SESSION_ID_LEN],
+        host_commitment: [0; 32],
+        key_id: [0; 32],
+        binding_token: [0; 32],
+        adaptor_point: [0; 32],
+        presignature: [0; 64],
+        presignature_negated: false,
+        payload: &[],
+    };
+    let super::PrivateSwapPrepared::Response(response) = session
+        .prepare_request(&wallet, &encode_private_swap_request(&key_request))
+        .unwrap()
+    else {
+        panic!("key-info must be immediate");
+    };
+    let key_info = wire::parse_response(&response).unwrap();
+    let mut claim = Transaction::try_new().expect("claim allocation");
+    parse_compact_kspt(&private_swap_claim_wire(key_info.claim_pubkey), &mut claim).unwrap();
+    let redeem = claim.redeem_bytes(0).to_vec();
+    let bind = |key_id, adaptor_point| PrivateSwapRequest {
+        kind: RequestKind::Bind,
+        key_id,
+        adaptor_point,
+        payload: &redeem,
+        ..key_request
+    };
+    for wrong in [
+        bind(swap.key_info.key_id, key_info.adaptor_point),
+        bind(key_info.key_id, swap.key_info.adaptor_point),
+    ] {
+        assert!(matches!(
+            session.prepare_request(&wallet, &encode_private_swap_request(&wrong)),
+            Err(HotWalletError::InvalidToolInput)
+        ));
+    }
+    assert!(session
+        .prepare_request(
+            &wallet,
+            &encode_private_swap_request(&bind(key_info.key_id, key_info.adaptor_point))
+        )
+        .is_ok());
 }
 
 #[test]
@@ -1065,4 +1219,220 @@ fn recovery_material_routes_words_and_rejects_malformed_inputs() {
     ));
     // 48 bytes that are not all digits are treated as words and rejected.
     assert!(HotWallet::restore_recovery_material(&[b'a'; 48], "").is_err());
+}
+
+/// Run both anti-klepto rounds and check the signed transcript with the
+/// host-side verifier a watcher uses.
+fn anti_klepto_round_trip(wallet: &HotWallet, transaction: &[u8]) -> Result<(), HotWalletError> {
+    use shared_signer::anti_klepto as wire;
+
+    let host_secret = [0x3cu8; 32];
+    let mut request = vec![0u8; 256 + transaction.len()];
+    let length = wire::encode_request(&host_secret, transaction, &mut request).unwrap();
+    request.truncate(length);
+    let (mut session, commitment_wire) = wallet.prepare_anti_klepto(&request)?;
+    let commitment = wire::parse_commitment(&commitment_wire).unwrap();
+    offline_signer::transaction::kspt::validate_host_commitment_wire(transaction, &commitment)
+        .expect("signer commitment is well formed");
+
+    let mut reveal = vec![0u8; 128];
+    let length = wire::encode_reveal(&commitment.session_id, &host_secret, &mut reveal).unwrap();
+    reveal.truncate(length);
+    let signed_wire = wallet.finalize_anti_klepto(&mut session, &reveal)?;
+    let signed = wire::parse_signed(&signed_wire).unwrap();
+    offline_signer::transaction::kspt::verify_host_transcript_wire(
+        transaction,
+        signed.transaction,
+        &commitment,
+        &signed,
+        &host_secret,
+    )
+    .expect("finalized signatures commit to the host secret");
+    Ok(())
+}
+
+#[test]
+fn anti_klepto_signatures_verify_against_the_host_transcript_for_each_wallet_kind() {
+    let wallet = restored_wallet();
+    anti_klepto_round_trip(&wallet, &owned_compact_kspt(&wallet)).unwrap();
+
+    let mut private_key = [0u8; 32];
+    private_key[31] = 1;
+    let raw = HotWallet::import_raw_private_key_hex(&format!("{:064x}", 1u8)).unwrap();
+    anti_klepto_round_trip(&raw, &owned_raw_compact_kspt(&private_key)).unwrap();
+}
+
+#[test]
+fn anti_klepto_reveal_must_match_session_and_commitment() {
+    use shared_signer::anti_klepto as wire;
+
+    let wallet = restored_wallet();
+    let transaction = owned_compact_kspt(&wallet);
+    let host_secret = [0x3cu8; 32];
+    let mut request = vec![0u8; 256 + transaction.len()];
+    let length = wire::encode_request(&host_secret, &transaction, &mut request).unwrap();
+    request.truncate(length);
+    let (mut session, commitment_wire) = wallet.prepare_anti_klepto(&request).unwrap();
+    let session_id = wire::parse_commitment(&commitment_wire).unwrap().session_id;
+
+    let reveal = |session_id: &[u8; wire::SESSION_ID_LEN], secret: &[u8; 32]| {
+        let mut out = vec![0u8; 128];
+        let length = wire::encode_reveal(session_id, secret, &mut out).unwrap();
+        out.truncate(length);
+        out
+    };
+    let mut other_session = session_id;
+    other_session[0] ^= 1;
+    for bad in [
+        reveal(&other_session, &host_secret),
+        reveal(&session_id, &[0x3d; 32]),
+    ] {
+        assert!(matches!(
+            wallet.finalize_anti_klepto(&mut session, &bad),
+            Err(HotWalletError::CryptoOperationFailed)
+        ));
+    }
+    assert!(wallet
+        .finalize_anti_klepto(&mut session, &reveal(&session_id, &host_secret))
+        .is_ok());
+}
+
+fn owned_standard_pskb(wallet: &HotWallet) -> Vec<u8> {
+    let account = derive_account_key(&wallet.seed.bytes).expect("account derivation");
+    let xonly = derive_address_key(&account, 0)
+        .expect("receive derivation")
+        .public_key_x_only()
+        .expect("x-only public key");
+    let pskt = serde_json::json!([{
+        "global": {
+            "version": 0,
+            "txVersion": 1,
+            "fallbackLockTime": null,
+            "inputsModifiable": false,
+            "outputsModifiable": false,
+            "inputCount": 1,
+            "outputCount": 1,
+            "xpubs": {},
+            "id": null,
+            "proprietaries": {},
+            "subnetworkId": "00".repeat(20)
+        },
+        "inputs": [{
+            "utxoEntry": {
+                "amount": "100000",
+                "scriptPublicKey": format!("000020{}ac", hex_string(&xonly)),
+                "blockDaaScore": "0",
+                "isCoinbase": false
+            },
+            "previousOutpoint": {"transactionId": "11".repeat(32), "index": 7},
+            "sequence": u64::MAX.to_string(),
+            "minTime": null,
+            "partialSigs": {},
+            "sighashType": 1,
+            "redeemScript": null,
+            "sigOpCount": 1,
+            "bip32Derivations": {},
+            "finalScriptSig": null,
+            "proprietaries": {}
+        }],
+        "outputs": [{
+            "amount": "99000",
+            "scriptPublicKey": format!("000020{}ac", "44".repeat(32)),
+            "redeemScript": null,
+            "bip32Derivations": {},
+            "proprietaries": {}
+        }]
+    }]);
+    let mut wire = b"PSKB".to_vec();
+    wire.extend_from_slice(hex_string(&serde_json::to_vec(&pskt).unwrap()).as_bytes());
+    wire
+}
+
+#[test]
+fn standard_pskb_signing_returns_a_verifiably_signed_pskb() {
+    let wallet = restored_wallet();
+    let signed = wallet
+        .sign_transaction(&owned_standard_pskb(&wallet))
+        .expect("standard PSKB signs");
+    assert!(signed.starts_with(b"PSKB"));
+    assert_eq!(
+        kaskold_protocol::pskt_verified_signature_counts(
+            &hex_string(&signed),
+            kaskold_protocol::Network::Mainnet
+        )
+        .expect("signed PSKB verifies"),
+        vec![1]
+    );
+}
+
+#[test]
+fn passphrases_are_bounded_on_every_restore_path() {
+    let longest = "p".repeat(MAX_BIP39_PASSPHRASE_LEN);
+    let too_long = "p".repeat(MAX_BIP39_PASSPHRASE_LEN + 1);
+    assert!(HotWallet::restore(MNEMONIC_12, &longest).is_ok());
+    assert!(matches!(
+        HotWallet::restore(MNEMONIC_12, &too_long),
+        Err(HotWalletError::Bip39PassphraseTooLong)
+    ));
+
+    // Standard SeedQR digits for the same twelve words.
+    let seedqr = format!("{}0003", "0000".repeat(11));
+    let restored = HotWallet::restore_recovery_material(seedqr.as_bytes(), &longest)
+        .expect("SeedQR restores with the longest passphrase");
+    assert_eq!(
+        restored.export_kpub().unwrap(),
+        HotWallet::restore(MNEMONIC_12, &longest)
+            .unwrap()
+            .export_kpub()
+            .unwrap()
+    );
+    assert!(matches!(
+        HotWallet::restore_recovery_material(seedqr.as_bytes(), &too_long),
+        Err(HotWalletError::Bip39PassphraseTooLong)
+    ));
+}
+
+#[test]
+fn wallet_creation_validates_word_count_passphrase_and_user_entropy() {
+    let longest = "p".repeat(MAX_BIP39_PASSPHRASE_LEN);
+    assert!(HotWallet::create_with_additive_entropy(12, &[1, 6], b"touch", &longest).is_ok());
+    assert!(matches!(
+        HotWallet::create_with_additive_entropy(18, &[], &[], ""),
+        Err(HotWalletError::InvalidMnemonicWordCount)
+    ));
+    assert!(matches!(
+        HotWallet::create_with_additive_entropy(12, &[], &[], &format!("{longest}p")),
+        Err(HotWalletError::Bip39PassphraseTooLong)
+    ));
+    assert!(matches!(
+        HotWallet::create_with_additive_entropy(12, &[7], &[], ""),
+        Err(HotWalletError::InvalidToolInput)
+    ));
+}
+
+#[test]
+fn raw_private_key_text_imports_the_exact_key_bytes() {
+    // SHA-256 of 0x10 00..00 01 starts e9a5fbe5 (computed independently).
+    let wallet =
+        HotWallet::import_raw_private_key_hex(&format!("10{}01", "00".repeat(30))).unwrap();
+    assert_eq!(wallet.fingerprint_hex().unwrap(), "e9a5fbe5");
+    assert!(HotWallet::import_raw_private_key_hex(&format!("1g{}01", "00".repeat(30))).is_err());
+    assert!(HotWallet::import_raw_private_key_hex(&format!("g0{}01", "00".repeat(30))).is_err());
+    assert!(HotWallet::import_raw_private_key_hex("01").is_err());
+}
+
+#[test]
+fn portable_backups_require_their_magic_and_digit_runs_route_by_length() {
+    let backup = restored_wallet().portable_backup("password").unwrap();
+    assert!(HotWallet::restore_portable_backup(&backup, "password").is_ok());
+    let mut renamed = backup.clone();
+    renamed[0] ^= 0x20;
+    assert!(matches!(
+        HotWallet::restore_portable_backup(&renamed, "password"),
+        Err(HotWalletError::InvalidSealedWallet)
+    ));
+
+    // Thirty-two ASCII digits are CompactSeedQR entropy, not a SeedQR digit run.
+    assert!(HotWallet::restore_recovery_material(&[b'0'; 32], "").is_ok());
+    assert!(HotWallet::restore_recovery_material(&[b'0'; 16], "").is_ok());
 }

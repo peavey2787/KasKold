@@ -312,6 +312,7 @@ fn signing_session_rejects_locked_and_missing_review_states() {
 mod covenant_guards;
 mod native_ffi;
 mod native_ffi_outputs;
+mod session_guards;
 mod wallet_inventory;
 
 #[test]
@@ -1030,6 +1031,7 @@ fn runtime_private_swap_adapter_covers_review_response_confirm_and_reveal() {
             .expect("reveal finalizes"),
     )
     .expect("presignature response parses");
+    assert!(!runtime.private_swap_awaiting_reveal());
     assert_eq!(presignature.kind, ResponseKind::PreSignature);
 
     let complete_request = PrivateSwapRequest {

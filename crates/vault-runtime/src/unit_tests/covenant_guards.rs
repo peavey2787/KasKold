@@ -16,6 +16,7 @@ const SESSION: [u8; wire::SESSION_ID_LEN] = [0x73; wire::SESSION_ID_LEN];
 struct Bound {
     runtime: VaultRuntime,
     key_id: [u8; 32],
+    pubkey_x: [u8; 32],
     binding_token: [u8; 32],
 }
 
@@ -62,6 +63,7 @@ fn bound_with(script_for: impl Fn(&[u8; 32]) -> Vec<u8>) -> (Bound, Vec<u8>) {
     let bound = Bound {
         runtime,
         key_id: key_info.key_id,
+        pubkey_x: key_info.pubkey_x,
         binding_token: binding.binding_token,
     };
     (bound, script)
@@ -123,10 +125,24 @@ fn every_mismatched_reveal_field_is_rejected_without_losing_the_session() {
             Err(VaultRuntimeError::CovenantRevealMismatch)
         ));
     }
-    assert!(bound
-        .runtime
-        .covenant_finalize_reveal(&reveal(&good))
-        .is_ok());
+    let signed = wire::parse_response(
+        &bound
+            .runtime
+            .covenant_finalize_reveal(&reveal(&good))
+            .unwrap(),
+    )
+    .unwrap();
+    // The final signature is a BIP340 signature by the covenant key over the
+    // committed message.
+    use offline_signer::crypto::schnorr::{schnorr_verify, SchnorrSignature};
+    assert!(schnorr_verify(
+        &bound.pubkey_x,
+        &COMMITMENT,
+        &SchnorrSignature {
+            bytes: signed.signature
+        }
+    )
+    .is_ok());
     // A second reveal after the final signature is out of order.
     assert!(matches!(
         bound.runtime.covenant_finalize_reveal(&reveal(&good)),

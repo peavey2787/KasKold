@@ -438,6 +438,8 @@ D	branding/web
 D	crates
 D	crates/hot-wallet
 D	crates/hot-wallet/src
+D	crates/hot-wallet/src/platform_sealed
+D	crates/hot-wallet/src/platform_sealed/unit_tests
 D	crates/hot-wallet/src/private_swap
 D	crates/hot-wallet/src/transaction_review
 D	crates/hot-wallet/src/transaction_review/unit_tests
@@ -2203,6 +2205,7 @@ F	crates/hot-wallet/src/covenant_tools.rs
 F	crates/hot-wallet/src/entropy.rs
 F	crates/hot-wallet/src/lib.rs
 F	crates/hot-wallet/src/platform_sealed.rs
+F	crates/hot-wallet/src/platform_sealed/unit_tests/mod.rs
 F	crates/hot-wallet/src/portable_backup.rs
 F	crates/hot-wallet/src/private_swap.rs
 F	crates/hot-wallet/src/private_swap/operations.rs
@@ -2614,6 +2617,7 @@ F	crates/vault-runtime/src/unit_tests/covenant_guards.rs
 F	crates/vault-runtime/src/unit_tests/mod.rs
 F	crates/vault-runtime/src/unit_tests/native_ffi.rs
 F	crates/vault-runtime/src/unit_tests/native_ffi_outputs.rs
+F	crates/vault-runtime/src/unit_tests/session_guards.rs
 F	crates/vault-runtime/src/unit_tests/wallet_inventory.rs
 F	crates/vault-runtime/src/wallet_lifecycle.rs
 F	crates/vault-runtime/src/wallet_tools.rs
