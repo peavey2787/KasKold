@@ -1176,16 +1176,37 @@ fn private_swap_binding_requires_the_allocated_key_and_adaptor_point() {
     let mut claim = Transaction::try_new().expect("claim allocation");
     parse_compact_kspt(&private_swap_claim_wire(key_info.claim_pubkey), &mut claim).unwrap();
     let redeem = claim.redeem_bytes(0).to_vec();
-    let bind = |key_id, adaptor_point| PrivateSwapRequest {
-        kind: RequestKind::Bind,
-        key_id,
-        adaptor_point,
-        payload: &redeem,
-        ..key_request
-    };
+    fn bind<'a>(
+        template: &PrivateSwapRequest<'a>,
+        payload: &'a [u8],
+        key_id: [u8; 32],
+        adaptor_point: [u8; 32],
+    ) -> PrivateSwapRequest<'a> {
+        PrivateSwapRequest {
+            kind: RequestKind::Bind,
+            session_id: template.session_id,
+            host_commitment: template.host_commitment,
+            key_id,
+            binding_token: template.binding_token,
+            adaptor_point,
+            presignature: template.presignature,
+            presignature_negated: template.presignature_negated,
+            payload,
+        }
+    }
     for wrong in [
-        bind(swap.key_info.key_id, key_info.adaptor_point),
-        bind(key_info.key_id, swap.key_info.adaptor_point),
+        bind(
+            &key_request,
+            &redeem,
+            swap.key_info.key_id,
+            key_info.adaptor_point,
+        ),
+        bind(
+            &key_request,
+            &redeem,
+            key_info.key_id,
+            swap.key_info.adaptor_point,
+        ),
     ] {
         assert!(matches!(
             session.prepare_request(&wallet, &encode_private_swap_request(&wrong)),
@@ -1195,7 +1216,12 @@ fn private_swap_binding_requires_the_allocated_key_and_adaptor_point() {
     assert!(session
         .prepare_request(
             &wallet,
-            &encode_private_swap_request(&bind(key_info.key_id, key_info.adaptor_point))
+            &encode_private_swap_request(&bind(
+                &key_request,
+                &redeem,
+                key_info.key_id,
+                key_info.adaptor_point
+            ))
         )
         .is_ok());
 }
