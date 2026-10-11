@@ -310,6 +310,7 @@ fn signing_session_rejects_locked_and_missing_review_states() {
 }
 
 mod covenant_guards;
+mod lifecycle_release;
 mod native_ffi;
 mod native_ffi_outputs;
 mod session_guards;
@@ -786,14 +787,16 @@ fn covenant_runtime_known_shape_covers_invalid_context_commitment_script_and_suc
     assert_eq!(review.commitment, commitment);
 }
 
-#[test]
-fn runtime_anti_klepto_round_trip_covers_reveal_transition_and_finalization() {
+/// Scan an anti-klepto request and approve it, leaving the runtime awaiting
+/// the host reveal. Returns the request session id and the host secret.
+fn runtime_anti_klepto_awaiting_reveal(
+    runtime: &mut VaultRuntime,
+) -> (
+    [u8; shared_signer::anti_klepto::SESSION_ID_LEN],
+    [u8; shared_signer::anti_klepto::HASH_LEN],
+) {
     use shared_signer::anti_klepto;
 
-    let mut runtime = VaultRuntime::new();
-    runtime
-        .restore_wallet(MNEMONIC, "")
-        .expect("wallet restores");
     runtime.begin_scan().expect("scan begins");
 
     let transaction = owned_compact_kspt(0);
@@ -813,6 +816,18 @@ fn runtime_anti_klepto_round_trip_covers_reveal_transition_and_finalization() {
     let commitment_frames = runtime.approve(0).expect("commitment response produced");
     assert!(!commitment_frames.is_empty());
     assert!(runtime.anti_klepto_awaiting_reveal());
+    (parsed_request.session_id, host_secret)
+}
+
+#[test]
+fn runtime_anti_klepto_round_trip_covers_reveal_transition_and_finalization() {
+    use shared_signer::anti_klepto;
+
+    let mut runtime = VaultRuntime::new();
+    runtime
+        .restore_wallet(MNEMONIC, "")
+        .expect("wallet restores");
+    let (session_id, host_secret) = runtime_anti_klepto_awaiting_reveal(&mut runtime);
     runtime
         .begin_anti_klepto_reveal()
         .expect("reveal phase begins");
@@ -822,16 +837,15 @@ fn runtime_anti_klepto_round_trip_covers_reveal_transition_and_finalization() {
     ));
 
     let mut reveal = [0u8; 96];
-    let reveal_len =
-        anti_klepto::encode_reveal(&parsed_request.session_id, &host_secret, &mut reveal)
-            .expect("anti-klepto reveal encodes");
+    let reveal_len = anti_klepto::encode_reveal(&session_id, &host_secret, &mut reveal)
+        .expect("anti-klepto reveal encodes");
     let signed_frames = runtime
         .finalize_anti_klepto_reveal(&reveal[..reveal_len], 0)
         .expect("anti-klepto reveal finalizes");
     assert!(!signed_frames.is_empty());
     let signed = anti_klepto::parse_signed(runtime.signed_response_wire().unwrap())
         .expect("signed anti-klepto response parses");
-    assert_eq!(signed.session_id, parsed_request.session_id);
+    assert_eq!(signed.session_id, session_id);
     assert!(!signed.transaction.is_empty());
 }
 
@@ -930,17 +944,21 @@ fn runtime_encode_private_swap_request(
     out
 }
 
-#[test]
-fn runtime_private_swap_adapter_covers_review_response_confirm_and_reveal() {
+struct RuntimeSwapAwaitingReveal {
+    key_response: shared_signer::covenant_sign::private_swap::PrivateSwapResponse,
+    binding_token: [u8; 32],
+    claim_wire: Vec<u8>,
+    session_id: [u8; shared_signer::covenant_sign::private_swap::SESSION_ID_LEN],
+    sighash: [u8; 32],
+    host_secret: [u8; 32],
+}
+
+fn runtime_private_swap_key_info(
+    runtime: &mut VaultRuntime,
+) -> shared_signer::covenant_sign::private_swap::PrivateSwapResponse {
     use shared_signer::covenant_sign::private_swap::{
-        self as wire, PrivateSwapRequest, PrivateSwapReveal, RequestKind, ResponseKind,
+        self as wire, PrivateSwapRequest, RequestKind, ResponseKind,
     };
-
-    let mut runtime = VaultRuntime::new();
-    runtime
-        .restore_wallet(MNEMONIC, "")
-        .expect("wallet restores");
-
     let key_request = PrivateSwapRequest {
         kind: RequestKind::KeyInfo,
         session_id: [0; wire::SESSION_ID_LEN],
@@ -962,13 +980,17 @@ fn runtime_private_swap_adapter_covers_review_response_confirm_and_reveal() {
         super::PrivateSwapPrepareResult::Review(_) => panic!("key-info must be immediate"),
     };
     assert_eq!(key_response.kind, ResponseKind::KeyInfo);
+    key_response
+}
 
-    let claim_wire = runtime_private_swap_claim(key_response.claim_pubkey);
-    let mut claim = Transaction::try_new().expect("claim allocation");
-    offline_signer::transaction::kspt::parse_compact_kspt(&claim_wire, &mut claim)
-        .expect("claim parses");
-    let redeem = claim.redeem_bytes(0).to_vec();
-    let bind_request = PrivateSwapRequest {
+fn runtime_private_swap_bind_request<'a>(
+    key_response: &shared_signer::covenant_sign::private_swap::PrivateSwapResponse,
+    redeem: &'a [u8],
+) -> shared_signer::covenant_sign::private_swap::PrivateSwapRequest<'a> {
+    use shared_signer::covenant_sign::private_swap::{
+        self as wire, PrivateSwapRequest, RequestKind,
+    };
+    PrivateSwapRequest {
         kind: RequestKind::Bind,
         session_id: [0; wire::SESSION_ID_LEN],
         host_commitment: [0; 32],
@@ -977,8 +999,25 @@ fn runtime_private_swap_adapter_covers_review_response_confirm_and_reveal() {
         adaptor_point: key_response.adaptor_point,
         presignature: [0; 64],
         presignature_negated: false,
-        payload: &redeem,
+        payload: redeem,
+    }
+}
+
+/// Drive the runtime's private swap through key info, binding and pre-sign
+/// to the point where it awaits the host reveal.
+fn runtime_private_swap_awaiting_reveal(runtime: &mut VaultRuntime) -> RuntimeSwapAwaitingReveal {
+    use shared_signer::covenant_sign::private_swap::{
+        self as wire, PrivateSwapRequest, RequestKind, ResponseKind,
     };
+
+    let key_response = runtime_private_swap_key_info(runtime);
+
+    let claim_wire = runtime_private_swap_claim(key_response.claim_pubkey);
+    let mut claim = Transaction::try_new().expect("claim allocation");
+    offline_signer::transaction::kspt::parse_compact_kspt(&claim_wire, &mut claim)
+        .expect("claim parses");
+    let redeem = claim.redeem_bytes(0).to_vec();
+    let bind_request = runtime_private_swap_bind_request(&key_response, &redeem);
     assert!(matches!(
         runtime
             .private_swap_prepare(&runtime_encode_private_swap_request(&bind_request))
@@ -1015,12 +1054,41 @@ fn runtime_private_swap_adapter_covers_review_response_confirm_and_reveal() {
     ));
     let nonce = wire::parse_response(&runtime.private_swap_confirm().expect("presign confirms"))
         .expect("nonce response parses");
+    assert_eq!(nonce.kind, ResponseKind::Nonce);
     assert!(runtime.private_swap_awaiting_reveal());
+    RuntimeSwapAwaitingReveal {
+        key_response,
+        binding_token: binding.binding_token,
+        claim_wire,
+        session_id,
+        sighash: nonce.commitment,
+        host_secret,
+    }
+}
+
+#[test]
+fn runtime_private_swap_adapter_covers_review_response_confirm_and_reveal() {
+    use shared_signer::covenant_sign::private_swap::{
+        self as wire, PrivateSwapRequest, PrivateSwapReveal, RequestKind, ResponseKind,
+    };
+
+    let mut runtime = VaultRuntime::new();
+    runtime
+        .restore_wallet(MNEMONIC, "")
+        .expect("wallet restores");
+    let RuntimeSwapAwaitingReveal {
+        key_response,
+        binding_token,
+        claim_wire,
+        session_id,
+        sighash,
+        host_secret,
+    } = runtime_private_swap_awaiting_reveal(&mut runtime);
 
     let reveal = PrivateSwapReveal {
         session_id,
         key_id: key_response.key_id,
-        sighash: nonce.commitment,
+        sighash,
         host_secret,
     };
     let mut reveal_wire = [0u8; wire::REVEAL_LEN];
@@ -1039,7 +1107,7 @@ fn runtime_private_swap_adapter_covers_review_response_confirm_and_reveal() {
         session_id: [0; wire::SESSION_ID_LEN],
         host_commitment: [0; 32],
         key_id: key_response.key_id,
-        binding_token: binding.binding_token,
+        binding_token,
         adaptor_point: key_response.adaptor_point,
         presignature: presignature.signature,
         presignature_negated: presignature.negated,
@@ -1055,4 +1123,39 @@ fn runtime_private_swap_adapter_covers_review_response_confirm_and_reveal() {
         wire::parse_response(&runtime.private_swap_confirm().expect("completion confirms"))
             .expect("completed response parses");
     assert_eq!(completed.kind, ResponseKind::Completed);
+}
+
+#[test]
+fn cancelling_a_private_swap_ends_the_pending_reveal() {
+    let mut runtime = VaultRuntime::new();
+    runtime.restore_wallet(MNEMONIC, "").unwrap();
+    runtime_private_swap_awaiting_reveal(&mut runtime);
+    runtime.private_swap_cancel();
+    assert!(!runtime.private_swap_awaiting_reveal());
+}
+
+#[test]
+fn wallet_changes_forget_the_pending_private_swap_key() {
+    let mut runtime = VaultRuntime::new();
+    runtime.restore_wallet(MNEMONIC, "").unwrap();
+    let key_response = runtime_private_swap_key_info(&mut runtime);
+    let claim_wire = runtime_private_swap_claim(key_response.claim_pubkey);
+    let mut claim = Transaction::try_new().expect("claim allocation");
+    offline_signer::transaction::kspt::parse_compact_kspt(&claim_wire, &mut claim)
+        .expect("claim parses");
+    let redeem = claim.redeem_bytes(0).to_vec();
+    let bind = runtime_private_swap_bind_request(&key_response, &redeem);
+    runtime.switch_wallet(0).unwrap();
+    assert!(runtime
+        .private_swap_prepare(&runtime_encode_private_swap_request(&bind))
+        .is_err());
+}
+
+#[test]
+fn wallet_changes_end_a_pending_anti_klepto_reveal() {
+    let mut runtime = VaultRuntime::new();
+    runtime.restore_wallet(MNEMONIC, "").unwrap();
+    runtime_anti_klepto_awaiting_reveal(&mut runtime);
+    runtime.switch_wallet(0).unwrap();
+    assert!(!runtime.anti_klepto_awaiting_reveal());
 }

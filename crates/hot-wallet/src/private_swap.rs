@@ -144,3 +144,6 @@ impl Drop for PrivateSwapSession {
         self.clear_all();
     }
 }
+
+#[cfg(test)]
+mod unit_tests;

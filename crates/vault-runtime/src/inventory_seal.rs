@@ -77,8 +77,7 @@ impl VaultRuntime {
     }
 
     fn install_inventory(&mut self, wallets: Vec<HotWallet>, names: Vec<String>, active: usize) {
-        self.clear_signing_session();
-        self.covenant.clear_all();
+        self.clear_all_sessions();
         self.wallets = wallets;
         self.wallet_names = names;
         self.active_wallet = Some(active);

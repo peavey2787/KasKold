@@ -31,13 +31,7 @@ impl VaultRuntime {
 
     fn install_created(&mut self, created: CreatedWallet) -> Result<VaultCreation, HotWalletError> {
         let kpub = created.wallet.export_kpub()?;
-        self.clear_signing_session();
-        self.covenant.clear_all();
-        self.wallets.clear();
-        self.wallet_names.clear();
-        self.wallets.push(created.wallet);
-        self.wallet_names.push("Wallet 1".to_owned());
-        self.active_wallet = Some(0);
+        self.install_only_wallet(created.wallet);
         Ok(VaultCreation {
             recovery_phrase: created.recovery_phrase,
             kpub,
@@ -52,20 +46,13 @@ impl VaultRuntime {
     ) -> Result<String, HotWalletError> {
         let wallet = HotWallet::restore(recovery_phrase, passphrase)?;
         let kpub = wallet.export_kpub()?;
-        self.clear_signing_session();
-        self.covenant.clear_all();
-        self.wallets.clear();
-        self.wallet_names.clear();
-        self.wallets.push(wallet);
-        self.wallet_names.push("Wallet 1".to_owned());
-        self.active_wallet = Some(0);
+        self.install_only_wallet(wallet);
         Ok(kpub)
     }
 
     /// Immediately drop the unlocked wallet. `HotWallet` owns zeroizing secrets.
     pub fn lock_wallet(&mut self) {
-        self.clear_signing_session();
-        self.covenant.clear_all();
+        self.clear_all_sessions();
         self.wallets.clear();
         self.wallet_names.clear();
         self.active_wallet = None;
@@ -90,13 +77,7 @@ impl VaultRuntime {
         let wallet = HotWallet::restore_platform_sealed(sealed_wallet, wrapping_key)
             .map_err(VaultRuntimeError::Custody)?;
         let kpub = wallet.export_kpub().map_err(VaultRuntimeError::Custody)?;
-        self.clear_signing_session();
-        self.covenant.clear_all();
-        self.wallets.clear();
-        self.wallet_names.clear();
-        self.wallets.push(wallet);
-        self.wallet_names.push("Wallet 1".to_owned());
-        self.active_wallet = Some(0);
+        self.install_only_wallet(wallet);
         Ok(kpub)
     }
 }

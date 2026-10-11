@@ -30,7 +30,7 @@ impl HotWallet {
                 key.zeroize();
                 return Err(HotWalletError::RawKeyInvalid);
             };
-            key[index] = (high << 4) | low;
+            key[index] = high * 16 + low;
         }
         if bip32::pubkey_from_raw_key(&key).is_err() {
             key.zeroize();

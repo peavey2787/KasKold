@@ -238,11 +238,7 @@ impl VaultRuntime {
 
 impl Drop for VaultRuntime {
     fn drop(&mut self) {
-        self.clear_signing_session();
-        self.covenant.clear_all();
-        self.private_swap.clear_all();
-        self.wallets.clear();
-        self.wallet_names.clear();
+        self.lock_wallet();
         self.active_wallet = None;
     }
 }

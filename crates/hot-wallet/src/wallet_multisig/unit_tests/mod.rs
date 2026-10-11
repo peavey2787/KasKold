@@ -77,7 +77,8 @@ fn multisig_requests_bound_participants_and_threshold() {
 fn imported_hd_descriptors_are_remembered_once_per_wallet_up_to_capacity() {
     let mut wallet = wallet();
     assert!(wallet
-        .multisig_configs()
+        .multisig_store
+        .configs
         .iter()
         .all(|config| !config.active));
     let descriptor = format!("multi_hd45(1,{KPUB_A},{KPUB_B})");
@@ -86,7 +87,8 @@ fn imported_hd_descriptors_are_remembered_once_per_wallet_up_to_capacity() {
         .unwrap();
     let active = |wallet: &HotWallet| {
         wallet
-            .multisig_configs()
+            .multisig_store
+            .configs
             .iter()
             .filter(|config| config.active)
             .count()

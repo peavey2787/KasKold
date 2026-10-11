@@ -5,7 +5,7 @@
 //! P2PK inputs, imported account XPrvs sign account-owned inputs, and mnemonic
 //! wallets additionally support BIP45 multisig derivation.
 
-use offline_signer::transaction::{kspt, model::ScriptType, model::SigHashType, std_pskt};
+use offline_signer::transaction::{kspt, model::SigHashType, std_pskt};
 use zeroize::Zeroize;
 
 use crate::{
@@ -42,27 +42,14 @@ impl HotWallet {
         if let Some(raw_key) = self.raw_key_bytes() {
             return sign_raw_transaction(transaction, raw_key, signing_entropy);
         }
-        let has_multisig = transaction_has_multisig(transaction);
+        // One signer covers single-key and BIP45 multisig inputs alike.
         if let Some(account) = self.account_key() {
-            return sign_account(transaction, account, has_multisig, signing_entropy);
+            return sign_account(transaction, account, signing_entropy);
         }
-        self.sign_mnemonic_transaction(transaction, has_multisig, signing_entropy)
+        self.sign_mnemonic(transaction, signing_entropy)
     }
 
-    fn sign_mnemonic_transaction(
-        &self,
-        transaction: &mut offline_signer::transaction::model::Transaction,
-        has_multisig: bool,
-        signing_entropy: &[u8; 32],
-    ) -> Result<(), HotWalletError> {
-        if has_multisig {
-            self.sign_mnemonic_multisig(transaction, signing_entropy)
-        } else {
-            self.sign_mnemonic_single(transaction, signing_entropy)
-        }
-    }
-
-    fn sign_mnemonic_multisig(
+    fn sign_mnemonic(
         &self,
         transaction: &mut offline_signer::transaction::model::Transaction,
         signing_entropy: &[u8; 32],
@@ -80,29 +67,6 @@ impl HotWallet {
         seeds[0].0.zeroize();
         result
     }
-
-    fn sign_mnemonic_single(
-        &self,
-        transaction: &mut offline_signer::transaction::model::Transaction,
-        signing_entropy: &[u8; 32],
-    ) -> Result<(), HotWalletError> {
-        let seed = self.seed_bytes()?;
-        kspt::sign_transaction_multi_addr_with_entropy(
-            transaction,
-            seed,
-            SigHashType::All,
-            signing_entropy,
-        )
-        .map(|_| ())
-        .map_err(HotWalletError::from)
-    }
-}
-
-fn transaction_has_multisig(transaction: &offline_signer::transaction::model::Transaction) -> bool {
-    (0..transaction.num_inputs).any(|index| {
-        let (script_type, _) = kspt::analyze_input_script(transaction, index);
-        matches!(script_type, ScriptType::Multisig | ScriptType::P2SH)
-    })
 }
 
 fn sign_raw_transaction(
@@ -153,28 +117,18 @@ fn serialize_standard_pskt(
 fn sign_account(
     transaction: &mut offline_signer::transaction::model::Transaction,
     account: &offline_signer::derivation::bip32::ExtendedPrivKey,
-    has_multisig: bool,
     signing_entropy: &[u8; 32],
 ) -> Result<(), HotWalletError> {
-    if has_multisig {
-        let mut raw = account.to_raw();
-        let accounts = [(raw, true)];
-        let result = kspt::sign_transaction_multisig_accounts_with_entropy(
-            transaction,
-            &accounts,
-            SigHashType::All,
-            Some(0),
-            signing_entropy,
-        );
-        raw.zeroize();
-        result?;
-    } else {
-        kspt::sign_transaction_account_multi_addr_with_entropy(
-            transaction,
-            account,
-            SigHashType::All,
-            signing_entropy,
-        )?;
-    }
+    let mut raw = account.to_raw();
+    let accounts = [(raw, true)];
+    let result = kspt::sign_transaction_multisig_accounts_with_entropy(
+        transaction,
+        &accounts,
+        SigHashType::All,
+        Some(0),
+        signing_entropy,
+    );
+    raw.zeroize();
+    result?;
     Ok(())
 }

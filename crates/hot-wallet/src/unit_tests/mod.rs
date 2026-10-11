@@ -11,19 +11,32 @@ use offline_signer::{
     },
 };
 
+pub(crate) mod zeroization;
+
 const MNEMONIC_12: &str =
     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 const MNEMONIC_24: &str = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art";
 
-fn restored_wallet() -> HotWallet {
+pub(crate) fn restored_wallet() -> HotWallet {
     HotWallet::restore(MNEMONIC_12, "").expect("known mnemonic restores")
 }
 
-fn owned_compact_kspt(wallet: &HotWallet) -> Vec<u8> {
+/// The x-only key of the wallet's first receive address.
+fn first_receive_xonly(wallet: &HotWallet) -> [u8; 32] {
     let account = derive_account_key(&wallet.seed.bytes).expect("account derivation");
     let child = derive_address_key(&account, 0).expect("receive derivation");
-    let xonly = child.public_key_x_only().expect("x-only public key");
+    child.public_key_x_only().expect("x-only public key")
+}
 
+fn owned_compact_kspt(wallet: &HotWallet) -> Vec<u8> {
+    let mut script = vec![0x20];
+    script.extend_from_slice(&first_receive_xonly(wallet));
+    script.push(0xac);
+    compact_kspt_spending(&script)
+}
+
+/// A one-input compact KSPT spending `script` to a foreign P2PK output.
+fn compact_kspt_spending(script: &[u8]) -> Vec<u8> {
     let mut transaction = Transaction::try_new().expect("transaction allocation");
     transaction.version = 1;
     transaction.network = offline_signer::address::KaspaNetwork::Mainnet;
@@ -38,11 +51,9 @@ fn owned_compact_kspt(wallet: &HotWallet) -> Vec<u8> {
     transaction.inputs[0].derivation_branch = 0;
     transaction.inputs[0].derivation_index = 0;
     {
-        let script = &mut transaction.inputs[0].utxo_entry.script_public_key;
-        script.script[0] = 0x20;
-        script.script[1..33].copy_from_slice(&xonly);
-        script.script[33] = 0xac;
-        script.script_len = 34;
+        let spk = &mut transaction.inputs[0].utxo_entry.script_public_key;
+        spk.script[..script.len()].copy_from_slice(script);
+        spk.script_len = script.len();
     }
     transaction.outputs[0].value = 99_000;
     {
@@ -291,6 +302,25 @@ fn generic_vault_review_sign_and_serialize_reject_hidden_sighash_committed_seman
         tx.outputs[0].covenant_id = [0x55; 32];
     });
     reject(|tx| tx.subnetwork_id[0] = 1);
+}
+
+#[test]
+fn multisig_inputs_sign_at_the_wallet_cosigner_position() {
+    let wallet = restored_wallet();
+    // Vault custody signs bare 1-of-2 multisig outputs.
+    let mut script = vec![0x51, 0x20];
+    script.extend_from_slice(&[0x44; 32]);
+    script.push(0x20);
+    script.extend_from_slice(&first_receive_xonly(&wallet));
+    script.extend_from_slice(&[0x52, 0xae]);
+
+    let signed = wallet
+        .sign_compact_kspt(&compact_kspt_spending(&script))
+        .expect("multisig KSPT signs");
+    let mut parsed = Transaction::try_new().expect("transaction allocation");
+    parse_compact_kspt(&signed, &mut parsed).expect("signed compact KSPT parses");
+    assert_eq!(parsed.inputs[0].sig_count, 1);
+    assert_eq!(parsed.inputs[0].sigs[0].pubkey_pos, 1);
 }
 
 #[test]
@@ -911,7 +941,7 @@ fn private_swap_claim_wire(claimer: [u8; 32]) -> Vec<u8> {
     serialize_compact_kspt_vec(&transaction).expect("private-swap KSPT serializes")
 }
 
-fn encode_private_swap_request(
+pub(crate) fn encode_private_swap_request(
     request: &shared_signer::covenant_sign::private_swap::PrivateSwapRequest<'_>,
 ) -> Vec<u8> {
     use shared_signer::covenant_sign::private_swap as wire;
@@ -921,19 +951,19 @@ fn encode_private_swap_request(
     encoded
 }
 
-struct SwapAwaitingReveal {
-    session: super::PrivateSwapSession,
-    key_info: shared_signer::covenant_sign::private_swap::PrivateSwapResponse,
-    binding_token: [u8; 32],
-    session_id: [u8; shared_signer::covenant_sign::private_swap::SESSION_ID_LEN],
-    sighash: [u8; 32],
-    host_secret: [u8; 32],
-    claim_wire: Vec<u8>,
+pub(crate) struct SwapAwaitingReveal {
+    pub(crate) session: super::PrivateSwapSession,
+    pub(crate) key_info: shared_signer::covenant_sign::private_swap::PrivateSwapResponse,
+    pub(crate) binding_token: [u8; 32],
+    pub(crate) session_id: [u8; shared_signer::covenant_sign::private_swap::SESSION_ID_LEN],
+    pub(crate) sighash: [u8; 32],
+    pub(crate) host_secret: [u8; 32],
+    pub(crate) claim_wire: Vec<u8>,
 }
 
 /// Drive a fresh session through key info, binding and pre-sign to the
 /// point where it awaits the host's reveal.
-fn private_swap_awaiting_reveal(wallet: &HotWallet) -> SwapAwaitingReveal {
+pub(crate) fn private_swap_awaiting_reveal(wallet: &HotWallet) -> SwapAwaitingReveal {
     use shared_signer::covenant_sign::private_swap::{
         self as wire, PrivateSwapRequest, RequestKind, ResponseKind,
     };
@@ -1022,7 +1052,7 @@ fn private_swap_awaiting_reveal(wallet: &HotWallet) -> SwapAwaitingReveal {
     }
 }
 
-fn swap_reveal(
+pub(crate) fn swap_reveal(
     reveal: &shared_signer::covenant_sign::private_swap::PrivateSwapReveal,
 ) -> [u8; shared_signer::covenant_sign::private_swap::REVEAL_LEN] {
     use shared_signer::covenant_sign::private_swap as wire;
@@ -1066,12 +1096,18 @@ fn private_swap_session_covers_key_bind_presign_reveal_and_completion() {
         presignature_negated: presignature.negated,
         payload: &swap.claim_wire,
     };
-    assert!(matches!(
-        swap.session
-            .prepare_request(&wallet, &encode_private_swap_request(&complete))
-            .expect("completion prepares"),
-        super::PrivateSwapPrepared::Review(_)
-    ));
+    let super::PrivateSwapPrepared::Review(review) = swap
+        .session
+        .prepare_request(&wallet, &encode_private_swap_request(&complete))
+        .expect("completion prepares")
+    else {
+        panic!("completion must be reviewed");
+    };
+    // The review shows the claim's own amounts, fee and destination.
+    assert!(review.output_amount > 0);
+    assert_eq!(review.fee, review.input_amount - review.output_amount);
+    assert!(review.fee > 0);
+    assert_ne!(review.destination_hash, [0; 32]);
     let completed =
         wire::parse_response(&swap.session.confirm(&wallet).expect("completion confirms"))
             .expect("completed response parses");
@@ -1461,4 +1497,71 @@ fn portable_backups_require_their_magic_and_digit_runs_route_by_length() {
     // Thirty-two ASCII digits are CompactSeedQR entropy, not a SeedQR digit run.
     assert!(HotWallet::restore_recovery_material(&[b'0'; 32], "").is_ok());
     assert!(HotWallet::restore_recovery_material(&[b'0'; 16], "").is_ok());
+}
+
+#[test]
+fn creation_requests_are_validated_before_any_entropy_is_mixed() {
+    // Invalid dice would fail mixing; the request errors must win.
+    assert!(matches!(
+        HotWallet::create_with_additive_entropy(13, b"x", &[], ""),
+        Err(HotWalletError::InvalidMnemonicWordCount)
+    ));
+    let too_long = "x".repeat(MAX_BIP39_PASSPHRASE_LEN + 1);
+    assert!(matches!(
+        HotWallet::create_with_additive_entropy(12, b"x", &[], &too_long),
+        Err(HotWalletError::Bip39PassphraseTooLong)
+    ));
+}
+
+#[test]
+fn imported_hd45_descriptors_record_each_wallets_own_position() {
+    let mut first = restored_wallet();
+    let mut second = HotWallet::restore(MNEMONIC_24, "").expect("second wallet");
+    let second_kpub = second.export_multisig_kpub().expect("multisig kpub");
+    let created = first
+        .create_multisig(
+            2,
+            &[second_kpub.as_str()],
+            offline_signer::address::KaspaNetwork::Mainnet,
+            0,
+            0,
+        )
+        .expect("2-of-2 multisig");
+    for wallet in [&mut first, &mut second] {
+        wallet
+            .import_multisig_descriptor(
+                &created.descriptor,
+                offline_signer::address::KaspaNetwork::Mainnet,
+                0,
+                1,
+            )
+            .expect("descriptor import");
+    }
+    let position = |wallet: &HotWallet| {
+        wallet
+            .multisig_store
+            .configs
+            .iter()
+            .find(|config| config.active && config.addr_index == 1)
+            .expect("remembered descriptor")
+            .cosigner_index
+    };
+    let mut positions = [position(&first), position(&second)];
+    positions.sort_unstable();
+    assert_eq!(positions, [0, 1]);
+}
+
+#[test]
+fn stego_backup_round_trips_through_a_jpeg_carrier() {
+    const NOISE_JPEG: &[u8] = include_bytes!(
+        "../../../../apps/kaskold-hardware/src/runtime/workflow_tests/fixtures/stego_noise.jpg"
+    );
+    let wallet = restored_wallet();
+    let carrier = wallet.stego_backup(NOISE_JPEG, "pw").expect("stego embeds");
+    let restored = HotWallet::restore_stego_backup(&carrier, "pw").expect("stego restores");
+    assert_eq!(
+        restored.export_kpub().unwrap(),
+        wallet.export_kpub().unwrap()
+    );
+    assert!(HotWallet::restore_stego_backup(&carrier, "other").is_err());
 }

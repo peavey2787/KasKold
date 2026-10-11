@@ -230,6 +230,14 @@ impl VaultRuntime {
         self.private_swap.reset_active();
     }
 
+    /// End every signing session and forget every pending covenant and
+    /// private-swap key, as wallet lock, switch, delete and install require.
+    pub(crate) fn clear_all_sessions(&mut self) {
+        self.clear_signing_session();
+        self.covenant.clear_all();
+        self.private_swap.clear_all();
+    }
+
     pub(crate) fn clear_signing_session(&mut self) {
         self.decoder.reset();
         self.pending_request = None;

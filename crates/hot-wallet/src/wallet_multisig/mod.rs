@@ -89,7 +89,7 @@ impl HotWallet {
         index: u32,
     ) -> Result<String, HotWalletError> {
         let mut config = config_from_descriptor(parsed, chain, index);
-        self.resolve_imported_cosigner(&mut config, parsed.is_hd45())?;
+        self.resolve_imported_cosigner(&mut config)?;
         if config.build_script() == 0 {
             return Err(HotWalletError::MultisigInvalid);
         }
@@ -99,15 +99,13 @@ impl HotWallet {
         Ok(address)
     }
 
-    fn resolve_imported_cosigner(
-        &self,
-        config: &mut MultisigConfig,
-        v45: bool,
-    ) -> Result<(), HotWalletError> {
-        if !v45 || self.account_key().is_some() || self.raw_key_bytes().is_some() {
+    /// Record this wallet's position in an imported HD45 descriptor. Only
+    /// mnemonic wallets hold the seed that derives a BIP45 cosigner key.
+    fn resolve_imported_cosigner(&self, config: &mut MultisigConfig) -> Result<(), HotWalletError> {
+        let Ok(seed) = self.seed_bytes() else {
             return Ok(());
-        }
-        let own = xpub::derive_multisig_account_parts(self.seed_bytes()?, 0)?;
+        };
+        let own = xpub::derive_multisig_account_parts(seed, 0)?;
         let _ = config.resolve_cosigner_index(&own);
         Ok(())
     }
@@ -129,10 +127,6 @@ impl HotWallet {
         };
         self.multisig_store.configs[index] = config;
         Ok(())
-    }
-
-    pub(crate) fn multisig_configs(&self) -> &[MultisigConfig] {
-        &self.multisig_store.configs
     }
 }
 

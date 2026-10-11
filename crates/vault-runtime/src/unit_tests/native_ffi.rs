@@ -1,3 +1,4 @@
+use crate::native_ffi::workflows::bytes::parse_dice_rolls;
 use crate::native_ffi::workflows::{hex_decode, parse_input, wallet_kind_label};
 use crate::native_ffi::{
     kaskold_vault_accept_frame, kaskold_vault_approve, kaskold_vault_backup_seedqr,
@@ -265,6 +266,17 @@ fn native_workflow_parser_hex_and_wallet_labels_cover_all_branches() {
     );
 
     assert_eq!(hex_decode("00aF").unwrap(), vec![0x00, 0xaf]);
+    assert_eq!(hex_decode(" 1f80 ").unwrap(), vec![0x1f, 0x80]);
+    assert_eq!(
+        parse_dice_rolls(
+            "1 2	3
+456"
+        )
+        .unwrap(),
+        vec![1, 2, 3, 4, 5, 6]
+    );
+    assert!(parse_dice_rolls("0").is_err());
+    assert!(parse_dice_rolls("7").is_err());
     assert!(hex_decode("0").is_err());
     assert!(hex_decode("zz").is_err());
 }
@@ -473,5 +485,23 @@ fn native_workflow_dispatch_exercises_every_allowlisted_text_and_byte_route() {
     );
     assert_eq!(run_byte_workflow(handle, "unsupported", "{}", b""), ERROR);
 
+    kaskold_vault_destroy(handle);
+}
+
+#[test]
+fn workflow_errors_report_the_runtime_error_variant() {
+    let handle = kaskold_vault_new();
+    assert_eq!(
+        run_text_workflow(handle, "switch_wallet", r#"{"index":3}"#),
+        ERROR
+    );
+    assert_eq!(
+        copy_result(handle, kaskold_vault_last_error_copy),
+        serde_json::to_vec(&format!(
+            "{:?}",
+            crate::VaultRuntimeError::InvalidWalletIndex
+        ))
+        .unwrap()
+    );
     kaskold_vault_destroy(handle);
 }

@@ -7,7 +7,6 @@ use crate::VaultRuntimeError;
 
 pub(crate) struct PrivateSwapState {
     session: PrivateSwapSession,
-    response: Option<Zeroizing<Vec<u8>>>,
 }
 
 pub(crate) enum PrepareResult {
@@ -19,7 +18,6 @@ impl PrivateSwapState {
     pub(crate) fn new() -> Self {
         Self {
             session: PrivateSwapSession::new(),
-            response: None,
         }
     }
 
@@ -28,7 +26,6 @@ impl PrivateSwapState {
         wallet: &HotWallet,
         wire: &[u8],
     ) -> Result<PrepareResult, VaultRuntimeError> {
-        self.response = None;
         match self
             .session
             .prepare_request(wallet, wire)
@@ -37,7 +34,6 @@ impl PrivateSwapState {
             PrivateSwapPrepared::Review(review) => Ok(PrepareResult::Review(review)),
             PrivateSwapPrepared::Response(response) => {
                 let response = Zeroizing::new(response);
-                self.response = Some(Zeroizing::new(response.to_vec()));
                 Ok(PrepareResult::Response(response))
             }
         }
@@ -52,7 +48,6 @@ impl PrivateSwapState {
                 .confirm(wallet)
                 .map_err(VaultRuntimeError::Custody)?,
         );
-        self.response = Some(Zeroizing::new(response.to_vec()));
         Ok(response)
     }
 
@@ -66,7 +61,6 @@ impl PrivateSwapState {
                 .finalize_reveal(wallet, wire)
                 .map_err(VaultRuntimeError::Custody)?,
         );
-        self.response = Some(Zeroizing::new(response.to_vec()));
         Ok(response)
     }
 
@@ -76,11 +70,9 @@ impl PrivateSwapState {
 
     pub(crate) fn reset_active(&mut self) {
         self.session.reset_active();
-        self.response = None;
     }
 
     pub(crate) fn clear_all(&mut self) {
         self.session.clear_all();
-        self.response = None;
     }
 }

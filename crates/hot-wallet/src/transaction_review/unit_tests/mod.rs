@@ -131,9 +131,9 @@ fn hinted_keys_follow_the_hinted_branch() {
         change
     );
 
-    assert_eq!(find_owned_output(&account, &change, 0), Some(1));
-    assert_eq!(find_owned_output(&account, &receive, 1), Some(0));
-    assert_eq!(find_owned_output(&account, &[0x77; 32], 0), None);
+    assert_eq!(find_owned_output(&account, &change), Some(1));
+    assert_eq!(find_owned_output(&account, &receive), Some(0));
+    assert_eq!(find_owned_output(&account, &[0x77; 32]), None);
 }
 
 #[test]

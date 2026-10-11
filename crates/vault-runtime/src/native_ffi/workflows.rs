@@ -192,7 +192,7 @@ impl NativeVault {
     }
 }
 
-mod bytes;
+pub(crate) mod bytes;
 mod text_ops;
 
 enum NativeWorkflowResult {
@@ -307,7 +307,7 @@ pub(crate) fn hex_decode(text: &str) -> Result<Vec<u8>, String> {
             .ok_or_else(|| "hex payload contains a non-hex character".to_owned())?;
         let low = shared_signer::bytes::decode_hex_nibble(pair[1])
             .ok_or_else(|| "hex payload contains a non-hex character".to_owned())?;
-        output.push((high << 4) | low);
+        output.push(high * 16 + low);
     }
     Ok(output)
 }

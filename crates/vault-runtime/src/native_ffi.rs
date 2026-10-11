@@ -5,7 +5,7 @@
 
 use core::{ptr, slice, str};
 
-use zeroize::Zeroize;
+use zeroize::Zeroizing;
 
 use crate::{ScanResult, VaultRuntime};
 
@@ -14,45 +14,43 @@ const ERROR: i32 = -1;
 
 pub(crate) struct NativeVault {
     runtime: VaultRuntime,
-    last_text: Vec<u8>,
-    last_bytes: Vec<u8>,
-    last_error: Vec<u8>,
+    // Result buffers wipe themselves when replaced or dropped.
+    last_text: Zeroizing<Vec<u8>>,
+    last_bytes: Zeroizing<Vec<u8>>,
+    last_error: Zeroizing<Vec<u8>>,
 }
 
 impl NativeVault {
     pub(crate) fn new() -> Self {
         Self {
             runtime: VaultRuntime::new(),
-            last_text: Vec::new(),
-            last_bytes: Vec::new(),
-            last_error: Vec::new(),
+            last_text: Zeroizing::default(),
+            last_bytes: Zeroizing::default(),
+            last_error: Zeroizing::default(),
         }
     }
 
     fn clear_results(&mut self) {
-        self.last_text.zeroize();
-        self.last_text.clear();
-        self.last_bytes.zeroize();
-        self.last_bytes.clear();
-        self.last_error.zeroize();
-        self.last_error.clear();
+        self.last_text = Zeroizing::default();
+        self.last_bytes = Zeroizing::default();
+        self.last_error = Zeroizing::default();
     }
 
     fn set_text(&mut self, value: String) {
-        self.last_text.zeroize();
-        self.last_text = value.into_bytes();
+        self.last_text = Zeroizing::new(value.into_bytes());
     }
 
-    fn set_bytes(&mut self, mut value: Vec<u8>) {
-        self.last_bytes.zeroize();
-        self.last_bytes = core::mem::take(&mut value);
-        value.zeroize();
+    fn set_bytes(&mut self, value: Vec<u8>) {
+        self.last_bytes = Zeroizing::new(value);
+    }
+
+    fn set_error(&mut self, message: &[u8]) -> i32 {
+        self.last_error = Zeroizing::new(message.to_vec());
+        ERROR
     }
 
     fn fail(&mut self, error: impl core::fmt::Debug) -> i32 {
-        self.last_error.zeroize();
-        self.last_error = format!("{error:?}").into_bytes();
-        ERROR
+        self.set_error(format!("{error:?}").as_bytes())
     }
 
     fn create(&mut self, words: u32) -> i32 {
@@ -61,8 +59,7 @@ impl NativeVault {
             12 => self.runtime.create_wallet_12(),
             24 => self.runtime.create_wallet_24(),
             _ => {
-                self.last_error = b"wallet word count must be 12 or 24".to_vec();
-                return ERROR;
+                return self.set_error(b"wallet word count must be 12 or 24");
             }
         };
         match result {
@@ -103,8 +100,7 @@ impl NativeVault {
         self.clear_results();
         let Ok(key): Result<&[u8; hot_wallet::PLATFORM_WRAPPING_KEY_LEN], _> = key.try_into()
         else {
-            self.last_error = b"platform wrapping key must be 32 bytes".to_vec();
-            return ERROR;
+            return self.set_error(b"platform wrapping key must be 32 bytes");
         };
         match self.runtime.seal_native_inventory(key) {
             Ok(sealed) => {
@@ -119,8 +115,7 @@ impl NativeVault {
         self.clear_results();
         let Ok(key): Result<&[u8; hot_wallet::PLATFORM_WRAPPING_KEY_LEN], _> = key.try_into()
         else {
-            self.last_error = b"platform wrapping key must be 32 bytes".to_vec();
-            return ERROR;
+            return self.set_error(b"platform wrapping key must be 32 bytes");
         };
         match self.runtime.unlock_native_inventory(sealed, key) {
             Ok(kpub) => {
@@ -172,8 +167,7 @@ impl NativeVault {
     fn export_receive_key(&mut self, address_index: u32) -> i32 {
         self.clear_results();
         let Ok(address_index) = u16::try_from(address_index) else {
-            self.last_error = b"address index must be between 0 and 65535".to_vec();
-            return ERROR;
+            return self.set_error(b"address index must be between 0 and 65535");
         };
         match self.runtime.backup_receive_private_key_hex(address_index) {
             Ok(value) => {
@@ -288,12 +282,6 @@ impl NativeVault {
             }
             Err(error) => self.fail(error),
         }
-    }
-}
-
-impl Drop for NativeVault {
-    fn drop(&mut self) {
-        self.clear_results();
     }
 }
 

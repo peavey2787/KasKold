@@ -226,3 +226,26 @@ fn opaque_key_present_hint_requires_the_key_in_the_script() {
         Err(VaultRuntimeError::InvalidCovenantContext)
     ));
 }
+
+#[test]
+fn wallet_changes_forget_the_pending_covenant_key() {
+    let mut runtime = VaultRuntime::new();
+    runtime.restore_wallet(MNEMONIC, "").unwrap();
+    runtime
+        .covenant_prepare(&encode_covenant_request(&request(
+            RequestKind::KeyInfo,
+            [0; 32],
+            &[],
+        )))
+        .unwrap();
+    let key_info = wire::parse_response(&runtime.covenant_confirm().unwrap()).unwrap();
+    runtime.switch_wallet(0).unwrap();
+    assert!(matches!(
+        runtime.covenant_prepare(&encode_covenant_request(&request(
+            RequestKind::Bind,
+            key_info.key_id,
+            SCRIPT
+        ))),
+        Err(VaultRuntimeError::CovenantBindingRequired)
+    ));
+}

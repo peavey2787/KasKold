@@ -101,8 +101,7 @@ impl VaultRuntime {
         if index >= self.wallets.len() {
             return Err(VaultRuntimeError::InvalidWalletIndex);
         }
-        self.clear_signing_session();
-        self.covenant.clear_all();
+        self.clear_all_sessions();
         self.wallets.remove(index);
         self.wallet_names.remove(index);
         self.active_wallet = if self.wallets.is_empty() {
@@ -172,8 +171,7 @@ impl VaultRuntime {
             .get(index)
             .ok_or(VaultRuntimeError::InvalidWalletIndex)?;
         let kpub = wallet.export_kpub().ok();
-        self.clear_signing_session();
-        self.covenant.clear_all();
+        self.clear_all_sessions();
         self.active_wallet = Some(index);
         Ok(kpub)
     }
@@ -370,10 +368,15 @@ impl VaultRuntime {
         })
     }
 
+    /// Replace the whole inventory with `wallet` as its only, active slot.
+    pub(crate) fn install_only_wallet(&mut self, wallet: HotWallet) {
+        self.lock_wallet();
+        self.install_new_wallet(wallet);
+    }
+
     /// Append a wallet under its default name and make it the active slot.
     fn install_new_wallet(&mut self, wallet: HotWallet) {
-        self.clear_signing_session();
-        self.covenant.clear_all();
+        self.clear_all_sessions();
         self.wallets.push(wallet);
         let index = self.wallets.len() - 1;
         self.wallet_names.push(default_wallet_name(index));

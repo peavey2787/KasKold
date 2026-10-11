@@ -135,7 +135,6 @@ impl HotWallet {
         } else {
             self.verify_account_output_hints(transaction, &mut ownership)?;
         }
-        verify_multisig_output_hints(transaction, self.multisig_configs(), &mut ownership)?;
         Ok(ownership)
     }
 
@@ -300,30 +299,9 @@ fn verify_account_hints(
         let Some(target) = p2pk_xonly(&output.script_public_key) else {
             continue;
         };
-        if let Some(branch) = find_owned_output(account, &target, output.derivation_branch) {
+        if let Some(branch) = find_owned_output(account, &target) {
             ownership[index] = ownership_from_branch(branch);
         }
-    }
-    Ok(())
-}
-
-fn verify_multisig_output_hints(
-    transaction: &Transaction,
-    configs: &[offline_signer::transaction::model::MultisigConfig],
-    ownership: &mut [OutputOwnership],
-) -> Result<(), HotWalletError> {
-    if offline_signer::transaction::model::find_forged_change(transaction, configs).is_some() {
-        return Err(HotWalletError::InvalidToolInput);
-    }
-    for (index, slot) in ownership.iter_mut().enumerate() {
-        let Some(chain) = offline_signer::transaction::model::trusted_multisig_output_chain(
-            transaction,
-            configs,
-            index,
-        ) else {
-            continue;
-        };
-        *slot = ownership_from_branch(chain);
     }
     Ok(())
 }
@@ -340,17 +318,8 @@ fn hinted_output_xonly(
     child.public_key_x_only().map_err(HotWalletError::Bip32)
 }
 
-fn find_owned_output(
-    account: &bip32::ExtendedPrivKey,
-    target_xonly: &[u8; 32],
-    preferred_branch: u8,
-) -> Option<u8> {
-    let branches = if preferred_branch == 1 {
-        [1u8, 0u8]
-    } else {
-        [0u8, 1u8]
-    };
-    for branch in branches {
+fn find_owned_output(account: &bip32::ExtendedPrivKey, target_xonly: &[u8; 32]) -> Option<u8> {
+    for branch in [0u8, 1u8] {
         for index in 0..bip32::ADDR_SCAN_DEPTH {
             let child = if branch == 1 {
                 bip32::derive_change_key(account, u32::from(index))

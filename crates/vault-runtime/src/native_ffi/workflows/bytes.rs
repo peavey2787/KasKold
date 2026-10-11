@@ -158,7 +158,7 @@ impl NativeVault {
     }
 }
 
-fn parse_dice_rolls(text: &str) -> Result<Vec<u8>, String> {
+pub(crate) fn parse_dice_rolls(text: &str) -> Result<Vec<u8>, String> {
     text.bytes()
         .filter(|byte| !byte.is_ascii_whitespace())
         .map(|byte| match byte {

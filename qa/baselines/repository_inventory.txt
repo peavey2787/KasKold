@@ -441,6 +441,9 @@ D	crates/hot-wallet/src
 D	crates/hot-wallet/src/platform_sealed
 D	crates/hot-wallet/src/platform_sealed/unit_tests
 D	crates/hot-wallet/src/private_swap
+D	crates/hot-wallet/src/private_swap/unit_tests
+D	crates/hot-wallet/src/transaction_anti_klepto
+D	crates/hot-wallet/src/transaction_anti_klepto/unit_tests
 D	crates/hot-wallet/src/transaction_review
 D	crates/hot-wallet/src/transaction_review/unit_tests
 D	crates/hot-wallet/src/unit_tests
@@ -2209,14 +2212,17 @@ F	crates/hot-wallet/src/platform_sealed/unit_tests/mod.rs
 F	crates/hot-wallet/src/portable_backup.rs
 F	crates/hot-wallet/src/private_swap.rs
 F	crates/hot-wallet/src/private_swap/operations.rs
+F	crates/hot-wallet/src/private_swap/unit_tests/mod.rs
 F	crates/hot-wallet/src/recovery_import.rs
 F	crates/hot-wallet/src/stego_backup.rs
 F	crates/hot-wallet/src/transaction_anti_klepto.rs
+F	crates/hot-wallet/src/transaction_anti_klepto/unit_tests/mod.rs
 F	crates/hot-wallet/src/transaction_codec.rs
 F	crates/hot-wallet/src/transaction_review.rs
 F	crates/hot-wallet/src/transaction_review/unit_tests/mod.rs
 F	crates/hot-wallet/src/transaction_signing.rs
 F	crates/hot-wallet/src/unit_tests/mod.rs
+F	crates/hot-wallet/src/unit_tests/zeroization.rs
 F	crates/hot-wallet/src/wallet_creation/mod.rs
 F	crates/hot-wallet/src/wallet_multisig/mod.rs
 F	crates/hot-wallet/src/wallet_multisig/unit_tests/mod.rs
@@ -2614,6 +2620,7 @@ F	crates/vault-runtime/src/private_swap.rs
 F	crates/vault-runtime/src/signing_policy.rs
 F	crates/vault-runtime/src/signing_session.rs
 F	crates/vault-runtime/src/unit_tests/covenant_guards.rs
+F	crates/vault-runtime/src/unit_tests/lifecycle_release.rs
 F	crates/vault-runtime/src/unit_tests/mod.rs
 F	crates/vault-runtime/src/unit_tests/native_ffi.rs
 F	crates/vault-runtime/src/unit_tests/native_ffi_outputs.rs

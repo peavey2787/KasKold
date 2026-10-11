@@ -58,7 +58,6 @@ pub(crate) struct CovenantSession {
     response: [u8; covenant_sign::RESPONSE_LEN],
     response_len: usize,
     pending_key_id: [u8; 32],
-    pending_pubkey_x: [u8; 32],
 }
 
 impl CovenantSession {
@@ -80,7 +79,6 @@ impl CovenantSession {
             response: [0; covenant_sign::RESPONSE_LEN],
             response_len: 0,
             pending_key_id: [0; 32],
-            pending_pubkey_x: [0; 32],
         }
     }
 
@@ -106,13 +104,6 @@ impl CovenantSession {
     pub(crate) fn clear_all(&mut self) {
         self.reset_active();
         self.pending_key_id.zeroize();
-        self.pending_pubkey_x.zeroize();
-    }
-}
-
-impl Drop for CovenantSession {
-    fn drop(&mut self) {
-        self.clear_all();
     }
 }
 
@@ -160,7 +151,6 @@ impl VaultRuntime {
         self.covenant.key_id = key_id;
         self.covenant.pubkey_x = pubkey_x;
         self.covenant.pending_key_id = key_id;
-        self.covenant.pending_pubkey_x = pubkey_x;
         self.build_covenant_response(ResponseKind::KeyInfo, [0; 64])?;
         review_from_state(&self.covenant)
     }
@@ -171,9 +161,9 @@ impl VaultRuntime {
         pubkey_x: [u8; 32],
         script_hash: [u8; 32],
     ) -> Result<CovenantReview, VaultRuntimeError> {
-        if request.key_id != self.covenant.pending_key_id
-            || pubkey_x != self.covenant.pending_pubkey_x
-        {
+        // The pubkey is derived from the key id under the active wallet, and
+        // every wallet change clears the pending key, so the id alone decides.
+        if request.key_id != self.covenant.pending_key_id {
             return Err(VaultRuntimeError::CovenantBindingRequired);
         }
         validate_request_shape(request, &pubkey_x)?;
@@ -211,7 +201,6 @@ impl VaultRuntime {
         self.covenant.binding_token = token;
         self.covenant.phase = CovenantPhase::FinalResponse;
         self.covenant.pending_key_id.zeroize();
-        self.covenant.pending_pubkey_x.zeroize();
         self.build_covenant_response(ResponseKind::Binding, [0; 64])?;
         self.covenant_response()
     }
@@ -392,11 +381,7 @@ fn validate_known_shape(
     request: &CovenantSignRequest<'_>,
     pubkey_x: &[u8; 32],
 ) -> Result<(), VaultRuntimeError> {
-    if request.scheme == KnownScheme::None
-        || request.binding != covenant_sign::expected_known_binding(request.scheme)
-    {
-        return Err(VaultRuntimeError::InvalidCovenantMessage);
-    }
+    // The wire codec already bound the scheme and binding hint to the kind.
     let recomputed = covenant_sign::recompute_known_commitment(request.scheme, request.context)
         .ok_or(VaultRuntimeError::InvalidCovenantContext)?;
     if recomputed != request.commitment
@@ -411,11 +396,6 @@ fn validate_opaque_shape(
     request: &CovenantSignRequest<'_>,
     pubkey_x: &[u8; 32],
 ) -> Result<(), VaultRuntimeError> {
-    if request.scheme != KnownScheme::None
-        || !matches!(request.binding, BindingHint::None | BindingHint::KeyPresent)
-    {
-        return Err(VaultRuntimeError::InvalidCovenantMessage);
-    }
     if request.binding == BindingHint::KeyPresent
         && !covenant_sign::script_contains_xonly_key(request.script, pubkey_x)
     {

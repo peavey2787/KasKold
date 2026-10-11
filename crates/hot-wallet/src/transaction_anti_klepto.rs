@@ -201,3 +201,6 @@ fn finalize_account_anti_klepto(
     .map(|_| ())
     .map_err(HotWalletError::from)
 }
+
+#[cfg(test)]
+mod unit_tests;
