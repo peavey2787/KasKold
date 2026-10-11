@@ -50,7 +50,7 @@ class CryptoMutationAndHostCoverageHardeningTests(unittest.TestCase):
         # this policy test must not freeze an obsolete scanner implementation.
         self.assertIn("crate::contract::covenant::branch::resolve_covenant_branches(script)", kspt)
         self.assertNotIn("checked_advance", kspt)
-        self.assertIn("0x01..=0x4b => Ok((1, usize::from(opcode)))", resolver)
+        self.assertIn("0x01..=0x4b => Ok((width(1), usize::from(opcode)))", resolver)
         self.assertIn("duplicate_key_binding_on_the_same_branch_is_rejected", resolver_tests)
         self.assertIn("reused_key_requires_branch_disambiguation", resolver_tests)
 

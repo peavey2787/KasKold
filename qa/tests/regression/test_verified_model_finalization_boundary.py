@@ -144,7 +144,7 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         ]:
             self.assertIn(binder, specialized)
         self.assertIn("covenant_execution", specialized)
-        self.assertIn("require_only_route_fields", specialized)
+        self.assertIn("reject_mixed_routes", specialized)
         self.assertIn("no typed verified witness plan", specialized)
 
         verified = text("crates/kaskold-protocol/src/pskt/verified.rs")

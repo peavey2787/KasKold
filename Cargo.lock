@@ -1004,7 +1004,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tower-service",
- "webpki-roots 1.0.9",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -1231,7 +1231,7 @@ dependencies = [
 [[package]]
 name = "kaspa-portal"
 version = "1.4.0"
-source = "git+https://github.com/peavey2787/kaspa-portal.git?rev=2c88c99e352318707de9bf5edf2a96beade96006#2c88c99e352318707de9bf5edf2a96beade96006"
+source = "git+https://github.com/peavey2787/kaspa-portal.git?rev=b9390d261896943f42aa5147829724c21dfafe05#b9390d261896943f42aa5147829724c21dfafe05"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -1255,6 +1255,7 @@ dependencies = [
  "qrcode",
  "reqwest",
  "ripemd",
+ "rustls",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -1266,6 +1267,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+ "webpki-roots",
  "zeroize",
 ]
 
@@ -1662,7 +1664,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
- "webpki-roots 1.0.9",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -2080,7 +2082,6 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tungstenite",
- "webpki-roots 0.26.11",
 ]
 
 [[package]]
@@ -2357,15 +2358,6 @@ checksum = "5a6580f308b1fad9207618087a65c04e7a10bc77e02c8e84e9b00dd4b12fa0bb"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "webpki-roots"
-version = "0.26.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "521bc38abb08001b01866da9f51eb7c5d647a19260e00054a8c7fd5f9e57f7a9"
-dependencies = [
- "webpki-roots 1.0.9",
 ]
 
 [[package]]

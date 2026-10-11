@@ -105,6 +105,7 @@ MOVED_TO_PORTAL = {
     "crates/shared-signer/src/covenant_branch.rs": "contract/covenant/branch.rs",
     "crates/shared-signer/src/covenant_sign/mod.rs": "transaction/signing/covenant/protocol/mod.rs",
     "crates/shared-signer/src/covenant_sign/private_swap/validation.rs": "transaction/signing/covenant/protocol/private_swap.rs",
+    "crates/shared-signer/src/covenant_sign/script_int.rs": "contract/script/number.rs",
     "crates/shared-signer/src/unit_tests/account_key_tests.rs": "wallet/key/unit-tests/account.rs",
     "crates/shared-signer/src/unit_tests/property_tests.rs": "wallet/key/unit-tests/property.rs",
     "crates/shared-signer/src/unit_tests/pskt_tests.rs": "transaction/interchange/pskt/unit-tests/shared.rs",

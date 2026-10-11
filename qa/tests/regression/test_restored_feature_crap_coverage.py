@@ -80,7 +80,8 @@ class RestoredFeatureCrapCoverageTests(unittest.TestCase):
         self.assertNotIn("fn bound_statement", oracle_wasm)
         for term in ("fn validate_request_prefix", "fn validate_request_payload_length", "fn parse_bool"):
             self.assertIn(term, private_validation)
-        for term in ("fn canonical_u64_push_data", "fn canonical_positive_u64_bytes", "fn decode_script_u64"):
+        # Portal's one canonical script-integer reader and encoder.
+        for term in ("fn push_int", "fn read_canonical_u64", "fn canonical_positive_u64"):
             self.assertIn(term, covenant)
         for term in ("fn parse_claim_salt", "fn parse_claim_pubkey", "fn parse_claim_destination", "fn parse_claim_fee_policy"):
             self.assertIn(term, claim)
