@@ -357,7 +357,8 @@ impl VaultRuntime {
         &mut self,
         wallet: HotWallet,
     ) -> Result<WalletSummary, VaultRuntimeError> {
-        let index = self.install_new_wallet(wallet);
+        let index = self.wallets.len();
+        self.install_new_wallet(wallet);
         let wallet = &self.wallets[index];
         Ok(WalletSummary {
             index,
@@ -370,14 +371,13 @@ impl VaultRuntime {
     }
 
     /// Append a wallet under its default name and make it the active slot.
-    fn install_new_wallet(&mut self, wallet: HotWallet) -> usize {
+    fn install_new_wallet(&mut self, wallet: HotWallet) {
         self.clear_signing_session();
         self.covenant.clear_all();
         self.wallets.push(wallet);
         let index = self.wallets.len() - 1;
         self.wallet_names.push(default_wallet_name(index));
         self.active_wallet = Some(index);
-        index
     }
 
     fn ensure_wallet_capacity(&self) -> Result<(), VaultRuntimeError> {
