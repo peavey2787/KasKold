@@ -1,10 +1,8 @@
-use crate::{
-    contracts::merkle::script::{compute_merkle_root, generate_merkle_proof},
-    protocol::script::p2sh::blake2b_hash,
-};
+use crate::contracts::merkle::script::{compute_merkle_root, generate_merkle_proof};
+use kaspa_portal::primitives::hash::blake2b_256;
 
 fn rebuild_root(leaf: &[u8], proof: &[([u8; 32], u8)]) -> [u8; 32] {
-    let mut current = blake2b_hash(leaf);
+    let mut current = blake2b_256(leaf);
     for (sibling, direction) in proof {
         let mut pair = Vec::with_capacity(64);
         if *direction == 1 {
@@ -14,7 +12,7 @@ fn rebuild_root(leaf: &[u8], proof: &[([u8; 32], u8)]) -> [u8; 32] {
             pair.extend_from_slice(sibling);
             pair.extend_from_slice(&current);
         }
-        current = blake2b_hash(&pair);
+        current = blake2b_256(&pair);
     }
     current
 }

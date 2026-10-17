@@ -12,7 +12,7 @@ use crate::{
 use super::{
     encode_wire,
     global_thread::{plan_global_thread_withdrawal, GlobalThreadWithdrawalRequest},
-    thread_input::{decode_covenant_id, decode_redeem_script, parse_withdrawal_thread_utxos},
+    thread_input::{decode_redeem_script, parse_withdrawal_thread_utxos},
     withdrawal_policy_for, GlobalThreadFamily, GlobalThreadPolicy,
 };
 
@@ -71,7 +71,10 @@ fn prepare_withdrawal_material(
     let csv_sequence = script::extract_csv_sequence(&redeem_script)?.unwrap_or(0);
     let (cltv_lock_time, policy) = withdrawal_policy_for(request.family, &redeem_script)?;
     Ok(WithdrawalMaterial {
-        covenant_id: decode_covenant_id(request.covenant_id_hex)?,
+        covenant_id: crate::serialization::input::decode_named_32(
+            request.covenant_id_hex,
+            "covenant_id",
+        )?,
         thread_utxos: parse_withdrawal_thread_utxos(request.selected_utxos_json)?,
         covenant_script: address::address_to_script_pubkey(request.covenant_address)?,
         destination_script: address::address_to_script_pubkey(request.destination_address)?,
@@ -133,7 +136,7 @@ pub(crate) fn prepare_topup_material(
 ) -> Result<TopupMaterial, String> {
     let redeem_script = decode_redeem_script(redeem_script_hex)?;
     let (csv_sequence, policy) = topup_policy_for(family, &redeem_script)?;
-    let covenant_id = decode_covenant_id(covenant_id_hex)?;
+    let covenant_id = crate::serialization::input::decode_named_32(covenant_id_hex, "covenant_id")?;
     let thread_utxo = parse_thread_utxo(thread_utxo_json)?;
     let covenant_script = address::address_to_script_pubkey(covenant_address)?;
     Ok(TopupMaterial {

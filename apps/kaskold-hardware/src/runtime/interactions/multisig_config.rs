@@ -8,15 +8,7 @@ pub(crate) fn config_from_descriptor(
     descriptor: &ParsedMultisigDescriptor,
     active: bool,
 ) -> MultisigConfig {
-    let mut config = MultisigConfig::new();
-    config.m = descriptor.threshold;
-    config.n = descriptor.participant_count;
-    config.v45 = descriptor.is_hd45();
-    config.cosigner_pubkeys = descriptor.public_keys;
-    config.cosigner_chain_codes = descriptor.chain_codes;
-    config.cosigner_depth = descriptor.depths;
-    config.cosigner_parent_fp = descriptor.parent_fingerprints;
-    config.cosigner_child_num = descriptor.child_numbers;
+    let mut config = MultisigConfig::from_descriptor(descriptor);
     config.active = active;
     config.build_script();
     config

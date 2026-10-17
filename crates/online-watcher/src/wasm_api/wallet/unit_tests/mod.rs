@@ -58,7 +58,7 @@ fn wallet_key_exports_cover_payload_key_and_public_key_parsing() {
 fn wallet_account_and_address_wasm_boundaries_are_host_testable() {
     use super::{
         account::{extend_addresses, import_kpub, import_kpub_raw},
-        address::{decode_address, encode_p2pk_address, encode_p2sh_address},
+        address::{decode_address, encode_p2pk_address},
     };
     use shared_signer::account_key::{
         ACCOUNT_KEY_CHILD_INDEX, ACCOUNT_KEY_DEPTH, ACCOUNT_KEY_PAYLOAD_LEN, ACCOUNT_KEY_VERSION,
@@ -99,12 +99,7 @@ fn wallet_account_and_address_wasm_boundaries_are_host_testable() {
         encode_p2pk_address(&"22".repeat(32), None),
         "P2PK address",
     );
-    let p2sh = crate::wasm_api::test_support::expect_js(
-        encode_p2sh_address(&"33".repeat(32), Some("testnet-10".into())),
-        "P2SH address",
-    );
     assert!(p2pk.starts_with("kaspa:"));
-    assert!(p2sh.starts_with("kaspatest:"));
     let decoded = crate::wasm_api::test_support::expect_js(decode_address(&p2pk), "decode address");
     assert!(decoded.contains("\"version\":0"));
 
@@ -112,7 +107,6 @@ fn wallet_account_and_address_wasm_boundaries_are_host_testable() {
     assert!(import_kpub_raw(&[0; 2], "mainnet").is_err());
     assert!(extend_addresses("{}", 1, 1, "mainnet").is_err());
     assert!(encode_p2pk_address("00", None).is_err());
-    assert!(encode_p2sh_address("zz", None).is_err());
     assert!(decode_address("not-an-address").is_err());
 }
 
@@ -131,7 +125,7 @@ fn wallet_watcher_request_boundaries_and_preimage_errors_are_host_testable() {
         "VCC subscribe request"
     )
     .is_empty());
-    let address = crate::account::address::encode_p2sh_address(&[0x44; 32], "kaspa");
+    let address = kaskold_protocol::encode_p2sh_address(&[0x44; 32], "kaspa");
     assert!(!crate::wasm_api::test_support::expect_js(
         build_utxo_subscribe_request(&address, 8),
         "UTXO subscribe request"

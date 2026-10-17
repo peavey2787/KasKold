@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { isolateWebPackage } from './web_pkg_fixture.mjs';
+import { PORTAL_FAKES_IMPORT, PORTAL_WASM_FAKES, stubExport } from './portal_wasm_fakes.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(scriptDir, '..', '..', '..');
@@ -44,9 +45,9 @@ try {
     const api = await fs.readFile(path.join(jsRoot, 'wasm/api.js'), 'utf8');
     const names = wasmNames(api);
     await pkgFixture.create();
-    await fs.writeFile(path.join(pkgDir, 'companion_web.js'), names.map(name => name === 'init'
+    await fs.writeFile(path.join(pkgDir, 'companion_web.js'), [PORTAL_FAKES_IMPORT, ...names.map(name => name === 'init'
         ? 'export default async function init() {}'
-        : `export function ${name}(...args) { const hook = globalThis.__COMPANION_WASM_STUBS__?.[${JSON.stringify(name)}]; return typeof hook === 'function' ? hook(...args) : ''; }`).join('\n'));
+        : stubExport(name))].join('\n'));
 
     const elements = new Map();
     const clickListeners = [];
@@ -106,6 +107,7 @@ try {
     const covenantResult = JSON.stringify({ address:'kaspa:covenant', redeem_script_hex:'51', covenant_id_hex:'33'.repeat(32), locktime_daa:'800', cooldown_daa:'0', max_withdraw_sompi:'100000000', threshold_sompi:'100000000', campaign_id:'runtime-campaign', claim_code:'runtime-claim' });
     const utxos = JSON.stringify([{ tx_id:'aa'.repeat(32), transactionId:'aa'.repeat(32), index:0, amount:'250000000', block_daa_score:'900', covenant_id:'33'.repeat(32), script_public_key:'000051' }]);
     globalThis.__COMPANION_WASM_STUBS__ = new Proxy({
+        ...PORTAL_WASM_FAKES,
         version: () => 'runtime-success',
         import_kpub: kpub => JSON.stringify({ kpub, receive_addresses:['kaspa:owner-receive'], change_addresses:['kaspa:change'], next_receive_index:0, next_change_index:0 }),
         import_kpub_raw: () => JSON.stringify({ kpub:'kpub1:' + '44'.repeat(78), receive_addresses:['kaspa:owner-receive'], change_addresses:['kaspa:change'], next_receive_index:0, next_change_index:0 }),
@@ -113,8 +115,8 @@ try {
         fetch_utxos_for_address_js: () => utxos, fetch_utxos: () => utxos, fetch_utxos_complete: () => utxos, fetch_balance: () => JSON.stringify({ total:'250000000', mature:'250000000', pending:'0' }),
         get_fee_estimate: () => JSON.stringify({ suggested_fee:'300000', normal_sompi_per_gram:'1', low_sompi_per_gram:'1', priority_sompi_per_gram:'2', low_seconds:20, normal_seconds:10, priority_seconds:5 }),
         get_virtual_daa_score: () => '1000', decode_address: () => JSON.stringify({ payload:'11'.repeat(32), version:0 }),
-        encode_p2pk_address: () => 'kaspa:owner-receive', encode_p2sh_address: () => 'kaspa:covenant', extend_addresses: () => JSON.stringify({receive_addresses:['kaspa:owner-receive'],change_addresses:['kaspa:change']}),
-        blake2b_hash: () => '44'.repeat(32), sha256_hash: () => '55'.repeat(32), generate_qr_svg_text: value => '<svg>'+String(value).slice(0,8)+'</svg>', generate_qr_frames: () => JSON.stringify([{svg:'<svg>1</svg>'},{svg:'<svg>2</svg>'}]),
+        encode_p2pk_address: () => 'kaspa:owner-receive', extend_addresses: () => JSON.stringify({receive_addresses:['kaspa:owner-receive'],change_addresses:['kaspa:change']}),
+        sha256_hash: () => '55'.repeat(32), generate_qr_svg_text: value => '<svg>'+String(value).slice(0,8)+'</svg>', generate_qr_frames: () => JSON.stringify([{svg:'<svg>1</svg>'},{svg:'<svg>2</svg>'}]),
         pskt_detect: () => 'pskb', pskt_summary: () => JSON.stringify({
             format:'pskb', tx_version:0, input_count:1, output_count:2,
             fee_sompi:'1000', total_in_sompi:'250000000', total_out_sompi:'249999000', finalize_ready:true,

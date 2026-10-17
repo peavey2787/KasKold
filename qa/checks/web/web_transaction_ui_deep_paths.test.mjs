@@ -18,8 +18,7 @@ try {
   assert.deepEqual(bytes.hexFrameBatchToBytes('aa11\nbb22').map(value=>[...value]), [[0xaa,0x11],[0xbb,0x22]]);
 
   // QR transaction review must classify owned/change/destination/covenant/unknown outputs and inputs.
-  wasm.encode_p2pk_address=(pk)=>pk===PK?ADDRESS:pk===PK2?CHANGE:BENEFICIARY;
-  wasm.encode_p2sh_address=()=> 'kaspa:runtime-covenant';
+  wasm.script_public_key_address=(hex)=>hex===`20${PK}ac`?ADDRESS:hex===`20${PK2}ac`?CHANGE:hex.length===68?BENEFICIARY:hex.length===70?'kaspa:runtime-covenant':'';
   state.covenantState.lastCovenantResult={...covenantResult('escrow'),address:'kaspa:runtime-covenant'};
   state.covenantState._covPayloadHex='aa'.repeat(16);
   state.transactionState._lastPsktSummary={

@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { isolateWebPackage } from './web_pkg_fixture.mjs';
+import { PORTAL_FAKES_IMPORT, PORTAL_WASM_FAKES, stubExport } from './portal_wasm_fakes.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(scriptDir, '..', '..', '..');
@@ -19,7 +20,7 @@ function parseWasmExports(source) {
 }
 
 function buildWasmStub(names) {
-    return names.map(name => {
+    return PORTAL_FAKES_IMPORT + '\n' + names.map(name => {
         if (name === 'init') {
             return `export default async function init() {
                 if (globalThis.__COMPANION_TEST_INIT_FAILURE__) throw new Error('intentional WASM init failure');
@@ -69,6 +70,7 @@ function buildWasmStub(names) {
                 });
             }`;
         }
+        if (name in PORTAL_WASM_FAKES) return stubExport(name);
         return `export function ${name}(...args) { void args; return ''; }`;
     }).join('\n') + '\n';
 }

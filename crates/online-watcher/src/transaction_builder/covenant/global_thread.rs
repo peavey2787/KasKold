@@ -64,7 +64,7 @@ pub(crate) async fn build_topup(request: TopupRequest<'_>) -> Result<PreparedTop
         let selected =
             fetch_selected_wallet_utxos(request.websocket_url, &wallet, request.utxo_indices_csv)
                 .await?;
-        return build_topup_core(material, selected, request.fee);
+        build_topup_core(material, selected, request.fee)
     }
     #[cfg(not(target_arch = "wasm32"))]
     {
@@ -85,7 +85,7 @@ async fn fetch_selected_wallet_utxos(
     {
         let mut utxos = network::queries::utxos::fetch_all(websocket_url, wallet).await?;
         crate::transaction_builder::selection::sort_for_display(&mut utxos);
-        return select_wallet_utxos(&utxos, indices_csv);
+        select_wallet_utxos(&utxos, indices_csv)
     }
     #[cfg(not(target_arch = "wasm32"))]
     {

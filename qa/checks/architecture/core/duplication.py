@@ -91,15 +91,27 @@ def _intentional_adapter_pair(root: Path, left: Path, right: Path) -> bool:
     )
 
 
+# Per-family adapters: each names the shared planners it must delegate to and
+# the planning steps it must never contain itself.
+THIN_FAMILY_ADAPTERS = (
+    (("create_withdrawal(", "create_topup("), ("build_withdrawal(", "build_topup(")),
+    (
+        ("build_vault_genesis_pskb(", "build_vault_spend_pskb("),
+        ("prepare_vault_spend_material(", "build_tagged_vault_script(", "build_split_vault_script("),
+    ),
+)
+
+
 def _thin_shared_boundary_pair(left: Path, right: Path) -> bool:
     """Ignore thin family adapters that delegate all planning to shared helpers."""
     sources = [path.read_text(errors="ignore") for path in (left, right)]
-    return all(
-        "create_withdrawal(" in source
-        and "create_topup(" in source
-        and "build_withdrawal(" not in source
-        and "build_topup(" not in source
-        for source in sources
+    return any(
+        all(
+            all(call in source for call in delegates)
+            and not any(step in source for step in planning)
+            for source in sources
+        )
+        for delegates, planning in THIN_FAMILY_ADAPTERS
     )
 
 def check(root: Path) -> list[str]:

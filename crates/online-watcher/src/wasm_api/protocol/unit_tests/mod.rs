@@ -90,4 +90,31 @@ fn pskt_and_payload_native_cores_reject_malformed_inputs_without_jsvalue() {
     assert!(parse_covenant_payload_string("00").is_err());
 }
 
+#[test]
+fn pskb_document_and_output_cores_go_through_portal() {
+    use super::pskt::{pskb_append_output_string, pskb_encode_document_string, pskt_detect};
+
+    let document = r#"{"global":{"outputCount":0},"inputs":[],"outputs":[]}"#;
+    let wire = pskb_encode_document_string(document).expect("PSKB wire");
+    assert_eq!(pskt_detect(&wire), "pskb");
+    let appended = pskb_append_output_string(&wire, 7, "000051").expect("appended");
+    assert_ne!(appended, wire);
+    assert!(pskb_encode_document_string("[").is_err());
+    assert!(pskb_append_output_string(&wire, 7, "010051").is_err());
+    assert!(pskb_append_output_string(&wire, 7, "0000zz").is_err());
+}
+
+#[test]
+fn pskb_document_and_output_exports_wrap_the_cores() {
+    use super::pskt::{pskb_append_output, pskb_encode_document};
+    use crate::wasm_api::test_support::expect_js;
+
+    let document = r#"{"global":{"outputCount":0},"inputs":[],"outputs":[]}"#;
+    let wire = expect_js(pskb_encode_document(document), "PSKB wire");
+    let appended = expect_js(pskb_append_output(&wire, 7, "000051"), "appended");
+    assert_ne!(appended, wire);
+    assert!(pskb_encode_document("[").is_err());
+    assert!(pskb_append_output(&wire, 7, "0000zz").is_err());
+}
+
 mod anti_klepto_transcript;

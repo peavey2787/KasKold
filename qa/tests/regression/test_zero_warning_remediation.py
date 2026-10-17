@@ -42,8 +42,8 @@ class ZeroWarningRemediationTests(unittest.TestCase):
             "hex_decode_strict(covenant_id, &mut self.output.covenant_id)\n            .map(|_| ())",
             outputs,
         )
-        self.assertIn("let Some((_, n)) = multisig_thresholds(script, len)", script)
-        self.assertNotIn("let Some((m, n)) = multisig_thresholds(script, len)", script)
+        self.assertIn("multisig_script::parse(script.get(..len)?)", script)
+        self.assertNotIn("multisig_thresholds", script)
 
 
 

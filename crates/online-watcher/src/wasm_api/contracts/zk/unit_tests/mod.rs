@@ -174,10 +174,7 @@ fn zk_wasm_boundaries_cover_hash_merkle_and_commit_reveal() {
 
 #[test]
 fn crowdfunding_proof_round_trip_and_transaction_constraints_are_native_testable() {
-    use crate::{
-        account::{address as account_address, utxo::UtxoEntry},
-        protocol::script::p2sh,
-    };
+    use crate::account::{address as account_address, utxo::UtxoEntry};
 
     let (pk, vk) = crate::contracts::zk::proof::crowdfund_trusted_setup().expect("crowdfund setup");
     assert!(crate::contracts::zk::proof::crowdfund_generate_proof(&pk, &[]).is_err());
@@ -285,5 +282,5 @@ fn crowdfunding_proof_round_trip_and_transaction_constraints_are_native_testable
         account_address::address_to_script_pubkey(&organizer).unwrap()
     );
     assert!(transaction.outputs[0].value < 120_000_000);
-    assert_eq!(p2sh::blake2b_hash(&vk).len(), 32);
+    assert_eq!(kaspa_portal::primitives::hash::blake2b_256(&vk).len(), 32);
 }

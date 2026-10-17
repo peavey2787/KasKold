@@ -137,7 +137,7 @@ try {
   wasm.pskt_finalize_and_broadcast=()=>TXID;
 
   // Broadcast scan/paste handles progress, decode failure, PSKB, merge success,
-  // merge failure, unsupported and unsigned KSPT states, and node failure.
+  // merge failure, unrecognized and unsigned KSPT states, and node failure.
   let qr=''; wasm.decode_qr_frame=()=>qr; wasm.decoder_progress=()=>JSON.stringify({total:3,count:1,bits:[true,false,false]});
   assert.equal(broadcast.handleSignedScan(new Uint8Array([1]),{stopCamera:false}),false);
   assert.match(element('scanner-status').innerHTML,/1 \/ 3 frames/);
@@ -150,7 +150,7 @@ try {
   wasm.kaskold_sdk_complete=()=>{throw new Error('merge bad');}; state.transactionState._psktReviewHex=PSKB;
   assert.equal(broadcast.handleSignedScan(new Uint8Array([3]),{stopCamera:false}),null);
   state.transactionState._psktReviewHex=null;
-  setValue('input-signed-hex','4b5350540300'); await broadcast.handleBroadcastHex(); assert.match(element('toast').textContent,/Unsupported KSPT/i);
+  setValue('input-signed-hex','deadbeef'); await broadcast.handleBroadcastHex(); assert.match(element('toast').textContent,/Not a KSPT/i);
   const unsigned = Buffer.alloc(51); unsigned.set([0x4b,0x53,0x50,0x54,0x04,0x00]);
   setValue('input-signed-hex',unsigned.toString('hex')); wasm.broadcast_signed=()=>TXID; await broadcast.handleBroadcastHex();
   assert.equal(element('broadcast-result-msg').textContent,'Transaction broadcast!');

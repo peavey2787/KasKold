@@ -1,45 +1,13 @@
 import { covenantState } from '../../../state/index.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { fetch_utxos_for_address_js } from '../../../../wasm/api.js';
+import { fetch_utxos_for_address_js, thread_maximum_withdraw } from '../../../../wasm/api.js';
 import { byId } from '../../../../core/dom.js';
 import { durationPartsToSeconds, formatDuration } from '../../../../core/format.js';
 import { sompiToKasString } from '../../../../core/amounts.js';
 const MIN_RETURN = 10_000_000n;
-const STORAGE_MASS_CONSTANT = 1_000_000_000_000n;
-const MAX_STORAGE_MASS = 500_000n;
+import { THREAD_FEE_FLOOR } from '../../../../core/fee_math.js';
 
-
-function calculatePartialMaximum(balance, numInputs, maxAllowed) {
-    const baseFee = 300_000n * numInputs;
-    let low = 0n;
-    let high = balance - MIN_RETURN - baseFee;
-    if (high < 0n) high = 0n;
-    if (high > maxAllowed) high = maxAllowed;
-
-    let bestWithdraw = 0n;
-    for (let iteration = 0; iteration < 40 && low <= high; iteration++) {
-        const candidate = (low + high) / 2n;
-        let fee = baseFee;
-        const estimatedReturn = balance - candidate - fee;
-        if (estimatedReturn > 0n && candidate > 0n) {
-            const harmonicMean = 2n * estimatedReturn * candidate / (estimatedReturn + candidate);
-            const storageMass = harmonicMean > 0n ? STORAGE_MASS_CONSTANT / harmonicMean : 0n;
-            if (storageMass > MAX_STORAGE_MASS) {
-                high = candidate - 1n;
-                continue;
-            }
-            if (storageMass > fee) fee = storageMass;
-        }
-        if (balance - candidate - fee >= MIN_RETURN) {
-            bestWithdraw = candidate;
-            low = candidate + 1n;
-        } else {
-            high = candidate - 1n;
-        }
-    }
-    return bestWithdraw;
-}
 
 async function fillMaximumBeneficiaryWithdrawal() {
     if (!covenantState.lastCovenantResult) {
@@ -62,7 +30,7 @@ async function fillMaximumBeneficiaryWithdrawal() {
             : balance;
         const amount = maxAllowed > 0n && balance <= maxAllowed
             ? balance
-            : calculatePartialMaximum(balance, BigInt(utxos.length), maxAllowed);
+            : thread_maximum_withdraw(balance, maxAllowed, THREAD_FEE_FLOOR * BigInt(utxos.length), 1n, MIN_RETURN);
         if (amount <= 0n) {
             toast('Balance too low to withdraw', 'error');
             return;

@@ -19,49 +19,9 @@ use crate::runtime::input::AppState;
 
 fn build_multisig_descriptor(ad: &mut AppData) {
     let config = &ad.signing.multisig.creating;
-    let mut pos = 0usize;
-    let prefix: &[u8] = if config.v45 { b"multi_hd45(" } else { b"multi_hd(" };
-    if prefix.len() >= ad.qr.outgoing.buffer.len() { ad.qr.outgoing.length = 0; return; }
-    ad.qr.outgoing.buffer[..prefix.len()].copy_from_slice(prefix);
-    pos += prefix.len();
-    ad.qr.outgoing.buffer[pos] = b'0' + config.m;
-    pos += 1;
-    for index in 0..config.n as usize {
-        if pos >= ad.qr.outgoing.buffer.len() { ad.qr.outgoing.length = 0; return; }
-        ad.qr.outgoing.buffer[pos] = b',';
-        pos += 1;
-        if config.v45 {
-            let parts = offline_signer::derivation::xpub::KpubParts {
-                depth: config.cosigner_depth[index],
-                parent_fp: config.cosigner_parent_fp[index],
-                child_num: config.cosigner_child_num[index],
-                chain_code: config.cosigner_chain_codes[index],
-                pubkey: config.cosigner_pubkeys[index],
-            };
-            let mut encoded = [0u8; offline_signer::derivation::xpub::KPUB_MAX_LEN];
-            let Ok(written) = offline_signer::derivation::xpub::serialize_kpub_parts(&parts, &mut encoded) else {
-                ad.qr.outgoing.length = 0;
-                return;
-            };
-            let Some(slot) = ad.qr.outgoing.buffer.get_mut(pos..pos + written) else {
-                ad.qr.outgoing.length = 0;
-                return;
-            };
-            slot.copy_from_slice(&encoded[..written]);
-            pos += written;
-        } else {
-            const HEX: &[u8; 16] = b"0123456789abcdef";
-            for &byte in config.cosigner_pubkeys[index].iter().chain(config.cosigner_chain_codes[index].iter()) {
-                if pos + 1 >= ad.qr.outgoing.buffer.len() { ad.qr.outgoing.length = 0; return; }
-                ad.qr.outgoing.buffer[pos] = HEX[(byte >> 4) as usize];
-                ad.qr.outgoing.buffer[pos + 1] = HEX[(byte & 0x0f) as usize];
-                pos += 2;
-            }
-        }
-    }
-    if pos >= ad.qr.outgoing.buffer.len() { ad.qr.outgoing.length = 0; return; }
-    ad.qr.outgoing.buffer[pos] = b')';
-    ad.qr.outgoing.length = pos + 1;
+    ad.qr.outgoing.length = config
+        .write_descriptor(&mut ad.qr.outgoing.buffer)
+        .unwrap_or(0);
 }
 
 
@@ -255,15 +215,12 @@ fn handle_save_prompt(
 }
 
 fn prepare_address_export(ad: &mut AppData) {
-    let script = &ad.signing.multisig.creating.script[..ad.signing.multisig.creating.script_len];
-    let script_hash = offline_signer::transaction::sighash::blake2b_hash(script);
     let mut address = [0u8; offline_signer::address::MAX_ADDR_LEN];
-    let length = offline_signer::address::encode_address_for_network(
-        &script_hash,
-        offline_signer::address::AddressType::P2sh,
-        ad.wallet.seeds.seed_mgr.network().kaspa_network(),
-        &mut address,
-    );
+    let length = ad
+        .signing
+        .multisig
+        .creating
+        .address(ad.wallet.seeds.seed_mgr.network().kaspa_network(), &mut address);
     ad.export.kpub_data[..length].copy_from_slice(&address[..length]);
     ad.export.kpub_len = length;
 }

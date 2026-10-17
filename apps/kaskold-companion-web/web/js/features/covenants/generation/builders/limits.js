@@ -46,7 +46,7 @@ export async function buildGlobalAllowance(ownerPk) {
         toast('Use the beneficiary single address or x-only pubkey, not a kpub. A kpub would expose their whole account.', 'error', 6500);
         return;
     }
-    if (benePk.startsWith('kaspa') || benePk.startsWith('kaspatest')) {
+    if (benePk.includes(':')) { // an address; Portal decodes and validates it
         try {
             benePkHex = JSON.parse(decode_address(benePk)).payload;
         } catch (error) {

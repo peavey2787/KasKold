@@ -31,7 +31,6 @@ struct ShippingEscrowMaterial {
     deliverer: [u8; 32],
     buyer: [u8; 32],
     arbiter: [u8; 32],
-    total: u64,
 }
 
 pub(crate) fn build_random_json(request_json: &str) -> Result<String, String> {
@@ -55,9 +54,6 @@ fn decode(request: ShippingEscrowRequest, salt: [u8; 8]) -> Result<ShippingEscro
     let deliverer = decode_pubkey32(&request.deliverer_pubkey_hex)?;
     let buyer = decode_pubkey32(&request.buyer_pubkey_hex)?;
     let arbiter = decode_pubkey32(&request.arbiter_pubkey_hex)?;
-    let total = product
-        .checked_add(fee)
-        .ok_or("Shipping escrow total overflows u64".to_string())?;
     Ok(ShippingEscrowMaterial {
         request,
         salt,
@@ -69,20 +65,14 @@ fn decode(request: ShippingEscrowRequest, salt: [u8; 8]) -> Result<ShippingEscro
         deliverer,
         buyer,
         arbiter,
-        total,
     })
 }
 
 fn serialize(material: ShippingEscrowMaterial) -> Result<String, String> {
-    let first_tranche = material.product / 2;
-    let second_tranche = material
-        .product
-        .checked_sub(first_tranche)
-        .ok_or("Shipping escrow second tranche underflow".to_string())?;
-    let remaining = material
-        .total
-        .checked_sub(first_tranche)
-        .ok_or("Shipping escrow remaining balance underflow".to_string())?;
+    let tranches = kaspa_portal::contract::shipping_escrow::ShippingEscrowTranches::new(
+        material.product,
+        material.fee,
+    )?;
     let script = crate::contracts::shipping_escrow::script::build_ship_escrow_script(
         crate::contracts::shipping_escrow::script::ShippingEscrowScriptRequest {
             seller_pubkey: &material.seller,
@@ -106,10 +96,10 @@ fn serialize(material: ShippingEscrowMaterial) -> Result<String, String> {
         "salt": hex::encode(material.salt),
         "product_sompi": material.product.to_string(),
         "fee_sompi": material.fee.to_string(),
-        "t1_sompi": first_tranche.to_string(),
-        "t2_sompi": second_tranche.to_string(),
-        "total_sompi": material.total.to_string(),
-        "rem_sompi": remaining.to_string(),
+        "t1_sompi": tranches.first.to_string(),
+        "t2_sompi": tranches.second.to_string(),
+        "total_sompi": tranches.total.to_string(),
+        "rem_sompi": tranches.remainder.to_string(),
         "cltv1_deadline": material.first_deadline.to_string(),
         "cltv2_deadline": material.second_deadline.to_string(),
         "type": "ship-escrow",

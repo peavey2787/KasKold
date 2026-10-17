@@ -103,14 +103,14 @@ try {
     fetch_balance: () => JSON.stringify({ total_kas: 2.5, total_sompi: 250000000, utxo_count: 1, funded_addresses: 1, funded_receive_indices: [0], funded_change_indices: [] }),
     get_virtual_daa_score: () => '1000', get_fee_estimate: () => JSON.stringify({ suggested_fee: '300000', normal_sompi_per_gram: '1', low_sompi_per_gram: '1', priority_sompi_per_gram: '2' }),
     parse_kpub: () => JSON.stringify({ account_pubkey: HEX32 }), import_kpub: () => JSON.stringify(wallet), extend_addresses: () => JSON.stringify(wallet),
-    decode_address: () => JSON.stringify({ payload: HEX32, version: 0 }), encode_p2pk_address: () => ADDRESS, encode_p2sh_address: () => ADDRESS,
+    decode_address: () => JSON.stringify({ payload: HEX32, version: 0 }), encode_p2pk_address: () => ADDRESS,
     pskt_detect: h => String(h).startsWith(PSKB) ? 'pskb' : '', pskt_summary: () => JSON.stringify({ format:'pskb',tx_version:0,input_count:1,output_count:1,fee_sompi:'1000',total_in_sompi:'250000000',total_out_sompi:'249999000',finalize_ready:true,inputs:[],outputs:[] }),
     pskt_relay_to_kspt: () => KSPT, pskt_merge_signed_kspt: () => PSKB, pskt_finalize_and_broadcast: () => TXID, broadcast_signed: () => TXID,
     generate_qr_frames: () => JSON.stringify([{svg:'<svg></svg>'}]), generate_qr_svg_text: () => '<svg></svg>', decode_qr_frame: () => '', decoder_progress: () => JSON.stringify({total:1,count:0,bits:[false]}),
     create_send_pskb: () => PSKB, create_send_pskb_limited: () => PSKB, create_send_pskb_with_utxos: () => PSKB, create_consolidate_pskb: () => PSKB,
     create_covenant_pskb: () => PSKB, create_covenant_pskb_with_payload: () => PSKB, create_covenant_owner_spend: () => PSKB, create_covenant_borrower_spend: () => PSKB, create_covenant_beneficiary_spend: () => PSKB, create_covenant_timeout_refund: () => PSKB,
     create_global_spending_limit_withdraw: () => PSKB, create_global_spending_limit_topup: () => PSKB, create_global_allowance_withdraw: () => PSKB, create_global_allowance_topup: () => PSKB,
-    build_covenant_payload: () => '', parse_covenant_payload: () => JSON.stringify({type:'generic'}), sha256_hash: () => HEX32, blake2b_hash: () => HEX32,
+    build_covenant_payload: () => '', parse_covenant_payload: () => JSON.stringify({type:'generic'}), sha256_hash: () => HEX32,
   });
   globalThis.fetch = async () => ({ ok: true, status: 200, async json(){ return []; }, async text(){ return '[]'; } });
 

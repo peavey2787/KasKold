@@ -1,9 +1,9 @@
-"""Locate the pinned Kaspa Portal sources that KasKold links.
+"""Locate the locked Kaspa Portal sources that KasKold links.
 
 The signing core (keys, derivation, mnemonics, transaction model, sighash,
 KSPT/PSKT, anti-klepto, covenant and Private Swap protocols, password KDF,
 Schnorr) lives in Kaspa Portal. Source-level QA contracts read those files from
-the exact revision pinned in the workspace lockfile, so a guard keeps checking
+the default-branch commit recorded in the workspace lockfile, so a guard keeps checking
 the code that actually ships rather than a stale local copy.
 """
 

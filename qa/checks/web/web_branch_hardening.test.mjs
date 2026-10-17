@@ -26,29 +26,18 @@ try {
   const format = await import(moduleUrl('core/format.js'));
   const walletSessionMod = await import(moduleUrl('app/state/core/wallet_session.js'));
 
-  // Spend-path detection must recognize the actual selector encodings used by
-  // covenant signature scripts and must not guess when framing is malformed.
-  const single = `20${PK}ad51`;
-  assert.equal(spendPath.detectSpendPath(new Uint8Array(), single), 'owner');
-  const saltedSingle = `08${'00'.repeat(8)}7520${PK}ad51`;
-  assert.equal(spendPath.detectSpendPath(new Uint8Array(), saltedSingle), 'owner');
-  assert.equal(spendPath.detectSpendPath(Uint8Array.from([0x51, 0x02, 0x51, 0x51]), '5151'), 'owner');
-  assert.equal(spendPath.detectSpendPath(Uint8Array.from([0x00, 0x02, 0x51, 0x51]), '5151'), 'heir');
-  assert.equal(spendPath.detectSpendPath(Uint8Array.from([0x51, 0x4c, 0x02, 0x51, 0x51]), '5151'), 'owner');
-  assert.equal(spendPath.detectSpendPath(Uint8Array.from([0x00, 0x4d, 0x02, 0x00, 0x51, 0x51]), '5151'), 'heir');
-  assert.equal(spendPath.detectSpendPath(Uint8Array.from([0x51]), '5151'), 'unknown');
-  assert.equal(spendPath.detectSpendPath(Uint8Array.from([0x51, 0x50, 0x51, 0x51]), '5151'), 'unknown');
+  // Spend-path detection hands Portal the hex signature script and redeem.
+  let seenSpendPath;
+  stubs.covenant_spend_path = (...args) => { seenSpendPath = args; return 'heir'; };
+  assert.equal(spendPath.detectSpendPath(Uint8Array.from([0x00, 0x51]), '5151'), 'heir');
+  assert.deepEqual(seenSpendPath, ['0051', '5151']);
+  delete stubs.covenant_spend_path;
 
-  // Address conversion accepts only the two consensus versions Companion knows,
-  // while free-form x-only input is preserved and malformed addresses fail closed.
+  // x-only extraction decodes Portal-validated addresses, preserves free-form
+  // x-only input and fails closed on malformed addresses.
   const oldDecode = stubs.decode_address;
   stubs.decode_address = () => JSON.stringify({ version:0, payload:PK });
-  assert.equal(address.addressToScriptPublicKeyHex(ADDRESS), `20${PK}ac`);
   assert.equal(address.addressToXOnly(ADDRESS), PK);
-  stubs.decode_address = () => JSON.stringify({ version:8, payload:PK2 });
-  assert.equal(address.addressToScriptPublicKeyHex('kaspa:p2sh'), `aa20${PK2}87`);
-  stubs.decode_address = () => JSON.stringify({ version:7, payload:PK });
-  assert.throws(() => address.addressToScriptPublicKeyHex(ADDRESS), /Unknown address version/);
   stubs.decode_address = () => JSON.stringify({ version:0, payload:'aa' });
   assert.equal(address.addressToXOnly(ADDRESS), '');
   stubs.decode_address = () => { throw new Error('bad address'); };

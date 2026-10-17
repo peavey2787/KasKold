@@ -89,7 +89,9 @@ try {
   wasmUtxos=[{...baseUtxo,covenant_id:''}]; setValue('cov-bene-amount','1'); clearReview(); await participants.handleCovBeneficiarySpend(); assert.match(element('toast').textContent,/covenant_id unavailable/);
   wasmUtxos=[baseUtxo]; state.covenantState.lastCovenantResult.cooldown_daa='500'; state.networkState.utxoSnapshot=[]; daa='0'; clearReview(); await participants.handleCovBeneficiarySpend(); assert.equal(state.transactionState._psktReviewHex,PSKB,'unavailable DAA must not invent an early-lock rejection');
   state.covenantState.lastCovenantResult.cooldown_daa='0'; setValue('cov-bene-amount','0'); clearReview(); await participants.handleCovBeneficiarySpend(); assert.match(element('toast').textContent,/positive amount/);
+  stubs.thread_withdraw_fee=()=>{throw new Error('withdrawal leaves too small a remainder (storage mass)')};
   wasmUtxos=[{...baseUtxo,amount:'1000000'}]; setValue('cov-bene-amount','0.005'); clearReview(); await participants.handleCovBeneficiarySpend(); assert.match(element('toast').textContent,/storage mass/);
+  delete stubs.thread_withdraw_fee;
   wasmUtxos=[baseUtxo]; setValue('cov-bene-amount','1'); state.networkState.lastFeeEstimate={normal_sompi_per_gram:'100'}; clearReview(); await participants.handleCovBeneficiarySpend(); assert.equal(state.transactionState._psktReviewHex,PSKB); state.networkState.lastFeeEstimate=null;
 
   // Standard claim preflight also handles an unavailable DAA score, non-DMS
@@ -108,7 +110,9 @@ try {
   wasmUtxos=[{...baseUtxo,covenant_id:''}]; setValue('cov-owner-amount','1'); clearReview(); await owner.handleCovOwnerSpend(); assert.match(element('toast').textContent,/covenant_id unavailable/);
   wasmUtxos=[baseUtxo]; state.covenantState.lastCovenantResult.cooldown_daa='500'; state.networkState.utxoSnapshot=[]; daa='0'; clearReview(); await owner.handleCovOwnerSpend(); assert.equal(state.transactionState._psktReviewHex,PSKB);
   state.covenantState.lastCovenantResult.cooldown_daa='0'; setValue('cov-owner-amount','3'); clearReview(); await owner.handleCovOwnerSpend(); assert.match(element('toast').textContent,/exceeds the thread balance/);
+  stubs.thread_withdraw_fee=()=>{throw new Error('withdrawal leaves too small a remainder (storage mass)')};
   wasmUtxos=[{...baseUtxo,amount:'1000000'}]; setValue('cov-owner-amount','0.005'); clearReview(); await owner.handleCovOwnerSpend(); assert.match(element('toast').textContent,/storage mass/);
+  delete stubs.thread_withdraw_fee;
   wasmUtxos=[baseUtxo]; setValue('cov-owner-amount','1'); state.networkState.lastFeeEstimate=null; clearReview(); await owner.handleCovOwnerSpend(); assert.equal(state.transactionState._psktReviewHex,PSKB);
 
   // Timeout and specialized claim controllers cover validation and build failures.

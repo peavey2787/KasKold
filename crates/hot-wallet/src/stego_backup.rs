@@ -4,7 +4,7 @@
 //! authenticated Argon2id/KHV3 portable backup, so confidentiality and
 //! authenticity do not depend on steganography.
 
-use offline_signer::transaction::sighash::blake2b_hash;
+use offline_signer::hash::blake2b_256;
 use zeroize::{Zeroize, Zeroizing};
 
 use super::{portable_backup::PORTABLE_BACKUP_LEN, HotWallet, HotWalletError};
@@ -17,7 +17,7 @@ impl HotWallet {
         let mut key_material = Vec::with_capacity(STEGO_KEY_DOMAIN.len() + password.len());
         key_material.extend_from_slice(STEGO_KEY_DOMAIN);
         key_material.extend_from_slice(password.as_bytes());
-        let mut key = blake2b_hash(&key_material);
+        let mut key = blake2b_256(&key_material);
         key_material.zeroize();
 
         let capacity = jpeg
@@ -39,7 +39,7 @@ impl HotWallet {
         let mut key_material = Vec::with_capacity(STEGO_KEY_DOMAIN.len() + password.len());
         key_material.extend_from_slice(STEGO_KEY_DOMAIN);
         key_material.extend_from_slice(password.as_bytes());
-        let mut key = blake2b_hash(&key_material);
+        let mut key = blake2b_256(&key_material);
         key_material.zeroize();
         let mut payload = Zeroizing::new(vec![0u8; PORTABLE_BACKUP_LEN]);
         let extracted = shared_signer::stego_picture::extract(jpeg, &key, &mut payload)

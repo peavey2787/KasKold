@@ -88,7 +88,7 @@ fn covers_every_validation_stage_and_both_families() {
         thread_utxo_json: &thread,
         fee: 1,
     })));
-    assert_eq!(invalid_csv, "Truncated OP_PUSHDATA2 data");
+    assert_eq!(invalid_csv, "Truncated script item");
 
     let invalid_covenant_id = expect_error(ready(build_topup(topup_request(
         &wallet,
@@ -97,7 +97,7 @@ fn covers_every_validation_stage_and_both_families() {
         "00",
         &thread,
     ))));
-    assert_eq!(invalid_covenant_id, "covenant_id not 32 bytes");
+    assert_eq!(invalid_covenant_id, "covenant_id must be 32 bytes, got 1");
 
     let invalid_thread = expect_error(ready(build_topup(topup_request(
         &wallet,

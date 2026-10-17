@@ -9,8 +9,7 @@ import { stopScanner } from '../../stealth/index/camera.js';
 import { openPsktReview } from '../pskt_multisig/review.js';
 import { displayKsptQr } from './review.js';
 import { markStandardChangeBroadcast, refreshBalanceAfterBroadcast, withNodeRetry } from '../../wallet/core.js';
-import { inspectKsptSignatureStatus } from './kspt_status.js';
-import { broadcast_signed, decode_qr_frame, decoder_progress, kaskold_sdk_complete, pskt_detect, reset_qr_decoder } from '../../../wasm/api.js';
+import { broadcast_signed, decode_qr_frame, decoder_progress, kaskold_sdk_complete, kspt_signature_status, pskt_detect, reset_qr_decoder } from '../../../wasm/api.js';
 // KasKold Companion Web — features/transactions/send/broadcast
 import { byId } from '../../../core/dom.js';
 import { ANTI_KLEPTO_KEEP_SCANNING, processAntiKleptoResponse } from '../anti_klepto/response.js';
@@ -199,7 +198,7 @@ export function handleSignedScan(data, options = {}) {
                 return true;
             }
 
-            const sigStatus = inspectKsptSignatureStatus(result);
+            const sigStatus = kspt_signature_status(result);
 
             // Compact-relay return path: if we sent a KSPT v1 to the
             // device via handlePsktRelayCompact, _psktReviewHex still
@@ -287,14 +286,14 @@ export async function handleBroadcastHex() {
         return;
     }
 
-    const sigStatus = inspectKsptSignatureStatus(hex);
-    if (sigStatus === 'unsupported') {
-        toast('Unsupported KSPT generation — only KSPT v1 is accepted', 'error', 5000);
+    const sigStatus = kspt_signature_status(hex);
+    if (sigStatus === 'unknown') {
+        toast('Not a KSPT this Companion accepts', 'error', 5000);
         return;
     }
     if (sigStatus === 'unsigned') {
         // Signature-state inspection is advisory; WASM finalization performs the
-        // authoritative v4 transaction/signature validation before broadcast.
+        // authoritative transaction/signature validation before broadcast.
         toast('Warning: KSPT appears unsigned. If KasKold showed signed QR, press Broadcast.', 'error', 5000);
     }
 

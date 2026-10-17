@@ -302,7 +302,10 @@ printf dts > "${out_dir}/${out_name}_bg.wasm.d.ts"
         self.assertIn('pub use kaspa_portal::transaction::', facade)
         self.assertIn('interchange::{kspt', facade)
         manifest = (ROOT / 'crates/offline-signer/Cargo.toml').read_text()
-        self.assertRegex(manifest, r'kaspa-portal = \{ git = "[^"]+", rev = "[0-9a-f]{40}"')
+        self.assertRegex(
+            manifest,
+            r'kaspa-portal = \{ git = "https://github\.com/peavey2787/kaspa-portal\.git", default-features = false',
+        )
 
 
 if __name__ == '__main__':

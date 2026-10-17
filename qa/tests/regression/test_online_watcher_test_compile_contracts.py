@@ -2,7 +2,7 @@ import sys as _portal_sys
 from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
-from portal_source import kaskold_source  # noqa: E402
+from portal_source import kaskold_source, portal_path  # noqa: E402
 from pathlib import Path
 import importlib.util
 import tempfile
@@ -101,7 +101,10 @@ class OnlineWatcherTestCompileContractTests(unittest.TestCase):
     def test_multisig_small_int_decoder_cannot_eagerly_underflow_on_invalid_opcode(self) -> None:
         source = kaskold_source("crates/kaskold-protocol/src/pskt/relay_fields/scripts.rs").read_text()
         self.assertNotIn("then_some(opcode - 0x50)", source)
-        self.assertIn("(0x51..=0x60).contains(&opcode).then(|| opcode - 0x50)", source)
+        self.assertIn("crate::primitives::multisig_script::parse(script)", source)
+        parser = portal_path("primitives/multisig_script.rs").read_text()
+        self.assertNotIn("then_some(opcode -", parser)
+        self.assertIn("(OP_1..=OP_16).contains(&opcode).then(|| opcode - OP_1 + 1)", parser)
 
     def test_allowance_logger_is_visible_only_inside_covenant_families_for_host_coverage(self) -> None:
         family_tests = (

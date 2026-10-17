@@ -13,7 +13,7 @@ use offline_signer::{
     address::{encode_address_for_network, AddressType, KaspaNetwork, MAX_ADDR_LEN},
     crypto::{ecies, message},
     derivation::{bip32, bip85, xpub},
-    transaction::sighash::blake2b_hash,
+    hash::blake2b_256,
 };
 use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, Zeroizing};
@@ -197,7 +197,7 @@ impl HotWallet {
     pub fn commit_secret(&self, secret: &[u8]) -> Result<CommittedSecret, HotWalletError> {
         validate_commit_secret(secret)?;
         let salted = salted_secret(secret)?;
-        let commitment = blake2b_hash(&salted);
+        let commitment = blake2b_256(&salted);
         let recipient = self.commit_recipient_public_key()?;
         let payload = encrypt_committed_secret(&recipient, &salted, &commitment)?;
         Ok(CommittedSecret {
@@ -235,7 +235,7 @@ impl HotWallet {
             .map_err(|_| HotWalletError::CryptoOperationFailed);
         private_key.zeroize();
         let mut plaintext = Zeroizing::new(decrypted?);
-        if plaintext.len() <= SECRET_SALT_LEN || blake2b_hash(&plaintext) != expected {
+        if plaintext.len() <= SECRET_SALT_LEN || blake2b_256(&plaintext) != expected {
             return Err(HotWalletError::CryptoOperationFailed);
         }
         let secret = Zeroizing::new(plaintext.split_off(SECRET_SALT_LEN));

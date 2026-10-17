@@ -6,10 +6,8 @@ import { toast } from '../../../../core/ui/toast.js';
 import { getCovFee } from '../../payload_and_swaps/state.js';
 import { ensureEscrowParams } from '../../watchers_and_ui/ui/metadata.js';
 import { openPsktReview } from '../../../transactions/pskt_multisig/review.js';
-import { addressToScriptPublicKeyHex } from '../../../../core/address.js';
-import { encode_p2pk_address, fetch_utxos_for_address_js } from '../../../../wasm/api.js';
+import { address_script_public_key, encode_p2pk_address, fetch_utxos_for_address_js, pskb_encode_document, ship_escrow_terms } from '../../../../wasm/api.js';
 // KasKold Companion Web — features/covenants/spending/standard/shipment
-import { bytesToHex, hexToBytes } from '../../../../core/bytes.js';
 import { byId } from '../../../../core/dom.js';
 import { exactJsonStringify, exactUnsigned } from '../../../../core/exact.js';
 import { sompiToKasString } from '../../../../core/amounts.js';
@@ -17,53 +15,23 @@ import { sompiToKasString } from '../../../../core/amounts.js';
 
 // ── Shipment-escrow covenant: parse params from redeem, refresh panel, spend ──
 
-// Recover amounts and payout addresses from the redeem script. The layout is
-// fixed (see build_ship_escrow_script): the multi-byte integer pushes appear in
-// order total, rem, cltv1, rem, fee, cltv2; the 36-byte SPK data pushes appear
-// in order seller, buyer, seller, deliverer, buyer. This lets a second device
-// operate from just the address + redeem hex (no shared metadata needed).
-function parseShipEscrowParams(redeemHex) {
-    const b = hexToBytes(redeemHex);
-    const n = b.length;
-    let off = 0;
-    if (b[0] === 0x08) off = 1 + 8 + 1; // skip salt push + OP_DROP
-    const ints = [], spks = [];
-    const decLE = (arr) => { let v = 0n; for (let k = arr.length - 1; k >= 0; k--) v = (v << 8n) | BigInt(arr[k]); return v; };
-    while (off < n) {
-        const op = b[off];
-        if (op >= 0x01 && op <= 0x4b) {
-            const len = op, data = b.slice(off + 1, off + 1 + len);
-            if (len === 36) spks.push(data);
-            else if (len !== 32) ints.push(decLE(data)); // 32 = pubkey push, skip
-            off += 1 + len;
-        } else if (op === 0x4c) { off += 2 + (b[off + 1] || 0); }
-        else if (op === 0x4d) { off += 3 + ((b[off + 1] || 0) | ((b[off + 2] || 0) << 8)); }
-        else { off += 1; }
-    }
-    const spkToAddr = (spk) => {
-        // spk = 00 00 20 <32B key> ac  → key at bytes [3..35)
-        const keyHex = bytesToHex(spk.slice(3, 35));
-        return encode_p2pk_address(keyHex, networkState.network);
-    };
-    if (ints.length < 6 || spks.length < 5) throw 'unrecognized ship-escrow redeem';
+function shipParams(terms) {
     return {
-        total: ints[0], rem: ints[1], cltv1: ints[2], fee: ints[4], cltv2: ints[5],
-        sellerAddr: spkToAddr(spks[0]), buyerAddr: spkToAddr(spks[1]), delivererAddr: spkToAddr(spks[3]),
+        total: BigInt(terms.total_sompi), rem: BigInt(terms.rem_sompi), fee: BigInt(terms.fee_sompi),
+        cltv1: BigInt(terms.cltv1_deadline), cltv2: BigInt(terms.cltv2_deadline),
+        sellerAddr: terms.seller_addr, delivererAddr: terms.deliverer_addr, buyerAddr: terms.buyer_addr,
     };
 }
 
 
-// Prefer in-session metadata (exact, from create); fall back to parsing the redeem.
+// Prefer in-session metadata (exact, from create); otherwise Kaspa Portal reads
+// the terms back from the redeem, so a second device needs only address + redeem.
 function getShipParams(covAddr, redeemHex) {
     const L = covenantState.lastCovenantResult;
     if (L && L.type === 'ship-escrow' && L.address === covAddr && L.total_sompi != null) {
-        return {
-            total: BigInt(L.total_sompi), rem: BigInt(L.rem_sompi), fee: BigInt(L.fee_sompi),
-            cltv1: BigInt(L.cltv1_deadline), cltv2: BigInt(L.cltv2_deadline),
-            sellerAddr: L.seller_addr, delivererAddr: L.deliverer_addr, buyerAddr: L.buyer_addr,
-        };
+        return shipParams(L);
     }
-    return parseShipEscrowParams(redeemHex);
+    return shipParams(JSON.parse(ship_escrow_terms(redeemHex, networkState.network)));
 }
 
 
@@ -127,10 +95,10 @@ export async function handleShipEscrowSpend(branch) {
         if (inAmt !== expectAmt) {
             throw 'UTXO ' + sompiToKasString(inAmt) + ' KAS does not match the ' + (isState0 ? 'state-0 total' : 'state-1') + ' amount ' + sompiToKasString(expectAmt) + ' KAS for this branch';
         }
-        const covSpkHex = '0000' + addressToScriptPublicKeyHex(covAddr);
-        const sellerSpk = '0000' + addressToScriptPublicKeyHex(P.sellerAddr);
-        const delivSpk = '0000' + addressToScriptPublicKeyHex(P.delivererAddr);
-        const buyerSpk = '0000' + addressToScriptPublicKeyHex(P.buyerAddr);
+        const covSpkHex = '0000' + address_script_public_key(covAddr);
+        const sellerSpk = '0000' + address_script_public_key(P.sellerAddr);
+        const delivSpk = '0000' + address_script_public_key(P.delivererAddr);
+        const buyerSpk = '0000' + address_script_public_key(P.buyerAddr);
         const mkOut = (amt, spk) => ({ amount: exactUnsigned(amt, 'output sompi'), scriptPublicKey: spk, bip32Derivations: [], proprietaries: [] });
 
         let outputs, minSig = 1, locktime = 0n;
@@ -176,13 +144,7 @@ export async function handleShipEscrowSpend(branch) {
             inputs, outputs
         };
 
-        const jsonStr = exactJsonStringify([pskt]);
-        const jsonHex = bytesToHex(new TextEncoder().encode(jsonStr));
-        const wireBytes = new TextEncoder().encode('PSKB');
-        const wireFull = new Uint8Array(wireBytes.length + jsonHex.length);
-        wireFull.set(wireBytes);
-        wireFull.set(new TextEncoder().encode(jsonHex), wireBytes.length);
-        const pskbHex = bytesToHex(wireFull);
+        const pskbHex = pskb_encode_document(exactJsonStringify(pskt));
 
         hideLoading();
         console.log('[Companion] ShipEscrow ' + branch + ' PSKB: ' + pskbHex.length + ' hex chars, minSig=' + minSig + ', locktime=' + locktime);
@@ -230,8 +192,8 @@ export async function handleEscrowSpend(branch) {
         if (total <= fee) throw 'Balance too low: ' + sompiToKasString(total) + ' KAS';
 
         const sendAmount = total - fee;
-        const covSpkHex = '0000' + addressToScriptPublicKeyHex(covAddr);
-        const destSpkHex = '0000' + addressToScriptPublicKeyHex(destAddr);
+        const covSpkHex = '0000' + address_script_public_key(covAddr);
+        const destSpkHex = '0000' + address_script_public_key(destAddr);
 
         const inputs = utxos.map(u => ({
             previousOutpoint: { transactionId: u.tx_id, index: u.index },
@@ -268,13 +230,7 @@ export async function handleEscrowSpend(branch) {
             inputs, outputs
         };
 
-        const jsonStr = exactJsonStringify([pskt]);
-        const jsonHex = bytesToHex(new TextEncoder().encode(jsonStr));
-        const wireBytes = new TextEncoder().encode('PSKB');
-        const wireFull = new Uint8Array(wireBytes.length + jsonHex.length);
-        wireFull.set(wireBytes);
-        wireFull.set(new TextEncoder().encode(jsonHex), wireBytes.length);
-        const pskbHex = bytesToHex(wireFull);
+        const pskbHex = pskb_encode_document(exactJsonStringify(pskt));
 
         hideLoading();
         console.log('[Companion] Escrow ' + branch + ' PSKB: ' + pskbHex.length + ' hex chars, dest=' + destAddr);

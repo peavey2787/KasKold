@@ -229,12 +229,7 @@ fn hinted_output_xonly(
 fn p2pk_xonly(
     script: &offline_signer::transaction::model::ScriptPublicKey,
 ) -> Option<[u8; 32]> {
-    if script.script_len != 34 || script.script[0] != 0x20 || script.script[33] != 0xac {
-        return None;
-    }
-    let mut xonly = [0u8; 32];
-    xonly.copy_from_slice(&script.script[1..33]);
-    Some(xonly)
+    offline_signer::address::p2pk_xonly(script.script_bytes())
 }
 
 fn p2pk_matches(

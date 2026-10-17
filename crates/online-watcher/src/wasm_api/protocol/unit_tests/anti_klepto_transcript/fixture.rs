@@ -400,7 +400,7 @@ pub(super) fn minimal_compact_transaction(
     wire.extend_from_slice(&0u64.to_le_bytes());
     wire.extend_from_slice(&[0u8; 20]);
     wire.extend_from_slice(&0u64.to_le_bytes());
-    wire.extend_from_slice(&0u16.to_le_bytes());
+    wire.extend_from_slice(&0u32.to_le_bytes());
     for index in 0..input_count {
         wire.extend_from_slice(&[0x10u8.wrapping_add(index as u8); 32]);
         wire.extend_from_slice(&index.to_le_bytes());

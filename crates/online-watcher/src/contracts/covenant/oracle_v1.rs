@@ -19,31 +19,20 @@ pub(crate) fn build_json(
     locktime_daa: u64,
     network: &str,
 ) -> Result<String, String> {
-    let (owner, beneficiary, oracle, oracle_key_id) = checked_inputs(
+    let mut salt = [0u8; 16];
+    crate::infrastructure::fill_secure_random(&mut salt)?;
+    build_json_with_salt(
         owner_pubkey_hex,
         beneficiary_pubkey_hex,
         oracle_pubkey_hex,
         oracle_covenant_key_id_hex,
-        locktime_daa,
-    )?;
-    let mut salt = [0u8; 16];
-    crate::infrastructure::fill_secure_random(&mut salt)?;
-    build_json_with_checked_inputs(
-        owner_pubkey_hex,
-        beneficiary_pubkey_hex,
-        oracle_pubkey_hex,
-        oracle_key_id,
         release_statement,
         locktime_daa,
         network,
         salt,
-        owner,
-        beneficiary,
-        oracle,
     )
 }
 
-#[cfg(test)]
 #[allow(clippy::too_many_arguments)] // mirrors the covenant template fields 1:1
 pub(crate) fn build_json_with_salt(
     owner_pubkey_hex: &str,

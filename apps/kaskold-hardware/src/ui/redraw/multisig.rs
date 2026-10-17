@@ -113,16 +113,13 @@ fn draw_address(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {
     let mut label_buf = [0u8; 8];
     let label_len = ad.signing.multisig.creating.label(&mut label_buf);
     let label = core::str::from_utf8(&label_buf[..label_len]).unwrap_or("?-of-?");
-    let script_hash = offline_signer::transaction::sighash::blake2b_hash(
-        &ad.signing.multisig.creating.script[..ad.signing.multisig.creating.script_len],
-    );
     let mut addr_buf = [0u8; offline_signer::address::MAX_ADDR_LEN];
-    let addr = offline_signer::address::encode_address_str_for_network(
-        &script_hash,
-        offline_signer::address::AddressType::P2sh,
-        ad.wallet.seeds.seed_mgr.network().kaspa_network(),
-        &mut addr_buf,
-    );
+    let addr_len = ad
+        .signing
+        .multisig
+        .creating
+        .address(ad.wallet.seeds.seed_mgr.network().kaspa_network(), &mut addr_buf);
+    let addr = core::str::from_utf8(&addr_buf[..addr_len]).unwrap_or("");
     boot_display.draw_multisig_result(
         label,
         addr,
@@ -145,16 +142,12 @@ fn draw_address_qr(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {
 }
 
 fn draw_live_address_qr(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {
-    let script_hash = offline_signer::transaction::sighash::blake2b_hash(
-        &ad.signing.multisig.creating.script[..ad.signing.multisig.creating.script_len],
-    );
     let mut addr_buf = [0u8; offline_signer::address::MAX_ADDR_LEN];
-    let addr_len = offline_signer::address::encode_address_for_network(
-        &script_hash,
-        offline_signer::address::AddressType::P2sh,
-        ad.wallet.seeds.seed_mgr.network().kaspa_network(),
-        &mut addr_buf,
-    );
+    let addr_len = ad
+        .signing
+        .multisig
+        .creating
+        .address(ad.wallet.seeds.seed_mgr.network().kaspa_network(), &mut addr_buf);
     boot_display.draw_qr_fullscreen(&addr_buf[..addr_len]);
 }
 

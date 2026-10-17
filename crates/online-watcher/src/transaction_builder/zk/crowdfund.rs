@@ -221,7 +221,7 @@ fn verified_sweep_material(
     }
     let organizer_script = address::address_to_script_pubkey(request.organizer_address)?;
     let organizer_output_spk = versioned_spk(&organizer_script);
-    let verifying_key_hash = p2sh::blake2b_hash(&verifying_key);
+    let verifying_key_hash = kaspa_portal::primitives::hash::blake2b_256(&verifying_key);
     Ok(VerifiedSweepMaterial {
         verifying_key,
         proof_bytes,

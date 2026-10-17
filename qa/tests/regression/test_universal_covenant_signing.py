@@ -113,7 +113,7 @@ class UniversalCovenantSigningTests(unittest.TestCase):
         self.assertIn("KEY INSTANCE", ui)
         self.assertIn("CovenantSignOpaqueWarning", controller)
         self.assertIn("CovenantSignOpaqueConfirm", controller)
-        self.assertIn("oracle_v1_script_binds", protocol)
+        self.assertIn("oracle_v1_script_commits_to", protocol)
         self.assertIn("script == pattern.as_slice()", protocol)
 
     def test_device_allocates_instance_id_and_binding_record_prevents_rebinding(self) -> None:

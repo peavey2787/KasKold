@@ -48,10 +48,12 @@ fn draw_transaction_class(
     tx: &offline_signer::transaction::model::Transaction,
     y: i32,
 ) {
-    let krc20 = crate::services::krc20::detect_krc20(tx);
-    if krc20.detected {
+    // A KRC-20 reveal carries its Kasplex envelope in an input's redeem script.
+    let krc20 = (0..tx.num_inputs)
+        .find_map(|index| offline_signer::contract::krc20::krc20_operation(tx.redeem_bytes(index)));
+    if let Some(krc20) = krc20 {
         let mut text = heapless::String::<48>::new();
-        write!(&mut text, "KRC-20 {} {}", krc20.op_str(), krc20.ticker_str()).ok();
+        write!(&mut text, "KRC-20 {} {}", krc20.op.label(), krc20.ticker).ok();
         centered_title(display, text.as_str(), y, COLOR_ORANGE);
         return;
     }

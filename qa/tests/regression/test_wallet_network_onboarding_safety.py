@@ -69,9 +69,9 @@ class WalletNetworkOnboardingSafetyTests(unittest.TestCase):
         self.assertIn("seed_mgr.network().kaspa_network()", pskt_context)
         self.assertGreaterEqual(anti.count("matches_transaction_network"), 2)
         self.assertIn("seed_mgr.network().kaspa_network()", export)
-        self.assertIn("encode_address_str_for_network", multisig_redraw)
+        self.assertEqual(multisig_redraw.count(".address(ad.wallet.seeds.seed_mgr.network().kaspa_network()"), 2)
         self.assertIn("seed_mgr.network().kaspa_network()", multisig_redraw)
-        self.assertIn("encode_address_for_network", multisig_output)
+        self.assertIn(".address(ad.wallet.seeds.seed_mgr.network().kaspa_network()", multisig_output)
 
     def test_wallet_list_puts_add_first_and_shows_pass_and_network(self):
         touch = read("apps/kaskold-hardware/src/runtime/interactions/seed/seed_list/list.rs")

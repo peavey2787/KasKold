@@ -148,7 +148,6 @@ fn utility_and_protocol_exports_reject_malformed_hex_and_documents() {
     assert!(commit_hash(BAD_KEY).is_err());
     assert!(merkle_root_from_addresses("not-json").is_err());
     assert!(merkle_proof_for_address("not-json", BAD_ADDRESS).is_err());
-    assert!(blake2b_hash(BAD_KEY).is_err());
     assert!(sha256_hash(BAD_KEY).is_err());
     assert!(encode_p2pk_address(BAD_KEY, None).is_err());
     assert!(parse_kpub("not-a-kpub").is_err());
@@ -177,8 +176,6 @@ fn utility_and_protocol_exports_reject_malformed_hex_and_documents() {
 fn deterministic_exports_succeed_on_valid_input() {
     let fee = estimate_covenant_fee(1, 40, 0, 0).expect("covenant fee estimate");
     assert!(fee.parse::<u64>().expect("decimal fee") > 0);
-    let blake = blake2b_hash("00").expect("blake2b");
-    assert_eq!(blake.len(), 64);
     let sha = sha256_hash("").expect("sha256");
     assert_eq!(
         sha,

@@ -21,6 +21,22 @@ const GENERATED_WASM_EXPORTS = Object.freeze([
     'decoder_progress',
     'fetch_utxos_for_address_js',
     'pskt_detect',
+    'kspt_signature_status',
+    'pskb_encode_document',
+    'pskb_append_output',
+    'thread_withdraw_fee',
+    'thread_maximum_withdraw',
+    'private_swap_max_fee_sompi',
+    'network_address_prefix',
+    'address_network',
+    'is_kaspa_address',
+    'address_script_public_key',
+    'multisig_descriptor_summary',
+    'covenant_spend_path',
+    'read_commit_reveal_reveal',
+    'ship_escrow_terms',
+    'redeem_script_address',
+    'script_public_key_address',
     'pskt_summary',
     'pskt_finalize_and_broadcast',
     'pskt_relay_to_kspt',
@@ -37,7 +53,6 @@ const GENERATED_WASM_EXPORTS = Object.freeze([
     'create_multisig_pskb_multi_js',
     'decode_address',
     'encode_p2pk_address',
-    'encode_p2sh_address',
     'extend_addresses',
     'covenant_additive_address',
     'covenant_escrow',
@@ -91,7 +106,6 @@ const GENERATED_WASM_EXPORTS = Object.freeze([
     'stealth_announcement_address',
     'create_stealth_spend',
     'stealth_create_payment_lane',
-    'blake2b_hash',
     'sha256_hash',
     'parse_kpub',
     'get_virtual_daa_score',
@@ -170,6 +184,22 @@ export function reset_qr_decoder(...args) { return invoke('reset_qr_decoder', ar
 export function decoder_progress(...args) { return invoke('decoder_progress', args); }
 export function fetch_utxos_for_address_js(...args) { return invoke('fetch_utxos_for_address_js', args); }
 export function pskt_detect(...args) { return invoke('pskt_detect', args); }
+export function kspt_signature_status(...args) { return invoke('kspt_signature_status', args); }
+export function pskb_encode_document(...args) { return invoke('pskb_encode_document', args); }
+export function pskb_append_output(...args) { return invoke('pskb_append_output', args); }
+export function thread_withdraw_fee(...args) { return invoke('thread_withdraw_fee', args); }
+export function thread_maximum_withdraw(...args) { return invoke('thread_maximum_withdraw', args); }
+export function private_swap_max_fee_sompi(...args) { return invoke('private_swap_max_fee_sompi', args); }
+export function network_address_prefix(...args) { return invoke('network_address_prefix', args); }
+export function address_network(...args) { return invoke('address_network', args); }
+export function is_kaspa_address(...args) { return invoke('is_kaspa_address', args); }
+export function address_script_public_key(...args) { return invoke('address_script_public_key', args); }
+export function multisig_descriptor_summary(...args) { return invoke('multisig_descriptor_summary', args); }
+export function covenant_spend_path(...args) { return invoke('covenant_spend_path', args); }
+export function read_commit_reveal_reveal(...args) { return invoke('read_commit_reveal_reveal', args); }
+export function ship_escrow_terms(...args) { return invoke('ship_escrow_terms', args); }
+export function redeem_script_address(...args) { return invoke('redeem_script_address', args); }
+export function script_public_key_address(...args) { return invoke('script_public_key_address', args); }
 export function pskt_summary(...args) { return invoke('pskt_summary', args); }
 export function pskt_finalize_and_broadcast(...args) { return invoke('pskt_finalize_and_broadcast', args); }
 export function pskt_relay_to_kspt(...args) { return invoke('pskt_relay_to_kspt', args); }
@@ -186,7 +216,6 @@ export function scan_multisig_branch_js(...args) { return invoke('scan_multisig_
 export function create_multisig_pskb_multi_js(...args) { return invoke('create_multisig_pskb_multi_js', args); }
 export function decode_address(...args) { return invoke('decode_address', args); }
 export function encode_p2pk_address(...args) { return invoke('encode_p2pk_address', args); }
-export function encode_p2sh_address(...args) { return invoke('encode_p2sh_address', args); }
 export function extend_addresses(...args) { return invoke('extend_addresses', args); }
 export function covenant_additive_address(...args) { return invoke('covenant_additive_address', args); }
 export function covenant_escrow(...args) { return invoke('covenant_escrow', args); }
@@ -240,7 +269,6 @@ export function stealth_generate_payment(...args) { return invoke('stealth_gener
 export function stealth_announcement_address(...args) { return invoke('stealth_announcement_address', args); }
 export function create_stealth_spend(...args) { return invoke('create_stealth_spend', args); }
 export function stealth_create_payment_lane(...args) { return invoke('stealth_create_payment_lane', args); }
-export function blake2b_hash(...args) { return invoke('blake2b_hash', args); }
 export function sha256_hash(...args) { return invoke('sha256_hash', args); }
 export function parse_kpub(...args) { return invoke('parse_kpub', args); }
 export function get_virtual_daa_score(...args) { return invoke('get_virtual_daa_score', args); }

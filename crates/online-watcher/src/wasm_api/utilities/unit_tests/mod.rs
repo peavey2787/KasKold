@@ -98,14 +98,49 @@ fn wasm_utility_boundaries_are_host_testable() {
 }
 
 #[test]
-fn hash_boundaries_cover_blake2b_and_sha256() {
-    assert_eq!(
-        crate::wasm_api::test_support::expect_js(super::crypto::blake2b_hash(""), "BLAKE2b hash")
-            .len(),
-        64
-    );
+fn hash_boundaries_cover_sha256() {
     assert_eq!(
         crate::wasm_api::test_support::expect_js(super::crypto::sha256_hash(""), "SHA-256 hash"),
         "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     );
+}
+
+#[test]
+fn address_exports_validate_and_map_networks_through_portal() {
+    use super::{address_network, is_kaspa_address, network_address_prefix};
+
+    let address = "kaspatest:qzkpehfq6c0gua6lwanp8my4hm0saars3px2kw0gpvtwvky5zk0nu7lm5nrty";
+    assert!(is_kaspa_address(address));
+    assert!(!is_kaspa_address("kaspatest:qzkpehfq"));
+    assert!(!is_kaspa_address("kpub1:abc"));
+    assert_eq!(
+        super::address_script_public_key(address)
+            .ok()
+            .map(|spk| spk.len()),
+        Some(68)
+    );
+
+    let spk = super::address_script_public_key(address).unwrap();
+    assert_eq!(
+        super::script_public_key_address(&spk, "testnet-10"),
+        address
+    );
+    assert_eq!(super::script_public_key_address("51", "testnet-10"), "");
+    let p2sh = super::redeem_script_address("51", "testnet-10").unwrap();
+    let p2sh_spk = super::address_script_public_key(&p2sh).unwrap();
+    assert_eq!(
+        super::script_public_key_address(&p2sh_spk, "testnet-10"),
+        p2sh
+    );
+    assert!(super::redeem_script_address("zz", "testnet-10").is_err());
+
+    assert_eq!(network_address_prefix("mainnet"), "kaspa:");
+    assert_eq!(network_address_prefix("testnet-12"), "kaspatest:");
+    assert_eq!(network_address_prefix("bogus"), "");
+    assert_eq!(address_network("kaspatest:qq", "testnet-12"), "testnet-12");
+    assert_eq!(address_network("kaspatest:qq", "mainnet"), "testnet-10");
+    assert_eq!(address_network("kaspasim:qq", "mainnet"), "simnet");
+    assert_eq!(address_network("kaspadev:qq", "mainnet"), "devnet");
+    assert_eq!(address_network("kaspa:qq", "testnet-10"), "mainnet");
+    assert_eq!(address_network("", "testnet-10"), "mainnet");
 }

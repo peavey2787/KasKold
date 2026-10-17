@@ -11,13 +11,12 @@ skip-tests = []
 verbose-boot = ["kaspa-portal/kdf-benchmark"]
 
 [dependencies]
-kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", rev = "b9390d261896943f42aa5147829724c21dfafe05", default-features = false, features = ["self-test"] }
+kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", default-features = false, features = ["self-test"] }
 shared-signer = { path = "../shared-signer" }
 kaskold-protocol = { version = "=2.0.0", path = "../kaskold-protocol", default-features = false }
 sha2 = { version = "0.10", default-features = false }
 ripemd = { version = "0.1.3", default-features = false }
 k256 = { version = "0.13.4", default-features = false, features = ["arithmetic", "ecdsa", "schnorr"] }
 aes-gcm = { version = "0.10.3", default-features = false, features = ["aes"] }
-blake2 = { version = "0.10.6", default-features = false }
 zeroize = { version = "1.8.2", default-features = false, features = ["derive"] }
 argon2 = { version = "=0.5.3", default-features = false, features = ["zeroize"] }

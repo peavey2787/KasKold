@@ -124,11 +124,6 @@
     color: var(--danger);
 }
 
-.btn-large {
-    padding: 16px;
-    font-size: 16px;
-}
-
 .actions {
     display: flex;
     flex-direction: column;

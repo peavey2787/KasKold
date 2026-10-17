@@ -24,7 +24,6 @@ pub(crate) mod memory;
 pub(crate) use hardware::{audio, camera_device, storage_device, timing, touch_recovery};
 pub mod backup;
 pub mod stego;
-pub mod krc20;
 pub mod fw_update;
 pub mod entropy;
 pub mod credential_policy;

@@ -976,7 +976,6 @@ F	apps/kaskold-companion-web/web/js/app/events/contracts/covenant_recovery.js
 F	apps/kaskold-companion-web/web/js/app/events/contracts/covenant_specialized.js
 F	apps/kaskold-companion-web/web/js/app/events/contracts/covenant_specialized/commit_reveal.js
 F	apps/kaskold-companion-web/web/js/app/events/contracts/covenant_specialized/commit_reveal/input_events.js
-F	apps/kaskold-companion-web/web/js/app/events/contracts/covenant_specialized/commit_reveal/pushdata.js
 F	apps/kaskold-companion-web/web/js/app/events/contracts/covenant_specialized/commit_reveal/rendering.js
 F	apps/kaskold-companion-web/web/js/app/events/contracts/covenant_specialized/commit_reveal/transaction_fetch.js
 F	apps/kaskold-companion-web/web/js/app/events/contracts/covenant_specialized/commit_reveal/verification.js
@@ -1221,6 +1220,7 @@ F	apps/kaskold-companion-web/web/js/features/stealth/index/spend.js
 F	apps/kaskold-companion-web/web/js/features/transactions/anti_klepto/response.js
 F	apps/kaskold-companion-web/web/js/features/transactions/anti_klepto/session.js
 F	apps/kaskold-companion-web/web/js/features/transactions/pskt_multisig.js
+F	apps/kaskold-companion-web/web/js/features/transactions/pskt_multisig/descriptor_summary.js
 F	apps/kaskold-companion-web/web/js/features/transactions/pskt_multisig/descriptors.js
 F	apps/kaskold-companion-web/web/js/features/transactions/pskt_multisig/multisig.js
 F	apps/kaskold-companion-web/web/js/features/transactions/pskt_multisig/review.js
@@ -1238,7 +1238,6 @@ F	apps/kaskold-companion-web/web/js/features/transactions/send/compose/planners/
 F	apps/kaskold-companion-web/web/js/features/transactions/send/compose/send_form.js
 F	apps/kaskold-companion-web/web/js/features/transactions/send/compose/send_max.js
 F	apps/kaskold-companion-web/web/js/features/transactions/send/compose/transaction_building.js
-F	apps/kaskold-companion-web/web/js/features/transactions/send/kspt_status.js
 F	apps/kaskold-companion-web/web/js/features/transactions/send/receive.js
 F	apps/kaskold-companion-web/web/js/features/transactions/send/review.js
 F	apps/kaskold-companion-web/web/js/features/transactions/send/signed_qr_image_import.js
@@ -1891,7 +1890,6 @@ F	apps/kaskold-hardware/src/services/hardware/power.rs
 F	apps/kaskold-hardware/src/services/hardware/storage_device.rs
 F	apps/kaskold-hardware/src/services/hardware/timing.rs
 F	apps/kaskold-hardware/src/services/hardware/touch_recovery.rs
-F	apps/kaskold-hardware/src/services/krc20.rs
 F	apps/kaskold-hardware/src/services/memory/mod.rs
 F	apps/kaskold-hardware/src/services/memory/password_kdf.rs
 F	apps/kaskold-hardware/src/services/memory/psram.rs
@@ -2490,6 +2488,7 @@ F	crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/address.
 F	crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/shipping/address.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/shipping/deposit.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/shipping/mod.rs
+F	crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/shipping/terms.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/shipping/unit_tests/mod.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/shipping/withdraw.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/timelocked.rs
@@ -2511,12 +2510,14 @@ F	crates/online-watcher/src/wasm_api/contracts/covenant/families/spending_limit/
 F	crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/coverage.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/feature_contracts.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs
+F	crates/online-watcher/src/wasm_api/contracts/covenant/fees.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/global_thread/boundary.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/global_thread/mod.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/global_thread/planning.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/global_thread/unit_tests/mod.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/global_thread/unit_tests/native_boundary.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/logging.rs
+F	crates/online-watcher/src/wasm_api/contracts/covenant/spend_path.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/unit_tests/mod.rs
 F	crates/online-watcher/src/wasm_api/contracts/mod.rs
 F	crates/online-watcher/src/wasm_api/contracts/oracle.rs
@@ -2573,6 +2574,7 @@ F	crates/online-watcher/src/wasm_api/transactions/multisig/unit_tests/mod.rs
 F	crates/online-watcher/src/wasm_api/transactions/standard.rs
 F	crates/online-watcher/src/wasm_api/transactions/standard/unit_tests/mod.rs
 F	crates/online-watcher/src/wasm_api/transactions/unit_tests/mod.rs
+F	crates/online-watcher/src/wasm_api/utilities/address.rs
 F	crates/online-watcher/src/wasm_api/utilities/common.rs
 F	crates/online-watcher/src/wasm_api/utilities/crypto.rs
 F	crates/online-watcher/src/wasm_api/utilities/mod.rs
@@ -2853,6 +2855,7 @@ F	qa/checks/web/check_web_javascript.py
 F	qa/checks/web/check_web_runtime.mjs
 F	qa/checks/web/covenant_sign_protocol.test.mjs
 F	qa/checks/web/network_routing.test.mjs
+F	qa/checks/web/portal_wasm_fakes.mjs
 F	qa/checks/web/run_web_recovery_coverage.py
 F	qa/checks/web/run_web_runtime_coverage.py
 F	qa/checks/web/safe_html_hostile.test.mjs
@@ -3089,6 +3092,7 @@ F	qa/tests/regression/test_signing_rejection_navigation.py
 F	qa/tests/regression/test_standard_import_liveness.py
 F	qa/tests/regression/test_steganography_stack_safety.py
 F	qa/tests/regression/test_steganography_workflow.py
+F	qa/tests/regression/test_thin_family_adapters.py
 F	qa/tests/regression/test_transaction_review_antiklepto.py
 F	qa/tests/regression/test_transaction_review_coin_control_policy.py
 F	qa/tests/regression/test_universal_covenant_signing.py
@@ -3148,6 +3152,7 @@ F	qa/windows/run-production-hardening.ps1
 F	qa/windows/run-real-node-integration.ps1
 F	qa/windows/run-release-readiness.ps1
 F	qa/windows/run-security-fuzz.ps1
+F	qa/windows/runner/msvc_asan.py
 F	qa/windows/runner/run_all.py
 F	scripts/common/lib/cargo_metadata_compat.py
 F	scripts/common/lib/esp_toolchain.py

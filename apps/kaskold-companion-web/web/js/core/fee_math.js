@@ -4,6 +4,9 @@
 
 import { exactUnsigned } from './exact.js';
 
+// Fee floor of one covenant thread or UTXO spend (0.003 KAS).
+export const THREAD_FEE_FLOOR = 300_000n;
+
 function decimalRatio(value, field = 'decimal rate') {
     const text = String(value ?? '').trim().toLowerCase();
     const match = /^(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/.exec(text);

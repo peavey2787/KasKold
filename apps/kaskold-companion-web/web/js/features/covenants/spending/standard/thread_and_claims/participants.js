@@ -6,13 +6,13 @@ import { toast } from '../../../../../core/ui/toast.js';
 import { getCovFee } from '../../../payload_and_swaps/state.js';
 import { pickThread } from '../thread_and_claims.js';
 import { openPsktReview } from '../../../../transactions/pskt_multisig/review.js';
-import { create_covenant_beneficiary_spend, create_covenant_borrower_spend, create_covenant_borrower_withdraw, create_covenant_timelocked_savings_claim, create_covenant_timeout_refund, create_global_allowance_withdraw, fetch_utxos_for_address_js } from '../../../../../wasm/api.js';
+import { create_covenant_beneficiary_spend, create_covenant_borrower_spend, create_covenant_borrower_withdraw, create_covenant_timelocked_savings_claim, create_covenant_timeout_refund, create_global_allowance_withdraw, fetch_utxos_for_address_js, thread_withdraw_fee } from '../../../../../wasm/api.js';
 
 import { byId } from '../../../../../core/dom.js';
 import { formatDaaDuration } from '../../../../../core/format.js';
 import { kasToSompi, sompiToKasString } from '../../../../../core/amounts.js';
 import { exactJsonStringify, exactUnsigned } from '../../../../../core/exact.js';
-import { ceilRateToInteger } from '../../../../../core/fee_math.js';
+import { THREAD_FEE_FLOOR, ceilRateToInteger } from '../../../../../core/fee_math.js';
 import { runCovenantClaim } from './claim_controller.js';
 
 export async function handleCovBorrowerSpend() {
@@ -117,18 +117,8 @@ function calculateAllowanceWithdrawal(threadAmount) {
 }
 
 function calculateAllowanceFee(threadAmount, withdrawSompi) {
-    const baseFee = 300000n;
-    const remainder = threadAmount - withdrawSompi - baseFee;
-    if (remainder <= 0n || withdrawSompi <= 0n) return baseFee;
-    const harmonicMean = (2n * remainder * withdrawSompi) / (remainder + withdrawSompi);
-    const storageMass = harmonicMean > 0n ? 1000000000000n / harmonicMean : 0n;
-    if (storageMass > 500000n) {
-        throw new Error('That withdrawal leaves too small a remainder (storage mass). Pick a different amount.');
-    }
-    const totalMass = storageMass > 2500n ? storageMass : 2500n;
     const feeRate = ceilRateToInteger(networkState.lastFeeEstimate?.normal_sompi_per_gram || 1);
-    const calculated = totalMass * feeRate;
-    return calculated > baseFee ? calculated : baseFee;
+    return thread_withdraw_fee(threadAmount, withdrawSompi, THREAD_FEE_FLOOR, feeRate);
 }
 
 async function handleGlobalAllowanceWithdrawal(fields) {

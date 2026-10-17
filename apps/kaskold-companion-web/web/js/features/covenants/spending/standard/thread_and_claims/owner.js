@@ -7,15 +7,13 @@ import { toast } from '../../../../../core/ui/toast.js';
 import { getCovFee } from '../../../payload_and_swaps/state.js';
 import { pickThread } from '../thread_and_claims.js';
 import { openPsktReview } from '../../../../transactions/pskt_multisig/review.js';
-import { addressToScriptPublicKeyHex } from '../../../../../core/address.js';
-import { create_covenant_owner_spend, create_global_spending_limit_withdraw, fetch_utxos_for_address_js } from '../../../../../wasm/api.js';
+import { address_script_public_key, create_covenant_owner_spend, create_global_spending_limit_withdraw, fetch_utxos_for_address_js, pskb_encode_document, thread_withdraw_fee } from '../../../../../wasm/api.js';
 
-import { bytesToHex } from '../../../../../core/bytes.js';
 import { byId } from '../../../../../core/dom.js';
 import { formatDaaDuration } from '../../../../../core/format.js';
 import { kasToSompi, sompiToKasString } from '../../../../../core/amounts.js';
 import { exactJsonStringify, exactUnsigned } from '../../../../../core/exact.js';
-import { ceilRateToInteger } from '../../../../../core/fee_math.js';
+import { THREAD_FEE_FLOOR, ceilRateToInteger } from '../../../../../core/fee_math.js';
 async function buildGlobalSpendingLimitOwnerSpend(request) {
     const { covAddr, redeemHex, destAddr, amountStr, isPartial, wsUrl } = request;
     // Single-thread global limit. Empty amount = sweep/close the whole thread
@@ -73,22 +71,13 @@ async function buildGlobalSpendingLimitOwnerSpend(request) {
         toast(_msg, 'error', 5000);
         hideLoading(); return;
     }
-    const baseFee = 300000n;
-    let glFee = baseFee;
-    const returnEst = threadAmt - withdrawSompi - baseFee;
-    if (returnEst > 0n && withdrawSompi > 0n) {
-        const C = 1000000000000n, MAX_SM = 500000n;
-        const hMean = (2n * returnEst * withdrawSompi) / (returnEst + withdrawSompi);
-        const storageMass = hMean > 0n ? C / hMean : 0n;
-        if (storageMass > MAX_SM) {
-            toast('That withdrawal leaves too small a remainder (storage mass). Pick a different amount.', 'error');
-            hideLoading(); return;
-        }
-        const computeMass = 2500n;
-        const totalMass = storageMass > computeMass ? storageMass : computeMass;
-        const feeRate = networkState.lastFeeEstimate ? ceilRateToInteger(networkState.lastFeeEstimate.normal_sompi_per_gram || 1) : 1n;
-        glFee = totalMass * feeRate;
-        if (glFee < baseFee) glFee = baseFee;
+    const feeRate = ceilRateToInteger(networkState.lastFeeEstimate?.normal_sompi_per_gram || 1);
+    let glFee;
+    try {
+        glFee = thread_withdraw_fee(threadAmt, withdrawSompi, THREAD_FEE_FLOOR, feeRate);
+    } catch (_) {
+        toast('That withdrawal leaves too small a remainder (storage mass). Pick a different amount.', 'error');
+        hideLoading(); return;
     }
     console.log('[Companion] Global limit withdraw: thread ' + thread.tx_id.substring(0, 16) + ':' + thread.index + ' = ' + sompiToKasString(threadAmt) + ' KAS, withdraw=' + sompiToKasString(withdrawSompi) + ' KAS, fee=' + glFee.toString());
     return await create_global_spending_limit_withdraw(covAddr, destAddr, redeemHex, gId, withdrawSompi, glFee, exactJsonStringify([thread]));
@@ -167,8 +156,8 @@ async function buildPartialOwnerSpend(request) {
     if (total < sendSompi + fee) throw 'Balance too low: ' + sompiToKasString(total) + ' KAS available';
 
     const change = total - sendSompi - fee;
-    const covSpkHex = '0000' + addressToScriptPublicKeyHex(covAddr);
-    const destSpkHex = '0000' + addressToScriptPublicKeyHex(destAddr);
+    const covSpkHex = '0000' + address_script_public_key(covAddr);
+    const destSpkHex = '0000' + address_script_public_key(destAddr);
 
     const inputs = utxos.map(u => ({
         previousOutpoint: { transactionId: u.tx_id, index: u.index },
@@ -198,13 +187,7 @@ async function buildPartialOwnerSpend(request) {
         inputs, outputs
     };
 
-    const jsonStr = exactJsonStringify([pskt]);
-    const jsonHex = bytesToHex(new TextEncoder().encode(jsonStr));
-    const wireBytes = new TextEncoder().encode('PSKB');
-    const wireFull = new Uint8Array(wireBytes.length + jsonHex.length);
-    wireFull.set(wireBytes);
-    wireFull.set(new TextEncoder().encode(jsonHex), wireBytes.length);
-    return bytesToHex(wireFull);
+    return pskb_encode_document(exactJsonStringify(pskt));
 }
 
 

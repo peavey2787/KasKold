@@ -1,15 +1,8 @@
-import { decode_address } from '../wasm/api.js';
-
-export function addressToScriptPublicKeyHex(address) {
-    const decoded = JSON.parse(decode_address(address));
-    if (decoded.version === 0) return `20${decoded.payload}ac`;
-    if (decoded.version === 8) return `aa20${decoded.payload}87`;
-    throw new Error(`Unknown address version: ${decoded.version}`);
-}
+import { decode_address, is_kaspa_address } from '../wasm/api.js';
 
 export function addressToXOnly(value) {
     const normalized = (value || '').trim();
-    if (!normalized.startsWith('kaspa:') && !normalized.startsWith('kaspatest:')) {
+    if (!is_kaspa_address(normalized)) {
         return normalized;
     }
     try {

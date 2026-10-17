@@ -250,9 +250,12 @@ def _check_wasm_exports(root: Path) -> list[str]:
         r"pub\s+(?:async\s+)?fn\s+([A-Za-z_][A-Za-z0-9_]*)",
         wasm_boundary_source,
     )
-    # Complete batched UTXO enumeration supports manual Companion coin control.
-    expected_count = 117
-    expected_digest = "18736d24a37217164a7c6651afae81c5fbdd96eaeba3225edf8f02d681789e75"
+    # Complete batched UTXO enumeration supports manual Companion coin control;
+    # kspt_signature_status replaces the JavaScript KSPT parser with Portal's;
+    # spend-path, reveal, shipment-terms and script-address readers replace
+    # their JavaScript script parsers.
+    expected_count = 131
+    expected_digest = "4029fb507438f7de6ba0f1f425485cf8ab2bea115464728dbc37f2ed803e65ec"
     export_digest = hashlib.sha256("\n".join(sorted(wasm_exports)).encode()).hexdigest()
     if (
         len(wasm_exports) != expected_count

@@ -69,6 +69,7 @@ try {
     create_global_allowance_topup: () => '50534b42',
     pskt_summary: () => JSON.stringify(activeSummary),
     pskt_detect: hex => String(hex).startsWith('50534b42') ? 'pskb' : '',
+    kspt_signature_status: hex => String(hex).startsWith('4b535054') ? (String(hex).slice(10, 12) === '01' ? 'signed' : 'unsigned') : 'unknown',
     pskt_relay_to_kspt: () => '4b5350540400',
     kaskold_sdk_prepare: () => {
       sdkPrepareCalls += 1;
@@ -233,21 +234,6 @@ try {
   review.pauseQrCycle(); assert.equal(scannerState.qrCycleTimer, null);
   review.resumeQrCycleIfPossible(); assert.notEqual(scannerState.qrCycleTimer, null);
   review.stopQrCycle(); assert.equal(scannerState.qrFrames, null);
-
-  // Signature-state parser covers signed flag, unsupported generation, valid unsigned, and malformed wire.
-  const { inspectKsptSignatureStatus } = await import(moduleUrl('features/transactions/send/kspt_status.js'));
-  assert.equal(inspectKsptSignatureStatus('4b5350540401'), 'signed');
-  assert.equal(inspectKsptSignatureStatus('4b5350540300'), 'unsupported');
-  const unsigned = new Uint8Array(51); unsigned.set([0x4b,0x53,0x50,0x54,0x04,0x00]);
-  assert.equal(inspectKsptSignatureStatus(Buffer.from(unsigned).toString('hex')), 'unsigned');
-  const partial = new Uint8Array(111);
-  partial.set([0x4b,0x53,0x50,0x54,0x04,0x00,0x00,0x00,0x01,0x00,0x00,0x00]);
-  // One input begins at byte 51: fixed input fields end at 106; empty SPK length,
-  // then one signature record. The classifier only needs to observe its count.
-  partial[106] = 0;
-  partial[107] = 1;
-  assert.equal(inspectKsptSignatureStatus(Buffer.from(partial).toString('hex')), 'partial');
-  assert.equal(inspectKsptSignatureStatus('deadbeef'), 'unknown');
 
   // Broadcast rendering, PSKB scan routing, progress, normal KSPT broadcast, and oracle race presentation.
   const broadcast = await import(moduleUrl('features/transactions/send/broadcast.js'));

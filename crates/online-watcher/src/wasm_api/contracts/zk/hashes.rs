@@ -7,6 +7,6 @@ use crate::wasm_api::JsValue;
 pub fn commit_hash(preimage_hex: &str) -> Result<String, JsValue> {
     let preimage =
         hex::decode(preimage_hex).map_err(|e| wasm_error!(&format!("Bad preimage hex: {}", e)))?;
-    let hash = crate::protocol::script::p2sh::blake2b_hash(&preimage);
+    let hash = kaspa_portal::primitives::hash::blake2b_256(&preimage);
     Ok(hex::encode(hash))
 }

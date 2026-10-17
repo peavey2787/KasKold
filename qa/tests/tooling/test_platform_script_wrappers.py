@@ -1411,8 +1411,17 @@ class PlatformScriptWrapperTests(unittest.TestCase):
         self.assertNotIn("wsl", windows.lower())
 
     def test_windows_fuzz_uses_native_msvc_mode(self) -> None:
-        self.assertIn("--no-include-main-msvc", (ROOT / "qa/windows/run-security-fuzz.ps1").read_text(encoding="utf-8"))
-        self.assertIn("--no-include-main-msvc", (ROOT / "qa/windows/runner/run_all.py").read_text(encoding="utf-8"))
+        # cargo-fuzz must link libFuzzer's main on MSVC, and the binary needs
+        # the dynamic ASan runtime from the single MSVC locator on PATH.
+        fuzz_ps1 = (ROOT / "qa/windows/run-security-fuzz.ps1").read_text(encoding="utf-8")
+        runner = (ROOT / "qa/windows/runner/run_all.py").read_text(encoding="utf-8")
+        for source in (fuzz_ps1, runner):
+            self.assertNotIn("--no-include-main-msvc", source)
+        self.assertIn("qa/windows/runner/msvc_asan.py", fuzz_ps1)
+        self.assertIn("fuzz_env = with_asan_path(dict(os.environ))", runner)
+        locator = (ROOT / "qa/windows/runner/msvc_asan.py").read_text(encoding="utf-8")
+        self.assertIn("Microsoft.VisualStudio.Component.VC.ASAN", locator)
+        self.assertIn("clang_rt.asan_dynamic-x86_64.dll", locator)
 
     def test_ios_xcode_runtime_sync_is_not_linux_bound(self) -> None:
         project = (ROOT / "apps/kaskold-companion-ios/KasKold.xcodeproj/project.pbxproj").read_text(encoding="utf-8")

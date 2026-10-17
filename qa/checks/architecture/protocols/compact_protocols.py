@@ -399,9 +399,9 @@ def check_kspt(root: Path) -> list[str]:
         errors.append("offline signer must not carry a local transaction/KSPT implementation")
     protocol_manifest = (root / "crates/kaskold-protocol/Cargo.toml").read_text(errors="ignore")
     offline_manifest = (root / "crates/offline-signer/Cargo.toml").read_text(errors="ignore")
-    portal_pin = re.compile(r'kaspa-portal = \{ git = "[^"]+", rev = "[0-9a-f]{40}", default-features = false')
-    if not portal_pin.search(offline_manifest):
-        errors.append("offline signer must pin kaspa-portal by revision with std features disabled")
+    portal_branch = re.compile(r'kaspa-portal = \{ git = "https://github\.com/peavey2787/kaspa-portal\.git", default-features = false')
+    if not portal_branch.search(offline_manifest):
+        errors.append("offline signer must track kaspa-portal's default branch with std features disabled")
     if 'default-features = false' not in offline_manifest or 'kaskold-protocol' not in offline_manifest:
         errors.append("offline signer must consume kaskold-protocol with host features disabled")
     wire_facade = (root / "crates/kaskold-protocol/src/wire/kspt/mod.rs").read_text(errors="ignore")

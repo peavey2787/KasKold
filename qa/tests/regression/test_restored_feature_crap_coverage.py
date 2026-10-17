@@ -3,7 +3,7 @@ import sys as _portal_sys
 from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
-from portal_source import kaskold_source  # noqa: E402
+from portal_source import kaskold_source, portal_path  # noqa: E402
 from pathlib import Path
 import unittest
 
@@ -61,10 +61,11 @@ class RestoredFeatureCrapCoverageTests(unittest.TestCase):
                 self.assertIn(term, source, f"{relative}: {term}")
 
     def test_private_swap_script_int_vectors_distinguish_op_zero_from_pushed_zero(self):
-        tests = read("crates/offline-signer/src/transaction/private_swap/unit_tests/mod.rs")
-        self.assertIn("assert_eq!(read_script_int(&[OP_0], &mut pos), Ok(0));", tests)
-        self.assertIn("&[1, 0][..]", tests)
-        self.assertNotIn("&[0u8][..]", tests)
+        number_tests = portal_path("contract/script/unit-tests/mod.rs").read_text()
+        recognizer = portal_path("contract/covenant/script/private_swap.rs").read_text()
+        self.assertIn("next_script_item(&[0x00], 0).unwrap(),\n        (1, ScriptItem::Integer(0)),", number_tests)
+        self.assertIn("crate::contract::script::element_integer(elements.get(32)?)?", recognizer)
+        self.assertIn("(rebuilt == script).then_some(fields)", recognizer)
 
     def test_residual_restoration_crap_warnings_are_decomposed_or_directly_covered(self):
         oracle = read("crates/online-watcher/src/contracts/covenant/oracle_v1.rs")
@@ -81,9 +82,10 @@ class RestoredFeatureCrapCoverageTests(unittest.TestCase):
         for term in ("fn validate_request_prefix", "fn validate_request_payload_length", "fn parse_bool"):
             self.assertIn(term, private_validation)
         # Portal's one canonical script-integer reader and encoder.
-        for term in ("fn push_int", "fn read_canonical_u64", "fn canonical_positive_u64"):
+        for term in ("fn push_int", "fn element_integer", "fn next_script_item"):
             self.assertIn(term, covenant)
-        for term in ("fn parse_claim_salt", "fn parse_claim_pubkey", "fn parse_claim_destination", "fn parse_claim_fee_policy"):
+        self.assertIn("crate::contract::covenant::private_swap_script_fields(script)", claim)
+        for term in ("fn validate_claim_transaction_shape", "fn validate_claim_policy", "fn validate_claim_output"):
             self.assertIn(term, claim)
 
 

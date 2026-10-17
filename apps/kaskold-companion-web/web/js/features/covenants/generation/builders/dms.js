@@ -14,7 +14,7 @@ export async function buildDms(ownerPk) {
     if (heirPk.startsWith('kpub1:')) {
         toast('Paste the heir address, not a kpub', 'error'); return;
     }
-    if (heirPk.startsWith('kaspa:') || heirPk.startsWith('kaspatest:')) {
+    if (heirPk.includes(':')) { // an address; Portal decodes and validates it
         try {
             const decoded = JSON.parse(decode_address(heirPk));
             if (decoded.version !== 0) {

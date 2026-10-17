@@ -37,7 +37,6 @@ try {
     crowdfund_pk_hex: PK_BYTES, crowdfund_contributions_json: JSON.stringify([contribution]),
   };
 
-  stubs.blake2b_hash = () => PK3;
   stubs.crowdfund_campaign_id = () => PK3;
   stubs.zk_crowdfund_setup = () => JSON.stringify({ pk_hex: PK_BYTES, vk_hex: VK, vk_hash_hex: PK3, vk_len: VK.length / 2 });
   stubs.covenant_crowdfund = (...args) => JSON.stringify({

@@ -1,3 +1,4 @@
+import { descriptorSummary } from './descriptor_summary.js';
 import { setSafeMarkup } from '../../../core/security/safe_html.js';
 import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
 import { networkState, transactionState } from '../../../app/state/index.js';
@@ -30,7 +31,7 @@ export function handleDescriptorScan(data) {
             stopScanner();
             // Convert hex back to ASCII text
             const text = new TextDecoder().decode(hexToBytes(result)).trim();
-            if (text.startsWith('multi(') || text.startsWith('multi_hd(') || text.startsWith('multi_hd45(')) {
+            if (descriptorSummary(text)) {
                 byId('input-ms-descriptor').value = text;
                 syncCosignerBranch(text);
                 showScreen('multisig-spend');
@@ -53,14 +54,12 @@ export function handleDescriptorScan(data) {
     }
 }
 function isHd45Descriptor(descriptor) {
-    return descriptor.split('\n').map(line => line.trim()).some(line => line.startsWith('multi_hd45('));
+    return descriptorSummary(descriptor)?.kind === 'hd45';
 }
 
 function hd45ParticipantCount(descriptor) {
-    const line = descriptor.split('\n').map(item => item.trim()).find(item => item.startsWith('multi_hd45('));
-    if (!line || !line.endsWith(')')) return 0;
-    const fields = line.slice('multi_hd45('.length, -1).split(',');
-    return Math.max(0, fields.length - 1);
+    const summary = descriptorSummary(descriptor);
+    return summary?.kind === 'hd45' ? summary.participants : 0;
 }
 
 function syncCosignerBranch(descriptor) {

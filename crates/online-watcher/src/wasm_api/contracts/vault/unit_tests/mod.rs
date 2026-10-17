@@ -4,9 +4,9 @@ use super::{
         VaultGenesisKind,
     },
     spend::{
-        decode_covenant_id, encode_vault_spend_pskb, encode_vault_spend_response,
-        finalize_vault_spend, prepare_from_utxos, prepare_vault_spend_material,
-        split_vault_amounts, validate_covenant_address, VaultSpendKind,
+        encode_vault_spend_pskb, encode_vault_spend_response, finalize_vault_spend,
+        prepare_from_utxos, prepare_vault_spend_material, split_vault_amounts,
+        validate_covenant_address, VaultSpendKind,
     },
 };
 
@@ -132,8 +132,6 @@ fn vault_genesis_material_and_identifiers_are_public_network_bound_data() {
         tagged_mainnet.covenant_address,
         tagged_testnet.covenant_address
     );
-    assert_eq!(decode_covenant_id(&"42".repeat(32)), Ok([0x42; 32]));
-    assert!(decode_covenant_id("42").is_err());
     assert_eq!(split_vault_amounts(9), Ok((4, 5)));
     assert_eq!(
         split_vault_amounts(u64::MAX),

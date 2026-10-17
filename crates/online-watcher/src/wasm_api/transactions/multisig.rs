@@ -175,5 +175,31 @@ pub async fn create_multisig_pskb_multi_js(request_json: &str) -> Result<String,
         .map_err(js_error)
 }
 
+/// Kind (`static`, `hd44`, `hd45`), threshold and participant count of a
+/// multisig descriptor KasKold can co-sign, as JSON.
+pub(super) fn multisig_descriptor_summary_string(descriptor_text: &str) -> Result<String, String> {
+    use kaskold_protocol::wire::multisig_descriptor::{
+        parse_multisig_descriptor, MultisigDescriptorKind,
+    };
+    let parsed = parse_multisig_descriptor(descriptor_text.trim().as_bytes())
+        .map_err(|error| error.message().to_string())?;
+    let kind = match parsed.kind {
+        MultisigDescriptorKind::Static => "static",
+        MultisigDescriptorKind::Hd44 => "hd44",
+        MultisigDescriptorKind::Hd45 => "hd45",
+    };
+    Ok(serde_json::json!({
+        "kind": kind,
+        "threshold": parsed.threshold,
+        "participants": parsed.participant_count,
+    })
+    .to_string())
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
+pub fn multisig_descriptor_summary(descriptor_text: &str) -> Result<String, JsValue> {
+    multisig_descriptor_summary_string(descriptor_text).map_err(js_error)
+}
+
 #[cfg(test)]
 mod unit_tests;

@@ -390,8 +390,8 @@ class OriginalFeatureParityPolicyTests(unittest.TestCase):
         change = read("crates/offline-signer/src/transaction/model/multisig_change.rs")
         storage_tests = read("crates/kaskold-hardware-core/src/unit_tests/firmware_storage_tests.rs")
 
-        self.assertIn("transaction::sighash::blake2b_hash", multisig)
-        self.assertIn("blake2b_hash(&redeem[..length])", multisig)
+        self.assertIn("crate::primitives::address::script_hash(&redeem[..length])", multisig)
+        self.assertNotIn("sighash::blake2b_hash", multisig)
         self.assertNotIn("sighash::blake2b_hash", change)
         self.assertIn("use std::{format, vec::Vec};", storage_tests)
 

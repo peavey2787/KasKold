@@ -6,9 +6,8 @@ pub(super) use crate::transaction_builder::covenant::vault::spend::VaultSpendKin
 
 #[cfg(test)]
 pub(super) use crate::transaction_builder::covenant::vault::spend::{
-    decode_covenant_id, encode_vault_spend_pskb, encode_vault_spend_response, finalize_vault_spend,
-    prepare_from_utxos, prepare_vault_spend_material, split_vault_amounts,
-    validate_covenant_address,
+    encode_vault_spend_pskb, encode_vault_spend_response, finalize_vault_spend, prepare_from_utxos,
+    prepare_vault_spend_material, split_vault_amounts, validate_covenant_address,
 };
 
 pub(super) async fn build_vault_spend_pskb(

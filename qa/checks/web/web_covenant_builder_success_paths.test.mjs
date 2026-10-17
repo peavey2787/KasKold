@@ -9,7 +9,7 @@ try {
  Object.assign(globalThis.__COMPANION_WASM_STUBS__,{
   decode_address:()=>JSON.stringify({payload:PK2,version:0}), encode_p2pk_address:()=>ADDR, import_kpub:()=>JSON.stringify({receive_addresses:[ADDR]}), parse_kpub:()=>JSON.stringify({account_pubkey:PK3}),
   covenant_additive_address:result,covenant_timelocked_savings:result,covenant_global_spending_limit:result,covenant_global_allowance:result,covenant_escrow:result,covenant_ship_escrow:result,covenant_dms:result,covenant_merkle_whitelist:result,covenant_commit_reveal:result,covenant_payjoin:result,
-  merkle_root_from_addresses:()=>JSON.stringify({root:PK3,depth:1}),blake2b_hash:()=>PK3,
+  merkle_root_from_addresses:()=>JSON.stringify({root:PK3,depth:1}),
  });
  const savings=await import(moduleUrl('features/covenants/generation/builders/savings.js'));
  element('cov-piggy-goal').value='1'; element('cov-piggy-deadline').value=''; let built=await savings.buildAdditive(PK); assert.ok(built.resultJson);

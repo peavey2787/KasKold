@@ -2,7 +2,10 @@ use serde_json::{json, Value};
 
 use super::{
     dms::build_dms_json,
-    escrow::{build_escrow_json, build_shipping_escrow_json, build_timelocked_escrow_json},
+    escrow::{
+        build_escrow_json, build_shipping_escrow_json, build_timelocked_escrow_json,
+        ship_escrow_terms_json,
+    },
     savings::build_timelocked_savings_json,
 };
 
@@ -113,6 +116,21 @@ fn shipping_escrow_builder_covers_amount_partitioning_and_invalid_requests() {
     assert_eq!(document["total_sompi"], "110");
     assert_eq!(document["rem_sompi"], "60");
     assert_eq!(document["salt"], "66".repeat(8));
+    let terms = parse(
+        ship_escrow_terms_json(
+            document["redeem_script_hex"].as_str().unwrap(),
+            "testnet-10",
+        )
+        .unwrap(),
+    );
+    assert_eq!(terms["total_sompi"], "110");
+    assert_eq!(terms["rem_sompi"], "60");
+    assert_eq!(terms["cltv2_deadline"], "200");
+    assert!(terms["seller_addr"]
+        .as_str()
+        .unwrap()
+        .starts_with("kaspatest:"));
+    assert!(ship_escrow_terms_json("51", "testnet-10").is_err());
 
     assert!(build_shipping_escrow_json("{}", [0; 8]).is_err());
     assert!(build_shipping_escrow_json(&shipping_request("bad", "1"), [0; 8]).is_err());

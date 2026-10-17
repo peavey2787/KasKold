@@ -11,6 +11,9 @@ import sys
 import tempfile
 import time
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from msvc_asan import with_asan_path  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[3]
 PYTHON = sys.executable
 STEP_SKIPPED = False
@@ -314,7 +317,7 @@ def run_fuzz(ns: argparse.Namespace) -> None:
             run(
                 [
                     "rustup", "run", os.environ["KASKOLD_BRANCH_RUST"], "cargo", "fuzz", "run", target,
-                    "--no-include-main-msvc", "--", f"-runs={ns.fuzz_passes}",
+                    "--", f"-runs={ns.fuzz_passes}",
                     f"-artifact_prefix={artifact_root / target}{os.sep}", str(corpus_root / target),
                 ],
                 cwd=ROOT / "qa/fuzz", env={"CARGO_TARGET_DIR": str(ROOT / "target/qa")}, dry=True,
@@ -352,13 +355,13 @@ def run_fuzz(ns: argparse.Namespace) -> None:
             shutil.copytree(item, dst) if item.is_dir() else shutil.copy2(item, dst)
         command = [
             "rustup", "run", os.environ["KASKOLD_BRANCH_RUST"], "cargo", "fuzz", "run", target,
-            "--no-include-main-msvc", "--", f"-runs={ns.fuzz_passes}",
+            "--", f"-runs={ns.fuzz_passes}",
             f"-artifact_prefix={artifacts}{os.sep}", str(corpus),
         ]
         print(f"=== fuzz: {target} ({ns.fuzz_passes} runs) ===")
         print("  +", subprocess.list2cmdline(command))
         with log.open("w", encoding="utf-8") as output:
-            fuzz_env = os.environ.copy()
+            fuzz_env = with_asan_path(dict(os.environ))
             fuzz_env["CARGO_TARGET_DIR"] = str(ROOT / "target/qa")
             process = subprocess.Popen(
                 command, cwd=ROOT / "qa/fuzz", env=fuzz_env, stdout=subprocess.PIPE,

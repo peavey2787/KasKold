@@ -763,7 +763,7 @@
           "apps/kaskold-hardware"
         ],
         "paths": [
-          "apps/kaskold-hardware/src/services/krc20.rs"
+          "apps/kaskold-hardware/src/ui/screens/signing/transaction_review/summary.rs"
         ],
         "status": "parity"
       },

@@ -10,13 +10,6 @@ pub(crate) fn decode_redeem_script(value: &str) -> Result<Vec<u8>, String> {
     hex::decode(value).map_err(|error| format!("Bad redeem hex: {error}"))
 }
 
-pub(crate) fn decode_covenant_id(value: &str) -> Result<[u8; 32], String> {
-    let bytes = hex::decode(value).map_err(|error| format!("Bad covenant_id hex: {error}"))?;
-    bytes
-        .try_into()
-        .map_err(|_: Vec<u8>| "covenant_id not 32 bytes".to_string())
-}
-
 #[derive(Deserialize)]
 struct ThreadUtxoJson {
     tx_id: String,

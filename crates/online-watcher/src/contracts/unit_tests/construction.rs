@@ -9,7 +9,7 @@ use crate::contracts::{
     },
     merkle::script::build_merkle_whitelist_script,
     seq_commit::stamp_stealth_proof,
-    vault::script::{build_split_vault_script, build_tagged_vault_script, compute_covenant_id},
+    vault::script::{build_split_vault_script, build_tagged_vault_script},
     zk::cost::{
         groth16_script_units, groth16_sig_op_count, GROTH16_SIG_OP_COUNT, RISC0_SIG_OP_COUNT,
     },
@@ -172,25 +172,6 @@ fn crowdfund_configuration_validation_boundaries_are_covered() {
 fn groth16_sig_op_count_saturates_at_u8_max() {
     assert_eq!(groth16_sig_op_count(44), 253);
     assert_eq!(groth16_sig_op_count(45), u8::MAX);
-}
-
-#[test]
-fn vault_covenant_identity_is_deterministic_and_binds_funding_output() {
-    let owner = [0x11; 32];
-    let covenant_script = build_tagged_vault_script(&owner);
-    let first = compute_covenant_id(&[1; 32], 1, &[(0, 80_000, 0, covenant_script.as_slice())]);
-    let repeated = compute_covenant_id(&[1; 32], 1, &[(0, 80_000, 0, covenant_script.as_slice())]);
-    assert_eq!(first, repeated);
-    assert_ne!(
-        first,
-        compute_covenant_id(&[2; 32], 1, &[(0, 80_000, 0, covenant_script.as_slice())]),
-        "funding transaction ID must bind the covenant identity",
-    );
-    assert_ne!(
-        first,
-        compute_covenant_id(&[1; 32], 1, &[(0, 80_001, 0, covenant_script.as_slice())]),
-        "genesis amount must bind the covenant identity",
-    );
 }
 
 #[test]

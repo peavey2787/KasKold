@@ -396,18 +396,6 @@
     {
       "baseline_complexity": 3,
       "baseline_status": "warning",
-      "function": "encode_p2sh_address",
-      "line": 22,
-      "path": "crates/online-watcher/src/wasm_api/wallet/address.rs",
-      "test_seams": [
-        "crates/online-watcher/src/account/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/transactions/multisig/unit_tests/mod.rs",
-        "crates/online-watcher/src/wasm_api/wallet/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 3,
-      "baseline_status": "warning",
       "function": "find_preimage_in_block",
       "line": 52,
       "path": "crates/online-watcher/src/wasm_api/wallet/watcher.rs",
@@ -433,17 +421,6 @@
       "path": "crates/online-watcher/src/network/queries/fees.rs",
       "test_seams": [
         "crates/online-watcher/src/network/unit_tests/queries.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 2,
-      "baseline_status": "pass",
-      "function": "blake2b_hash",
-      "line": 6,
-      "path": "crates/online-watcher/src/wasm_api/utilities/crypto.rs",
-      "test_seams": [
-        "crates/online-watcher/src/contracts/unit_tests/merkle.rs",
-        "crates/online-watcher/src/wasm_api/utilities/unit_tests/mod.rs"
       ]
     },
     {
@@ -541,16 +518,6 @@
       "baseline_status": "pass",
       "function": "split_vault_amounts",
       "line": 138,
-      "path": "crates/online-watcher/src/wasm_api/contracts/vault/spend.rs",
-      "test_seams": [
-        "crates/online-watcher/src/wasm_api/contracts/vault/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 2,
-      "baseline_status": "pass",
-      "function": "decode_covenant_id",
-      "line": 65,
       "path": "crates/online-watcher/src/wasm_api/contracts/vault/spend.rs",
       "test_seams": [
         "crates/online-watcher/src/wasm_api/contracts/vault/unit_tests/mod.rs"

@@ -3,7 +3,7 @@ import { addressPrefix } from '../../../core/network.js';
 import { showScreen } from '../../../app/navigation.js';
 import { toast } from '../../../core/ui/toast.js';
 import { startScanner, stopScanner } from '../../stealth/index/camera.js';
-import { decode_address, encode_p2pk_address, import_kpub } from '../../../wasm/api.js';
+import { decode_address, encode_p2pk_address, import_kpub, is_kaspa_address } from '../../../wasm/api.js';
 
 import { byId } from '../../../core/dom.js';
 
@@ -13,7 +13,7 @@ function isActiveNetworkAddress(address) {
 }
 
 function rejectWrongNetworkAddress(address) {
-    if (!address.startsWith('kaspa')) return false;
+    if (!is_kaspa_address(address)) return false;
     if (isActiveNetworkAddress(address)) return false;
     stopScanner();
     showScreen('covenant');
@@ -37,7 +37,7 @@ export function covScanPubkey(fieldId, label, rejectKpub) {
             showScreen('covenant');
             toast(note || 'Address scanned. Verify it matches KasKold.', 'ok', 1800);
         };
-        if (text.startsWith('kaspa')) {
+        if (is_kaspa_address(text)) {
             try {
                 const decoded = JSON.parse(decode_address(text));
                 if (decoded.payload && decoded.payload.length === 64) {
@@ -81,7 +81,7 @@ export function covScanAddress(fieldId, label, rejectKpub) {
             toast('Scan an address, not a kpub', 'error');
             return;
         }
-        if (!addr.startsWith('kaspa')) {
+        if (!is_kaspa_address(addr)) {
             stopScanner(); showScreen('covenant');
             toast('Scan a Kaspa address', 'error');
             return;
@@ -105,7 +105,7 @@ export function covScanAddress(fieldId, label, rejectKpub) {
 export function covScanAddressAppend(textareaId, label) {
     startScanner(label || 'Scan address', (data) => {
         const addr = new TextDecoder().decode(new Uint8Array(data)).trim();
-        if (!addr.startsWith('kaspa')) {
+        if (!is_kaspa_address(addr)) {
             stopScanner(); showScreen('covenant');
             toast('Scan a Kaspa address', 'error');
             return;

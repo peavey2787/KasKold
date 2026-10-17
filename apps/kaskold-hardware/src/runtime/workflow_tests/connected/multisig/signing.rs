@@ -375,7 +375,7 @@ fn populate_multisig_input(
     input.sighash_type = SigHashType::All.to_byte();
     let redeem = &config.script[..config.script_len];
     tx.store_redeem(0, redeem).ok()?;
-    let hash = offline_signer::transaction::sighash::blake2b_hash(redeem);
+    let hash = offline_signer::hash::blake2b_256(redeem);
     let outer = &mut tx.inputs[0].utxo_entry.script_public_key;
     outer.script[0] = OP_BLAKE2B;
     outer.script[1] = OP_DATA_32;

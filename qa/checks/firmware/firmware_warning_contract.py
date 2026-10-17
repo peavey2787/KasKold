@@ -328,17 +328,11 @@ def check_firmware_warning_contract(root: Path, errors: list[str]) -> None:
     )
 
     fat32_policy = read("apps/kaskold-hardware/src/hw/shared/storage/fat32/policy.rs")
-    krc20 = read("apps/kaskold-hardware/src/services/krc20.rs")
     menu = read("apps/kaskold-hardware/src/runtime/input/menu.rs")
     navigation_core = read("crates/kaskold-hardware-core/src/input/navigation.rs")
     require(
         "left.eq_ignore_ascii_case(&right)" in fat32_policy,
         "FAT32 name matching must use the standard ASCII-insensitive comparison",
-    )
-    require(
-        "eq_ignore_ascii_case" in krc20
-        and "to_ascii_lowercase() !=" not in krc20,
-        "KRC20 matching must use the standard ASCII-insensitive comparison",
     )
     require(
         "kaskold_hardware_core::input::navigation" in menu

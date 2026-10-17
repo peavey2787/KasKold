@@ -77,7 +77,8 @@ def _check_xpub_and_sighash(root: Path) -> list[str]:
         if symbol not in xpub_facade:
             errors.append(f"offline xpub façade is missing required export: {symbol}")
     sighash_facade = kaskold_source("crates/offline-signer/src/transaction/sighash/mod.rs").read_text(errors="ignore")
-    for symbol in ("KaspaBlake2b", "blake2b_hash", "calculate_sighash", "sign_input"):
+    # BLAKE2b has one owner, Portal's primitives; the façade keys it, never re-exports it.
+    for symbol in ("crate::primitives::hash::Blake2b256", "calculate_sighash", "sign_input"):
         if symbol not in sighash_facade:
             errors.append(f"offline sighash façade is missing required export: {symbol}")
     return errors

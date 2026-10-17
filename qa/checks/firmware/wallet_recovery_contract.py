@@ -234,7 +234,6 @@ def check_wallet_recovery_contract(root: Path, errors: list[str]) -> None:
         "wallet recovery: protocol-owned watcher import must accept kpub1/BIP32 xpub through Kaspa Portal and canonicalize output",
     )
     for delegated in (
-        "kaskold_protocol::compat::decode_kpub_text",
         "kaskold_protocol::compat::import_kpub",
         "kaskold_protocol::compat::import_kpub_raw",
     ):

@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { isolateWebPackage } from './web_pkg_fixture.mjs';
+import { PORTAL_FAKES_IMPORT, stubExport } from './portal_wasm_fakes.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(scriptDir, '..', '..', '..');
@@ -17,11 +18,8 @@ function parseWasmExports(source) {
 }
 
 function buildWasmStub(names) {
-    const exports = names.map(name => `export function ${name}(...args) {
-        const hook = globalThis.__COMPANION_WASM_STUBS__?.[${JSON.stringify(name)}];
-        return typeof hook === 'function' ? hook(...args) : '';
-    }`).join('\n');
-    return `export default async function init() {}\n${exports}\n`;
+    const exports = names.map(stubExport).join('\n');
+    return `${PORTAL_FAKES_IMPORT}\nexport default async function init() {}\n${exports}\n`;
 }
 
 export function createClassList(initial = []) {
@@ -267,9 +265,8 @@ export async function setupHarness() {
     await pkgFixture.create();
     await fs.writeFile(path.join(pkgDir, 'companion_web.js'), buildWasmStub(parseWasmExports(apiSource)));
     globalThis.__COMPANION_WASM_STUBS__ = {
-        blake2b_hash: input => `hash-${input}`,
-        encode_p2sh_address: (hash, network) => `${network}:p2sh-${String(hash).slice(-12)}`,
         encode_p2pk_address: (pk, network) => `${network}:p2pk-${String(pk).slice(0, 8)}`,
+        redeem_script_address: (redeem, network) => `${network}:p2sh-${String(redeem).slice(-12)}`,
         decode_address: address => JSON.stringify({ payload: address.includes('owner') ? '11'.repeat(32) : '22'.repeat(32) }),
         parse_kpub: () => JSON.stringify({ account_pubkey: '11'.repeat(32) }),
         covenant_dms: () => JSON.stringify({ address: 'kaspa:dms', redeem_script_hex: '51' }),

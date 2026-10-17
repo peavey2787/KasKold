@@ -1,12 +1,9 @@
 //! Multisig descriptor construction, import, and address derivation.
 
 use offline_signer::{
-    address::{encode_address_for_network, AddressType, KaspaNetwork, MAX_ADDR_LEN},
+    address::{script_to_p2sh_address, KaspaNetwork, MAX_ADDR_LEN},
     derivation::xpub::{self, KpubParts},
-    transaction::{
-        model::{MultisigConfig, MAX_MULTISIG_KEYS},
-        sighash::blake2b_hash,
-    },
+    transaction::model::{MultisigConfig, MAX_MULTISIG_KEYS},
 };
 use zeroize::Zeroize;
 
@@ -38,8 +35,8 @@ impl HotWallet {
         let mut config = build_hd45_config(threshold, participant_count, chain, index, &own)?;
         add_cosigners(&mut config, cosigner_kpubs)?;
         finalize_owned_config(&mut config, &own)?;
-        let descriptor = descriptor_from_config(&config)?;
-        let address = multisig_address(&config, network)?;
+        let descriptor = descriptor_text(&config)?;
+        let address = config_address(&config, network)?;
         self.remember_multisig(config)?;
         Ok(MultisigView {
             descriptor,
@@ -88,13 +85,15 @@ impl HotWallet {
         chain: u8,
         index: u32,
     ) -> Result<String, HotWalletError> {
-        let mut config = config_from_descriptor(parsed, chain, index);
+        let mut config = MultisigConfig::from_descriptor(parsed);
+        config.chain = chain;
+        config.addr_index = index;
         self.resolve_imported_cosigner(&mut config)?;
         if config.build_script() == 0 {
             return Err(HotWalletError::MultisigInvalid);
         }
         config.active = true;
-        let address = multisig_address(&config, network)?;
+        let address = config_address(&config, network)?;
         self.remember_multisig(config)?;
         Ok(address)
     }
@@ -205,58 +204,6 @@ fn finalize_owned_config(
     Ok(())
 }
 
-fn config_from_descriptor(
-    parsed: &kaskold_protocol::wire::multisig_descriptor::ParsedMultisigDescriptor,
-    chain: u8,
-    index: u32,
-) -> MultisigConfig {
-    let mut config = MultisigConfig::new();
-    config.m = parsed.threshold;
-    config.n = parsed.participant_count;
-    config.v45 = parsed.is_hd45();
-    config.cosigner_pubkeys = parsed.public_keys;
-    config.cosigner_chain_codes = parsed.chain_codes;
-    config.cosigner_depth = parsed.depths;
-    config.cosigner_parent_fp = parsed.parent_fingerprints;
-    config.cosigner_child_num = parsed.child_numbers;
-    config.chain = chain;
-    config.addr_index = index;
-    config
-}
-
-fn descriptor_from_config(config: &MultisigConfig) -> Result<String, HotWalletError> {
-    let mut descriptor = String::from("multi_hd45(");
-    descriptor.push(char::from(b'0' + config.m));
-    for index in 0..config.n as usize {
-        descriptor.push(',');
-        let parts = KpubParts {
-            depth: config.cosigner_depth[index],
-            parent_fp: config.cosigner_parent_fp[index],
-            child_num: config.cosigner_child_num[index],
-            chain_code: config.cosigner_chain_codes[index],
-            pubkey: config.cosigner_pubkeys[index],
-        };
-        let mut encoded = [0u8; xpub::KPUB_MAX_LEN];
-        let length = xpub::serialize_kpub_parts(&parts, &mut encoded)
-            .map_err(|_| HotWalletError::MultisigInvalid)?;
-        descriptor.push_str(
-            core::str::from_utf8(&encoded[..length])
-                .map_err(|_| HotWalletError::MultisigInvalid)?,
-        );
-        encoded.zeroize();
-    }
-    descriptor.push(')');
-    Ok(descriptor)
-}
-
-fn multisig_address(
-    config: &MultisigConfig,
-    network: KaspaNetwork,
-) -> Result<String, HotWalletError> {
-    let script_hash = blake2b_hash(&config.script[..config.script_len]);
-    address_from_hash(&script_hash, network)
-}
-
 fn static_multisig_address(
     parsed: &kaskold_protocol::wire::multisig_descriptor::ParsedMultisigDescriptor,
     network: KaspaNetwork,
@@ -268,12 +215,28 @@ fn static_multisig_address(
     keys.sort_unstable();
     let script = offline_signer::derivation::multisig::build_redeem_script(parsed.threshold, &keys)
         .map_err(|_| HotWalletError::MultisigInvalid)?;
-    address_from_hash(&blake2b_hash(&script), network)
+    let prefix = network.hrp().ok_or(HotWalletError::InvalidToolInput)?;
+    Ok(script_to_p2sh_address(&script, prefix))
 }
 
-fn address_from_hash(hash: &[u8; 32], network: KaspaNetwork) -> Result<String, HotWalletError> {
+fn descriptor_text(config: &MultisigConfig) -> Result<String, HotWalletError> {
+    let mut encoded = [0u8; MultisigConfig::DESCRIPTOR_MAX_LEN];
+    let length = config
+        .write_descriptor(&mut encoded)
+        .ok_or(HotWalletError::MultisigInvalid)?;
+    let text = core::str::from_utf8(&encoded[..length])
+        .map(str::to_owned)
+        .map_err(|_| HotWalletError::MultisigInvalid);
+    encoded.zeroize();
+    text
+}
+
+fn config_address(
+    config: &MultisigConfig,
+    network: KaspaNetwork,
+) -> Result<String, HotWalletError> {
     let mut encoded = [0u8; MAX_ADDR_LEN];
-    let length = encode_address_for_network(hash, AddressType::P2sh, network, &mut encoded);
+    let length = config.address(network, &mut encoded);
     if length == 0 {
         return Err(HotWalletError::InvalidToolInput);
     }

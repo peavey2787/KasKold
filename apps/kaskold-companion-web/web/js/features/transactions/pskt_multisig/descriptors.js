@@ -5,19 +5,14 @@ import { byId } from '../../../core/dom.js';
 import { toast } from '../../../core/ui/toast.js';
 import { stopScanner } from '../../stealth/index/camera.js';
 import { decode_qr_frame, reset_qr_decoder } from '../../../wasm/api.js';
+import { descriptorSummary } from './descriptor_summary.js';
 
 const STORAGE_KEY = 'kaskold-companion-multisig-descriptors-v1';
 const MAX_DESCRIPTORS = 32;
 
-function validDescriptor(text) {
-    const value = String(text || '').trim();
-    return value.startsWith('multi(') || value.startsWith('multi_hd(') || value.startsWith('multi_hd45(');
-}
-
-
 function normalizedDescriptor(text) {
     const value = String(text || '').trim();
-    return validDescriptor(value) ? value : '';
+    return descriptorSummary(value) ? value : '';
 }
 
 function descriptorFromBytes(bytes) {
@@ -111,7 +106,7 @@ export function useSelectedMultisigDescriptor() {
     const index = Number.parseInt(select?.value ?? '', 10);
     if (!Number.isInteger(index) || index < 0) return false;
     const item = loadAll()[index];
-    if (!item || !validDescriptor(item.descriptor)) return false;
+    if (!item || !descriptorSummary(item.descriptor)) return false;
     byId('input-ms-descriptor').value = item.descriptor;
     toast(`${item.name} loaded`, 'ok', 1500);
     return true;
@@ -163,7 +158,7 @@ export function saveMultisigDescriptor() {
     const name = byId('input-ms-descriptor-name').value.trim();
     const descriptor = byId('input-ms-descriptor-saved').value.trim();
     if (!name) { toast('Enter a friendly name', 'error'); return; }
-    if (!validDescriptor(descriptor)) { toast('Enter a valid multisig descriptor', 'error'); return; }
+    if (!descriptorSummary(descriptor)) { toast('Enter a valid multisig descriptor', 'error'); return; }
     const items = loadAll();
     const duplicate = items.findIndex(item => item.descriptor === descriptor);
     const record = { name: name.slice(0, 64), descriptor };

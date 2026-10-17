@@ -150,15 +150,17 @@ try {
   setFetchHook(async () => ({ ok: false, status: 502, async json() { throw new Error('not json'); } }));
   assert.deepEqual(await proverGet('/quote'), { ok: false, status: 502, body: null });
 
-  // Fee splicing is byte-preserving around the PSKB envelope and appends the
-  // exact configured service-fee output. Invalid envelopes/empty outputs fail.
-  assert.throws(() => feeMod.spliceOracleServiceFee('00', ORACLE_MB_PROTOCOL), /not a PSKB/);
-  assert.throws(() => feeMod.spliceOracleServiceFee(validPskb([]), ORACLE_MB_PROTOCOL), /no outputs/);
-  const feeWire = feeMod.spliceOracleServiceFee(validPskb([{ amount: '100', scriptPublicKey: '51', proprietaries: {} }]), ORACLE_MB_PROTOCOL);
-  const feeBytes = Buffer.from(feeWire, 'hex').toString('utf8');
-  const feeBundle = JSON.parse(Buffer.from(feeBytes.slice(4), 'hex').toString('utf8'));
-  assert.equal(feeBundle[0].outputs.at(-1).amount, ORACLE_MB_PROTOCOL.feeSompi.toString());
-  assert.equal(feeBundle[0].outputs.at(-1).scriptPublicKey, ORACLE_MB_PROTOCOL.feeSpk);
+  // Fee splicing hands the roll wire and the exact configured service-fee
+  // output to Portal through WASM; a wire Portal refuses surfaces its error.
+  let appended = null;
+  stubs.pskb_append_output = (wire, amount, script) => {
+    if (wire === '50534b42') throw new Error('append_output: missing outputs');
+    appended = { wire, amount, script };
+    return `${wire}fe`;
+  };
+  assert.equal(feeMod.spliceOracleServiceFee('abcd', ORACLE_MB_PROTOCOL), 'abcdfe');
+  assert.deepEqual(appended, { wire: 'abcd', amount: BigInt(ORACLE_MB_PROTOCOL.feeSompi), script: ORACLE_MB_PROTOCOL.feeSpk });
+  assert.throws(() => feeMod.spliceOracleServiceFee('50534b42', ORACLE_MB_PROTOCOL), /missing outputs/);
 
   const feeButtons = ['1', '2'].map(value => {
     const button = document.createElement('button'); button.classList.add('omb-fee-btn'); button.setAttribute('data-omb-fee', value); return button;

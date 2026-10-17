@@ -95,6 +95,7 @@ try {
   const PSKB = '50534b42';
   decoded = '4b5350540401';
   stubs.pskt_detect = value => String(value).startsWith('50534b42') ? 'pskb' : '';
+  stubs.kspt_signature_status = hex => String(hex).startsWith('4b535054') ? (String(hex).slice(10, 12) === '01' ? 'signed' : 'unsigned') : 'unknown';
   stubs.kaskold_sdk_complete = () => JSON.stringify({psktHex:PSKB});
   stubs.pskt_summary = () => JSON.stringify({
     format:'pskb', tx_version:0, input_count:1, output_count:1,

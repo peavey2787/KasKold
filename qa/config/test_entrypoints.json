@@ -1744,6 +1744,14 @@
       "commands": [
         "make qa"
       ],
+      "path": "qa/tests/regression/test_thin_family_adapters.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
       "path": "qa/tests/regression/test_transaction_review_antiklepto.py",
       "role": "test",
       "step": "unit.repository-python-qa"

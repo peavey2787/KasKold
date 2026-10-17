@@ -12,6 +12,9 @@ $artifactRoot = Join-Path $output 'artifacts'
 $corpusRoot = Join-Path $output 'corpus'
 $seedRoot = Join-Path $root 'qa/fuzz/seeds'
 $python = Get-KasKoldPython
+$asanRuntime = Invoke-KasKoldCapture -Command $python -Arguments @('qa/windows/runner/msvc_asan.py') -WorkingDirectory $root
+if ($asanRuntime.ExitCode -ne 0) { throw $asanRuntime.Output }
+$env:PATH = "$($asanRuntime.Output.Trim());$env:PATH"
 foreach ($cmd in @('rustup','cargo')) { Require-KasKoldCommand $cmd | Out-Null }
 foreach ($toolchain in @($installer,$execution)) {
     $probe = Invoke-KasKoldCapture -Command 'rustup' -Arguments @('run',$toolchain,'rustc','--version')
@@ -44,7 +47,7 @@ foreach ($target in $targets) {
     Copy-KasKoldDirectoryContents $seed $corpus
     Push-Location (Join-Path $root 'qa/fuzz')
     try {
-        & rustup run $execution cargo fuzz run $target --no-include-main-msvc -- "-max_total_time=$secondsPerTarget" '-print_final_stats=1' "-artifact_prefix=$artifact\" $corpus 2>&1 | Tee-Object -FilePath (Join-Path $output "$target.log")
+        & rustup run $execution cargo fuzz run $target -- "-max_total_time=$secondsPerTarget" '-print_final_stats=1' "-artifact_prefix=$artifact\" $corpus 2>&1 | Tee-Object -FilePath (Join-Path $output "$target.log")
         $status = $LASTEXITCODE
     } finally { Pop-Location }
     Add-Content -LiteralPath $statusFile -Value "$target`t$status" -Encoding ascii

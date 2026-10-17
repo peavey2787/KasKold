@@ -1,7 +1,7 @@
 import { bytesToHex } from '../../../core/bytes.js';
 import { exactUnsigned } from '../../../core/exact.js';
 import { networkState } from '../../../app/state/index.js';
-import { covenant_private_swap, decode_address, sha256_hash } from '../../../wasm/api.js';
+import { covenant_private_swap, decode_address, is_kaspa_address, sha256_hash } from '../../../wasm/api.js';
 
 export const PRIVATE_SWAP_WIRE_VERSION = 2;
 export const MIN_REFUND_GAP_DAA = 18_000n;
@@ -24,7 +24,7 @@ export function requireHex(value, bytes, label) {
 export function requireAddress(value, label) {
     const address = String(value || '').trim();
     const decoded = JSON.parse(decode_address(address));
-    if (!decoded?.payload || !address.startsWith('kaspa')) throw new Error(`${label} is invalid`);
+    if (!decoded?.payload || !is_kaspa_address(address)) throw new Error(`${label} is invalid`);
     return address;
 }
 

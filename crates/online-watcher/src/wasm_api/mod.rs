@@ -49,77 +49,70 @@ pub(crate) mod test_support {
 
     /// Fill the PSKT fields the canonical grammar requires but fixtures omit.
     pub(crate) fn canonical_test_pskt(mut value: serde_json::Value) -> serde_json::Value {
-        fn normalize_one(pskt: &mut serde_json::Value) {
-            let input_count = pskt
-                .get("inputs")
-                .and_then(serde_json::Value::as_array)
-                .map_or(0, Vec::len);
-            let output_count = pskt
-                .get("outputs")
-                .and_then(serde_json::Value::as_array)
-                .map_or(0, Vec::len);
-            if let Some(global) = pskt
-                .get_mut("global")
-                .and_then(serde_json::Value::as_object_mut)
-            {
-                global
-                    .entry("version")
-                    .or_insert(serde_json::Value::from(0u8));
-                global
-                    .entry("txVersion")
-                    .or_insert(serde_json::Value::from(0u8));
-                global
-                    .entry("inputCount")
-                    .or_insert(serde_json::Value::from(input_count));
-                global
-                    .entry("outputCount")
-                    .or_insert(serde_json::Value::from(output_count));
-            }
-            if let Some(inputs) = pskt
-                .get_mut("inputs")
-                .and_then(serde_json::Value::as_array_mut)
-            {
-                for input in inputs {
-                    if let Some(obj) = input.as_object_mut() {
-                        obj.entry("sighashType")
-                            .or_insert(serde_json::Value::from(1u8));
-                        if !obj
-                            .get("proprietaries")
-                            .is_some_and(serde_json::Value::is_object)
-                        {
-                            obj.insert(
-                                "proprietaries".into(),
-                                serde_json::Value::Object(serde_json::Map::new()),
-                            );
-                        }
-                    }
-                }
-            }
-            if let Some(outputs) = pskt
-                .get_mut("outputs")
-                .and_then(serde_json::Value::as_array_mut)
-            {
-                for output in outputs {
-                    if let Some(obj) = output.as_object_mut() {
-                        if !obj
-                            .get("proprietaries")
-                            .is_some_and(serde_json::Value::is_object)
-                        {
-                            obj.insert(
-                                "proprietaries".into(),
-                                serde_json::Value::Object(serde_json::Map::new()),
-                            );
-                        }
-                    }
-                }
-            }
-        }
         match &mut value {
-            serde_json::Value::Array(items) => items.iter_mut().for_each(normalize_one),
-            serde_json::Value::Object(_) => normalize_one(&mut value),
+            serde_json::Value::Array(items) => items.iter_mut().for_each(fill_pskt_defaults),
+            serde_json::Value::Object(_) => fill_pskt_defaults(&mut value),
             _ => {}
         }
         value
+    }
+
+    fn fill_pskt_defaults(pskt: &mut serde_json::Value) {
+        let input_count = entry_count(pskt, "inputs");
+        let output_count = entry_count(pskt, "outputs");
+        if let Some(global) = pskt
+            .get_mut("global")
+            .and_then(serde_json::Value::as_object_mut)
+        {
+            for (key, default) in [
+                ("version", 0usize),
+                ("txVersion", 0),
+                ("inputCount", input_count),
+                ("outputCount", output_count),
+            ] {
+                global
+                    .entry(key)
+                    .or_insert(serde_json::Value::from(default));
+            }
+        }
+        for entry in entries_mut(pskt, "inputs") {
+            entry
+                .entry("sighashType")
+                .or_insert(serde_json::Value::from(1u8));
+            ensure_proprietaries(entry);
+        }
+        for entry in entries_mut(pskt, "outputs") {
+            ensure_proprietaries(entry);
+        }
+    }
+
+    fn entry_count(pskt: &serde_json::Value, key: &str) -> usize {
+        pskt.get(key)
+            .and_then(serde_json::Value::as_array)
+            .map_or(0, Vec::len)
+    }
+
+    fn entries_mut<'a>(
+        pskt: &'a mut serde_json::Value,
+        key: &str,
+    ) -> impl Iterator<Item = &'a mut serde_json::Map<String, serde_json::Value>> {
+        pskt.get_mut(key)
+            .and_then(serde_json::Value::as_array_mut)
+            .into_iter()
+            .flatten()
+            .filter_map(serde_json::Value::as_object_mut)
+    }
+
+    fn ensure_proprietaries(entry: &mut serde_json::Map<String, serde_json::Value>) {
+        if !entry
+            .get("proprietaries")
+            .is_some_and(serde_json::Value::is_object)
+        {
+            entry.insert(
+                "proprietaries".into(),
+                serde_json::Value::Object(serde_json::Map::new()),
+            );
+        }
     }
 
     /// Poll a boundary future that is expected to complete without browser I/O.

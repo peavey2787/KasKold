@@ -655,12 +655,11 @@ dependencies = [
 [[package]]
 name = "kaspa-portal"
 version = "1.4.0"
-source = "git+https://github.com/peavey2787/kaspa-portal.git?rev=b9390d261896943f42aa5147829724c21dfafe05#b9390d261896943f42aa5147829724c21dfafe05"
+source = "git+https://github.com/peavey2787/kaspa-portal.git#9f3d91c4dd2975d45d7a69c7c9d7f4fee992b1db"
 dependencies = [
  "aes-gcm",
  "argon2",
  "base64",
- "blake2",
  "blake2b_simd",
  "blake3",
  "hex",
@@ -826,7 +825,6 @@ version = "2.0.0"
 dependencies = [
  "aes-gcm",
  "argon2",
- "blake2",
  "k256",
  "kaskold-protocol",
  "kaspa-portal",

@@ -31,7 +31,7 @@ pub(crate) fn encode_setup_json(
     if verifying_key.is_empty() || verifying_key.len() > MAX_CROWDFUND_VK_BYTES {
         return Err("Crowdfunding verifying key exceeds the supported size limit".to_string());
     }
-    let verifying_key_hash = p2sh::blake2b_hash(&verifying_key);
+    let verifying_key_hash = kaspa_portal::primitives::hash::blake2b_256(&verifying_key);
     Ok(serde_json::json!({
         "pk_hex": hex::encode(proving_key),
         "vk_hex": hex::encode(&verifying_key),
@@ -97,7 +97,7 @@ pub(crate) fn compute_campaign_id_hex(
     }
     let organizer_script = address::address_to_script_pubkey(organizer_address)?;
     let organizer_output_spk = versioned_spk(&organizer_script);
-    let verifying_key_hash = p2sh::blake2b_hash(&verifying_key);
+    let verifying_key_hash = kaspa_portal::primitives::hash::blake2b_256(&verifying_key);
     Ok(hex::encode(campaign_id_for_script(
         goal_sompi,
         locktime_daa,
@@ -130,7 +130,7 @@ pub(crate) fn build_address_json(
     }
     let organizer_script = address::address_to_script_pubkey(organizer_address)?;
     let organizer_output_spk = versioned_spk(&organizer_script);
-    let verifying_key_hash = p2sh::blake2b_hash(&verifying_key);
+    let verifying_key_hash = kaspa_portal::primitives::hash::blake2b_256(&verifying_key);
     let redeem_script = crowdfund_redeem_script(CrowdfundScript {
         contributor_pubkey: &contributor_pubkey,
         goal_sompi,

@@ -14,7 +14,15 @@ macro_rules! log {
 pub mod address {
     pub use kaspa_portal::primitives::address::*;
 }
+/// Script recognizers and KRC-20 envelopes, from Kaspa Portal.
+pub mod contract {
+    pub use kaspa_portal::contract::{krc20, script};
+}
 pub mod crypto;
+/// BLAKE2b-256, from Kaspa Portal.
+pub mod hash {
+    pub use kaspa_portal::primitives::hash::*;
+}
 /// Key derivation, mnemonics and account keys, from Kaspa Portal.
 pub mod derivation {
     pub use kaspa_portal::wallet::{

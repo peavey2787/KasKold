@@ -50,7 +50,7 @@ export async function buildTimelockedSavings(ownerPk) {
         recoveryPk = ownerPk; // no separate recovery key
     } else if (recoveryPk.startsWith('kpub1:')) {
         toast('Paste the recovery wallet address, not a kpub', 'error'); return;
-    } else if (recoveryPk.startsWith('kaspa:') || recoveryPk.startsWith('kaspatest:')) {
+    } else if (recoveryPk.includes(':')) { // an address; Portal decodes and validates it
         try {
             const decoded = JSON.parse(decode_address(recoveryPk));
             if (decoded.version !== 0) { toast('Recovery wallet must be a standard address (P2PK)', 'error'); return; }

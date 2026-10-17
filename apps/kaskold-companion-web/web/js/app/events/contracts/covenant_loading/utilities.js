@@ -1,3 +1,4 @@
+import { is_kaspa_address } from '../../../../wasm/api.js';
 import { covenantState } from '../../../state/index.js';
 import { showScreen } from '../../../navigation.js';
 import { toast } from '../../../../core/ui/toast.js';
@@ -11,19 +12,19 @@ export function bindSwapAndUtilityActions() {
     byId('cov-result-script').onclick = () => { navigator.clipboard.writeText(byId('cov-result-script').textContent); toast('Redeem script copied', 'ok', 1200); };
     if (byId('btn-cov-scan-owner-addr')) byId('btn-cov-scan-owner-addr').onclick = () => startScanner('Scan covenant address', (data) => {
         const addr = new TextDecoder().decode(new Uint8Array(data)).trim();
-        if (addr.startsWith('kaspa')) { stopScanner(); byId('cov-owner-addr').value = addr; showScreen('covenant'); toast('Address scanned', 'ok', 1500); }
+        if (is_kaspa_address(addr)) { stopScanner(); byId('cov-owner-addr').value = addr; showScreen('covenant'); toast('Address scanned', 'ok', 1500); }
     });
     byId('btn-cov-scan-owner-dest').onclick = () => startScanner('Scan destination', (data) => {
         const addr = new TextDecoder().decode(new Uint8Array(data)).trim();
-        if (addr.startsWith('kaspa')) { stopScanner(); byId('cov-owner-dest').value = addr; showScreen('covenant'); covShowPanel('owner'); toast('Address scanned', 'ok', 1500); }
+        if (is_kaspa_address(addr)) { stopScanner(); byId('cov-owner-dest').value = addr; showScreen('covenant'); covShowPanel('owner'); toast('Address scanned', 'ok', 1500); }
     });
     byId('btn-consol-scan-dest').onclick = () => startScanner('Scan destination', (data) => {
         const addr = new TextDecoder().decode(new Uint8Array(data)).trim();
-        if (addr.startsWith('kaspa')) { stopScanner(); byId('cov-consol-dest').value = addr; showScreen('covenant'); covShowPanel('consolidate'); toast('Address scanned', 'ok', 1500); }
+        if (is_kaspa_address(addr)) { stopScanner(); byId('cov-consol-dest').value = addr; showScreen('covenant'); covShowPanel('consolidate'); toast('Address scanned', 'ok', 1500); }
     });
     byId('btn-cov-scan-borrower-addr').onclick = () => startScanner('Scan covenant address', (data) => {
         const addr = new TextDecoder().decode(new Uint8Array(data)).trim();
-        if (addr.startsWith('kaspa')) { stopScanner(); byId('cov-borrower-addr').value = addr; showScreen('covenant'); toast('Address scanned', 'ok', 1500); }
+        if (is_kaspa_address(addr)) { stopScanner(); byId('cov-borrower-addr').value = addr; showScreen('covenant'); toast('Address scanned', 'ok', 1500); }
     });
     // Balance checker
     byId('btn-cov-check-balance').onclick = () => {
@@ -44,6 +45,6 @@ export function bindSwapAndUtilityActions() {
     byId('btn-cov-balance-check').onclick = () => handleCovCheckBalance();
     byId('btn-cov-scan-balance-addr').onclick = () => startScanner('Scan covenant address', (data) => {
         const addr = new TextDecoder().decode(new Uint8Array(data)).trim();
-        if (addr.startsWith('kaspa')) { stopScanner(); byId('cov-balance-addr').value = addr; showScreen('covenant'); toast('Address scanned', 'ok', 1500); }
+        if (is_kaspa_address(addr)) { stopScanner(); byId('cov-balance-addr').value = addr; showScreen('covenant'); toast('Address scanned', 'ok', 1500); }
     });
 }

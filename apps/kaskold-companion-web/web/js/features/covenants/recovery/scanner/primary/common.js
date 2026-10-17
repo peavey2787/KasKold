@@ -1,5 +1,5 @@
 import { networkState } from '../../../../../app/state/index.js';
-import { blake2b_hash, encode_p2sh_address } from '../../../../../wasm/api.js';
+import { redeem_script_address } from '../../../../../wasm/api.js';
 import { readLen } from '../payload_reader.js';
 
 export function readStoredScript(params) {
@@ -10,7 +10,7 @@ export function readStoredScript(params) {
 }
 
 function addressForScript(redeemScriptHex) {
-    return encode_p2sh_address(blake2b_hash(redeemScriptHex), networkState.network);
+    return redeem_script_address(redeemScriptHex, networkState.network);
 }
 
 export function baseRecoveredRecord(type, redeemScriptHex, role = 'owner') {

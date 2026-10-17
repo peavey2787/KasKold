@@ -3,7 +3,7 @@ import { covenantState, networkState, scannerState, transactionState, walletSess
 import { showScreen } from '../../../app/navigation.js';
 import { toast } from '../../../core/ui/toast.js';
 import { sompiToKasString } from '../../../core/amounts.js';
-import { encode_p2pk_address, encode_p2sh_address, generate_qr_frames } from '../../../wasm/api.js';
+import { generate_qr_frames, script_public_key_address } from '../../../wasm/api.js';
 // KasKold Companion Web — features/transactions/send/review
 import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
 import { byId } from '../../../core/dom.js';
@@ -38,14 +38,8 @@ function renderQrTxInfo() {
     if (!transactionState._lastPsktSummary) { box.style.display = 'none'; return; }
     const s = transactionState._lastPsktSummary;
 
-    function scriptAddr(scriptHex, kind) {
-        try {
-            if ((kind === 'p2pk' || kind === 'p2pk-schnorr') && scriptHex.length === 68)
-                return encode_p2pk_address(scriptHex.substring(2, 66), networkState.network);
-            if ((kind === 'p2sh' || kind === 'p2sh-multisig' || kind === 'p2sh-covenant') && scriptHex.length === 70)
-                return encode_p2sh_address(scriptHex.substring(4, 68), networkState.network);
-        } catch (_) {}
-        return null;
+    function scriptAddr(scriptHex) {
+        return script_public_key_address(scriptHex, networkState.network) || null;
     }
 
     function addrLabel(addr) {
@@ -67,7 +61,7 @@ function renderQrTxInfo() {
     appendText(summary, 'div', 'tx-review-outputs-title', 'Outputs');
 
     s.outputs.forEach((out, i) => {
-        const addr = out.address || scriptAddr(out.script_hex, out.script_kind);
+        const addr = out.address || scriptAddr(out.script_hex);
         const cls = addrLabel(addr);
         const label = cls || (out.script_kind === 'p2sh' ? 'COVENANT' : (addr ? 'DESTINATION' : ''));
         const card = document.createElement('div');
@@ -80,7 +74,7 @@ function renderQrTxInfo() {
 
     appendText(summary, 'div', 'tx-review-inputs-title', 'Inputs');
     s.inputs.forEach((inp, i) => {
-        let addr = scriptAddr(inp.script_hex, inp.script_kind);
+        let addr = scriptAddr(inp.script_hex);
         if (!addr && (inp.script_kind === 'p2sh' || inp.script_kind === 'p2sh-covenant') && covenantState.lastCovenantResult?.address) {
             addr = covenantState.lastCovenantResult.address;
         }

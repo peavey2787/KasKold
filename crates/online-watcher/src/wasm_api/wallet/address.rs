@@ -17,23 +17,6 @@ pub fn encode_p2pk_address(pubkey_hex: &str, network: Option<String>) -> Result<
     Ok(address::encode_p2pk_address(&public_key, prefix))
 }
 
-/// Encode a 32-byte script hash (hex) as a Kaspa P2SH address
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-pub fn encode_p2sh_address(
-    script_hash_hex: &str,
-    network: Option<String>,
-) -> Result<String, JsValue> {
-    let bytes =
-        hex::decode(script_hash_hex).map_err(|error| js_error(format!("Invalid hex: {error}")))?;
-    if bytes.len() != 32 {
-        return Err(js_error("Script hash must be 32 bytes"));
-    }
-    let mut script_hash = [0u8; 32];
-    script_hash.copy_from_slice(&bytes);
-    let prefix = network_to_prefix(network.as_deref().unwrap_or("mainnet"));
-    Ok(address::encode_p2sh_address(&script_hash, prefix))
-}
-
 /// Decode a Kaspa address → JSON { version, payload_hex }
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 pub fn decode_address(addr: &str) -> Result<String, JsValue> {

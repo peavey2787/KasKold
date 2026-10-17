@@ -18,9 +18,6 @@ const SALT_LEN: usize = 8;
 const MAX_SECRET_LEN: usize = 33;
 
 fn store_salted_secret_with_salt(ad: &mut AppData, salt: &[u8; SALT_LEN]) -> Result<(), &'static str> {
-    use blake2::digest::consts::U32;
-    use blake2::{Blake2b, Digest};
-
     let secret_len = ad.wallet.seeds.pp_input.len;
     if secret_len == 0 { return Err("Enter a message"); }
     if secret_len > MAX_SECRET_LEN { return Err("Max 33 characters"); }
@@ -31,10 +28,9 @@ fn store_salted_secret_with_salt(ad: &mut AppData, salt: &[u8; SALT_LEN]) -> Res
     }
     ad.signing.commit_reveal.plaintext[..SALT_LEN].copy_from_slice(salt);
     ad.signing.commit_reveal.plaintext_len = SALT_LEN + copy_len;
-    type Blake2b256 = Blake2b<U32>;
-    let mut hasher = Blake2b256::new();
-    hasher.update(&ad.signing.commit_reveal.plaintext[..ad.signing.commit_reveal.plaintext_len]);
-    ad.signing.commit_reveal.hash = hasher.finalize().into();
+    ad.signing.commit_reveal.hash = offline_signer::hash::blake2b_256(
+        &ad.signing.commit_reveal.plaintext[..ad.signing.commit_reveal.plaintext_len],
+    );
     Ok(())
 }
 

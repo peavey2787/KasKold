@@ -9,7 +9,6 @@ const { state } = await setupDeepHarness();
 try {
   const commitInputs = await import(moduleUrl('app/events/contracts/covenant_specialized/commit_reveal/input_events.js'));
   const commitVerify = await import(moduleUrl('app/events/contracts/covenant_specialized/commit_reveal/verification.js'));
-  const ksptStatus = await import(moduleUrl('features/transactions/send/kspt_status.js'));
   const covenantPlanner = await import(moduleUrl('features/transactions/send/compose/planners/covenant.js'));
   const psktFinalize = await import(moduleUrl('features/transactions/pskt_multisig/review_finalize.js'));
   const broadcast = await import(moduleUrl('features/transactions/send/broadcast.js'));
@@ -29,41 +28,23 @@ try {
   element('btn-cov-cr-scan-preimage').onclick(); state.scannerState.scanCallback(new TextEncoder().encode('aabbcc')); assert.equal(state.commitRevealState._crRevealPartA,'aabbcc'); assert.match(element('cov-cr-preimage-status').textContent,/3 bytes/);
   state.commitRevealState._crDecryptCtBytes=new Uint8Array(61); element('btn-cov-cr-reveal-back').onclick(); assert.equal(state.commitRevealState._crDecryptCtBytes,null);
 
-  // Transaction verification parses real signature-script push structure, strips
-  // the eight-byte salt for display, and compares the script-pinned hash.
-  const push=bytes=>Buffer.concat([Buffer.from([bytes.length]),Buffer.from(bytes)]);
-  const salt=Buffer.from('0102030405060708','hex'), text=Buffer.from('runtime-secret','utf8');
-  const partA=Buffer.concat([salt,text.slice(0,4)]), partB=text.slice(4); const committed=Buffer.from(PK3,'hex');
-  const redeem=Buffer.concat([Buffer.from('7eaa20','hex'),committed,Buffer.from('51','hex')]);
-  const sigScript=Buffer.concat([push(partA),push(partB),push(Buffer.from(SIG,'hex')),Buffer.from([0]),push(redeem)]).toString('hex');
-  stubs.blake2b_hash=()=>PK3;
-  let verified=commitVerify.verifyCommitRevealTransaction({inputs:[{signature_script:sigScript}],block_time:1700000000000}); assert.equal(verified.preimageText,'runtime-secret'); assert.equal(verified.matches,true); assert.equal(verified.committedHash,PK3);
-  stubs.blake2b_hash=()=>PK2; verified=commitVerify.verifyCommitRevealTransaction({inputs:[{signature_script:sigScript,previous_outpoint_resolved_daa_score:'900'}]}); assert.equal(verified.matches,false); assert.match(verified.timestamp,/DAA: 900/);
+  // Transaction verification shows Portal's reading of the reveal: the
+  // eight-byte salt is stripped for display and both hashes are reported.
+  const preimageHex=Buffer.concat([Buffer.from('0102030405060708','hex'),Buffer.from('runtime-secret','utf8')]).toString('hex');
+  const reveal=(hex,matches)=>JSON.stringify({preimage_hex:hex,committed_hash:PK3,computed_hash:matches?PK3:PK2,matches});
+  stubs.read_commit_reveal_reveal=()=>reveal(preimageHex,true);
+  let verified=commitVerify.verifyCommitRevealTransaction({inputs:[{signature_script:SIG}],block_time:1700000000000}); assert.equal(verified.preimageText,'runtime-secret'); assert.equal(verified.matches,true); assert.equal(verified.committedHash,PK3);
+  stubs.read_commit_reveal_reveal=()=>reveal(preimageHex,false); verified=commitVerify.verifyCommitRevealTransaction({inputs:[{signature_script:SIG,previous_outpoint_resolved_daa_score:'900'}]}); assert.equal(verified.matches,false); assert.equal(verified.computedHash,PK2); assert.match(verified.timestamp,/DAA: 900/);
   assert.throws(()=>commitVerify.verifyCommitRevealTransaction({inputs:[{signature_script:'00'}]}),/No sig_script/);
-  const shortScript=Buffer.concat([push(Buffer.from('01020304','hex')),push(Buffer.from('05','hex')),push(Buffer.from(SIG,'hex')),Buffer.from([0]),push(redeem)]).toString('hex'); assert.throws(()=>commitVerify.verifyCommitRevealTransaction({inputs:[{signature_script:shortScript}]}),/8-byte salt/);
-  const badRedeem=Buffer.from('51','hex'); const badScript=Buffer.concat([push(partA),push(partB),push(Buffer.from(SIG,'hex')),Buffer.from([0]),push(badRedeem)]).toString('hex'); assert.throws(()=>commitVerify.verifyCommitRevealTransaction({inputs:[{signature_script:badScript}]}),/missing the current hash sequence/);
+  stubs.read_commit_reveal_reveal=()=>reveal('0102030405',true); assert.throws(()=>commitVerify.verifyCommitRevealTransaction({inputs:[{signature_script:SIG}]}),/8-byte salt/);
+  stubs.read_commit_reveal_reveal=()=>{throw new Error('not a commit-reveal reveal signature script')}; assert.throws(()=>commitVerify.verifyCommitRevealTransaction({inputs:[{signature_script:SIG}]}),/not a commit-reveal reveal/);
+  delete stubs.read_commit_reveal_reveal;
 
 
 
   // Compact KSPT status inspection covers header flags/version, compact script
   // lengths, complete/partial/unsigned input state, and every truncation guard.
   const toHex=bytes=>Buffer.from(bytes).toString('hex');
-  const makeKspt=({signed=false,extended=false,truncate=0}={})=>{
-    const bytes=new Uint8Array(extended?112:110); bytes.set(Buffer.from('KSPT')); bytes[4]=4; bytes[5]=0; bytes[8]=1; bytes[49]=0; bytes[50]=0;
-    if(extended){bytes[106]=0xff;bytes[107]=0;bytes[108]=0;bytes[109]=signed?1:0;bytes[110]=0;bytes[111]=0;}
-    else{bytes[106]=0;bytes[107]=signed?1:0;bytes[108]=0;bytes[109]=0;}
-    return toHex(truncate?bytes.slice(0,bytes.length-truncate):bytes);
-  };
-  assert.equal(ksptStatus.inspectKsptSignatureStatus('00'),'unknown'); assert.equal(ksptStatus.inspectKsptSignatureStatus('4b5350540401'),'signed'); assert.equal(ksptStatus.inspectKsptSignatureStatus('4b5350540402'),'unknown'); assert.equal(ksptStatus.inspectKsptSignatureStatus('4b5350540300'),'unsupported');
-  assert.equal(ksptStatus.inspectKsptSignatureStatus(makeKspt()),'unsigned'); assert.equal(ksptStatus.inspectKsptSignatureStatus(makeKspt({signed:true})),'partial'); assert.equal(ksptStatus.inspectKsptSignatureStatus(makeKspt({extended:true})),'unsigned'); assert.equal(ksptStatus.inspectKsptSignatureStatus(makeKspt({truncate:10})),'unknown');
-  const malformedKspt = size => { const b=new Uint8Array(size); b.set(Buffer.from('KSPT')); b[4]=4; b[5]=0; b[8]=1; return b; };
-  let kb=malformedKspt(106); assert.equal(ksptStatus.inspectKsptSignatureStatus(toHex(kb)),'unknown'); // compact length offset at EOF
-  kb=malformedKspt(107); kb[106]=0xff; assert.equal(ksptStatus.inspectKsptSignatureStatus(toHex(kb)),'unknown'); // extended length truncated
-  kb=malformedKspt(108); kb[106]=1; kb[107]=0xaa; assert.equal(ksptStatus.inspectKsptSignatureStatus(toHex(kb)),'unknown'); // missing signature count
-  kb=malformedKspt(110); kb[106]=0; kb[107]=0xff; kb[108]=0; kb[109]=0; assert.equal(ksptStatus.inspectKsptSignatureStatus(toHex(kb)),'unsigned');
-  kb=malformedKspt(109); kb[106]=0; kb[107]=0; kb[108]=0; assert.equal(ksptStatus.inspectKsptSignatureStatus(toHex(kb)),'unknown'); // missing redeem length byte
-  kb=malformedKspt(110); kb[106]=0; kb[107]=0; kb[108]=5; kb[109]=0; assert.equal(ksptStatus.inspectKsptSignatureStatus(toHex(kb)),'unknown'); // redeem overruns wire
-  assert.equal(ksptStatus.inspectKsptSignatureStatus('4b5350540400zz'),'unknown');
 
   // Covenant deposit planner exercises insufficient/folded additive deposits,
   // DMS dust folding, global-thread top-up safety, and the no-payload builder.

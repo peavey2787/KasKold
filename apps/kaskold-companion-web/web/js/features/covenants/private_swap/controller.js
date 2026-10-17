@@ -13,7 +13,7 @@ import { covAddActive, covRenderActive, covSaveActive } from '../recovery/active
 import { startScanner, stopScanner } from '../../stealth/index/camera.js';
 import {
     create_private_swap_claim, fetch_utxos_for_address_js,
-    private_swap_claim_sighash, private_swap_complete_public, private_swap_extract_secret,
+    private_swap_claim_sighash, private_swap_complete_public, private_swap_extract_secret, private_swap_max_fee_sompi,
     private_swap_insert_completed_signature, private_swap_verify_completed, private_swap_verify_presignature,
     pskt_finalize_and_broadcast, pskt_relay_to_kspt,
 } from '../../../wasm/api.js';
@@ -36,7 +36,6 @@ import {
     showPrivateSwapProtocolQr as showProtocolQr, showPrivateSwapSection as showSection,
 } from './ui.js';
 
-const PRIVATE_SWAP_MAX_FEE_SOMPI = 500_000_000n;
 
 export function openPrivateSwap() {
     loadPrivateSwapState();
@@ -286,7 +285,7 @@ async function handleCompletedResponse(raw) {
 
 async function buildMyClaim() {
     const utxo = await expectedFunding(privateSwapState.counterAddress, privateSwapState.counterAmountSompi, 'counterparty');
-    const fee = getCovFee(1); if (fee > PRIVATE_SWAP_MAX_FEE_SOMPI) throw new Error('Current claim fee exceeds the Private Swap covenant hard ceiling');
+    const fee = getCovFee(1); if (fee > private_swap_max_fee_sompi()) throw new Error('Current claim fee exceeds the Private Swap covenant hard ceiling');
     if (fee >= BigInt(privateSwapState.counterAmountSompi)) throw new Error('Swap amount is too small for the claim fee');
     const pskb = await create_private_swap_claim(privateSwapState.counterAddress, privateSwapState.myDestination, privateSwapState.counterRedeem, JSON.stringify([utxo]), fee);
     const kspt = pskt_relay_to_kspt(pskb, networkState.network);
@@ -309,7 +308,7 @@ async function ensureMyClaimTransaction() {
     const utxo = await expectedFunding(privateSwapState.counterAddress, privateSwapState.counterAmountSompi, 'counterparty');
     assertOutpoint(privateSwapState.counterOutpoint, utxo);
     const fee = exactUnsigned(privateSwapState.myClaimFeeSompi, 'stored Private Swap claim fee');
-    if (fee > PRIVATE_SWAP_MAX_FEE_SOMPI || fee >= BigInt(privateSwapState.counterAmountSompi)) {
+    if (fee > private_swap_max_fee_sompi() || fee >= BigInt(privateSwapState.counterAmountSompi)) {
         throw new Error('Recovered Private Swap claim fee violates the covenant policy');
     }
     const pskb = await create_private_swap_claim(

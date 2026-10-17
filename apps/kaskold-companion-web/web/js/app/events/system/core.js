@@ -1,3 +1,4 @@
+import { is_kaspa_address } from '../../../wasm/api.js';
 import { navigationState, walletSession } from '../../state/index.js';
 import { navigateBack, showScreen } from '../../navigation.js';
 import { toast } from '../../../core/ui/toast.js';
@@ -51,7 +52,7 @@ export function bindCoreEvents() {
     byId('btn-scan-ms-source').onclick = () => startScanner('Scan P2SH address', data => {
         const text = new TextDecoder().decode(new Uint8Array(data));
         const addr = text.trim();
-        if (addr.startsWith('kaspa:')) {
+        if (is_kaspa_address(addr)) {
             stopScanner();
             byId('input-ms-source').value = addr;
             showScreen('multisig-spend');
@@ -61,7 +62,7 @@ export function bindCoreEvents() {
     byId('btn-scan-ms-dest').onclick = () => startScanner('Scan destination', data => {
         const text = new TextDecoder().decode(new Uint8Array(data));
         const addr = text.trim();
-        if (addr.startsWith('kaspa:') || addr.endsWith('.kas')) {
+        if (is_kaspa_address(addr) || addr.endsWith('.kas')) {
             stopScanner();
             byId('input-ms-dest').value = addr;
             showScreen('multisig-spend');

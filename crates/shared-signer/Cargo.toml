@@ -9,5 +9,5 @@ description = "Shared no_std wire types and QR framing for KasKold and Companion
 path = "src/lib.rs"
 
 [dependencies]
-kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", rev = "b9390d261896943f42aa5147829724c21dfafe05", default-features = false }
+kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", default-features = false }
 sha2 = { version = "0.10", default-features = false }

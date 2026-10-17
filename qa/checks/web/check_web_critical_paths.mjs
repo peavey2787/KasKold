@@ -32,12 +32,12 @@ assert.match(standard, /limit === 8[\s\S]*create_send_pskb\([\s\S]*create_send_p
     'automatic selection must use the default 8-input policy unless Advanced overrides it');
 
 const networkCore = await read('core/network.js');
-assert.match(networkCore, /testnet[^]*kaspatest:/,
-    'testnet must map directly to the kaspatest HRP');
-assert.match(networkCore, /devnet[^]*kaspadev:/,
-    'devnet must map directly to the kaspadev HRP');
-assert.match(networkCore, /simnet[^]*kaspasim:/,
-    'simnet must map directly to the kaspasim HRP');
+assert.match(networkCore, /address_network\(/,
+    'wallet network detection must come from Kaspa Portal through WASM');
+assert.match(networkCore, /network_address_prefix\(/,
+    'address prefixes must come from Kaspa Portal through WASM');
+assert.doesNotMatch(networkCore, /kaspa(test|dev|sim)?:/,
+    'core/network.js must not keep its own address-prefix table');
 
 const sendForm = await read('features/transactions/send/compose/send_form.js');
 assert.match(sendForm, /balanceSendMaximumKas\(sompiToKasString\(exactBalance\), feeSompi\)/,
@@ -259,31 +259,6 @@ assert.equal(unnamedFirst.name, 'Wallet 1',
     'an omitted friendly name must receive the first available default wallet name');
 assert.equal(unnamedSecond.name, 'Wallet 2',
     'automatic wallet names must remain unique and increment predictably');
-
-const commitRevealPushdataUrl = pathToFileURL(path.join(
-    jsRoot,
-    'app/events/contracts/covenant_specialized/commit_reveal/pushdata.js',
-)).href;
-const { parseCommitRevealSignatureScript } = await import(commitRevealPushdataUrl);
-const commitRevealScript = Uint8Array.from([
-    2, 0xaa, 0xbb,
-    0x4c, 1, 0xcc,
-    1, 0xdd,
-    0x00,
-    0x4d, 2, 0, 0xee, 0xff,
-]);
-assert.deepEqual(parseCommitRevealSignatureScript(
-    Buffer.from(commitRevealScript).toString('hex'),
-), {
-    partA: Uint8Array.from([0xaa, 0xbb]),
-    partB: Uint8Array.from([0xcc]),
-    redeemScript: Uint8Array.from([0xee, 0xff]),
-}, 'commit-reveal verification must use the focused bounded pushdata parser');
-assert.throws(
-    () => parseCommitRevealSignatureScript('4c02aa'),
-    /Truncated signature-script push/,
-    'commit-reveal pushdata parsing must fail closed on truncated payloads',
-);
 
 const framesUrl = pathToFileURL(path.join(jsRoot, 'features/covenants/recovery/import/frames.js')).href;
 const { parseCovenantFrame, addCovenantFrame } = await import(framesUrl);

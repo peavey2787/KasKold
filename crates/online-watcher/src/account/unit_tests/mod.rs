@@ -1,7 +1,7 @@
 use super::address::{
     address_to_script_pubkey, decode_address, encode_address, encode_p2pk_address,
-    encode_p2sh_address,
 };
+use kaskold_protocol::encode_p2sh_address;
 
 #[test]
 fn addresses_round_trip_for_every_network_and_script_family() {
@@ -128,7 +128,8 @@ fn kpub_import_raw_import_and_extension_preserve_watch_only_state() {
 
 #[test]
 fn kaspa_cli_account_xpub_imports_and_normalizes_to_canonical_text() {
-    use super::bip32::{decode_kpub_text, import_kpub};
+    use super::bip32::import_kpub;
+    use kaskold_protocol::compat::decode_kpub_text;
     use shared_signer::account_key::{
         ACCOUNT_KEY_CHILD_INDEX, ACCOUNT_KEY_DEPTH, ACCOUNT_KEY_VERSION,
     };

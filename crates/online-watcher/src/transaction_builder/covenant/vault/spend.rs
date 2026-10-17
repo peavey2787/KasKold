@@ -89,13 +89,6 @@ pub(crate) struct PreparedVaultSpend {
     pub spendable: u64,
 }
 
-pub(crate) fn decode_covenant_id(value: &str) -> Result<[u8; 32], String> {
-    let bytes = hex::decode(value).map_err(|error| format!("Bad cov_id hex: {error}"))?;
-    bytes
-        .try_into()
-        .map_err(|_: Vec<u8>| "covenant_id not 32 bytes".to_string())
-}
-
 pub(crate) async fn prepare(
     covenant_address: &str,
     covenant_id_hex: &str,
@@ -158,7 +151,7 @@ pub(crate) fn prepare_from_utxos(
         address::network_prefix(network_name),
     )?;
     let covenant_script_pubkey = address::address_to_script_pubkey(&derived_address)?;
-    let covenant_id = decode_covenant_id(covenant_id_hex)?;
+    let covenant_id = crate::serialization::input::decode_named_32(covenant_id_hex, "covenant_id")?;
     let total = utxos.iter().try_fold(0u64, |sum, utxo| {
         sum.checked_add(utxo.amount)
             .ok_or("Vault balance overflows u64".to_string())
