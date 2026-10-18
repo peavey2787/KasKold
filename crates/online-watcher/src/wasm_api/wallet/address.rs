@@ -1,5 +1,6 @@
 use crate::account::address;
-use crate::wasm_api::utilities::common::{js_error, network_to_prefix};
+use crate::account::address::network_prefix;
+use crate::wasm_api::utilities::common::js_error;
 use crate::wasm_api::JsValue;
 
 /// Encode a 32-byte x-only pubkey (hex) as a Kaspa P2PK address
@@ -13,7 +14,7 @@ pub fn encode_p2pk_address(pubkey_hex: &str, network: Option<String>) -> Result<
     }
     let mut public_key = [0u8; 32];
     public_key.copy_from_slice(&bytes);
-    let prefix = network_to_prefix(network.as_deref().unwrap_or("mainnet"));
+    let prefix = network_prefix(network.as_deref().unwrap_or("mainnet")).map_err(js_error)?;
     Ok(address::encode_p2pk_address(&public_key, prefix))
 }
 

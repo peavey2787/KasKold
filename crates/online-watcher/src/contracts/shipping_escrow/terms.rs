@@ -7,7 +7,7 @@ pub(crate) fn terms_json(redeem_script_hex: &str, network: &str) -> Result<Strin
     let terms = crate::contracts::shipping_escrow::script::ship_escrow_terms(&script)
         .ok_or("unrecognized ship-escrow redeem")?;
     let tranches = terms.tranches()?;
-    let prefix = network_prefix(network);
+    let prefix = network_prefix(network)?;
     let address = |key: &[u8; 32]| encode_p2pk_address(key, prefix);
     Ok(serde_json::json!({
         "total_sompi": tranches.total.to_string(),

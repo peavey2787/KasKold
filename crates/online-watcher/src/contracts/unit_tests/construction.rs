@@ -223,17 +223,17 @@ fn browser_neutral_contract_constructors_cover_direct_success_paths() {
     let address_b = crate::account::address::encode_p2pk_address(&[0x52; 32], "kaspa");
 
     let documents = [
-        construction::additive::build_json(&owner, 1, 2, "kaspa"),
-        construction::allowance::build_local_json(&owner, &beneficiary, 1, 2, 3, "kaspa"),
-        construction::allowance::build_global_json(&owner, &beneficiary, 1, 2, 3, "kaspa"),
-        construction::dms::build_json(&owner, &beneficiary, 10, "kaspa"),
+        construction::additive::build_json(&owner, 1, 2, "mainnet"),
+        construction::allowance::build_local_json(&owner, &beneficiary, 1, 2, 3, "mainnet"),
+        construction::allowance::build_global_json(&owner, &beneficiary, 1, 2, 3, "mainnet"),
+        construction::dms::build_json(&owner, &beneficiary, 10, "mainnet"),
         construction::escrow::build_json(
             &owner,
             &beneficiary,
             &third,
             &address_a,
             &address_b,
-            "kaspa",
+            "mainnet",
             [0x61; 8],
         ),
         construction::escrow::build_random_json(
@@ -242,7 +242,7 @@ fn browser_neutral_contract_constructors_cover_direct_success_paths() {
             &third,
             &address_a,
             &address_b,
-            "kaspa",
+            "mainnet",
         ),
         construction::escrow::build_timelocked_json(
             &owner,
@@ -250,20 +250,20 @@ fn browser_neutral_contract_constructors_cover_direct_success_paths() {
             &address_a,
             &address_b,
             10,
-            "kaspa",
+            "mainnet",
         ),
-        construction::payjoin::build_json(&owner, &beneficiary, 10, 2, 2, "kaspa"),
+        construction::payjoin::build_json(&owner, &beneficiary, 10, 2, 2, "mainnet"),
         construction::private_swap::build_json(
             &owner,
             &beneficiary,
             &address_a,
             10,
             &"71".repeat(16),
-            "kaspa",
+            "mainnet",
         ),
-        construction::savings::build_json(&owner, &beneficiary, 10, "kaspa"),
-        construction::spending_limit::build_global_json(&owner, 1, 2, "kaspa"),
-        commit_reveal_app::build_json(&owner, &commitment, 10, "kaspa"),
+        construction::savings::build_json(&owner, &beneficiary, 10, "mainnet"),
+        construction::spending_limit::build_global_json(&owner, 1, 2, "mainnet"),
+        commit_reveal_app::build_json(&owner, &commitment, 10, "mainnet"),
         oracle_v1::build_json(
             &owner,
             &beneficiary,
@@ -271,9 +271,9 @@ fn browser_neutral_contract_constructors_cover_direct_success_paths() {
             &commitment,
             "release when condition is met",
             10,
-            "kaspa",
+            "mainnet",
         ),
-        zk_crowdfund::build_address_json(&owner, &address_a, 100_000_000, 10, "abcd", "kaspa"),
+        zk_crowdfund::build_address_json(&owner, &address_a, 100_000_000, 10, "abcd", "mainnet"),
     ];
 
     for document in documents {
@@ -283,5 +283,34 @@ fn browser_neutral_contract_constructors_cover_direct_success_paths() {
             .get("address")
             .and_then(serde_json::Value::as_str)
             .is_some());
+    }
+}
+
+#[test]
+fn contract_constructors_reject_unknown_networks_instead_of_defaulting_to_mainnet() {
+    use crate::contracts::{
+        commit_reveal::application as commit_reveal_app, covenant::construction,
+        zk::crowdfund as zk_crowdfund,
+    };
+
+    let owner = "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+    let beneficiary = "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5";
+    let commitment = "44".repeat(32);
+    let organizer = crate::account::address::encode_p2pk_address(&[0x51; 32], "kaspa");
+    for network in ["", "main", "Testnet-10", "kaspa"] {
+        let results = [
+            construction::additive::build_json(owner, 1, 2, network),
+            construction::dms::build_json(owner, beneficiary, 10, network),
+            construction::savings::build_json(owner, beneficiary, 10, network),
+            commit_reveal_app::build_json(owner, &commitment, 10, network),
+            zk_crowdfund::build_address_json(owner, &organizer, 100_000_000, 10, "abcd", network),
+        ];
+        for result in results {
+            let error = result.expect_err("unknown network must be rejected");
+            assert!(
+                error.contains("unsupported Kaspa network"),
+                "{network:?}: {error}"
+            );
+        }
     }
 }

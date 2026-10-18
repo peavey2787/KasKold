@@ -88,7 +88,7 @@ fn serialize(material: ShippingEscrowMaterial) -> Result<String, String> {
     )?;
     let address = crate::protocol::script::p2sh::script_to_address(
         &script,
-        network_prefix(&material.request.network),
+        network_prefix(&material.request.network)?,
     )?;
     Ok(serde_json::json!({
         "address": address,

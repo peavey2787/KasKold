@@ -1,6 +1,6 @@
+use crate::account::address::network_prefix;
 use crate::privacy::stealth;
 use crate::wasm_api::utilities::common::js_error;
-use crate::wasm_api::utilities::common::network_to_prefix;
 use crate::wasm_api::JsValue;
 // ─── Stealth Addresses ───
 
@@ -43,7 +43,7 @@ pub fn stealth_generate_payment(
 
     let payment = stealth::generate_stealth_payment(&meta, &entropy).map_err(js_error)?;
 
-    let prefix = network_to_prefix(network);
+    let prefix = network_prefix(network).map_err(js_error)?;
     let address = crate::account::address::encode_p2pk_address(&payment.one_time_pubkey, prefix);
 
     let result = serde_json::json!({
@@ -56,7 +56,7 @@ pub fn stealth_generate_payment(
 
 /// Get the well-known stealth announcement address for a network.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-pub fn stealth_announcement_address(network: &str) -> String {
-    let prefix = network_to_prefix(network);
-    stealth::announcement_address(prefix)
+pub fn stealth_announcement_address(network: &str) -> Result<String, JsValue> {
+    let prefix = network_prefix(network).map_err(js_error)?;
+    Ok(stealth::announcement_address(prefix))
 }

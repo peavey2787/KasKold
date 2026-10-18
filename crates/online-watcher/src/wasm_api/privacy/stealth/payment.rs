@@ -1,5 +1,6 @@
+use crate::account::address::network_prefix;
 use crate::wasm_api::utilities::common::js_error;
-use crate::wasm_api::utilities::common::{network_to_prefix, parse_wallet_string};
+use crate::wasm_api::utilities::common::parse_wallet_string;
 use crate::wasm_api::JsValue;
 use crate::{
     account::{address, bip32},
@@ -31,7 +32,7 @@ pub(super) fn derive_stealth_payment(
         .map_err(|_: Vec<u8>| "Entropy must be 32 bytes".to_string())?;
     let payment = stealth::generate_stealth_payment(&meta, &entropy)?;
     let one_time_address =
-        address::encode_p2pk_address(&payment.one_time_pubkey, network_to_prefix(network));
+        address::encode_p2pk_address(&payment.one_time_pubkey, network_prefix(network)?);
     Ok(DerivedStealthPayment {
         payment,
         one_time_address,

@@ -5,7 +5,7 @@ use crate::wasm_api::*;
 
 const BAD_KEY: &str = "zz";
 const BAD_ADDRESS: &str = "not-an-address";
-const NETWORK: &str = "kaspa";
+const NETWORK: &str = "mainnet";
 const WS: &str = "ws://unused";
 
 #[test]
@@ -182,7 +182,9 @@ fn deterministic_exports_succeed_on_valid_input() {
         "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     );
     assert!(covenant_oracle_mb_heartbeat(NETWORK).is_ok());
-    assert!(stealth_announcement_address(NETWORK).starts_with("kaspa:"));
+    assert!(stealth_announcement_address(NETWORK)
+        .unwrap()
+        .starts_with("kaspa:"));
 }
 
 #[test]

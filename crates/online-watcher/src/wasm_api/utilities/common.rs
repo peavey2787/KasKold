@@ -65,10 +65,6 @@ pub(crate) fn serialize_json<T: Serialize>(value: &T) -> Result<String, JsValue>
     serialize_json_string(value).map_err(js_error)
 }
 
-pub(crate) fn network_to_prefix(network: &str) -> &'static str {
-    crate::account::address::network_prefix(network)
-}
-
 #[cfg(test)]
 pub(crate) fn decode_pubkey32(hex_str: &str) -> Result<[u8; 32], String> {
     crate::serialization::input::decode_pubkey32(hex_str)

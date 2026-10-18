@@ -20,7 +20,7 @@ fn merkle_and_script_construction_helpers_have_direct_function_coverage() {
         root_hex,
         1,
         100,
-        "kaspa",
+        "mainnet",
     )
     .expect("whitelist covenant");
     assert!(whitelist.contains("redeem_script_hex"));
@@ -54,7 +54,7 @@ fn merkle_and_script_construction_helpers_have_direct_function_coverage() {
 
 #[test]
 fn oracle_and_zk_helpers_have_direct_function_coverage() {
-    let heartbeat = crate::contracts::oracle::genesis::build_heartbeat_json("kaspa")
+    let heartbeat = crate::contracts::oracle::genesis::build_heartbeat_json("mainnet")
         .expect("heartbeat covenant");
     assert!(heartbeat.contains("redeem_script_hex"));
 
@@ -94,12 +94,12 @@ fn merkle_application_rejects_malformed_whitelists_proofs_and_roots() {
     );
 
     let owner = "33".repeat(32);
-    assert!(build_whitelist_json("zz", &"44".repeat(32), 1, 0, "kaspa").is_err());
-    assert!(build_whitelist_json(&owner, "zz", 1, 0, "kaspa")
+    assert!(build_whitelist_json("zz", &"44".repeat(32), 1, 0, "mainnet").is_err());
+    assert!(build_whitelist_json(&owner, "zz", 1, 0, "mainnet")
         .unwrap_err()
         .starts_with("Bad root hex"));
     assert_eq!(
-        build_whitelist_json(&owner, &"44".repeat(31), 1, 0, "kaspa"),
+        build_whitelist_json(&owner, &"44".repeat(31), 1, 0, "mainnet"),
         Err("Merkle root must be 32 bytes, got 31".to_string())
     );
 }
@@ -137,10 +137,47 @@ fn oracle_v1_attestation_and_keys_reject_malformed_hex_and_points() {
             "zz",
             "release",
             1,
-            "kaspa",
+            "mainnet",
             [7; 16]
         )
         .unwrap_err(),
         "Oracle covenant key ID must be 32-byte hex"
     );
+}
+
+#[test]
+fn crowdfund_salt_rejects_only_the_all_zero_value() {
+    use crate::contracts::zk::crowdfund::nonzero_salt;
+
+    assert!(nonzero_salt([0; 8]).is_err());
+    assert_eq!(
+        nonzero_salt([0, 0, 0, 0, 0, 0, 0, 1]),
+        Ok([0, 0, 0, 0, 0, 0, 0, 1])
+    );
+    assert_eq!(nonzero_salt([7; 8]), Ok([7; 8]));
+}
+
+#[test]
+fn crowdfund_addresses_draw_a_fresh_salt_per_campaign() {
+    let owner = "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+    let organizer = crate::account::address::encode_p2pk_address(&[0x51; 32], "kaspa");
+    let salt = || {
+        let document = crate::contracts::zk::crowdfund::build_address_json(
+            owner,
+            &organizer,
+            100_000_000,
+            10,
+            "abcd",
+            "mainnet",
+        )
+        .expect("crowdfund address");
+        let parsed: serde_json::Value = serde_json::from_str(&document).expect("JSON");
+        parsed["crowdfund_salt_hex"]
+            .as_str()
+            .expect("salt")
+            .to_owned()
+    };
+    let (first, second) = (salt(), salt());
+    assert_eq!(first.len(), 16);
+    assert_ne!(first, second, "identical campaigns must not share a salt");
 }

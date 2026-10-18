@@ -106,15 +106,7 @@ pub(crate) fn compute_campaign_id_hex(
     )))
 }
 
-pub(crate) fn build_address_json(
-    contributor_pubkey_hex: &str,
-    organizer_address: &str,
-    goal_sompi: u64,
-    locktime_daa: u64,
-    verifying_key_hex: &str,
-    network: &str,
-) -> Result<String, String> {
-    let contributor_pubkey = decode_pubkey32(contributor_pubkey_hex)?;
+fn decode_verifying_key(verifying_key_hex: &str) -> Result<Vec<u8>, String> {
     let verifying_key = decode_hex_bounded(
         verifying_key_hex,
         "crowdfunding verifying key",
@@ -123,11 +115,35 @@ pub(crate) fn build_address_json(
     if verifying_key.is_empty() {
         return Err("Crowdfunding verifying key is empty".to_string());
     }
+    Ok(verifying_key)
+}
+
+fn fresh_salt() -> Result<[u8; 8], String> {
     let mut salt = [0u8; 8];
     crate::infrastructure::fill_secure_random(&mut salt)?;
+    nonzero_salt(salt)
+}
+
+/// Rejects an all-zero salt, which would make campaign identities predictable.
+pub(crate) fn nonzero_salt(salt: [u8; 8]) -> Result<[u8; 8], String> {
     if salt.iter().all(|byte| *byte == 0) {
         return Err("Crowdfunding RNG returned an invalid all-zero salt".to_string());
     }
+    Ok(salt)
+}
+
+pub(crate) fn build_address_json(
+    contributor_pubkey_hex: &str,
+    organizer_address: &str,
+    goal_sompi: u64,
+    locktime_daa: u64,
+    verifying_key_hex: &str,
+    network: &str,
+) -> Result<String, String> {
+    let prefix = network_prefix(network)?;
+    let contributor_pubkey = decode_pubkey32(contributor_pubkey_hex)?;
+    let verifying_key = decode_verifying_key(verifying_key_hex)?;
+    let salt = fresh_salt()?;
     let organizer_script = address::address_to_script_pubkey(organizer_address)?;
     let organizer_output_spk = versioned_spk(&organizer_script);
     let verifying_key_hash = kaspa_portal::primitives::hash::blake2b_256(&verifying_key);
@@ -139,7 +155,7 @@ pub(crate) fn build_address_json(
         organizer_output_spk: &organizer_output_spk,
         salt: &salt,
     })?;
-    let covenant_address = p2sh::script_to_address(&redeem_script, network_prefix(network))?;
+    let covenant_address = p2sh::script_to_address(&redeem_script, prefix)?;
     Ok(serde_json::json!({
         "address": covenant_address,
         "redeem_script_hex": hex::encode(redeem_script),

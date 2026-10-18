@@ -67,7 +67,7 @@ pub(crate) fn build_whitelist_json(
     );
     let covenant_address = crate::protocol::script::p2sh::script_to_address(
         &script,
-        address::network_prefix(network),
+        address::network_prefix(network)?,
     )?;
     Ok(serde_json::json!({
         "address": covenant_address,

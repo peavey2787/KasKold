@@ -128,7 +128,7 @@ pub(crate) fn validate_covenant_address(
 ) -> Result<(), String> {
     let derived_address = crate::protocol::script::p2sh::script_to_address(
         redeem_script,
-        address::network_prefix(network_name),
+        address::network_prefix(network_name)?,
     )?;
     if derived_address != covenant_address {
         return Err("Covenant address does not match the supplied redeem script".to_string());
@@ -148,7 +148,7 @@ pub(crate) fn prepare_from_utxos(
     }
     let derived_address = crate::protocol::script::p2sh::script_to_address(
         redeem_script,
-        address::network_prefix(network_name),
+        address::network_prefix(network_name)?,
     )?;
     let covenant_script_pubkey = address::address_to_script_pubkey(&derived_address)?;
     let covenant_id = crate::serialization::input::decode_named_32(covenant_id_hex, "covenant_id")?;

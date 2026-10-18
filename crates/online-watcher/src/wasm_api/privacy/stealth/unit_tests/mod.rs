@@ -71,7 +71,9 @@ fn stealth_wasm_boundaries_cover_metadata_payment_announcement_and_preflight_err
     assert!(payment["address"].as_str().unwrap().starts_with("kaspa:"));
     assert_eq!(payment["ephemeral_r"].as_str().unwrap().len(), 64);
     assert!(payment["stealth_index"].is_number());
-    assert!(stealth_announcement_address("testnet-10").starts_with("kaspatest:"));
+    assert!(stealth_announcement_address("testnet-10")
+        .unwrap()
+        .starts_with("kaspatest:"));
 
     assert!(stealth_meta_from_kpub("bad").is_err());
     assert!(stealth_generate_payment("00", "00", "mainnet").is_err());

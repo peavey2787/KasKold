@@ -1,13 +1,12 @@
-use crate::wasm_api::utilities::common::{
-    js_error, network_to_prefix, parse_wallet, serialize_json,
-};
+use crate::account::address::network_prefix;
+use crate::wasm_api::utilities::common::{js_error, parse_wallet, serialize_json};
 use crate::wasm_api::JsValue;
 use crate::{account::bip32, WatchWallet};
 
 /// Import canonical `kpub1:` text and derive receive/change addresses.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 pub fn import_kpub(kpub_str: &str, network: &str) -> Result<String, JsValue> {
-    let prefix = network_to_prefix(network);
+    let prefix = network_prefix(network).map_err(js_error)?;
     let result = WatchWallet::new()
         .import_account(kpub_str, prefix)
         .map_err(js_error)?;
@@ -17,7 +16,7 @@ pub fn import_kpub(kpub_str: &str, network: &str) -> Result<String, JsValue> {
 /// Import the 78-byte payload from the compact binary QR envelope.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 pub fn import_kpub_raw(raw_payload: &[u8], network: &str) -> Result<String, JsValue> {
-    let prefix = network_to_prefix(network);
+    let prefix = network_prefix(network).map_err(js_error)?;
     let result = WatchWallet::new()
         .import_raw_account(raw_payload, prefix)
         .map_err(js_error)?;
@@ -33,7 +32,7 @@ pub fn extend_addresses(
     network: &str,
 ) -> Result<String, JsValue> {
     let wallet = parse_wallet(wallet_json, "Invalid wallet")?;
-    let prefix = network_to_prefix(network);
+    let prefix = network_prefix(network).map_err(js_error)?;
     let result =
         bip32::extend_addresses(&wallet, extra_receive, extra_change, prefix).map_err(js_error)?;
     serialize_json(&result)

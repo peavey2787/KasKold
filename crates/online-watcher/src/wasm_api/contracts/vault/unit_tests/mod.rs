@@ -151,7 +151,7 @@ fn vault_spend_preparation_covers_success_and_balance_validation() {
     assert!(!prepared.covenant_script_pubkey.is_empty());
     let derived_address = crate::protocol::script::p2sh::script_to_address(
         &redeem,
-        crate::wasm_api::utilities::common::network_to_prefix("mainnet"),
+        crate::account::address::network_prefix("mainnet").unwrap(),
     )
     .expect("derived covenant address");
     assert!(validate_covenant_address(&derived_address, &redeem, "mainnet").is_ok());

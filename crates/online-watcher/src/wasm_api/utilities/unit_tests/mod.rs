@@ -2,9 +2,11 @@ mod export_fail_closed;
 
 use serde::Deserialize;
 
+use crate::account::address::network_prefix;
+
 use super::common::{
-    decode_named_32, decode_pubkey32, network_to_prefix, parse_request_string,
-    parse_u64_field_string, serialize_json_string,
+    decode_named_32, decode_pubkey32, parse_request_string, parse_u64_field_string,
+    serialize_json_string,
 };
 
 #[derive(Deserialize, serde::Serialize, PartialEq, Debug)]
@@ -14,12 +16,18 @@ struct Request {
 
 #[test]
 fn pure_wasm_boundary_utilities_cover_networks_parsing_and_hex_validation() {
-    assert_eq!(network_to_prefix("testnet-10"), "kaspatest");
-    assert_eq!(network_to_prefix("testnet-11"), "kaspatest");
-    assert_eq!(network_to_prefix("testnet-12"), "kaspatest");
-    assert_eq!(network_to_prefix("simnet"), "kaspasim");
-    assert_eq!(network_to_prefix("devnet"), "kaspadev");
-    assert_eq!(network_to_prefix("mainnet"), "kaspa");
+    assert_eq!(network_prefix("testnet-10"), Ok("kaspatest"));
+    assert_eq!(network_prefix("testnet-11"), Ok("kaspatest"));
+    assert_eq!(network_prefix("testnet-12"), Ok("kaspatest"));
+    assert_eq!(network_prefix("simnet"), Ok("kaspasim"));
+    assert_eq!(network_prefix("devnet"), Ok("kaspadev"));
+    assert_eq!(network_prefix("mainnet"), Ok("kaspa"));
+    for unknown in ["", "main", "Testnet-10", "kaspa"] {
+        assert!(
+            network_prefix(unknown).is_err(),
+            "{unknown:?} must not default to mainnet"
+        );
+    }
 
     assert_eq!(decode_pubkey32(&"11".repeat(32)).unwrap(), [0x11; 32]);
     assert!(decode_pubkey32("zz").is_err());

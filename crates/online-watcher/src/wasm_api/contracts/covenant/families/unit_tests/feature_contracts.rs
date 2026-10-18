@@ -22,7 +22,7 @@ fn oracle_v1_statement_is_unique_embedded_and_rejects_role_aliasing() {
             key_id,
             "Release if shipment arrived",
             100,
-            "kaspa",
+            "mainnet",
             salt,
         )
     };
@@ -43,7 +43,7 @@ fn oracle_v1_statement_is_unique_embedded_and_rejects_role_aliasing() {
         .unwrap()
         .starts_with("KaspaPortal Oracle v1 "));
     assert!(crate::contracts::covenant::oracle_v1::build_json_with_salt(
-        owner, owner, oracle, key_id, "Release", 100, "kaspa", [0x33; 16],
+        owner, owner, oracle, key_id, "Release", 100, "mainnet", [0x33; 16],
     )
     .is_err());
     assert!(crate::contracts::covenant::oracle_v1::build_json_with_salt(
@@ -53,7 +53,7 @@ fn oracle_v1_statement_is_unique_embedded_and_rejects_role_aliasing() {
         key_id,
         "Release",
         0,
-        "kaspa",
+        "mainnet",
         [0x44; 16],
     )
     .is_err());
@@ -64,7 +64,7 @@ fn oracle_v1_statement_is_unique_embedded_and_rejects_role_aliasing() {
         key_id,
         "Release",
         100,
-        "kaspa",
+        "mainnet",
         [0x55; 16],
     )
     .is_err());

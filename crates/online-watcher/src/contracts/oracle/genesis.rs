@@ -38,7 +38,7 @@ pub(crate) fn build_json(request_json: &str) -> Result<String, String> {
 pub(crate) fn build_heartbeat_json(network: &str) -> Result<String, String> {
     let redeem = crate::contracts::oracle::script::build_oracle_mb_heartbeat_script();
     let address =
-        crate::protocol::script::p2sh::script_to_address(&redeem, network_prefix(network))?;
+        crate::protocol::script::p2sh::script_to_address(&redeem, network_prefix(network)?)?;
     Ok(serde_json::json!({
         "address": address,
         "redeem_script_hex": hex::encode(&redeem),
@@ -82,7 +82,7 @@ fn serialize(material: OracleGenesisMaterial) -> Result<String, String> {
     );
     let address = crate::protocol::script::p2sh::script_to_address(
         &redeem,
-        network_prefix(&material.request.network),
+        network_prefix(&material.request.network)?,
     )?;
     Ok(serde_json::json!({
         "address": address,

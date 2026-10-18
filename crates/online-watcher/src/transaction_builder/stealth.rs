@@ -19,7 +19,10 @@ pub(crate) fn prepare_material(
     let public_key = decode_named_32(one_time_pubkey_hex, "pubkey")?;
     decode_named_32(tweak_hex, "tweak")?;
     Ok(StealthSpendMaterial {
-        source_address: address::encode_p2pk_address(&public_key, address::network_prefix(network)),
+        source_address: address::encode_p2pk_address(
+            &public_key,
+            address::network_prefix(network)?,
+        ),
         tweak_hex: tweak_hex.to_string(),
     })
 }

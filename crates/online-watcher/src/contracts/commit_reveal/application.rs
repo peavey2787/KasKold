@@ -16,7 +16,7 @@ pub(crate) fn build_json(
     );
     let address = crate::protocol::script::p2sh::script_to_address(
         &script,
-        crate::account::address::network_prefix(network),
+        crate::account::address::network_prefix(network)?,
     )?;
     Ok(serde_json::json!({
         "address": address,

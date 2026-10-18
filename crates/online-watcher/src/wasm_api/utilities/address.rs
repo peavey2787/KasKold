@@ -1,6 +1,7 @@
 //! Kaspa addresses, network names and address prefixes, from Kaspa Portal.
 
-use crate::wasm_api::utilities::common::{js_error, network_to_prefix};
+use crate::account::address::network_prefix;
+use crate::wasm_api::utilities::common::js_error;
 use crate::wasm_api::JsValue;
 use kaspa_portal::primitives::address::{
     address_to_script_pubkey, script_address, validate_kaspa_address, KaspaNetwork,
@@ -26,7 +27,7 @@ pub fn address_script_public_key(address: &str) -> Result<String, JsValue> {
 pub fn script_public_key_address(script_hex: &str, network: &str) -> String {
     hex::decode(script_hex)
         .ok()
-        .and_then(|script| script_address(&script, network_to_prefix(network)))
+        .and_then(|script| script_address(&script, network_prefix(network).ok()?))
         .unwrap_or_default()
 }
 
@@ -34,8 +35,11 @@ pub fn script_public_key_address(script_hex: &str, network: &str) -> String {
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 pub fn redeem_script_address(redeem_script_hex: &str, network: &str) -> Result<String, JsValue> {
     let script = hex::decode(redeem_script_hex).map_err(|error| js_error(error.to_string()))?;
-    crate::protocol::script::p2sh::script_to_address(&script, network_to_prefix(network))
-        .map_err(js_error)
+    crate::protocol::script::p2sh::script_to_address(
+        &script,
+        network_prefix(network).map_err(js_error)?,
+    )
+    .map_err(js_error)
 }
 
 /// Address prefix with its separator (`kaspatest:`), or empty when the

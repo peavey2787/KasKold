@@ -91,7 +91,7 @@ fn build_json_with_checked_inputs(
         &salt,
     );
     let address =
-        crate::protocol::script::p2sh::script_to_address(&script, network_prefix(network))?;
+        crate::protocol::script::p2sh::script_to_address(&script, network_prefix(network)?)?;
     Ok(serde_json::json!({
         "address": address,
         "redeem_script_hex": hex::encode(script),

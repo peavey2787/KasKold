@@ -1,4 +1,5 @@
-use crate::wasm_api::utilities::common::{js_error, network_to_prefix};
+use crate::account::address::network_prefix;
+use crate::wasm_api::utilities::common::js_error;
 use crate::wasm_api::JsValue;
 use crate::WatchWallet;
 use kaspa_portal::transaction::interchange::pskt;
@@ -46,7 +47,7 @@ pub fn kspt_signature_status(wire_hex: &str) -> String {
 /// `network` is one of "mainnet", "testnet-10/11/12", "simnet",
 /// "devnet" — used to format decoded output addresses for display.
 pub(super) fn pskt_summary_string(wire_hex: &str, network: &str) -> Result<String, String> {
-    let prefix = network_to_prefix(network);
+    let prefix = network_prefix(network)?;
     let summary = pskt::parse_summary(wire_hex, prefix)?;
     serde_json::to_string(&summary).map_err(|error| error.to_string())
 }

@@ -35,7 +35,7 @@ pub(crate) fn prepare_vault_genesis(
     network: &str,
 ) -> Result<VaultGenesisMaterial, String> {
     let redeem_script = kind.redeem_script(owner);
-    crate::protocol::script::p2sh::script_to_address(&redeem_script, network_prefix(network)).map(
+    crate::protocol::script::p2sh::script_to_address(&redeem_script, network_prefix(network)?).map(
         |covenant_address| VaultGenesisMaterial {
             redeem_script,
             covenant_address,
