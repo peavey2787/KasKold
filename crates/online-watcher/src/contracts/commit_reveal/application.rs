@@ -26,3 +26,18 @@ pub(crate) fn build_json(
     })
     .to_string())
 }
+
+/// JSON `{preimage_hex, committed_hash, computed_hash, matches}` for a
+/// commit-reveal reveal signature script, read and hashed by Kaspa Portal.
+pub(crate) fn read_reveal_json(signature_script_hex: &str) -> Result<String, String> {
+    let script = hex::decode(signature_script_hex).map_err(|error| error.to_string())?;
+    let reveal = kaspa_portal::contract::commit_reveal::read_commit_reveal_reveal(&script)
+        .ok_or("not a commit-reveal reveal signature script")?;
+    Ok(serde_json::json!({
+        "preimage_hex": hex::encode(&reveal.preimage),
+        "committed_hash": hex::encode(reveal.fields.committed_hash),
+        "computed_hash": hex::encode(kaspa_portal::primitives::hash::blake2b_256(&reveal.preimage)),
+        "matches": reveal.matches(),
+    })
+    .to_string())
+}

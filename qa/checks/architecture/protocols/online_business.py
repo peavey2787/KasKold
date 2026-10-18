@@ -175,7 +175,7 @@ def _check_wasm_business_boundary(root: Path) -> list[str]:
                 errors.append(f"{description} leaked into WASM boundary: {relative}")
 
         contract_business_roots = ("contracts/covenant/", "contracts/vault/", "contracts/oracle/", "contracts/zk/")
-        if str(relative).startswith(contract_business_roots):
+        if relative.as_posix().startswith(contract_business_roots):
             code_source = "\n".join(
                 line for line in source.splitlines()
                 if not line.lstrip().startswith("//")

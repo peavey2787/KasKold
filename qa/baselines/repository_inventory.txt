@@ -2388,6 +2388,7 @@ F	crates/online-watcher/src/contracts/oracle/mod.rs
 F	crates/online-watcher/src/contracts/seq_commit/mod.rs
 F	crates/online-watcher/src/contracts/seq_commit/proof.rs
 F	crates/online-watcher/src/contracts/shipping_escrow/construction.rs
+F	crates/online-watcher/src/contracts/shipping_escrow/terms.rs
 F	crates/online-watcher/src/contracts/shipping_escrow/mod.rs
 F	crates/online-watcher/src/contracts/unit_tests/construction.rs
 F	crates/online-watcher/src/contracts/unit_tests/function_coverage.rs
