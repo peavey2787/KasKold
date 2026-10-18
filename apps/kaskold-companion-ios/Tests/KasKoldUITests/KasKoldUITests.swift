@@ -5,7 +5,6 @@ final class KasKoldUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-
     func testSharedCompanionSurfaceRendersStyledAtMobileScale() {
         let app = XCUIApplication()
         app.launchArguments += ["-ui-testing"]
@@ -30,10 +29,17 @@ final class KasKoldUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["-ui-testing"]
         app.launch()
-        XCTAssertEqual(app.state, .runningForeground)
+        assertCompanionRendered(app)
         app.terminate()
-        XCTAssertEqual(app.state, .notRunning)
+        XCTAssertTrue(app.wait(for: .notRunning, timeout: 30))
         app.launch()
-        XCTAssertEqual(app.state, .runningForeground)
+        assertCompanionRendered(app)
+    }
+
+    /// Waits for the companion surface so lifecycle actions never race a cold WebView boot.
+    private func assertCompanionRendered(_ app: XCUIApplication) {
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 30))
+        let welcome = app.webViews.firstMatch.staticTexts["KasKold Companion"]
+        XCTAssertTrue(welcome.waitForExistence(timeout: 30))
     }
 }
