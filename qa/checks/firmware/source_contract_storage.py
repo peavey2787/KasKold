@@ -342,8 +342,8 @@ def check_sd_persistence_security_contract(errors: list[str]) -> None:
     )
     require(
         errors,
-        "device_key_available()" in persistence_controller
-        and 'show_rejection(display, delay, "Device key not provisioned"' in persistence_controller
+        "persistence.device_storage_blocker()" in persistence_controller
+        and "show_rejection(display, delay, blocker" in persistence_controller
         and "DeviceStorageIntent::CreateInternal" in persistence_controller
         and "enter_credential_type_choice(ad)" in persistence_controller,
         "device-bound storage must preflight the read-protected HMAC key before credential setup",

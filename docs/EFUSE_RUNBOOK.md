@@ -17,6 +17,8 @@ This document describes **four distinct firmware/profile classes**. They must no
 | `m5stack,secure-provisioning` | Present | **None until explicit Owner/Pop It action** | Vendor digest 0, optionally owner digest 1 |
 | `m5stack,secure-owner-only` | Present | **None until explicit Owner/Pop It action** | **Owner digest 0 only; vendor is not trusted** |
 
+**Saved wallets require a hardware-locked chip.** Every `production` image refuses to create or open a device-saved wallet (internal flash or device-bound SD) until Secure Boot v2 is enforced, Flash Encryption is enabled, and both `DIS_PAD_JTAG` and `DIS_USB_JTAG` are burned. Until then the device signs from RAM only ("Always Start Fresh"), so a captured, unprovisioned chip never holds a wallet record that reflashed firmware could brute-force through the HMAC key. Lock the chip with Pop It (special profiles) or the external procedure in section 10 before saving wallets.
+
 The `secure-owner-only` profile restores the original KasKold ownership model: the purchaser/operator supplies the RSA-3072 key and, after explicit enrollment and Pop It, that key is the **sole hardware Secure Boot authority**. The newer `secure-provisioning` profile is an addition that supports vendor authority plus an optional independent owner authority.
 
 The automated `secure-provisioning` and `secure-owner-only` profiles are **CoreS3-only** and the firmware feature policy rejects them on other board profiles. The external/manual reference later in this runbook explains ESP32-S3 eFuse semantics; it is not a claim that an unqualified board has passed KasKold's production HIL process.

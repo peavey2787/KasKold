@@ -143,5 +143,3 @@ pub(crate) fn cancel_abandoned(ad: &mut AppData) {
     crate::log!("   UI abandoned stepped operation {:?} on Home", kind);
 }
 
-#[cfg(feature = "workflow-test-auto")]
-pub(crate) use credential::workflow_backoff_probe;

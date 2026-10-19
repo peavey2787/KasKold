@@ -33,8 +33,10 @@ impl Task {
         ad: &mut AppData,
         operation: OperationKind,
         persistence: &mut PersistentWallet<'_>,
+        delay: &mut esp_hal::delay::Delay,
+        i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     ) -> Result<Self, PersistError> {
-        begin::begin(ad, operation, persistence)
+        begin::begin(ad, operation, persistence, delay, i2c)
     }
 
     pub(super) fn step(
@@ -68,6 +70,11 @@ pub(super) enum Step {
         kind: OperationKind,
         result: Result<(), PersistError>,
     },
+}
+
+/// Unlock operations are the ones subject to durable attempt accounting.
+pub(super) const fn is_unlock(operation: OperationKind) -> bool {
+    matches!(credential_kind(operation), Some((_, true)))
 }
 
 pub(super) const fn credential_kind(operation: OperationKind) -> Option<(CredentialKind, bool)> {

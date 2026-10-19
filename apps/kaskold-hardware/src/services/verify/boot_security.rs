@@ -7,7 +7,7 @@
 //! viability checks immediately before any irreversible write.
 
 #[cfg(not(feature = "qemu"))]
-use esp_hal::efuse::{Efuse, SECURE_BOOT_EN};
+use esp_hal::efuse::{DIS_PAD_JTAG, DIS_USB_JTAG, Efuse, SECURE_BOOT_EN, SPI_BOOT_CRYPT_CNT};
 #[cfg(all(feature = "provisioning-ui", feature = "m5stack", not(feature = "qemu")))]
 use esp_hal::efuse::{
     KEY_PURPOSE_0, KEY_PURPOSE_1, KEY_PURPOSE_2, KEY_PURPOSE_3, KEY_PURPOSE_4, KEY_PURPOSE_5,
@@ -112,6 +112,21 @@ pub fn secure_boot_enabled() -> bool {
 
 #[cfg(feature = "qemu")]
 pub const fn secure_boot_enabled() -> bool { false }
+
+/// Whether the chip is hardware-locked: Secure Boot v2 enforced, Flash
+/// Encryption enabled (odd `SPI_BOOT_CRYPT_CNT`), and both JTAG paths
+/// eFuse-disabled. Production firmware stores wallets only in this state, so
+/// a physically captured unlocked chip never holds a readable wallet record.
+#[cfg(not(feature = "qemu"))]
+pub fn hardware_protection_active() -> bool {
+    secure_boot_enabled()
+        && Efuse::read_field_le::<u8>(SPI_BOOT_CRYPT_CNT).count_ones() % 2 == 1
+        && Efuse::read_field_le::<u8>(DIS_PAD_JTAG) != 0
+        && Efuse::read_field_le::<u8>(DIS_USB_JTAG) != 0
+}
+
+#[cfg(feature = "qemu")]
+pub const fn hardware_protection_active() -> bool { false }
 
 /// Whether the device has the owner authority required by this provisioning profile.
 ///

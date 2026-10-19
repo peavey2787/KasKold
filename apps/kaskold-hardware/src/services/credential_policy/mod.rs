@@ -6,7 +6,10 @@
 //! the other solely to share a two-variant discriminator.
 
 pub use offline_signer::crypto::credential::{CredentialKind, SALT_SIZE};
-pub use kaskold_hardware_core::security::credential::{confirmation_matches, CredentialError};
+pub use kaskold_hardware_core::security::credential::{
+    confirmation_matches, unlock_attempt_limit_reached, unlock_attempts_remaining, CredentialError,
+    MAX_UNLOCK_FAILURES,
+};
 #[cfg(not(feature = "hardware-tests"))]
 pub use kaskold_hardware_core::security::credential::retry_delay_millis;
 use kaskold_hardware_core::security::credential::{

@@ -1,7 +1,7 @@
 //! Integrity-protected configuration journal codec and selection.
 
 use sha2::{Digest, Sha256};
-use crate::services::credential_policy::SALT_SIZE;
+use crate::services::credential_policy::{MAX_UNLOCK_FAILURES, SALT_SIZE};
 use crate::wallet::seed_manager::{MAX_SLOTS, WALLET_NAME_MAX};
 mod multisig;
 
@@ -15,7 +15,7 @@ use super::{
     V6_COMPAT_VERSION, V6_CONFIG_DIGEST_END, V6_CONFIG_DIGEST_START, V7_COMPAT_VERSION,
     V7_CONFIG_DIGEST_END, V7_CONFIG_DIGEST_START, WALLET_ACTIVATION_END, WALLET_ACTIVATION_OFFSET,
     WALLET_ACTIVATION_RECORD_SIZE, WALLET_LABELS_END, WALLET_LABELS_OFFSET, WALLET_LABEL_RECORD_SIZE,
-    WalletActivationRecord, WalletActivationRecords, WalletLabels, MULTISIG_DESCRIPTOR_BYTES, MULTISIG_DESCRIPTOR_END, MULTISIG_DESCRIPTOR_ENTRY_SIZE, MULTISIG_DESCRIPTOR_OFFSET, flash, is_newer,
+    UNLOCK_FAILURES_OFFSET, WalletActivationRecord, WalletActivationRecords, WalletLabels, MULTISIG_DESCRIPTOR_BYTES, MULTISIG_DESCRIPTOR_END, MULTISIG_DESCRIPTOR_ENTRY_SIZE, MULTISIG_DESCRIPTOR_OFFSET, flash, is_newer,
 };
 
 pub(in crate::services::persistent_wallet) fn read_mode(device: &mut DeviceFlash<'_>) -> Result<Option<StorageMode>, FlashError> {
@@ -32,20 +32,6 @@ pub(in crate::services::persistent_wallet) fn read_sd_anchor(device: &mut Device
     }))
 }
 
-pub(in crate::services::persistent_wallet) fn write_mode(device: &mut DeviceFlash<'_>, mode: StorageMode) -> Result<(), FlashError> {
-    let current = current_config(device)?;
-    write_config(
-        device,
-        Some(mode),
-        None,
-        current.map(|header| header.device_flags).unwrap_or_default(),
-        current.map(|header| header.device_preferences).unwrap_or_default(),
-        current.map(|header| header.wallet_labels).unwrap_or_default(),
-        current.map(|header| header.wallet_activation).unwrap_or_default(),
-        current.map(|header| header.multisig_descriptors).unwrap_or([0; MULTISIG_DESCRIPTOR_BYTES]),
-    )
-}
-
 pub(in crate::services::persistent_wallet) fn read_device_flags(device: &mut DeviceFlash<'_>) -> Result<DeviceFlags, FlashError> {
     Ok(current_config(device)?.map(|header| header.device_flags).unwrap_or_default())
 }
@@ -58,7 +44,6 @@ pub(in crate::services::persistent_wallet) fn read_device_preferences(
         .unwrap_or_default())
 }
 
-
 pub(in crate::services::persistent_wallet) fn read_wallet_labels(device: &mut DeviceFlash<'_>) -> Result<WalletLabels, FlashError> {
     Ok(current_config(device)?.map(|header| header.wallet_labels).unwrap_or_default())
 }
@@ -67,33 +52,37 @@ pub(in crate::services::persistent_wallet) fn read_wallet_activation(device: &mu
     Ok(current_config(device)?.map(|header| header.wallet_activation).unwrap_or_default())
 }
 
+/// Durable count of consecutive failed unlock attempts.
+pub(in crate::services::persistent_wallet) fn read_unlock_failures(device: &mut DeviceFlash<'_>) -> Result<u8, FlashError> {
+    Ok(current_config(device)?.map_or(0, |header| header.unlock_failures))
+}
+
+pub(in crate::services::persistent_wallet) fn write_unlock_failures(
+    device: &mut DeviceFlash<'_>,
+    failures: u8,
+) -> Result<(), FlashError> {
+    update_config(device, |header| header.unlock_failures = failures)
+}
+
+pub(in crate::services::persistent_wallet) fn write_mode(device: &mut DeviceFlash<'_>, mode: StorageMode) -> Result<(), FlashError> {
+    update_config(device, |header| {
+        header.mode = Some(mode);
+        header.sd_anchor = None;
+    })
+}
+
 pub(in crate::services::persistent_wallet) fn write_wallet_activation(
     device: &mut DeviceFlash<'_>,
     records: WalletActivationRecords,
 ) -> Result<(), FlashError> {
-    let current = current_config(device)?;
-    write_config(
-        device,
-        current.and_then(|header| header.mode),
-        current.and_then(|header| header.sd_anchor),
-        current.map(|header| header.device_flags).unwrap_or_default(),
-        current.map(|header| header.device_preferences).unwrap_or_default(),
-        current.map(|header| header.wallet_labels).unwrap_or_default(),
-        records,
-        current.map(|header| header.multisig_descriptors).unwrap_or([0; MULTISIG_DESCRIPTOR_BYTES]),
-    )
+    update_config(device, |header| header.wallet_activation = records)
 }
 
 pub(in crate::services::persistent_wallet) fn write_wallet_labels(
     device: &mut DeviceFlash<'_>,
     labels: WalletLabels,
 ) -> Result<(), FlashError> {
-    let current = current_config(device)?;
-    let mode = current.and_then(|header| header.mode);
-    let anchor = current.and_then(|header| header.sd_anchor);
-    let flags = current.map(|header| header.device_flags).unwrap_or_default();
-    let preferences = current.map(|header| header.device_preferences).unwrap_or_default();
-    write_config(device, mode, anchor, flags, preferences, labels, current.map(|header| header.wallet_activation).unwrap_or_default(), current.map(|header| header.multisig_descriptors).unwrap_or([0; MULTISIG_DESCRIPTOR_BYTES]))
+    update_config(device, |header| header.wallet_labels = labels)
 }
 
 #[cfg(feature = "m5stack")]
@@ -101,48 +90,41 @@ pub(in crate::services::persistent_wallet) fn write_device_flags(
     device: &mut DeviceFlash<'_>,
     flags: DeviceFlags,
 ) -> Result<(), FlashError> {
-    let current = current_config(device)?;
-    let mode = current.and_then(|header| header.mode);
-    let anchor = current.and_then(|header| header.sd_anchor);
-    let preferences = current.map(|header| header.device_preferences).unwrap_or_default();
-    write_config(device, mode, anchor, flags, preferences, current.map(|header| header.wallet_labels).unwrap_or_default(), current.map(|header| header.wallet_activation).unwrap_or_default(), current.map(|header| header.multisig_descriptors).unwrap_or([0; MULTISIG_DESCRIPTOR_BYTES]))
+    update_config(device, |header| header.device_flags = flags)
 }
 
 pub(in crate::services::persistent_wallet) fn write_device_preferences(
     device: &mut DeviceFlash<'_>,
     preferences: DevicePreferences,
 ) -> Result<(), FlashError> {
-    let current = current_config(device)?;
-    let mode = current.and_then(|header| header.mode);
-    let anchor = current.and_then(|header| header.sd_anchor);
-    let flags = current.map(|header| header.device_flags).unwrap_or_default();
-    write_config(device, mode, anchor, flags, preferences, current.map(|header| header.wallet_labels).unwrap_or_default(), current.map(|header| header.wallet_activation).unwrap_or_default(), current.map(|header| header.multisig_descriptors).unwrap_or([0; MULTISIG_DESCRIPTOR_BYTES]))
+    update_config(device, |header| header.device_preferences = preferences)
 }
 
 pub(in crate::services::persistent_wallet) fn write_sd_anchor(
     device: &mut DeviceFlash<'_>,
     anchor: SdAnchor,
 ) -> Result<(), FlashError> {
-    let current = current_config(device)?;
-    let flags = current.map(|header| header.device_flags).unwrap_or_default();
-    let preferences = current.map(|header| header.device_preferences).unwrap_or_default();
-    let labels = current.map(|header| header.wallet_labels).unwrap_or_default();
-    write_config(device, Some(StorageMode::SdCard), Some(anchor), flags, preferences, labels, current.map(|header| header.wallet_activation).unwrap_or_default(), current.map(|header| header.multisig_descriptors).unwrap_or([0; MULTISIG_DESCRIPTOR_BYTES]))
+    update_config(device, |header| {
+        header.mode = Some(StorageMode::SdCard);
+        header.sd_anchor = Some(anchor);
+    })
 }
 
-pub(super) fn write_config(
+/// Read-modify-write of the newest configuration record: every field the
+/// edit leaves alone is carried forward unchanged.
+fn update_config(
     device: &mut DeviceFlash<'_>,
-    mode: Option<StorageMode>,
-    sd_anchor: Option<SdAnchor>,
-    device_flags: DeviceFlags,
-    device_preferences: DevicePreferences,
-    wallet_labels: WalletLabels,
-    wallet_activation: WalletActivationRecords,
-    multisig_descriptors: [u8; MULTISIG_DESCRIPTOR_BYTES],
+    edit: impl FnOnce(&mut ConfigHeader),
 ) -> Result<(), FlashError> {
+    let mut header = current_config(device)?.unwrap_or(ConfigHeader::EMPTY);
+    edit(&mut header);
+    write_config(device, &header)
+}
+
+pub(super) fn write_config(device: &mut DeviceFlash<'_>, header: &ConfigHeader) -> Result<(), FlashError> {
     let a = read_config(device, flash::CONFIG_A)?;
     let b = read_config(device, flash::CONFIG_B)?;
-    let sequence = newest_config(a, b).map_or(1, |header| header.sequence.wrapping_add(1));
+    let sequence = newest_config(a, b).map_or(1, |newest| newest.sequence.wrapping_add(1));
     let target = match (a, b) {
         (None, _) => flash::CONFIG_A,
         (_, None) => flash::CONFIG_B,
@@ -152,15 +134,16 @@ pub(super) fn write_config(
     let mut record = AlignedBytes::<CONFIG_SIZE>::zeroed();
     record.0[..8].copy_from_slice(&CONFIG_MAGIC);
     record.0[8] = CONFIG_VERSION;
-    record.0[9] = mode.map_or(0, |value| value as u8);
-    record.0[DEVICE_FLAGS_OFFSET] = device_flags.0;
-    record.0[DEVICE_PREFERENCES_OFFSET] = device_preferences.flags;
-    record.0[DIM_TIMEOUT_OFFSET] = device_preferences.dim_timeout_code;
+    record.0[9] = header.mode.map_or(0, |value| value as u8);
+    record.0[DEVICE_FLAGS_OFFSET] = header.device_flags.0;
+    record.0[DEVICE_PREFERENCES_OFFSET] = header.device_preferences.flags;
+    record.0[DIM_TIMEOUT_OFFSET] = header.device_preferences.dim_timeout_code;
+    record.0[UNLOCK_FAILURES_OFFSET] = header.unlock_failures;
     record.0[12..16].copy_from_slice(&sequence.to_le_bytes());
-    if let Some(anchor) = sd_anchor { encode_sd_anchor(anchor, &mut record.0); }
-    encode_wallet_labels(wallet_labels, &mut record.0);
-    encode_wallet_activation(wallet_activation, &mut record.0);
-    record.0[MULTISIG_DESCRIPTOR_OFFSET..MULTISIG_DESCRIPTOR_END].copy_from_slice(&multisig_descriptors);
+    if let Some(anchor) = header.sd_anchor { encode_sd_anchor(anchor, &mut record.0); }
+    encode_wallet_labels(header.wallet_labels, &mut record.0);
+    encode_wallet_activation(header.wallet_activation, &mut record.0);
+    record.0[MULTISIG_DESCRIPTOR_OFFSET..MULTISIG_DESCRIPTOR_END].copy_from_slice(&header.multisig_descriptors);
     let digest = Sha256::digest(&record.0[..CONFIG_DIGEST_START]);
     record.0[CONFIG_DIGEST_START..CONFIG_DIGEST_END].copy_from_slice(&digest);
     device.replace_sector(target, &record)
@@ -240,19 +223,9 @@ pub(in crate::services::persistent_wallet) fn write_multisig_store(
     device: &mut DeviceFlash<'_>,
     store: &offline_signer::transaction::model::MultisigStore,
 ) -> Result<(), FlashError> {
-    let current = current_config(device)?;
     let mut bytes = [0u8; MULTISIG_DESCRIPTOR_BYTES];
     encode_multisig_store(store, &mut bytes);
-    write_config(
-        device,
-        current.and_then(|header| header.mode),
-        current.and_then(|header| header.sd_anchor),
-        current.map(|header| header.device_flags).unwrap_or_default(),
-        current.map(|header| header.device_preferences).unwrap_or_default(),
-        current.map(|header| header.wallet_labels).unwrap_or_default(),
-        current.map(|header| header.wallet_activation).unwrap_or_default(),
-        bytes,
-    )
+    update_config(device, |header| header.multisig_descriptors = bytes)
 }
 
 pub(super) fn encode_sd_anchor(anchor: SdAnchor, out: &mut [u8; CONFIG_SIZE]) {
@@ -308,6 +281,8 @@ pub(super) fn read_current_config(record: &[u8; CONFIG_SIZE]) -> Result<Option<C
     if version == CONFIG_VERSION {
         multisig_descriptors.copy_from_slice(&record[MULTISIG_DESCRIPTOR_OFFSET..MULTISIG_DESCRIPTOR_END]);
     }
+    let unlock_failures = if version == CONFIG_VERSION { record[UNLOCK_FAILURES_OFFSET] } else { 0 };
+    if unlock_failures > MAX_UNLOCK_FAILURES { return Ok(None); }
     let sequence = u32::from_le_bytes(record[12..16].try_into().map_err(|_| FlashError::Read)?);
     let sd_anchor = if mode == Some(StorageMode::SdCard) {
         decode_sd_anchor(record)?
@@ -315,7 +290,7 @@ pub(super) fn read_current_config(record: &[u8; CONFIG_SIZE]) -> Result<Option<C
         if !empty_config_body_valid(record, version, digest_start) { return Ok(None); }
         None
     };
-    Ok(Some(ConfigHeader { mode, sequence, sd_anchor, device_flags, device_preferences, wallet_labels, wallet_activation, multisig_descriptors }))
+    Ok(Some(ConfigHeader { mode, sequence, sd_anchor, device_flags, device_preferences, wallet_labels, wallet_activation, multisig_descriptors, unlock_failures }))
 }
 
 pub(super) fn config_preferences(
@@ -371,7 +346,7 @@ pub(super) fn empty_config_body_valid(
         return false;
     }
     if version == CONFIG_VERSION {
-        return record[90..WALLET_LABELS_OFFSET].iter().all(|byte| *byte == 0)
+        return record[UNLOCK_FAILURES_OFFSET + 1..WALLET_LABELS_OFFSET].iter().all(|byte| *byte == 0)
             && record[WALLET_LABELS_END..WALLET_ACTIVATION_OFFSET].iter().all(|byte| *byte == 0)
             && record[WALLET_ACTIVATION_END..CONFIG_DIGEST_START].iter().all(|byte| *byte == 0);
     }

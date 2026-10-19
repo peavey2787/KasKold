@@ -514,22 +514,25 @@ class DeviceBoundStorageTests(unittest.TestCase):
         controller = read_persistence_controller()
         service = read("apps/kaskold-hardware/src/services/persistent_wallet/mod.rs")
         service_save = read("apps/kaskold-hardware/src/services/persistent_wallet/save/mod.rs")
-        self.assertIn("pub fn device_key_available(&mut self) -> bool", service)
+        self.assertIn("fn device_key_available(&mut self) -> bool", service)
         self.assertIn("self.crypto.available_key_slot().is_some()", service)
+        self.assertIn("pub fn device_storage_blocker(&mut self) -> Option<&'static str>", service)
         finalize_at = controller.index("fn handle_finalize_choice")
-        preflight_at = controller.index("if !persistence.device_key_available()", finalize_at)
+        preflight_at = controller.index("if let Some(blocker) = persistence.device_storage_blocker()", finalize_at)
         credential_at = controller.index("enter_credential_type_choice(ad)", preflight_at)
         self.assertLess(preflight_at, credential_at)
-        self.assertIn('show_rejection(display, delay, "Device key not provisioned"', controller)
+        self.assertIn("show_rejection(display, delay, blocker", controller)
         self.assertIn('"Device key not provisioned"', service)
+        self.assertIn('"Pop It required to save"', service)
         self.assertNotIn('"Device-bound storage key unavailable"', service)
 
         fonts = read("apps/kaskold-hardware/src/ui/prop_fonts.rs")
         title_match = re.search(r"pub const LATO_BOLD_18_WIDTHS: \[u8; 95\] = \[(.*?)\];", fonts, re.S)
         self.assertIsNotNone(title_match)
         title_widths = [int(value) for value in re.findall(r"\d+", title_match.group(1))]
-        width = max(sum(title_widths[ord(char) - 32] + 1 for char in "Device key not provisioned") - 1, 0)
-        self.assertLessEqual(width, 300)
+        for message in ("Device key not provisioned", "Pop It required to save"):
+            width = max(sum(title_widths[ord(char) - 32] + 1 for char in message) - 1, 0)
+            self.assertLessEqual(width, 300, message)
 
     def test_seed_onboarding_navigation_cannot_escape_into_unrelated_menus(self) -> None:
         dispatch = read("apps/kaskold-hardware/src/runtime/event_loop/dispatch.rs")

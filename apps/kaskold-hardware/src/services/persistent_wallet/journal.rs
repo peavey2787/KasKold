@@ -22,6 +22,7 @@ const V5_COMPAT_VERSION: u8 = 5;
 const DEVICE_FLAGS_OFFSET: usize = 39;
 const DEVICE_PREFERENCES_OFFSET: usize = 88;
 const DIM_TIMEOUT_OFFSET: usize = 89;
+const UNLOCK_FAILURES_OFFSET: usize = 90;
 const V6_CONFIG_DIGEST_START: usize = 90;
 const V6_CONFIG_DIGEST_END: usize = 122;
 const LEGACY_CONFIG_DIGEST_START: usize = 88;
@@ -61,6 +62,21 @@ struct ConfigHeader {
     wallet_labels: WalletLabels,
     wallet_activation: WalletActivationRecords,
     multisig_descriptors: [u8; MULTISIG_DESCRIPTOR_BYTES],
+    unlock_failures: u8,
+}
+
+impl ConfigHeader {
+    const EMPTY: Self = Self {
+        mode: None,
+        sequence: 0,
+        sd_anchor: None,
+        device_flags: DeviceFlags(0),
+        device_preferences: DevicePreferences::DEFAULT,
+        wallet_labels: WalletLabels::empty(),
+        wallet_activation: WalletActivationRecords::empty(),
+        multisig_descriptors: [0; MULTISIG_DESCRIPTOR_BYTES],
+        unlock_failures: 0,
+    };
 }
 
 /// Integrity-protected, non-secret labels keyed by physical wallet slot.
@@ -176,8 +192,9 @@ mod config;
 use config::write_config;
 pub(in crate::services::persistent_wallet) use config::{
     read_device_flags, read_device_preferences, read_mode, read_sd_anchor,
-    read_multisig_store, read_wallet_activation, read_wallet_labels, write_device_preferences,
-    write_mode, write_multisig_store, write_sd_anchor, write_wallet_activation, write_wallet_labels,
+    read_multisig_store, read_unlock_failures, read_wallet_activation, read_wallet_labels,
+    write_device_preferences, write_mode, write_multisig_store, write_sd_anchor,
+    write_unlock_failures, write_wallet_activation, write_wallet_labels,
 };
 #[cfg(feature = "m5stack")]
 pub(in crate::services::persistent_wallet) use config::write_device_flags;
@@ -272,7 +289,7 @@ pub(super) fn erase_all_user_data(device: &mut DeviceFlash<'_>) -> Result<(), Fl
     }
     if let Some(error) = first_error { return Err(error); }
     if device_flags.0 != 0 {
-        write_config(device, None, None, device_flags, DevicePreferences::default(), WalletLabels::default(), WalletActivationRecords::default(), [0; MULTISIG_DESCRIPTOR_BYTES])?;
+        write_config(device, &ConfigHeader { device_flags, ..ConfigHeader::EMPTY })?;
     }
     Ok(())
 }

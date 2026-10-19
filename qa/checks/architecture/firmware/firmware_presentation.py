@@ -180,8 +180,12 @@ def _check_error_and_reset_boundaries(root: Path, firmware: Path, presentation: 
         errors.append("recoverable errors must share the rendered OK-dismiss geometry")
     if "software_reset" in presentation:
         errors.append("presentation layer must never reset the MCU")
-    if credential_driver.count("software_reset()") != 1 or "PersistError::DuressTriggered" not in credential_driver:
-        errors.append("only the explicitly classified duress credential path may software-reset")
+    if (
+        credential_driver.count("software_reset()") != 1
+        or "PersistError::DuressTriggered" not in credential_driver
+        or "PersistError::AttemptLimitWiped" not in credential_driver
+    ):
+        errors.append("only the classified duress and attempt-limit wipe paths may software-reset")
     reset_paths = sorted(
         path.relative_to(firmware).as_posix()
         for path in firmware.rglob("*.rs")

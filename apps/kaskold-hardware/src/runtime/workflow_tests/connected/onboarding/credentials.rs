@@ -222,7 +222,11 @@ fn verify_invalid_pin_retry(
         operation_engine, ad, persistent_wallet, display, i2c, delay, watchdog_feed,
     ) { return false; }
     if ad.navigation.app.state != AppState::StorageUnlockPin { return false; }
-    if ad.storage.persistence.unlock_feedback != crate::runtime::data::UnlockFeedback::WrongPin {
+    // One wrong PIN is recorded durably and leaves nine attempts before the wipe.
+    if ad.storage.persistence.unlock_feedback
+        != (crate::runtime::data::UnlockFeedback::WrongPin { remaining: 9 })
+        || persistent_wallet.unlock_failures() != Ok(1)
+    {
         return false;
     }
     if ad.wallet.seeds.seed_loaded { return false; }
@@ -252,6 +256,8 @@ fn verify_valid_pin_unlock(
     ) { return false; }
     if ad.navigation.app.state != AppState::MainMenu { return false; }
     if !ad.wallet.seeds.seed_loaded { return false; }
+    // Success clears the durable failure count.
+    if persistent_wallet.unlock_failures() != Ok(0) { return false; }
     render_runtime(ad, display, i2c, sd, delay, watchdog_feed);
     true
 }

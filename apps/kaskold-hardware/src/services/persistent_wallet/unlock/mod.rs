@@ -3,7 +3,7 @@
 use crate::services::credential_policy::CredentialKind;
 
 use crate::runtime::data::AppData;
-use super::{PersistError, PersistentWallet, StorageMode, crypto, journal, sd_backend};
+use super::{PersistError, PersistentWallet, crypto};
 
 #[cfg(feature = "workflow-test-auto")]
 use offline_signer::{crypto::password_kdf::PasswordKdfPurpose, derivation::hmac::zeroize_buf};
@@ -13,8 +13,8 @@ use crate::services::credential_policy::SALT_SIZE;
 use crate::services::wallet_session;
 #[cfg(feature = "workflow-test-auto")]
 use super::{
-    crypto::RECORD_SIZE,
-    kdf, flash::AlignedBytes, security_policy,
+    StorageMode, crypto::RECORD_SIZE,
+    journal, kdf, flash::AlignedBytes, sd_backend, security_policy,
 };
 
 impl PersistentWallet<'_> {
@@ -24,16 +24,7 @@ impl PersistentWallet<'_> {
         i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
         delay: &mut esp_hal::delay::Delay,
     ) -> Result<(), PersistError> {
-        crate::services::device_wipe::zeroize_volatile(ad);
-        let sd_erased = self.mode != Some(StorageMode::SdCard)
-            || sd_backend::erase_files(i2c, delay).is_ok();
-        let internal_erased = journal::erase_all_user_data(&mut self.flash).is_ok();
-        self.mode = None;
-        self.clear_credential();
-        self.security_policy = super::security_policy::SecurityPolicy::disabled();
-        self.security_integrity_ok = true;
-        self.sync_security_mirror(ad);
-        if sd_erased && internal_erased {
+        if self.erase_user_data(ad, i2c, delay) {
             Err(PersistError::DuressTriggered)
         } else {
             Err(PersistError::DeviceWipeFailed)

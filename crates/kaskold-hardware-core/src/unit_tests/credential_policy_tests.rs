@@ -1,6 +1,7 @@
 use crate::security::credential::{
-    confirmation_digest, confirmation_matches, retry_delay_millis, validate, CredentialError,
-    CredentialPolicyKind, RETRY_MAX_MILLIS,
+    confirmation_digest, confirmation_matches, retry_delay_millis, unlock_attempt_limit_reached,
+    unlock_attempts_remaining, validate, CredentialError, CredentialPolicyKind, MAX_UNLOCK_FAILURES,
+    RETRY_MAX_MILLIS,
 };
 
 #[test]
@@ -56,14 +57,30 @@ fn credential_policy_rejects_weak_inputs() {
 }
 
 #[test]
-fn credential_retry_delay_is_bounded_and_saturates_at_eight_seconds() {
+fn credential_retry_delay_doubles_and_saturates_at_one_minute() {
     assert_eq!(retry_delay_millis(0), 1_000);
     assert_eq!(retry_delay_millis(1), 2_000);
     assert_eq!(retry_delay_millis(2), 4_000);
-    assert_eq!(retry_delay_millis(3), RETRY_MAX_MILLIS);
-    assert_eq!(retry_delay_millis(4), RETRY_MAX_MILLIS);
+    assert_eq!(retry_delay_millis(3), 8_000);
+    assert_eq!(retry_delay_millis(4), 16_000);
+    assert_eq!(retry_delay_millis(5), 32_000);
+    assert_eq!(retry_delay_millis(6), RETRY_MAX_MILLIS);
     assert_eq!(retry_delay_millis(7), RETRY_MAX_MILLIS);
     assert_eq!(retry_delay_millis(u8::MAX), RETRY_MAX_MILLIS);
+    assert_eq!(RETRY_MAX_MILLIS, 60_000);
+}
+
+#[test]
+fn unlock_attempt_limit_is_ten_consecutive_failures() {
+    assert_eq!(MAX_UNLOCK_FAILURES, 10);
+    assert_eq!(unlock_attempts_remaining(0), 10);
+    assert_eq!(unlock_attempts_remaining(9), 1);
+    assert_eq!(unlock_attempts_remaining(10), 0);
+    assert_eq!(unlock_attempts_remaining(u8::MAX), 0);
+    assert!(!unlock_attempt_limit_reached(0));
+    assert!(!unlock_attempt_limit_reached(9));
+    assert!(unlock_attempt_limit_reached(10));
+    assert!(unlock_attempt_limit_reached(u8::MAX));
 }
 
 #[test]

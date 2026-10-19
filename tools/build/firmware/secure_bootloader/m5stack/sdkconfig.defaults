@@ -15,6 +15,9 @@ CONFIG_SECURE_BOOT_BUILD_SIGNED_BINARIES=y
 # KasKold gates Flash Encryption and Secure Boot behind explicit Pop It;
 # never allow ESP-IDF first-boot provisioning to bypass user consent.
 # CONFIG_SECURE_BOOT_FLASH_ENC_KEYS_BURN_TOGETHER is not set
+# Pop It burns DIS_PAD_JTAG and DIS_USB_JTAG; production firmware refuses to
+# hold a saved wallet until both are set (boot_security::hardware_protection_active).
+# CONFIG_SECURE_BOOT_ALLOW_JTAG is not set
 
 # Flash Encryption production profile.
 CONFIG_SECURE_FLASH_ENC_ENABLED=y

@@ -6,6 +6,7 @@
 //! key exists so persistence workflows can be exercised; production never does.
 //! The raw credential is stretched only during setup or unlock and is not retained.
 
+mod attempts;
 mod codec;
 mod crypto;
 mod flash;
@@ -101,6 +102,7 @@ pub enum PersistError {
     SdStorageUnavailable,
     SdStorageCorrupt,
     SdStorageWrite,
+    AttemptLimitWiped,
     #[cfg(feature = "provisioning-ui")]
     OwnerFirmwareInvalid,
 }
@@ -131,6 +133,7 @@ const PERSIST_ERROR_MESSAGES: &[&str] = &[
     "Required SD persistence card is missing or unreadable",
     "Device-bound SD storage is corrupted or unauthenticated",
     "Device-bound SD storage write failed",
+    "Too many failed attempts; wallets erased",
     #[cfg(feature = "provisioning-ui")]
     "Owner firmware image is invalid or too large",
 ];
@@ -264,7 +267,12 @@ impl<'d> PersistentWallet<'d> {
         match self.initialize(ad) {
             Ok(StartupState::ChoiceRequired) => StartupDisposition::ChoiceRequired,
             Ok(StartupState::Ready) => StartupDisposition::Ready,
-            Ok(StartupState::UnlockRequired(kind)) => StartupDisposition::UnlockRequired(kind),
+            Ok(StartupState::UnlockRequired(kind)) => {
+                if let Ok(failures) = self.unlock_failures() {
+                    ad.storage.persistence.unlock_failures = failures;
+                }
+                StartupDisposition::UnlockRequired(kind)
+            }
             Err(error) => {
                 log!("Persistent wallet startup failed: {:?}", error);
                 ad.wallet.seeds.seed_mgr.zeroize_all();
@@ -286,8 +294,21 @@ impl<'d> PersistentWallet<'d> {
     /// Report whether a device-storage HMAC identity is available. Production
     /// requires a read-protected hardware key; CoreS3 development may use its
     /// explicitly non-production software TEST identity when hardware is absent.
-    pub fn device_key_available(&mut self) -> bool {
+    fn device_key_available(&mut self) -> bool {
         self.crypto.available_key_slot().is_some()
+    }
+
+    /// Why saving is refused, or `None` when a device key is usable.
+    pub fn device_storage_blocker(&mut self) -> Option<&'static str> {
+        if self.device_key_available() {
+            None
+        } else if cfg!(feature = "production")
+            && !crate::services::verify::boot_security::hardware_protection_active()
+        {
+            Some("Pop It required to save")
+        } else {
+            Some("Device key not provisioned")
+        }
     }
 
     pub fn select_fresh(&mut self, manager: &SeedManager) -> Result<(), PersistError> {

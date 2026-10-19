@@ -7,12 +7,11 @@ pub(in crate::services::persistent_wallet) struct DevicePreferences {
 }
 
 impl Default for DevicePreferences {
-    fn default() -> Self {
-        Self { flags: Self::STARTUP_SOUND, dim_timeout_code: 0 }
-    }
+    fn default() -> Self { Self::DEFAULT }
 }
 
 impl DevicePreferences {
+    pub(super) const DEFAULT: Self = Self { flags: Self::STARTUP_SOUND, dim_timeout_code: 0 };
     const STARTUP_SOUND: u8 = 1 << 0;
     const REQUIRE_PIN_AFTER_DIM: u8 = 1 << 1;
     const NETWORK_SHIFT: u8 = 2;

@@ -20,8 +20,8 @@ pub(super) fn handle_finalize_choice(
     }
     if !BUTTON_X.contains(&input.x) { return None; }
     if FRESH_BUTTON_Y.contains(&input.y) {
-        if !persistence.device_key_available() {
-            show_rejection(display, delay, "Device key not provisioned", 1800, ErrorSound::Silent);
+        if let Some(blocker) = persistence.device_storage_blocker() {
+            show_rejection(display, delay, blocker, 2400, ErrorSound::Silent);
             return Some(true);
         }
         if staged_onboarding_mnemonic(ad)

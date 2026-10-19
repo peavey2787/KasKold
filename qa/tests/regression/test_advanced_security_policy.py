@@ -35,13 +35,14 @@ class AdvancedSecurityPolicyTests(unittest.TestCase):
             self.assertNotIn(forbidden, production)
 
     def test_duress_unlock_zeroizes_and_erases_internal_user_state(self) -> None:
-        unlock = read("apps/kaskold-hardware/src/services/persistent_wallet/unlock/mod.rs") + read("apps/kaskold-hardware/src/services/persistent_wallet/unlock/asynchronous.rs")
+        unlock = read("apps/kaskold-hardware/src/services/persistent_wallet/unlock/mod.rs") + read("apps/kaskold-hardware/src/services/persistent_wallet/unlock/asynchronous.rs") + read("apps/kaskold-hardware/src/services/persistent_wallet/attempts.rs")
         journal = read("apps/kaskold-hardware/src/services/persistent_wallet/journal.rs")
         self.assertIn("if self.duress_entered(kind, secret, liveness)?", unlock)
         self.assertIn("device_wipe::zeroize_volatile(ad)", unlock)
         self.assertIn("sd_backend::erase_files(i2c, delay).is_ok()", unlock)
         self.assertIn("journal::erase_all_user_data(&mut self.flash).is_ok()", unlock)
-        self.assertIn("if sd_erased && internal_erased", unlock)
+        self.assertIn("sd_erased && internal_erased", unlock)
+        self.assertIn("if self.erase_user_data(ad, i2c, delay)", unlock)
         self.assertIn("Err(PersistError::DeviceWipeFailed)", unlock)
         sd_backend = read("apps/kaskold-hardware/src/services/persistent_wallet/sd_backend.rs")
         self.assertIn("-> Result<(), PersistError>", sd_backend)

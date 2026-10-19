@@ -83,6 +83,7 @@ pub(crate) fn enter_credential_type_choice(ad: &mut AppData) {
 
 pub(crate) fn enter_storage_unlock(ad: &mut AppData, kind: CredentialKind) {
     ad.wallet.seeds.pp_input.reset();
+    arm_unlock_backoff(ad, kind);
     match kind {
         CredentialKind::Pin => {
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageUnlockPin));
@@ -91,6 +92,26 @@ pub(crate) fn enter_storage_unlock(ad: &mut AppData, kind: CredentialKind) {
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageUnlockPassword));
         }
     };
+}
+
+/// Mirror the durable failure count onto the unlock screen: the attempts-left
+/// warning and the earliest time the next attempt may start. Returns the delay.
+pub(crate) fn arm_unlock_backoff(ad: &mut AppData, kind: CredentialKind) -> u32 {
+    use crate::services::credential_policy::{retry_delay_millis, unlock_attempts_remaining};
+    let failures = ad.storage.persistence.unlock_failures;
+    if failures == 0 {
+        ad.storage.persistence.unlock_feedback = crate::runtime::data::UnlockFeedback::None;
+        ad.storage.persistence.unlock_retry_after_ms = 0;
+        return 0;
+    }
+    let delay = retry_delay_millis(failures);
+    ad.storage.persistence.unlock_feedback =
+        crate::runtime::data::UnlockFeedback::wrong(kind, unlock_attempts_remaining(failures));
+    ad.storage.persistence.unlock_retry_after_ms = esp_hal::time::Instant::now()
+        .duration_since_epoch()
+        .as_millis()
+        .saturating_add(u64::from(delay));
+    delay
 }
 
 pub(crate) fn cancel_seed_onboarding(ad: &mut AppData) {
@@ -162,9 +183,31 @@ pub(crate) fn workflow_unlock_back_guard(state: crate::runtime::input::AppState)
 }
 
 
+/// The durable failure count drives a growing delay and, near the limit, an
+/// attempts-left warning; a clean count disarms both.
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) fn workflow_unlock_backoff_probe(ad: &mut AppData) -> bool {
-    crate::runtime::event_loop::operation_engine::workflow_backoff_probe(ad)
+    use crate::runtime::data::UnlockFeedback;
+    let saved = (
+        ad.storage.persistence.unlock_failures,
+        ad.storage.persistence.unlock_feedback,
+        ad.storage.persistence.unlock_retry_after_ms,
+    );
+    ad.storage.persistence.unlock_failures = 1;
+    let first = arm_unlock_backoff(ad, CredentialKind::Pin);
+    ad.storage.persistence.unlock_failures = 9;
+    let last = arm_unlock_backoff(ad, CredentialKind::Pin);
+    let warned = ad.storage.persistence.unlock_feedback == UnlockFeedback::WrongPin { remaining: 1 }
+        && ad.storage.persistence.unlock_feedback.pin_title() == "1 TRY LEFT";
+    ad.storage.persistence.unlock_failures = 0;
+    let cleared = arm_unlock_backoff(ad, CredentialKind::Pin) == 0
+        && ad.storage.persistence.unlock_retry_after_ms == 0;
+    (
+        ad.storage.persistence.unlock_failures,
+        ad.storage.persistence.unlock_feedback,
+        ad.storage.persistence.unlock_retry_after_ms,
+    ) = saved;
+    last > first && warned && cleared
 }
 
 pub(crate) fn handle(

@@ -20,22 +20,42 @@ impl DeviceStorageIntent {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UnlockFeedback {
     None,
-    WrongPin,
-    WrongPassword,
+    /// `remaining` counts the attempts left before the device wipes itself.
+    WrongPin { remaining: u8 },
+    WrongPassword { remaining: u8 },
+}
+
+/// Titles warning that the durable attempt limit is close, indexed by attempts left.
+const ATTEMPT_WARNINGS: [&str; 5] =
+    ["1 TRY LEFT", "2 TRIES LEFT", "3 TRIES LEFT", "4 TRIES LEFT", "5 TRIES LEFT"];
+
+const fn failure_title(remaining: u8, plain: &'static str) -> &'static str {
+    if remaining >= 1 && remaining as usize <= ATTEMPT_WARNINGS.len() {
+        ATTEMPT_WARNINGS[remaining as usize - 1]
+    } else {
+        plain
+    }
 }
 
 impl UnlockFeedback {
+    pub const fn wrong(kind: CredentialKind, remaining: u8) -> Self {
+        match kind {
+            CredentialKind::Pin => Self::WrongPin { remaining },
+            CredentialKind::Password => Self::WrongPassword { remaining },
+        }
+    }
+
     pub const fn pin_title(self) -> &'static str {
         match self {
-            Self::WrongPin => "Invalid PIN",
-            Self::None | Self::WrongPassword => "UNLOCK PIN",
+            Self::WrongPin { remaining } => failure_title(remaining, "Invalid PIN"),
+            Self::None | Self::WrongPassword { .. } => "UNLOCK PIN",
         }
     }
 
     pub const fn password_title(self) -> &'static str {
         match self {
-            Self::WrongPassword => "Invalid password",
-            Self::None | Self::WrongPin => "UNLOCK PASSWORD",
+            Self::WrongPassword { remaining } => failure_title(remaining, "Invalid password"),
+            Self::None | Self::WrongPin { .. } => "UNLOCK PASSWORD",
         }
     }
 }

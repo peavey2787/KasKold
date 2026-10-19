@@ -16,9 +16,6 @@ use crate::{
 mod result;
 mod task;
 
-#[cfg(feature = "workflow-test-auto")]
-pub(crate) use result::workflow_backoff_probe;
-
 use task::{Step, Task};
 
 pub(super) struct CredentialDriver {
@@ -58,7 +55,7 @@ impl CredentialDriver {
             // here guarantees one real watchdog acknowledgement immediately
             // before the first foreground KDF begins on the next frame.
             crate::services::audio::suspend_credential_cues();
-            match Task::begin(ad, kind, persistence) {
+            match Task::begin(ad, kind, persistence, delay, i2c) {
                 Ok(task) => {
                     self.task = Some(task);
                     crate::log!("   Credential foreground-exclusive lane ARMED");
@@ -80,6 +77,11 @@ impl CredentialDriver {
             Step::Continue => {}
             Step::Complete { kind, result } => {
                 self.task = None;
+                let result = if task::is_unlock(kind) {
+                    persistence.conclude_unlock_attempt(result, ad, i2c, delay)
+                } else {
+                    result
+                };
                 crate::services::audio::resume_credential_cues();
                 crate::log!("   Credential foreground-exclusive lane RELEASED");
                 result::finish_result(ad, kind, result, display, delay, persistence);

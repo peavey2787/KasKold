@@ -148,16 +148,15 @@ fn commit_unlock_result(
 ) {
     match result {
         Ok(()) => commit_unlock_success(ad, operation, persistence),
-        Err(PersistError::DuressTriggered) => {
-            display.draw_recoverable_error_screen(
-                "Incorrect credential or damaged wallet", "AUTH-01", false,
-            );
-            let _ = crate::runtime::presentation::credential_result_committed(
-                ad, operation, "duress-reset",
-            );
-            crate::services::timing::pause(delay, 1800);
-            esp_hal::system::software_reset();
-        }
+        // Duress must look exactly like an ordinary wrong credential.
+        Err(PersistError::DuressTriggered) => reboot_after_wipe(
+            ad, operation, display, delay,
+            ("Incorrect credential or damaged wallet", "AUTH-01", "duress-reset"),
+        ),
+        Err(PersistError::AttemptLimitWiped) => reboot_after_wipe(
+            ad, operation, display, delay,
+            (PersistError::AttemptLimitWiped.message(), "AUTH-WIPE-01", "attempt-limit-reset"),
+        ),
         Err(PersistError::DeviceWipeFailed) => {
             if crate::runtime::presentation::credential_result_committed(
                 ad, operation, "fatal-error",
@@ -167,6 +166,20 @@ fn commit_unlock_result(
         }
         Err(error) => commit_unlock_error(ad, kind, operation, error),
     }
+}
+
+/// Show the wipe outcome, then restart into first-boot onboarding.
+fn reboot_after_wipe(
+    ad: &mut AppData,
+    operation: OperationKind,
+    display: &mut BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    (message, code, marker): (&str, &str, &'static str),
+) -> ! {
+    display.draw_recoverable_error_screen(message, code, false);
+    let _ = crate::runtime::presentation::credential_result_committed(ad, operation, marker);
+    crate::services::timing::pause(delay, 1800);
+    esp_hal::system::software_reset()
 }
 
 fn commit_unlock_success(
@@ -273,12 +286,15 @@ fn commit_unlock_error(
     operation: OperationKind,
     error: PersistError,
 ) {
-    let retry_ms = record_unlock_failure(ad);
     if is_credential_rejection(error) {
         crate::log!("Persistent wallet unlock failed: Authentication");
+        let retry_ms = crate::runtime::interactions::persistence::arm_unlock_backoff(ad, kind);
         commit_authentication_retry(ad, kind, operation, retry_ms);
         return;
     }
+    let retry_ms = crate::services::credential_policy::retry_delay_millis(
+        ad.storage.persistence.unlock_failures,
+    );
     crate::log!("Persistent wallet unlock failed: {:?}", error);
 
     let result = match kind {
@@ -299,11 +315,6 @@ fn commit_authentication_retry(
     retry_ms: u32,
 ) {
     ad.wallet.seeds.pp_input.reset();
-    ad.storage.persistence.unlock_feedback = match kind {
-        CredentialKind::Pin => crate::runtime::data::UnlockFeedback::WrongPin,
-        CredentialKind::Password => crate::runtime::data::UnlockFeedback::WrongPassword,
-    };
-    ad.storage.persistence.unlock_retry_after_ms = now_millis().saturating_add(u64::from(retry_ms));
     let result = match kind {
         CredentialKind::Pin => "invalid-pin retry",
         CredentialKind::Password => "invalid-password retry",
@@ -336,15 +347,6 @@ fn prepare_save_retry(ad: &mut AppData, kind: CredentialKind) {
     ad.storage.persistence.kind = Some(kind);
 }
 
-fn record_unlock_failure(ad: &mut AppData) -> u32 {
-    ad.storage.persistence.unlock_failures = ad.storage.persistence.unlock_failures.saturating_add(1);
-    crate::services::credential_policy::retry_delay_millis(ad.storage.persistence.unlock_failures)
-}
-
-fn now_millis() -> u64 {
-    esp_hal::time::Instant::now().duration_since_epoch().as_millis()
-}
-
 const fn persist_code(error: PersistError) -> &'static str {
     match error {
         PersistError::Authentication => "AUTH-01",
@@ -357,14 +359,4 @@ const fn persist_code(error: PersistError) -> &'static str {
         PersistError::SdStorageUnavailable => "STORE-SD-01",
         _ => "STORE-01",
     }
-}
-
-#[cfg(feature = "workflow-test-auto")]
-pub(crate) fn workflow_backoff_probe(ad: &mut AppData) -> bool {
-    let saved = ad.storage.persistence.unlock_failures;
-    ad.storage.persistence.unlock_failures = 0;
-    let first = record_unlock_failure(ad);
-    let second = record_unlock_failure(ad);
-    ad.storage.persistence.unlock_failures = saved;
-    second > first
 }

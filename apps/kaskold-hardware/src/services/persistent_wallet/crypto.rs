@@ -386,6 +386,12 @@ impl<'d> DeviceCrypto<'d> {
     }
 
     fn configure(&mut self, key_slot: u8) -> Result<(), PersistError> {
+        // Production keys wallets only on a hardware-locked chip; otherwise a
+        // physical attacker could reflash firmware and drive the HMAC key.
+        #[cfg(feature = "production")]
+        if !crate::services::verify::boot_security::hardware_protection_active() {
+            return Err(PersistError::DeviceKeyMissing);
+        }
         let key_id = key_id(key_slot).ok_or(PersistError::DeviceKeyMissing)?;
         if !key_is_read_protected(key_slot) { return Err(PersistError::DeviceKeyMissing); }
         self.hmac.init();

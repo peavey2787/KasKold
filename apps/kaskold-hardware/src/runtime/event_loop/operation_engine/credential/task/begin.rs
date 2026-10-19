@@ -13,6 +13,8 @@ pub(super) fn begin(
     ad: &mut AppData,
     operation: OperationKind,
     persistence: &mut PersistentWallet<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
 ) -> Result<Task, PersistError> {
     let (kind, unlock) = credential_kind(operation).ok_or(PersistError::CredentialRequired)?;
     let secret = SecretBuffer::take_from_app(ad)?;
@@ -31,6 +33,8 @@ pub(super) fn begin(
         return begin_save(ad, operation, kind, secret, persistence);
     }
 
+    // Counted in flash before any credential work so power loss cannot hide a guess.
+    persistence.begin_unlock_attempt(ad, i2c, delay)?;
     if let Some((slot, salt, verifier)) = wallet_verification_material(ad, kind, persistence)? {
         crate::runtime::presentation::set_progress(ad, 4);
         return Ok(Task::WalletActivation(WalletActivationTask {
