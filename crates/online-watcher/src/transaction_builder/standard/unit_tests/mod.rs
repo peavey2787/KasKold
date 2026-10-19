@@ -15,7 +15,10 @@ fn utxo(byte: u8, index: u32, amount: u64) -> UtxoEntry {
 fn wallet() -> WalletData {
     WalletData {
         kpub: "coverage".to_string(),
-        receive_addresses: vec![],
+        receive_addresses: vec![crate::account::address::encode_p2pk_address(
+            &[0x54; 32],
+            "kaspa",
+        )],
         change_addresses: vec![crate::account::address::encode_p2pk_address(
             &[0x55; 32],
             "kaspa",

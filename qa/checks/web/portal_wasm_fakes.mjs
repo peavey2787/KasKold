@@ -13,10 +13,11 @@ export const PORTAL_WASM_FAKES = Object.freeze({
     network_address_prefix: network => (hrp(network) ? `${hrp(network)}:` : ''),
     address_network: (address, selected = 'mainnet') => {
         const prefix = String(address ?? '').split(':')[0];
-        if (prefix === 'kaspatest') return String(selected).startsWith('testnet') ? selected : 'testnet-10';
+        if (prefix === 'kaspatest') return /^testnet-([1-9]\d?|1[01]\d|12[0-7])$/.test(String(selected)) ? selected : 'testnet-10';
+        if (prefix === 'kaspa') return 'mainnet';
         if (prefix === 'kaspasim') return 'simnet';
         if (prefix === 'kaspadev') return 'devnet';
-        return 'mainnet';
+        throw new Error(`not a valid Kaspa address: ${JSON.stringify(address)}`);
     },
     is_kaspa_address: text => /^kaspa(test|sim|dev)?:./.test(String(text ?? '')),
     address_script_public_key: () => `20${'11'.repeat(32)}ac`,

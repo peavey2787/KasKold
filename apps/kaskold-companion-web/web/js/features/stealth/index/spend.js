@@ -14,11 +14,10 @@ import { create_stealth_spend } from '../../../wasm/api.js';
 export async function handleStealthSpend(pubkeyHex, tweakHex) {
     if (!walletSession.hasWallet()) { toast('Load wallet first', 'error'); return; }
 
-    const network = detectWalletNetwork(walletSession.json(), networkState.network);
-
     // Build a normal P2PK spend but with stealthTweak in proprietaries
     showLoading('Building stealth spend...');
     try {
+        const network = detectWalletNetwork(walletSession.json(), networkState.network);
         const wsUrl = await resolveNodeUrl();
         const wallet = walletSession.current();
 

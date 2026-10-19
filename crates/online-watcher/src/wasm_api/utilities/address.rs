@@ -4,7 +4,8 @@ use crate::account::address::network_prefix;
 use crate::wasm_api::utilities::common::js_error;
 use crate::wasm_api::JsValue;
 use kaspa_portal::primitives::address::{
-    address_to_script_pubkey, script_address, validate_kaspa_address, KaspaNetwork,
+    address_prefix, address_to_script_pubkey, script_address, validate_kaspa_address,
+    KaspaNetwork,
 };
 
 /// Whether `text` is a valid Kaspa address on any network.
@@ -52,20 +53,26 @@ pub fn network_address_prefix(network: &str) -> String {
 }
 
 /// Network an address belongs to. A testnet address keeps the selected
-/// testnet name (`testnet-12`) and defaults to `testnet-10`; anything
-/// unrecognized is mainnet.
+/// numbered testnet (`testnet-12`) and otherwise means `testnet-10`. An
+/// address that does not decode is an error, never a guess at mainnet.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-pub fn address_network(address: &str, selected_network: &str) -> String {
-    let network = address
-        .split_once(':')
-        .and_then(|(hrp, _)| KaspaNetwork::from_hrp(hrp));
-    match network {
-        Some(KaspaNetwork::Testnet) if selected_network.starts_with("testnet") => {
-            selected_network.to_string()
-        }
-        Some(KaspaNetwork::Testnet) => "testnet-10".to_string(),
-        Some(KaspaNetwork::Simnet) => "simnet".to_string(),
-        Some(KaspaNetwork::Devnet) => "devnet".to_string(),
-        _ => "mainnet".to_string(),
-    }
+pub fn address_network(address: &str, selected_network: &str) -> Result<String, JsValue> {
+    let prefix = address_prefix(address)
+        .ok()
+        .filter(|_| validate_kaspa_address(address.as_bytes()));
+    let network = match prefix {
+        Some("kaspa") => "mainnet",
+        Some("kaspatest") => numbered_testnet(selected_network),
+        Some("kaspasim") => "simnet",
+        Some("kaspadev") => "devnet",
+        _ => return Err(js_error(format!("not a valid Kaspa address: {address:?}"))),
+    };
+    Ok(network.to_string())
+}
+
+/// `selected` when it names a numbered testnet, else the default `testnet-10`.
+fn numbered_testnet(selected: &str) -> &str {
+    let numbered = selected.starts_with("testnet-")
+        && KaspaNetwork::from_name(selected) == Some(KaspaNetwork::Testnet);
+    if numbered { selected } else { "testnet-10" }
 }

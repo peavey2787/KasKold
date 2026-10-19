@@ -127,8 +127,8 @@ export function handleStealthSendGenerate() {
     crypto.getRandomValues(entropy);
     const entropyHex = bytesToHex(entropy);
 
-    const network = detectWalletNetwork(walletSession.json(), networkState.network);
     try {
+        const network = detectWalletNetwork(walletSession.json(), networkState.network);
         const result = JSON.parse(stealth_generate_payment(metaHex, entropyHex, network));
         byId('stealth-send-addr').textContent = result.address;
         byId('stealth-send-r').textContent = result.ephemeral_r;
@@ -166,9 +166,9 @@ export async function handleStealthSendPay() {
         entropyHex = bytesToHex(entropy);
     }
 
-    const network = detectWalletNetwork(walletSession.json(), networkState.network);
     showLoading('Building stealth payment...');
     try {
+        const network = detectWalletNetwork(walletSession.json(), networkState.network);
         const wsUrl = await resolveNodeUrl();
         // Lane send on KSTL (device-signed). Fee from the low/normal/priority
         // selector (node feerate x mass), honoring a manual edit of the field.

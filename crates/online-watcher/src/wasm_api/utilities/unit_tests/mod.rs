@@ -145,10 +145,17 @@ fn address_exports_validate_and_map_networks_through_portal() {
     assert_eq!(network_address_prefix("mainnet"), "kaspa:");
     assert_eq!(network_address_prefix("testnet-12"), "kaspatest:");
     assert_eq!(network_address_prefix("bogus"), "");
-    assert_eq!(address_network("kaspatest:qq", "testnet-12"), "testnet-12");
-    assert_eq!(address_network("kaspatest:qq", "mainnet"), "testnet-10");
-    assert_eq!(address_network("kaspasim:qq", "mainnet"), "simnet");
-    assert_eq!(address_network("kaspadev:qq", "mainnet"), "devnet");
-    assert_eq!(address_network("kaspa:qq", "testnet-10"), "mainnet");
-    assert_eq!(address_network("", "testnet-10"), "mainnet");
+    let on = |prefix: &str| kaspa_portal::primitives::address::encode_p2pk_address(&[0x42; 32], prefix);
+    let network = |address: &str, selected: &str| address_network(address, selected).ok();
+    let testnet = on("kaspatest");
+    assert_eq!(network(&testnet, "testnet-12").as_deref(), Some("testnet-12"));
+    assert_eq!(network(&testnet, "mainnet").as_deref(), Some("testnet-10"));
+    assert_eq!(network(&testnet, "testnet").as_deref(), Some("testnet-10"));
+    assert_eq!(network(&testnet, "testnet-custom").as_deref(), Some("testnet-10"));
+    assert_eq!(network(&on("kaspasim"), "mainnet").as_deref(), Some("simnet"));
+    assert_eq!(network(&on("kaspadev"), "mainnet").as_deref(), Some("devnet"));
+    assert_eq!(network(&on("kaspa"), "testnet-10").as_deref(), Some("mainnet"));
+    for invalid in ["", "kaspatest:qq", "kaspa:qq", "bitcoin:qq", &testnet[..testnet.len() - 1]] {
+        assert_eq!(network(invalid, "mainnet"), None, "{invalid}");
+    }
 }
