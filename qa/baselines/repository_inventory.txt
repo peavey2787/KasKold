@@ -610,7 +610,6 @@ D	crates/online-watcher/src/wasm_api/contracts/zk/crowdfund
 D	crates/online-watcher/src/wasm_api/contracts/zk/crowdfund/campaign
 D	crates/online-watcher/src/wasm_api/contracts/zk/crowdfund/campaign/unit_tests
 D	crates/online-watcher/src/wasm_api/contracts/zk/crowdfund/sweep
-D	crates/online-watcher/src/wasm_api/contracts/zk/crowdfund/sweep/unit_tests
 D	crates/online-watcher/src/wasm_api/contracts/zk/merkle
 D	crates/online-watcher/src/wasm_api/contracts/zk/merkle/unit_tests
 D	crates/online-watcher/src/wasm_api/contracts/zk/unit_tests
@@ -2543,7 +2542,6 @@ F	crates/online-watcher/src/wasm_api/contracts/zk/crowdfund.rs
 F	crates/online-watcher/src/wasm_api/contracts/zk/crowdfund/campaign.rs
 F	crates/online-watcher/src/wasm_api/contracts/zk/crowdfund/campaign/unit_tests/mod.rs
 F	crates/online-watcher/src/wasm_api/contracts/zk/crowdfund/sweep.rs
-F	crates/online-watcher/src/wasm_api/contracts/zk/crowdfund/sweep/unit_tests/mod.rs
 F	crates/online-watcher/src/wasm_api/contracts/zk/hashes.rs
 F	crates/online-watcher/src/wasm_api/contracts/zk/merkle.rs
 F	crates/online-watcher/src/wasm_api/contracts/zk/merkle/unit_tests/mod.rs

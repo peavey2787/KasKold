@@ -77,17 +77,53 @@ fn pskt_and_payload_native_cores_reject_malformed_inputs_without_jsvalue() {
     };
 
     assert_eq!(pskt_detect("00"), "unknown");
-    assert!(pskt_summary_string("00", "mainnet").is_err());
-    assert!(pskt_relay_to_kspt_string("00", "mainnet").is_err());
-    assert!(pskt_merge_signed_kspt_string("00", "00").is_err());
-    assert!(ready(pskt_finalize_and_broadcast_string("00", "ws://unused")).is_err());
+    assert_eq!(
+        pskt_summary_string("00", "mainnet")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Not a PSKT/PSKB payload")
+    );
+    assert_eq!(
+        pskt_relay_to_kspt_string("00", "mainnet")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Encoding: payload too short")
+    );
+    assert_eq!(
+        pskt_merge_signed_kspt_string("00", "00")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("KSPT is truncated")
+    );
+    assert_eq!(
+        ready(pskt_finalize_and_broadcast_string("00", "ws://unused"))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("PSKT cryptographic verification failed: payload too short")
+    );
 
     let payload = build_covenant_payload_string(7, "aabb").expect("payload");
     assert_eq!(payload, "0107aabb");
     let decoded = parse_covenant_payload_string(&payload).expect("decoded payload");
     assert!(decoded.contains("\"covenant_type\":7"));
-    assert!(build_covenant_payload_string(1, "zz").is_err());
-    assert!(parse_covenant_payload_string("00").is_err());
+    assert_eq!(
+        build_covenant_payload_string(1, "zz")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Bad params hex: Invalid character 'z' at position 0")
+    );
+    assert_eq!(
+        parse_covenant_payload_string("00")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Payload too short")
+    );
 }
 
 #[test]
@@ -99,9 +135,27 @@ fn pskb_document_and_output_cores_go_through_portal() {
     assert_eq!(pskt_detect(&wire), "pskb");
     let appended = pskb_append_output_string(&wire, 7, "000051").expect("appended");
     assert_ne!(appended, wire);
-    assert!(pskb_encode_document_string("[").is_err());
-    assert!(pskb_append_output_string(&wire, 7, "010051").is_err());
-    assert!(pskb_append_output_string(&wire, 7, "0000zz").is_err());
+    assert_eq!(
+        pskb_encode_document_string("[")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("PSKT JSON: EOF while parsing a list at line 1 column 1")
+    );
+    assert_eq!(
+        pskb_append_output_string(&wire, 7, "010051")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("script public key must be version 0")
+    );
+    assert_eq!(
+        pskb_append_output_string(&wire, 7, "0000zz")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("script hex: Invalid character 'z' at position 0")
+    );
 }
 
 #[test]
@@ -113,8 +167,20 @@ fn pskb_document_and_output_exports_wrap_the_cores() {
     let wire = expect_js(pskb_encode_document(document), "PSKB wire");
     let appended = expect_js(pskb_append_output(&wire, 7, "000051"), "appended");
     assert_ne!(appended, wire);
-    assert!(pskb_encode_document("[").is_err());
-    assert!(pskb_append_output(&wire, 7, "0000zz").is_err());
+    assert_eq!(
+        pskb_encode_document("[")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("PSKT JSON: EOF while parsing a list at line 1 column 1"))"#)
+    );
+    assert_eq!(
+        pskb_append_output(&wire, 7, "0000zz")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("script hex: Invalid character 'z' at position 0"))"#)
+    );
 }
 
 mod anti_klepto_transcript;

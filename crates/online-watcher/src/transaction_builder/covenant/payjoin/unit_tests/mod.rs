@@ -23,7 +23,13 @@ fn payjoin_fee_split_and_required_fee_are_amount_exact() {
     assert_eq!(amounts.change, 900_000);
 
     let low = [utxo(3, 300_000)];
-    assert!(calculate_amounts(&low, &utxo(4, 200_000), 400_000).is_err());
+    assert_eq!(
+        calculate_amounts(&low, &utxo(4, 200_000), 400_000)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Covenant balance too low")
+    );
 }
 
 #[test]

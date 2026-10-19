@@ -112,18 +112,29 @@ fn global_thread_withdrawal_covers_allowance_spending_limit_and_invalid_inputs()
     })
     .is_ok());
 
-    for bad in ["not-json", "[]"] {
-        assert!(build_withdrawal_core(WithdrawalRequest {
-            family: GlobalThreadFamily::Allowance,
-            covenant_address: &covenant,
-            destination_address: &address(3),
-            redeem_script_hex: &hex::encode(&allowance),
-            covenant_id_hex: &"44".repeat(32),
-            withdrawal: 1_000_000,
-            fee: 0,
-            selected_utxos_json: bad,
-        })
-        .is_err());
+    for (bad, expected) in [
+        (
+            "not-json",
+            "Bad selected UTXOs JSON: expected ident at line 1 column 2",
+        ),
+        ("[]", "No thread UTXO selected"),
+    ] {
+        assert_eq!(
+            build_withdrawal_core(WithdrawalRequest {
+                family: GlobalThreadFamily::Allowance,
+                covenant_address: &covenant,
+                destination_address: &address(3),
+                redeem_script_hex: &hex::encode(&allowance),
+                covenant_id_hex: &"44".repeat(32),
+                withdrawal: 1_000_000,
+                fee: 0,
+                selected_utxos_json: bad,
+            })
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+            Some(expected)
+        );
     }
 }
 
@@ -137,9 +148,27 @@ fn global_thread_topup_and_manual_selection_are_host_testable() {
     let selected = select_wallet_utxos(&available, "2, 0").unwrap();
     assert_eq!(selected[0].amount, 30_000_000);
     assert_eq!(selected[1].amount, 10_000_000);
-    assert!(select_wallet_utxos(&available, "").is_err());
-    assert!(select_wallet_utxos(&available, "bad").is_err());
-    assert!(select_wallet_utxos(&available, "9").is_err());
+    assert_eq!(
+        select_wallet_utxos(&available, "")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Select at least one wallet UTXO to fold into the thread")
+    );
+    assert_eq!(
+        select_wallet_utxos(&available, "bad")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Invalid UTXO index: invalid digit found in string")
+    );
+    assert_eq!(
+        select_wallet_utxos(&available, "9")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("UTXO index 9 out of range (have 3)")
+    );
 
     let redeem = crate::contracts::covenant::script::build_global_spending_limit_script(
         &[0x31; 32],
@@ -203,38 +232,58 @@ fn topup_material_parser_covers_both_families_and_validation_errors() {
         &thread,
     )
     .is_ok());
-    assert!(prepare_global_thread_topup_material(
-        GlobalThreadFamily::Allowance,
-        &allowance_address,
-        "zz",
-        &covenant_id,
-        &thread,
-    )
-    .is_err());
-    assert!(prepare_global_thread_topup_material(
-        GlobalThreadFamily::Allowance,
-        &allowance_address,
-        &allowance_hex,
-        "00",
-        &thread,
-    )
-    .is_err());
-    assert!(prepare_global_thread_topup_material(
-        GlobalThreadFamily::Allowance,
-        &allowance_address,
-        &allowance_hex,
-        &covenant_id,
-        "not-json",
-    )
-    .is_err());
-    assert!(prepare_global_thread_topup_material(
-        GlobalThreadFamily::Allowance,
-        "bad-address",
-        &allowance_hex,
-        &covenant_id,
-        &thread,
-    )
-    .is_err());
+    assert_eq!(
+        prepare_global_thread_topup_material(
+            GlobalThreadFamily::Allowance,
+            &allowance_address,
+            "zz",
+            &covenant_id,
+            &thread,
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Bad redeem hex: Invalid character 'z' at position 0")
+    );
+    assert_eq!(
+        prepare_global_thread_topup_material(
+            GlobalThreadFamily::Allowance,
+            &allowance_address,
+            &allowance_hex,
+            "00",
+            &thread,
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("covenant_id must be 32 bytes, got 1")
+    );
+    assert_eq!(
+        prepare_global_thread_topup_material(
+            GlobalThreadFamily::Allowance,
+            &allowance_address,
+            &allowance_hex,
+            &covenant_id,
+            "not-json",
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Bad thread UTXO JSON: expected ident at line 1 column 2")
+    );
+    assert_eq!(
+        prepare_global_thread_topup_material(
+            GlobalThreadFamily::Allowance,
+            "bad-address",
+            &allowance_hex,
+            &covenant_id,
+            &thread,
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Unknown address prefix")
+    );
 
     let spending = crate::contracts::covenant::script::build_global_spending_limit_script(
         &[0x31; 32],
@@ -273,7 +322,13 @@ fn global_thread_wasm_boundaries_cover_withdraw_topup_and_api_conversion() {
     let request = api
         .request(GlobalThreadFamily::Allowance)
         .expect("API conversion");
-    assert!(ready(super::create_topup(request, "test")).is_err());
+    assert_eq!(
+        ready(super::create_topup(request, "test"))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Bad wallet JSON: expected ident at line 1 column 2")
+    );
 
     let bad_withdrawal = WithdrawalRequest {
         family: GlobalThreadFamily::SpendingLimit,
@@ -285,21 +340,46 @@ fn global_thread_wasm_boundaries_cover_withdraw_topup_and_api_conversion() {
         fee: 0,
         selected_utxos_json: "not-json",
     };
-    assert!(ready(super::create_withdrawal(bad_withdrawal, "test")).is_err());
+    assert_eq!(
+        ready(super::create_withdrawal(bad_withdrawal, "test"))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("covenant_id must be 32 bytes, got 1")
+    );
 
-    assert!(ready(crate::wasm_api::create_global_allowance_topup("not-json")).is_err());
-    assert!(ready(crate::wasm_api::create_global_spending_limit_topup(
-        "not-json"
-    ))
-    .is_err());
-    assert!(ready(crate::wasm_api::create_global_allowance_withdraw(
-        "bad", "bad", "00", "00", 1, 0, "not-json",
-    ))
-    .is_err());
-    assert!(
+    assert_eq!(
+        ready(crate::wasm_api::create_global_allowance_topup("not-json"))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Bad allowance top-up request JSON: expected ident at line 1 column 2")
+    );
+    assert_eq!(
+        ready(crate::wasm_api::create_global_spending_limit_topup(
+            "not-json"
+        ))
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Bad spending-limit top-up request JSON: expected ident at line 1 column 2")
+    );
+    assert_eq!(
+        ready(crate::wasm_api::create_global_allowance_withdraw(
+            "bad", "bad", "00", "00", 1, 0, "not-json",
+        ))
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("covenant_id must be 32 bytes, got 1")
+    );
+    assert_eq!(
         ready(crate::wasm_api::create_global_spending_limit_withdraw(
             "bad", "bad", "00", "00", 1, 0, "not-json",
         ))
-        .is_err()
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("covenant_id must be 32 bytes, got 1")
     );
 }

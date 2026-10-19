@@ -61,12 +61,26 @@ fn oracle_and_zk_helpers_have_direct_function_coverage() {
     let total = crate::contracts::zk::proof::serialize_total(123).expect("field serialization");
     assert!(!total.is_empty());
 
-    assert!(crate::contracts::zk::proof::verify_proof(&[], &[], &[]).is_err());
+    assert_eq!(
+        crate::contracts::zk::proof::verify_proof(&[], &[], &[])
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some(
+            r#"Bad crowdfunding verifying key: I/O error: Error { kind: UnexpectedEof, message: "failed to fill whole buffer" }"#
+        )
+    );
 
     let versioned = crate::contracts::zk::crowdfund::versioned_spk(&[0x51, 0xac]);
     assert_eq!(versioned, vec![0, 0, 0x51, 0xac]);
 
-    assert!(crate::contracts::covenant::oracle_v1::verify_attestation("00", "00", "00").is_err());
+    assert_eq!(
+        crate::contracts::covenant::oracle_v1::verify_attestation("00", "00", "00")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Oracle oracle key must be 32-byte hex")
+    );
 }
 
 #[test]
@@ -82,19 +96,43 @@ fn merkle_application_rejects_malformed_whitelists_proofs_and_roots() {
     assert!(root_from_addresses("not-json")
         .unwrap_err()
         .starts_with("Bad JSON"));
-    assert!(root_from_addresses(r#"["not-an-address"]"#).is_err());
+    assert_eq!(
+        root_from_addresses(r#"["not-an-address"]"#)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Unknown address prefix")
+    );
     assert!(proof_for_address("not-json", &member)
         .unwrap_err()
         .starts_with("Bad JSON"));
-    assert!(proof_for_address(r#"["not-an-address"]"#, &member).is_err());
-    assert!(proof_for_address(&addresses, "not-an-address").is_err());
+    assert_eq!(
+        proof_for_address(r#"["not-an-address"]"#, &member)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Unknown address prefix")
+    );
+    assert_eq!(
+        proof_for_address(&addresses, "not-an-address")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Unknown address prefix")
+    );
     assert_eq!(
         proof_for_address(&addresses, &outsider),
         Err("Address not found in whitelist".to_string())
     );
 
     let owner = "33".repeat(32);
-    assert!(build_whitelist_json("zz", &"44".repeat(32), 1, 0, "mainnet").is_err());
+    assert_eq!(
+        build_whitelist_json("zz", &"44".repeat(32), 1, 0, "mainnet")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Bad hex: Invalid character 'z' at position 0")
+    );
     assert!(build_whitelist_json(&owner, "zz", 1, 0, "mainnet")
         .unwrap_err()
         .starts_with("Bad root hex"));
@@ -149,7 +187,13 @@ fn oracle_v1_attestation_and_keys_reject_malformed_hex_and_points() {
 fn crowdfund_salt_rejects_only_the_all_zero_value() {
     use crate::contracts::zk::crowdfund::nonzero_salt;
 
-    assert!(nonzero_salt([0; 8]).is_err());
+    assert_eq!(
+        nonzero_salt([0; 8])
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Crowdfunding RNG returned an invalid all-zero salt")
+    );
     assert_eq!(
         nonzero_salt([0, 0, 0, 0, 0, 0, 0, 1]),
         Ok([0, 0, 0, 0, 0, 0, 0, 1])

@@ -31,7 +31,13 @@ fn public_account_normalization_returns_the_canonical_text() {
     let wallet = HotWallet::restore(LEGAL_12, "").unwrap();
     let kpub = wallet.export_kpub().unwrap();
     assert_eq!(normalize_public_account(kpub.as_bytes()).unwrap(), kpub);
-    assert!(normalize_public_account(b"kpub-not").is_err());
+    assert_eq!(
+        normalize_public_account(b"kpub-not")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidKpubEncoding")
+    );
 }
 
 #[test]
@@ -63,5 +69,12 @@ fn commit_secrets_must_be_non_empty_and_bounded() {
         Err(HotWalletError::InvalidToolInput)
     ));
     let wallet = HotWallet::restore(LEGAL_12, "").unwrap();
-    assert!(wallet.commit_secret(b"").is_err());
+    assert_eq!(
+        wallet
+            .commit_secret(b"")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidToolInput")
+    );
 }

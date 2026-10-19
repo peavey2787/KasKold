@@ -28,24 +28,44 @@ fn facade_import_signing_and_transaction_boundaries_are_host_testable() {
         .import_raw_account(&account_payload(), "kaspa")
         .unwrap();
     assert!(facade.import_account(&wallet.kpub, "kaspa").is_ok());
-    assert!(facade.import_account("bad", "kaspa").is_err());
+    assert_eq!(
+        facade
+            .import_account("bad", "kaspa")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Account key must be canonical kpub1 text or an account-level BIP32 xpub")
+    );
 
-    assert!(ready(
-        facade.build_transaction(&wallet, "bad-address", 100_000_000, 1, "ws://unused",)
-    )
-    .is_err());
-    assert!(ready(facade.build_selected_transaction(
-        &wallet,
-        "bad-address",
-        100_000_000,
-        1,
-        &[0],
-        "ws://unused",
-    ))
-    .is_err());
-    assert!(facade
-        .build_pskb_with_utxos(&wallet, "bad-address", 100_000_000, 1, Vec::new())
-        .is_err());
+    assert_eq!(
+        ready(facade.build_transaction(&wallet, "bad-address", 100_000_000, 1, "ws://unused",))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)")
+    );
+    assert_eq!(
+        ready(facade.build_selected_transaction(
+            &wallet,
+            "bad-address",
+            100_000_000,
+            1,
+            &[0],
+            "ws://unused",
+        ))
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)")
+    );
+    assert_eq!(
+        facade
+            .build_pskb_with_utxos(&wallet, "bad-address", 100_000_000, 1, Vec::new())
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("No UTXOs provided")
+    );
 
     let request = MultisigTransactionRequest {
         descriptor_text: "bad",
@@ -58,22 +78,64 @@ fn facade_import_signing_and_transaction_boundaries_are_host_testable() {
         change_index_hint: u32::MAX,
         selection: MultisigSelection::Automatic,
     };
-    assert!(ready(facade.build_multisig_transaction(request, "ws://unused")).is_err());
+    assert_eq!(
+        ready(facade.build_multisig_transaction(request, "ws://unused"))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Descriptor must be multi(M,...), multi_hd(M,...), or multi_hd45(M,...)")
+    );
 
     assert_ne!(
         facade.verify_message(&[2; 32], &[3; 32], &[4; 64]),
         Ok(true),
     );
-    assert!(ready(facade.finalize_and_broadcast("00", "ws://unused")).is_err());
-    assert!(ready(facade.broadcast("00", "ws://unused")).is_err());
+    assert_eq!(
+        ready(facade.finalize_and_broadcast("00", "ws://unused"))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("PSKT cryptographic verification failed: payload too short")
+    );
+    assert_eq!(
+        ready(facade.broadcast("00", "ws://unused"))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("KSPT is truncated")
+    );
 
     #[cfg(not(target_arch = "wasm32"))]
     {
         use crate::protocol::transaction::consensus::{ConsensusTransaction, InputEncoding};
 
-        assert!(ready(facade.synchronize_utxos(&wallet, "ws://unused")).is_err());
-        assert!(ready(facade.synchronize_balance(&wallet, "ws://unused")).is_err());
-        assert!(ready(facade.build_consolidation(&wallet, 1, "ws://unused")).is_err());
+        assert_eq!(
+            ready(facade.synchronize_utxos(&wallet, "ws://unused"))
+                .err()
+                .map(|error| error.to_string())
+                .as_deref(),
+            Some(
+                "browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"
+            )
+        );
+        assert_eq!(
+            ready(facade.synchronize_balance(&wallet, "ws://unused"))
+                .err()
+                .map(|error| error.to_string())
+                .as_deref(),
+            Some(
+                "browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"
+            )
+        );
+        assert_eq!(
+            ready(facade.build_consolidation(&wallet, 1, "ws://unused"))
+                .err()
+                .map(|error| error.to_string())
+                .as_deref(),
+            Some(
+                "browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"
+            )
+        );
 
         let transaction = ConsensusTransaction {
             tx_version: 0,
@@ -86,6 +148,14 @@ fn facade_import_signing_and_transaction_boundaries_are_host_testable() {
             payload: Vec::new(),
             storage_mass: 0,
         };
-        assert!(ready(facade.submit_transaction(&transaction, "ws://unused")).is_err());
+        assert_eq!(
+            ready(facade.submit_transaction(&transaction, "ws://unused"))
+                .err()
+                .map(|error| error.to_string())
+                .as_deref(),
+            Some(
+                "browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"
+            )
+        );
     }
 }

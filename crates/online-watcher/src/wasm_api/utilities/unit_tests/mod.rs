@@ -22,27 +22,66 @@ fn pure_wasm_boundary_utilities_cover_networks_parsing_and_hex_validation() {
     assert_eq!(network_prefix("simnet"), Ok("kaspasim"));
     assert_eq!(network_prefix("devnet"), Ok("kaspadev"));
     assert_eq!(network_prefix("mainnet"), Ok("kaspa"));
-    for unknown in ["", "main", "Testnet-10", "kaspa"] {
-        assert!(
-            network_prefix(unknown).is_err(),
+    for (unknown, expected) in [
+        ("", r#"unsupported Kaspa network: """#),
+        ("main", r#"unsupported Kaspa network: "main""#),
+        ("Testnet-10", r#"unsupported Kaspa network: "Testnet-10""#),
+        ("kaspa", r#"unsupported Kaspa network: "kaspa""#),
+    ] {
+        assert_eq!(
+            network_prefix(unknown)
+                .err()
+                .map(|error| error.to_string())
+                .as_deref(),
+            Some(expected),
             "{unknown:?} must not default to mainnet"
         );
     }
 
     assert_eq!(decode_pubkey32(&"11".repeat(32)).unwrap(), [0x11; 32]);
-    assert!(decode_pubkey32("zz").is_err());
-    assert!(decode_pubkey32("00").is_err());
+    assert_eq!(
+        decode_pubkey32("zz")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Bad hex: Invalid character 'z' at position 0")
+    );
+    assert_eq!(
+        decode_pubkey32("00")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Pubkey must be 32 bytes")
+    );
     assert_eq!(
         decode_named_32(&"22".repeat(32), "field").unwrap(),
         [0x22; 32]
     );
-    assert!(decode_named_32("00", "field").is_err());
+    assert_eq!(
+        decode_named_32("00", "field")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("field must be 32 bytes, got 1")
+    );
 
     let request: Request = parse_request_string(r#"{"value":7}"#, "request").unwrap();
     assert_eq!(request, Request { value: 7 });
-    assert!(parse_request_string::<Request>("{}", "request").is_err());
+    assert_eq!(
+        parse_request_string::<Request>("{}", "request")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Bad request JSON: missing field `value` at line 1 column 2")
+    );
     assert_eq!(parse_u64_field_string("42", "value").unwrap(), 42);
-    assert!(parse_u64_field_string("bad", "value").is_err());
+    assert_eq!(
+        parse_u64_field_string("bad", "value")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Invalid value: invalid digit found in string")
+    );
     assert_eq!(serialize_json_string(&request).unwrap(), r#"{"value":7}"#);
 }
 
@@ -69,20 +108,38 @@ fn wasm_utility_boundaries_are_host_testable() {
         .kpub,
         "test"
     );
-    assert!(parse_wallet("not-json", "wallet").is_err());
+    assert_eq!(
+        parse_wallet("not-json", "wallet")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("wallet: expected ident at line 1 column 2"))"#)
+    );
 
     let request: Request = crate::wasm_api::test_support::expect_js(
         parse_request(r#"{"value":9}"#, "request"),
         "parse request",
     );
     assert_eq!(request.value, 9);
-    assert!(parse_request::<Request>("{}", "request").is_err());
+    assert_eq!(
+        parse_request::<Request>("{}", "request")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad request JSON: missing field `value` at line 1 column 2"))"#)
+    );
 
     assert_eq!(
         crate::wasm_api::test_support::expect_js(parse_u64_field("77", "value"), "parse u64"),
         77
     );
-    assert!(parse_u64_field("bad", "value").is_err());
+    assert_eq!(
+        parse_u64_field("bad", "value")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Invalid value: invalid digit found in string"))"#)
+    );
     assert_eq!(
         crate::wasm_api::test_support::expect_js(
             parse_utxo_indices("0, 2,,4"),
@@ -90,7 +147,13 @@ fn wasm_utility_boundaries_are_host_testable() {
         ),
         vec![0, 2, 4]
     );
-    assert!(parse_utxo_indices("0,bad").is_err());
+    assert_eq!(
+        parse_utxo_indices("0,bad")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Invalid UTXO index: invalid digit found in string"))"#)
+    );
 
     assert_eq!(
         crate::wasm_api::test_support::expect_js(serialize_json(&request), "serialize JSON"),
@@ -140,22 +203,50 @@ fn address_exports_validate_and_map_networks_through_portal() {
         super::script_public_key_address(&p2sh_spk, "testnet-10"),
         p2sh
     );
-    assert!(super::redeem_script_address("zz", "testnet-10").is_err());
+    assert_eq!(
+        super::redeem_script_address("zz", "testnet-10")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Invalid character 'z' at position 0"))"#)
+    );
 
     assert_eq!(network_address_prefix("mainnet"), "kaspa:");
     assert_eq!(network_address_prefix("testnet-12"), "kaspatest:");
     assert_eq!(network_address_prefix("bogus"), "");
-    let on = |prefix: &str| kaspa_portal::primitives::address::encode_p2pk_address(&[0x42; 32], prefix);
+    let on =
+        |prefix: &str| kaspa_portal::primitives::address::encode_p2pk_address(&[0x42; 32], prefix);
     let network = |address: &str, selected: &str| address_network(address, selected).ok();
     let testnet = on("kaspatest");
-    assert_eq!(network(&testnet, "testnet-12").as_deref(), Some("testnet-12"));
+    assert_eq!(
+        network(&testnet, "testnet-12").as_deref(),
+        Some("testnet-12")
+    );
     assert_eq!(network(&testnet, "mainnet").as_deref(), Some("testnet-10"));
     assert_eq!(network(&testnet, "testnet").as_deref(), Some("testnet-10"));
-    assert_eq!(network(&testnet, "testnet-custom").as_deref(), Some("testnet-10"));
-    assert_eq!(network(&on("kaspasim"), "mainnet").as_deref(), Some("simnet"));
-    assert_eq!(network(&on("kaspadev"), "mainnet").as_deref(), Some("devnet"));
-    assert_eq!(network(&on("kaspa"), "testnet-10").as_deref(), Some("mainnet"));
-    for invalid in ["", "kaspatest:qq", "kaspa:qq", "bitcoin:qq", &testnet[..testnet.len() - 1]] {
+    assert_eq!(
+        network(&testnet, "testnet-custom").as_deref(),
+        Some("testnet-10")
+    );
+    assert_eq!(
+        network(&on("kaspasim"), "mainnet").as_deref(),
+        Some("simnet")
+    );
+    assert_eq!(
+        network(&on("kaspadev"), "mainnet").as_deref(),
+        Some("devnet")
+    );
+    assert_eq!(
+        network(&on("kaspa"), "testnet-10").as_deref(),
+        Some("mainnet")
+    );
+    for invalid in [
+        "",
+        "kaspatest:qq",
+        "kaspa:qq",
+        "bitcoin:qq",
+        &testnet[..testnet.len() - 1],
+    ] {
         assert_eq!(network(invalid, "mainnet"), None, "{invalid}");
     }
 }

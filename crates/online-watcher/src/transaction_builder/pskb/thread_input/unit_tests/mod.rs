@@ -28,10 +28,34 @@ fn thread_utxo_validates_presence_amount_length_and_hex_independently() {
         .to_string()
     };
     assert!(parse_thread_utxo(&valid("11".repeat(32), "1")).is_ok());
-    assert!(parse_thread_utxo(&valid(String::new(), "1")).is_err());
-    assert!(parse_thread_utxo(&valid("11".repeat(32), "0")).is_err());
-    assert!(parse_thread_utxo(&valid("11".repeat(31), "1")).is_err());
+    assert_eq!(
+        parse_thread_utxo(&valid(String::new(), "1"))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Invalid thread UTXO")
+    );
+    assert_eq!(
+        parse_thread_utxo(&valid("11".repeat(32), "0"))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Invalid thread UTXO")
+    );
+    assert_eq!(
+        parse_thread_utxo(&valid("11".repeat(31), "1"))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Thread UTXO tx_id must be 32-byte hex")
+    );
     let mut bad_hex = "11".repeat(32);
     bad_hex.replace_range(62..64, "zz");
-    assert!(parse_thread_utxo(&valid(bad_hex, "1")).is_err());
+    assert_eq!(
+        parse_thread_utxo(&valid(bad_hex, "1"))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Thread UTXO tx_id must be 32-byte hex")
+    );
 }

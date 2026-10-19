@@ -43,56 +43,81 @@ fn claim_builder_covers_mixed_inputs_change_and_balance_errors() {
     assert!(claim.change > 0);
     assert!(!claim.wire.is_empty());
 
-    assert!(build_claim(
-        &covenant,
-        &destination,
-        &hex::encode(&redeem),
-        &mixing,
-        0,
-        vec![],
-        utxo(3, 1),
-    )
-    .is_err());
-    assert!(build_claim(
-        &covenant,
-        &destination,
-        "zz",
-        &mixing,
-        0,
-        vec![utxo(1, 1)],
-        utxo(3, 1),
-    )
-    .is_err());
-    assert!(build_claim(
-        &covenant,
-        &destination,
-        &hex::encode(&redeem),
-        &mixing,
-        u64::MAX,
-        vec![utxo(1, 1)],
-        utxo(3, 1),
-    )
-    .is_err());
-    assert!(build_claim(
-        "bad-address",
-        &destination,
-        &hex::encode(&redeem),
-        &mixing,
-        0,
-        vec![utxo(1, 10_000_000)],
-        utxo(3, 2_000_000),
-    )
-    .is_err());
-    assert!(build_claim(
-        &covenant,
-        &destination,
-        &hex::encode(&redeem),
-        &mixing,
-        0,
-        vec![utxo(1, u64::MAX), utxo(2, 1)],
-        utxo(3, 1),
-    )
-    .is_err());
+    assert_eq!(
+        build_claim(
+            &covenant,
+            &destination,
+            &hex::encode(&redeem),
+            &mixing,
+            0,
+            vec![],
+            utxo(3, 1),
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("No UTXOs at covenant address")
+    );
+    assert_eq!(
+        build_claim(
+            &covenant,
+            &destination,
+            "zz",
+            &mixing,
+            0,
+            vec![utxo(1, 1)],
+            utxo(3, 1),
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Bad redeem hex: Invalid character 'z' at position 0")
+    );
+    assert_eq!(
+        build_claim(
+            &covenant,
+            &destination,
+            &hex::encode(&redeem),
+            &mixing,
+            u64::MAX,
+            vec![utxo(1, 1)],
+            utxo(3, 1),
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Balance too low to cover fee")
+    );
+    assert_eq!(
+        build_claim(
+            "bad-address",
+            &destination,
+            &hex::encode(&redeem),
+            &mixing,
+            0,
+            vec![utxo(1, 10_000_000)],
+            utxo(3, 2_000_000),
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Unknown address prefix")
+    );
+    assert_eq!(
+        build_claim(
+            &covenant,
+            &destination,
+            &hex::encode(&redeem),
+            &mixing,
+            0,
+            vec![utxo(1, u64::MAX), utxo(2, 1)],
+            utxo(3, 1),
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Covenant balance overflows u64")
+    );
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -106,7 +131,12 @@ fn payjoin_claim_wasm_facade_rejects_bad_request_before_network() {
         1,
         "ws://unused",
     ));
-    assert!(result.is_err());
+    assert_eq!(
+        result.err().map(|error| format!("{error:?}")).as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -116,12 +146,23 @@ fn payjoin_network_helpers_and_logging_are_host_covered() {
 
     let covenant = address(0x61, "kaspa");
     let mixing = address(0x62, "kaspa");
-    assert!(ready(super::claim::fetch_covenant_utxos("ws://unused", &covenant)).is_err());
-    assert!(ready(super::claim::fetch_smallest_mixing_utxo(
-        "ws://unused",
-        &mixing
-    ))
-    .is_err());
+    assert_eq!(
+        ready(super::claim::fetch_covenant_utxos("ws://unused", &covenant))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)")
+    );
+    assert_eq!(
+        ready(super::claim::fetch_smallest_mixing_utxo(
+            "ws://unused",
+            &mixing
+        ))
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)")
+    );
 
     let redeem = crate::contracts::covenant::script::build_payjoin_covenant_script(
         &[0x51; 32],

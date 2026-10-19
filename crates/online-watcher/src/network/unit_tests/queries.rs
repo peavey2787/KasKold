@@ -15,14 +15,37 @@ fn utxo_query_boundaries_reject_invalid_addresses_before_transport() {
         next_receive_index: 0,
         next_change_index: 0,
     };
-    assert!(ready(fetch_all("ws://unused", &wallet)).is_err());
-    assert!(ready(fetch_all_complete("ws://unused", &wallet)).is_err());
-    assert!(ready(fetch_for_address("ws://unused", "not-an-address")).is_err());
-    assert!(ready(fetch_for_addresses(
-        "ws://unused",
-        &["not-an-address".to_string()],
-    ))
-    .is_err());
+    assert_eq!(
+        ready(fetch_all("ws://unused", &wallet))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)")
+    );
+    assert_eq!(
+        ready(fetch_all_complete("ws://unused", &wallet))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)")
+    );
+    assert_eq!(
+        ready(fetch_for_address("ws://unused", "not-an-address"))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)")
+    );
+    assert_eq!(
+        ready(fetch_for_addresses(
+            "ws://unused",
+            &["not-an-address".to_string()],
+        ))
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)")
+    );
 }
 
 #[cfg(not(target_arch = "wasm32"))]

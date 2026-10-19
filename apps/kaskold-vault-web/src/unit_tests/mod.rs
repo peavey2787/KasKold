@@ -16,19 +16,23 @@ fn restore_export_and_lock_keep_the_web_shell_public_only() {
     let restored: serde_json::Value = serde_json::from_str(&restored).expect("restore JSON");
     let exported: serde_json::Value = serde_json::from_str(&exported).expect("export JSON");
     assert_eq!(restored["kpub"], exported["kpub"]);
-    assert!(restored["kpub"].as_str().is_some_and(|value| !value.is_empty()));
+    assert!(restored["kpub"]
+        .as_str()
+        .is_some_and(|value| !value.is_empty()));
     assert!(kaskold_vault_is_unlocked());
 
     kaskold_vault_lock();
     assert!(!kaskold_vault_is_unlocked());
 }
 
-
 #[test]
 fn web_wallet_labels_and_switch_cover_inventory_presentation() {
     use super::workflows::{kaskold_vault_switch_wallet, wallet_kind_label};
 
-    assert_eq!(wallet_kind_label(vault_runtime::WalletKind::Mnemonic), "Mnemonic");
+    assert_eq!(
+        wallet_kind_label(vault_runtime::WalletKind::Mnemonic),
+        "Mnemonic"
+    );
     assert_eq!(
         wallet_kind_label(vault_runtime::WalletKind::AccountXprv),
         "Account XPrv"
@@ -63,8 +67,20 @@ fn qr_and_hex_helpers_are_deterministic_and_self_contained() {
 fn profiled_qr_framing_covers_single_multi_and_rejected_profiles() {
     use super::qr::{render_profiled_response_frames, validate_profiled_payload};
 
-    assert!(validate_profiled_payload(&[], 91).is_err());
-    assert!(validate_profiled_payload(b"payload", 99).is_err());
+    assert_eq!(
+        validate_profiled_payload(&[], 91)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Signed response is empty.")
+    );
+    assert_eq!(
+        validate_profiled_payload(b"payload", 99)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Unsupported QR density.")
+    );
 
     let single = render_profiled_response_frames(&[0x41; 100], 91).expect("single frame");
     assert_eq!(single.len(), 1);
@@ -73,7 +89,9 @@ fn profiled_qr_framing_covers_single_multi_and_rejected_profiles() {
 
     let multi = render_profiled_response_frames(&[0x42; 180], 70).expect("multi frame");
     assert!(multi.len() >= 2);
-    assert!(multi.iter().all(|frame| frame.total as usize == multi.len()));
+    assert!(multi
+        .iter()
+        .all(|frame| frame.total as usize == multi.len()));
     for (index, frame) in multi.iter().enumerate() {
         assert_eq!(frame.index as usize, index);
         assert!(!frame.payload_hex.is_empty());
@@ -84,19 +102,40 @@ fn profiled_qr_framing_covers_single_multi_and_rejected_profiles() {
 #[test]
 fn web_hex_decoder_covers_valid_and_rejected_payloads() {
     use super::workflows::decode_hex_bytes;
-    assert_eq!(decode_hex_bytes("00 af FF").unwrap(), vec![0x00, 0xaf, 0xff]);
-    assert!(decode_hex_bytes("").is_err());
-    assert!(decode_hex_bytes("0").is_err());
-    assert!(decode_hex_bytes("zz").is_err());
+    assert_eq!(
+        decode_hex_bytes("00 af FF").unwrap(),
+        vec![0x00, 0xaf, 0xff]
+    );
+    assert_eq!(
+        decode_hex_bytes("")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Hex payload must contain complete bytes.")
+    );
+    assert_eq!(
+        decode_hex_bytes("0")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Hex payload must contain complete bytes.")
+    );
+    assert_eq!(
+        decode_hex_bytes("zz")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Invalid hexadecimal payload.")
+    );
 }
 
 #[test]
 fn web_covenant_labels_and_response_json_cover_every_response_shape() {
+    use super::covenant::{mode_label, response_json, scheme_label};
     use shared_signer::covenant_sign::{
         encode_response, CovenantSignResponse, KnownScheme, ResponseKind, RESPONSE_LEN,
         SESSION_ID_LEN,
     };
-    use super::covenant::{mode_label, response_json, scheme_label};
 
     for (mode, label) in [
         (vault_runtime::CovenantMode::None, "None"),
@@ -118,14 +157,28 @@ fn web_covenant_labels_and_response_json_cover_every_response_shape() {
         ResponseKind::NonceCommitment,
         ResponseKind::Signature,
     ] {
-        let session_id = if matches!(kind, ResponseKind::NonceCommitment | ResponseKind::Signature) {
+        let session_id = if matches!(
+            kind,
+            ResponseKind::NonceCommitment | ResponseKind::Signature
+        ) {
             [1; SESSION_ID_LEN]
         } else {
             [0; SESSION_ID_LEN]
         };
-        let binding_token = if kind == ResponseKind::KeyInfo { [0; 32] } else { [4; 32] };
-        let commitment = if kind == ResponseKind::KeyInfo { [0; 32] } else { [5; 32] };
-        let nonce_point = if matches!(kind, ResponseKind::NonceCommitment | ResponseKind::Signature) {
+        let binding_token = if kind == ResponseKind::KeyInfo {
+            [0; 32]
+        } else {
+            [4; 32]
+        };
+        let commitment = if kind == ResponseKind::KeyInfo {
+            [0; 32]
+        } else {
+            [5; 32]
+        };
+        let nonce_point = if matches!(
+            kind,
+            ResponseKind::NonceCommitment | ResponseKind::Signature
+        ) {
             let mut point = [0; 33];
             point[0] = 0x02;
             point[1] = 6;
@@ -133,7 +186,11 @@ fn web_covenant_labels_and_response_json_cover_every_response_shape() {
         } else {
             [0; 33]
         };
-        let signature = if kind == ResponseKind::Signature { [7; 64] } else { [0; 64] };
+        let signature = if kind == ResponseKind::Signature {
+            [7; 64]
+        } else {
+            [0; 64]
+        };
         let response = CovenantSignResponse {
             kind,
             session_id,
@@ -146,20 +203,19 @@ fn web_covenant_labels_and_response_json_cover_every_response_shape() {
         };
         let mut wire = [0u8; RESPONSE_LEN];
         let len = encode_response(&response, &mut wire).expect("response encode");
-        let json: serde_json::Value = serde_json::from_str(
-            &response_json(&wire[..len]).expect("response JSON"),
-        )
-        .expect("response JSON parses");
+        let json: serde_json::Value =
+            serde_json::from_str(&response_json(&wire[..len]).expect("response JSON"))
+                .expect("response JSON parses");
         assert!(json["kind"].as_str().is_some());
     }
 }
 
 #[test]
 fn web_private_swap_labels_and_response_json_cover_every_response_shape() {
+    use super::private_swap::{mode_label, response_json, response_kind_label};
     use shared_signer::covenant_sign::private_swap::{
         encode_response, PrivateSwapResponse, ResponseKind, RESPONSE_LEN,
     };
-    use super::private_swap::{mode_label, response_json, response_kind_label};
 
     for (mode, label) in [
         (vault_runtime::PrivateSwapMode::None, "None"),
@@ -219,10 +275,9 @@ fn web_private_swap_labels_and_response_json_cover_every_response_shape() {
         }
         let mut wire = [0u8; RESPONSE_LEN];
         let len = encode_response(&response, &mut wire).expect("private swap response encode");
-        let json: serde_json::Value = serde_json::from_str(
-            &response_json(&wire[..len]).expect("private swap response JSON"),
-        )
-        .expect("private swap JSON parses");
+        let json: serde_json::Value =
+            serde_json::from_str(&response_json(&wire[..len]).expect("private swap response JSON"))
+                .expect("private swap JSON parses");
         assert!(json["kind"].as_str().is_some());
     }
 }
@@ -230,8 +285,20 @@ fn web_private_swap_labels_and_response_json_cover_every_response_shape() {
 #[test]
 fn web_security_policy_validates_host_time_before_runtime_policy() {
     use super::security::{kaskold_vault_check_session_signing_policy, validate_host_time};
-    assert!(validate_host_time(f64::NAN).is_err());
-    assert!(validate_host_time(-1.0).is_err());
+    assert_eq!(
+        validate_host_time(f64::NAN)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Current UTC time is invalid.")
+    );
+    assert_eq!(
+        validate_host_time(-1.0)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Current UTC time is invalid.")
+    );
     assert_eq!(validate_host_time(0.0), Ok(0));
     assert!(kaskold_vault_check_session_signing_policy(0.0).is_ok());
 }

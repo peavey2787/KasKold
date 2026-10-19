@@ -65,15 +65,33 @@ fn merkle_spend_helpers_cover_limits_fees_amounts_and_encoding() {
     );
     assert!(require_merkle_utxos(&many).is_ok());
     assert!(parse_merkle_proof("[]").is_ok());
-    assert!(parse_merkle_proof("{").is_err());
+    assert_eq!(
+        parse_merkle_proof("{")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Bad merkle proof JSON: invalid type: map, expected a sequence at line 1 column 0")
+    );
     assert_eq!(
         require_merkle_send(0),
         Err("Send amount must be > 0".to_string())
     );
     assert!(require_merkle_send(1).is_ok());
-    assert!(merkle_required(u64::MAX, 1).is_err());
+    assert_eq!(
+        merkle_required(u64::MAX, 1)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Merkle spend amount overflow")
+    );
     assert_eq!(require_merkle_balance(2, 1, 3, 5), Ok(2));
-    assert!(require_merkle_balance(4, 2, 6, 5).is_err());
+    assert_eq!(
+        require_merkle_balance(4, 2, 6, 5)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Send 4 + fee 2 = 6 exceeds balance 5")
+    );
     assert!(merkle_spend_fee(1, 1, 1).expect("fee") > 1);
 
     let script =
@@ -81,9 +99,27 @@ fn merkle_spend_helpers_cover_limits_fees_amounts_and_encoding() {
     let scripts = decode_merkle_scripts(ADDR_A, ADDR_B, "51").expect("scripts");
     assert_eq!(scripts.covenant, script);
     assert_eq!(scripts.redeem, vec![0x51]);
-    assert!(decode_merkle_scripts("bad", ADDR_B, "51").is_err());
-    assert!(decode_merkle_scripts(ADDR_A, "bad", "51").is_err());
-    assert!(decode_merkle_scripts(ADDR_A, ADDR_B, "zz").is_err());
+    assert_eq!(
+        decode_merkle_scripts("bad", ADDR_B, "51")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Unknown address prefix")
+    );
+    assert_eq!(
+        decode_merkle_scripts(ADDR_A, "bad", "51")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Unknown address prefix")
+    );
+    assert_eq!(
+        decode_merkle_scripts(ADDR_A, ADDR_B, "zz")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Bad redeem hex: Invalid character 'z' at position 0")
+    );
 
     let request = MerkleSpendRequest {
         covenant_address: ADDR_A,
@@ -117,7 +153,13 @@ fn merkle_prepare_fail_closed_amount_and_balance_paths_are_host_testable() {
         requested_fee: 1,
         utxos: vec![],
     };
-    assert!(prepare_merkle_whitelist_spend(empty).is_err());
+    assert_eq!(
+        prepare_merkle_whitelist_spend(empty)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("No UTXOs at covenant address")
+    );
 
     let zero_send = MerkleSpendRequest {
         covenant_address: ADDR_A,
@@ -128,7 +170,13 @@ fn merkle_prepare_fail_closed_amount_and_balance_paths_are_host_testable() {
         requested_fee: 1,
         utxos: vec![utxo(8, 10_000_000)],
     };
-    assert!(prepare_merkle_whitelist_spend(zero_send).is_err());
+    assert_eq!(
+        prepare_merkle_whitelist_spend(zero_send)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Send amount must be > 0")
+    );
 
     let overspend = MerkleSpendRequest {
         covenant_address: ADDR_A,
@@ -139,5 +187,11 @@ fn merkle_prepare_fail_closed_amount_and_balance_paths_are_host_testable() {
         requested_fee: 1,
         utxos: vec![utxo(9, 1)],
     };
-    assert!(prepare_merkle_whitelist_spend(overspend).is_err());
+    assert_eq!(
+        prepare_merkle_whitelist_spend(overspend)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Send 10000000 + fee 234485 = 10234485 exceeds balance 1")
+    );
 }

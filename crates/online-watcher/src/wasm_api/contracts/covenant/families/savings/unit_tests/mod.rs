@@ -16,5 +16,8 @@ fn savings_automatic_claim_wasm_facade_rejects_bad_redeem() {
     let result = crate::wasm_api::test_support::ready(
         super::create_covenant_timelocked_savings_claim("bad", "bad", "zz", 1, 1, "ws://unused"),
     );
-    assert!(result.is_err());
+    assert_eq!(
+        result.err().map(|error| format!("{error:?}")).as_deref(),
+        Some(r#"JsValue(Some("Bad redeem hex: Invalid character 'z' at position 0"))"#)
+    );
 }

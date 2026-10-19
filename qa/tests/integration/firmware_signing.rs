@@ -29,7 +29,13 @@ fn generator_matches_bip340_vector_zero_and_production_verifier() {
     // The generic standards path verifies through the production verifier,
     // while the release path additionally rejects keys that do not match the
     // public release identity compiled into firmware.
-    assert!(sign_firmware_hash(&private_key, &message).is_err());
+    assert_eq!(
+        sign_firmware_hash(&private_key, &message)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidSignature")
+    );
 }
 
 #[test]
@@ -48,5 +54,11 @@ fn development_generator_matches_embedded_test_identity() {
 
     // A repository-public development key must never satisfy the production
     // release identity check.
-    assert!(sign_firmware_hash(&private_key, &message).is_err());
+    assert_eq!(
+        sign_firmware_hash(&private_key, &message)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidSignature")
+    );
 }

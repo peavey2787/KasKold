@@ -4,8 +4,7 @@ use crate::account::address::network_prefix;
 use crate::wasm_api::utilities::common::js_error;
 use crate::wasm_api::JsValue;
 use kaspa_portal::primitives::address::{
-    address_prefix, address_to_script_pubkey, script_address, validate_kaspa_address,
-    KaspaNetwork,
+    address_prefix, address_to_script_pubkey, script_address, validate_kaspa_address, KaspaNetwork,
 };
 
 /// Whether `text` is a valid Kaspa address on any network.
@@ -74,5 +73,9 @@ pub fn address_network(address: &str, selected_network: &str) -> Result<String, 
 fn numbered_testnet(selected: &str) -> &str {
     let numbered = selected.starts_with("testnet-")
         && KaspaNetwork::from_name(selected) == Some(KaspaNetwork::Testnet);
-    if numbered { selected } else { "testnet-10" }
+    if numbered {
+        selected
+    } else {
+        "testnet-10"
+    }
 }

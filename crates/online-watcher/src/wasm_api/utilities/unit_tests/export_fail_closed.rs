@@ -10,166 +10,442 @@ const WS: &str = "ws://unused";
 
 #[test]
 fn covenant_address_exports_reject_malformed_keys() {
-    assert!(covenant_additive_address(BAD_KEY, 1, 1, NETWORK).is_err());
-    assert!(covenant_allowance(BAD_KEY, BAD_KEY, 1, 1, 1, NETWORK).is_err());
-    assert!(covenant_dms(BAD_KEY, BAD_KEY, 1, NETWORK).is_err());
-    assert!(covenant_escrow(BAD_KEY, BAD_KEY, BAD_KEY, BAD_ADDRESS, BAD_ADDRESS, NETWORK).is_err());
-    assert!(covenant_ship_escrow("not-json").is_err());
-    assert!(
-        covenant_timelocked_escrow(BAD_KEY, BAD_KEY, BAD_ADDRESS, BAD_ADDRESS, 1, NETWORK).is_err()
+    assert_eq!(
+        covenant_additive_address(BAD_KEY, 1, 1, NETWORK)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad hex: Invalid character 'z' at position 0"))"#)
     );
-    assert!(covenant_oracle_v1(BAD_KEY, BAD_KEY, BAD_KEY, BAD_KEY, "release", 1, NETWORK).is_err());
-    assert!(verify_oracle_v1_attestation(BAD_KEY, BAD_KEY, BAD_KEY).is_err());
-    assert!(covenant_payjoin(BAD_KEY, BAD_KEY, 1, 1, 1, NETWORK).is_err());
-    assert!(covenant_timelocked_savings(BAD_KEY, BAD_KEY, 1, NETWORK).is_err());
-    assert!(covenant_oracle_mb("not-json").is_err());
-    assert!(covenant_commit_reveal(BAD_KEY, BAD_KEY, 1, NETWORK).is_err());
-    assert!(covenant_merkle_whitelist(BAD_KEY, BAD_KEY, 1, 1, NETWORK).is_err());
-    assert!(covenant_crowdfund(BAD_KEY, BAD_ADDRESS, 1, 1, BAD_KEY, NETWORK).is_err());
+    assert_eq!(
+        covenant_allowance(BAD_KEY, BAD_KEY, 1, 1, 1, NETWORK)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        covenant_dms(BAD_KEY, BAD_KEY, 1, NETWORK)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        covenant_escrow(BAD_KEY, BAD_KEY, BAD_KEY, BAD_ADDRESS, BAD_ADDRESS, NETWORK)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        covenant_ship_escrow("not-json")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Bad shipping escrow request JSON: expected ident at line 1 column 2"))"#
+        )
+    );
+    assert_eq!(
+        covenant_timelocked_escrow(BAD_KEY, BAD_KEY, BAD_ADDRESS, BAD_ADDRESS, 1, NETWORK)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad alice pubkey hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        covenant_oracle_v1(BAD_KEY, BAD_KEY, BAD_KEY, BAD_KEY, "release", 1, NETWORK)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Oracle owner key must be 32-byte hex"))"#)
+    );
+    assert_eq!(
+        verify_oracle_v1_attestation(BAD_KEY, BAD_KEY, BAD_KEY)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Oracle oracle key must be 32-byte hex"))"#)
+    );
+    assert_eq!(
+        covenant_payjoin(BAD_KEY, BAD_KEY, 1, 1, 1, NETWORK)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        covenant_timelocked_savings(BAD_KEY, BAD_KEY, 1, NETWORK)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad wallet1 pubkey hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        covenant_oracle_mb("not-json")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Bad oracle genesis request JSON: expected ident at line 1 column 2"))"#
+        )
+    );
+    assert_eq!(
+        covenant_commit_reveal(BAD_KEY, BAD_KEY, 1, NETWORK)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        covenant_merkle_whitelist(BAD_KEY, BAD_KEY, 1, 1, NETWORK)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        covenant_crowdfund(BAD_KEY, BAD_ADDRESS, 1, 1, BAD_KEY, NETWORK)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad hex: Invalid character 'z' at position 0"))"#)
+    );
 }
 
 #[test]
 fn covenant_spend_exports_reject_malformed_requests_before_network_io() {
-    assert!(ready(create_covenant_allowance_withdraw(
-        BAD_ADDRESS,
-        BAD_ADDRESS,
-        BAD_KEY,
-        1,
-        1,
-        WS
-    ))
-    .is_err());
-    assert!(ready(create_covenant_beneficiary_spend(
-        BAD_ADDRESS,
-        BAD_ADDRESS,
-        BAD_KEY,
-        1,
-        1,
-        WS
-    ))
-    .is_err());
-    assert!(create_covenant_beneficiary_spend_selected(
-        BAD_ADDRESS,
-        BAD_ADDRESS,
-        BAD_KEY,
-        1,
-        "[]",
-        1
-    )
-    .is_err());
-    assert!(ready(create_covenant_oracle_v1_claim(
-        BAD_ADDRESS,
-        BAD_ADDRESS,
-        BAD_KEY,
-        BAD_KEY,
-        BAD_KEY,
-        BAD_KEY,
-        1,
-        WS
-    ))
-    .is_err());
-    assert!(ready(create_covenant_payjoin_claim(
-        BAD_ADDRESS,
-        BAD_ADDRESS,
-        BAD_KEY,
-        BAD_ADDRESS,
-        1,
-        WS
-    ))
-    .is_err());
-    assert!(ready(create_covenant_timelocked_savings_claim(
-        BAD_ADDRESS,
-        BAD_ADDRESS,
-        BAD_KEY,
-        1,
-        1,
-        WS
-    ))
-    .is_err());
-    assert!(create_covenant_timelocked_savings_claim_selected(
-        BAD_ADDRESS,
-        BAD_ADDRESS,
-        BAD_KEY,
-        1,
-        "[]",
-        1
-    )
-    .is_err());
-    assert!(ready(create_covenant_owner_spend(
-        BAD_ADDRESS,
-        BAD_ADDRESS,
-        BAD_KEY,
-        1,
-        WS,
-        "owner"
-    ))
-    .is_err());
-    assert!(create_covenant_owner_spend_selected(
-        BAD_ADDRESS,
-        BAD_ADDRESS,
-        BAD_KEY,
-        "[]",
-        1,
-        "owner"
-    )
-    .is_err());
-    assert!(ready(create_merkle_whitelist_spend(
-        BAD_ADDRESS,
-        BAD_ADDRESS,
-        BAD_KEY,
-        "[]",
-        1,
-        1,
-        WS
-    ))
-    .is_err());
-    assert!(ready(create_commit_reveal_spend("not-json")).is_err());
-    assert!(ready(inspect_crowdfund_contributions("not-json", WS)).is_err());
-    assert!(ready(create_crowdfund_sweep(
-        "not-json",
-        BAD_ADDRESS,
-        1,
-        1,
-        BAD_KEY,
-        BAD_KEY,
-        BAD_KEY,
-        1,
-        WS
-    ))
-    .is_err());
-    assert!(ready(create_covenant_pskb("not-json")).is_err());
-    assert!(ready(create_covenant_pskb_with_payload("not-json")).is_err());
+    assert_eq!(
+        ready(create_covenant_allowance_withdraw(
+            BAD_ADDRESS,
+            BAD_ADDRESS,
+            BAD_KEY,
+            1,
+            1,
+            WS
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
+    assert_eq!(
+        ready(create_covenant_beneficiary_spend(
+            BAD_ADDRESS,
+            BAD_ADDRESS,
+            BAD_KEY,
+            1,
+            1,
+            WS
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("Bad redeem hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        create_covenant_beneficiary_spend_selected(BAD_ADDRESS, BAD_ADDRESS, BAD_KEY, 1, "[]", 1)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad redeem hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        ready(create_covenant_oracle_v1_claim(
+            BAD_ADDRESS,
+            BAD_ADDRESS,
+            BAD_KEY,
+            BAD_KEY,
+            BAD_KEY,
+            BAD_KEY,
+            1,
+            WS
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("Bad redeem hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        ready(create_covenant_payjoin_claim(
+            BAD_ADDRESS,
+            BAD_ADDRESS,
+            BAD_KEY,
+            BAD_ADDRESS,
+            1,
+            WS
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
+    assert_eq!(
+        ready(create_covenant_timelocked_savings_claim(
+            BAD_ADDRESS,
+            BAD_ADDRESS,
+            BAD_KEY,
+            1,
+            1,
+            WS
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("Bad redeem hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        create_covenant_timelocked_savings_claim_selected(
+            BAD_ADDRESS,
+            BAD_ADDRESS,
+            BAD_KEY,
+            1,
+            "[]",
+            1
+        )
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("Bad redeem hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        ready(create_covenant_owner_spend(
+            BAD_ADDRESS,
+            BAD_ADDRESS,
+            BAD_KEY,
+            1,
+            WS,
+            "owner"
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("Bad redeem hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        create_covenant_owner_spend_selected(BAD_ADDRESS, BAD_ADDRESS, BAD_KEY, "[]", 1, "owner")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad redeem hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        ready(create_merkle_whitelist_spend(
+            BAD_ADDRESS,
+            BAD_ADDRESS,
+            BAD_KEY,
+            "[]",
+            1,
+            1,
+            WS
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
+    assert_eq!(
+        ready(create_commit_reveal_spend("not-json"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Bad commit-reveal spend request JSON: expected ident at line 1 column 2"))"#
+        )
+    );
+    assert_eq!(
+        ready(inspect_crowdfund_contributions("not-json", WS))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Invalid crowdfunding contribution JSON: expected ident at line 1 column 2"))"#
+        )
+    );
+    assert_eq!(
+        ready(create_crowdfund_sweep(
+            "not-json",
+            BAD_ADDRESS,
+            1,
+            1,
+            BAD_KEY,
+            BAD_KEY,
+            BAD_KEY,
+            1,
+            WS
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(
+            r#"JsValue(Some("Invalid crowdfunding contribution JSON: expected ident at line 1 column 2"))"#
+        )
+    );
+    assert_eq!(
+        ready(create_covenant_pskb("not-json"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad covenant request JSON: expected ident at line 1 column 2"))"#)
+    );
+    assert_eq!(
+        ready(create_covenant_pskb_with_payload("not-json"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Bad covenant payload request JSON: expected ident at line 1 column 2"))"#
+        )
+    );
 }
 
 #[test]
 fn utility_and_protocol_exports_reject_malformed_hex_and_documents() {
-    assert!(build_covenant_payload(1, BAD_KEY).is_err());
-    assert!(parse_covenant_payload(BAD_KEY).is_err());
-    assert!(commit_hash(BAD_KEY).is_err());
-    assert!(merkle_root_from_addresses("not-json").is_err());
-    assert!(merkle_proof_for_address("not-json", BAD_ADDRESS).is_err());
-    assert!(sha256_hash(BAD_KEY).is_err());
-    assert!(encode_p2pk_address(BAD_KEY, None).is_err());
-    assert!(parse_kpub("not-a-kpub").is_err());
-    assert!(derive_covenant_payload_key("not-a-kpub").is_err());
-    assert!(stealth_generate_payment(BAD_KEY, BAD_KEY, NETWORK).is_err());
-    assert!(
-        verify_covenant_anti_klepto(BAD_KEY, BAD_KEY, BAD_KEY, BAD_KEY, BAD_KEY, BAD_KEY).is_err()
+    assert_eq!(
+        build_covenant_payload(1, BAD_KEY)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad params hex: Invalid character 'z' at position 0"))"#)
     );
-    assert!(pskt_summary(BAD_KEY, NETWORK).is_err());
-    assert!(pskt_relay_to_kspt(BAD_KEY, NETWORK).is_err());
-    assert!(pskt_merge_signed_kspt(BAD_KEY, BAD_KEY).is_err());
-    assert!(ready(pskt_finalize_and_broadcast(BAD_KEY, WS)).is_err());
-    assert!(generate_qr_frames(BAD_KEY).is_err());
-    assert!(decode_qr_frame(BAD_KEY).is_err());
-    assert!(ready(create_send_pskb_with_utxos(
-        "not-json",
-        BAD_ADDRESS,
-        1,
-        1,
-        "[]"
-    ))
-    .is_err());
+    assert_eq!(
+        parse_covenant_payload(BAD_KEY)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad plaintext hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        commit_hash(BAD_KEY)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad preimage hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        merkle_root_from_addresses("not-json")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad JSON: expected ident at line 1 column 2"))"#)
+    );
+    assert_eq!(
+        merkle_proof_for_address("not-json", BAD_ADDRESS)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad JSON: expected ident at line 1 column 2"))"#)
+    );
+    assert_eq!(
+        sha256_hash(BAD_KEY)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("bad hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        encode_p2pk_address(BAD_KEY, None)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Invalid hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        parse_kpub("not-a-kpub")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Invalid kpub"))"#)
+    );
+    assert_eq!(
+        derive_covenant_payload_key("not-a-kpub")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Invalid kpub"))"#)
+    );
+    assert_eq!(
+        stealth_generate_payment(BAD_KEY, BAD_KEY, NETWORK)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Stealth meta-address must be 128 hex chars, got 2"))"#)
+    );
+    assert_eq!(
+        verify_covenant_anti_klepto(BAD_KEY, BAD_KEY, BAD_KEY, BAD_KEY, BAD_KEY, BAD_KEY)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("invalid covenant public key hex"))"#)
+    );
+    assert_eq!(
+        pskt_summary(BAD_KEY, NETWORK)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Bad outer hex: outer PSKT/PSKB must be even-length lowercase hexadecimal"))"#
+        )
+    );
+    assert_eq!(
+        pskt_relay_to_kspt(BAD_KEY, NETWORK)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Encoding: outer PSKT/PSKB hex must be even-length lowercase hexadecimal"))"#
+        )
+    );
+    assert_eq!(
+        pskt_merge_signed_kspt(BAD_KEY, BAD_KEY)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("KSPT hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        ready(pskt_finalize_and_broadcast(BAD_KEY, WS))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("PSKT cryptographic verification failed: outer PSKT/PSKB hex must be even-length lowercase hexadecimal"))"#
+        )
+    );
+    assert_eq!(
+        generate_qr_frames(BAD_KEY)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Invalid hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        decode_qr_frame(BAD_KEY)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Invalid hex: Invalid character 'z' at position 0"))"#)
+    );
+    assert_eq!(
+        ready(create_send_pskb_with_utxos(
+            "not-json",
+            BAD_ADDRESS,
+            1,
+            1,
+            "[]"
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("Bad wallet: expected ident at line 1 column 2"))"#)
+    );
 }
 
 #[test]
@@ -207,7 +483,15 @@ fn private_swap_exports_reject_malformed_wires_and_fields() {
         response_error.contains("Invalid Private Swap response"),
         "{response_error}"
     );
-    assert!(private_swap_insert_completed_signature(BAD_KEY, BAD_KEY, BAD_KEY).is_err());
+    assert_eq!(
+        private_swap_insert_completed_signature(BAD_KEY, BAD_KEY, BAD_KEY)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Bad Private Swap completed signature: Invalid character 'z' at position 0"))"#
+        )
+    );
 }
 
 fn expect_err_text(result: Result<String, JsValue>, label: &str) -> String {

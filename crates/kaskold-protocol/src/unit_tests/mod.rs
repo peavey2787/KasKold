@@ -12,8 +12,24 @@ fn strict_networks_never_fall_back_to_mainnet() {
     assert_eq!(Network::parse("testnet-10"), Ok(Network::Testnet10));
     assert_eq!(Network::parse("testnet-11"), Ok(Network::Testnet11));
     assert_eq!(Network::parse("testnet-12"), Ok(Network::Testnet12));
-    assert!(Network::parse("testnet-whatever").is_err());
-    assert!(Network::parse("kaspa").is_err());
+    assert_eq!(
+        Network::parse("testnet-whatever")
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"ProtocolError { kind: WrongNetwork, message: "unsupported Kaspa network: testnet-whatever" }"#
+        )
+    );
+    assert_eq!(
+        Network::parse("kaspa")
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"ProtocolError { kind: WrongNetwork, message: "unsupported Kaspa network: kaspa" }"#
+        )
+    );
 }
 
 #[test]
@@ -70,16 +86,29 @@ fn privacy_pairing_binds_nonce_account_and_typed_derivations() {
 
     let wrong_request =
         create_privacy_pairing_request([0x43; 16], 100, 2, 900, 1).expect("wrong request");
-    assert!(
-        accept_privacy_pairing_response(&wrong_request, &response, Network::Mainnet, None).is_err()
+    assert_eq!(
+        accept_privacy_pairing_response(&wrong_request, &response, Network::Mainnet, None)
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"ProtocolError { kind: PairingMismatch, message: "privacy pairing response does not match the original request nonce/ranges" }"#
+        )
     );
-    assert!(accept_privacy_pairing_response(
-        &request,
-        &response,
-        Network::Mainnet,
-        Some(&hex::encode([0u8; ACCOUNT_FINGERPRINT_LEN])),
-    )
-    .is_err());
+    assert_eq!(
+        accept_privacy_pairing_response(
+            &request,
+            &response,
+            Network::Mainnet,
+            Some(&hex::encode([0u8; ACCOUNT_FINGERPRINT_LEN])),
+        )
+        .err()
+        .map(|error| std::format!("{error:?}"))
+        .as_deref(),
+        Some(
+            r#"ProtocolError { kind: PairingMismatch, message: "privacy pairing response belongs to a different KasKold account" }"#
+        )
+    );
 }
 
 #[test]
@@ -118,8 +147,24 @@ fn derivation_helpers_own_kaskold_proprietary_encoding() {
         "700"
     );
 
-    assert!(attach_input_derivation(&original, 0, AddressBranch::Receive, 0x8000_0000).is_err());
-    assert!(attach_output_derivation(&original, 0, AddressBranch::Change, 0x8000_0000).is_err());
+    assert_eq!(
+        attach_input_derivation(&original, 0, AddressBranch::Receive, 0x8000_0000)
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"ProtocolError { kind: Derivation, message: "derivation hint needs branch 0 or 1 and a non-hardened index" }"#
+        )
+    );
+    assert_eq!(
+        attach_output_derivation(&original, 0, AddressBranch::Change, 0x8000_0000)
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"ProtocolError { kind: Derivation, message: "derivation hint needs branch 0 or 1 and a non-hardened index" }"#
+        )
+    );
 }
 
 fn test_pskb(input_key: [u8; 32], _index: u32) -> String {

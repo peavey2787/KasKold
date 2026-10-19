@@ -27,16 +27,46 @@ fn oracle_genesis_builder_covers_valid_and_malformed_requests() {
         .unwrap()
         .starts_with("kaspatest:"));
 
-    assert!(build_oracle_genesis_json("{}").is_err());
-    assert!(build_oracle_genesis_json(&request("")).is_err());
-    assert!(build_oracle_genesis_json(&request("0102")).is_err());
+    assert_eq!(
+        build_oracle_genesis_json("{}")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Bad oracle genesis request JSON: missing field `genesis_price` at line 1 column 2")
+    );
+    assert_eq!(
+        build_oracle_genesis_json(&request(""))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("hashfn must be 1 byte")
+    );
+    assert_eq!(
+        build_oracle_genesis_json(&request("0102"))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("hashfn must be 1 byte")
+    );
 
     let mut bad: Value = serde_json::from_str(&request("01")).unwrap();
     bad["genesis_price"] = json!("not-a-number");
-    assert!(build_oracle_genesis_json(&bad.to_string()).is_err());
+    assert_eq!(
+        build_oracle_genesis_json(&bad.to_string())
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Invalid genesis_price: invalid digit found in string")
+    );
     bad["genesis_price"] = json!("1");
     bad["image_id_hex"] = json!("00");
-    assert!(build_oracle_genesis_json(&bad.to_string()).is_err());
+    assert_eq!(
+        build_oracle_genesis_json(&bad.to_string())
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("image_id must be 32 bytes, got 1")
+    );
 }
 
 #[test]

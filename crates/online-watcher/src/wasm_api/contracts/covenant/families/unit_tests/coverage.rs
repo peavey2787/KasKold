@@ -22,7 +22,7 @@ fn allowance_automatic_wasm_facade_reaches_native_transport() {
     let covenant_address = covenant["address"].as_str().unwrap();
     let redeem = covenant["redeem_script_hex"].as_str().unwrap();
     let destination = address(0x73, "kaspa");
-    assert!(
+    assert_eq!(
         ready(super::super::allowance::create_covenant_allowance_withdraw(
             covenant_address,
             &destination,
@@ -31,6 +31,11 @@ fn allowance_automatic_wasm_facade_reaches_native_transport() {
             1,
             "ws://unused",
         ))
-        .is_err()
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
     );
 }

@@ -161,11 +161,41 @@ fn crowdfund_configuration_validation_boundaries_are_covered() {
         })
     };
 
-    assert!(build(0, 1, &valid_spk, &salt).is_err());
-    assert!(build(1, 0, &valid_spk, &salt).is_err());
-    assert!(build(1, 1, &[0; 2], &salt).is_err());
-    assert!(build(1, 1, &[0; 261], &salt).is_err());
-    assert!(build(1, 1, &valid_spk, &[0; 8]).is_err());
+    assert_eq!(
+        build(0, 1, &valid_spk, &salt)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Crowdfunding goal must be greater than zero")
+    );
+    assert_eq!(
+        build(1, 0, &valid_spk, &salt)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Crowdfunding refund timeout must be greater than zero")
+    );
+    assert_eq!(
+        build(1, 1, &[0; 2], &salt)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Crowdfunding organizer output script length is unsupported")
+    );
+    assert_eq!(
+        build(1, 1, &[0; 261], &salt)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Crowdfunding organizer output script length is unsupported")
+    );
+    assert_eq!(
+        build(1, 1, &valid_spk, &[0; 8])
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Crowdfunding salt must not be all zero")
+    );
 }
 
 #[test]
@@ -201,7 +231,13 @@ fn savings_scripts_cover_unconditional_goal_deadline_and_recovery_layouts() {
 
 #[test]
 fn stealth_sequence_commit_proof_rejects_invalid_transaction_wire() {
-    assert!(stamp_stealth_proof("00", &[0x71u8; 32], 0x72).is_err());
+    assert_eq!(
+        stamp_stealth_proof("00", &[0x71u8; 32], 0x72)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("set_tx_lane: not a PSKB wire")
+    );
 }
 
 #[test]

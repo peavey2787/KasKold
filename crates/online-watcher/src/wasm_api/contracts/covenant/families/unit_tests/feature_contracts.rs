@@ -42,32 +42,47 @@ fn oracle_v1_statement_is_unique_embedded_and_rejects_role_aliasing() {
         .as_str()
         .unwrap()
         .starts_with("KaspaPortal Oracle v1 "));
-    assert!(crate::contracts::covenant::oracle_v1::build_json_with_salt(
-        owner, owner, oracle, key_id, "Release", 100, "mainnet", [0x33; 16],
-    )
-    .is_err());
-    assert!(crate::contracts::covenant::oracle_v1::build_json_with_salt(
-        owner,
-        beneficiary,
-        oracle,
-        key_id,
-        "Release",
-        0,
-        "mainnet",
-        [0x44; 16],
-    )
-    .is_err());
-    assert!(crate::contracts::covenant::oracle_v1::build_json_with_salt(
-        "00",
-        beneficiary,
-        oracle,
-        key_id,
-        "Release",
-        100,
-        "mainnet",
-        [0x55; 16],
-    )
-    .is_err());
+    assert_eq!(
+        crate::contracts::covenant::oracle_v1::build_json_with_salt(
+            owner, owner, oracle, key_id, "Release", 100, "mainnet", [0x33; 16],
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Oracle owner, beneficiary, and oracle keys must be distinct")
+    );
+    assert_eq!(
+        crate::contracts::covenant::oracle_v1::build_json_with_salt(
+            owner,
+            beneficiary,
+            oracle,
+            key_id,
+            "Release",
+            0,
+            "mainnet",
+            [0x44; 16],
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Oracle refund timeout must be non-zero")
+    );
+    assert_eq!(
+        crate::contracts::covenant::oracle_v1::build_json_with_salt(
+            "00",
+            beneficiary,
+            oracle,
+            key_id,
+            "Release",
+            100,
+            "mainnet",
+            [0x55; 16],
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Oracle owner key must be 32-byte hex")
+    );
 }
 
 #[test]

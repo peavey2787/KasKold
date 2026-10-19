@@ -169,7 +169,13 @@ fn generic_review_accepts_only_explainable_inputs_and_outputs() {
     input.sighash_type = SigHashType::All.to_byte();
     assert!(validate_generic_input_fields(&input).is_ok());
     input.sighash_type = 0x02;
-    assert!(validate_generic_input_fields(&input).is_err());
+    assert_eq!(
+        validate_generic_input_fields(&input)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidToolInput")
+    );
 
     let mut output = TransactionOutput::empty();
     output.script_public_key = script(&p2pk(&[0x44; 32]));

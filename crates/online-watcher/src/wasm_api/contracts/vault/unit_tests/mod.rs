@@ -54,9 +54,12 @@ fn vault_watch_only_request_and_response_boundaries_are_exact() {
             .expect("watch-only split genesis request");
     assert_ne!(tagged.material.redeem_script, split.material.redeem_script);
     assert_eq!(tagged.change_address, address(5));
-    assert!(
+    assert_eq!(
         prepare_vault_genesis_request(VaultGenesisKind::Tagged, &wallet_json, "31", "mainnet",)
-            .is_err()
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Pubkey must be 32 bytes")
     );
     let no_change = serde_json::json!({
         "kpub": "",
@@ -66,13 +69,13 @@ fn vault_watch_only_request_and_response_boundaries_are_exact() {
         "next_change_index": 0,
     })
     .to_string();
-    assert!(prepare_vault_genesis_request(
-        VaultGenesisKind::Tagged,
-        &no_change,
-        &owner_hex,
-        "mainnet",
-    )
-    .is_err());
+    assert_eq!(
+        prepare_vault_genesis_request(VaultGenesisKind::Tagged, &no_change, &owner_hex, "mainnet",)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Watch-only wallet has no change address")
+    );
 
     let response = finalize_vault_genesis(
         &tagged.material,
@@ -85,7 +88,13 @@ fn vault_watch_only_request_and_response_boundaries_are_exact() {
     assert_eq!(value["covenant_id_hex"], "55".repeat(32));
     assert_eq!(value["send_amount"], "12345678");
     assert_eq!(value["covenant_address"], tagged.material.covenant_address);
-    assert!(finalize_vault_genesis(&tagged.material, 1, ("50534b42".to_string(), None),).is_err());
+    assert_eq!(
+        finalize_vault_genesis(&tagged.material, 1, ("50534b42".to_string(), None),)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Tagged vault genesis did not produce a covenant ID")
+    );
 
     let tagged_spend = prepare_vault_spend_material(VaultSpendKind::Tagged, &owner_hex)
         .expect("tagged public spend material");
@@ -94,7 +103,13 @@ fn vault_watch_only_request_and_response_boundaries_are_exact() {
     assert!(!tagged_spend.split);
     assert!(split_spend.split);
     assert_ne!(tagged_spend.redeem_script, split_spend.redeem_script);
-    assert!(prepare_vault_spend_material(VaultSpendKind::Tagged, "31").is_err());
+    assert_eq!(
+        prepare_vault_spend_material(VaultSpendKind::Tagged, "31")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Pubkey must be 32 bytes")
+    );
 
     let continuation =
         encode_vault_spend_response(&"66".repeat(32), ("50534b42".to_string(), 90, None))
@@ -155,19 +170,48 @@ fn vault_spend_preparation_covers_success_and_balance_validation() {
     )
     .expect("derived covenant address");
     assert!(validate_covenant_address(&derived_address, &redeem, "mainnet").is_ok());
-    assert!(validate_covenant_address(&address(9), &redeem, "mainnet").is_err());
+    assert_eq!(
+        validate_covenant_address(&address(9), &redeem, "mainnet")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Covenant address does not match the supplied redeem script")
+    );
 
-    assert!(prepare_from_utxos(&"11".repeat(32), &redeem, 0, "mainnet", vec![]).is_err());
-    assert!(prepare_from_utxos("00", &redeem, 0, "mainnet", vec![utxo(1, 1)]).is_err());
-    assert!(prepare_from_utxos(&"11".repeat(32), &redeem, 1, "mainnet", vec![utxo(1, 1)]).is_err());
-    assert!(prepare_from_utxos(
-        &"11".repeat(32),
-        &redeem,
-        0,
-        "mainnet",
-        vec![utxo(1, u64::MAX), utxo(2, 1)],
-    )
-    .is_err());
+    assert_eq!(
+        prepare_from_utxos(&"11".repeat(32), &redeem, 0, "mainnet", vec![])
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("No UTXOs at covenant address")
+    );
+    assert_eq!(
+        prepare_from_utxos("00", &redeem, 0, "mainnet", vec![utxo(1, 1)])
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("covenant_id must be 32 bytes, got 1")
+    );
+    assert_eq!(
+        prepare_from_utxos(&"11".repeat(32), &redeem, 1, "mainnet", vec![utxo(1, 1)])
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Balance 1 <= fee 1")
+    );
+    assert_eq!(
+        prepare_from_utxos(
+            &"11".repeat(32),
+            &redeem,
+            0,
+            "mainnet",
+            vec![utxo(1, u64::MAX), utxo(2, 1)],
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Vault balance overflows u64")
+    );
 }
 
 #[test]
@@ -230,8 +274,12 @@ fn vault_pskb_plans_require_hardware_signing_and_preserve_covenant_binding() {
         vec![utxo(3, 60), utxo(4, 60)],
     )
     .expect("multiple covenant UTXOs prepare");
-    assert!(
-        encode_vault_spend_pskb(multiple, &redeem, false).is_err(),
+    assert_eq!(
+        encode_vault_spend_pskb(multiple, &redeem, false)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("KIP-20 vault continuation requires exactly one covenant UTXO, got 2"),
         "ambiguous multi-UTXO KIP-20 continuation must fail closed"
     );
 }
@@ -253,34 +301,55 @@ fn vault_async_builders_and_public_wrappers_reach_native_transport_fail_closed()
     })
     .to_string();
 
-    assert!(ready(genesis::build_vault_genesis_pskb(
-        VaultGenesisKind::Tagged,
-        &wallet_json,
-        &owner_hex,
-        1_000_000,
-        1,
-        "mainnet",
-        "ws://unused",
-    ))
-    .is_err());
-    assert!(ready(tagged::tagged_vault_genesis_pskb(
-        &wallet_json,
-        &owner_hex,
-        1_000_000,
-        1,
-        "mainnet",
-        "ws://unused",
-    ))
-    .is_err());
-    assert!(ready(split::split_vault_genesis_pskb(
-        &wallet_json,
-        &owner_hex,
-        1_000_000,
-        1,
-        "mainnet",
-        "ws://unused",
-    ))
-    .is_err());
+    assert_eq!(
+        ready(genesis::build_vault_genesis_pskb(
+            VaultGenesisKind::Tagged,
+            &wallet_json,
+            &owner_hex,
+            1_000_000,
+            1,
+            "mainnet",
+            "ws://unused",
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
+    assert_eq!(
+        ready(tagged::tagged_vault_genesis_pskb(
+            &wallet_json,
+            &owner_hex,
+            1_000_000,
+            1,
+            "mainnet",
+            "ws://unused",
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
+    assert_eq!(
+        ready(split::split_vault_genesis_pskb(
+            &wallet_json,
+            &owner_hex,
+            1_000_000,
+            1,
+            "mainnet",
+            "ws://unused",
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
 
     for (kind, split_mode) in [
         (VaultSpendKind::Tagged, false),
@@ -292,36 +361,57 @@ fn vault_async_builders_and_public_wrappers_reach_native_transport_fail_closed()
         let covenant_address =
             crate::protocol::script::p2sh::script_to_address(&material.redeem_script, "kaspa")
                 .expect("vault address");
-        assert!(ready(spend::build_vault_spend_pskb(
-            kind,
-            &covenant_address,
-            &owner_hex,
-            &"44".repeat(32),
-            1,
-            "mainnet",
-            "ws://unused",
-        ))
-        .is_err());
+        assert_eq!(
+            ready(spend::build_vault_spend_pskb(
+                kind,
+                &covenant_address,
+                &owner_hex,
+                &"44".repeat(32),
+                1,
+                "mainnet",
+                "ws://unused",
+            ))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+            Some(
+                r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+            )
+        );
         if split_mode {
-            assert!(ready(split::split_vault_spend_pskb(
-                &covenant_address,
-                &owner_hex,
-                &"44".repeat(32),
-                1,
-                "mainnet",
-                "ws://unused",
-            ))
-            .is_err());
+            assert_eq!(
+                ready(split::split_vault_spend_pskb(
+                    &covenant_address,
+                    &owner_hex,
+                    &"44".repeat(32),
+                    1,
+                    "mainnet",
+                    "ws://unused",
+                ))
+                .err()
+                .map(|error| format!("{error:?}"))
+                .as_deref(),
+                Some(
+                    r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+                )
+            );
         } else {
-            assert!(ready(tagged::tagged_vault_spend_pskb(
-                &covenant_address,
-                &owner_hex,
-                &"44".repeat(32),
-                1,
-                "mainnet",
-                "ws://unused",
-            ))
-            .is_err());
+            assert_eq!(
+                ready(tagged::tagged_vault_spend_pskb(
+                    &covenant_address,
+                    &owner_hex,
+                    &"44".repeat(32),
+                    1,
+                    "mainnet",
+                    "ws://unused",
+                ))
+                .err()
+                .map(|error| format!("{error:?}"))
+                .as_deref(),
+                Some(
+                    r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+                )
+            );
         }
     }
 }

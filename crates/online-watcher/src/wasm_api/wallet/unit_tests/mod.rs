@@ -5,8 +5,20 @@ fn preimage_query_validation_rejects_bad_hex_and_lengths() {
     let (block, txid) = decode_preimage_query(&"11".repeat(32), &"22".repeat(32)).unwrap();
     assert_eq!(block, [0x11; 32]);
     assert_eq!(txid, [0x22; 32]);
-    assert!(decode_preimage_query("zz", &"22".repeat(32)).is_err());
-    assert!(decode_preimage_query(&"11".repeat(32), "00").is_err());
+    assert_eq!(
+        decode_preimage_query("zz", &"22".repeat(32))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Invalid block hash: Invalid character 'z' at position 0")
+    );
+    assert_eq!(
+        decode_preimage_query(&"11".repeat(32), "00")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Hash and txid must be 32 bytes")
+    );
 }
 
 #[test]
@@ -103,11 +115,43 @@ fn wallet_account_and_address_wasm_boundaries_are_host_testable() {
     let decoded = crate::wasm_api::test_support::expect_js(decode_address(&p2pk), "decode address");
     assert!(decoded.contains("\"version\":0"));
 
-    assert!(import_kpub("invalid", "mainnet").is_err());
-    assert!(import_kpub_raw(&[0; 2], "mainnet").is_err());
-    assert!(extend_addresses("{}", 1, 1, "mainnet").is_err());
-    assert!(encode_p2pk_address("00", None).is_err());
-    assert!(decode_address("not-an-address").is_err());
+    assert_eq!(
+        import_kpub("invalid", "mainnet")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Account key must be canonical kpub1 text or an account-level BIP32 xpub"))"#
+        )
+    );
+    assert_eq!(
+        import_kpub_raw(&[0; 2], "mainnet")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Raw account-key payload must be 78 bytes, got 2"))"#)
+    );
+    assert_eq!(
+        extend_addresses("{}", 1, 1, "mainnet")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Invalid wallet: missing field `kpub` at line 1 column 2"))"#)
+    );
+    assert_eq!(
+        encode_p2pk_address("00", None)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Pubkey must be 32 bytes"))"#)
+    );
+    assert_eq!(
+        decode_address("not-an-address")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Unknown address prefix"))"#)
+    );
 }
 
 #[test]
@@ -131,17 +175,46 @@ fn wallet_watcher_request_boundaries_and_preimage_errors_are_host_testable() {
         "UTXO subscribe request"
     )
     .is_empty());
-    assert!(build_utxo_subscribe_request("bad", 8).is_err());
+    assert_eq!(
+        build_utxo_subscribe_request("bad", 8)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("invalid RPC encoding: Unknown address prefix"))"#)
+    );
 
-    assert!(ready(fetch_balance("{}", "ws://unused")).is_err());
-    assert!(ready(fetch_utxos("{}", "ws://unused")).is_err());
-    assert!(ready(fetch_utxos_complete("{}", "ws://unused")).is_err());
-    assert!(ready(find_preimage_in_block(
-        "zz",
-        &"11".repeat(32),
-        "ws://unused"
-    ))
-    .is_err());
+    assert_eq!(
+        ready(fetch_balance("{}", "ws://unused"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Invalid wallet: missing field `kpub` at line 1 column 2"))"#)
+    );
+    assert_eq!(
+        ready(fetch_utxos("{}", "ws://unused"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Invalid wallet: missing field `kpub` at line 1 column 2"))"#)
+    );
+    assert_eq!(
+        ready(fetch_utxos_complete("{}", "ws://unused"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Invalid wallet: missing field `kpub` at line 1 column 2"))"#)
+    );
+    assert_eq!(
+        ready(find_preimage_in_block(
+            "zz",
+            &"11".repeat(32),
+            "ws://unused"
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("Invalid block hash: Invalid character 'z' at position 0"))"#)
+    );
 
     let valid_wallet = crate::wasm_api::test_support::expect_js(
         super::account::import_kpub(&canonical_account_text(), "mainnet"),
@@ -173,7 +246,31 @@ fn wallet_watcher_network_wrappers_reach_native_transport_fail_closed() {
     use crate::wasm_api::test_support::ready;
 
     const ADDRESS: &str = "kaspa:qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqkx9awp4e";
-    assert!(ready(get_fee_estimate("ws://unused")).is_err());
-    assert!(ready(fetch_utxos_for_address_js(ADDRESS, "ws://unused")).is_err());
-    assert!(ready(get_virtual_daa_score("ws://unused")).is_err());
+    assert_eq!(
+        ready(get_fee_estimate("ws://unused"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
+    assert_eq!(
+        ready(fetch_utxos_for_address_js(ADDRESS, "ws://unused"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
+    assert_eq!(
+        ready(get_virtual_daa_score("ws://unused"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
 }

@@ -17,69 +17,110 @@ fn standard_transaction_boundaries_complete_on_host_validation_paths() {
     let wallet = wallet_json();
     let destination = crate::account::address::encode_p2pk_address(&[0x63; 32], "kaspa");
 
-    assert!(ready(create_send(
-        "not-json",
-        &destination,
-        20_000_000,
-        300_000,
-        "ws://unused",
-        "wallet"
-    ))
-    .is_err());
-    assert!(ready(create_consolidation(
-        "not-json",
-        300_000,
-        "ws://unused",
-        "wallet"
-    ))
-    .is_err());
-    assert!(ready(create_selected_send(SelectedSendRequest {
-        wallet_json: "not-json",
-        destination: &destination,
-        amount_sompi: 20_000_000,
-        fee_sompi: 300_000,
-        utxo_indices_csv: "0",
-        ws_url: "ws://unused",
-        wallet_error_prefix: "wallet",
-    }))
-    .is_err());
+    assert_eq!(
+        ready(create_send(
+            "not-json",
+            &destination,
+            20_000_000,
+            300_000,
+            "ws://unused",
+            "wallet"
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("wallet: expected ident at line 1 column 2"))"#)
+    );
+    assert_eq!(
+        ready(create_consolidation(
+            "not-json",
+            300_000,
+            "ws://unused",
+            "wallet"
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("wallet: expected ident at line 1 column 2"))"#)
+    );
+    assert_eq!(
+        ready(create_selected_send(SelectedSendRequest {
+            wallet_json: "not-json",
+            destination: &destination,
+            amount_sompi: 20_000_000,
+            fee_sompi: 300_000,
+            utxo_indices_csv: "0",
+            ws_url: "ws://unused",
+            wallet_error_prefix: "wallet",
+        }))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("wallet: expected ident at line 1 column 2"))"#)
+    );
 
-    assert!(ready(create_send_pskb(
-        "not-json",
-        &destination,
-        20_000_000,
-        300_000,
-        "ws://unused"
-    ))
-    .is_err());
-    assert!(ready(create_consolidate_pskb("not-json", 300_000, "ws://unused")).is_err());
-    assert!(ready(create_send_pskb_selected(
-        "not-json",
-        &destination,
-        20_000_000,
-        300_000,
-        "0",
-        "ws://unused"
-    ))
-    .is_err());
-    assert!(ready(create_send_pskb_limited(
-        &wallet,
-        &destination,
-        20_000_000,
-        300_000,
-        0,
-        "ws://unused"
-    ))
-    .is_err());
-    assert!(ready(create_send_pskb_limited(
-        "not-json",
-        &destination,
-        20_000_000,
-        300_000,
-        8,
-        "ws://unused"
-    ))
-    .is_err());
+    assert_eq!(
+        ready(create_send_pskb(
+            "not-json",
+            &destination,
+            20_000_000,
+            300_000,
+            "ws://unused"
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("Bad wallet: expected ident at line 1 column 2"))"#)
+    );
+    assert_eq!(
+        ready(create_consolidate_pskb("not-json", 300_000, "ws://unused"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad wallet: expected ident at line 1 column 2"))"#)
+    );
+    assert_eq!(
+        ready(create_send_pskb_selected(
+            "not-json",
+            &destination,
+            20_000_000,
+            300_000,
+            "0",
+            "ws://unused"
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("Bad wallet: expected ident at line 1 column 2"))"#)
+    );
+    assert_eq!(
+        ready(create_send_pskb_limited(
+            &wallet,
+            &destination,
+            20_000_000,
+            300_000,
+            0,
+            "ws://unused"
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("UTXO selection limit must be at least 1"))"#)
+    );
+    assert_eq!(
+        ready(create_send_pskb_limited(
+            "not-json",
+            &destination,
+            20_000_000,
+            300_000,
+            8,
+            "ws://unused"
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("Bad wallet: expected ident at line 1 column 2"))"#)
+    );
 
     let (_, max_inputs) =
         parse_limited_send_request(&wallet, 12).expect("valid Advanced UTXO limit");
@@ -87,7 +128,13 @@ fn standard_transaction_boundaries_complete_on_host_validation_paths() {
     let (_, max_inputs) =
         parse_limited_send_request(&wallet, 32).expect("signer capability ceiling");
     assert_eq!(max_inputs, 32);
-    assert!(parse_limited_send_request(&wallet, 33).is_err());
+    assert_eq!(
+        parse_limited_send_request(&wallet, 33)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("UTXO selection limit exceeds KasKold capability (32)"))"#)
+    );
 
     let utxos = serde_json::json!([{
         "tx_id": "11".repeat(32),

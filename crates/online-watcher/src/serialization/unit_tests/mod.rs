@@ -22,7 +22,15 @@ fn rejects_unsafe_legacy_json_number() {
 
 #[test]
 fn rejects_noncanonical_decimal_string() {
-    assert!(serde_json::from_str::<Wrapper>(r#"{"value":"01"}"#).is_err());
+    assert_eq!(
+        serde_json::from_str::<Wrapper>(r#"{"value":"01"}"#)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"Error("decimal string must be canonical (no leading zeroes)", line: 1, column: 14)"#
+        )
+    );
 }
 
 #[derive(Debug, Serialize)]
@@ -45,11 +53,26 @@ fn accepts_safe_legacy_integer_at_javascript_boundary() {
 
 #[test]
 fn rejects_empty_nondigit_and_overflow_decimal_strings_independently() {
-    for encoded in [
-        r#"{"value":""}"#,
-        r#"{"value":"12x"}"#,
-        r#"{"value":"18446744073709551616"}"#,
+    for (encoded, expected) in [
+        (
+            r#"{"value":""}"#,
+            r#"Error("expected an unsigned decimal string", line: 1, column: 12)"#,
+        ),
+        (
+            r#"{"value":"12x"}"#,
+            r#"Error("expected an unsigned decimal string", line: 1, column: 15)"#,
+        ),
+        (
+            r#"{"value":"18446744073709551616"}"#,
+            r#"Error("decimal string exceeds u64", line: 1, column: 32)"#,
+        ),
     ] {
-        assert!(serde_json::from_str::<Wrapper>(encoded).is_err());
+        assert_eq!(
+            serde_json::from_str::<Wrapper>(encoded)
+                .err()
+                .map(|error| format!("{error:?}"))
+                .as_deref(),
+            Some(expected)
+        );
     }
 }

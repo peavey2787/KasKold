@@ -156,44 +156,102 @@ fn negated_presignature_host_relation_and_completion_are_bip340_valid() {
 #[test]
 fn adaptor_verifiers_fail_closed_for_wrong_points_messages_scalars_and_host_secrets() {
     let f = fixture();
-    assert!(verify_presignature(&[0; 32], &f.message, &f.presig, &f.adaptor_point_x).is_err());
-    assert!(verify_presignature(&f.public_x, &f.message, &f.presig, &[0; 32]).is_err());
+    assert_eq!(
+        verify_presignature(&[0; 32], &f.message, &f.presig, &f.adaptor_point_x)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("invalid adaptor secret or point")
+    );
+    assert_eq!(
+        verify_presignature(&f.public_x, &f.message, &f.presig, &[0; 32])
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("invalid adaptor secret or point")
+    );
     let mut bad_presig = f.presig;
     bad_presig.bytes[63] ^= 1;
-    assert!(verify_presignature(&f.public_x, &f.message, &bad_presig, &f.adaptor_point_x).is_err());
+    assert_eq!(
+        verify_presignature(&f.public_x, &f.message, &bad_presig, &f.adaptor_point_x)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("invalid adaptor pre-signature")
+    );
 
-    assert!(verify_host_nonce_relation(
-        &f.public_x,
-        &f.message,
-        &f.adaptor_point_x,
-        &f.session_id,
-        &[0x77; 32],
-        &f.base_nonce_point,
-        &f.presig,
-    )
-    .is_err());
+    assert_eq!(
+        verify_host_nonce_relation(
+            &f.public_x,
+            &f.message,
+            &f.adaptor_point_x,
+            &f.session_id,
+            &[0x77; 32],
+            &f.base_nonce_point,
+            &f.presig,
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("adaptor nonce does not include host contribution")
+    );
     let mut bad_base = f.base_nonce_point;
     bad_base[0] = 0x04;
-    assert!(verify_host_nonce_relation(
-        &f.public_x,
-        &f.message,
-        &f.adaptor_point_x,
-        &f.session_id,
-        &f.host_secret,
-        &bad_base,
-        &f.presig,
-    )
-    .is_err());
+    assert_eq!(
+        verify_host_nonce_relation(
+            &f.public_x,
+            &f.message,
+            &f.adaptor_point_x,
+            &f.session_id,
+            &f.host_secret,
+            &bad_base,
+            &f.presig,
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("invalid adaptor nonce")
+    );
 
-    assert!(complete_presignature(&f.presig, &[0; 32]).is_err());
+    assert_eq!(
+        complete_presignature(&f.presig, &[0; 32])
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("invalid adaptor secret or point")
+    );
     let completed = complete_presignature(&f.presig, &f.adaptor_secret).expect("complete");
-    assert!(verify_bip340(&f.public_x, &[0x55; 32], &completed).is_err());
-    assert!(verify_bip340(&[0; 32], &f.message, &completed).is_err());
+    assert_eq!(
+        verify_bip340(&f.public_x, &[0x55; 32], &completed)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("invalid completed BIP340 signature")
+    );
+    assert_eq!(
+        verify_bip340(&[0; 32], &f.message, &completed)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("invalid completed BIP340 signature")
+    );
 
     let mut wrong_nonce = completed;
     wrong_nonce[0] ^= 1;
-    assert!(extract_secret(&wrong_nonce, &f.presig).is_err());
-    assert!(extract_secret(&f.presig.bytes, &f.presig).is_err());
+    assert_eq!(
+        extract_secret(&wrong_nonce, &f.presig)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("completed signature does not match adaptor pre-signature")
+    );
+    assert_eq!(
+        extract_secret(&f.presig.bytes, &f.presig)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("completed signature does not match adaptor pre-signature")
+    );
 }
 
 #[test]

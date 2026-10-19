@@ -70,7 +70,13 @@ fn multisig_requests_bound_participants_and_threshold() {
     assert!(!ok(1, MAX_MULTISIG_KEYS + 1));
     assert!(!ok(0, 2));
     assert!(!ok(3, 2));
-    assert!(validate_multisig_request(1, 2, KaspaNetwork::Unknown, 0, 0).is_err());
+    assert_eq!(
+        validate_multisig_request(1, 2, KaspaNetwork::Unknown, 0, 0)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidToolInput")
+    );
 }
 
 #[test]

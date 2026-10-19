@@ -24,5 +24,8 @@ fn vault_genesis_wire_uses_real_builder_boundary() {
         100_000,
         "ws://unused",
     ));
-    assert!(result.is_err());
+    assert_eq!(
+        result.err().map(|error| error.to_string()).as_deref(),
+        Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)")
+    );
 }

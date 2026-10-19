@@ -60,7 +60,10 @@ fn credential_policy_rejects_weak_inputs() {
 
 #[test]
 fn entered_passwords_keep_opening_ciphertext_sealed_under_older_minimums() {
-    assert_eq!(validate_entered_password(b""), Err(CredentialError::PasswordTooShort));
+    assert_eq!(
+        validate_entered_password(b""),
+        Err(CredentialError::PasswordTooShort)
+    );
     assert_eq!(validate_entered_password(b"a"), Ok(()));
     assert_eq!(validate_entered_password(b"abcdefgh"), Ok(()));
     assert_eq!(validate_entered_password(&[b'a'; 128]), Ok(()));

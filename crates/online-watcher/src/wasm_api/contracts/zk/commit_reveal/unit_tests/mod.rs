@@ -3,7 +3,15 @@ use crate::wasm_api::test_support::ready;
 
 #[test]
 fn commit_reveal_spend_boundary_rejects_bad_json_before_network_io() {
-    assert!(ready(create_commit_reveal_spend("not-json")).is_err());
+    assert_eq!(
+        ready(create_commit_reveal_spend("not-json"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Bad commit-reveal spend request JSON: expected ident at line 1 column 2"))"#
+        )
+    );
 }
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
@@ -51,5 +59,11 @@ fn reveal_reader_reports_the_preimage_and_both_hashes() {
     assert_eq!(read["preimage_hex"], hex::encode(preimage));
     assert_eq!(read["matches"], true);
     assert_eq!(read["committed_hash"], read["computed_hash"]);
-    assert!(read_reveal_json("51").is_err());
+    assert_eq!(
+        read_reveal_json("51")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("not a commit-reveal reveal signature script")
+    );
 }

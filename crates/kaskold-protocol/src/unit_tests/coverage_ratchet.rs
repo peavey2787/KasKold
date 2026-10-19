@@ -61,7 +61,15 @@ fn account_descriptor_accepts_canonical_raw_and_hex_wrapped_account_keys() {
     assert!(wrapped.receive_addresses[0]
         .address
         .starts_with("kaspadev:"));
-    assert!(decode_account("00", Network::Mainnet).is_err());
+    assert_eq!(
+        decode_account("00", Network::Mainnet)
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"ProtocolError { kind: Decoding, message: "Account key must be canonical kpub1 text or an account-level BIP32 xpub" }"#
+        )
+    );
 }
 
 #[test]
@@ -71,16 +79,28 @@ fn qr_raw_paths_and_signing_request_success_are_covered() {
         decoder.accept(b"raw").expect("raw QR"),
         Some(b"raw".to_vec())
     );
-    assert!(decoder
-        .accept(&shared_signer::qr_frame::FRAME_MAGIC)
-        .is_err());
+    assert_eq!(
+        decoder
+            .accept(&shared_signer::qr_frame::FRAME_MAGIC)
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some(r#"ProtocolError { kind: Qr, message: "invalid multi-frame QR header" }"#)
+    );
 
     let frames = crate::encode_qr_frames(&vec![0x55; 240]).expect("multi-frame");
     assert!(decoder
         .accept(&frames[0].payload)
         .expect("session start")
         .is_none());
-    assert!(decoder.accept(b"raw while active").is_err());
+    assert_eq!(
+        decoder
+            .accept(b"raw while active")
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some(r#"ProtocolError { kind: Qr, message: "mixed multi-frame QR session rejected" }"#)
+    );
     decoder.reset();
 
     let request = SigningRequest::from_pskt(&super::test_pskb([0x11; 32], 0), Network::Mainnet)

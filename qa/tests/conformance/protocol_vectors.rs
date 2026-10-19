@@ -167,6 +167,12 @@ fn kaskold_network_vector_is_strict() {
         assert!(kaskold_protocol::Network::parse(value.as_str().unwrap()).is_ok());
     }
     for value in vector["networks"]["rejected"].as_array().unwrap() {
-        assert!(kaskold_protocol::Network::parse(value.as_str().unwrap()).is_err());
+        let value = value.as_str().unwrap();
+        let error = kaskold_protocol::Network::parse(value).unwrap_err();
+        assert_eq!(
+            error.kind,
+            kaskold_protocol::ProtocolErrorKind::WrongNetwork
+        );
+        assert_eq!(error.message, format!("unsupported Kaspa network: {value}"));
     }
 }

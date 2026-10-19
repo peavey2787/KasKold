@@ -18,5 +18,8 @@ fn owner_spend_wasm_facade_rejects_bad_redeem_before_transport() {
         "ws://unused",
         "owner",
     ));
-    assert!(result.is_err());
+    assert_eq!(
+        result.err().map(|error| format!("{error:?}")).as_deref(),
+        Some(r#"JsValue(Some("Bad redeem hex: Invalid character 'z' at position 0"))"#)
+    );
 }

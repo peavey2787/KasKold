@@ -51,22 +51,28 @@ fn anti_klepto_begin_rejects_structurally_unsafe_compact_transactions() {
 #[test]
 fn anti_klepto_public_boundary_rejects_malformed_hex_and_secret_width() {
     let fixture = TranscriptFixture::p2pk_two_inputs();
-    assert!(
+    assert_eq!(
         crate::wasm_api::protocol::anti_klepto::anti_klepto_accept_commitment_string(
             &fixture.request_hex(),
             &fixture.commitment_hex(&fixture.commitment_records),
             "00",
         )
-        .is_err()
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("host secret must be 32 bytes")
     );
-    assert!(
+    assert_eq!(
         crate::wasm_api::protocol::anti_klepto::anti_klepto_verify_signed_string(
             "zz",
             &fixture.commitment_hex(&fixture.commitment_records),
             &fixture.signed_message_hex(&fixture.proofs, &fixture.signed_tx_wire),
             &fixture.host_secret_hex(),
         )
-        .is_err()
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("invalid request hex")
     );
 }
 
@@ -76,9 +82,27 @@ fn anti_klepto_public_facade_rejects_malformed_inputs() {
         anti_klepto_accept_commitment, anti_klepto_begin, anti_klepto_verify_signed,
     };
 
-    assert!(anti_klepto_begin("00").is_err());
-    assert!(anti_klepto_accept_commitment("zz", "00", &"11".repeat(32)).is_err());
-    assert!(anti_klepto_verify_signed("zz", "00", "00", &"11".repeat(32)).is_err());
+    assert_eq!(
+        anti_klepto_begin("00")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("invalid compact KSPT: BufferTooShort"))"#)
+    );
+    assert_eq!(
+        anti_klepto_accept_commitment("zz", "00", &"11".repeat(32))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("invalid request hex"))"#)
+    );
+    assert_eq!(
+        anti_klepto_verify_signed("zz", "00", "00", &"11".repeat(32))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("invalid request hex"))"#)
+    );
 }
 
 #[test]

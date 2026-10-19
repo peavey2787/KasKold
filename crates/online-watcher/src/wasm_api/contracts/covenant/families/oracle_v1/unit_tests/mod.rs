@@ -36,30 +36,57 @@ fn oracle_attestation_decode_and_redeem_binding_are_native_testable() {
     .expect("bound attestation");
     assert_eq!(checked, redeem);
 
-    assert!(decode_attestation(
-        "00",
-        &hex::encode(signature.bytes),
-        &hex::encode(commitment)
-    )
-    .is_err());
-    assert!(decode_attestation(&hex::encode(oracle), "00", &hex::encode(commitment)).is_err());
-    assert!(decode_attestation(&hex::encode(oracle), &hex::encode(signature.bytes), "00").is_err());
-    assert!(checked_redeem_and_attestation(
-        &hex::encode(&redeem),
-        &hex::encode(oracle),
-        &hex::encode(signature.bytes),
-        &hex::encode([0x45; 32]),
-    )
-    .is_err());
+    assert_eq!(
+        decode_attestation(
+            "00",
+            &hex::encode(signature.bytes),
+            &hex::encode(commitment)
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Oracle oracle key must be 32-byte hex")
+    );
+    assert_eq!(
+        decode_attestation(&hex::encode(oracle), "00", &hex::encode(commitment))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Oracle signature must be 64 bytes, got 1")
+    );
+    assert_eq!(
+        decode_attestation(&hex::encode(oracle), &hex::encode(signature.bytes), "00")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Message commitment must be 32 bytes, got 1")
+    );
+    assert_eq!(
+        checked_redeem_and_attestation(
+            &hex::encode(&redeem),
+            &hex::encode(oracle),
+            &hex::encode(signature.bytes),
+            &hex::encode([0x45; 32]),
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Oracle attestation commitment/key do not belong to this covenant")
+    );
     let mut bad_signature = signature.bytes;
     bad_signature[63] ^= 1;
-    assert!(checked_redeem_and_attestation(
-        &hex::encode(&redeem),
-        &hex::encode(oracle),
-        &hex::encode(bad_signature),
-        &hex::encode(commitment),
-    )
-    .is_err());
+    assert_eq!(
+        checked_redeem_and_attestation(
+            &hex::encode(&redeem),
+            &hex::encode(oracle),
+            &hex::encode(bad_signature),
+            &hex::encode(commitment),
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Oracle signature is invalid for this covenant")
+    );
 }
 
 #[test]
@@ -67,39 +94,58 @@ fn oracle_builder_rejects_empty_oversized_and_invalid_key_identity_inputs() {
     let owner = hex::encode(xonly([1; 32]));
     let beneficiary = hex::encode(xonly([2; 32]));
     let oracle = hex::encode(xonly([3; 32]));
-    assert!(build_oracle_v1_json(
-        &owner,
-        &beneficiary,
-        &oracle,
-        &"11".repeat(32),
-        "   ",
-        1,
-        "kaspa"
-    )
-    .is_err());
-    assert!(build_oracle_v1_json(
-        &owner,
-        &beneficiary,
-        &oracle,
-        &"00".repeat(32),
-        "Release",
-        1,
-        "kaspa"
-    )
-    .is_err());
-    assert!(
-        build_oracle_v1_json(&owner, &beneficiary, &oracle, "11", "Release", 1, "kaspa").is_err()
+    assert_eq!(
+        build_oracle_v1_json(
+            &owner,
+            &beneficiary,
+            &oracle,
+            &"11".repeat(32),
+            "   ",
+            1,
+            "kaspa"
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Oracle release statement is required")
     );
-    assert!(build_oracle_v1_json(
-        &owner,
-        &beneficiary,
-        &oracle,
-        &"11".repeat(32),
-        &"x".repeat(300),
-        1,
-        "kaspa"
-    )
-    .is_err());
+    assert_eq!(
+        build_oracle_v1_json(
+            &owner,
+            &beneficiary,
+            &oracle,
+            &"00".repeat(32),
+            "Release",
+            1,
+            "kaspa"
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Oracle covenant key ID cannot be zero")
+    );
+    assert_eq!(
+        build_oracle_v1_json(&owner, &beneficiary, &oracle, "11", "Release", 1, "kaspa")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Oracle covenant key ID must be 32 bytes")
+    );
+    assert_eq!(
+        build_oracle_v1_json(
+            &owner,
+            &beneficiary,
+            &oracle,
+            &"11".repeat(32),
+            &"x".repeat(300),
+            1,
+            "kaspa"
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Oracle release statement exceeds 256 UTF-8 bytes after binding")
+    );
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -157,5 +203,10 @@ fn oracle_v1_wasm_facade_and_claim_transport_paths_are_host_exercised() {
         1,
         "ws://unused",
     ));
-    assert!(result.is_err());
+    assert_eq!(
+        result.err().map(|error| format!("{error:?}")).as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
 }

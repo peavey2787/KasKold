@@ -224,8 +224,12 @@ fn typed_keyless_covenant_preserves_zero_signature_requirement() {
         super::pskb::PskbGlobalPlan::standard().with_lock_time(500),
         &policy,
     );
-    assert!(
-        super::pskb::encode_wire(&plan).is_err(),
+    assert_eq!(
+        super::pskb::encode_wire(&plan)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("input[0] requires no signature; KasKold covenant spends need at least one"),
         "zero-signature covenant plans must fail closed at the consumer encoder boundary"
     );
 }

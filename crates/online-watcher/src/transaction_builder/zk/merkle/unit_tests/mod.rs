@@ -15,7 +15,13 @@ fn utxo(byte: u8, amount: u64) -> UtxoEntry {
 #[test]
 fn merkle_builder_and_balance_boundaries_are_exact() {
     #[cfg(not(target_arch = "wasm32"))]
-    assert!(ready(build_remote("bad", "bad", "51", "[]", 1, 1, "ws://unused")).is_err());
+    assert_eq!(
+        ready(build_remote("bad", "bad", "51", "[]", 1, 1, "ws://unused"))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)")
+    );
 
     let mut exact = vec![utxo(1, 1), utxo(2, 4), utxo(3, 2), utxo(4, 3)];
     limit_merkle_utxos(&mut exact);
@@ -30,5 +36,11 @@ fn merkle_builder_and_balance_boundaries_are_exact() {
     assert_eq!(over[0].amount, 10);
 
     assert_eq!(require_merkle_balance(9, 1, 10, 10), Ok(0));
-    assert!(require_merkle_balance(10, 1, 11, 10).is_err());
+    assert_eq!(
+        require_merkle_balance(10, 1, 11, 10)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Send 10 + fee 1 = 11 exceeds balance 10")
+    );
 }

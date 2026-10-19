@@ -68,7 +68,13 @@ fn privacy_pairing_response_requires_exact_length() {
     let request = request(0, 1, 0, 0);
     let mut wire = vec![0u8; RESPONSE_HEADER_LEN + 32];
     encode_response_header(request, [0u8; ACCOUNT_FINGERPRINT_LEN], &mut wire).expect("header");
-    assert!(parse_response(&wire[..wire.len() - 1]).is_err());
+    assert_eq!(
+        parse_response(&wire[..wire.len() - 1])
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidLength")
+    );
 }
 
 #[test]

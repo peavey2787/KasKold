@@ -92,14 +92,21 @@ fn utc_parser_covers_boundaries_leap_days_and_invalid_formats() {
         parse_utc_yyyymmddhhmm(b"202802290705").unwrap(),
         UtcDateTime::new(2028, 2, 29, 7, 5, 0),
     );
-    for invalid in [
-        b"20280229070".as_slice(),
-        b"2028AA290705".as_slice(),
-        b"202702290705".as_slice(),
-        b"202813010000".as_slice(),
-        b"202801012460".as_slice(),
+    for (invalid, expected) in [
+        (b"20280229070".as_slice(), "InvalidFormat"),
+        (b"2028AA290705".as_slice(), "InvalidFormat"),
+        (b"202702290705".as_slice(), "InvalidDate"),
+        (b"202813010000".as_slice(), "InvalidDate"),
+        (b"202801012460".as_slice(), "InvalidDate"),
     ] {
-        assert!(parse_utc_yyyymmddhhmm(invalid).is_err(), "{invalid:?}");
+        assert_eq!(
+            parse_utc_yyyymmddhhmm(invalid)
+                .err()
+                .map(|error| std::format!("{error:?}"))
+                .as_deref(),
+            Some(expected),
+            "{invalid:?}"
+        );
     }
 }
 
@@ -119,18 +126,28 @@ fn weekly_parser_covers_every_weekday_and_format_rejections() {
         assert!(parse_weekly_windows(&text).is_ok());
     }
 
-    for invalid in [
-        b"".as_slice(),
-        b"XXX 08:00-09:00".as_slice(),
-        b"MON08:00-09:00".as_slice(),
-        b"MON 8:00-09:00".as_slice(),
-        b"MON 24:00-24:30".as_slice(),
-        b"MON 08:60-09:00".as_slice(),
-        b"MON 09:00-08:00".as_slice(),
-        b"MON 08:00-09:00;TUE 08:00-09:00;WED 08:00-09:00;THU 08:00-09:00;FRI 08:00-09:00"
-            .as_slice(),
+    for (invalid, expected) in [
+        (b"".as_slice(), "InvalidFormat"),
+        (b"XXX 08:00-09:00".as_slice(), "InvalidFormat"),
+        (b"MON08:00-09:00".as_slice(), "InvalidFormat"),
+        (b"MON 8:00-09:00".as_slice(), "InvalidFormat"),
+        (b"MON 24:00-24:30".as_slice(), "InvalidWindow"),
+        (b"MON 08:60-09:00".as_slice(), "InvalidWindow"),
+        (b"MON 09:00-08:00".as_slice(), "InvalidWindow"),
+        (
+            b"MON 08:00-09:00;TUE 08:00-09:00;WED 08:00-09:00;THU 08:00-09:00;FRI 08:00-09:00"
+                .as_slice(),
+            "TooManyWindows",
+        ),
     ] {
-        assert!(parse_weekly_windows(invalid).is_err(), "{invalid:?}");
+        assert_eq!(
+            parse_weekly_windows(invalid)
+                .err()
+                .map(|error| std::format!("{error:?}"))
+                .as_deref(),
+            Some(expected),
+            "{invalid:?}"
+        );
     }
 }
 
@@ -315,7 +332,14 @@ fn weekly_parser_covers_case_whitespace_delimiters_and_adjacent_nonoverlap() {
         b"MON 08:00-09:0a".as_slice(),
         b"MO 08:00-09:00".as_slice(),
     ] {
-        assert!(parse_weekly_windows(invalid).is_err(), "{invalid:?}");
+        assert_eq!(
+            parse_weekly_windows(invalid)
+                .err()
+                .map(|error| std::format!("{error:?}"))
+                .as_deref(),
+            Some("InvalidFormat"),
+            "{invalid:?}"
+        );
     }
 }
 

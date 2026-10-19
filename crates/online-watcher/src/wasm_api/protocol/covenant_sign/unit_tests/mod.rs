@@ -23,17 +23,34 @@ fn covenant_anti_klepto_host_verifier_covers_decoding_signature_and_nonce_relati
     .expect("decoded verifier");
     assert!(!result, "synthetic nonce relation must fail closed");
 
-    assert!(verify_covenant_anti_klepto_string(
-        "00",
-        &hex::encode(commitment),
-        &hex::encode([2u8; 33]),
-        &hex::encode(signature.bytes),
-        &hex::encode([6u8; 16]),
-        &hex::encode([7u8; 32]),
-    )
-    .is_err());
-    assert!(decode_fixed::<32>("zz", "field").is_err());
-    assert!(decode_fixed::<32>("00", "field").is_err());
+    assert_eq!(
+        verify_covenant_anti_klepto_string(
+            "00",
+            &hex::encode(commitment),
+            &hex::encode([2u8; 33]),
+            &hex::encode(signature.bytes),
+            &hex::encode([6u8; 16]),
+            &hex::encode([7u8; 32]),
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("covenant public key must be 32 bytes")
+    );
+    assert_eq!(
+        decode_fixed::<32>("zz", "field")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("invalid field hex")
+    );
+    assert_eq!(
+        decode_fixed::<32>("00", "field")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("field must be 32 bytes")
+    );
     assert_eq!(
         decode_fixed::<16>(&hex::encode([8u8; 16]), "field").unwrap(),
         [8u8; 16]
@@ -42,7 +59,11 @@ fn covenant_anti_klepto_host_verifier_covers_decoding_signature_and_nonce_relati
 
 #[test]
 fn covenant_anti_klepto_native_core_rejects_bad_hex_without_jsvalue() {
-    assert!(
-        super::verify_covenant_anti_klepto_string("zz", "00", "00", "00", "00", "00",).is_err()
+    assert_eq!(
+        super::verify_covenant_anti_klepto_string("zz", "00", "00", "00", "00", "00",)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("invalid covenant public key hex")
     );
 }

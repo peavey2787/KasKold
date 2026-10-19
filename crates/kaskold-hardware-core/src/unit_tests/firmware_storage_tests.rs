@@ -43,17 +43,53 @@ fn descriptor_parser_accepts_valid_hd_descriptors() {
 
 #[test]
 fn descriptor_parser_rejects_invalid_shapes_and_data() {
-    assert!(parse_multisig_descriptor(b"multi(1,x)").is_err());
-    assert!(parse_multisig_descriptor(b"multi_hd(0,x)").is_err());
-    assert!(parse_multisig_descriptor(&descriptor(2, &[participant(2, 1)])).is_err());
-    assert!(parse_multisig_descriptor(&descriptor(1, &[participant(4, 1)])).is_err());
+    assert_eq!(
+        parse_multisig_descriptor(b"multi(1,x)")
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidParticipantLength")
+    );
+    assert_eq!(
+        parse_multisig_descriptor(b"multi_hd(0,x)")
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidParticipantLength")
+    );
+    assert_eq!(
+        parse_multisig_descriptor(&descriptor(2, &[participant(2, 1)]))
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("TooFewParticipants")
+    );
+    assert_eq!(
+        parse_multisig_descriptor(&descriptor(1, &[participant(4, 1)]))
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidCompressedPublicKey")
+    );
     let mut bad_hex = descriptor(1, &[participant(2, 1)]);
     bad_hex[20] = b'z';
-    assert!(parse_multisig_descriptor(&bad_hex).is_err());
+    assert_eq!(
+        parse_multisig_descriptor(&bad_hex)
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidHex")
+    );
     let entries: Vec<_> = (0..=MAX_DESCRIPTOR_PARTICIPANTS)
         .map(|index| participant(if index.is_multiple_of(2) { 2 } else { 3 }, index as u8))
         .collect();
-    assert!(parse_multisig_descriptor(&descriptor(1, &entries)).is_err());
+    assert_eq!(
+        parse_multisig_descriptor(&descriptor(1, &entries))
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("TooManyParticipants")
+    );
 }
 
 fn lfn_entry(sequence: u8, text: &[u8]) -> [u8; 32] {
@@ -74,11 +110,41 @@ fn lfn_entry(sequence: u8, text: &[u8]) -> [u8; 32] {
 
 #[test]
 fn descriptor_parser_covers_body_threshold_and_low_nibble_boundaries() {
-    assert!(parse_multisig_descriptor(b"multi_hd(1,").is_err());
-    assert!(parse_multisig_descriptor(b"multi_hd()").is_err());
-    assert!(parse_multisig_descriptor(b"multi_hd(a,x)").is_err());
-    assert!(parse_multisig_descriptor(b"multi_hd(1x)").is_err());
-    assert!(parse_multisig_descriptor(b"multi_hd(1,)").is_err());
+    assert_eq!(
+        parse_multisig_descriptor(b"multi_hd(1,")
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("UnsupportedFormat")
+    );
+    assert_eq!(
+        parse_multisig_descriptor(b"multi_hd()")
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("TooFewParticipants")
+    );
+    assert_eq!(
+        parse_multisig_descriptor(b"multi_hd(a,x)")
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidThreshold")
+    );
+    assert_eq!(
+        parse_multisig_descriptor(b"multi_hd(1x)")
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("TooFewParticipants")
+    );
+    assert_eq!(
+        parse_multisig_descriptor(b"multi_hd(1,)")
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("TooFewParticipants")
+    );
 
     let mut low_nibble = descriptor(1, &[participant(2, 1)]);
     // Participant hex begins after "multi_hd(1,"; offset 1 is the low nibble
@@ -86,7 +152,13 @@ fn descriptor_parser_covers_body_threshold_and_low_nibble_boundaries() {
     // high-nibble malformed-hex case.
     let participant_start = b"multi_hd(1,".len();
     low_nibble[participant_start + 1] = b'z';
-    assert!(parse_multisig_descriptor(&low_nibble).is_err());
+    assert_eq!(
+        parse_multisig_descriptor(&low_nibble)
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidHex")
+    );
 }
 
 #[test]
@@ -152,14 +224,26 @@ fn descriptor_parser_rejects_missing_and_repeated_separators() {
     missing.extend_from_slice(&first);
     missing.extend_from_slice(&second);
     missing.push(b')');
-    assert!(parse_multisig_descriptor(&missing).is_err());
+    assert_eq!(
+        parse_multisig_descriptor(&missing)
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidParticipantLength")
+    );
 
     let mut repeated = b"multi_hd(1,".to_vec();
     repeated.extend_from_slice(&first);
     repeated.extend_from_slice(b",,");
     repeated.extend_from_slice(&second);
     repeated.push(b')');
-    assert!(parse_multisig_descriptor(&repeated).is_err());
+    assert_eq!(
+        parse_multisig_descriptor(&repeated)
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidParticipantLength")
+    );
 }
 
 #[test]

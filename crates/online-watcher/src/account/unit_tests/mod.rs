@@ -54,7 +54,13 @@ fn address_decoder_rejects_prefix_length_character_and_checksum_errors() {
 fn address_encoder_rejects_unknown_versions_before_emitting_text() {
     let encoded = encode_address(&[0x55; 32], 0x7f, "kaspa");
     assert!(encoded.is_empty());
-    assert!(address_to_script_pubkey(&encoded).is_err());
+    assert_eq!(
+        address_to_script_pubkey(&encoded)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Unknown address prefix")
+    );
 }
 
 fn canonical_account_payload() -> [u8; shared_signer::account_key::ACCOUNT_KEY_PAYLOAD_LEN] {
@@ -166,12 +172,30 @@ fn kaspa_cli_account_xpub_imports_and_normalizes_to_canonical_text() {
 fn kpub_import_rejects_malformed_text_payloads_and_hardened_children() {
     use super::bip32::{import_kpub, import_kpub_raw};
 
-    assert!(import_kpub("kpub1:00", "kaspa").is_err());
-    assert!(import_kpub_raw(&[0u8; 77], "kaspa").is_err());
+    assert_eq!(
+        import_kpub("kpub1:00", "kaspa")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Account key must be canonical kpub1 text or an account-level BIP32 xpub")
+    );
+    assert_eq!(
+        import_kpub_raw(&[0u8; 77], "kaspa")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Raw account-key payload must be 78 bytes, got 77")
+    );
 
     let mut invalid = canonical_account_payload();
     invalid[45] = 0x04;
-    assert!(import_kpub_raw(&invalid, "kaspa").is_err());
+    assert_eq!(
+        import_kpub_raw(&invalid, "kaspa")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Raw account-key payload is not canonical (78 bytes)")
+    );
 }
 
 #[test]

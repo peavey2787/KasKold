@@ -38,10 +38,30 @@ fn request() -> MultisigApiRequest {
 fn multisig_transaction_boundaries_are_host_testable() {
     let request = request();
     let automatic = request.automatic().expect("automatic request conversion");
-    assert!(ready(create_multisig(automatic)).is_err());
+    assert_eq!(
+        ready(create_multisig(automatic))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Need at least M and 2 cosigners"))"#)
+    );
 
-    assert!(ready(create_multisig_pskb("not-json")).is_err());
-    assert!(ready(create_multisig_pskb_selected("not-json")).is_err());
+    assert_eq!(
+        ready(create_multisig_pskb("not-json"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad multisig request JSON: expected ident at line 1 column 2"))"#)
+    );
+    assert_eq!(
+        ready(create_multisig_pskb_selected("not-json"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Bad selected multisig request JSON: expected ident at line 1 column 2"))"#
+        )
+    );
 
     let valid = serde_json::json!({
         "descriptor": request.descriptor,
@@ -55,13 +75,35 @@ fn multisig_transaction_boundaries_are_host_testable() {
         "utxo_csv": "0"
     })
     .to_string();
-    assert!(ready(create_multisig_pskb_selected(&valid)).is_err());
+    assert_eq!(
+        ready(create_multisig_pskb_selected(&valid))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Need at least M and 2 cosigners"))"#)
+    );
 }
 
 #[test]
 fn restored_hd45_wasm_exports_are_host_testable() {
-    assert!(ready(scan_multisig_branch_js("not-json")).is_err());
-    assert!(ready(create_multisig_pskb_multi_js("not-json")).is_err());
+    assert_eq!(
+        ready(scan_multisig_branch_js("not-json"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Bad multisig branch scan JSON: expected ident at line 1 column 2"))"#
+        )
+    );
+    assert_eq!(
+        ready(create_multisig_pskb_multi_js("not-json"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Bad multi-address multisig request JSON: expected ident at line 1 column 2"))"#
+        )
+    );
 
     let static_scan = serde_json::json!({
         "descriptor": format!("multi(1,{},{})", "11".repeat(32), "22".repeat(32)),
@@ -71,7 +113,15 @@ fn restored_hd45_wasm_exports_are_host_testable() {
         "address_prefix": "kaspa"
     })
     .to_string();
-    assert!(ready(scan_multisig_branch_js(&static_scan)).is_err());
+    assert_eq!(
+        ready(scan_multisig_branch_js(&static_scan))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
 
     let descriptor = hd45_descriptor();
     let source = hd45_source(&descriptor);
@@ -84,7 +134,15 @@ fn restored_hd45_wasm_exports_are_host_testable() {
     })
     .to_string();
     #[cfg(not(target_arch = "wasm32"))]
-    assert!(ready(scan_multisig_branch_js(&scan)).is_err());
+    assert_eq!(
+        ready(scan_multisig_branch_js(&scan))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
 
     let sources_json = serde_json::json!([{
         "address": source.clone(),
@@ -104,10 +162,24 @@ fn restored_hd45_wasm_exports_are_host_testable() {
     })
     .to_string();
     #[cfg(not(target_arch = "wasm32"))]
-    assert!(ready(create_multisig_pskb_multi_js(&multi)).is_err());
+    assert_eq!(
+        ready(create_multisig_pskb_multi_js(&multi))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
 
     let bad_amount = multi.replace("\"1000000\"", "\"not-a-number\"");
-    assert!(ready(create_multisig_pskb_multi_js(&bad_amount)).is_err());
+    assert_eq!(
+        ready(create_multisig_pskb_multi_js(&bad_amount))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Invalid amount_sompi: invalid digit found in string"))"#)
+    );
 }
 
 #[test]
@@ -118,7 +190,13 @@ fn descriptor_summary_reports_kind_threshold_and_participants() {
     assert_eq!(summary["kind"], "hd45");
     assert_eq!(summary["threshold"], 1);
     assert_eq!(summary["participants"], 2);
-    assert!(multisig_descriptor_summary_string("not a descriptor").is_err());
+    assert_eq!(
+        multisig_descriptor_summary_string("not a descriptor")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Descriptor must be multi(M,...), multi_hd(M,...), or multi_hd45(M,...)")
+    );
 }
 
 #[test]
@@ -135,5 +213,13 @@ fn descriptor_summary_export_names_every_supported_kind() {
     let hd44_keys = format!("02{},03{}", "31".repeat(64), "52".repeat(64));
     assert_eq!(kind(&format!("multi_hd(1,{hd44_keys})")), "hd44");
     assert_eq!(kind(&hd45_descriptor()), "hd45");
-    assert!(multisig_descriptor_summary("not a descriptor").is_err());
+    assert_eq!(
+        multisig_descriptor_summary("not a descriptor")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Descriptor must be multi(M,...), multi_hd(M,...), or multi_hd45(M,...)"))"#
+        )
+    );
 }

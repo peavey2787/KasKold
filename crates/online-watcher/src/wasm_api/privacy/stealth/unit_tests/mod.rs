@@ -13,9 +13,27 @@ fn stealth_payment_derivation_covers_networks_entropy_and_metadata_errors() {
 
     let testnet = derive_stealth_payment(&metadata_hex(), &"02".repeat(32), "testnet-12").unwrap();
     assert!(testnet.one_time_address.starts_with("kaspatest:"));
-    assert!(derive_stealth_payment("00", &"01".repeat(32), "mainnet").is_err());
-    assert!(derive_stealth_payment(&metadata_hex(), "zz", "mainnet").is_err());
-    assert!(derive_stealth_payment(&metadata_hex(), "00", "mainnet").is_err());
+    assert_eq!(
+        derive_stealth_payment("00", &"01".repeat(32), "mainnet")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Stealth meta-address must be 128 hex chars, got 2")
+    );
+    assert_eq!(
+        derive_stealth_payment(&metadata_hex(), "zz", "mainnet")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Bad entropy hex: Invalid character 'z' at position 0")
+    );
+    assert_eq!(
+        derive_stealth_payment(&metadata_hex(), "00", "mainnet")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Entropy must be 32 bytes")
+    );
 }
 
 #[test]
@@ -24,8 +42,20 @@ fn stealth_spend_material_validates_both_fixed_width_values() {
         prepare_stealth_spend_material(&"11".repeat(32), &"22".repeat(32), "testnet-10").unwrap();
     assert!(material.source_address.starts_with("kaspatest:"));
     assert_eq!(material.tweak_hex, "22".repeat(32));
-    assert!(prepare_stealth_spend_material("00", &"22".repeat(32), "mainnet").is_err());
-    assert!(prepare_stealth_spend_material(&"11".repeat(32), "zz", "mainnet").is_err());
+    assert_eq!(
+        prepare_stealth_spend_material("00", &"22".repeat(32), "mainnet")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("pubkey must be 32 bytes, got 1")
+    );
+    assert_eq!(
+        prepare_stealth_spend_material(&"11".repeat(32), "zz", "mainnet")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Bad tweak hex: Invalid character 'z' at position 0")
+    );
 }
 
 fn canonical_account_text() -> String {
@@ -75,18 +105,37 @@ fn stealth_wasm_boundaries_cover_metadata_payment_announcement_and_preflight_err
         .unwrap()
         .starts_with("kaspatest:"));
 
-    assert!(stealth_meta_from_kpub("bad").is_err());
-    assert!(stealth_generate_payment("00", "00", "mainnet").is_err());
-    assert!(ready(stealth_create_payment_lane(
-        "{}",
-        meta_address,
-        100_000_000,
-        1,
-        &"01".repeat(32),
-        "ws://unused",
-        "mainnet",
-    ))
-    .is_err());
+    assert_eq!(
+        stealth_meta_from_kpub("bad")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Account key must be canonical kpub1 text or an account-level BIP32 xpub"))"#
+        )
+    );
+    assert_eq!(
+        stealth_generate_payment("00", "00", "mainnet")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Stealth meta-address must be 128 hex chars, got 2"))"#)
+    );
+    assert_eq!(
+        ready(stealth_create_payment_lane(
+            "{}",
+            meta_address,
+            100_000_000,
+            1,
+            &"01".repeat(32),
+            "ws://unused",
+            "mainnet",
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("Bad wallet: missing field `kpub` at line 1 column 2"))"#)
+    );
 
     let wallet = crate::account::bip32::import_kpub(&canonical_account_text(), "kaspa")
         .expect("canonical stealth wallet");
@@ -106,13 +155,18 @@ fn stealth_wasm_boundaries_cover_metadata_payment_announcement_and_preflight_err
         matches!(transport, Ok(Err(_)) | Err(_)),
         "native stealth transport boundary unexpectedly succeeded"
     );
-    assert!(ready(create_stealth_spend(
-        "00",
-        "00",
-        "bad",
-        0,
-        "ws://unused",
-        "mainnet",
-    ))
-    .is_err());
+    assert_eq!(
+        ready(create_stealth_spend(
+            "00",
+            "00",
+            "bad",
+            0,
+            "ws://unused",
+            "mainnet",
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(r#"JsValue(Some("pubkey must be 32 bytes, got 1"))"#)
+    );
 }

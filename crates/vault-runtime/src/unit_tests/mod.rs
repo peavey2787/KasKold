@@ -1148,9 +1148,14 @@ fn wallet_changes_forget_the_pending_private_swap_key() {
     let redeem = claim.redeem_bytes(0).to_vec();
     let bind = runtime_private_swap_bind_request(&key_response, &redeem);
     runtime.switch_wallet(0).unwrap();
-    assert!(runtime
-        .private_swap_prepare(&runtime_encode_private_swap_request(&bind))
-        .is_err());
+    assert_eq!(
+        runtime
+            .private_swap_prepare(&runtime_encode_private_swap_request(&bind))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("Custody(InvalidToolInput)")
+    );
 }
 
 #[test]

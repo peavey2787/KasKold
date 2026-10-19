@@ -185,43 +185,91 @@ fn recovery_record_decoder_covers_valid_empty_and_rejected_records() {
     assert_eq!(decoded.word_count, 12);
     assert_eq!(decoded.passphrase_len, 2);
 
-    assert!(decode_recovery(&record[..RECOVERY_RECORD_LEN - 1]).is_err());
+    assert_eq!(
+        decode_recovery(&record[..RECOVERY_RECORD_LEN - 1])
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidSealedWallet")
+    );
     let empty = [0u8; RECOVERY_RECORD_LEN];
     assert!(decode_recovery(&empty).unwrap().is_none());
 
     let mut malformed_empty = empty;
     malformed_empty[2] = 1;
-    assert!(decode_recovery(&malformed_empty).is_err());
+    assert_eq!(
+        decode_recovery(&malformed_empty)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidSealedWallet")
+    );
 
     let mut invalid_word_count = record;
     invalid_word_count[0] = 13;
-    assert!(decode_recovery(&invalid_word_count).is_err());
+    assert_eq!(
+        decode_recovery(&invalid_word_count)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidSealedWallet")
+    );
 
     let mut long_passphrase = record;
     long_passphrase[1] = (MAX_BIP39_PASSPHRASE_LEN + 1) as u8;
-    assert!(decode_recovery(&long_passphrase).is_err());
+    assert_eq!(
+        decode_recovery(&long_passphrase)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidSealedWallet")
+    );
 
     let mut invalid_index = record;
     invalid_index[2..4].copy_from_slice(&2048u16.to_le_bytes());
-    assert!(decode_recovery(&invalid_index).is_err());
+    assert_eq!(
+        decode_recovery(&invalid_index)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidSealedWallet")
+    );
 
     let mut nonzero_trailing_index = record;
     let trailing_offset = 2 + 12 * 2;
     nonzero_trailing_index[trailing_offset..trailing_offset + 2]
         .copy_from_slice(&1u16.to_le_bytes());
-    assert!(decode_recovery(&nonzero_trailing_index).is_err());
+    assert_eq!(
+        decode_recovery(&nonzero_trailing_index)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidSealedWallet")
+    );
 
     let mut invalid_utf8 = record;
     invalid_utf8[1] = 1;
     invalid_utf8[50] = 0xff;
     invalid_utf8[51..].fill(0);
-    assert!(decode_recovery(&invalid_utf8).is_err());
+    assert_eq!(
+        decode_recovery(&invalid_utf8)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidSealedWallet")
+    );
 
     let mut nonzero_passphrase_tail = record;
     nonzero_passphrase_tail[1] = 0;
     nonzero_passphrase_tail[50] = b'x';
     nonzero_passphrase_tail[51..].fill(0);
-    assert!(decode_recovery(&nonzero_passphrase_tail).is_err());
+    assert_eq!(
+        decode_recovery(&nonzero_passphrase_tail)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidSealedWallet")
+    );
 }
 
 #[test]
@@ -326,8 +374,22 @@ fn multisig_inputs_sign_at_the_wallet_cosigner_position() {
 #[test]
 fn review_and_sign_reject_malformed_compact_kspt() {
     let wallet = restored_wallet();
-    assert!(wallet.review_compact_kspt(b"KSPT").is_err());
-    assert!(wallet.sign_compact_kspt(b"KSPT").is_err());
+    assert_eq!(
+        wallet
+            .review_compact_kspt(b"KSPT")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidToolInput")
+    );
+    assert_eq!(
+        wallet
+            .sign_compact_kspt(b"KSPT")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidToolInput")
+    );
 }
 
 #[test]
@@ -408,7 +470,14 @@ fn advanced_wallet_tools_cover_bip85_message_and_secret_round_trip() {
 
     let mut tampered = committed.payload.to_vec();
     tampered[0] ^= 1;
-    assert!(wallet.decrypt_secret(&tampered).is_err());
+    assert_eq!(
+        wallet
+            .decrypt_secret(&tampered)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("CryptoOperationFailed")
+    );
 }
 
 #[test]
@@ -442,7 +511,13 @@ fn portable_encrypted_backup_round_trips_and_rejects_wrong_password() {
     let restored = HotWallet::restore_portable_backup(&backup, "correct horse battery staple 7")
         .expect("portable restore");
     assert_eq!(restored.export_kpub().unwrap(), expected_kpub);
-    assert!(HotWallet::restore_portable_backup(&backup, "wrong password").is_err());
+    assert_eq!(
+        HotWallet::restore_portable_backup(&backup, "wrong password")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("SealedWalletAuthenticationFailed")
+    );
 }
 
 #[test]
@@ -464,9 +539,13 @@ fn new_portable_backups_need_a_strong_password_and_the_host_kdf_profile() {
         ));
     }
 
-    let backup = wallet.portable_backup("CorrectHorse9").expect("host backup");
+    let backup = wallet
+        .portable_backup("CorrectHorse9")
+        .expect("host backup");
     assert!(HotWallet::portable_backup_is_current(&backup));
-    assert!(!HotWallet::portable_backup_is_current(&backup[..backup.len() - 1]));
+    assert!(!HotWallet::portable_backup_is_current(
+        &backup[..backup.len() - 1]
+    ));
     let mut renamed = backup.clone();
     renamed[0] ^= 0x20;
     assert!(!HotWallet::portable_backup_is_current(&renamed));
@@ -482,7 +561,10 @@ fn new_portable_backups_need_a_strong_password_and_the_host_kdf_profile() {
     key.fill(0);
     assert!(!HotWallet::portable_backup_is_current(&legacy));
     let reopened = HotWallet::restore_portable_backup(&legacy, "Short7pw").expect("v1 restore");
-    assert_eq!(reopened.export_kpub().unwrap(), wallet.export_kpub().unwrap());
+    assert_eq!(
+        reopened.export_kpub().unwrap(),
+        wallet.export_kpub().unwrap()
+    );
 }
 
 #[test]
@@ -629,7 +711,13 @@ fn imported_source_types_sign_only_with_their_real_key_material() {
     parse_compact_kspt(&raw_signed, &mut parsed_raw).expect("signed raw transaction parses");
     assert_eq!(parsed_raw.inputs[0].sig_count, 1);
 
-    assert!(raw.sign_transaction(&wire).is_err());
+    assert_eq!(
+        raw.sign_transaction(&wire)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("Kspt(NoInputs)")
+    );
 }
 #[test]
 fn covenant_custody_tools_cover_allocation_binding_and_anti_klepto_finalize() {
@@ -676,14 +764,37 @@ fn covenant_custody_tools_cover_allocation_binding_and_anti_klepto_finalize() {
 fn privacy_stego_and_static_multisig_paths_fail_closed_or_round_trip_public_data() {
     let mut wallet = restored_wallet();
 
-    assert!(wallet
-        .privacy_pairing_response(b"not-a-pairing-request")
-        .is_err());
-    assert!(wallet
-        .stealth_scan_request(b"not-a-stealth-request")
-        .is_err());
-    assert!(wallet.stego_backup(b"not-a-jpeg", "CorrectHorse9").is_err());
-    assert!(HotWallet::restore_stego_backup(b"not-a-jpeg", "pw").is_err());
+    assert_eq!(
+        wallet
+            .privacy_pairing_response(b"not-a-pairing-request")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("CryptoOperationFailed")
+    );
+    assert_eq!(
+        wallet
+            .stealth_scan_request(b"not-a-stealth-request")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("CryptoOperationFailed")
+    );
+    assert_eq!(
+        wallet
+            .stego_backup(b"not-a-jpeg", "CorrectHorse9")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("BackupCryptoFailed")
+    );
+    assert_eq!(
+        HotWallet::restore_stego_backup(b"not-a-jpeg", "pw")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("BackupCryptoFailed")
+    );
 
     let static_a = "11".repeat(32);
     let static_b = "22".repeat(32);
@@ -1159,10 +1270,14 @@ fn private_swap_session_covers_key_bind_presign_reveal_and_completion() {
         presignature: [0x11; 64],
         ..complete
     };
-    assert!(swap
-        .session
-        .prepare_request(&wallet, &encode_private_swap_request(&tampered))
-        .is_err());
+    assert_eq!(
+        swap.session
+            .prepare_request(&wallet, &encode_private_swap_request(&tampered))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("CryptoOperationFailed")
+    );
 }
 
 #[test]
@@ -1208,11 +1323,22 @@ fn private_swap_rejects_every_mismatched_reveal_field_and_out_of_order_steps() {
     ));
     // Raw-key wallets cannot run the protocol at all.
     let raw = HotWallet::import_raw_private_key_hex(&format!("{:064x}", 1u8)).unwrap();
-    assert!(swap.session.confirm(&raw).is_err());
-    assert!(swap
-        .session
-        .finalize_reveal(&raw, &swap_reveal(&good))
-        .is_err());
+    assert_eq!(
+        swap.session
+            .confirm(&raw)
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("UnsupportedForWalletType")
+    );
+    assert_eq!(
+        swap.session
+            .finalize_reveal(&raw, &swap_reveal(&good))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("UnsupportedForWalletType")
+    );
 
     swap.session.reset_active();
     assert!(!swap.session.awaiting_reveal());
@@ -1320,7 +1446,13 @@ fn recovery_material_routes_words_and_rejects_malformed_inputs() {
         Err(HotWalletError::InvalidToolInput)
     ));
     // 48 bytes that are not all digits are treated as words and rejected.
-    assert!(HotWallet::restore_recovery_material(&[b'a'; 48], "").is_err());
+    assert_eq!(
+        HotWallet::restore_recovery_material(&[b'a'; 48], "")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidMnemonicWordCount")
+    );
 }
 
 /// Run both anti-klepto rounds and check the signed transcript with the
@@ -1518,9 +1650,27 @@ fn raw_private_key_text_imports_the_exact_key_bytes() {
     let wallet =
         HotWallet::import_raw_private_key_hex(&format!("10{}01", "00".repeat(30))).unwrap();
     assert_eq!(wallet.fingerprint_hex().unwrap(), "e9a5fbe5");
-    assert!(HotWallet::import_raw_private_key_hex(&format!("1g{}01", "00".repeat(30))).is_err());
-    assert!(HotWallet::import_raw_private_key_hex(&format!("g0{}01", "00".repeat(30))).is_err());
-    assert!(HotWallet::import_raw_private_key_hex("01").is_err());
+    assert_eq!(
+        HotWallet::import_raw_private_key_hex(&format!("1g{}01", "00".repeat(30)))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("RawKeyInvalid")
+    );
+    assert_eq!(
+        HotWallet::import_raw_private_key_hex(&format!("g0{}01", "00".repeat(30)))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("RawKeyInvalid")
+    );
+    assert_eq!(
+        HotWallet::import_raw_private_key_hex("01")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("RawKeyInvalid")
+    );
 }
 
 #[test]
@@ -1597,11 +1747,20 @@ fn stego_backup_round_trips_through_a_jpeg_carrier() {
         "../../../../apps/kaskold-hardware/src/runtime/workflow_tests/fixtures/stego_noise.jpg"
     );
     let wallet = restored_wallet();
-    let carrier = wallet.stego_backup(NOISE_JPEG, "CorrectHorse9").expect("stego embeds");
-    let restored = HotWallet::restore_stego_backup(&carrier, "CorrectHorse9").expect("stego restores");
+    let carrier = wallet
+        .stego_backup(NOISE_JPEG, "CorrectHorse9")
+        .expect("stego embeds");
+    let restored =
+        HotWallet::restore_stego_backup(&carrier, "CorrectHorse9").expect("stego restores");
     assert_eq!(
         restored.export_kpub().unwrap(),
         wallet.export_kpub().unwrap()
     );
-    assert!(HotWallet::restore_stego_backup(&carrier, "other").is_err());
+    assert_eq!(
+        HotWallet::restore_stego_backup(&carrier, "other")
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("BackupCryptoFailed")
+    );
 }

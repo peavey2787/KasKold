@@ -13,8 +13,20 @@ fn utxo(amount: u64) -> UtxoEntry {
 
 #[test]
 fn allowance_requires_utxos_and_accepts_exact_funding() {
-    assert!(require_utxos(&[]).is_err());
+    assert_eq!(
+        require_utxos(&[])
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("No UTXOs at covenant address")
+    );
     assert_eq!(require_utxos(&[utxo(1)]), Ok(()));
     assert_eq!(ensure_funded(10, 10, 9, 1), Ok(()));
-    assert!(ensure_funded(11, 10, 10, 1).is_err());
+    assert_eq!(
+        ensure_funded(11, 10, 10, 1)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Withdraw 10 + fee 1 > total balance 10")
+    );
 }

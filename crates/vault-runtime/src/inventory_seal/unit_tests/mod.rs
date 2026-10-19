@@ -97,16 +97,46 @@ fn header_requires_zero_padding_a_bounded_count_and_an_existing_active_slot() {
         parse_inventory_header(&header(1, 2, [0, 0])).unwrap(),
         (1, 2)
     );
-    assert!(parse_inventory_header(&header(0, 2, [1, 0])).is_err());
-    assert!(parse_inventory_header(&header(0, 2, [0, 1])).is_err());
-    assert!(parse_inventory_header(&header(0, 0, [0, 0])).is_err());
+    assert_eq!(
+        parse_inventory_header(&header(0, 2, [1, 0]))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidSealedInventory")
+    );
+    assert_eq!(
+        parse_inventory_header(&header(0, 2, [0, 1]))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidSealedInventory")
+    );
+    assert_eq!(
+        parse_inventory_header(&header(0, 0, [0, 0]))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidSealedInventory")
+    );
     let max = u8::try_from(max).unwrap();
     assert_eq!(
         parse_inventory_header(&header(0, max, [0, 0])).unwrap(),
         (0, usize::from(max))
     );
-    assert!(parse_inventory_header(&header(0, max + 1, [0, 0])).is_err());
-    assert!(parse_inventory_header(&header(2, 2, [0, 0])).is_err());
+    assert_eq!(
+        parse_inventory_header(&header(0, max + 1, [0, 0]))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidSealedInventory")
+    );
+    assert_eq!(
+        parse_inventory_header(&header(2, 2, [0, 0]))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some("InvalidSealedInventory")
+    );
 }
 
 #[test]

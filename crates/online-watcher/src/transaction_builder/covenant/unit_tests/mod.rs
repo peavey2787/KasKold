@@ -120,8 +120,20 @@ fn allowance_prepare_material_covers_validation_error_paths() {
         ),
         Err(error) if error.contains("balance overflows u64")
     ));
-    assert!(prepare_material("not-an-address", &destination, "51", 1, 0, &funded).is_err());
-    assert!(prepare_material(&covenant, "not-an-address", "51", 1, 0, &funded).is_err());
+    assert_eq!(
+        prepare_material("not-an-address", &destination, "51", 1, 0, &funded)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Unknown address prefix")
+    );
+    assert_eq!(
+        prepare_material(&covenant, "not-an-address", "51", 1, 0, &funded)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Unknown address prefix")
+    );
 }
 
 #[test]
@@ -143,7 +155,13 @@ fn allowance_prepare_material_has_host_native_coverage() {
     )
     .is_ok());
 
-    assert!(prepare_material(&covenant, &destination, "51", 1, 1, &[]).is_err());
+    assert_eq!(
+        prepare_material(&covenant, &destination, "51", 1, 1, &[])
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("No UTXOs at covenant address")
+    );
     assert!(matches!(
         prepare_material(
             &covenant,

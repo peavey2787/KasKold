@@ -133,10 +133,7 @@ pub fn kaskold_vault_add_restore(
 pub fn kaskold_vault_wallets() -> Result<String, JsValue> {
     VAULT.with(|vault| {
         let wallets = vault.borrow().wallet_summaries().map_err(vault_error)?;
-        let rows: Vec<WalletResponse> = wallets
-            .into_iter()
-            .map(wallet_response)
-            .collect();
+        let rows: Vec<WalletResponse> = wallets.into_iter().map(wallet_response).collect();
         json(&rows)
     })
 }
@@ -154,7 +151,10 @@ fn switch_wallet_json(index: usize) -> Result<String, JsValue> {
 
 fn switch_wallet_summary(index: usize) -> Result<vault_runtime::WalletSummary, JsValue> {
     VAULT.with(|vault| {
-        vault.borrow_mut().switch_wallet(index).map_err(vault_error)?;
+        vault
+            .borrow_mut()
+            .switch_wallet(index)
+            .map_err(vault_error)?;
         let wallets = vault.borrow().wallet_summaries().map_err(vault_error)?;
         active_wallet_summary(wallets)
     })
@@ -194,7 +194,12 @@ pub fn kaskold_vault_import_xprv(xprv: &str) -> Result<String, JsValue> {
 #[wasm_bindgen]
 pub fn kaskold_vault_set_wallet_name(index: u32, name: &str) -> Result<(), JsValue> {
     let index = usize::try_from(index).map_err(|_| JsValue::from_str("Invalid wallet index."))?;
-    VAULT.with(|vault| vault.borrow_mut().set_wallet_name(index, name).map_err(vault_error))
+    VAULT.with(|vault| {
+        vault
+            .borrow_mut()
+            .set_wallet_name(index, name)
+            .map_err(vault_error)
+    })
 }
 
 #[wasm_bindgen]
@@ -315,7 +320,10 @@ pub fn kaskold_vault_commit_secret(secret: &str) -> Result<String, JsValue> {
 pub fn kaskold_vault_decrypt_secret(payload_hex: &str) -> Result<String, JsValue> {
     let payload = decode_hex(payload_hex)?;
     VAULT.with(|vault| {
-        let secret = vault.borrow().decrypt_secret(&payload).map_err(vault_error)?;
+        let secret = vault
+            .borrow()
+            .decrypt_secret(&payload)
+            .map_err(vault_error)?;
         let value = core::str::from_utf8(&secret)
             .map_err(|_| JsValue::from_str("Decrypted secret is not valid UTF-8."))?
             .to_owned();
@@ -325,7 +333,12 @@ pub fn kaskold_vault_decrypt_secret(payload_hex: &str) -> Result<String, JsValue
 
 #[wasm_bindgen]
 pub fn kaskold_vault_portable_backup(password: &str) -> Result<Vec<u8>, JsValue> {
-    VAULT.with(|vault| vault.borrow().portable_backup(password).map_err(vault_error))
+    VAULT.with(|vault| {
+        vault
+            .borrow()
+            .portable_backup(password)
+            .map_err(vault_error)
+    })
 }
 
 #[wasm_bindgen]
@@ -356,7 +369,12 @@ pub fn kaskold_vault_restore_portable(data: &[u8], password: &str) -> Result<Str
 
 #[wasm_bindgen]
 pub fn kaskold_vault_stego_backup(jpeg: &[u8], password: &str) -> Result<Vec<u8>, JsValue> {
-    VAULT.with(|vault| vault.borrow().stego_backup(jpeg, password).map_err(vault_error))
+    VAULT.with(|vault| {
+        vault
+            .borrow()
+            .stego_backup(jpeg, password)
+            .map_err(vault_error)
+    })
 }
 
 #[wasm_bindgen]
@@ -416,19 +434,21 @@ pub(crate) fn decode_hex(text: &str) -> Result<Vec<u8>, JsValue> {
 }
 
 pub(crate) fn decode_hex_bytes(text: &str) -> Result<Vec<u8>, &'static str> {
-    let clean: String = text.chars().filter(|ch| !ch.is_ascii_whitespace()).collect();
+    let clean: String = text
+        .chars()
+        .filter(|ch| !ch.is_ascii_whitespace())
+        .collect();
     if clean.is_empty() || !clean.len().is_multiple_of(2) {
         return Err("Hex payload must contain complete bytes.");
     }
     let bytes = clean.as_bytes();
     let mut output = Vec::with_capacity(bytes.len() / 2);
-    for pair in bytes.chunks_exact(2) {
-        let high = shared_signer::bytes::decode_hex_nibble(pair[0])
-            .ok_or("Invalid hexadecimal payload.")?;
-        let low = shared_signer::bytes::decode_hex_nibble(pair[1])
-            .ok_or("Invalid hexadecimal payload.")?;
+    for &[high, low] in bytes.as_chunks::<2>().0 {
+        let high =
+            shared_signer::bytes::decode_hex_nibble(high).ok_or("Invalid hexadecimal payload.")?;
+        let low =
+            shared_signer::bytes::decode_hex_nibble(low).ok_or("Invalid hexadecimal payload.")?;
         output.push((high << 4) | low);
     }
     Ok(output)
 }
-

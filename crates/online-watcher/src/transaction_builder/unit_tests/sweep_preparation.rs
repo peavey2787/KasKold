@@ -21,16 +21,38 @@ fn selected_sweep_preparation_covers_valid_rows_and_all_validation_stages() {
     assert_eq!(prepared.send_amount, 90);
     assert_eq!(prepared.utxos.len(), 2);
 
-    for bad in ["not-json", "[]"] {
-        assert!(prepare_selected_sweep(bad, &source, &destination, 0, "missing", "low",).is_err());
+    for (bad, expected) in [
+        (
+            "not-json",
+            "Bad UTXO JSON: expected ident at line 1 column 2",
+        ),
+        ("[]", "missing"),
+    ] {
+        assert_eq!(
+            prepare_selected_sweep(bad, &source, &destination, 0, "missing", "low",)
+                .err()
+                .map(|error| error.to_string())
+                .as_deref(),
+            Some(expected)
+        );
     }
 
     let missing = json!([{"index": 0, "amount": 1}]).to_string();
-    assert!(prepare_selected_sweep(&missing, &source, &destination, 0, "missing", "low",).is_err());
+    assert_eq!(
+        prepare_selected_sweep(&missing, &source, &destination, 0, "missing", "low",)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Bad UTXO JSON: missing field `tx_id` at line 1 column 23")
+    );
 
     let bad_txid = json!([{"tx_id": "zz", "index": 0, "amount": 1}]).to_string();
-    assert!(
-        prepare_selected_sweep(&bad_txid, &source, &destination, 0, "missing", "low",).is_err()
+    assert_eq!(
+        prepare_selected_sweep(&bad_txid, &source, &destination, 0, "missing", "low",)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("UTXO tx_id must be 32-byte hex")
     );
 
     let large_index = json!([{
@@ -39,20 +61,28 @@ fn selected_sweep_preparation_covers_valid_rows_and_all_validation_stages() {
         "amount": 1
     }])
     .to_string();
-    assert!(
-        prepare_selected_sweep(&large_index, &source, &destination, 0, "missing", "low",).is_err()
+    assert_eq!(
+        prepare_selected_sweep(&large_index, &source, &destination, 0, "missing", "low",)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("UTXO index exceeds u32")
     );
 
-    assert!(prepare_selected_sweep(&valid, &source, &destination, 100, "missing", "low",).is_err());
+    assert_eq!(
+        prepare_selected_sweep(&valid, &source, &destination, 100, "missing", "low",)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("low")
+    );
 
     let overflow = json!([
         {"tx_id": "11".repeat(32), "index": 0, "amount": u64::MAX},
         {"tx_id": "22".repeat(32), "index": 1, "amount": 1}
     ])
     .to_string();
-    assert!(
-        prepare_selected_sweep(&overflow, &source, &destination, 0, "missing", "low",).is_err()
-    );
+    assert_eq!(prepare_selected_sweep(&overflow, &source, &destination, 0, "missing", "low",).err().map(|error| error.to_string()).as_deref(), Some("Bad UTXO JSON: unsafe JSON integer above JavaScript Number.MAX_SAFE_INTEGER; use a decimal string at line 1 column 31"));
 }
 
 fn utxo(byte: u8, amount: u64) -> crate::account::utxo::UtxoEntry {
@@ -100,31 +130,46 @@ fn fetched_sweep_preparation_is_native_testable_without_jsvalue_errors() {
     .err()
     .unwrap()
     .contains("low"));
-    assert!(prepare_sweep_from_utxos(
-        vec![utxo(1, u64::MAX), utxo(2, 1)],
-        &source,
-        &destination,
-        0,
-        "missing",
-        "low",
-    )
-    .is_err());
-    assert!(prepare_sweep_from_utxos(
-        vec![utxo(1, 100)],
-        "bad-address",
-        &destination,
-        1,
-        "missing",
-        "low",
-    )
-    .is_err());
-    assert!(prepare_sweep_from_utxos(
-        vec![utxo(1, 100)],
-        &source,
-        "bad-address",
-        1,
-        "missing",
-        "low",
-    )
-    .is_err());
+    assert_eq!(
+        prepare_sweep_from_utxos(
+            vec![utxo(1, u64::MAX), utxo(2, 1)],
+            &source,
+            &destination,
+            0,
+            "missing",
+            "low",
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("UTXO total overflow")
+    );
+    assert_eq!(
+        prepare_sweep_from_utxos(
+            vec![utxo(1, 100)],
+            "bad-address",
+            &destination,
+            1,
+            "missing",
+            "low",
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Unknown address prefix")
+    );
+    assert_eq!(
+        prepare_sweep_from_utxos(
+            vec![utxo(1, 100)],
+            &source,
+            "bad-address",
+            1,
+            "missing",
+            "low",
+        )
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Unknown address prefix")
+    );
 }

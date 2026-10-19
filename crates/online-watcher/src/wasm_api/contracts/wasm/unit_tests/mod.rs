@@ -18,8 +18,22 @@ fn covenant_pskb_api_boundaries_validate_numbers_and_json_before_network_io() {
     assert_eq!(request.send_amount().unwrap(), 100);
     assert_eq!(request.fee().unwrap(), 7);
 
-    assert!(ready(create_covenant_pskb("not-json")).is_err());
-    assert!(ready(create_covenant_pskb_with_payload("not-json")).is_err());
+    assert_eq!(
+        ready(create_covenant_pskb("not-json"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(r#"JsValue(Some("Bad covenant request JSON: expected ident at line 1 column 2"))"#)
+    );
+    assert_eq!(
+        ready(create_covenant_pskb_with_payload("not-json"))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("Bad covenant payload request JSON: expected ident at line 1 column 2"))"#
+        )
+    );
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -49,13 +63,28 @@ fn covenant_pskb_valid_requests_reach_native_transport() {
         "utxo_indices_csv": "",
         "ws_url": "ws://unused"
     });
-    assert!(ready(create_covenant_pskb(&request.to_string())).is_err());
+    assert_eq!(
+        ready(create_covenant_pskb(&request.to_string()))
+            .err()
+            .map(|error| format!("{error:?}"))
+            .as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
 
     let mut payload_request = request;
     payload_request["payload_hex"] = serde_json::Value::String("aa".into());
     payload_request["tag_genesis"] = serde_json::Value::Bool(true);
-    assert!(ready(create_covenant_pskb_with_payload(
-        &payload_request.to_string()
-    ))
-    .is_err());
+    assert_eq!(
+        ready(create_covenant_pskb_with_payload(
+            &payload_request.to_string()
+        ))
+        .err()
+        .map(|error| format!("{error:?}"))
+        .as_deref(),
+        Some(
+            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
+        )
+    );
 }

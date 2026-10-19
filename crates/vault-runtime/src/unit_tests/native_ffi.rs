@@ -255,8 +255,20 @@ fn run_byte_workflow(handle: *mut NativeVault, operation: &str, input: &str, dat
 fn native_workflow_parser_hex_and_wallet_labels_cover_all_branches() {
     assert!(parse_input("").unwrap().is_object());
     assert!(parse_input("{}").unwrap().is_object());
-    assert!(parse_input("[]").is_err());
-    assert!(parse_input("{").is_err());
+    assert_eq!(
+        parse_input("[]")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("native Vault workflow input must be a JSON object")
+    );
+    assert_eq!(
+        parse_input("{")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("native Vault workflow input must be valid JSON")
+    );
 
     assert_eq!(wallet_kind_label(WalletKind::Mnemonic), "mnemonic");
     assert_eq!(wallet_kind_label(WalletKind::AccountXprv), "account-xprv");
@@ -275,18 +287,47 @@ fn native_workflow_parser_hex_and_wallet_labels_cover_all_branches() {
         .unwrap(),
         vec![1, 2, 3, 4, 5, 6]
     );
-    assert!(parse_dice_rolls("0").is_err());
-    assert!(parse_dice_rolls("7").is_err());
-    assert!(hex_decode("0").is_err());
-    assert!(hex_decode("zz").is_err());
+    assert_eq!(
+        parse_dice_rolls("0")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("dice rolls must contain only digits 1 through 6")
+    );
+    assert_eq!(
+        parse_dice_rolls("7")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("dice rolls must contain only digits 1 through 6")
+    );
+    assert_eq!(
+        hex_decode("0")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("hex payload must have an even number of characters")
+    );
+    assert_eq!(
+        hex_decode("zz")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("hex payload contains a non-hex character")
+    );
 }
 
 #[test]
 fn native_inventory_dispatch_rejects_non_inventory_operation_directly() {
     let mut vault = NativeVault::new();
-    assert!(vault
-        .dispatch_inventory_text("unsupported", &serde_json::json!({}))
-        .is_err());
+    assert_eq!(
+        vault
+            .dispatch_inventory_text("unsupported", &serde_json::json!({}))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("unsupported inventory workflow operation")
+    );
 }
 
 #[test]
@@ -458,7 +499,12 @@ fn native_workflow_dispatch_exercises_every_allowlisted_text_and_byte_route() {
         ERROR
     );
     assert_eq!(
-        run_byte_workflow(handle, "portable_backup", r#"{"password":"CorrectHorse9"}"#, b""),
+        run_byte_workflow(
+            handle,
+            "portable_backup",
+            r#"{"password":"CorrectHorse9"}"#,
+            b""
+        ),
         OK
     );
     let portable = copy_result(handle, kaskold_vault_last_bytes_copy);
@@ -472,15 +518,30 @@ fn native_workflow_dispatch_exercises_every_allowlisted_text_and_byte_route() {
         OK
     );
     assert_eq!(
-        run_byte_workflow(handle, "portable_xprv_backup", r#"{"password":"CorrectHorse9"}"#, b""),
+        run_byte_workflow(
+            handle,
+            "portable_xprv_backup",
+            r#"{"password":"CorrectHorse9"}"#,
+            b""
+        ),
         OK
     );
     assert_eq!(
-        run_byte_workflow(handle, "stego_backup", r#"{"password":"CorrectHorse9"}"#, b"bad-jpeg"),
+        run_byte_workflow(
+            handle,
+            "stego_backup",
+            r#"{"password":"CorrectHorse9"}"#,
+            b"bad-jpeg"
+        ),
         ERROR
     );
     assert_eq!(
-        run_byte_workflow(handle, "restore_stego", r#"{"password":"CorrectHorse9"}"#, b"bad-jpeg"),
+        run_byte_workflow(
+            handle,
+            "restore_stego",
+            r#"{"password":"CorrectHorse9"}"#,
+            b"bad-jpeg"
+        ),
         ERROR
     );
     assert_eq!(run_byte_workflow(handle, "unsupported", "{}", b""), ERROR);

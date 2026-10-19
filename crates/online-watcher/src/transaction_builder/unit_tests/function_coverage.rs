@@ -193,5 +193,11 @@ fn measured_domain_uncovered_entries_have_direct_native_coverage() {
         crowdfund::decode_hex("00ff", "fixture"),
         Ok(vec![0x00, 0xff])
     );
-    assert!(crowdfund::decode_hex("0z", "fixture").is_err());
+    assert_eq!(
+        crowdfund::decode_hex("0z", "fixture")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Invalid fixture hex: Invalid character 'z' at position 1")
+    );
 }

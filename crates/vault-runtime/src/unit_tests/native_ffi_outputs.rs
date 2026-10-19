@@ -76,11 +76,6 @@ fn bytes_error(handle: *mut NativeVault, operation: &str, input: &str, data: &[u
     copy(handle, kaskold_vault_last_error_copy)
 }
 
-fn assert_specific(error: &str) {
-    assert!(!error.is_empty());
-    assert!(!error.contains("unsupported"), "{error}");
-}
-
 fn restored() -> *mut NativeVault {
     let handle = kaskold_vault_new();
     let phrase = serde_json::json!({"phrase": MNEMONIC, "passphrase": ""}).to_string();
@@ -147,7 +142,10 @@ fn inventory_workflows_return_the_wallet_state_they_changed() {
         text(handle, "delete_wallet", r#"{"index":2}"#),
         serde_json::json!({"deleted": 2})
     );
-    assert_specific(&text_error(handle, "delete_wallet", r#"{"index":99}"#));
+    assert_eq!(
+        text_error(handle, "delete_wallet", r#"{"index":99}"#),
+        r#""InvalidWalletIndex""#
+    );
     kaskold_vault_destroy(handle);
 }
 
@@ -195,17 +193,22 @@ fn key_workflows_return_normalized_keys_and_multisig_material() {
         .expect("descriptor")
         .starts_with("multi("));
 
-    assert_specific(&text_error(handle, "import_xprv", r#"{"xprv":"invalid"}"#));
-    assert_specific(&text_error(
-        handle,
-        "validate_address",
-        r#"{"value":"bad"}"#,
-    ));
-    assert_specific(&text_error(
-        handle,
-        "create_multisig",
-        r#"{"threshold":2,"cosigners":[],"network":"mainnet","chain":0,"index":0}"#,
-    ));
+    assert_eq!(
+        text_error(handle, "import_xprv", r#"{"xprv":"invalid"}"#),
+        r#""Custody(Bip32(InvalidKey))""#
+    );
+    assert_eq!(
+        text_error(handle, "validate_address", r#"{"value":"bad"}"#),
+        r#""Custody(InvalidToolInput)""#
+    );
+    assert_eq!(
+        text_error(
+            handle,
+            "create_multisig",
+            r#"{"threshold":2,"cosigners":[],"network":"mainnet","chain":0,"index":0}"#,
+        ),
+        r#""Custody(InvalidToolInput)""#
+    );
     kaskold_vault_destroy(handle);
 }
 
@@ -261,20 +264,24 @@ fn tool_workflows_return_derived_signed_and_decrypted_values() {
 #[test]
 fn byte_workflows_report_their_own_failures() {
     let handle = restored();
-    for operation in [
-        "recover_material",
-        "transaction_file",
-        "normalize_covenant_backup",
+    for (operation, expected) in [
+        ("recover_material", r#""Custody(InvalidMnemonicWordCount)""#),
+        ("transaction_file", r#""Custody(InvalidToolInput)""#),
+        ("normalize_covenant_backup", r#""InvalidCovenantBackup""#),
     ] {
-        assert_specific(&bytes_error(handle, operation, "{}", b"bad"));
+        assert_eq!(bytes_error(handle, operation, "{}", b"bad"), expected);
     }
     for operation in ["stego_backup", "restore_stego"] {
-        assert_specific(&bytes_error(
-            handle,
-            operation,
-            r#"{"password":"CorrectHorse9"}"#,
-            b"bad-jpeg",
-        ));
+        assert_eq!(
+            bytes_error(
+                handle,
+                operation,
+                r#"{"password":"CorrectHorse9"}"#,
+                b"bad-jpeg",
+            ),
+            r#""Custody(BackupCryptoFailed)""#,
+            "{operation}"
+        );
     }
     kaskold_vault_destroy(handle);
 }
@@ -294,7 +301,10 @@ fn text_with_bytes_entry_point_returns_the_byte_workflow_status() {
         )
     };
     assert_eq!(call("transaction_file", "{}", b"bad"), ERROR);
-    assert_eq!(call("portable_backup", r#"{"password":"CorrectHorse9"}"#, b""), OK);
+    assert_eq!(
+        call("portable_backup", r#"{"password":"CorrectHorse9"}"#, b""),
+        OK
+    );
     kaskold_vault_destroy(handle);
 }
 

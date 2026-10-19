@@ -74,13 +74,18 @@ fn facade_review_routes_both_wire_formats_and_preserves_errors() {
 fn facade_signing_routes_transaction_and_message_domains() {
     let signer = OfflineSigner::new();
     let private_key = [1u8; 32];
-    assert!(signer
-        .sign_transaction(
-            &Transaction::try_new().expect("transaction test allocation"),
-            &private_key,
-            SigHashType::All
-        )
-        .is_err());
+    assert_eq!(
+        signer
+            .sign_transaction(
+                &Transaction::try_new().expect("transaction test allocation"),
+                &private_key,
+                SigHashType::All
+            )
+            .err()
+            .map(|error| std::format!("{error:?}"))
+            .as_deref(),
+        Some("NoInputs")
+    );
 
     let signature = signer
         .sign_user_message_with_entropy(&private_key, b"KasKold facade coverage", &[7u8; 32])

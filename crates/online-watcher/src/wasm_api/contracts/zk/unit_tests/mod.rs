@@ -30,13 +30,19 @@ fn commit_reveal_builders_cover_valid_requests_and_malformed_hex() {
         .unwrap()
         .starts_with("kaspatest:"));
     assert_eq!(document["locktime_daa"], "99");
-    assert!(
+    assert_eq!(
         super::commit_reveal::build_commit_reveal_json("00", &"22".repeat(32), 0, "mainnet")
-            .is_err()
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Pubkey must be 32 bytes")
     );
-    assert!(
+    assert_eq!(
         super::commit_reveal::build_commit_reveal_json(&"11".repeat(32), "00", 0, "mainnet")
-            .is_err()
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("committed hash must be 32 bytes, got 1")
     );
 
     let request = json!({
@@ -55,16 +61,37 @@ fn commit_reveal_builders_cover_valid_requests_and_malformed_hex() {
     assert_eq!(parsed.redeem_script, vec![0x51]);
     assert_eq!(parsed.payload, vec![0xcc]);
 
-    for (field, value) in [
-        ("redeem_script_hex", "zz"),
-        ("part_a_hex", "zz"),
-        ("part_b_hex", "zz"),
-        ("payload_hex", "zz"),
-        ("fee", "not-a-number"),
+    for ((field, value), expected) in [
+        (
+            ("redeem_script_hex", "zz"),
+            "Bad redeem hex: Invalid character 'z' at position 0",
+        ),
+        (
+            ("part_a_hex", "zz"),
+            "Bad part_a hex: Invalid character 'z' at position 0",
+        ),
+        (
+            ("part_b_hex", "zz"),
+            "Bad part_b hex: Invalid character 'z' at position 0",
+        ),
+        (
+            ("payload_hex", "zz"),
+            "Bad payload hex: Invalid character 'z' at position 0",
+        ),
+        (
+            ("fee", "not-a-number"),
+            "Invalid fee: invalid digit found in string",
+        ),
     ] {
         let mut document: serde_json::Value = serde_json::from_str(&request).unwrap();
         document[field] = json!(value);
-        assert!(super::commit_reveal::parse_commit_reveal_spend(&document.to_string()).is_err());
+        assert_eq!(
+            super::commit_reveal::parse_commit_reveal_spend(&document.to_string())
+                .err()
+                .map(|error| error.to_string())
+                .as_deref(),
+            Some(expected)
+        );
     }
 }
 
@@ -105,12 +132,27 @@ fn merkle_spend_planning_covers_selection_change_and_validation() {
     );
     assert!(!prepared.wire.is_empty());
 
-    for (send_amount, fee, utxos, proof_json, redeem_hex) in [
-        (0, 0, vec![utxo(1, 100)], proof.as_str(), "51"),
-        (100, u64::MAX, vec![utxo(1, 100)], proof.as_str(), "51"),
-        (1, 0, Vec::new(), proof.as_str(), "51"),
-        (1, 0, vec![utxo(1, 100)], "not-json", "51"),
-        (1, 0, vec![utxo(1, 100)], proof.as_str(), "zz"),
+    for ((send_amount, fee, utxos, proof_json, redeem_hex), expected) in [
+        (
+            (0, 0, vec![utxo(1, 100)], proof.as_str(), "51"),
+            "Send amount must be > 0",
+        ),
+        (
+            (100, u64::MAX, vec![utxo(1, 100)], proof.as_str(), "51"),
+            "Merkle spend amount overflow",
+        ),
+        (
+            (1, 0, Vec::new(), proof.as_str(), "51"),
+            "No UTXOs at covenant address",
+        ),
+        (
+            (1, 0, vec![utxo(1, 100)], "not-json", "51"),
+            "Bad merkle proof JSON: expected ident at line 1 column 2",
+        ),
+        (
+            (1, 0, vec![utxo(1, 100)], proof.as_str(), "zz"),
+            "Send 1 + fee 243685 = 243686 exceeds balance 100",
+        ),
     ] {
         let mut bad = super::merkle::MerkleSpendRequest {
             covenant_address: &covenant,
@@ -121,7 +163,13 @@ fn merkle_spend_planning_covers_selection_change_and_validation() {
             requested_fee: fee,
             utxos,
         };
-        assert!(super::merkle::build_merkle_whitelist_spend(&mut bad).is_err());
+        assert_eq!(
+            super::merkle::build_merkle_whitelist_spend(&mut bad)
+                .err()
+                .map(|error| error.to_string())
+                .as_deref(),
+            Some(expected)
+        );
     }
 
     let mut overflow = super::merkle::MerkleSpendRequest {
@@ -133,7 +181,13 @@ fn merkle_spend_planning_covers_selection_change_and_validation() {
         requested_fee: 0,
         utxos: vec![utxo(1, u64::MAX), utxo(2, 1)],
     };
-    assert!(super::merkle::build_merkle_whitelist_spend(&mut overflow).is_err());
+    assert_eq!(
+        super::merkle::build_merkle_whitelist_spend(&mut overflow)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Merkle covenant balance overflow")
+    );
 }
 
 #[test]
@@ -177,9 +231,27 @@ fn crowdfunding_proof_round_trip_and_transaction_constraints_are_native_testable
     use crate::account::{address as account_address, utxo::UtxoEntry};
 
     let (pk, vk) = crate::contracts::zk::proof::crowdfund_trusted_setup().expect("crowdfund setup");
-    assert!(crate::contracts::zk::proof::crowdfund_generate_proof(&pk, &[]).is_err());
-    assert!(crate::contracts::zk::proof::crowdfund_generate_proof(&pk, &[1; 9]).is_err());
-    assert!(crate::contracts::zk::proof::crowdfund_generate_proof(&pk, &[u64::MAX, 1]).is_err());
+    assert_eq!(
+        crate::contracts::zk::proof::crowdfund_generate_proof(&pk, &[])
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("At least one contribution is required")
+    );
+    assert_eq!(
+        crate::contracts::zk::proof::crowdfund_generate_proof(&pk, &[1; 9])
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("At most 8 proof contributions are supported")
+    );
+    assert_eq!(
+        crate::contracts::zk::proof::crowdfund_generate_proof(&pk, &[u64::MAX, 1])
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Crowdfund contribution total overflow")
+    );
     let (max_proof, max_public, max_total) =
         crate::contracts::zk::proof::crowdfund_generate_proof(&pk, &[1; 8])
             .expect("exact maximum contributor proof");
@@ -197,10 +269,7 @@ fn crowdfunding_proof_round_trip_and_transaction_constraints_are_native_testable
     let proof_doc: serde_json::Value = serde_json::from_str(&proof_json).unwrap();
     assert_eq!(proof_doc["total_sompi"], "120000000");
     assert_eq!(proof_doc["verified"], true);
-    assert!(
-        super::crowdfund::build_proof_json(&hex::encode(&pk), &hex::encode(&vk), "[1]").is_err(),
-        "consensus quantities must enter the browser proof boundary as exact decimal strings"
-    );
+    assert_eq!(super::crowdfund::build_proof_json(&hex::encode(&pk), &hex::encode(&vk), "[1]").err().map(|error| error.to_string()).as_deref(), Some("Invalid crowdfunding amount JSON: invalid type: integer `1`, expected a string at line 1 column 2"), "consensus quantities must enter the browser proof boundary as exact decimal strings");
 
     let contributor = "81".repeat(32);
     let organizer = account_address::encode_p2pk_address(&[0x82; 32], "kaspa");

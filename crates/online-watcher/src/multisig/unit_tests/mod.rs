@@ -20,5 +20,11 @@ fn signer_policy_accepts_up_to_the_signer_capacity_and_rejects_more() {
         require_signer_descriptor(&static_descriptor(capacity + 1)),
         Err("Descriptor has too many participants".to_string()),
     );
-    assert!(require_signer_descriptor("not-a-descriptor").is_err());
+    assert_eq!(
+        require_signer_descriptor("not-a-descriptor")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Descriptor must be multi(M,...), multi_hd(M,...), or multi_hd45(M,...)")
+    );
 }

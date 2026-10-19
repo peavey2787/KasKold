@@ -270,8 +270,20 @@ fn signed_kspt_merge_populates_p2pk_signatures_and_rejects_bad_envelopes() {
     let signature = signatures.values().next().expect("signature");
     assert_eq!(signature["schnorr"], signature_hex);
 
-    assert!(merge_signed_kspt_into_pskb("zz", &unsigned_pskb).is_err());
-    assert!(merge_signed_kspt_into_pskb(&hex::encode(b"KSPT"), &unsigned_pskb).is_err());
+    assert_eq!(
+        merge_signed_kspt_into_pskb("zz", &unsigned_pskb)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("KSPT hex: Invalid character 'z' at position 0")
+    );
+    assert_eq!(
+        merge_signed_kspt_into_pskb(&hex::encode(b"KSPT"), &unsigned_pskb)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("KSPT is truncated")
+    );
 
     for network_code in 1u8..=4 {
         let mut networked = hex::decode(&signed_kspt).unwrap();

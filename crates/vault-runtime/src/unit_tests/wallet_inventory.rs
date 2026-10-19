@@ -112,6 +112,8 @@ fn portable_xprv_backup_restores_the_same_account() {
     assert!(backup.len() > 1);
     let mut restored = VaultRuntime::new();
     restored.restore_wallet(MNEMONIC_24, "").unwrap();
-    let summary = restored.add_portable_backup(&backup, "CorrectHorse9").unwrap();
+    let summary = restored
+        .add_portable_backup(&backup, "CorrectHorse9")
+        .unwrap();
     assert_eq!(summary.kpub.as_deref(), Some(kpub.as_str()));
 }

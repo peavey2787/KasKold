@@ -42,74 +42,146 @@ fn invalid_request<'a>(json: &'a str) -> CrowdfundSweepRequest<'a> {
 
 #[test]
 fn crowdfund_async_entrypoints_preserve_validation_errors() {
-    assert!(ready(inspect_crowdfund_contributions_string(
-        "not-json",
-        "ws://unused"
-    ))
-    .is_err());
-    assert!(ready(create_crowdfund_sweep_string(
-        "not-json",
-        "bad",
-        1,
-        1,
-        "00",
-        "00",
-        "00",
-        1,
-        "ws://unused"
-    ))
-    .is_err());
-    assert!(ready(submit_crowdfund_sweep(
-        invalid_request("not-json"),
-        "ws://unused"
-    ))
-    .is_err());
-    assert!(ready(fetch_contributions_json("not-json", "ws://unused")).is_err());
+    assert_eq!(
+        ready(inspect_crowdfund_contributions_string(
+            "not-json",
+            "ws://unused"
+        ))
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Invalid crowdfunding contribution JSON: expected ident at line 1 column 2")
+    );
+    assert_eq!(
+        ready(create_crowdfund_sweep_string(
+            "not-json",
+            "bad",
+            1,
+            1,
+            "00",
+            "00",
+            "00",
+            1,
+            "ws://unused"
+        ))
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Invalid crowdfunding contribution JSON: expected ident at line 1 column 2")
+    );
+    assert_eq!(
+        ready(submit_crowdfund_sweep(
+            invalid_request("not-json"),
+            "ws://unused"
+        ))
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("Invalid crowdfunding contribution JSON: expected ident at line 1 column 2")
+    );
+    assert_eq!(
+        ready(fetch_contributions_json("not-json", "ws://unused"))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Invalid crowdfunding contribution JSON: expected ident at line 1 column 2")
+    );
     #[cfg(not(target_arch = "wasm32"))]
-    assert!(ready(fetch_contributions(
-        &[contribution("kaspa:invalid".into(), "51")],
-        "ws://unused"
-    ))
-    .is_err());
+    assert_eq!(
+        ready(fetch_contributions(
+            &[contribution("kaspa:invalid".into(), "51")],
+            "ws://unused"
+        ))
+        .err()
+        .map(|error| error.to_string())
+        .as_deref(),
+        Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)")
+    );
 }
 
 #[test]
 fn canonical_contribution_checks_address_and_redeem_independently() {
     let canonical = [0x51];
     let address = crate::protocol::script::p2sh::script_to_address(&canonical, "kaspa").unwrap();
-    assert!(validate_canonical_contribution(&contribution(address, "52"), &canonical).is_err());
+    assert_eq!(
+        validate_canonical_contribution(&contribution(address, "52"), &canonical)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Crowdfunding contribution does not match the canonical campaign covenant")
+    );
     let other = crate::protocol::script::p2sh::script_to_address(&[0x52], "kaspa").unwrap();
-    assert!(validate_canonical_contribution(&contribution(other, "51"), &canonical).is_err());
+    assert_eq!(
+        validate_canonical_contribution(&contribution(other, "51"), &canonical)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Crowdfunding contribution does not match the canonical campaign covenant")
+    );
 }
 
 #[test]
 fn contribution_count_sweep_totals_fee_and_hex_boundaries_are_exact() {
-    assert!(parse_contributions("[]").is_err());
+    assert_eq!(
+        parse_contributions("[]")
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Crowdfunding requires 1..=8 contribution addresses")
+    );
     assert_eq!(
         parse_contributions(&contribution_json(CROWDFUND_MAX_CONTRIBUTORS))
             .unwrap()
             .len(),
         CROWDFUND_MAX_CONTRIBUTORS
     );
-    assert!(parse_contributions(&contribution_json(CROWDFUND_MAX_CONTRIBUTORS + 1)).is_err());
+    assert_eq!(
+        parse_contributions(&contribution_json(CROWDFUND_MAX_CONTRIBUTORS + 1))
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Crowdfunding requires 1..=8 contribution addresses")
+    );
     let duplicate = serde_json::json!([
         {"address":"kaspa:x","contributor_pubkey_hex":"11","redeem_script_hex":"51","crowdfund_salt_hex":"22"},
         {"address":"kaspa:x","contributor_pubkey_hex":"11","redeem_script_hex":"51","crowdfund_salt_hex":"22"}
     ]).to_string();
-    assert!(parse_contributions(&duplicate).is_err());
+    assert_eq!(
+        parse_contributions(&duplicate)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Duplicate crowdfunding contribution address")
+    );
 
     let total = 100u64;
     let public = proof::serialize_total(total).unwrap();
     assert_eq!(validate_sweep_totals(total, total, 1, &public), Ok(()));
     let below = proof::serialize_total(total - 1).unwrap();
-    assert!(validate_sweep_totals(total - 1, total, 1, &below).is_err());
-    assert!(validate_sweep_totals(total, total, 0, &public).is_err());
+    assert_eq!(
+        validate_sweep_totals(total - 1, total, 1, &below)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Crowdfunding goal has not been reached")
+    );
+    assert_eq!(
+        validate_sweep_totals(total, total, 0, &public)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Crowdfunding sweep supports at most 16 transaction inputs")
+    );
     assert_eq!(
         validate_sweep_totals(total, total, CROWDFUND_MAX_TX_INPUTS as usize, &public),
         Ok(())
     );
-    assert!(
-        validate_sweep_totals(total, total, CROWDFUND_MAX_TX_INPUTS as usize + 1, &public).is_err()
+    assert_eq!(
+        validate_sweep_totals(total, total, CROWDFUND_MAX_TX_INPUTS as usize + 1, &public)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Crowdfunding sweep supports at most 16 transaction inputs")
     );
 
     let expected_floor = cost::groth16_min_fee_sompi(1).checked_mul(12).unwrap() / 10;
@@ -118,13 +190,25 @@ fn contribution_count_sweep_totals_fee_and_hex_boundaries_are_exact() {
         calculate_fee(CROWDFUND_MAX_SWEEP_FEE_SOMPI, 1),
         Ok(CROWDFUND_MAX_SWEEP_FEE_SOMPI)
     );
-    assert!(calculate_fee(CROWDFUND_MAX_SWEEP_FEE_SOMPI + 1, 1).is_err());
+    assert_eq!(
+        calculate_fee(CROWDFUND_MAX_SWEEP_FEE_SOMPI + 1, 1)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("Crowdfunding fee exceeds the on-chain 500000000 sompi safety ceiling")
+    );
 
     assert_eq!(
         decode_hex_bounded("aabb", "field", 2).unwrap(),
         vec![0xaa, 0xbb]
     );
-    assert!(decode_hex_bounded("aabbcc", "field", 2).is_err());
+    assert_eq!(
+        decode_hex_bounded("aabbcc", "field", 2)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("field exceeds the supported size limit")
+    );
 }
 
 #[test]
@@ -172,4 +256,21 @@ fn sweep_material_rejects_undecodable_proof_and_public_input() {
         panic!("an undecodable public input must be rejected");
     };
     assert!(error.contains("crowdfunding public input"), "{error}");
+}
+
+#[test]
+fn contribution_totals_reject_u64_overflow() {
+    let utxo = |amount| UtxoEntry {
+        tx_id: "33".repeat(32),
+        index: 0,
+        amount,
+        script_public_key: vec![0, 0, 0x51],
+        block_daa_score: 0,
+        covenant_id: None,
+    };
+    assert_eq!(checked_total(&[utxo(4), utxo(5)]), Ok(9));
+    assert_eq!(
+        checked_total(&[utxo(u64::MAX), utxo(1)]),
+        Err("Crowdfunding balance overflow".to_string())
+    );
 }
