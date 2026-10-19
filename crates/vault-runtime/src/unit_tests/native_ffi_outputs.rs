@@ -272,7 +272,7 @@ fn byte_workflows_report_their_own_failures() {
         assert_specific(&bytes_error(
             handle,
             operation,
-            r#"{"password":"pw"}"#,
+            r#"{"password":"CorrectHorse9"}"#,
             b"bad-jpeg",
         ));
     }
@@ -294,7 +294,7 @@ fn text_with_bytes_entry_point_returns_the_byte_workflow_status() {
         )
     };
     assert_eq!(call("transaction_file", "{}", b"bad"), ERROR);
-    assert_eq!(call("portable_backup", r#"{"password":"pw"}"#, b""), OK);
+    assert_eq!(call("portable_backup", r#"{"password":"CorrectHorse9"}"#, b""), OK);
     kaskold_vault_destroy(handle);
 }
 

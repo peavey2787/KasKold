@@ -385,15 +385,17 @@ fn advanced_runtime_tools_and_portable_recovery_are_shared_and_locked() {
         b"runtime secret"
     );
 
-    let backup = runtime.portable_backup("backup password").unwrap();
+    let backup = runtime.portable_backup("backup password 7").unwrap();
+    assert!(VaultRuntime::portable_backup_is_current(&backup));
+    assert!(!VaultRuntime::portable_backup_is_current(&backup[1..]));
     let expected = runtime.export_public_account().unwrap();
     runtime.lock_wallet();
     assert!(matches!(
-        runtime.portable_backup("backup password"),
+        runtime.portable_backup("backup password 7"),
         Err(VaultRuntimeError::Locked)
     ));
     let restored = runtime
-        .add_portable_backup(&backup, "backup password")
+        .add_portable_backup(&backup, "backup password 7")
         .expect("portable wallet restored");
     assert_eq!(restored.kind, WalletKind::Mnemonic);
     assert_eq!(restored.kpub.as_deref(), Some(expected.as_str()));

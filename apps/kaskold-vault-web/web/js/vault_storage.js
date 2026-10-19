@@ -38,68 +38,50 @@ function walletId() {
   return `wallet-${Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
-function normalizedWallet(wallet, fallbackId, fallbackCredentialType, fallbackSavedAt) {
+function normalizedWallet(wallet, fallbackId, savedAt) {
   if (!wallet?.ciphertext) return null;
   return {
     id: String(wallet.id || fallbackId),
     name: String(wallet.name || 'Wallet'),
     ciphertext: wallet.ciphertext,
-    credentialType: wallet.credentialType === 'pin' ? 'pin' : fallbackCredentialType === 'pin' ? 'pin' : 'password',
+    credentialType: wallet.credentialType === 'pin' ? 'pin' : 'password',
     fingerprint: wallet.fingerprint ? String(wallet.fingerprint) : '',
     kind: wallet.kind ? String(wallet.kind) : '',
-    savedAt: Number(wallet.savedAt) || Number(fallbackSavedAt) || 0,
+    savedAt: Number(wallet.savedAt) || savedAt,
   };
 }
 
 function normalizeRecord(record) {
-  if (!record) return null;
+  if (record?.schema !== 3 || !Array.isArray(record.wallets)) return null;
   const savedAt = Number(record.savedAt) || 0;
-  if (record.schema === 3 && Array.isArray(record.wallets)) {
-    const wallets = record.wallets
-      .map((wallet, index) => normalizedWallet(wallet, `legacy-${savedAt}-${index}`, record.credentialType, savedAt))
-      .filter(Boolean);
-    return { schema: 3, wallets, savedAt };
-  }
-  if (record.schema === 2 && Array.isArray(record.wallets)) {
-    const wallets = record.wallets
-      .map((wallet, index) => normalizedWallet(wallet, `legacy-${savedAt}-${index}`, record.credentialType, savedAt))
-      .filter(Boolean);
-    return { schema: 3, wallets, savedAt };
-  }
-  // Schema 1 is retained as a read-only migration path for previously saved
-  // single-wallet Web Vault records.
-  if (record.schema === 1 && record.ciphertext) {
-    const wallet = normalizedWallet(
-      { name: record.walletName || 'Wallet 1', ciphertext: record.ciphertext },
-      `legacy-${savedAt}-0`,
-      record.credentialType,
-      savedAt,
-    );
-    return { schema: 3, wallets: wallet ? [wallet] : [], savedAt };
-  }
-  return null;
+  const wallets = record.wallets
+    .map((wallet, index) => normalizedWallet(wallet, `saved-${savedAt}-${index}`, savedAt))
+    .filter(Boolean);
+  return { schema: 3, wallets, savedAt };
+}
+
+function identityMatches(saved, fingerprint, kind) {
+  return Boolean(fingerprint) && saved.fingerprint === fingerprint && (!kind || !saved.kind || saved.kind === kind);
 }
 
 async function writeRecord(record) {
   await transaction('readwrite', store => store.put(record, ACTIVE));
 }
 
-export async function saveEncryptedWallet(wallet, credentialType) {
+export async function saveEncryptedWallet(wallet) {
   if (!wallet?.ciphertext) throw new Error('No encrypted wallet is available to save.');
   const current = await loadEncryptedWallet();
   const wallets = current?.wallets ? [...current.wallets] : [];
   const fingerprint = wallet.fingerprint ? String(wallet.fingerprint) : '';
   const kind = wallet.kind ? String(wallet.kind) : '';
-  const matchingIndex = fingerprint
-    ? wallets.findIndex(saved => saved.fingerprint === fingerprint && (!kind || !saved.kind || saved.kind === kind))
-    : -1;
+  const matchingIndex = wallets.findIndex(saved => identityMatches(saved, fingerprint, kind));
   const previous = matchingIndex >= 0 ? wallets[matchingIndex] : null;
   const savedAt = Date.now();
   const entry = {
     id: previous?.id || walletId(),
     name: String(wallet.name || previous?.name || 'Wallet'),
     ciphertext: new Uint8Array(wallet.ciphertext),
-    credentialType: credentialType === 'pin' ? 'pin' : 'password',
+    credentialType: 'password',
     fingerprint,
     kind,
     savedAt,
@@ -127,6 +109,28 @@ export async function updateEncryptedWalletIdentity(id, identity) {
     kind: identity?.kind ? String(identity.kind) : wallet.kind,
   };
   await writeRecord({ schema: 3, wallets: current.wallets, savedAt: Date.now() });
+}
+
+// Erase every saved ciphertext for one wallet identity; returns how many were removed.
+// Replace one saved wallet's ciphertext with a fresh password-sealed backup.
+export async function resealEncryptedWallet(id, ciphertext) {
+  const current = await loadEncryptedWallet();
+  const index = current?.wallets?.findIndex(wallet => wallet.id === id) ?? -1;
+  if (index < 0) throw new Error('The saved wallet is no longer available.');
+  const savedAt = Date.now();
+  current.wallets[index] = { ...current.wallets[index], ciphertext: new Uint8Array(ciphertext), credentialType: 'password', savedAt };
+  await writeRecord({ schema: 3, wallets: current.wallets, savedAt });
+}
+
+export async function deleteSavedWalletIdentity(identity) {
+  const fingerprint = identity?.fingerprint ? String(identity.fingerprint) : '';
+  const kind = identity?.kind ? String(identity.kind) : '';
+  const current = await loadEncryptedWallet();
+  const wallets = current?.wallets || [];
+  const remaining = wallets.filter(saved => !identityMatches(saved, fingerprint, kind));
+  if (remaining.length === wallets.length) return 0;
+  await writeRecord({ schema: 3, wallets: remaining, savedAt: Date.now() });
+  return wallets.length - remaining.length;
 }
 
 export async function deleteEncryptedWallet() {

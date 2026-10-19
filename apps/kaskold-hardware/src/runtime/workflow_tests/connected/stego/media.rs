@@ -5,7 +5,7 @@ use offline_signer::crypto::{device_bound_storage::NONCE_SIZE, password_kdf::SAL
 
 pub(super) const DESCRIPTOR: &[u8] = b"KasKold E2E carrier";
 pub(super) const PASSWORD: &[u8] = b"CorrectHorse9";
-pub(super) const WRONG_PASSWORD: &[u8] = b"WrongHorse9";
+pub(super) const WRONG_PASSWORD: &[u8] = b"WrongHorse99";
 pub(super) const HINT: &[u8] = b"favorite station";
 const NOISE_JPEG: &[u8] = include_bytes!("../../fixtures/stego_noise.jpg");
 const FLAT_JPEG: &[u8] = include_bytes!("../../fixtures/stego_flat.jpg");

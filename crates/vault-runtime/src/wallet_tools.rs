@@ -301,6 +301,11 @@ impl VaultRuntime {
             .map_err(VaultRuntimeError::Custody)
     }
 
+    /// Whether a portable backup is sealed under the current host KDF profile.
+    pub fn portable_backup_is_current(data: &[u8]) -> bool {
+        HotWallet::portable_backup_is_current(data)
+    }
+
     pub fn add_portable_backup(
         &mut self,
         data: &[u8],

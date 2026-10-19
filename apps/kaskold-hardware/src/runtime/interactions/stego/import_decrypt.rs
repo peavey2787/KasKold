@@ -164,7 +164,7 @@ fn handle_portable_password(
         KeyboardAction::Edited => true,
         KeyboardAction::Submitted => {
             let password_len = ad.wallet.seeds.pp_input.len;
-            if let Err(message) = stego::validate_portable_password(
+            if let Err(message) = stego::validate_entered_portable_password(
                 &ad.wallet.seeds.pp_input.buf[..password_len],
             ) {
                 show_rejection(boot_display, delay, message, 1_700, ErrorSound::Beep);

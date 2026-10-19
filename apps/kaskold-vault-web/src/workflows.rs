@@ -1,6 +1,7 @@
 //! Web-facing wallet workflows backed exclusively by `vault-runtime`.
 
 use serde::Serialize;
+use vault_runtime::VaultRuntime;
 use wasm_bindgen::prelude::*;
 
 use super::{hex_encode, json, qr_svg, vault_error, VAULT};
@@ -335,6 +336,11 @@ pub fn kaskold_vault_portable_xprv_backup(password: &str) -> Result<Vec<u8>, JsV
             .portable_xprv_backup(password)
             .map_err(vault_error)
     })
+}
+
+#[wasm_bindgen]
+pub fn kaskold_vault_portable_backup_is_current(data: &[u8]) -> bool {
+    VaultRuntime::portable_backup_is_current(data)
 }
 
 #[wasm_bindgen]

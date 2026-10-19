@@ -63,11 +63,14 @@ pub fn unpack_portable_payload(
         .map_err(payload::PayloadError::message)
 }
 
+/// Policy for a newly chosen Portable JPEG password.
 pub fn validate_portable_password(password: &[u8]) -> Result<(), &'static str> {
-    match portable::validate_password(password) {
-        Ok(()) => Ok(()),
-        Err(_) => Err("Use 8+ chars with a letter and number"),
-    }
+    portable::validate_password(password).map_err(|_| "Use 12+ chars with a letter and number")
+}
+
+/// Bounds for a password typed to open an existing Portable JPEG.
+pub fn validate_entered_portable_password(password: &[u8]) -> Result<(), &'static str> {
+    portable::validate_entered_password(password).map_err(|_| "Enter the backup password")
 }
 
 #[cfg(any(test, feature = "workflow-test-auto"))]

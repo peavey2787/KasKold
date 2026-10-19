@@ -20,7 +20,7 @@ impl BackupError {
             Self::UnsupportedFormat => "Unsupported backup format",
             Self::WrongPurpose => "Wrong backup type",
             Self::InvalidLength => "Invalid backup length",
-            Self::InvalidCredential => "Password needs 8+ chars, letter + number",
+            Self::InvalidCredential => "Password needs 12+ chars, letter + number",
             Self::EntropyUnavailable => "Hardware RNG failed",
             Self::DeviceKeyUnavailable => "Device-bound backup key unavailable",
             Self::EncryptionFailed => "Backup encryption failed",

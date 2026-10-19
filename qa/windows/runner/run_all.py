@@ -599,7 +599,7 @@ def run_step(step_id: str, ns: argparse.Namespace) -> None:
     elif step_id=="integration.offline-signer-firmware-signing": cargo_test(["--manifest-path","qa/Cargo.toml","--test","tooling_firmware_signing","--locked"],ns)
     elif step_id=="integration.online-watcher-source": run([py,"qa/checks/web/check_web_javascript.py"],dry=ns.dry_run)
     elif step_id=="integration.kaskold-companion-web-generated":
-        for cmd in [[py,"tools/build/web/build_web_index.py","--check"],[py,"tools/build/web/build_app_css.py","--check"],[py,"qa/checks/web/check_web_dom_contract.py"],[py,"qa/checks/web/check_safe_html.py"],["node","--test","qa/checks/web/safe_html_hostile.test.mjs"],["node","qa/checks/web/network_routing.test.mjs"]]: run(cmd,dry=ns.dry_run)
+        for cmd in [[py,"tools/build/web/build_web_index.py","--check"],[py,"tools/build/web/build_app_css.py","--check"],[py,"qa/checks/web/check_web_dom_contract.py"],[py,"qa/checks/web/check_safe_html.py"],["node","--test","qa/checks/web/safe_html_hostile.test.mjs"],["node","--test","qa/checks/web/vault_saved_wallets.test.mjs"],["node","qa/checks/web/network_routing.test.mjs"]]: run(cmd,dry=ns.dry_run)
     elif step_id=="integration.kaskold-companion-web-browser":
         commands=[["node","qa/checks/web/check_web_runtime.mjs"],["node","qa/checks/web/check_web_covenant_interactions.mjs"],["node","qa/checks/web/covenant_sign_protocol.test.mjs"],["node","qa/checks/web/check_web_critical_paths.mjs"]]
         for cmd in commands: run(cmd,dry=ns.dry_run)

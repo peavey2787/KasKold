@@ -915,6 +915,7 @@ version = "2.0.0"
 dependencies = [
  "aes-gcm",
  "getrandom 0.2.17",
+ "kaskold-hardware-core",
  "kaskold-protocol",
  "offline-signer",
  "serde_json",

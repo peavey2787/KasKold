@@ -574,6 +574,15 @@
     },
     {
       "commands": [
+        "make test",
+        "make qa"
+      ],
+      "path": "qa/checks/web/vault_saved_wallets.test.mjs",
+      "role": "test",
+      "step": "integration.kaskold-companion-web-generated"
+    },
+    {
+      "commands": [
         "make qa"
       ],
       "path": "qa/checks/web/web_branch_completion.test.mjs",

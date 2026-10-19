@@ -107,6 +107,7 @@ run_step() {
             run_in_directory "$ROOT_DIR" python3 qa/checks/web/check_web_dom_contract.py || return $?
             run_in_directory "$ROOT_DIR" python3 qa/checks/web/check_safe_html.py || return $?
             run_in_directory "$ROOT_DIR" node --test qa/checks/web/safe_html_hostile.test.mjs || return $?
+            run_in_directory "$ROOT_DIR" node --test qa/checks/web/vault_saved_wallets.test.mjs || return $?
             run_in_directory "$ROOT_DIR" node qa/checks/web/network_routing.test.mjs || return $?
             ;;
         integration.kaskold-companion-web-browser)

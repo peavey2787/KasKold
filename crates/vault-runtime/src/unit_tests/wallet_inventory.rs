@@ -108,10 +108,10 @@ fn privacy_tools_answer_with_the_active_wallets_keys() {
 fn portable_xprv_backup_restores_the_same_account() {
     let mut runtime = VaultRuntime::new();
     let kpub = runtime.restore_wallet(MNEMONIC, "").unwrap();
-    let backup = runtime.portable_xprv_backup("pw").unwrap();
+    let backup = runtime.portable_xprv_backup("CorrectHorse9").unwrap();
     assert!(backup.len() > 1);
     let mut restored = VaultRuntime::new();
     restored.restore_wallet(MNEMONIC_24, "").unwrap();
-    let summary = restored.add_portable_backup(&backup, "pw").unwrap();
+    let summary = restored.add_portable_backup(&backup, "CorrectHorse9").unwrap();
     assert_eq!(summary.kpub.as_deref(), Some(kpub.as_str()));
 }

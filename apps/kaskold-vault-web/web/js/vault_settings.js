@@ -82,11 +82,19 @@ export function installSettings({ $, api, show, status, lockVault, openPortableB
 
   bindClick('settings-storage', () => detail('Storage', `
     <p class="muted">Web Vault can save only authenticated password-encrypted KHV3 ciphertext in browser storage. Unlocked private material and credentials are never persisted. Portable encrypted backups use the same Rust custody/KDF boundary.</p>
-    <div class="stack"><button id="setting-storage-backup" class="primary">Encrypted Backup</button><button id="setting-storage-delete" class="danger">Delete Saved Browser Wallets</button></div>`, () => {
+    <div class="stack"><button id="setting-storage-backup" class="primary">Encrypted Backup</button><button id="setting-storage-delete" class="danger">Delete Saved Browser Wallets</button></div>
+    <div id="setting-storage-delete-confirmation" class="stack hidden">
+      <p class="warning">This permanently erases every saved wallet ciphertext from this browser. Wallets without a separate recovery backup cannot be restored.</p>
+      <div class="row"><button id="setting-storage-delete-cancel">Cancel</button><button id="setting-storage-delete-confirm" class="danger">Erase All Saved Wallets</button></div>
+    </div>`, () => {
+      const confirmation = $('setting-storage-delete-confirmation');
       $('setting-storage-backup').onclick = openPortableBackup;
-      $('setting-storage-delete').onclick = async () => {
+      $('setting-storage-delete').onclick = () => confirmation.classList.remove('hidden');
+      $('setting-storage-delete-cancel').onclick = () => confirmation.classList.add('hidden');
+      $('setting-storage-delete-confirm').onclick = async () => {
         try {
           await deleteSavedWallet();
+          confirmation.classList.add('hidden');
           status('Saved encrypted browser wallets deleted. The currently unlocked in-memory wallet is unchanged.');
         } catch (error) { status(String(error), true); }
       };

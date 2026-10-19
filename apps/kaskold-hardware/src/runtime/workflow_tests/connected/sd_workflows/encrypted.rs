@@ -4,7 +4,7 @@ use offline_signer::crypto::device_bound_storage::NONCE_SIZE;
 use crate::services::credential_policy::SALT_SIZE;
 
 const PASSWORD: &[u8] = b"CorrectHorse9";
-const WRONG: &[u8] = b"WrongHorse9";
+const WRONG: &[u8] = b"WrongHorse99";
 
 pub(super) fn exercise(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool {
     let transaction_ok = encrypted_transaction(ctx);

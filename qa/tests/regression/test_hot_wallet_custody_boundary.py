@@ -167,7 +167,6 @@ class VaultCustodyBoundaryTests(unittest.TestCase):
         signing = (ROOT / "crates/hot-wallet/src/transaction_signing.rs").read_text(encoding="utf-8")
         session = (ROOT / "crates/vault-runtime/src/signing_session.rs").read_text(encoding="utf-8")
         web = (ROOT / "apps/kaskold-vault-web/web/index.html").read_text(encoding="utf-8")
-        onboarding = (ROOT / "apps/kaskold-vault-web/web/js/vault_onboarding.js").read_text(encoding="utf-8")
         android = (ROOT / "apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/MainActivity.kt").read_text(encoding="utf-8")
         ios = (ROOT / "apps/kaskold-vault-ios/KasKoldVault/Features/VaultViewModel.swift").read_text(encoding="utf-8")
         ios_project = (ROOT / "apps/kaskold-vault-ios/KasKoldVault.xcodeproj/project.pbxproj").read_text(encoding="utf-8")
@@ -183,8 +182,6 @@ class VaultCustodyBoundaryTests(unittest.TestCase):
         self.assertGreaterEqual(session.count("self.check_session_signing_policy(now_unix)?;"), 2)
 
         self.assertNotIn('id="storage-use-pin"', web)
-        self.assertIn("value.length >= 12", onboarding)
-        self.assertIn("credentialType !== 'password'", onboarding)
 
         self.assertIn("createConfirmDeviceCredentialIntent", android)
         self.assertIn("VaultScreenState.Locked", android)

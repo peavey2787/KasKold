@@ -66,8 +66,15 @@ export function nonNegativeInteger(value, label, max = 0x7fffffff) {
   return number;
 }
 
+// Mirrors the Rust custody policy so the form can explain a rejection; the
+// Rust runtime still enforces it on every new encryption.
+export function meetsPasswordPolicy(password) {
+  return password.length >= 12 && password.length <= 128 && /[A-Za-z]/.test(password) && /\d/.test(password);
+}
+
 export function requireMatchingPasswords(password, confirmation) {
-  if (!password) throw new Error('Enter a backup password.');
-  if (password !== confirmation) throw new Error('Backup passwords do not match.');
+  if (!password) throw new Error('Enter a password.');
+  if (password !== confirmation) throw new Error('Passwords do not match.');
+  if (!meetsPasswordPolicy(password)) throw new Error('Password must be 12-128 characters and contain a letter and number.');
   return password;
 }

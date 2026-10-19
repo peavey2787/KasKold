@@ -1,4 +1,8 @@
-import { deleteEncryptedWallet, loadEncryptedWallet, saveEncryptedWallet, updateEncryptedWalletIdentity } from './vault_storage.js';
+import { meetsPasswordPolicy, requireMatchingPasswords } from './vault_bytes.js';
+import {
+  deleteEncryptedWallet, deleteSavedWalletIdentity, loadEncryptedWallet, resealEncryptedWallet,
+  saveEncryptedWallet, updateEncryptedWalletIdentity,
+} from './vault_storage.js';
 
 function encodeTouchSamples(samples) {
   const bytes = new Uint8Array(samples.length * 8);
@@ -10,11 +14,6 @@ function encodeTouchSamples(samples) {
     view.setUint16(offset + 6, sample.y, true);
   });
   return bytes;
-}
-
-function validCredential(type, value) {
-  if (type === 'pin') return /^\d{6,12}$/.test(value); // legacy unlock metadata only
-  return value.length >= 12 && /[A-Za-z]/.test(value) && /\d/.test(value);
 }
 
 export function installOnboarding({ $, api, parse, show, status, showCreatedPhrase, renderHome }) {
@@ -33,7 +32,6 @@ export function installOnboarding({ $, api, parse, show, status, showCreatedPhra
   let diceTarget = 0;
   let touchSamples = [];
   let passphrase = '';
-  let credentialType = 'password';
   let creationMode = 'fresh';
   let walletName = '';
   let stagedRestoreName = '';
@@ -225,12 +223,14 @@ export function installOnboarding({ $, api, parse, show, status, showCreatedPhra
 
   $('storage-session').onclick = finishCreationStorage;
   $('storage-save').onclick = () => show('storage-protection');
-  $('storage-use-password').onclick = () => { credentialType = 'password'; $('storage-credential-title').textContent = 'Save Wallet Password'; show('storage-credential'); };
+  function chooseStoragePassword(title) {
+    $('storage-credential-title').textContent = title;
+    show('storage-credential');
+  }
+  $('storage-use-password').onclick = () => chooseStoragePassword('Save Wallet Password');
   $('storage-credential-submit').onclick = async () => {
     try {
-      const credential = $('storage-credential').value;
-      if (credential !== $('storage-credential-confirm').value) throw new Error('Credentials do not match.');
-      if (credentialType !== 'password' || !validCredential('password', credential)) throw new Error('Password must be at least 12 characters and contain a letter and number.');
+      const credential = requireMatchingPasswords($('storage-credential').value, $('storage-credential-confirm').value);
       const summaries = parse(api('kaskold_vault_wallets')());
       const active = summaries.find(wallet => wallet.active);
       if (!active) throw new Error('No active wallet is available to save.');
@@ -240,7 +240,7 @@ export function installOnboarding({ $, api, parse, show, status, showCreatedPhra
         ciphertext,
         fingerprint: active.fingerprint || '',
         kind: active.kind || '',
-      }, credentialType);
+      });
       $('storage-credential').value = '';
       $('storage-credential-confirm').value = '';
       status('Wallet saved as credential-encrypted local ciphertext. M5 hardware-bound protection is not claimed by Web Vault.');
@@ -274,9 +274,27 @@ export function installOnboarding({ $, api, parse, show, status, showCreatedPhra
       selectedSavedWalletId = null;
       $('unlock-saved-name').textContent = '';
       $('unlock-saved-credential').value = '';
-      renderHome(false);
-      status(`${name} unlocked.`);
+      if (saved.credentialType === 'password' && api('kaskold_vault_portable_backup_is_current')(new Uint8Array(saved.ciphertext))) {
+        renderHome(false);
+        status(`${name} unlocked.`);
+        return;
+      }
+      await upgradeSavedWallet(saved.id, name, credential);
     } catch (error) { status(String(error), true); }
+  }
+
+  // A PIN-sealed or older-KDF wallet is re-sealed under the current Argon2id
+  // profile; a password below the current policy must be replaced first.
+  async function upgradeSavedWallet(id, name, credential) {
+    if (meetsPasswordPolicy(credential)) {
+      await resealEncryptedWallet(id, api('kaskold_vault_portable_backup')(credential));
+      renderHome(false);
+      status(`${name} unlocked and re-encrypted with the current key-derivation settings.`);
+      return;
+    }
+    afterCreationStorage = () => renderHome(false);
+    chooseStoragePassword('Choose a Stronger Password');
+    status(`${name} unlocked. Its saved copy uses an outdated credential; choose a new password to keep it saved.`, true);
   }
   $('unlock-saved-submit').onclick = unlockSelectedSavedWallet;
   $('unlock-saved-credential').onkeydown = event => {
@@ -293,6 +311,10 @@ export function installOnboarding({ $, api, parse, show, status, showCreatedPhra
 
   refreshSavedWalletList();
   return {
+    forgetSavedWallet: async identity => {
+      await deleteSavedWalletIdentity(identity);
+      await refreshSavedWalletList();
+    },
     deleteSavedWallet: async () => {
       await deleteEncryptedWallet();
       await refreshSavedWalletList();

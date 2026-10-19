@@ -437,12 +437,52 @@ fn portable_encrypted_backup_round_trips_and_rejects_wrong_password() {
     let wallet = restored_wallet();
     let expected_kpub = wallet.export_kpub().unwrap();
     let backup = wallet
-        .portable_backup("correct horse battery staple")
+        .portable_backup("correct horse battery staple 7")
         .expect("portable backup");
-    let restored = HotWallet::restore_portable_backup(&backup, "correct horse battery staple")
+    let restored = HotWallet::restore_portable_backup(&backup, "correct horse battery staple 7")
         .expect("portable restore");
     assert_eq!(restored.export_kpub().unwrap(), expected_kpub);
     assert!(HotWallet::restore_portable_backup(&backup, "wrong password").is_err());
+}
+
+#[test]
+fn new_portable_backups_need_a_strong_password_and_the_host_kdf_profile() {
+    use kaskold_hardware_core::security::credential::CredentialError;
+    use offline_signer::crypto::password_kdf::{
+        derive_key_32, encode_metadata, PasswordKdfParams, PasswordKdfPurpose,
+    };
+
+    let wallet = restored_wallet();
+    for (password, error) in [
+        ("Short7pass", CredentialError::PasswordTooShort),
+        ("no digits at all", CredentialError::PasswordNeedsDigit),
+        ("123456789012", CredentialError::PasswordNeedsLetter),
+    ] {
+        assert!(matches!(
+            wallet.portable_backup(password),
+            Err(HotWalletError::WeakBackupPassword(found)) if found == error
+        ));
+    }
+
+    let backup = wallet.portable_backup("CorrectHorse9").expect("host backup");
+    assert!(HotWallet::portable_backup_is_current(&backup));
+    assert!(!HotWallet::portable_backup_is_current(&backup[..backup.len() - 1]));
+    let mut renamed = backup.clone();
+    renamed[0] ^= 0x20;
+    assert!(!HotWallet::portable_backup_is_current(&renamed));
+
+    // A backup sealed under the embedded v1 profile (and an older 8-character
+    // minimum) still restores but reports that it needs re-sealing.
+    let salt = [0x5a; 16];
+    let mut key = derive_key_32(PasswordKdfPurpose::PortableBackup, b"Short7pw", &salt).unwrap();
+    let mut legacy = backup[..4].to_vec();
+    legacy.extend_from_slice(&encode_metadata(PasswordKdfParams::current()).unwrap());
+    legacy.extend_from_slice(&salt);
+    legacy.extend_from_slice(&wallet.seal_for_platform(&key).unwrap());
+    key.fill(0);
+    assert!(!HotWallet::portable_backup_is_current(&legacy));
+    let reopened = HotWallet::restore_portable_backup(&legacy, "Short7pw").expect("v1 restore");
+    assert_eq!(reopened.export_kpub().unwrap(), wallet.export_kpub().unwrap());
 }
 
 #[test]
@@ -505,7 +545,7 @@ fn typed_wallet_sources_preserve_capabilities_and_khv3_identity() {
         Err(HotWalletError::UnsupportedForWalletType)
     ));
     assert!(matches!(
-        raw.portable_backup("password"),
+        raw.portable_backup("CorrectHorse9"),
         Err(HotWalletError::UnsupportedForWalletType)
     ));
     assert_eq!(
@@ -538,7 +578,7 @@ fn typed_wallet_sources_preserve_capabilities_and_khv3_identity() {
         Err(HotWalletError::RecoveryUnavailable)
     ));
     assert!(matches!(
-        account.portable_backup("password"),
+        account.portable_backup("CorrectHorse9"),
         Err(HotWalletError::UnsupportedForWalletType)
     ));
 
@@ -554,9 +594,9 @@ fn typed_wallet_sources_preserve_capabilities_and_khv3_identity() {
     );
 
     let xprv_backup = mnemonic
-        .portable_xprv_backup("password")
+        .portable_xprv_backup("CorrectHorse9")
         .expect("portable XPrv backup");
-    let xprv_restored = HotWallet::restore_portable_backup(&xprv_backup, "password")
+    let xprv_restored = HotWallet::restore_portable_backup(&xprv_backup, "CorrectHorse9")
         .expect("portable XPrv restore");
     assert_eq!(xprv_restored.wallet_kind(), WalletKind::AccountXprv);
     assert_eq!(
@@ -642,7 +682,7 @@ fn privacy_stego_and_static_multisig_paths_fail_closed_or_round_trip_public_data
     assert!(wallet
         .stealth_scan_request(b"not-a-stealth-request")
         .is_err());
-    assert!(wallet.stego_backup(b"not-a-jpeg", "pw").is_err());
+    assert!(wallet.stego_backup(b"not-a-jpeg", "CorrectHorse9").is_err());
     assert!(HotWallet::restore_stego_backup(b"not-a-jpeg", "pw").is_err());
 
     let static_a = "11".repeat(32);
@@ -1485,12 +1525,12 @@ fn raw_private_key_text_imports_the_exact_key_bytes() {
 
 #[test]
 fn portable_backups_require_their_magic_and_digit_runs_route_by_length() {
-    let backup = restored_wallet().portable_backup("password").unwrap();
-    assert!(HotWallet::restore_portable_backup(&backup, "password").is_ok());
+    let backup = restored_wallet().portable_backup("CorrectHorse9").unwrap();
+    assert!(HotWallet::restore_portable_backup(&backup, "CorrectHorse9").is_ok());
     let mut renamed = backup.clone();
     renamed[0] ^= 0x20;
     assert!(matches!(
-        HotWallet::restore_portable_backup(&renamed, "password"),
+        HotWallet::restore_portable_backup(&renamed, "CorrectHorse9"),
         Err(HotWalletError::InvalidSealedWallet)
     ));
 
@@ -1557,8 +1597,8 @@ fn stego_backup_round_trips_through_a_jpeg_carrier() {
         "../../../../apps/kaskold-hardware/src/runtime/workflow_tests/fixtures/stego_noise.jpg"
     );
     let wallet = restored_wallet();
-    let carrier = wallet.stego_backup(NOISE_JPEG, "pw").expect("stego embeds");
-    let restored = HotWallet::restore_stego_backup(&carrier, "pw").expect("stego restores");
+    let carrier = wallet.stego_backup(NOISE_JPEG, "CorrectHorse9").expect("stego embeds");
+    let restored = HotWallet::restore_stego_backup(&carrier, "CorrectHorse9").expect("stego restores");
     assert_eq!(
         restored.export_kpub().unwrap(),
         wallet.export_kpub().unwrap()

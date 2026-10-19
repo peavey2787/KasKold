@@ -458,7 +458,7 @@ fn native_workflow_dispatch_exercises_every_allowlisted_text_and_byte_route() {
         ERROR
     );
     assert_eq!(
-        run_byte_workflow(handle, "portable_backup", r#"{"password":"pw"}"#, b""),
+        run_byte_workflow(handle, "portable_backup", r#"{"password":"CorrectHorse9"}"#, b""),
         OK
     );
     let portable = copy_result(handle, kaskold_vault_last_bytes_copy);
@@ -466,21 +466,21 @@ fn native_workflow_dispatch_exercises_every_allowlisted_text_and_byte_route() {
         run_byte_workflow(
             handle,
             "restore_portable",
-            r#"{"password":"pw"}"#,
+            r#"{"password":"CorrectHorse9"}"#,
             &portable
         ),
         OK
     );
     assert_eq!(
-        run_byte_workflow(handle, "portable_xprv_backup", r#"{"password":"pw"}"#, b""),
+        run_byte_workflow(handle, "portable_xprv_backup", r#"{"password":"CorrectHorse9"}"#, b""),
         OK
     );
     assert_eq!(
-        run_byte_workflow(handle, "stego_backup", r#"{"password":"pw"}"#, b"bad-jpeg"),
+        run_byte_workflow(handle, "stego_backup", r#"{"password":"CorrectHorse9"}"#, b"bad-jpeg"),
         ERROR
     );
     assert_eq!(
-        run_byte_workflow(handle, "restore_stego", r#"{"password":"pw"}"#, b"bad-jpeg"),
+        run_byte_workflow(handle, "restore_stego", r#"{"password":"CorrectHorse9"}"#, b"bad-jpeg"),
         ERROR
     );
     assert_eq!(run_byte_workflow(handle, "unsupported", "{}", b""), ERROR);

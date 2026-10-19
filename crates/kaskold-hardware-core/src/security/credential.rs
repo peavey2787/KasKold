@@ -8,6 +8,9 @@ use sha2::{Digest, Sha256};
 
 pub const MIN_PIN_DIGITS: usize = 6;
 pub const MAX_PIN_DIGITS: usize = 12;
+/// Minimum length of a newly chosen password.
+pub const MIN_PASSWORD_CHARS: usize = 12;
+pub const MAX_PASSWORD_CHARS: usize = 128;
 pub const RETRY_BASE_MILLIS: u32 = 1_000;
 pub const RETRY_MAX_MILLIS: u32 = 60_000;
 /// Consecutive failed unlock attempts, counted durably across reboots, after
@@ -52,10 +55,10 @@ fn validate_pin(secret: &[u8]) -> Result<(), CredentialError> {
 }
 
 fn validate_password(secret: &[u8]) -> Result<(), CredentialError> {
-    if secret.len() < 8 {
+    if secret.len() < MIN_PASSWORD_CHARS {
         return Err(CredentialError::PasswordTooShort);
     }
-    if secret.len() > 128 {
+    if secret.len() > MAX_PASSWORD_CHARS {
         return Err(CredentialError::PasswordTooLong);
     }
     if !secret.iter().any(|byte| byte.is_ascii_alphabetic()) {
@@ -63,6 +66,19 @@ fn validate_password(secret: &[u8]) -> Result<(), CredentialError> {
     }
     if !secret.iter().any(|byte| byte.is_ascii_digit()) {
         return Err(CredentialError::PasswordNeedsDigit);
+    }
+    Ok(())
+}
+
+/// A password typed to open existing ciphertext. Backups sealed before the
+/// current minimum must stay openable, so only the KDF's length bounds apply;
+/// the authenticated decryption decides whether the password is right.
+pub fn validate_entered_password(secret: &[u8]) -> Result<(), CredentialError> {
+    if secret.is_empty() {
+        return Err(CredentialError::PasswordTooShort);
+    }
+    if secret.len() > MAX_PASSWORD_CHARS {
+        return Err(CredentialError::PasswordTooLong);
     }
     Ok(())
 }

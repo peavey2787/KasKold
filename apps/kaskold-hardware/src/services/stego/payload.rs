@@ -66,7 +66,7 @@ impl PayloadError {
             }
             Self::DeviceKeyUnavailable => "Device backup key unavailable",
             Self::EncryptionFailed => "Stego encryption failed",
-            Self::InvalidPassword => "Use 8+ chars with a letter and number",
+            Self::InvalidPassword => "Use 12+ chars with a letter and number",
             Self::UnsupportedKdf => "Unsupported backup KDF",
         }
     }

@@ -59,7 +59,7 @@ class FailureDiagnosticsAndPsktBoundaryTests(unittest.TestCase):
         self.assertNotIn("truncate_chars", errors)
         self.assertNotIn("split_recoverable_message", errors)
         self.assertIn("message,\n            Some(code)", errors)
-        self.assertIn("Password must be at least 8 characters", persist)
+        self.assertIn("Password must be at least 12 characters", persist)
 
     def test_robolectric_runs_on_supported_sdk_while_app_stays_api_37(self) -> None:
         test = ANDROID_TEST.read_text()

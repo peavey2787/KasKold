@@ -1895,6 +1895,7 @@ F	apps/kaskold-hardware/src/services/memory/password_kdf.rs
 F	apps/kaskold-hardware/src/services/memory/psram.rs
 F	apps/kaskold-hardware/src/services/mod.rs
 F	apps/kaskold-hardware/src/services/persistent_wallet/advanced.rs
+F	apps/kaskold-hardware/src/services/persistent_wallet/attempts.rs
 F	apps/kaskold-hardware/src/services/persistent_wallet/codec.rs
 F	apps/kaskold-hardware/src/services/persistent_wallet/crypto.rs
 F	apps/kaskold-hardware/src/services/persistent_wallet/crypto/dev_storage.rs
@@ -2861,6 +2862,7 @@ F	qa/checks/web/run_web_recovery_coverage.py
 F	qa/checks/web/run_web_runtime_coverage.py
 F	qa/checks/web/safe_html_hostile.test.mjs
 F	qa/checks/web/typescript_toolchain.py
+F	qa/checks/web/vault_saved_wallets.test.mjs
 F	qa/checks/web/web_branch_completion.test.mjs
 F	qa/checks/web/web_branch_hardening.test.mjs
 F	qa/checks/web/web_branch_hardening_final.test.mjs

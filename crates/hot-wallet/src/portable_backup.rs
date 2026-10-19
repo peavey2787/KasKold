@@ -4,10 +4,12 @@
 //! Browser/mobile software cannot honestly reproduce that property, so this
 //! format is explicitly portable: Argon2id derives a wrapping key from the
 //! user's password and the authenticated versioned KHV3 wallet seal protects
-//! the recovery material.
+//! the recovery material. New backups use the 64 MiB host Argon2id profile;
+//! backups sealed under the embedded v1 profile still restore.
 
+use kaskold_hardware_core::security::credential::{validate, CredentialPolicyKind};
 use offline_signer::crypto::password_kdf::{
-    derive_key_32, derive_key_32_with_params, encode_metadata, parse_metadata, PasswordKdfParams,
+    derive_key_32_with_params, encode_metadata, parse_metadata, PasswordKdfParams,
     PasswordKdfPurpose, METADATA_SIZE, SALT_SIZE,
 };
 use zeroize::Zeroize;
@@ -45,14 +47,18 @@ impl HotWallet {
     }
 
     fn portable_backup_source(&self, password: &str) -> Result<Vec<u8>, HotWalletError> {
-        let metadata = encode_metadata(PasswordKdfParams::current())
-            .map_err(|_| HotWalletError::BackupCryptoFailed)?;
+        validate(CredentialPolicyKind::Password, password.as_bytes())
+            .map_err(HotWalletError::WeakBackupPassword)?;
+        let parameters = PasswordKdfParams::host();
+        let metadata =
+            encode_metadata(parameters).map_err(|_| HotWalletError::BackupCryptoFailed)?;
         let mut salt = [0u8; SALT_SIZE];
         fill_random(&mut salt)?;
-        let mut key = derive_key_32(
+        let mut key = derive_key_32_with_params(
             PasswordKdfPurpose::PortableBackup,
             password.as_bytes(),
             &salt,
+            parameters,
         )
         .map_err(|_| HotWalletError::BackupCryptoFailed)?;
         let sealed_result = self.seal_for_platform(&key);
@@ -69,6 +75,14 @@ impl HotWallet {
             return Err(HotWalletError::BackupCryptoFailed);
         }
         Ok(output)
+    }
+
+    /// Whether `data` is a portable backup sealed under the current host KDF
+    /// profile; an older backup should be re-sealed once it has been opened.
+    pub fn portable_backup_is_current(data: &[u8]) -> bool {
+        data.len() == PORTABLE_BACKUP_LEN
+            && &data[..4] == PORTABLE_MAGIC
+            && parse_metadata(&data[4..4 + METADATA_SIZE]).is_ok_and(PasswordKdfParams::is_host)
     }
 
     pub fn restore_portable_backup(data: &[u8], password: &str) -> Result<Self, HotWalletError> {

@@ -1,7 +1,7 @@
 use crate::security::credential::{
     confirmation_digest, confirmation_matches, retry_delay_millis, unlock_attempt_limit_reached,
-    unlock_attempts_remaining, validate, CredentialError, CredentialPolicyKind, MAX_UNLOCK_FAILURES,
-    RETRY_MAX_MILLIS,
+    unlock_attempts_remaining, validate, validate_entered_password, CredentialError,
+    CredentialPolicyKind, MAX_UNLOCK_FAILURES, MIN_PASSWORD_CHARS, RETRY_MAX_MILLIS,
 };
 
 #[test]
@@ -32,16 +32,18 @@ fn credential_policy_rejects_weak_inputs() {
         validate(CredentialPolicyKind::Pin, b"123456789012x"),
         Err(CredentialError::PinNotNumeric)
     );
+    assert_eq!(MIN_PASSWORD_CHARS, 12);
     assert_eq!(
-        validate(CredentialPolicyKind::Password, b"abc1234"),
+        validate(CredentialPolicyKind::Password, b"correct7hor"),
         Err(CredentialError::PasswordTooShort)
     );
+    assert!(validate(CredentialPolicyKind::Password, b"correct7hors").is_ok());
     assert_eq!(
-        validate(CredentialPolicyKind::Password, b"abcdefgh"),
+        validate(CredentialPolicyKind::Password, b"abcdefghijkl"),
         Err(CredentialError::PasswordNeedsDigit)
     );
     assert_eq!(
-        validate(CredentialPolicyKind::Password, b"12345678"),
+        validate(CredentialPolicyKind::Password, b"123456789012"),
         Err(CredentialError::PasswordNeedsLetter)
     );
     assert!(validate(CredentialPolicyKind::Password, b"correct7horse").is_ok());
@@ -52,6 +54,18 @@ fn credential_policy_rejects_weak_inputs() {
     too_long[128] = b'7';
     assert_eq!(
         validate(CredentialPolicyKind::Password, &too_long),
+        Err(CredentialError::PasswordTooLong)
+    );
+}
+
+#[test]
+fn entered_passwords_keep_opening_ciphertext_sealed_under_older_minimums() {
+    assert_eq!(validate_entered_password(b""), Err(CredentialError::PasswordTooShort));
+    assert_eq!(validate_entered_password(b"a"), Ok(()));
+    assert_eq!(validate_entered_password(b"abcdefgh"), Ok(()));
+    assert_eq!(validate_entered_password(&[b'a'; 128]), Ok(()));
+    assert_eq!(
+        validate_entered_password(&[b'a'; 129]),
         Err(CredentialError::PasswordTooLong)
     );
 }

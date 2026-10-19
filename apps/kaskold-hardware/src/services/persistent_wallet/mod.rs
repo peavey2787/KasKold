@@ -118,7 +118,7 @@ const PERSIST_ERROR_MESSAGES: &[&str] = &[
     "PIN must be at least 6 digits",
     "PIN must be 12 digits or fewer",
     "PIN must contain digits only",
-    "Password must be at least 8 characters",
+    "Password must be at least 12 characters",
     "Password is too long",
     "Password needs at least one letter",
     "Password needs at least one number",

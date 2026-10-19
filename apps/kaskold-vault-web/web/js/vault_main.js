@@ -8,7 +8,7 @@ import { installCovenantWorkflows } from './vault_covenant_workflows.js';
 import { installPrivateSwapWorkflows } from './vault_private_swap_workflows.js';
 import { installLegacyWorkflows } from './vault_legacy_workflows.js';
 import { installScanWorkflows } from './vault_scan_workflows.js';
-import { downloadText } from './vault_bytes.js';
+import { downloadBytes, downloadText, requireMatchingPasswords } from './vault_bytes.js';
 import { createRecoveryWordPager } from './workflows/vault_recovery_words.js';
 import { installFrameHexInput } from './workflows/vault_frame_hex_input.js';
 let runtime = null;
@@ -306,10 +306,13 @@ async function boot() {
     show('delete-wallet');
   };
   $('delete-wallet-cancel').onclick = goBack;
-  $('delete-wallet-confirm').onclick = () => {
+  $('delete-wallet-confirm').onclick = async () => {
     try {
       const index = Number($('delete-wallet-confirm').dataset.walletIndex);
       if (!Number.isInteger(index)) throw new Error('Invalid active wallet.');
+      const identity = parse(api('kaskold_vault_wallets')()).find(wallet => wallet.index === index);
+      if (!identity) throw new Error('Invalid active wallet.');
+      await onboarding.forgetSavedWallet(identity);
       api('kaskold_vault_delete_wallet')(index);
       clearDisplayedSecrets();
       history.length = 0;
@@ -335,19 +338,8 @@ async function boot() {
   $('xprv-encrypt-sd').onclick = () => show('xprv-encrypt');
   $('xprv-download').onclick = () => {
     try {
-      const password = $('xprv-password').value;
-      if (!password) throw new Error('Enter a backup password.');
-      if (password !== $('xprv-password-confirm').value) throw new Error('Backup passwords do not match.');
-      const bytes = api('kaskold_vault_portable_xprv_backup')(password);
-      const blob = new Blob([bytes], { type: 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = 'kaskold-account-xprv-backup.kwp';
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
+      const password = requireMatchingPasswords($('xprv-password').value, $('xprv-password-confirm').value);
+      downloadBytes(api('kaskold_vault_portable_xprv_backup')(password), 'kaskold-account-xprv-backup.kwp');
       $('xprv-password').value = '';
       $('xprv-password-confirm').value = '';
       status('Encrypted account-XPrv backup created.');

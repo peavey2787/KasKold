@@ -4,7 +4,7 @@ use crate::{runtime::input::AppState, services::stego::StegoSecurity};
 const JPEG_NAME: [[u8; 11]; 1] = [*b"PHOTO1  JPG"];
 const DESCRIPTOR: &[u8] = b"KasKold E2E carrier";
 const PASSWORD: &[u8] = b"CorrectHorse9";
-const WRONG_PASSWORD: &[u8] = b"WrongHorse9";
+const WRONG_PASSWORD: &[u8] = b"WrongHorse99";
 
 pub(super) fn exercise(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
     description_and_hint(ctx) && portable_password(ctx) && final_confirmation(ctx)

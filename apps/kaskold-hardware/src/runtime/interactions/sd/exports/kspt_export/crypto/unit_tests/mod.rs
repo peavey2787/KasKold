@@ -35,7 +35,7 @@ fn current_envelope_round_trip_authenticates_kdf_metadata_and_has_no_fallback() 
         assert!(open_envelope(&tampered, length, PASSWORD, &mut plaintext).is_err());
     }
     assert_eq!(
-        open_envelope(&encrypted, length, b"WrongHorse9", &mut plaintext),
+        open_envelope(&encrypted, length, b"WrongHorse99", &mut plaintext),
         Err(DecryptError::Authentication)
     );
     let mut unsupported = encrypted;

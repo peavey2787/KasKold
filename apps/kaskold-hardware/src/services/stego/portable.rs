@@ -28,6 +28,11 @@ pub(super) fn validate_password(password: &[u8]) -> Result<(), PortableError> {
         .map_err(|_| PortableError::InvalidPassword)
 }
 
+pub(super) fn validate_entered_password(password: &[u8]) -> Result<(), PortableError> {
+    credential_policy::validate_entered_password(password)
+        .map_err(|_| PortableError::InvalidPassword)
+}
+
 pub(super) fn seal(
     password: &[u8],
     salt: &[u8; SALT_SIZE],
@@ -72,7 +77,7 @@ pub(super) fn open(
     ciphertext: &mut [u8],
     tag: &[u8; TAG_SIZE],
 ) -> Result<(), PortableError> {
-    validate_password(password)?;
+    validate_entered_password(password)?;
     let mut key = crate::services::memory::password_kdf::derive_key_32_with_params(
         PasswordKdfPurpose::PortableBackup,
         password,

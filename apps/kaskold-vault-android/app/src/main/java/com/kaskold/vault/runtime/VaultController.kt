@@ -311,7 +311,6 @@ internal class VaultController(context: Context) : AutoCloseable {
     fun info(title: String, body: String, previous: VaultScreenState): VaultScreenState = set(VaultScreenState.Info(title, body, previous))
 
     fun portableBackup(password: String, previous: VaultScreenState): VaultScreenState = guarded(previous) {
-        require(password.length >= 8) { "Backup password must contain at least 8 characters" }
         val bytes = runtime.workflowBytes("portable_backup", JSONObject().put("password", password))
         VaultScreenState.ExportFile(
             "Encrypted Wallet Backup", "kaskold-vault-backup.kwp", "application/octet-stream", bytes, previous,
@@ -319,7 +318,6 @@ internal class VaultController(context: Context) : AutoCloseable {
     }
 
     fun portableXprvBackup(password: String, previous: VaultScreenState): VaultScreenState = guarded(previous) {
-        require(password.length >= 8) { "Backup password must contain at least 8 characters" }
         val bytes = runtime.workflowBytes("portable_xprv_backup", JSONObject().put("password", password))
         VaultScreenState.ExportFile(
             "Encrypted XPrv Backup", "kaskold-xprv-backup.kwp", "application/octet-stream", bytes, previous,
@@ -327,7 +325,6 @@ internal class VaultController(context: Context) : AutoCloseable {
     }
 
     fun stegoBackup(carrier: ByteArray, password: String, previous: VaultScreenState): VaultScreenState = guarded(previous) {
-        require(password.length >= 8) { "Backup password must contain at least 8 characters" }
         val bytes = runtime.workflowBytes("stego_backup", JSONObject().put("password", password), carrier)
         VaultScreenState.ExportFile(
             "Steganographic Backup", "kaskold-steganographic-backup.jpg", "image/jpeg", bytes, previous,

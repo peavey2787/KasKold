@@ -90,7 +90,7 @@ pub(crate) fn open(
     plaintext: &mut [u8; MAX_PLAINTEXT],
 ) -> Result<usize, BackupError> {
     plaintext.fill(0);
-    credential_policy::validate(CredentialKind::Password, password)
+    credential_policy::validate_entered_password(password)
         .map_err(|_| BackupError::InvalidCredential)?;
     let header = container_framing::parse_backup_header(input).map_err(map_framing_error)?;
     let kind = map_backup_kind(header.kind);
