@@ -26,7 +26,7 @@ struct KpubResponse {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct WalletResponse {
+pub(crate) struct WalletResponse {
     index: usize,
     name: String,
     active: bool,
