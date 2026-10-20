@@ -1,14 +1,12 @@
 use esp_hal::delay::Delay;
-use kaskold_hardware_core::camera::registers::{
-    write_pairs, write_pairs_with_hook,
-};
+use kaskold_hardware_core::camera::registers::{write_pairs, write_pairs_with_hook};
 
 use super::{
     bus::{sccb_read, sccb_write},
     power::camera_power_on,
     registers::{
-        GC0308_CHIP_ID, GC0308_DEFAULTS, GC0308_SUBSAMPLE_QVGA, REG_CHIP_ID,
-        REG_OUTPUT_EN, REG_OUTPUT_FORMAT, REG_PAGE_SELECT,
+        GC0308_CHIP_ID, GC0308_DEFAULTS, GC0308_SUBSAMPLE_QVGA, REG_CHIP_ID, REG_OUTPUT_EN, REG_OUTPUT_FORMAT,
+        REG_PAGE_SELECT,
     },
 };
 
@@ -20,15 +18,18 @@ const NOISE_REMOVAL_ENABLE: u8 = 1 << 2;
 /// disables only the documented noise-removal block and restores the exact prior
 /// register value after the eight checked frames.
 pub fn begin_entropy_capture<I2C: embedded_hal::i2c::I2c>(i2c: &mut I2C) -> Option<u8> {
-    if !sccb_write(i2c, REG_PAGE_SELECT, 0x00) { return None; }
+    if !sccb_write(i2c, REG_PAGE_SELECT, 0x00) {
+        return None;
+    }
     let prior = sccb_read(i2c, REG_BLOCK_ENABLE_1)?;
-    if !sccb_write(i2c, REG_BLOCK_ENABLE_1, prior & !NOISE_REMOVAL_ENABLE) { return None; }
+    if !sccb_write(i2c, REG_BLOCK_ENABLE_1, prior & !NOISE_REMOVAL_ENABLE) {
+        return None;
+    }
     Some(prior)
 }
 
 pub fn end_entropy_capture<I2C: embedded_hal::i2c::I2c>(i2c: &mut I2C, prior: u8) -> bool {
-    sccb_write(i2c, REG_PAGE_SELECT, 0x00)
-        && sccb_write(i2c, REG_BLOCK_ENABLE_1, prior)
+    sccb_write(i2c, REG_PAGE_SELECT, 0x00) && sccb_write(i2c, REG_BLOCK_ENABLE_1, prior)
 }
 
 /// Detect the GC0308 camera on I2C bus.
@@ -38,10 +39,7 @@ pub fn detect_gc0308<I2C: embedded_hal::i2c::I2c>(i2c: &mut I2C) -> bool {
 }
 
 /// Initialize the GC0308 camera for QVGA grayscale output.
-pub fn init_gc0308<I2C: embedded_hal::i2c::I2c>(
-    i2c: &mut I2C,
-    delay: &mut Delay,
-) -> Result<(), &'static str> {
+pub fn init_gc0308<I2C: embedded_hal::i2c::I2c>(i2c: &mut I2C, delay: &mut Delay) -> Result<(), &'static str> {
     power_camera_after_hal_clock(i2c, delay);
     ensure_detected(i2c, "GC0308 not detected (chip ID != 0x9B)")?;
     write_defaults(i2c, delay, "SCCB write failed during defaults")?;
@@ -50,20 +48,14 @@ pub fn init_gc0308<I2C: embedded_hal::i2c::I2c>(
     Ok(())
 }
 
-fn power_camera_after_hal_clock<I2C: embedded_hal::i2c::I2c>(
-    i2c: &mut I2C,
-    delay: &mut Delay,
-) {
+fn power_camera_after_hal_clock<I2C: embedded_hal::i2c::I2c>(i2c: &mut I2C, delay: &mut Delay) {
     camera_power_on(i2c, delay);
     // XCLK is already supplied by LCD_CAM::Camera::with_master_clock(GPIO2).
     // Keep only the sensor power/reset settling delay here.
     delay.delay_millis(30);
 }
 
-fn ensure_detected<I2C: embedded_hal::i2c::I2c>(
-    i2c: &mut I2C,
-    error: &'static str,
-) -> Result<(), &'static str> {
+fn ensure_detected<I2C: embedded_hal::i2c::I2c>(i2c: &mut I2C, error: &'static str) -> Result<(), &'static str> {
     detect_gc0308(i2c).then_some(()).ok_or(error)
 }
 
@@ -86,29 +78,22 @@ fn write_defaults<I2C: embedded_hal::i2c::I2c>(
     Ok(())
 }
 
-fn configure_initial_qvga<I2C: embedded_hal::i2c::I2c>(
-    i2c: &mut I2C,
-    delay: &mut Delay,
-) -> Result<(), &'static str> {
+fn configure_initial_qvga<I2C: embedded_hal::i2c::I2c>(i2c: &mut I2C, delay: &mut Delay) -> Result<(), &'static str> {
     configure_qvga_common(i2c)?;
     delay.delay_millis(100);
     Ok(())
 }
 
-fn configure_qvga_common<I2C: embedded_hal::i2c::I2c>(
-    i2c: &mut I2C,
-) -> Result<(), &'static str> {
+fn configure_qvga_common<I2C: embedded_hal::i2c::I2c>(i2c: &mut I2C) -> Result<(), &'static str> {
     sccb_write(i2c, 0xfe, 0x01);
     let subsample = sccb_read(i2c, 0x53).unwrap_or(0x00) | 0x80;
     let subsample_two = sccb_read(i2c, 0x55).unwrap_or(0x00) | 0x01;
     sccb_write(i2c, 0x53, subsample);
     sccb_write(i2c, 0x55, subsample_two);
     sccb_write(i2c, 0xfe, 0x00);
-    write_pairs(
-        GC0308_SUBSAMPLE_QVGA,
-        "SCCB write failed during subsample config",
-        |register, value| sccb_write(i2c, register, value),
-    )?;
+    write_pairs(GC0308_SUBSAMPLE_QVGA, "SCCB write failed during subsample config", |register, value| {
+        sccb_write(i2c, register, value)
+    })?;
     sccb_write(i2c, 0x46, 0x00);
     Ok(())
 }

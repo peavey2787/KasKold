@@ -2,10 +2,9 @@
 // License: GPL-3.0-or-later.
 
 use super::super::{
-    BootDisplay, COLOR_BG, COLOR_ORANGE, CornerRadii, Drawable,
-    KASPA_TEAL, Line, Point, Primitive, PrimitiveStyle, Rectangle, RoundedRectangle,
-    Size, draw_lato_body, draw_lato_title, draw_oswald_header, measure_body,
-    measure_header, measure_title,
+    draw_lato_body, draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_title, BootDisplay,
+    CornerRadii, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size, COLOR_BG,
+    COLOR_ORANGE, KASPA_TEAL,
 };
 
 impl<'a> BootDisplay<'a> {
@@ -31,13 +30,7 @@ impl<'a> BootDisplay<'a> {
         hash_buf[23] = b' ';
         let hash_str = core::str::from_utf8(&hash_buf[..23]).unwrap_or("???");
         let hw = measure_body(hash_str);
-        draw_lato_body(
-            &mut self.display,
-            hash_str,
-            (320 - hw) / 2,
-            155,
-            COLOR_ORANGE,
-        );
+        draw_lato_body(&mut self.display, hash_str, (320 - hw) / 2, 155, COLOR_ORANGE);
 
         self.draw_sign_button();
     }
@@ -63,12 +56,6 @@ impl<'a> BootDisplay<'a> {
             .draw(&mut self.display)
             .ok();
         let label_width = measure_title("SIGN");
-        draw_lato_title(
-            &mut self.display,
-            "SIGN",
-            x + (width as i32 - label_width) / 2,
-            y + 26,
-            COLOR_BG,
-        );
+        draw_lato_title(&mut self.display, "SIGN", x + (width as i32 - label_width) / 2, y + 26, COLOR_BG);
     }
 }

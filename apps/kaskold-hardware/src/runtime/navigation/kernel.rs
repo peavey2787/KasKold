@@ -98,9 +98,7 @@ fn reduce_root(ad: &AppData, context: ReducerContext, index: u8) -> Result<Trans
         return Err(Rejection::MenuGuardDenied);
     }
     if index == 0 && ad.export.connect_kpub_cached() {
-        return route_transition(
-            context, AppState::ExportKpub, HistoryEffect::PushCurrent, Some(index), true,
-        );
+        return route_transition(context, AppState::ExportKpub, HistoryEffect::PushCurrent, Some(index), true);
     }
     let (next, owner) = root::root_route(usize::from(index)).ok_or(Rejection::InvalidRoot)?;
     Ok(Transition {
@@ -115,35 +113,21 @@ fn reduce_root(ad: &AppData, context: ReducerContext, index: u8) -> Result<Trans
 }
 
 fn reduce_home(context: ReducerContext) -> Result<Transition, Rejection> {
-    let next = if context.intent.is_seed_onboarding() {
-        AppState::StorageModeChoice
-    } else {
-        AppState::MainMenu
-    };
+    let next = if context.intent.is_seed_onboarding() { AppState::StorageModeChoice } else { AppState::MainMenu };
     route_transition(context, next, HistoryEffect::Clear, None, true)
 }
 
 fn reduce_back(ad: &AppData, context: ReducerContext) -> Result<Transition, Rejection> {
-    let next = super::back::target(ad)
-        .or(context.history_back)
-        .ok_or(Rejection::NoBackTarget)?;
+    let next = super::back::target(ad).or(context.history_back).ok_or(Rejection::NoBackTarget)?;
     route_transition(context, next, HistoryEffect::Pop, None, true)
 }
 
-fn reduce_return(
-    ad: &AppData,
-    context: ReducerContext,
-    scope: ReturnScope,
-) -> Result<Transition, Rejection> {
+fn reduce_return(ad: &AppData, context: ReducerContext, scope: ReturnScope) -> Result<Transition, Rejection> {
     let next = return_target(ad, scope).ok_or(Rejection::NoBackTarget)?;
     route_transition(context, next, HistoryEffect::PopTo(next), None, true)
 }
 
-fn reduce_resume(
-    ad: &AppData,
-    context: ReducerContext,
-    target: ResumeTarget,
-) -> Result<Transition, Rejection> {
+fn reduce_resume(ad: &AppData, context: ReducerContext, target: ResumeTarget) -> Result<Transition, Rejection> {
     let next = resume_target(ad, target).ok_or(Rejection::NoBackTarget)?;
     let history = if ad.navigation.history.target(&[next]).is_some() {
         HistoryEffect::PopTo(next)
@@ -183,21 +167,14 @@ fn reduce_authenticated_resume(
     })
 }
 
-fn reduce_menu(
-    ad: &AppData,
-    context: ReducerContext,
-    index: u8,
-) -> Result<Transition, Rejection> {
-    let resolved = super::menu_reducer::resolve(ad, context.from, index).map_err(|error| {
-        match error {
-            super::menu_reducer::ResolveError::GuardDenied => Rejection::MenuGuardDenied,
-            super::menu_reducer::ResolveError::MissingItem
-            | super::menu_reducer::ResolveError::MissingDestination => Rejection::MenuRejected,
+fn reduce_menu(ad: &AppData, context: ReducerContext, index: u8) -> Result<Transition, Rejection> {
+    let resolved = super::menu_reducer::resolve(ad, context.from, index).map_err(|error| match error {
+        super::menu_reducer::ResolveError::GuardDenied => Rejection::MenuGuardDenied,
+        super::menu_reducer::ResolveError::MissingItem | super::menu_reducer::ResolveError::MissingDestination => {
+            Rejection::MenuRejected
         }
     })?;
-    let mut transition = route_transition(
-        context, resolved.destination, HistoryEffect::PushCurrent, None, true,
-    )?;
+    let mut transition = route_transition(context, resolved.destination, HistoryEffect::PushCurrent, None, true)?;
     transition.operation = resolved.operation;
     Ok(transition)
 }
@@ -247,9 +224,7 @@ pub(super) fn return_from_error(ad: &mut AppData, target: AppState) -> bool {
         intent: ad.storage.persistence.device_storage_intent,
         history_back: ad.navigation.history.peek(),
     };
-    let Ok(transition) = route_transition(
-        context, target, HistoryEffect::PopTo(target), None, true,
-    ) else {
+    let Ok(transition) = route_transition(context, target, HistoryEffect::PopTo(target), None, true) else {
         crate::log!("   NAV recoverable error route rejected: {:?}", target);
         return false;
     };
@@ -269,10 +244,9 @@ pub(super) fn return_target(ad: &AppData, scope: ReturnScope) -> Option<AppState
             AppState::SigningKeysMenu,
             AppState::WalletAdvancedMenu,
         ]),
-        ReturnScope::SigningTool => ad.navigation.history.target(&[
-            AppState::SingleSigMenu,
-            AppState::WalletAdvancedMenu,
-        ]),
+        ReturnScope::SigningTool => {
+            ad.navigation.history.target(&[AppState::SingleSigMenu, AppState::WalletAdvancedMenu])
+        }
         ReturnScope::SeedBackup => ad.navigation.history.target(&[
             AppState::QrExportMenu,
             AppState::SeedBackupMenu,
@@ -282,11 +256,9 @@ pub(super) fn return_target(ad: &AppData, scope: ReturnScope) -> Option<AppState
             AppState::AddWalletChoice,
             AppState::SeedToolsMenu,
         ]),
-        ReturnScope::Address => ad.navigation.history.target(&[
-            AppState::SeedToolsMenu,
-            AppState::SeedsMenu,
-            AppState::MainMenu,
-        ]),
+        ReturnScope::Address => {
+            ad.navigation.history.target(&[AppState::SeedToolsMenu, AppState::SeedsMenu, AppState::MainMenu])
+        }
         ReturnScope::KpubExport => ad.navigation.history.target(&[
             AppState::WatchOnlyMenu,
             AppState::MultisigMenu,
@@ -335,9 +307,7 @@ fn apply(ad: &mut AppData, transition: Transition) {
     ad.runtime.needs_redraw = transition.redraw;
     if let Some(operation) = transition.operation {
         if !crate::runtime::presentation::start_operation(ad, operation) {
-            crate::runtime::presentation::show_recoverable_error(
-                ad, "Another operation is active", "UI-BUSY-01", 0,
-            );
+            crate::runtime::presentation::show_recoverable_error(ad, "Another operation is active", "UI-BUSY-01", 0);
         }
     }
 
@@ -389,21 +359,19 @@ pub(super) fn force_recover(ad: &mut AppData, attempted: AppState) {
     recover(ad, Rejection::InvalidRoute, attempted);
 }
 
-pub(super) fn force_commit(
-    ad: &mut AppData,
-    next: AppState,
-    owner: NavigationOwner,
-    redraw: bool,
-) {
-    apply(ad, Transition {
-        from: ad.navigation.committed_state,
-        next,
-        owner,
-        history: if next == AppState::MainMenu { HistoryEffect::Clear } else { HistoryEffect::PushCurrent },
-        root_index: None,
-        redraw,
-        operation: None,
-    });
+pub(super) fn force_commit(ad: &mut AppData, next: AppState, owner: NavigationOwner, redraw: bool) {
+    apply(
+        ad,
+        Transition {
+            from: ad.navigation.committed_state,
+            next,
+            owner,
+            history: if next == AppState::MainMenu { HistoryEffect::Clear } else { HistoryEffect::PushCurrent },
+            root_index: None,
+            redraw,
+            operation: None,
+        },
+    );
 }
 
 fn clear_abandoned_workflow(ad: &mut AppData) {

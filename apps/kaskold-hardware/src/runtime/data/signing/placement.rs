@@ -1,15 +1,12 @@
 //! Stack-bounded in-place construction of `SigningState`.
 
 use super::{
-    AntiKleptoSigningState, CommitRevealState, CovenantSigningState, MessageSigningState,
-    MultisigState, PrivateSwapState, SigningState, TransactionSigningState,
+    AntiKleptoSigningState, CommitRevealState, CovenantSigningState, MessageSigningState, MultisigState,
+    PrivateSwapState, SigningState, TransactionSigningState,
 };
 
 #[inline(never)]
-unsafe fn place_transaction(
-    target: *mut TransactionSigningState,
-    transaction: TransactionSigningState,
-) {
+unsafe fn place_transaction(target: *mut TransactionSigningState, transaction: TransactionSigningState) {
     target.write(transaction);
 }
 
@@ -49,10 +46,7 @@ pub(super) fn try_prepare_transaction() -> Result<TransactionSigningState, ()> {
 }
 
 #[inline(never)]
-pub(super) unsafe fn initialize_in_place(
-    target: *mut SigningState,
-    transaction: TransactionSigningState,
-) {
+pub(super) unsafe fn initialize_in_place(target: *mut SigningState, transaction: TransactionSigningState) {
     place_transaction(core::ptr::addr_of_mut!((*target).transaction), transaction);
     place_multisig(core::ptr::addr_of_mut!((*target).multisig));
     place_message(core::ptr::addr_of_mut!((*target).message));

@@ -11,10 +11,7 @@ mod owner_firmware;
 use super::display;
 use crate::runtime::{data::AppData, input::AppState};
 
-pub(super) fn redraw(
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) -> bool {
+pub(super) fn redraw(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     match ad.navigation.app.state {
         AppState::SettingsMenu => {
             boot_display.update_menu_content("SETTINGS", &ad.navigation.settings_menu);
@@ -46,7 +43,7 @@ pub(super) fn redraw(
         AppState::AdvancedFeatures => {
             boot_display.draw_advanced_features(ad);
             true
-        },
+        }
         #[cfg(feature = "provisioning-ui")]
         AppState::PopItPrompt => {
             boot_display.draw_pop_it_prompt(ad.pop_it.owner_authority_enrolled, ad.pop_it.error);
@@ -58,7 +55,10 @@ pub(super) fn redraw(
             true
         }
         #[cfg(feature = "provisioning-ui")]
-        AppState::PopItConfirm => { boot_display.draw_pop_it_confirm(&ad.wallet.seeds.pp_input, ad.pop_it.error); true }
+        AppState::PopItConfirm => {
+            boot_display.draw_pop_it_confirm(&ad.wallet.seeds.pp_input, ad.pop_it.error);
+            true
+        }
         #[cfg(feature = "provisioning-ui")]
         AppState::OwnerKeyWarning
         | AppState::OwnerInstallWarning

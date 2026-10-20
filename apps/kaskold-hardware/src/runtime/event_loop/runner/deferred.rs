@@ -13,10 +13,9 @@ mod address_cache;
 pub(crate) use address_cache::workflow_drive_address_cache;
 
 mod kpub;
-pub(in crate::runtime::event_loop) use kpub::{cancel_operation, service_operation};
 #[cfg(not(feature = "workflow-test-auto"))]
 pub(in crate::runtime::event_loop) use kpub::service;
-
+pub(in crate::runtime::event_loop) use kpub::{cancel_operation, service_operation};
 
 #[cfg(feature = "argon2-bench")]
 #[inline(never)]
@@ -31,13 +30,9 @@ pub(in crate::runtime::event_loop) fn service_request(
 }
 
 #[cfg(not(feature = "argon2-bench"))]
-pub(in crate::runtime::event_loop) fn service_request(
-    ad: &mut AppData,
-    watchdog_feed: &mut impl FnMut(),
-) {
+pub(in crate::runtime::event_loop) fn service_request(ad: &mut AppData, watchdog_feed: &mut impl FnMut()) {
     address_cache::service(ad, watchdog_feed);
 }
-
 
 #[cfg(feature = "argon2-bench")]
 #[inline(never)]
@@ -47,19 +42,16 @@ fn service_argon2_benchmark(
     delay: &mut esp_hal::delay::Delay,
     watchdog_feed: &mut impl FnMut(),
 ) {
-    if !ad.runtime.take_argon2_benchmark_request() { return; }
+    if !ad.runtime.take_argon2_benchmark_request() {
+        return;
+    }
     boot_display.draw_loading_screen("Argon2 benchmark...");
     let passed = crate::diagnostics::argon2_bench::run(watchdog_feed);
-    boot_display.draw_loading_screen(if passed {
-        "Argon2 benchmark PASS"
-    } else {
-        "Argon2 benchmark FAIL"
-    });
+    boot_display.draw_loading_screen(if passed { "Argon2 benchmark PASS" } else { "Argon2 benchmark FAIL" });
     crate::services::timing::pause(delay, 1_500);
     watchdog_feed();
     ad.runtime.needs_redraw = true;
 }
-
 
 #[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))]
 fn workflow_drive_kpub_export(
@@ -70,7 +62,9 @@ fn workflow_drive_kpub_export(
 ) -> bool {
     use crate::runtime::data::{OperationKind, OperationPhase};
 
-    let Some(kind) = crate::runtime::presentation::operation_kind(ad) else { return false; };
+    let Some(kind) = crate::runtime::presentation::operation_kind(ad) else {
+        return false;
+    };
     if !matches!(kind, OperationKind::ConnectCompanion | OperationKind::DeriveMultisigKpub) {
         return false;
     }
@@ -119,4 +113,3 @@ pub(crate) fn workflow_drive_multisig_kpub(
 ) -> bool {
     workflow_drive_kpub_export(ad, boot_display, delay, watchdog_feed)
 }
-

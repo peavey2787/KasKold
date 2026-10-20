@@ -1,6 +1,9 @@
-use core::sync::atomic::{AtomicU8, Ordering};
-use crate::runtime::{data::{ModalState, OperationPhase}, input::AppState};
 use super::SigningContext;
+use crate::runtime::{
+    data::{ModalState, OperationPhase},
+    input::AppState,
+};
+use core::sync::atomic::{AtomicU8, Ordering};
 
 static FAILURE_STAGE: AtomicU8 = AtomicU8::new(0);
 
@@ -44,23 +47,33 @@ pub(super) fn sign_and_present(ctx: &mut SigningContext<'_, '_, '_>, expected_ma
     crate::runtime::qr_presentation::prepare_navigation(ctx.ad);
     if ctx.ad.navigation.app.state == AppState::ShowQrModeChoice {
         FAILURE_STAGE.store(4, Ordering::Relaxed);
-        if !manual_multiframe(ctx) { return false; }
+        if !manual_multiframe(ctx) {
+            return false;
+        }
     } else if ctx.ad.navigation.app.state == AppState::ShowQR {
         FAILURE_STAGE.store(5, Ordering::Relaxed);
-        if ctx.menu_touch(160, 120, false) != Some(true) { return false; }
+        if ctx.menu_touch(160, 120, false) != Some(true) {
+            return false;
+        }
     } else {
         return false;
     }
     FAILURE_STAGE.store(6, Ordering::Relaxed);
     let ok = close_popup(ctx);
-    if ok { FAILURE_STAGE.store(0, Ordering::Relaxed); }
+    if ok {
+        FAILURE_STAGE.store(0, Ordering::Relaxed);
+    }
     ok
 }
 
 pub(super) fn replay_failure_stage() {
     const NAMES: [&str; 6] = [
-        "SIGN-INPUT-1", "SIGN-INPUT-2-SERIALIZE", "QR-PREPARE",
-        "QR-MANUAL-FRAMES", "QR-SINGLE-FRAME", "QR-POPUP-BACK",
+        "SIGN-INPUT-1",
+        "SIGN-INPUT-2-SERIALIZE",
+        "QR-PREPARE",
+        "QR-MANUAL-FRAMES",
+        "QR-SINGLE-FRAME",
+        "QR-POPUP-BACK",
     ];
     let stage = FAILURE_STAGE.load(Ordering::Relaxed);
     if let Some(name) = stage.checked_sub(1).and_then(|index| NAMES.get(usize::from(index))) {
@@ -70,7 +83,8 @@ pub(super) fn replay_failure_stage() {
 
 fn manual_multiframe(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
     let frames = ctx.ad.qr.outgoing.frame_count;
-    if frames <= 1 || ctx.sd_touch(220, 160, false) != Some(true)
+    if frames <= 1
+        || ctx.sd_touch(220, 160, false) != Some(true)
         || ctx.ad.navigation.app.state != AppState::ShowQR
         || !ctx.ad.qr.outgoing.manual_frames
     {
@@ -90,11 +104,15 @@ fn manual_multiframe(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
 }
 
 fn close_popup(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
-    if ctx.ad.navigation.app.state != AppState::ShowQrPopup { return false; }
+    if ctx.ad.navigation.app.state != AppState::ShowQrPopup {
+        return false;
+    }
     if ctx.sd_touch(220, 160, false) != Some(true) || ctx.ad.navigation.app.state != AppState::ShowQR {
         return false;
     }
-    if !reopen_manual_popup(ctx) { return false; }
+    if !reopen_manual_popup(ctx) {
+        return false;
+    }
     if ctx.sd_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::ShowQrModeChoice {
         return false;
     }
@@ -109,14 +127,10 @@ fn reopen_manual_popup(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
     // "Back to QR" restarts manual presentation at frame 0. Walk the
     // remaining frames again before expecting the popup; a single tap is only
     // sufficient for a single-frame payload.
-    if ctx.ad.qr.outgoing.manual_frames
-        && ctx.ad.qr.outgoing.frame_count > 1
-        && !replay_manual_frames(ctx)
-    {
+    if ctx.ad.qr.outgoing.manual_frames && ctx.ad.qr.outgoing.frame_count > 1 && !replay_manual_frames(ctx) {
         return false;
     }
-    ctx.menu_touch(160, 120, false) == Some(true)
-        && ctx.ad.navigation.app.state == AppState::ShowQrPopup
+    ctx.menu_touch(160, 120, false) == Some(true) && ctx.ad.navigation.app.state == AppState::ShowQrPopup
 }
 
 fn replay_manual_frames(ctx: &mut SigningContext<'_, '_, '_>) -> bool {

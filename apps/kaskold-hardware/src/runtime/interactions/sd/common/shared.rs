@@ -24,12 +24,8 @@ const _: [(); offline_signer::transaction::model::MAX_MULTISIG_KEYS] =
 pub(in crate::runtime::interactions::sd) type ParsedMultisigDescriptor =
     kaskold_protocol::wire::multisig_descriptor::ParsedMultisigDescriptor;
 
-pub(in crate::runtime::interactions::sd) fn parse_descriptor(
-    data: &[u8],
-) -> Option<ParsedMultisigDescriptor> {
-    kaskold_protocol::wire::multisig_descriptor::parse_multisig_descriptor(data)
-        .ok()
-        .filter(|parsed| parsed.is_hd())
+pub(in crate::runtime::interactions::sd) fn parse_descriptor(data: &[u8]) -> Option<ParsedMultisigDescriptor> {
+    kaskold_protocol::wire::multisig_descriptor::parse_multisig_descriptor(data).ok().filter(|parsed| parsed.is_hd())
 }
 
 /// Check if a file with the given 8.3 name exists on the SD card.
@@ -44,7 +40,8 @@ pub(crate) fn sd_file_exists(
         let fat32 = storage_device::mount_fat32(ct)?;
         storage_device::find_file_in_root(ct, &fat32, name_83)?;
         Ok(())
-    }).is_ok()
+    })
+    .is_ok()
 }
 
 /// Build an 8.3 filename from pp_input buffer with given 3-byte extension.
@@ -80,8 +77,7 @@ pub(crate) fn write_file_to_sd(
 /// Generate a nonce for non-backup AES-GCM workflows.
 pub(crate) fn generate_trng_nonce() -> Result<[u8; 12], &'static str> {
     let mut nonce = [0u8; 12];
-    crate::crypto::entropy::fill(&mut nonce)
-        .map_err(crate::services::entropy::EntropyError::message)?;
+    crate::crypto::entropy::fill(&mut nonce).map_err(crate::services::entropy::EntropyError::message)?;
     Ok(nonce)
 }
 
@@ -103,8 +99,11 @@ pub(crate) fn scan_auto_increment(
     let scan_ok = storage_device::with_sd_card!(i2c, delay, |ct| {
         let fat32 = storage_device::mount_fat32(ct)?;
         storage_device::list_root_dir(ct, &fat32, |entry| {
-            if entry.name[0] == p0 && entry.name[1] == p1
-                && entry.name[8] == e0 && entry.name[9] == e1 && entry.name[10] == e2
+            if entry.name[0] == p0
+                && entry.name[1] == p1
+                && entry.name[8] == e0
+                && entry.name[9] == e1
+                && entry.name[10] == e2
             {
                 let mut n: u32 = 0;
                 let mut valid = true;
@@ -119,13 +118,17 @@ pub(crate) fn scan_auto_increment(
                         break;
                     }
                 }
-                if valid && n > max_num { max_num = n; }
+                if valid && n > max_num {
+                    max_num = n;
+                }
             }
             true
         })?;
         Ok(())
     });
-    if scan_ok.is_err() { max_num = 0; }
+    if scan_ok.is_err() {
+        max_num = 0;
+    }
     max_num + 1
 }
 

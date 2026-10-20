@@ -4,10 +4,10 @@
 
 //! Stable platform-adaptive camera capture façade.
 
-use super::{AppData, DmaRxBuf, DvpCamera, camera, display};
 use super::dvp_capture::CaptureOutcome;
 use super::session::prepare_cycle;
 use super::state::CameraSessionState;
+use super::{camera, display, AppData, DmaRxBuf, DvpCamera};
 use crate::runtime::data::CameraScanFault;
 
 const CAPTURE_OUTCOME_FAULT: [CameraScanFault; 4] = [
@@ -37,21 +37,17 @@ fn latch_fault(ad: &mut AppData, fault: CameraScanFault) {
     crate::runtime::presentation::show_error_spec_to(ad, return_to, fault_error(fault));
 }
 
-fn m5_preflight_fault(
-    status: camera::CameraStatus,
-    camera_ready: bool,
-    dma_ready: bool,
-) -> CameraScanFault {
-    if status == camera::CameraStatus::Error { return CameraScanFault::StartupUnavailable; }
-    if !camera_ready || !dma_ready { return CameraScanFault::RuntimeResources; }
+fn m5_preflight_fault(status: camera::CameraStatus, camera_ready: bool, dma_ready: bool) -> CameraScanFault {
+    if status == camera::CameraStatus::Error {
+        return CameraScanFault::StartupUnavailable;
+    }
+    if !camera_ready || !dma_ready {
+        return CameraScanFault::RuntimeResources;
+    }
     CameraScanFault::None
 }
 
-fn handle_m5_outcome(
-    session: &mut CameraSessionState,
-    ad: &mut AppData,
-    outcome: CaptureOutcome,
-) {
+fn handle_m5_outcome(session: &mut CameraSessionState, ad: &mut AppData, outcome: CaptureOutcome) {
     let fault = CAPTURE_OUTCOME_FAULT[outcome as usize];
     if !fault.is_fault() {
         session.capture_succeeded();
@@ -85,13 +81,11 @@ pub fn run_camera_cycle(
     liveness: &mut (impl FnMut() + ?Sized),
 ) {
     let reset_entry = camera_entry_reset(session, ad);
-    if ad.qr.scan.has_camera_fault() { return; }
+    if ad.qr.scan.has_camera_fault() {
+        return;
+    }
 
-    let fault = m5_preflight_fault(
-        *cam_status,
-        dvp_camera_opt.is_some(),
-        cam_dma_buf_opt.is_some(),
-    );
+    let fault = m5_preflight_fault(*cam_status, dvp_camera_opt.is_some(), cam_dma_buf_opt.is_some());
     if fault.is_fault() {
         latch_fault(ad, fault);
         return;
@@ -108,8 +102,16 @@ pub fn run_camera_cycle(
 
     unsafe {
         let outcome = super::dvp_capture::run_capture(
-            session, ad, boot_display, delay, i2c, dvp_camera_opt,
-            cam_dma_buf_opt, buffers.db_ptr, buffers.crop_ptr, liveness,
+            session,
+            ad,
+            boot_display,
+            delay,
+            i2c,
+            dvp_camera_opt,
+            cam_dma_buf_opt,
+            buffers.db_ptr,
+            buffers.crop_ptr,
+            liveness,
         );
         handle_m5_outcome(session, ad, outcome);
     }

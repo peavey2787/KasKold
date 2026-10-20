@@ -15,10 +15,10 @@ mod icons;
 mod palette;
 mod typography;
 
-pub use palette::DISPLAY_H;
 pub(crate) use icons::draw_menu_icon;
+pub use palette::DISPLAY_H;
 pub(crate) use palette::{
-    COLOR_BG, COLOR_CARD, COLOR_CARD_BORDER, COLOR_DANGER, COLOR_GREEN_BTN, COLOR_HINT,
-    COLOR_ORANGE, COLOR_RED_BTN, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_ACCENT, KASPA_TEAL,
+    COLOR_BG, COLOR_CARD, COLOR_CARD_BORDER, COLOR_DANGER, COLOR_GREEN_BTN, COLOR_HINT, COLOR_ORANGE, COLOR_RED_BTN,
+    COLOR_TEXT, COLOR_TEXT_DIM, KASPA_ACCENT, KASPA_TEAL,
 };
 pub(crate) use typography::*;

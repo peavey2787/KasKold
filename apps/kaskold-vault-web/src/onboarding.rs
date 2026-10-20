@@ -47,12 +47,7 @@ pub fn kaskold_vault_add_create_with_entropy(
     VAULT.with(|vault| {
         let created = vault
             .borrow_mut()
-            .add_wallet_with_additive_entropy(
-                word_count,
-                &dice_rolls,
-                touch_transcript,
-                passphrase,
-            )
+            .add_wallet_with_additive_entropy(word_count, &dice_rolls, touch_transcript, passphrase)
             .map_err(vault_error)?;
         json(&CreationResponse {
             recovery_phrase: created.recovery_phrase.to_string(),

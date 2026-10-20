@@ -16,15 +16,14 @@
 
 // Top-level export menu.
 
+use super::super::{context::ExportMenuContext, TouchInput};
 use crate::{
+    runtime::input::AppState,
     runtime::interactions::{
         feedback::RedrawFlag,
         menu_selection::{handle_paged_menu_touch, PagedMenuAction},
     },
-    runtime::input::AppState,
 };
-use super::super::{context::ExportMenuContext, TouchInput};
-
 
 pub(crate) fn handle_pure(
     ad: &mut crate::runtime::data::AppData,
@@ -33,9 +32,15 @@ pub(crate) fn handle_pure(
     page_down_zone: &crate::hw::touch::TouchZone,
     input: TouchInput,
 ) -> Option<bool> {
-    if ad.navigation.app.state != AppState::ExportChoice { return None; }
+    if ad.navigation.app.state != AppState::ExportChoice {
+        return None;
+    }
     let TouchInput { x, y, is_back } = input;
-    if is_back { ad.navigation.export_menu.reset(); crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedList)); return Some(true); }
+    if is_back {
+        ad.navigation.export_menu.reset();
+        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedList));
+        return Some(true);
+    }
     match handle_paged_menu_touch(&mut ad.navigation.export_menu, list_zones, page_up_zone, page_down_zone, x, y) {
         PagedMenuAction::PageChanged => Some(true),
         PagedMenuAction::Selected(item) => {
@@ -43,7 +48,9 @@ pub(crate) fn handle_pure(
                 0 => ad.navigation.seed_backup_menu.reset(),
                 1 => ad.navigation.watch_only_menu.reset(),
                 2 => ad.navigation.signing_keys_menu.reset(),
-                3 => { ad.stego.session.result_ok = false; }
+                3 => {
+                    ad.stego.session.result_ok = false;
+                }
                 _ => return Some(false),
             }
             let _ = crate::runtime::effects::menu_select(ad, item);
@@ -54,9 +61,7 @@ pub(crate) fn handle_pure(
 }
 
 pub(crate) fn handle(context: ExportMenuContext<'_, '_>) -> Option<bool> {
-    let ExportMenuContext {
-        ad, boot_display: _, delay: _, list_zones, page_up_zone, page_down_zone, input,
-    } = context;
+    let ExportMenuContext { ad, boot_display: _, delay: _, list_zones, page_up_zone, page_down_zone, input } = context;
     let TouchInput { x, y, is_back } = input;
     if ad.navigation.app.state != AppState::ExportChoice {
         return None;
@@ -70,14 +75,7 @@ pub(crate) fn handle(context: ExportMenuContext<'_, '_>) -> Option<bool> {
         return Some(needs_redraw.value());
     }
 
-    match handle_paged_menu_touch(
-        &mut ad.navigation.export_menu,
-        list_zones,
-        page_up_zone,
-        page_down_zone,
-        x,
-        y,
-    ) {
+    match handle_paged_menu_touch(&mut ad.navigation.export_menu, list_zones, page_up_zone, page_down_zone, x, y) {
         PagedMenuAction::PageChanged => needs_redraw.mark(),
         PagedMenuAction::Selected(item) => {
             needs_redraw.mark();
@@ -97,4 +95,3 @@ pub(crate) fn handle(context: ExportMenuContext<'_, '_>) -> Option<bool> {
 
     Some(needs_redraw.value())
 }
-

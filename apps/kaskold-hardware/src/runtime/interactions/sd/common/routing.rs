@@ -1,19 +1,13 @@
-use crate::{
-    runtime::interactions::TouchInput,
-    runtime::input::AppState,
-};
+use crate::{runtime::input::AppState, runtime::interactions::TouchInput};
 
-use super::{
-    context::{
-        SdActionContext, SdFileListContext, SdImportMenuContext, SdIoContext, SdListContext,
-        SdTouchContext,
-    },
-    overwrite,
-};
 use super::super::{
     backup::xprv,
     exports::{kpub, kspt_export, multisig, qr, signature},
     imports::{file_browser, import_menu, kspt_import},
+};
+use super::{
+    context::{SdActionContext, SdFileListContext, SdImportMenuContext, SdIoContext, SdListContext, SdTouchContext},
+    overwrite,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -52,35 +46,100 @@ pub fn handle_sd_touch(context: SdTouchContext<'_, '_, '_>) -> Option<bool> {
     let TouchInput { x, y, is_back } = input;
     Some(match group {
         SdRouteGroup::Signature => handle_signature_io(SdIoContext {
-            ad, boot_display, delay, liveness, i2c, backup_device, sd_card_type, x, y, is_back,
+            ad,
+            boot_display,
+            delay,
+            liveness,
+            i2c,
+            backup_device,
+            sd_card_type,
+            x,
+            y,
+            is_back,
         }),
         SdRouteGroup::File => handle_file_io(SdIoContext {
-            ad, boot_display, delay, liveness, i2c, backup_device, sd_card_type, x, y, is_back,
+            ad,
+            boot_display,
+            delay,
+            liveness,
+            i2c,
+            backup_device,
+            sd_card_type,
+            x,
+            y,
+            is_back,
         }),
         SdRouteGroup::SeedBackup => handle_seed_backup_io(SdIoContext {
-            ad, boot_display, delay, liveness, i2c, backup_device, sd_card_type, x, y, is_back,
+            ad,
+            boot_display,
+            delay,
+            liveness,
+            i2c,
+            backup_device,
+            sd_card_type,
+            x,
+            y,
+            is_back,
         }),
         SdRouteGroup::Xprv => handle_xprv_io(SdIoContext {
-            ad, boot_display, delay, liveness, i2c, backup_device, sd_card_type, x, y, is_back,
+            ad,
+            boot_display,
+            delay,
+            liveness,
+            i2c,
+            backup_device,
+            sd_card_type,
+            x,
+            y,
+            is_back,
         }),
         SdRouteGroup::Kspt => handle_kspt_io(SdIoContext {
-            ad, boot_display, delay, liveness, i2c, backup_device, sd_card_type, x, y, is_back,
+            ad,
+            boot_display,
+            delay,
+            liveness,
+            i2c,
+            backup_device,
+            sd_card_type,
+            x,
+            y,
+            is_back,
         }),
         SdRouteGroup::Kpub => handle_kpub_io(SdIoContext {
-            ad, boot_display, delay, liveness, i2c, backup_device, sd_card_type, x, y, is_back,
+            ad,
+            boot_display,
+            delay,
+            liveness,
+            i2c,
+            backup_device,
+            sd_card_type,
+            x,
+            y,
+            is_back,
         }),
         SdRouteGroup::Multisig => handle_multisig_io(SdIoContext {
-            ad, boot_display, delay, liveness, i2c, backup_device, sd_card_type, x, y, is_back,
+            ad,
+            boot_display,
+            delay,
+            liveness,
+            i2c,
+            backup_device,
+            sd_card_type,
+            x,
+            y,
+            is_back,
         }),
-        SdRouteGroup::Action => qr::handle_show_qr_mode_choice(SdActionContext {
-            ad, x, y, is_back,
-        }),
+        SdRouteGroup::Action => qr::handle_show_qr_mode_choice(SdActionContext { ad, x, y, is_back }),
         SdRouteGroup::WalletBackupList => super::super::backup::import::handle_wallet_backup_file_list(SdListContext {
-            ad, list_zones, x, y, is_back,
+            ad,
+            list_zones,
+            x,
+            y,
+            is_back,
         }),
-        SdRouteGroup::FileList => handle_file_list(SdFileListContext {
-            ad, boot_display, delay, liveness, i2c, list_zones, x, y, is_back,
-        }),
+        SdRouteGroup::FileList => {
+            handle_file_list(SdFileListContext { ad, boot_display, delay, liveness, i2c, list_zones, x, y, is_back })
+        }
         SdRouteGroup::ImportMenu => import_menu::handle_sd_import_menu(SdImportMenuContext {
             ad,
             boot_display,
@@ -100,34 +159,35 @@ pub fn handle_sd_touch(context: SdTouchContext<'_, '_, '_>) -> Option<bool> {
 fn route_group(state: AppState) -> Option<SdRouteGroup> {
     if state == AppState::SdSigFilename {
         Some(SdRouteGroup::Signature)
-    } else if matches!(state, AppState::SdDeleteConfirm | AppState::ShowQrPopup
-        | AppState::SdOverwriteWarning)
-    {
+    } else if matches!(state, AppState::SdDeleteConfirm | AppState::ShowQrPopup | AppState::SdOverwriteWarning) {
         Some(SdRouteGroup::File)
-    } else if matches!(state, AppState::SdBackupWarning | AppState::SdSeedFilename
-        | AppState::SdSeedExportPassphrase | AppState::SdWalletBackupImportPassphrase)
-    {
+    } else if matches!(
+        state,
+        AppState::SdBackupWarning
+            | AppState::SdSeedFilename
+            | AppState::SdSeedExportPassphrase
+            | AppState::SdWalletBackupImportPassphrase
+    ) {
         Some(SdRouteGroup::SeedBackup)
-    } else if matches!(state, AppState::SdXprvFilename | AppState::SdXprvExportPassphrase)
-    {
+    } else if matches!(state, AppState::SdXprvFilename | AppState::SdXprvExportPassphrase) {
         Some(SdRouteGroup::Xprv)
-    } else if matches!(state, AppState::SdKsptFilename | AppState::SdKsptEncryptAsk
-        | AppState::SdKsptEncryptPass)
-    {
+    } else if matches!(state, AppState::SdKsptFilename | AppState::SdKsptEncryptAsk | AppState::SdKsptEncryptPass) {
         Some(SdRouteGroup::Kspt)
     } else if matches!(state, AppState::SdKpubFilename | AppState::SdKpubEncryptAsk) {
         Some(SdRouteGroup::Kpub)
-    } else if matches!(state, AppState::SdMsAddrFilename | AppState::SdMsAddrEncryptAsk
-        | AppState::SdMsDescFilename | AppState::SdMsDescEncryptAsk)
-    {
+    } else if matches!(
+        state,
+        AppState::SdMsAddrFilename
+            | AppState::SdMsAddrEncryptAsk
+            | AppState::SdMsDescFilename
+            | AppState::SdMsDescEncryptAsk
+    ) {
         Some(SdRouteGroup::Multisig)
     } else if state == AppState::ShowQrModeChoice {
         Some(SdRouteGroup::Action)
     } else if state == AppState::SdWalletBackupFileList {
         Some(SdRouteGroup::WalletBackupList)
-    } else if matches!(state, AppState::SdFileList | AppState::SdKsptFileList
-        | AppState::SdKpubFileList)
-    {
+    } else if matches!(state, AppState::SdFileList | AppState::SdKsptFileList | AppState::SdKpubFileList) {
         Some(SdRouteGroup::FileList)
     } else if state == AppState::SdImportMenu {
         Some(SdRouteGroup::ImportMenu)
@@ -157,7 +217,9 @@ fn handle_seed_backup_io(context: SdIoContext<'_, '_, '_>) -> bool {
         AppState::SdBackupWarning => super::super::backup::seed::handle_seed_backup_warning(context),
         AppState::SdSeedFilename => super::super::backup::seed::handle_seed_backup_filename(context),
         AppState::SdSeedExportPassphrase => super::super::backup::seed::handle_seed_backup_export_passphrase(context),
-        AppState::SdWalletBackupImportPassphrase => super::super::backup::import::handle_wallet_backup_import_passphrase(context),
+        AppState::SdWalletBackupImportPassphrase => {
+            super::super::backup::import::handle_wallet_backup_import_passphrase(context)
+        }
         _ => false,
     }
 }

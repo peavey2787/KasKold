@@ -1,7 +1,6 @@
 use super::super::{
-    BootDisplay, COLOR_HINT, COLOR_TEXT, Drawable, KASPA_TEAL, Line,
-    Point, Primitive, PrimitiveStyle, draw_lato_body, draw_lato_hint, draw_lato_title,
-    draw_oswald_header, measure_header, measure_hint,
+    draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_header, measure_hint, BootDisplay,
+    Drawable, Line, Point, Primitive, PrimitiveStyle, COLOR_HINT, COLOR_TEXT, KASPA_TEAL,
 };
 
 impl<'a> BootDisplay<'a> {
@@ -26,5 +25,4 @@ impl<'a> BootDisplay<'a> {
         let hint_width = measure_hint(hint);
         draw_lato_hint(&mut self.display, hint, (320 - hint_width) / 2, 218, COLOR_HINT);
     }
-
 }

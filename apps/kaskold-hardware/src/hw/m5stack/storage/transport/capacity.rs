@@ -1,11 +1,9 @@
 //! SD CSD capacity and write-protect queries over the CoreS3 shared SPI2 bus.
 
-use esp_hal::{Blocking, spi::master::Spi};
+use esp_hal::{spi::master::Spi, Blocking};
 use kaskold_hardware_core::storage::{card::csd_sector_count, retry::poll_read_token};
 
-use super::protocol::{
-    command_data_at, finish_transaction_at, read_exact, require_success, transfer_byte,
-};
+use super::protocol::{command_data_at, finish_transaction_at, read_exact, require_success, transfer_byte};
 
 const CMD9: u8 = 9;
 const CMD10: u8 = 10;
@@ -23,8 +21,8 @@ pub(crate) fn sd_sector_count() -> Result<u32, &'static str> {
     read_csd().and_then(|csd| csd_sector_count(&csd))
 }
 
-pub(in crate::hw::m5stack::storage::transport) fn sd_write_protect_flags(
-) -> Result<SdWriteProtectFlags, &'static str> {
+pub(in crate::hw::m5stack::storage::transport) fn sd_write_protect_flags() -> Result<SdWriteProtectFlags, &'static str>
+{
     read_csd().map(|csd| write_protect_flags(&csd))
 }
 
@@ -56,11 +54,8 @@ fn log_csd_diagnostics(csd: &[u8; 16]) {
     match csd_sector_count(csd) {
         Ok(sectors) => {
             let bytes = u64::from(sectors).saturating_mul(512);
-            crate::log!(
-                "[SD-DIAG] CSD capacity sectors={} bytes={} MiB={}",
-                sectors, bytes, bytes / (1024 * 1024),
-            );
-        },
+            crate::log!("[SD-DIAG] CSD capacity sectors={} bytes={} MiB={}", sectors, bytes, bytes / (1024 * 1024),);
+        }
         Err(error) => crate::log!("[SD-DIAG] CSD capacity decode failed: {}", error),
     }
 }
@@ -97,18 +92,12 @@ fn read_cid() -> Result<[u8; 16], &'static str> {
 
 fn read_csd() -> Result<[u8; 16], &'static str> {
     let mut csd = [0u8; 16];
-    command_data_at(CMD9, 0, true, |spi, response| {
-        read_csd_response(spi, response, &mut csd)
-    })?;
+    command_data_at(CMD9, 0, true, |spi, response| read_csd_response(spi, response, &mut csd))?;
     finish_transaction_at(true)?;
     Ok(csd)
 }
 
-fn read_csd_response(
-    spi: &mut Spi<'static, Blocking>,
-    response: u8,
-    csd: &mut [u8; 16],
-) -> Result<(), &'static str> {
+fn read_csd_response(spi: &mut Spi<'static, Blocking>, response: u8, csd: &mut [u8; 16]) -> Result<(), &'static str> {
     require_success(response, "CMD9 failed")?;
     wait_for_csd_token(spi)?;
     read_exact(spi, csd)?;
@@ -132,16 +121,13 @@ fn wait_for_csd_token(spi: &mut Spi<'static, Blocking>) -> Result<(), &'static s
     wait_for_register_token(spi, "CSD")
 }
 
-fn wait_for_register_token(
-    spi: &mut Spi<'static, Blocking>,
-    register_name: &'static str,
-) -> Result<(), &'static str> {
-    poll_read_token(10_000, || transfer_byte(spi, 0xFF).unwrap_or(0xFF))
-        .map(|_| ())
-        .map_err(|error| match register_name {
+fn wait_for_register_token(spi: &mut Spi<'static, Blocking>, register_name: &'static str) -> Result<(), &'static str> {
+    poll_read_token(10_000, || transfer_byte(spi, 0xFF).unwrap_or(0xFF)).map(|_| ()).map_err(
+        |error| match register_name {
             "CID" => error.message("CID read error token", "CID read timeout"),
             _ => error.message("CSD read error token", "CSD read timeout"),
-        })
+        },
+    )
 }
 
 fn discard_crc(spi: &mut Spi<'static, Blocking>) -> Result<(), &'static str> {

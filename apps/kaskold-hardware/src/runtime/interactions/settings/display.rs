@@ -14,12 +14,7 @@ fn pin_lock_available(ad: &AppData) -> bool {
 }
 
 #[cfg(feature = "m5stack")]
-pub(super) fn handle_display_settings(
-    ad: &mut AppData,
-    x: u16,
-    y: u16,
-    is_back: bool,
-) -> bool {
+pub(super) fn handle_display_settings(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SettingsMenu));
         return true;
@@ -32,12 +27,16 @@ pub(super) fn handle_display_settings(
             x < 160,
             pin_available,
         );
-        if changed { return true; }
+        if changed {
+            return true;
+        }
     }
     let Some(value) = super::scalar::update(ad.settings.brightness, x, y) else {
         return false;
     };
-    if value == ad.settings.brightness { return false; }
+    if value == ad.settings.brightness {
+        return false;
+    }
     ad.settings.brightness = value;
     true
 }

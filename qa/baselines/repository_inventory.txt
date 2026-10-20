@@ -1336,6 +1336,7 @@ F	apps/kaskold-hardware/clippy.toml
 F	apps/kaskold-hardware/partitions/m5stack-cores3.csv
 F	apps/kaskold-hardware/release-policy.env
 F	apps/kaskold-hardware/rust-toolchain.toml
+F	apps/kaskold-hardware/rustfmt.toml
 F	apps/kaskold-hardware/src/boot/m5stack/audio.rs
 F	apps/kaskold-hardware/src/boot/m5stack/camera.rs
 F	apps/kaskold-hardware/src/boot/m5stack/display.rs
@@ -1590,6 +1591,7 @@ F	apps/kaskold-hardware/src/runtime/interactions/export/seed_qr.rs
 F	apps/kaskold-hardware/src/runtime/interactions/export/watch_only.rs
 F	apps/kaskold-hardware/src/runtime/interactions/export/xprv.rs
 F	apps/kaskold-hardware/src/runtime/interactions/menu.rs
+F	apps/kaskold-hardware/src/runtime/interactions/menu/context.rs
 F	apps/kaskold-hardware/src/runtime/interactions/menu/import_export/filename.rs
 F	apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs
 F	apps/kaskold-hardware/src/runtime/interactions/menu/import_export/mod.rs
@@ -1799,6 +1801,7 @@ F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/advanced_tools/seed
 F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/backup.rs
 F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/backup/recovery_words.rs
 F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/backup/seedqr.rs
+F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/menu_context.rs
 F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/mod.rs
 F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/multisig/configuration.rs
 F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/multisig/cosigners.rs
@@ -1819,6 +1822,7 @@ F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/qr_protocol/mod.rs
 F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/qr_protocol/multiframe.rs
 F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/receive.rs
 F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/remaining.rs
+F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/remaining/covenant.rs
 F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/remaining/firmware_update.rs
 F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/remaining_status.rs
 F	apps/kaskold-hardware/src/runtime/workflow_tests/connected/root.rs
@@ -1904,6 +1908,7 @@ F	apps/kaskold-hardware/src/services/persistent_wallet/flash.rs
 F	apps/kaskold-hardware/src/services/persistent_wallet/journal.rs
 F	apps/kaskold-hardware/src/services/persistent_wallet/journal/config.rs
 F	apps/kaskold-hardware/src/services/persistent_wallet/journal/config/multisig.rs
+F	apps/kaskold-hardware/src/services/persistent_wallet/journal/config/sd_anchor.rs
 F	apps/kaskold-hardware/src/services/persistent_wallet/journal/preferences.rs
 F	apps/kaskold-hardware/src/services/persistent_wallet/kdf/mod.rs
 F	apps/kaskold-hardware/src/services/persistent_wallet/mod.rs
@@ -2075,6 +2080,7 @@ F	apps/kaskold-hardware/src/wallet/mnemonic/touch.rs
 F	apps/kaskold-hardware/src/wallet/mnemonic/validation.rs
 F	apps/kaskold-hardware/src/wallet/mnemonic/word_input.rs
 F	apps/kaskold-hardware/src/wallet/mod.rs
+F	apps/kaskold-hardware/src/wallet/seed_manager/account_key_store.rs
 F	apps/kaskold-hardware/src/wallet/seed_manager/manager.rs
 F	apps/kaskold-hardware/src/wallet/seed_manager/matching.rs
 F	apps/kaskold-hardware/src/wallet/seed_manager/mnemonic_store.rs
@@ -2912,6 +2918,7 @@ F	qa/checks/web/web_wallet_views_behaviour.test.mjs
 F	qa/checks/workspace/__init__.py
 F	qa/checks/workspace/check_lockfile.py
 F	qa/checks/workspace/check_qa_orchestration.py
+F	qa/checks/workspace/check_rust_format.py
 F	qa/checks/workspace/run_repository_python_qa.py
 F	qa/config/run_all_steps.tsv
 F	qa/config/run_all_test_steps.txt

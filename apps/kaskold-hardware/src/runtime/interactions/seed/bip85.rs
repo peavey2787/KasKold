@@ -2,11 +2,11 @@
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
 // License: GPL-3.0
 
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use crate::hw::display;
-use crate::services::audio as sound;
 use crate::runtime::data::AppData;
 use crate::runtime::input::AppState;
+use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
+use crate::services::audio as sound;
 
 mod derivation;
 mod navigation;
@@ -87,20 +87,10 @@ pub(super) fn handle(
     is_back: bool,
 ) -> Option<bool> {
     match ad.navigation.app.state {
-        AppState::Bip85Index { word_count } => Some(handle_index(
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            word_count,
-            x,
-            y,
-            is_back,
-        )),
-        AppState::Bip85ShowWord {
-            word_idx,
-            word_count,
-        } => {
+        AppState::Bip85Index { word_count } => {
+            Some(handle_index(ad, boot_display, delay, liveness, word_count, x, y, is_back))
+        }
+        AppState::Bip85ShowWord { word_idx, word_count } => {
             navigation::advance_word(ad, word_idx, word_count, is_back);
             Some(true)
         }

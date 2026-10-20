@@ -95,21 +95,15 @@ pub(super) fn run(initial_result: bool) -> bool {
         log!("   App state machine verified OK");
     }
 
-
     // Firmware flow-integrity transcript tests.
     let (passed_flow, total_flow) = crate::crypto::unit_tests::flow_tests::run_flow_tests();
     all_passed &= passed_flow == total_flow;
     log!("   Flow integrity tests: {}/{} passed", passed_flow, total_flow);
 
     // Structural entropy health tests are deterministic and hardware-free.
-    let (passed_entropy, total_entropy) =
-        crate::services::unit_tests::entropy_tests::run_entropy_health_tests();
+    let (passed_entropy, total_entropy) = crate::services::unit_tests::entropy_tests::run_entropy_health_tests();
     all_passed &= passed_entropy == total_entropy;
-    log!(
-        "   Entropy health tests: {}/{} passed",
-        passed_entropy,
-        total_entropy
-    );
+    log!("   Entropy health tests: {}/{} passed", passed_entropy, total_entropy);
     if passed_entropy != total_entropy {
         log!("   CRITICAL: Entropy health vectors have failures!");
     } else {
@@ -136,14 +130,9 @@ pub(super) fn run(initial_result: bool) -> bool {
         log!("   SeedManager verified OK");
     }
 
-    let (passed_wallet, total_wallet) =
-        crate::runtime::unit_tests::wallet_session::run_tests();
+    let (passed_wallet, total_wallet) = crate::runtime::unit_tests::wallet_session::run_tests();
     all_passed &= passed_wallet == total_wallet;
-    log!(
-        "   Wallet session tests: {}/{} passed",
-        passed_wallet,
-        total_wallet
-    );
+    log!("   Wallet session tests: {}/{} passed", passed_wallet, total_wallet);
     if passed_wallet != total_wallet {
         log!("   CRITICAL: Wallet cache isolation has failures!");
     } else {

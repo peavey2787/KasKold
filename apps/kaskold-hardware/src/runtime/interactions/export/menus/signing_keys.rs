@@ -5,8 +5,8 @@
 //! Signing-key export menu.
 
 use crate::{
-    runtime::interactions::menu_selection::selected_visible_item,
     hw::touch,
+    runtime::interactions::menu_selection::selected_visible_item,
     runtime::{data::AppData, input::AppState},
 };
 
@@ -26,8 +26,7 @@ pub(crate) fn handle(
         return Some(true);
     }
 
-    let Some(item) = selected_visible_item(&ad.navigation.signing_keys_menu, list_zones, x, y)
-    else {
+    let Some(item) = selected_visible_item(&ad.navigation.signing_keys_menu, list_zones, x, y) else {
         return Some(false);
     };
     match item {

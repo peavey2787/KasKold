@@ -1,4 +1,4 @@
-use crate::{runtime::data::AppData};
+use crate::runtime::data::AppData;
 
 pub(super) fn reset(ad: &mut AppData) {
     ad.qr.outgoing.purpose = crate::runtime::data::OutgoingQrPurpose::None;
@@ -14,8 +14,12 @@ pub(super) fn log_response(ad: &AppData) {
         return;
     }
     let bytes = &ad.qr.outgoing.buffer[..ad.qr.outgoing.length];
-    let Some(hex_len) = bytes.len().checked_mul(2) else { return; };
-    let Ok(mut hex) = crate::services::memory::zeroed_bytes(hex_len) else { return; };
+    let Some(hex_len) = bytes.len().checked_mul(2) else {
+        return;
+    };
+    let Ok(mut hex) = crate::services::memory::zeroed_bytes(hex_len) else {
+        return;
+    };
     for (index, byte) in bytes.iter().copied().enumerate() {
         hex[index * 2] = nybble(byte >> 4);
         hex[index * 2 + 1] = nybble(byte & 0x0F);
@@ -28,5 +32,9 @@ pub(super) fn log_response(ad: &AppData) {
 }
 
 fn nybble(value: u8) -> u8 {
-    if value < 10 { b'0' + value } else { b'a' + value - 10 }
+    if value < 10 {
+        b'0' + value
+    } else {
+        b'a' + value - 10
+    }
 }

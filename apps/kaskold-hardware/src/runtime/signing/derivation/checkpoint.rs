@@ -6,7 +6,9 @@ pub(crate) fn begin_mnemonic_seed(
     slot: &SeedSlot,
 ) -> Result<offline_signer::derivation::bip39::SeedDerivation, &'static str> {
     let count = slot.mnemonic_word_count().ok_or("Active wallet is not a mnemonic")?;
-    if !crate::wallet::mnemonic::validate(&slot.indices, count) { return Err("Invalid mnemonic"); }
+    if !crate::wallet::mnemonic::validate(&slot.indices, count) {
+        return Err("Invalid mnemonic");
+    }
     match count {
         12 => {
             let mut words = [0u16; 12];

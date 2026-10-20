@@ -1,15 +1,24 @@
-use crate::{hw::display, runtime::{data::AppData, input::AppState}};
+use crate::{
+    hw::display,
+    runtime::{data::AppData, input::AppState},
+};
 
 pub(super) fn redraw(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     match ad.navigation.app.state {
         AppState::StorageModeChoice => boot_display.draw_storage_mode_choice(),
         AppState::AddWalletChoice => boot_display.draw_add_wallet_choice(),
-        AppState::StorageSeedSourceChoice => boot_display.update_menu_content("RESTORE WALLET", &ad.navigation.production.restore_menu),
-        AppState::AdvancedRestoreMenu => boot_display.update_menu_content("ADVANCED RESTORE", &ad.navigation.production.advanced_restore_menu),
+        AppState::StorageSeedSourceChoice => {
+            boot_display.update_menu_content("RESTORE WALLET", &ad.navigation.production.restore_menu)
+        }
+        AppState::AdvancedRestoreMenu => {
+            boot_display.update_menu_content("ADVANCED RESTORE", &ad.navigation.production.advanced_restore_menu)
+        }
         AppState::RestoreWord12Detected => boot_display.draw_restore_word_12_detected(),
         AppState::StorageFinalizeChoice => boot_display.draw_storage_finalize_choice(),
-        AppState::SeedEntropyUnavailable { .. } | AppState::StorageSeedDiceChoice
-        | AppState::StorageSeedDiceCountChoice | AppState::StorageSeedTouchChoice
+        AppState::SeedEntropyUnavailable { .. }
+        | AppState::StorageSeedDiceChoice
+        | AppState::StorageSeedDiceCountChoice
+        | AppState::StorageSeedTouchChoice
         | AppState::StorageSeedWordCountChoice { .. } => redraw_seed_setup(ad.navigation.app.state, boot_display),
         AppState::StorageRecoveryAcknowledgement => boot_display.draw_storage_recovery_acknowledgement(),
         AppState::StorageProtectionChoice => boot_display.draw_storage_protection_choice(),

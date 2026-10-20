@@ -1,7 +1,7 @@
 //! Authoritative production Home routes.
 
-use crate::runtime::{data::OperationKind, input::AppState};
 use super::NavigationOwner;
+use crate::runtime::{data::OperationKind, input::AppState};
 
 pub(super) fn root_route(index: usize) -> Option<(AppState, NavigationOwner)> {
     use NavigationOwner::*;
@@ -33,5 +33,8 @@ pub(crate) fn main_menu_target_at(x: u16, y: u16) -> Option<(usize, AppState)> {
 }
 
 pub(super) fn transition_allowed(state: AppState) -> bool {
-    matches!(state, AppState::ShowAddress | AppState::ScanQR | AppState::SeedsMenu | AppState::SettingsMenu | AppState::ExportKpub)
+    matches!(
+        state,
+        AppState::ShowAddress | AppState::ScanQR | AppState::SeedsMenu | AppState::SettingsMenu | AppState::ExportKpub
+    )
 }

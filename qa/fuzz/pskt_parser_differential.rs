@@ -14,22 +14,42 @@ fn assert_same_semantic_model(vault: &Transaction, relayed: &Transaction) {
     assert_eq!(vault.num_inputs, relayed.num_inputs, "input-count drift");
     assert_eq!(vault.num_outputs, relayed.num_outputs, "output-count drift");
     assert_eq!(vault.locktime, relayed.locktime, "locktime drift");
-    assert_eq!(vault.subnetwork_id, relayed.subnetwork_id, "subnetwork drift");
+    assert_eq!(
+        vault.subnetwork_id, relayed.subnetwork_id,
+        "subnetwork drift"
+    );
     assert_eq!(vault.gas, relayed.gas, "gas drift");
     assert_eq!(vault.payload, relayed.payload, "payload drift");
 
     for index in 0..vault.num_inputs {
         let left = &vault.inputs[index];
         let right = &relayed.inputs[index];
-        assert_eq!(left.previous_outpoint.transaction_id, right.previous_outpoint.transaction_id, "input[{index}] txid drift");
-        assert_eq!(left.previous_outpoint.index, right.previous_outpoint.index, "input[{index}] outpoint-index drift");
-        assert_eq!(left.utxo_entry.amount, right.utxo_entry.amount, "input[{index}] amount drift");
-        assert_eq!(left.sequence, right.sequence, "input[{index}] sequence drift");
-        assert_eq!(left.sig_op_count, right.sig_op_count, "input[{index}] sigop drift");
-        assert_eq!(left.sighash_type, right.sighash_type, "input[{index}] sighash drift");
         assert_eq!(
-            left.utxo_entry.script_public_key.version,
-            right.utxo_entry.script_public_key.version,
+            left.previous_outpoint.transaction_id, right.previous_outpoint.transaction_id,
+            "input[{index}] txid drift"
+        );
+        assert_eq!(
+            left.previous_outpoint.index, right.previous_outpoint.index,
+            "input[{index}] outpoint-index drift"
+        );
+        assert_eq!(
+            left.utxo_entry.amount, right.utxo_entry.amount,
+            "input[{index}] amount drift"
+        );
+        assert_eq!(
+            left.sequence, right.sequence,
+            "input[{index}] sequence drift"
+        );
+        assert_eq!(
+            left.sig_op_count, right.sig_op_count,
+            "input[{index}] sigop drift"
+        );
+        assert_eq!(
+            left.sighash_type, right.sighash_type,
+            "input[{index}] sighash drift"
+        );
+        assert_eq!(
+            left.utxo_entry.script_public_key.version, right.utxo_entry.script_public_key.version,
             "input[{index}] script-version drift"
         );
         assert_eq!(
@@ -37,11 +57,24 @@ fn assert_same_semantic_model(vault: &Transaction, relayed: &Transaction) {
             right.utxo_entry.script_public_key.script_bytes(),
             "input[{index}] script drift"
         );
-        assert_eq!(vault.redeem_bytes(index), relayed.redeem_bytes(index), "input[{index}] redeem drift");
-        assert_eq!(left.covenant_execution_present, right.covenant_execution_present, "input[{index}] covenant proof presence drift");
+        assert_eq!(
+            vault.redeem_bytes(index),
+            relayed.redeem_bytes(index),
+            "input[{index}] redeem drift"
+        );
+        assert_eq!(
+            left.covenant_execution_present, right.covenant_execution_present,
+            "input[{index}] covenant proof presence drift"
+        );
         if left.covenant_execution_present {
-            assert_eq!(left.covenant_execution_mask, right.covenant_execution_mask, "input[{index}] covenant proof mask drift");
-            assert_eq!(left.covenant_execution_true_mask, right.covenant_execution_true_mask, "input[{index}] covenant proof truth drift");
+            assert_eq!(
+                left.covenant_execution_mask, right.covenant_execution_mask,
+                "input[{index}] covenant proof mask drift"
+            );
+            assert_eq!(
+                left.covenant_execution_true_mask, right.covenant_execution_true_mask,
+                "input[{index}] covenant proof truth drift"
+            );
         }
     }
 
@@ -49,16 +82,31 @@ fn assert_same_semantic_model(vault: &Transaction, relayed: &Transaction) {
         let left = &vault.outputs[index];
         let right = &relayed.outputs[index];
         assert_eq!(left.value, right.value, "output[{index}] amount drift");
-        assert_eq!(left.script_public_key.version, right.script_public_key.version, "output[{index}] script-version drift");
-        assert_eq!(left.script_public_key.script_bytes(), right.script_public_key.script_bytes(), "output[{index}] script drift");
-        assert_eq!(left.has_covenant, right.has_covenant, "output[{index}] covenant-presence drift");
+        assert_eq!(
+            left.script_public_key.version, right.script_public_key.version,
+            "output[{index}] script-version drift"
+        );
+        assert_eq!(
+            left.script_public_key.script_bytes(),
+            right.script_public_key.script_bytes(),
+            "output[{index}] script drift"
+        );
+        assert_eq!(
+            left.has_covenant, right.has_covenant,
+            "output[{index}] covenant-presence drift"
+        );
         if left.has_covenant {
-            assert_eq!(left.covenant_auth_input, right.covenant_auth_input, "output[{index}] covenant auth-input drift");
-            assert_eq!(left.covenant_id, right.covenant_id, "output[{index}] covenant id drift");
+            assert_eq!(
+                left.covenant_auth_input, right.covenant_auth_input,
+                "output[{index}] covenant auth-input drift"
+            );
+            assert_eq!(
+                left.covenant_id, right.covenant_id,
+                "output[{index}] covenant id drift"
+            );
         }
     }
 }
-
 
 fn assert_verified_materialization_matches(
     wire_hex: &str,
@@ -66,9 +114,12 @@ fn assert_verified_materialization_matches(
 ) {
     let finalized = kaskold_protocol::finalize_json(wire_hex)
         .expect("verified PSKT must finalize from the same typed model");
-    let value: serde_json::Value = serde_json::from_str(&finalized)
-        .expect("verified finalizer output must be JSON");
-    assert_eq!(value["version"].as_u64(), Some(u64::from(verified.version())));
+    let value: serde_json::Value =
+        serde_json::from_str(&finalized).expect("verified finalizer output must be JSON");
+    assert_eq!(
+        value["version"].as_u64(),
+        Some(u64::from(verified.version()))
+    );
     assert_eq!(value["inputEncoding"].as_str(), Some("budgeted"));
     let locktime = verified.locktime().to_string();
     let gas = verified.gas().to_string();
@@ -182,7 +233,10 @@ fuzz_target!(|data: &[u8]| {
     if let Ok(verified) =
         kaskold_protocol::compat::verify_complete_pskt(&host_hex, Network::Mainnet)
     {
-        assert!(vault_ok, "verified host model must have been accepted by Vault parser");
+        assert!(
+            vault_ok,
+            "verified host model must have been accepted by Vault parser"
+        );
         assert_verified_materialization_matches(&host_hex, &verified);
     }
 });

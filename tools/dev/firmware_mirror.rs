@@ -11,7 +11,7 @@
 // The serial port path is the same one espflash uses.
 // The KasKold firmware must be built with --features mirror.
 
-use minifb::{Key, Window, WindowOptions, Scale, ScaleMode};
+use minifb::{Key, Scale, ScaleMode, Window, WindowOptions};
 use shared_signer::bytes::decode_hex_nibble;
 use std::io::{BufRead, BufReader};
 use std::time::Duration;
@@ -37,7 +37,9 @@ fn parse_hex_row(hex_line: &str, row_pixels: &mut [u32; W]) {
     let pixel_count = (hex.len() / 4).min(W);
     for i in 0..pixel_count {
         let o = i * 4;
-        if o + 4 > hex.len() { break; }
+        if o + 4 > hex.len() {
+            break;
+        }
         let hi = hex_byte(hex[o], hex[o + 1]);
         let lo = hex_byte(hex[o + 2], hex[o + 3]);
         row_pixels[i] = rgb565_to_u32(hi, lo);
@@ -62,7 +64,9 @@ fn main() {
                     eprintln!("No serial ports found.");
                 } else {
                     eprintln!("Available ports:");
-                    for p in &ports { eprintln!("  {}", p.port_name); }
+                    for p in &ports {
+                        eprintln!("  {}", p.port_name);
+                    }
                 }
             }
             Err(e) => eprintln!("Error listing ports: {}", e),
@@ -88,14 +92,16 @@ fn main() {
 
     let mut window = Window::new(
         "KasKold Mirror",
-        W, H,
+        W,
+        H,
         WindowOptions {
             scale: Scale::X4,
             scale_mode: ScaleMode::AspectRatioStretch,
             resize: true,
             ..WindowOptions::default()
         },
-    ).expect("Failed to create window");
+    )
+    .expect("Failed to create window");
 
     let mut framebuf = vec![0u32; W * H];
     let mut row_pixels = [0u32; W];
@@ -119,9 +125,7 @@ fn main() {
                         if capturing {
                             capturing = false;
                             frame_count += 1;
-                            window.set_title(&format!(
-                                "KasKold Mirror — frame {}", frame_count
-                            ));
+                            window.set_title(&format!("KasKold Mirror — frame {}", frame_count));
                             // Update window immediately on frame complete
                             window.update_with_buffer(&framebuf, W, H).ok();
                         }

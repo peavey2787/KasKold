@@ -25,7 +25,7 @@ jobs:
         run: rustup toolchain install "$KASKOLD_STABLE_RUST" --profile minimal --component rustfmt --component clippy
       - name: Rust format
         shell: bash
-        run: rustup run "$KASKOLD_STABLE_RUST" cargo fmt --all -- --check
+        run: python3 qa/checks/workspace/check_rust_format.py
       - name: Host Clippy
         shell: bash
         run: rustup run "$KASKOLD_STABLE_RUST" cargo clippy --workspace --all-targets --locked -- -D warnings

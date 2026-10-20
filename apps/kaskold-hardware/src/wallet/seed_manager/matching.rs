@@ -2,7 +2,6 @@
 
 use super::{SeedSlot, WalletNetwork};
 
-
 fn words_equal(left: &[u16], right: &[u16]) -> bool {
     if left.len() != right.len() {
         return false;
@@ -23,10 +22,7 @@ pub(super) fn mnemonic_matches(
 ) -> bool {
     slot.network == network
         && slot.mnemonic_word_count() == Some(word_count)
-        && words_equal(
-            &slot.indices[..usize::from(word_count)],
-            &indices[..usize::from(word_count)],
-        )
+        && words_equal(&slot.indices[..usize::from(word_count)], &indices[..usize::from(word_count)])
         && usize::from(slot.passphrase_len) == passphrase.len()
         && shared_signer::bytes::constant_time_eq(&slot.passphrase[..passphrase.len()], passphrase)
 }
@@ -34,7 +30,8 @@ pub(super) fn mnemonic_matches(
 pub(super) fn raw_key_matches(slot: &SeedSlot, candidate: &[u8; 32], network: WalletNetwork) -> bool {
     let mut existing = [0u8; 32];
     let matches = slot.network == network
-        && slot.raw_key_bytes(&mut existing) && shared_signer::bytes::constant_time_eq(&existing, candidate);
+        && slot.raw_key_bytes(&mut existing)
+        && shared_signer::bytes::constant_time_eq(&existing, candidate);
     shared_signer::bytes::zeroize_bytes(&mut existing);
     matches
 }
@@ -54,12 +51,9 @@ pub(super) fn account_key_matches(
     matches
 }
 
-
 impl super::SeedManager {
     pub fn find_matching_raw_key(&self, key: &[u8; 32]) -> Option<usize> {
-        self.slots.iter().position(|slot| {
-            raw_key_matches(slot, key, self.selected_network)
-        })
+        self.slots.iter().position(|slot| raw_key_matches(slot, key, self.selected_network))
     }
 
     /// Store a raw 32-byte private key in a typed slot.
@@ -88,7 +82,9 @@ impl super::SeedManager {
         }
         slot.fingerprint = fingerprint;
         slot.transient = transient;
-        if !transient { self.mark_changed(); }
+        if !transient {
+            self.mark_changed();
+        }
         Some(slot_index)
     }
 }

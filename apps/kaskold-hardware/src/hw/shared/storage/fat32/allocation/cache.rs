@@ -1,5 +1,5 @@
-use super::super::{Fat32Info, SdCardType, sd_read_block, sd_write_block};
-use super::super::policy::{MAX_FAT_CHAIN_STEPS, checked_fat_entry_location};
+use super::super::policy::{checked_fat_entry_location, MAX_FAT_CHAIN_STEPS};
+use super::super::{sd_read_block, sd_write_block, Fat32Info, SdCardType};
 
 pub(super) struct FatSectorCache<'a> {
     card_type: SdCardType,
@@ -41,7 +41,9 @@ impl<'a> FatSectorCache<'a> {
     }
 
     pub(super) fn flush(&mut self) -> Result<(), &'static str> {
-        if !self.dirty { return Ok(()); }
+        if !self.dirty {
+            return Ok(());
+        }
         let sector = self.sector.ok_or("Dirty FAT cache has no sector")?;
         for copy in 0..u32::from(self.fat32.num_fats) {
             let offset = copy.checked_mul(self.fat32.fat_size_32).ok_or("FAT mirror offset overflow")?;
@@ -53,10 +55,7 @@ impl<'a> FatSectorCache<'a> {
     }
 }
 
-pub(super) fn claim_free_cluster(
-    cache: &mut FatSectorCache<'_>,
-    start_hint: u32,
-) -> Result<u32, &'static str> {
+pub(super) fn claim_free_cluster(cache: &mut FatSectorCache<'_>, start_hint: u32) -> Result<u32, &'static str> {
     let mut cluster = normalized_hint(cache.fat32, start_hint);
     let start = cluster;
     loop {
@@ -65,15 +64,13 @@ pub(super) fn claim_free_cluster(
             return Ok(cluster);
         }
         cluster = next_candidate(cache.fat32, cluster);
-        if cluster == start { return Err("Disk full"); }
+        if cluster == start {
+            return Err("Disk full");
+        }
     }
 }
 
-pub(super) fn extend_chain(
-    cache: &mut FatSectorCache<'_>,
-    first: u32,
-    count: u32,
-) -> Result<u32, &'static str> {
+pub(super) fn extend_chain(cache: &mut FatSectorCache<'_>, first: u32, count: u32) -> Result<u32, &'static str> {
     let mut previous = first;
     for _ in 1..count {
         let next = claim_free_cluster(cache, next_candidate(cache.fat32, previous))?;
@@ -88,7 +85,9 @@ pub(in crate::hw::shared::storage::fat32) fn release_chain(
     fat32: &Fat32Info,
     first_cluster: u32,
 ) -> Result<(), &'static str> {
-    if first_cluster < 2 { return Ok(()); }
+    if first_cluster < 2 {
+        return Ok(());
+    }
     let mut cache = FatSectorCache::new(card_type, fat32);
     let mut cluster = first_cluster;
     for _ in 0..MAX_FAT_CHAIN_STEPS {
@@ -112,12 +111,20 @@ pub(in crate::hw::shared::storage::fat32) fn release_chain(
 }
 
 pub(super) fn normalized_hint(fat32: &Fat32Info, hint: u32) -> u32 {
-    if (2..max_cluster_exclusive(fat32)).contains(&hint) { hint } else { 2 }
+    if (2..max_cluster_exclusive(fat32)).contains(&hint) {
+        hint
+    } else {
+        2
+    }
 }
 
 pub(super) fn next_candidate(fat32: &Fat32Info, cluster: u32) -> u32 {
     let next = cluster.saturating_add(1);
-    if next < max_cluster_exclusive(fat32) { next } else { 2 }
+    if next < max_cluster_exclusive(fat32) {
+        next
+    } else {
+        2
+    }
 }
 
 pub(super) fn max_cluster_exclusive(fat32: &Fat32Info) -> u32 {

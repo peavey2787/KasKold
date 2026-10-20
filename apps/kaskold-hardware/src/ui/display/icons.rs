@@ -109,16 +109,9 @@ enum UsersIcon {
     Group,
 }
 
-const MENU_ICON_PROFILE: MenuIconProfile = MenuIconProfile {
-    transaction: TransactionMenuIcon::Download,
-    audio: true,
-};
+const MENU_ICON_PROFILE: MenuIconProfile = MenuIconProfile { transaction: TransactionMenuIcon::Download, audio: true };
 
-pub(crate) fn draw_menu_icon<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    label: &str,
-    position: Point,
-) {
+pub(crate) fn draw_menu_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, label: &str, position: Point) {
     draw_menu_icon_with_profile(display, label, position, MENU_ICON_PROFILE);
 }
 

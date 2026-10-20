@@ -1,9 +1,6 @@
-use super::super::{
-    constants::BYTE_CAPACITY,
-    error::QrError,
-};
 #[cfg(not(feature = "qemu"))]
 use super::super::constants::NUMERIC_CAPACITY;
+use super::super::{constants::BYTE_CAPACITY, error::QrError};
 
 /// Select the minimum QR version for byte-mode data at ECC level L.
 pub fn select_version(data_len: usize) -> Result<u8, QrError> {

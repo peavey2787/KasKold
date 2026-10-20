@@ -9,12 +9,12 @@ use crate::self_test::{
     crypto::test_sha256,
     memory::{test_mapped_flash, test_sram},
 };
+use core::sync::atomic::{AtomicU32, Ordering};
 use esp_hal::{
     delay::Delay,
     rng::Rng,
     time::{Duration, Instant},
 };
-use core::sync::atomic::{AtomicU32, Ordering};
 
 pub(crate) fn run(report: &mut Report, delay: &mut Delay) {
     report.check("Xtensa arithmetic and bit operations", test_cpu());
@@ -39,8 +39,7 @@ fn test_atomics() -> bool {
     if value.compare_exchange(7, 11, Ordering::SeqCst, Ordering::SeqCst).is_err() {
         return false;
     }
-    value.fetch_add(5, Ordering::SeqCst) == 11
-        && value.load(Ordering::SeqCst) == 16
+    value.fetch_add(5, Ordering::SeqCst) == 11 && value.load(Ordering::SeqCst) == 16
 }
 
 fn test_timer(delay: &mut Delay) -> bool {

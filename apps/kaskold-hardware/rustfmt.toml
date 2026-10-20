@@ -1,0 +1,9 @@
+# KasKold signer firmware: rustfmt configuration
+# The firmware's module-size limits were set against its dense table style,
+# so it formats at 120 columns with maximal single-line heuristics.
+edition = "2021"
+max_width = 120
+use_small_heuristics = "Max"
+newline_style = "Unix"
+reorder_imports = true
+reorder_modules = true

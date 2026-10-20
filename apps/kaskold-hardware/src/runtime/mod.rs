@@ -21,21 +21,21 @@
 #![cfg_attr(feature = "workflow-test-auto", allow(dead_code))]
 #[cfg(all(feature = "m5stack", not(feature = "hardware-tests")))]
 pub(crate) mod core_s3;
+pub mod data;
 pub(crate) mod destructive;
 pub(crate) mod effects;
 #[cfg(not(feature = "hardware-tests"))]
 pub(crate) mod event_loop;
+pub mod input;
 pub(crate) mod interactions;
-pub(crate) mod touch_service;
 pub(crate) mod navigation;
 pub(crate) mod power_state;
 pub(crate) mod presentation;
 pub(crate) mod qr_presentation;
+pub(crate) mod secret_state;
+pub mod signing;
 pub(crate) mod touch_dispatch;
+pub(crate) mod touch_service;
+pub mod unit_tests;
 #[cfg(feature = "workflow-tests")]
 pub(crate) mod workflow_tests;
-pub mod data;
-pub mod input;
-pub mod signing;
-pub(crate) mod secret_state;
-pub mod unit_tests;

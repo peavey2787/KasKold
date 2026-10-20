@@ -17,18 +17,14 @@ mod firmware_hash;
 pub(super) fn embedded_expected_hash() -> [u8; 32] {
     // SAFETY: EXPECTED_FIRMWARE_HASH is an immutable, aligned, generated static
     // with process lifetime. read_volatile copies exactly its 32 initialized bytes.
-    unsafe {
-        core::ptr::read_volatile(core::ptr::addr_of!(firmware_hash::EXPECTED_FIRMWARE_HASH))
-    }
+    unsafe { core::ptr::read_volatile(core::ptr::addr_of!(firmware_hash::EXPECTED_FIRMWARE_HASH)) }
 }
 
 #[inline(never)]
 pub(super) fn embedded_firmware_signature() -> [u8; 64] {
     // SAFETY: FIRMWARE_SIGNATURE is an immutable, aligned, generated static
     // with process lifetime. read_volatile copies exactly its 64 initialized bytes.
-    unsafe {
-        core::ptr::read_volatile(core::ptr::addr_of!(firmware_hash::FIRMWARE_SIGNATURE))
-    }
+    unsafe { core::ptr::read_volatile(core::ptr::addr_of!(firmware_hash::FIRMWARE_SIGNATURE)) }
 }
 
 #[inline(never)]
@@ -52,16 +48,16 @@ pub(crate) fn firmware_start_addr() -> u32 {
 #[cfg(feature = "production")]
 mod attestation;
 #[cfg(feature = "production")]
-pub(crate) use attestation::{AttestationEvidence, verify_running_image};
+pub(crate) use attestation::{verify_running_image, AttestationEvidence};
 
 pub(crate) mod anti_rollback;
 pub(crate) mod boot_security;
 
 mod types;
-pub use types::{FIRMWARE_MAX_SIZE, FirmwareInfo, VerificationResult};
-use types::{CANARY_PRE_VERIFY, DRAM_FLASH_BASE, IRAM_FLASH_BASE};
 #[cfg(feature = "production")]
 use types::CANARY_POST_VERIFY;
+pub use types::{FirmwareInfo, VerificationResult, FIRMWARE_MAX_SIZE};
+use types::{CANARY_PRE_VERIFY, DRAM_FLASH_BASE, IRAM_FLASH_BASE};
 
 mod mapped_segment;
 
@@ -72,4 +68,6 @@ mod format;
 mod policy;
 
 /// True when this image carries a generated firmware signature.
-pub(crate) fn software_verification_configured() -> bool { embedded_firmware_signed() }
+pub(crate) fn software_verification_configured() -> bool {
+    embedded_firmware_signed()
+}

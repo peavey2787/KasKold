@@ -3,11 +3,15 @@
 mod derivation;
 mod index_input;
 
-use crate::{hw::display, runtime::{data::AppData, input::AppState}};
-
+use crate::{
+    hw::display,
+    runtime::{data::AppData, input::AppState},
+};
 
 pub(super) fn handle_pure(ad: &mut AppData) -> Option<bool> {
-    if ad.navigation.app.state != AppState::ExportPrivKey { return None; }
+    if ad.navigation.app.state != AppState::ExportPrivKey {
+        return None;
+    }
     shared_signer::bytes::zeroize_bytes(&mut ad.export.export_key_hex);
     crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::KeyExport);
     Some(true)
@@ -23,15 +27,7 @@ pub(super) fn handle(
     is_back: bool,
 ) -> Option<bool> {
     match ad.navigation.app.state {
-        AppState::ExportPrivKeyIndex => Some(index_input::handle(
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            x,
-            y,
-            is_back,
-        )),
+        AppState::ExportPrivKeyIndex => Some(index_input::handle(ad, boot_display, delay, liveness, x, y, is_back)),
         AppState::ExportPrivKey => {
             shared_signer::bytes::zeroize_bytes(&mut ad.export.export_key_hex);
             crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::KeyExport);

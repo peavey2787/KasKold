@@ -61,7 +61,9 @@ impl SeedSlot {
     }
 
     pub fn set_name(&mut self, value: &[u8]) -> bool {
-        if value.len() > WALLET_NAME_MAX || core::str::from_utf8(value).is_err() { return false; }
+        if value.len() > WALLET_NAME_MAX || core::str::from_utf8(value).is_err() {
+            return false;
+        }
         shared_signer::bytes::zeroize_bytes(&mut self.name);
         self.name[..value.len()].copy_from_slice(value);
         self.name_len = value.len() as u8;
@@ -81,12 +83,7 @@ impl SeedSlot {
         true
     }
 
-    pub fn set_account_key_raw(
-        &mut self,
-        raw: &[u8; 65],
-        parent_fingerprint: [u8; 4],
-        fingerprint: [u8; 4],
-    ) {
+    pub fn set_account_key_raw(&mut self, raw: &[u8; 65], parent_fingerprint: [u8; 4], fingerprint: [u8; 4]) {
         self.zeroize();
         self.source = WalletSource::AccountXprv;
         for (word, pair) in self.indices[..16].iter_mut().zip(raw[..32].chunks_exact(2)) {
@@ -104,10 +101,7 @@ impl SeedSlot {
         if !self.is_account_key() || self.passphrase_len != 33 {
             return false;
         }
-        for (word, destination) in self.indices[..16]
-            .iter()
-            .zip(out[..32].chunks_exact_mut(2))
-        {
+        for (word, destination) in self.indices[..16].iter().zip(out[..32].chunks_exact_mut(2)) {
             destination.copy_from_slice(&word.to_le_bytes());
         }
         out[32..64].copy_from_slice(&self.passphrase[..32]);

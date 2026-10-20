@@ -4,7 +4,7 @@ use esp_hal::{delay::Delay, dma::DmaRxBuf, lcd_cam::cam::Camera};
 use sha2::{Digest, Sha256};
 
 use kaskold_hardware_core::entropy::frame_noise::{
-    CameraEntropyReport, CameraEntropyTracker, MAX_CAMERA_HEALTH_WINDOWS, should_retry_camera_window,
+    should_retry_camera_window, CameraEntropyReport, CameraEntropyTracker, MAX_CAMERA_HEALTH_WINDOWS,
 };
 
 use super::{mixer, platform, trng};
@@ -35,14 +35,21 @@ pub(crate) fn mix_frames<'a>(
     let mut report = CameraEntropyTracker::new().report();
     for window_index in 0..MAX_CAMERA_HEALTH_WINDOWS {
         report = mix_window(
-            pool, idle_ticks, delay, camera, dma_buffer, window_index,
+            pool,
+            idle_ticks,
+            delay,
+            camera,
+            dma_buffer,
+            window_index,
             #[cfg(feature = "e12-capture")]
             capture.as_deref_mut(),
         );
         // One completed camera-health window is a bounded liveness checkpoint.
         // A frame/capture that hangs inside the window still cannot feed TIMG0.
         liveness();
-        if report.healthy() { break; }
+        if report.healthy() {
+            break;
+        }
         if should_retry_camera_window(window_index, report) {
             log_retry(window_index, report);
             // Give auto-exposure and the physical scene a short settling window
@@ -74,8 +81,14 @@ fn mix_window<'a>(
     let mut capture = capture;
     for frame_index in 0..FRAMES_PER_WINDOW {
         let tag = window_index.saturating_mul(FRAMES_PER_WINDOW).saturating_add(frame_index);
-        let captured = capture_frame(
-            pool, tag, idle_ticks, delay, camera, dma_buffer, &mut tracker,
+        let captured = dvp::mix_frame(
+            pool,
+            tag,
+            idle_ticks,
+            delay,
+            camera,
+            dma_buffer,
+            &mut tracker,
             #[cfg(feature = "e12-capture")]
             capture.as_deref_mut(),
         );
@@ -87,29 +100,18 @@ fn mix_window<'a>(
     tracker.report()
 }
 
-fn capture_frame<'a>(
-    pool: &mut [u8; 32], frame_tag: u8, idle_ticks: u32, delay: &mut Delay,
-    camera: &mut Option<Camera<'a>>, dma_buffer: &mut Option<DmaRxBuf>,
-    tracker: &mut CameraEntropyTracker,
-    #[cfg(feature = "e12-capture")] capture: Option<&mut crate::diagnostics::e12_capture::Capture>,
-) -> bool {
-    #[cfg(feature = "e12-capture")]
-    let mut capture = capture;
-    let captured = dvp::mix_frame(
-        pool, frame_tag, idle_ticks, delay, camera, dma_buffer, tracker,
-        #[cfg(feature = "e12-capture")]
-        capture.as_deref_mut(),
-    );
-    captured
-}
-
 pub(super) fn mix_observation(
-    pool: &mut [u8; 32], frame_tag: u8, idle_ticks: u32, pixels: &[u8],
+    pool: &mut [u8; 32],
+    frame_tag: u8,
+    idle_ticks: u32,
+    pixels: &[u8],
     tracker: &mut CameraEntropyTracker,
     #[cfg(feature = "e12-capture")] capture: Option<&mut crate::diagnostics::e12_capture::Capture>,
 ) {
     #[cfg(feature = "e12-capture")]
-    if let Some(capture) = capture { capture.push_frame(pixels); }
+    if let Some(capture) = capture {
+        capture.push_frame(pixels);
+    }
     let _ = tracker.observe(pixels);
     let mut hasher = Sha256::new();
     hasher.update(pixels);
@@ -122,7 +124,11 @@ pub(super) fn mix_observation(
 fn log_retry(window_index: u8, report: CameraEntropyReport) {
     crate::log!(
         "   Camera entropy auto-retry {}/{}: frames {} live {}/{} stale-run {}",
-        window_index + 2, MAX_CAMERA_HEALTH_WINDOWS, report.frames_captured,
-        report.live_deltas, report.deltas_observed, report.max_consecutive_stale_deltas
+        window_index + 2,
+        MAX_CAMERA_HEALTH_WINDOWS,
+        report.frames_captured,
+        report.live_deltas,
+        report.deltas_observed,
+        report.max_consecutive_stale_deltas
     );
 }

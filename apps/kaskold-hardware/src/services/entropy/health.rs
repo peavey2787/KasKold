@@ -59,7 +59,6 @@ impl EntropyError {
     }
 }
 
-
 impl From<SeedEntropyError> for EntropyError {
     fn from(error: SeedEntropyError) -> Self {
         match error {
@@ -88,8 +87,7 @@ pub fn inspect(samples: &[u32; HEALTH_SAMPLE_COUNT]) -> Result<HealthReport, Ent
 fn half_word_is_stuck(samples: &[u32; HEALTH_SAMPLE_COUNT]) -> bool {
     let low = samples[0] as u16;
     let high = (samples[0] >> 16) as u16;
-    samples.iter().all(|sample| *sample as u16 == low)
-        || samples.iter().all(|sample| (*sample >> 16) as u16 == high)
+    samples.iter().all(|sample| *sample as u16 == low) || samples.iter().all(|sample| (*sample >> 16) as u16 == high)
 }
 
 const fn map_health_error(error: RngHealthError) -> EntropyError {

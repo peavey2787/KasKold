@@ -1,10 +1,10 @@
+use crate::services::credential_policy::SALT_SIZE;
 use crate::{
     hw::display::BootDisplay,
     runtime::data::{AppData, OperationKind},
     services::persistent_wallet::{CredentialKind, PersistentWallet},
 };
 use shared_signer::bytes::zeroize_bytes;
-use crate::services::credential_policy::SALT_SIZE;
 
 use super::{SecretBuffer, Step};
 
@@ -27,22 +27,15 @@ impl SaveTask {
         crate::runtime::presentation::set_progress(ad, 8);
         crate::log!("   Credential KDF foreground BEGIN save");
         liveness();
-        let result = match persistence.derive_async_save_key(
-            self.secret.as_slice(), &self.salt, liveness,
-        ) {
+        let result = match persistence.derive_async_save_key(self.secret.as_slice(), &self.salt, liveness) {
             Err(error) => Err(error),
             Ok(mut key) => {
                 crate::runtime::presentation::set_progress(ad, 82);
-                let result = persistence.finish_async_save(
-                    self.kind,
-                    self.salt,
-                    key,
-                    &ad.wallet.seeds.seed_mgr,
-                    &mut |pct| {
+                let result =
+                    persistence.finish_async_save(self.kind, self.salt, key, &ad.wallet.seeds.seed_mgr, &mut |pct| {
                         display.update_progress_bar(pct);
                         liveness();
-                    },
-                );
+                    });
                 zeroize_bytes(&mut key);
                 result
             }

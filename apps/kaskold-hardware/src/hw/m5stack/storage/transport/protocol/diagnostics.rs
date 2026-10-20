@@ -1,6 +1,6 @@
 //! Bounded SD-SPI command diagnostics for live CoreS3 failures.
 
-use esp_hal::{Blocking, spi::master::Spi};
+use esp_hal::{spi::master::Spi, Blocking};
 
 use super::wire::transfer_byte;
 
@@ -30,23 +30,22 @@ fn wait_command_ready(
     for poll in 0..COMMAND_READY_POLLS {
         let sample = transfer_byte(spi, 0xFF)?;
         trace.observe(poll, sample);
-        if sample == 0xFF { return Ok(()); }
+        if sample == 0xFF {
+            return Ok(());
+        }
     }
     trace.log_timeout(cmd, arg, initialization_speed);
     Err("SD card busy before command")
 }
 
-pub(super) fn log_response_if_timeout(
-    response: u8,
-    cmd: u8,
-    arg: u32,
-    initialization_speed: bool,
-    crc: u8,
-) {
+pub(super) fn log_response_if_timeout(response: u8, cmd: u8, arg: u32, initialization_speed: bool, crc: u8) {
     if response == 0xFF {
         crate::log!(
             "[SD] CMD{} response timeout arg=0x{:08x} speed={} crc=0x{:02x}",
-            cmd, arg, speed_label(initialization_speed), crc,
+            cmd,
+            arg,
+            speed_label(initialization_speed),
+            crc,
         );
     }
 }
@@ -58,12 +57,18 @@ struct ReadyTrace {
 }
 
 impl ReadyTrace {
-    const fn new() -> Self { Self { first: 0xFF, last: 0xFF, zero_samples: 0 } }
+    const fn new() -> Self {
+        Self { first: 0xFF, last: 0xFF, zero_samples: 0 }
+    }
 
     fn observe(&mut self, poll: usize, sample: u8) {
-        if poll == 0 { self.first = sample; }
+        if poll == 0 {
+            self.first = sample;
+        }
         self.last = sample;
-        if sample == 0x00 { self.zero_samples = self.zero_samples.saturating_add(1); }
+        if sample == 0x00 {
+            self.zero_samples = self.zero_samples.saturating_add(1);
+        }
     }
 
     fn log_timeout(&self, cmd: u8, arg: u32, initialization_speed: bool) {
@@ -76,5 +81,9 @@ impl ReadyTrace {
 }
 
 const fn speed_label(initialization_speed: bool) -> &'static str {
-    if initialization_speed { "400kHz" } else { "data-rate" }
+    if initialization_speed {
+        "400kHz"
+    } else {
+        "data-rate"
+    }
 }

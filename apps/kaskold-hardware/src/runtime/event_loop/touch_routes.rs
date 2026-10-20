@@ -31,23 +31,46 @@ macro_rules! route_touch {
                 },
             )
         } else {
-        match $crate::controllers::classify($ad.navigation.app.state) {
-            $crate::controllers::InteractionDomain::Menu => {
-                if let Some(result) = $crate::runtime::interactions::menu::handle_navigation_touch(
-                    $ad, &$grid_zones, &$list_zones, &$page_up_zone, &$page_down_zone, input,
-                ) {
-                    Some(result)
-                } else {
-                    $crate::runtime::interactions::menu::handle_menu_touch(
-                        $crate::runtime::interactions::menu::MenuTouchContext {
+            match $crate::controllers::classify($ad.navigation.app.state) {
+                $crate::controllers::InteractionDomain::Menu => {
+                    if let Some(result) = $crate::runtime::interactions::menu::handle_navigation_touch(
+                        $ad,
+                        &$grid_zones,
+                        &$list_zones,
+                        &$page_up_zone,
+                        &$page_down_zone,
+                        input,
+                    ) {
+                        Some(result)
+                    } else {
+                        $crate::runtime::interactions::menu::handle_menu_touch(
+                            $crate::runtime::interactions::menu::MenuTouchContext {
+                                ad: $ad,
+                                boot_display: &mut $boot_display,
+                                delay: &mut $delay,
+                                liveness: &mut $watchdog_feed,
+                                i2c: &mut $i2c,
+                                sd_card_type: &$sd_card_type,
+                                dvp_camera_opt: &mut $dvp_camera_opt,
+                                cam_dma_buf_opt: &mut $cam_dma_buf_opt,
+                                list_zones: &$list_zones,
+                                page_up_zone: &$page_up_zone,
+                                page_down_zone: &$page_down_zone,
+                                input,
+                            },
+                        )
+                    }
+                }
+                $crate::controllers::InteractionDomain::Stego => {
+                    $crate::runtime::interactions::stego::handle_stego_touch(
+                        $crate::runtime::interactions::stego::StegoTouchContext {
                             ad: $ad,
                             boot_display: &mut $boot_display,
                             delay: &mut $delay,
                             liveness: &mut $watchdog_feed,
                             i2c: &mut $i2c,
                             sd_card_type: &$sd_card_type,
-                            dvp_camera_opt: &mut $dvp_camera_opt,
-                            cam_dma_buf_opt: &mut $cam_dma_buf_opt,
+                            backup_device: &mut $persistent_wallet,
                             list_zones: &$list_zones,
                             page_up_zone: &$page_up_zone,
                             page_down_zone: &$page_down_zone,
@@ -55,99 +78,85 @@ macro_rules! route_touch {
                         },
                     )
                 }
-            }
-            $crate::controllers::InteractionDomain::Stego => {
-                $crate::runtime::interactions::stego::handle_stego_touch(
-                    $crate::runtime::interactions::stego::StegoTouchContext {
-                        ad: $ad,
-                        boot_display: &mut $boot_display,
-                        delay: &mut $delay,
-                        liveness: &mut $watchdog_feed,
-                        i2c: &mut $i2c,
-                        sd_card_type: &$sd_card_type,
-                        backup_device: &mut $persistent_wallet,
-                        list_zones: &$list_zones,
-                        page_up_zone: &$page_up_zone,
-                        page_down_zone: &$page_down_zone,
+                $crate::controllers::InteractionDomain::Storage if !$page_only => {
+                    $crate::runtime::interactions::sd::handle_sd_touch(
+                        $crate::runtime::interactions::sd::SdTouchContext {
+                            ad: $ad,
+                            boot_display: &mut $boot_display,
+                            delay: &mut $delay,
+                            liveness: &mut $watchdog_feed,
+                            i2c: &mut $i2c,
+                            sd_card_type: &$sd_card_type,
+                            backup_device: &mut $persistent_wallet,
+                            list_zones: &$list_zones,
+                            page_up_zone: &$page_up_zone,
+                            page_down_zone: &$page_down_zone,
+                            input,
+                        },
+                    )
+                }
+                $crate::controllers::InteractionDomain::Seed if !$page_only => {
+                    $crate::runtime::interactions::seed::handle_seed_touch(
+                        $ad,
+                        &mut $boot_display,
+                        &mut $delay,
+                        &mut $watchdog_feed,
                         input,
-                    },
-                )
-            }
-            $crate::controllers::InteractionDomain::Storage if !$page_only => {
-                $crate::runtime::interactions::sd::handle_sd_touch(
-                    $crate::runtime::interactions::sd::SdTouchContext {
-                        ad: $ad,
-                        boot_display: &mut $boot_display,
-                        delay: &mut $delay,
-                        liveness: &mut $watchdog_feed,
-                        i2c: &mut $i2c,
-                        sd_card_type: &$sd_card_type,
-                        backup_device: &mut $persistent_wallet,
-                        list_zones: &$list_zones,
-                        page_up_zone: &$page_up_zone,
-                        page_down_zone: &$page_down_zone,
+                    )
+                }
+                $crate::controllers::InteractionDomain::Export => {
+                    $crate::runtime::interactions::export::handle_export_touch(
+                        $crate::runtime::interactions::export::ExportTouchContext {
+                            ad: $ad,
+                            boot_display: &mut $boot_display,
+                            delay: &mut $delay,
+                            liveness: &mut $watchdog_feed,
+                            i2c: &mut $i2c,
+                            sd_card_type: &$sd_card_type,
+                            list_zones: &$list_zones,
+                            page_up_zone: &$page_up_zone,
+                            page_down_zone: &$page_down_zone,
+                            input,
+                        },
+                    )
+                }
+                $crate::controllers::InteractionDomain::Persistence if !$page_only => {
+                    $crate::runtime::interactions::persistence::handle(
                         input,
-                    },
-                )
-            }
-            $crate::controllers::InteractionDomain::Seed if !$page_only => {
-                $crate::runtime::interactions::seed::handle_seed_touch(
-                    $ad,
-                    &mut $boot_display,
-                    &mut $delay,
-                    &mut $watchdog_feed,
-                    input,
-                )
-            }
-            $crate::controllers::InteractionDomain::Export => {
-                $crate::runtime::interactions::export::handle_export_touch(
-                    $crate::runtime::interactions::export::ExportTouchContext {
-                        ad: $ad,
-                        boot_display: &mut $boot_display,
-                        delay: &mut $delay,
-                        liveness: &mut $watchdog_feed,
-                        i2c: &mut $i2c,
-                        sd_card_type: &$sd_card_type,
-                        list_zones: &$list_zones,
-                        page_up_zone: &$page_up_zone,
-                        page_down_zone: &$page_down_zone,
+                        $ad,
+                        &mut $persistent_wallet,
+                        &mut $boot_display,
+                        &mut $delay,
+                    )
+                }
+                #[cfg(feature = "workflow-tests")]
+                $crate::controllers::InteractionDomain::WorkflowTests => {
+                    $crate::runtime::interactions::workflow_tests::handle(
+                        $ad,
+                        &$list_zones,
+                        &$page_up_zone,
+                        &$page_down_zone,
+                        &mut $watchdog_feed,
                         input,
-                    },
-                )
+                    )
+                }
+                $crate::controllers::InteractionDomain::Signing if !$page_only => {
+                    $crate::runtime::interactions::tx::handle_tx_touch(
+                        $crate::runtime::interactions::tx::TxTouchContext {
+                            ad: $ad,
+                            boot_display: &mut $boot_display,
+                            delay: &mut $delay,
+                            i2c: &mut $i2c,
+                            persistent_wallet: Some(&mut $persistent_wallet),
+                            sd_card_type: &$sd_card_type,
+                            liveness: &mut $watchdog_feed,
+                            list_zones: &$list_zones,
+                            input,
+                        },
+                    )
+                }
+                _ => None,
             }
-            $crate::controllers::InteractionDomain::Persistence if !$page_only => {
-                $crate::runtime::interactions::persistence::handle(
-                    input,
-                    $ad,
-                    &mut $persistent_wallet,
-                    &mut $boot_display,
-                    &mut $delay,
-                )
-            }
-            #[cfg(feature = "workflow-tests")]
-            $crate::controllers::InteractionDomain::WorkflowTests => {
-                $crate::runtime::interactions::workflow_tests::handle(
-                    $ad, &$list_zones, &$page_up_zone, &$page_down_zone,
-                    &mut $watchdog_feed, input,
-                )
-            }
-            $crate::controllers::InteractionDomain::Signing if !$page_only => {
-                $crate::runtime::interactions::tx::handle_tx_touch(
-                    $crate::runtime::interactions::tx::TxTouchContext {
-                        ad: $ad,
-                        boot_display: &mut $boot_display,
-                        delay: &mut $delay,
-                        i2c: &mut $i2c,
-                        persistent_wallet: Some(&mut $persistent_wallet),
-                        sd_card_type: &$sd_card_type,
-                        liveness: &mut $watchdog_feed,
-                        list_zones: &$list_zones,
-                        input,
-                    },
-                )
-            }
-            _ => None,
-        }
         }
     }};
 }

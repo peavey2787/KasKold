@@ -14,39 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
-use super::{
-    WORD_COUNT_12_Y, WORD_COUNT_24_Y, WORD_COUNT_BUTTON_HEIGHT,
-    WORD_COUNT_BUTTON_WIDTH, WORD_COUNT_BUTTON_X,
-};
+use super::{WORD_COUNT_12_Y, WORD_COUNT_24_Y, WORD_COUNT_BUTTON_HEIGHT, WORD_COUNT_BUTTON_WIDTH, WORD_COUNT_BUTTON_X};
 
 use super::super::{
-    BootDisplay,
-    COLOR_BG,
-    COLOR_CARD,
-    COLOR_DANGER,
-    COLOR_TEXT,
-    CornerRadii,
-    Drawable,
+    draw_lato_18, draw_lato_22_opaque, draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_18,
+    measure_22, measure_body, measure_header, measure_title, BootDisplay, CornerRadii, Drawable, Line, Point,
+    Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size, COLOR_BG, COLOR_CARD, COLOR_DANGER, COLOR_TEXT,
     KASPA_TEAL,
-    Line,
-    Point,
-    Primitive,
-    PrimitiveStyle,
-    Rectangle,
-    RoundedRectangle,
-    Size,
-    draw_lato_18,
-    draw_lato_22_opaque,
-    draw_lato_body,
-    draw_lato_hint,
-    draw_lato_title,
-    draw_oswald_header,
-    measure_18,
-    measure_22,
-    measure_body,
-    measure_header,
-    measure_title,
 };
 
 impl<'a> BootDisplay<'a> {
@@ -60,7 +34,8 @@ impl<'a> BootDisplay<'a> {
         // Teal separator (static across keypresses)
         Line::new(Point::new(20, 38), Point::new(300, 38))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         // Input prefix area
         let prefix = word_input.prefix_str();
@@ -80,31 +55,28 @@ impl<'a> BootDisplay<'a> {
         // (y=40..68). This erases stale pixels from a longer previous prefix AND
         // any previous inline match text drawn after the cursor.
         if cursor_x < 320 {
-            Rectangle::new(
-                Point::new(cursor_x, 40),
-                Size::new((320 - cursor_x) as u32, 28),
-            )
-            .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-            .draw(&mut self.display).ok();
+            Rectangle::new(Point::new(cursor_x, 40), Size::new((320 - cursor_x) as u32, 28))
+                .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
+                .draw(&mut self.display)
+                .ok();
         }
         // Clear the left margin area before text_x (may hold stale left-aligned content)
         Rectangle::new(Point::new(0, 40), Size::new(text_x as u32, 28))
             .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
-        embedded_graphics::primitives::Line::new(
-            Point::new(cursor_x, text_y - 19),
-            Point::new(cursor_x, text_y + 2),
-        ).into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+        embedded_graphics::primitives::Line::new(Point::new(cursor_x, text_y - 19), Point::new(cursor_x, text_y + 2))
+            .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
+            .draw(&mut self.display)
+            .ok();
 
         // Match result inline after cursor — opaque paint so no prior text shows through
         if word_input.match_count == 1 {
             if let Some(idx) = word_input.matched_index {
                 let word = offline_signer::derivation::bip39::index_to_word(idx);
                 let mut match_buf: heapless::String<24> = heapless::String::new();
-                core::fmt::Write::write_fmt(&mut match_buf,
-                    format_args!("= {word}")).ok();
+                core::fmt::Write::write_fmt(&mut match_buf, format_args!("= {word}")).ok();
                 draw_lato_22_opaque(&mut self.display, &match_buf, cursor_x + 6, text_y, KASPA_TEAL, COLOR_BG);
             }
         }
@@ -113,7 +85,8 @@ impl<'a> BootDisplay<'a> {
         // Height 24 stops before keyboard top row at y=96.
         Rectangle::new(Point::new(0, 72), Size::new(320, 24))
             .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         let chip_y: i32 = 72;
         if word_input.num_suggestions > 1 {
@@ -124,10 +97,12 @@ impl<'a> BootDisplay<'a> {
                 let chip_rect = Rectangle::new(Point::new(sx, chip_y), Size::new(102, 24));
                 RoundedRectangle::new(chip_rect, chip_corner)
                     .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-                    .draw(&mut self.display).ok();
+                    .draw(&mut self.display)
+                    .ok();
                 RoundedRectangle::new(chip_rect, chip_corner)
                     .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-                    .draw(&mut self.display).ok();
+                    .draw(&mut self.display)
+                    .ok();
                 let wlen = w.len().min(10);
                 let tw = measure_18(&w[..wlen]);
                 draw_lato_18(&mut self.display, &w[..wlen], sx + (102 - tw) / 2, chip_y + 18, COLOR_TEXT);
@@ -168,7 +143,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, title, (320 - tw) / 2, 30, COLOR_TEXT);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         let btn_corner = CornerRadii::new(Size::new(8, 8));
 
@@ -179,10 +155,12 @@ impl<'a> BootDisplay<'a> {
         );
         RoundedRectangle::new(btn12, btn_corner)
             .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(btn12, btn_corner)
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let w12 = measure_title("12 Words");
         draw_lato_title(
             &mut self.display,
@@ -199,10 +177,12 @@ impl<'a> BootDisplay<'a> {
         );
         RoundedRectangle::new(btn24, btn_corner)
             .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(btn24, btn_corner)
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let w24 = measure_title("24 Words");
         draw_lato_title(
             &mut self.display,
@@ -220,7 +200,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, title, (320 - tw) / 2, 30, KASPA_TEAL);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let lines = [
             ("Optional extra secret for your words.", 62),
             ("It creates a different wallet.", 78),
@@ -238,9 +219,13 @@ impl<'a> BootDisplay<'a> {
         let rect = Rectangle::new(Point::new(x, y), Size::new(width, 35));
         let corners = CornerRadii::new(Size::new(7, 7));
         RoundedRectangle::new(rect, corners)
-            .into_styled(PrimitiveStyle::with_fill(COLOR_CARD)).draw(&mut self.display).ok();
+            .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(rect, corners)
-            .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1)).draw(&mut self.display).ok();
+            .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
+            .draw(&mut self.display)
+            .ok();
         let w = measure_title(label);
         draw_lato_title(&mut self.display, label, x + (width as i32 - w) / 2, y + 24, COLOR_TEXT);
     }
@@ -277,11 +262,7 @@ impl<'a> BootDisplay<'a> {
         const STRIP_W: u32 = 320;
 
         // Visible window: always left-aligned, scroll only when cursor exceeds it
-        let vis_start = if cursor <= max_vis {
-            0
-        } else {
-            cursor - max_vis
-        };
+        let vis_start = if cursor <= max_vis { 0 } else { cursor - max_vis };
         let vis_end = (vis_start + max_vis).min(pp.len());
         let vis_text = &pp[vis_start..vis_end];
 
@@ -290,7 +271,8 @@ impl<'a> BootDisplay<'a> {
         if vis_start == 0 {
             Rectangle::new(Point::new(0, STRIP_Y), Size::new(text_x as u32, STRIP_H))
                 .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
         }
 
         // Opaque text paint — each glyph cell is a single fill_contiguous SPI burst.
@@ -306,12 +288,10 @@ impl<'a> BootDisplay<'a> {
         // the new end). For a growing text this is just unused background space.
         let tail_x = text_x + drawn_w;
         if tail_x < STRIP_W as i32 {
-            Rectangle::new(
-                Point::new(tail_x, STRIP_Y),
-                Size::new((STRIP_W as i32 - tail_x) as u32, STRIP_H),
-            )
-            .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-            .draw(&mut self.display).ok();
+            Rectangle::new(Point::new(tail_x, STRIP_Y), Size::new((STRIP_W as i32 - tail_x) as u32, STRIP_H))
+                .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
+                .draw(&mut self.display)
+                .ok();
         }
 
         // Cursor: vertical teal line at the post-cursor position. When cursor is
@@ -326,18 +306,18 @@ impl<'a> BootDisplay<'a> {
         } else {
             text_x
         };
-        embedded_graphics::primitives::Line::new(
-            Point::new(cursor_x, text_y - 19),
-            Point::new(cursor_x, text_y + 2),
-        ).into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 2))
-            .draw(&mut self.display).ok();
+        embedded_graphics::primitives::Line::new(Point::new(cursor_x, text_y - 19), Point::new(cursor_x, text_y + 2))
+            .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 2))
+            .draw(&mut self.display)
+            .ok();
 
         // Scroll indicator: '‹' when text before window
         if vis_start > 0 {
             // Clear the 10px leading column first (it may hold a stale '‹' or be empty)
             Rectangle::new(Point::new(0, STRIP_Y), Size::new(text_x as u32, STRIP_H))
                 .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
             draw_lato_hint(&mut self.display, "\u{2039}", 2, 56, KASPA_TEAL);
         }
     }
@@ -351,8 +331,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, title, (320 - tw) / 2, 26, COLOR_TEXT);
         Line::new(Point::new(20, 36), Point::new(300, 36))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
-
+            .draw(&mut self.display)
+            .ok();
 
         // Input text + cursor (partial redraw area)
         self.draw_keyboard_screen(pp_input);
@@ -364,5 +344,4 @@ impl<'a> BootDisplay<'a> {
     pub fn draw_keyboard_keys_only(&mut self, pp_input: &crate::wallet::seed_manager::PassphraseInput) {
         crate::ui::keyboard::draw_keyboard(&mut self.display, crate::ui::keyboard::KeyboardMode::Full, pp_input.page);
     }
-
 }

@@ -1,23 +1,19 @@
-use embedded_iconoir::prelude::IconoirNewIcon;
 use super::super::{
-    BootDisplay, COLOR_CARD, COLOR_TEXT, COLOR_TEXT_DIM, CornerRadii, Drawable,
-    Image, KASPA_TEAL, Line, Point, Primitive, PrimitiveStyle, Rectangle, RoundedRectangle,
-    Size, draw_lato_body, draw_lato_title, draw_oswald_header, measure_body, measure_header,
-    size24px};
+    draw_lato_body, draw_lato_title, draw_oswald_header, measure_body, measure_header, size24px, BootDisplay,
+    CornerRadii, Drawable, Image, Line, Point, Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size,
+    COLOR_CARD, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_TEAL,
+};
+use embedded_iconoir::prelude::IconoirNewIcon;
 
 impl<'a> BootDisplay<'a> {
-    pub(crate) fn draw_input_source_choice(
-        &mut self,
-        header: &str,
-        subtitle: &str,
-        include_qr: bool,
-    ) {
+    pub(crate) fn draw_input_source_choice(&mut self, header: &str, subtitle: &str, include_qr: bool) {
         self.clear_keep_nav();
         let title_width = measure_header(header);
         draw_oswald_header(&mut self.display, header, (320 - title_width) / 2, 30, COLOR_TEXT);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let subtitle_width = measure_body(subtitle);
         draw_lato_body(&mut self.display, subtitle, (320 - subtitle_width) / 2, 60, COLOR_TEXT_DIM);
 
@@ -28,10 +24,12 @@ impl<'a> BootDisplay<'a> {
             let corner = CornerRadii::new(Size::new(6, 6));
             RoundedRectangle::new(rect, corner)
                 .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
             RoundedRectangle::new(rect, corner)
                 .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
             match row {
                 0 => {
                     let icon = size24px::editor::EditPencil::new(KASPA_TEAL);

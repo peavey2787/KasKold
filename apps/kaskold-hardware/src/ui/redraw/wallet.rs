@@ -11,10 +11,7 @@ mod input;
 mod inventory;
 mod words;
 
-pub(super) fn redraw(
-    ad: &mut crate::runtime::data::AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) -> bool {
+pub(super) fn redraw(ad: &mut crate::runtime::data::AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     inventory::redraw(ad, boot_display)
         || words::redraw(ad, boot_display)
         || input::redraw(ad, boot_display)

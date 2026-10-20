@@ -21,13 +21,16 @@ impl DeviceStorageIntent {
 pub enum UnlockFeedback {
     None,
     /// `remaining` counts the attempts left before the device wipes itself.
-    WrongPin { remaining: u8 },
-    WrongPassword { remaining: u8 },
+    WrongPin {
+        remaining: u8,
+    },
+    WrongPassword {
+        remaining: u8,
+    },
 }
 
 /// Titles warning that the durable attempt limit is close, indexed by attempts left.
-const ATTEMPT_WARNINGS: [&str; 5] =
-    ["1 TRY LEFT", "2 TRIES LEFT", "3 TRIES LEFT", "4 TRIES LEFT", "5 TRIES LEFT"];
+const ATTEMPT_WARNINGS: [&str; 5] = ["1 TRY LEFT", "2 TRIES LEFT", "3 TRIES LEFT", "4 TRIES LEFT", "5 TRIES LEFT"];
 
 const fn failure_title(remaining: u8, plain: &'static str) -> &'static str {
     if remaining >= 1 && remaining as usize <= ATTEMPT_WARNINGS.len() {
@@ -129,7 +132,9 @@ pub enum PersistenceBackendState {
 }
 
 impl PersistenceBackendState {
-    pub const fn is_sd(self) -> bool { matches!(self, Self::SdCard) }
+    pub const fn is_sd(self) -> bool {
+        matches!(self, Self::SdCard)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

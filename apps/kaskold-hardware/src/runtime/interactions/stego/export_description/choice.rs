@@ -1,7 +1,7 @@
 use crate::{
-    runtime::interactions::text_files::{self, TextFileScanWorkflow},
     hw::display,
     runtime::data::AppData,
+    runtime::interactions::text_files::{self, TextFileScanWorkflow},
 };
 
 pub(super) fn handle(

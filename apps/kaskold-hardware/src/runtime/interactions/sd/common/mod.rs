@@ -8,10 +8,5 @@ pub(super) mod passphrase;
 pub(super) mod routing;
 pub(super) mod shared;
 
-
-pub(in crate::runtime::interactions::sd) use passphrase::{
-    PassphraseWorkflow, run_device_bound_passphrase_workflow,
-};
-pub(super) use list_navigation::{
-    FileListWorkflow, run_sd_file_list_context, run_sd_list_context,
-};
+pub(super) use list_navigation::{run_sd_file_list_context, run_sd_list_context, FileListWorkflow};
+pub(in crate::runtime::interactions::sd) use passphrase::{run_device_bound_passphrase_workflow, PassphraseWorkflow};

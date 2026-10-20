@@ -26,7 +26,9 @@ pub(super) fn hmac(parts: &[&[u8]]) -> [u8; 32] {
     }
     let mut inner = Sha256::new();
     inner.update(inner_pad);
-    for part in parts { inner.update(*part); }
+    for part in parts {
+        inner.update(*part);
+    }
     let inner_hash = inner.finalize();
     let mut outer = Sha256::new();
     outer.update(outer_pad);

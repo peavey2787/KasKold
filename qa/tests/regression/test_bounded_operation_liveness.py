@@ -80,7 +80,7 @@ class BoundedOperationLivenessTests(unittest.TestCase):
             "runtime/event_loop/operation_engine/credential/task/unlock.rs",
         ))
         self.assertIn("OperationExecution::ForegroundExclusive", kind)
-        self.assertIn("=> 85_000", kind)
+        self.assertRegex(kind, r"Self::UnlockWalletPassword => \{\s*85_000\s*\}")
         self.assertIn("OperationExecution::ForegroundExclusive", engine)
         self.assertIn("derive_async_save_key(", task)
         self.assertIn("request.derive(self.secret.as_slice(), liveness)", task)

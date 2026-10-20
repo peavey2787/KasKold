@@ -71,8 +71,8 @@ fn transient_slot_ready(ad: &AppData, slot: usize) -> bool {
 }
 
 pub(super) fn apply_pending_wallet_name(ad: &mut AppData, slot: usize) {
-    let name_len = usize::from(ad.wallet.seeds.pending_wallet_name_len)
-        .min(crate::wallet::seed_manager::WALLET_NAME_MAX);
+    let name_len =
+        usize::from(ad.wallet.seeds.pending_wallet_name_len).min(crate::wallet::seed_manager::WALLET_NAME_MAX);
     if name_len == 0 {
         return;
     }
@@ -87,15 +87,6 @@ fn cancel_installed_restore(ad: &mut AppData, slot: usize) {
     let _ = crate::services::wallet_session::restore_persistent_active_wallet(ad);
 }
 
-fn reject_creation(
-    boot_display: &mut crate::hw::display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-) {
-    show_rejection(
-        boot_display,
-        delay,
-        "Wallet creation failed",
-        1_800,
-        ErrorSound::Silent,
-    );
+fn reject_creation(boot_display: &mut crate::hw::display::BootDisplay<'_>, delay: &mut esp_hal::delay::Delay) {
+    show_rejection(boot_display, delay, "Wallet creation failed", 1_800, ErrorSound::Silent);
 }

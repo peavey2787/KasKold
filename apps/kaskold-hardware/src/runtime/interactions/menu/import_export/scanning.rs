@@ -1,8 +1,6 @@
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use super::{display, AppData, Delay, I2c};
-use crate::{
-    services::storage_files,
-};
+use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
+use crate::services::storage_files;
 
 pub(super) fn scan_covenant_backups(
     ad: &mut AppData,

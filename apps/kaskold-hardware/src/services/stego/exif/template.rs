@@ -24,11 +24,7 @@ pub fn jpeg_dimensions(jpeg: &[u8]) -> Option<(u16, u16)> {
             continue;
         }
         let marker = jpeg[position + 1];
-        if (0xC0..=0xCF).contains(&marker)
-            && marker != 0xC4
-            && marker != 0xC8
-            && marker != 0xCC
-        {
+        if (0xC0..=0xCF).contains(&marker) && marker != 0xC4 && marker != 0xC8 && marker != 0xCC {
             let height = u16::from_be_bytes([jpeg[position + 5], jpeg[position + 6]]);
             let width = u16::from_be_bytes([jpeg[position + 7], jpeg[position + 8]]);
             return (width != 0 && height != 0).then_some((width, height));
@@ -36,10 +32,7 @@ pub fn jpeg_dimensions(jpeg: &[u8]) -> Option<(u16, u16)> {
         if marker == 0xDA || position + 4 > jpeg.len() {
             break;
         }
-        let segment_length = usize::from(u16::from_be_bytes([
-            jpeg[position + 2],
-            jpeg[position + 3],
-        ]));
+        let segment_length = usize::from(u16::from_be_bytes([jpeg[position + 2], jpeg[position + 3]]));
         let Some(next) = position.checked_add(2).and_then(|value| value.checked_add(segment_length)) else {
             break;
         };
@@ -53,14 +46,7 @@ pub fn jpeg_dimensions(jpeg: &[u8]) -> Option<(u16, u16)> {
 
 pub fn format_datetime(random: &[u8], output: &mut [u8; 19]) {
     let byte = |index: usize| u32::from(random.get(index).copied().unwrap_or(0));
-    let values = [
-        2019 + byte(0) % 7,
-        1 + byte(1) % 12,
-        1 + byte(2) % 28,
-        6 + byte(3) % 17,
-        byte(4) % 60,
-        byte(5) % 60,
-    ];
+    let values = [2019 + byte(0) % 7, 1 + byte(1) % 12, 1 + byte(2) % 28, 6 + byte(3) % 17, byte(4) % 60, byte(5) % 60];
     output[0] = b'0' + ((values[0] / 1000) % 10) as u8;
     output[1] = b'0' + ((values[0] / 100) % 10) as u8;
     output[2] = b'0' + ((values[0] / 10) % 10) as u8;
@@ -131,13 +117,7 @@ pub fn build_template(
     let mut entry_position = tiff_start + ifd0_offset;
     write_u16(&mut output[entry_position..], ifd0_entries as u16, true);
     entry_position += 2;
-    write_description_entry(
-        output,
-        &mut entry_position,
-        description,
-        description_length,
-        description_offset,
-    );
+    write_description_entry(output, &mut entry_position, description, description_length, description_offset);
     write_entry(output, &mut entry_position, 0x0112, 3, 1, 1);
     write_entry(output, &mut entry_position, 0x011A, 5, 1, x_resolution_offset as u32);
     write_entry(output, &mut entry_position, 0x011B, 5, 1, y_resolution_offset as u32);

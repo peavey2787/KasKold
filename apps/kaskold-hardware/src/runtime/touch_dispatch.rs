@@ -40,7 +40,10 @@ pub(crate) fn workflow_touch_input(
     if input.is_back != expected_back {
         crate::log!(
             "KASKOLD_WORKFLOW_TESTS: TOUCH PARITY FAIL ({},{}) expected_back={} production_back={}",
-            x, y, expected_back, input.is_back,
+            x,
+            y,
+            expected_back,
+            input.is_back,
         );
         return None;
     }

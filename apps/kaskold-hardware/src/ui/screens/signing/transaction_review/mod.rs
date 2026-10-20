@@ -1,9 +1,9 @@
 //! Transaction-review presentation façade.
 
 use super::super::{
-    BootDisplay, COLOR_BG, COLOR_HINT, COLOR_ORANGE, COLOR_TEXT, COLOR_TEXT_DIM, DrawTarget,
-    Drawable, KASPA_ACCENT, KASPA_TEAL, Line, Point, Primitive, PrimitiveStyle, draw_lato_body,
-    draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_title,
+    draw_lato_body, draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_title, BootDisplay,
+    DrawTarget, Drawable, Line, Point, Primitive, PrimitiveStyle, COLOR_BG, COLOR_HINT, COLOR_ORANGE, COLOR_TEXT,
+    COLOR_TEXT_DIM, KASPA_ACCENT, KASPA_TEAL,
 };
 
 mod address;

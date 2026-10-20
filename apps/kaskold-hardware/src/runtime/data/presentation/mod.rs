@@ -2,25 +2,18 @@
 
 use crate::runtime::input::AppState;
 
-mod kind; mod operation;
-pub use kind::OperationKind;
+mod kind;
+mod operation;
 #[cfg(not(feature = "hardware-tests"))]
 pub(crate) use kind::OperationExecution;
+pub use kind::OperationKind;
 pub use operation::{OperationPhase, OperationState};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ModalState {
     None,
-    RecoverableError {
-        message: &'static str,
-        code: &'static str,
-        return_to: AppState,
-        dismiss_after_ms: u64,
-    },
-    FatalError {
-        message: &'static str,
-        code: &'static str,
-    },
+    RecoverableError { message: &'static str, code: &'static str, return_to: AppState, dismiss_after_ms: u64 },
+    FatalError { message: &'static str, code: &'static str },
 }
 
 pub struct PresentationState {

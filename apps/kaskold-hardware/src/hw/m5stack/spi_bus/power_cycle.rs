@@ -14,8 +14,7 @@ fn flush_and_quiesce(
     spi: &mut esp_hal::spi::master::Spi<'static, esp_hal::Blocking>,
     sd_cs: &mut esp_hal::gpio::Output<'static>,
 ) -> Result<(), &'static str> {
-    embedded_hal::spi::SpiBus::flush(spi)
-        .map_err(|_| "CoreS3 SPI2 pre-power-cycle flush failed")?;
+    embedded_hal::spi::SpiBus::flush(spi).map_err(|_| "CoreS3 SPI2 pre-power-cycle flush failed")?;
     sd_cs.set_high();
     sd_power_lines::quiesce();
     crate::log!("[SD] bus quiesced for rail cycle GPIO4/35/36/37=LOW");

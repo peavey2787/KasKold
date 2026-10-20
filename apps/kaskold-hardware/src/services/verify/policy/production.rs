@@ -1,14 +1,8 @@
-use super::super::{
-    CANARY_POST_VERIFY,
-    FirmwareInfo,
-    Ordering,
-    VerificationResult,
-    compiler_fence,
-    constant_time,
-    flow,
-};
 #[cfg(not(any(feature = "owner-firmware", feature = "secure-owner-only")))]
 use super::super::embedded_firmware_signed;
+use super::super::{
+    compiler_fence, constant_time, flow, FirmwareInfo, Ordering, VerificationResult, CANARY_POST_VERIFY,
+};
 
 impl FirmwareInfo {
     pub(super) fn verify_production(

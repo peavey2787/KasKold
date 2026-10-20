@@ -61,5 +61,4 @@ const _: () = assert!(PATCH < 100, "firmware patch version must be below 100");
 ///
 /// The compile-time bounds above make the representation injective while
 /// preserving the established firmware-update QR and rollback-protection encoding.
-pub const NUMERIC: u32 =
-    (MAJOR as u32) * 10_000 + (MINOR as u32) * 100 + PATCH as u32;
+pub const NUMERIC: u32 = (MAJOR as u32) * 10_000 + (MINOR as u32) * 100 + PATCH as u32;

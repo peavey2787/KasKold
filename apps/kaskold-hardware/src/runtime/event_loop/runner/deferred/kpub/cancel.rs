@@ -31,12 +31,7 @@ fn cancel_abandoned_derivation(ad: &mut AppData) {
     }
 }
 
-
-
-pub(in crate::runtime::event_loop) fn cancel_operation(
-    ad: &mut AppData,
-    kind: crate::runtime::data::OperationKind,
-) {
+pub(in crate::runtime::event_loop) fn cancel_operation(ad: &mut AppData, kind: crate::runtime::data::OperationKind) {
     use crate::runtime::data::OperationKind;
     #[cfg(feature = "m5stack")]
     use crate::services::wallet_keys::worker as kpub_worker;
@@ -62,4 +57,3 @@ pub(in crate::runtime::event_loop) fn cancel_operation(
         _ => {}
     }
 }
-

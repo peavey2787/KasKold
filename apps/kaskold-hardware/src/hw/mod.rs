@@ -13,12 +13,12 @@
 #[cfg(not(feature = "m5stack"))]
 compile_error!("hardware firmware requires the m5stack CoreS3 platform feature");
 
-pub(crate) mod shared;
 mod m5stack;
+pub(crate) mod shared;
 
+pub(crate) use m5stack::spi_bus::initialize as initialize_cores3_spi;
 pub(crate) use m5stack::{battery, camera, display, pmu, sdcard, sound, touch};
 pub(crate) use m5stack::{entropy_imu as imu, rtc};
-pub(crate) use m5stack::spi_bus::initialize as initialize_cores3_spi;
 
 pub(crate) use shared::lockdown;
 #[cfg(feature = "screenshot")]

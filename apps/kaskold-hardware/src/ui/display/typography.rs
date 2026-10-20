@@ -9,9 +9,7 @@ use crate::ui::prop_fonts;
 /// Return a prefix containing at most `max_chars` Unicode scalar values.
 /// The returned slice always ends on a UTF-8 character boundary.
 pub(crate) fn truncate_chars(text: &str, max_chars: usize) -> &str {
-    text.char_indices()
-        .nth(max_chars)
-        .map_or(text, |(byte_index, _)| &text[..byte_index])
+    text.char_indices().nth(max_chars).map_or(text, |(byte_index, _)| &text[..byte_index])
 }
 
 pub(crate) fn draw_lato_title<D: DrawTarget<Color = Rgb565>>(
@@ -85,13 +83,7 @@ pub(crate) fn draw_lato_body<D: DrawTarget<Color = Rgb565>>(
     )
 }
 
-pub(crate) fn draw_lato_18<D: DrawTarget<Color = Rgb565>>(
-    d: &mut D,
-    text: &str,
-    x: i32,
-    y: i32,
-    color: Rgb565,
-) -> i32 {
+pub(crate) fn draw_lato_18<D: DrawTarget<Color = Rgb565>>(d: &mut D, text: &str, x: i32, y: i32, color: Rgb565) -> i32 {
     prop_fonts::draw_prop_text(
         d,
         text,
@@ -108,13 +100,7 @@ pub(crate) fn draw_lato_18<D: DrawTarget<Color = Rgb565>>(
     )
 }
 
-pub(crate) fn draw_lato_22<D: DrawTarget<Color = Rgb565>>(
-    d: &mut D,
-    text: &str,
-    x: i32,
-    y: i32,
-    color: Rgb565,
-) -> i32 {
+pub(crate) fn draw_lato_22<D: DrawTarget<Color = Rgb565>>(d: &mut D, text: &str, x: i32, y: i32, color: Rgb565) -> i32 {
     prop_fonts::draw_prop_text(
         d,
         text,
@@ -188,11 +174,7 @@ pub(crate) fn draw_oswald_header<D: DrawTarget<Color = Rgb565>>(
 ) -> i32 {
     let width = measure_header(text);
     let centered_x = (320 - width) / 2;
-    let x = if y <= 40 && x == centered_x {
-        crate::ui::layout::nav_header_x(centered_x, width)
-    } else {
-        x
-    };
+    let x = if y <= 40 && x == centered_x { crate::ui::layout::nav_header_x(centered_x, width) } else { x };
     prop_fonts::draw_prop_text(
         d,
         text,

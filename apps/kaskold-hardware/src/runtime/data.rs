@@ -20,51 +20,50 @@
 // in a dedicated struct, while hardware peripherals remain outside AppData
 // because their lifetimes are tied to `main`.
 
-mod runtime;
-mod presentation;
-mod navigation;
-mod wallet;
 mod export;
-mod storage;
-mod qr;
-mod signing;
-mod stego;
-mod settings;
+mod navigation;
+mod placement;
 #[cfg(feature = "provisioning-ui")]
 mod pop_it;
-mod placement;
+mod presentation;
+mod qr;
+mod runtime;
+mod settings;
+mod signing;
+mod stego;
+mod storage;
+mod wallet;
 #[cfg(feature = "workflow-tests")]
 mod workflow_tests;
 
-pub use self::runtime::{DestructiveHoldState, RuntimeState};
-pub use self::presentation::{ModalState, OperationKind, OperationPhase, PresentationState};
+pub use self::export::ExportState;
+pub use self::navigation::NavigationState;
+#[cfg(feature = "provisioning-ui")]
+pub use self::pop_it::PopItState;
 #[cfg(not(feature = "hardware-tests"))]
 pub(crate) use self::presentation::OperationExecution;
-pub use self::navigation::NavigationState;
-pub use self::wallet::WalletState;
-pub use self::export::ExportState;
+pub use self::presentation::{ModalState, OperationKind, OperationPhase, PresentationState};
+#[cfg(all(
+    not(feature = "hardware-tests"),
+    any(not(feature = "workflow-test-auto"), all(feature = "m5stack", feature = "workflow-runtime-auto"))
+))]
+pub use self::qr::CameraScanFault;
+pub use self::qr::{OutgoingQrPurpose, QrState};
+pub use self::runtime::{DestructiveHoldState, RuntimeState};
+pub use self::settings::{ScreenDimTimeout, SettingsState};
+pub use self::signing::{
+    AntiKleptoPhase, CovenantSigningMode, CovenantSigningPhase, OutputOwnership, PrivateSwapMode, PrivateSwapPhase,
+    SigningState,
+};
+pub use self::stego::StegoState;
+#[cfg(feature = "m5stack")]
+pub use self::storage::RtcVerification;
 pub use self::storage::{
-    AdvancedAvailability, ConfirmationState, DeviceStorageIntent, DuressActivation,
-    EncryptedFileOperation,
+    AdvancedAvailability, ConfirmationState, DeviceStorageIntent, DuressActivation, EncryptedFileOperation,
     EncryptedPayloadKind, PendingStorageAction, PersistenceBackendState, PolicyIntegrity, StorageState, TextFileKind,
     TextFileList, UnlockFeedback,
 };
-#[cfg(feature = "m5stack")]
-pub use self::storage::RtcVerification;
-pub use self::qr::{OutgoingQrPurpose, QrState};
-#[cfg(all(
-    not(feature = "hardware-tests"),
-    any(
-        not(feature = "workflow-test-auto"),
-        all(feature = "m5stack", feature = "workflow-runtime-auto")
-    )
-))]
-pub use self::qr::CameraScanFault;
-pub use self::signing::{AntiKleptoPhase, CovenantSigningMode, CovenantSigningPhase, PrivateSwapMode, PrivateSwapPhase, OutputOwnership, SigningState};
-pub use self::stego::StegoState;
-pub use self::settings::{ScreenDimTimeout, SettingsState};
-#[cfg(feature = "provisioning-ui")]
-pub use self::pop_it::PopItState;
+pub use self::wallet::WalletState;
 #[cfg(feature = "workflow-tests")]
 pub(crate) use self::workflow_tests::WorkflowTestState;
 
@@ -85,4 +84,3 @@ pub struct AppData {
     #[cfg(feature = "workflow-tests")]
     pub(crate) workflow_tests: WorkflowTestState,
 }
-

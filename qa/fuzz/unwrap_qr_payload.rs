@@ -1,7 +1,7 @@
 #![no_main]
 
-use libfuzzer_sys::fuzz_target;
 use kaskold_protocol::wire::qr_payload::{unwrap_v1_raw, PAYLOAD_V1_RAW};
+use libfuzzer_sys::fuzz_target;
 
 fuzz_target!(|data: &[u8]| {
     match unwrap_v1_raw(data) {

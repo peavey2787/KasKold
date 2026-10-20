@@ -14,31 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 use super::super::{
-    BootDisplay,
-    COLOR_BG,
-    COLOR_CARD,
-    COLOR_DANGER,
-    COLOR_RED_BTN,
-    COLOR_TEXT,
-    COLOR_TEXT_DIM,
-    CornerRadii,
-    DrawTarget,
-    Drawable,
-    KASPA_ACCENT,
-    KASPA_TEAL,
-    Point,
-    Primitive,
-    PrimitiveStyle,
-    Rectangle,
-    RoundedRectangle,
-    Size,
-    draw_lato_body,
-    draw_oswald_header,
-    measure_body,
-    measure_header,
-    sound,
+    draw_lato_body, draw_oswald_header, measure_body, measure_header, sound, BootDisplay, CornerRadii, DrawTarget,
+    Drawable, Point, Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size, COLOR_BG, COLOR_CARD, COLOR_DANGER,
+    COLOR_RED_BTN, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_ACCENT, KASPA_TEAL,
 };
 
 impl<'a> BootDisplay<'a> {
@@ -53,9 +32,10 @@ impl<'a> BootDisplay<'a> {
         use embedded_graphics::primitives::Circle;
         let corner = CornerRadii::new(Size::new(8, 8));
         // Teal background
-        RoundedRectangle::new(
-            Rectangle::new(Point::new(x, y), Size::new(w, h)), corner
-        ).into_styled(PrimitiveStyle::with_fill(KASPA_TEAL)).draw(&mut self.display).ok();
+        RoundedRectangle::new(Rectangle::new(Point::new(x, y), Size::new(w, h)), corner)
+            .into_styled(PrimitiveStyle::with_fill(KASPA_TEAL))
+            .draw(&mut self.display)
+            .ok();
 
         // Dot positions relative to dice face center
         let cx = x + w as i32 / 2;
@@ -67,21 +47,44 @@ impl<'a> BootDisplay<'a> {
         let dot = |sx: &mut Self, px: i32, py: i32| {
             Circle::new(Point::new(px - r as i32, py - r as i32), r * 2)
                 .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-                .draw(&mut sx.display).ok();
+                .draw(&mut sx.display)
+                .ok();
         };
 
         match val {
-            1 => { dot(self, cx, cy); }
-            2 => { dot(self, cx - dx, cy - dy); dot(self, cx + dx, cy + dy); }
-            3 => { dot(self, cx - dx, cy - dy); dot(self, cx, cy); dot(self, cx + dx, cy + dy); }
-            4 => { dot(self, cx - dx, cy - dy); dot(self, cx + dx, cy - dy);
-                   dot(self, cx - dx, cy + dy); dot(self, cx + dx, cy + dy); }
-            5 => { dot(self, cx - dx, cy - dy); dot(self, cx + dx, cy - dy);
-                   dot(self, cx, cy);
-                   dot(self, cx - dx, cy + dy); dot(self, cx + dx, cy + dy); }
-            6 => { dot(self, cx - dx, cy - dy); dot(self, cx + dx, cy - dy);
-                   dot(self, cx - dx, cy);      dot(self, cx + dx, cy);
-                   dot(self, cx - dx, cy + dy); dot(self, cx + dx, cy + dy); }
+            1 => {
+                dot(self, cx, cy);
+            }
+            2 => {
+                dot(self, cx - dx, cy - dy);
+                dot(self, cx + dx, cy + dy);
+            }
+            3 => {
+                dot(self, cx - dx, cy - dy);
+                dot(self, cx, cy);
+                dot(self, cx + dx, cy + dy);
+            }
+            4 => {
+                dot(self, cx - dx, cy - dy);
+                dot(self, cx + dx, cy - dy);
+                dot(self, cx - dx, cy + dy);
+                dot(self, cx + dx, cy + dy);
+            }
+            5 => {
+                dot(self, cx - dx, cy - dy);
+                dot(self, cx + dx, cy - dy);
+                dot(self, cx, cy);
+                dot(self, cx - dx, cy + dy);
+                dot(self, cx + dx, cy + dy);
+            }
+            6 => {
+                dot(self, cx - dx, cy - dy);
+                dot(self, cx + dx, cy - dy);
+                dot(self, cx - dx, cy);
+                dot(self, cx + dx, cy);
+                dot(self, cx - dx, cy + dy);
+                dot(self, cx + dx, cy + dy);
+            }
             _ => {}
         }
     }
@@ -93,19 +96,20 @@ impl<'a> BootDisplay<'a> {
         self.clear_keep_nav();
 
         let mut title_buf: heapless::String<30> = heapless::String::new();
-        core::fmt::Write::write_fmt(&mut title_buf,
-            format_args!("TOUCH {count}/{target}")).ok();
+        core::fmt::Write::write_fmt(&mut title_buf, format_args!("TOUCH {count}/{target}")).ok();
         let tw = measure_header(title_buf.as_str());
         draw_oswald_header(&mut self.display, &title_buf, (320 - tw) / 2, 25, COLOR_TEXT);
 
         Rectangle::new(Point::new(30, 35), Size::new(260, 8))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let progress_w = if target > 0 { (260 * count / target).min(260) } else { 0 };
         if progress_w > 0 {
             Rectangle::new(Point::new(30, 35), Size::new(progress_w as u32, 8))
                 .into_styled(PrimitiveStyle::with_fill(KASPA_ACCENT))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
         }
 
         let msg = "Draw here. Keep moving.";
@@ -113,7 +117,8 @@ impl<'a> BootDisplay<'a> {
         draw_lato_body(&mut self.display, msg, (320 - sw) / 2, 62, COLOR_TEXT_DIM);
         Rectangle::new(Point::new(20, 75), Size::new(280, 140))
             .into_styled(PrimitiveStyle::with_stroke(COLOR_TEXT_DIM, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
     }
 
     /// Paint only the newly accepted touch point and new progress segment.
@@ -121,21 +126,16 @@ impl<'a> BootDisplay<'a> {
         if (21..299).contains(&x) && (76..214).contains(&y) {
             Rectangle::new(Point::new(x as i32 - 1, y as i32 - 1), Size::new(3, 3))
                 .into_styled(PrimitiveStyle::with_fill(KASPA_TEAL))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
         }
         let now = if target > 0 { (260 * count / target).min(260) } else { 0 };
-        let previous = if target > 0 {
-            (260 * count.saturating_sub(1) / target).min(260)
-        } else {
-            0
-        };
+        let previous = if target > 0 { (260 * count.saturating_sub(1) / target).min(260) } else { 0 };
         if now > previous {
-            Rectangle::new(
-                Point::new(30 + previous as i32, 35),
-                Size::new((now - previous) as u32, 8),
-            )
-            .into_styled(PrimitiveStyle::with_fill(KASPA_ACCENT))
-            .draw(&mut self.display).ok();
+            Rectangle::new(Point::new(30 + previous as i32, 35), Size::new((now - previous) as u32, 8))
+                .into_styled(PrimitiveStyle::with_fill(KASPA_ACCENT))
+                .draw(&mut self.display)
+                .ok();
         }
     }
 
@@ -167,13 +167,14 @@ impl<'a> BootDisplay<'a> {
             Size::new(super::ENTROPY_RECOVERY_BUTTON_WIDTH as u32, super::ENTROPY_RECOVERY_BUTTON_HEIGHT as u32),
         );
         RoundedRectangle::new(retry, corners)
-            .into_styled(PrimitiveStyle::with_fill(KASPA_TEAL)).draw(&mut self.display).ok();
+            .into_styled(PrimitiveStyle::with_fill(KASPA_TEAL))
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(cancel, corners)
-            .into_styled(PrimitiveStyle::with_fill(COLOR_RED_BTN)).draw(&mut self.display).ok();
-        for (label, x) in [
-            ("TRY AGAIN", super::ENTROPY_RECOVERY_LEFT_X),
-            ("CANCEL", super::ENTROPY_RECOVERY_RIGHT_X),
-        ] {
+            .into_styled(PrimitiveStyle::with_fill(COLOR_RED_BTN))
+            .draw(&mut self.display)
+            .ok();
+        for (label, x) in [("TRY AGAIN", super::ENTROPY_RECOVERY_LEFT_X), ("CANCEL", super::ENTROPY_RECOVERY_RIGHT_X)] {
             let w = measure_body(label);
             draw_lato_body(
                 &mut self.display,
@@ -191,8 +192,7 @@ impl<'a> BootDisplay<'a> {
 
         // Title
         let mut title_buf: heapless::String<30> = heapless::String::new();
-        core::fmt::Write::write_fmt(&mut title_buf,
-            format_args!("DICE {count}/{target}")).ok();
+        core::fmt::Write::write_fmt(&mut title_buf, format_args!("DICE {count}/{target}")).ok();
         let tw = measure_header(title_buf.as_str());
         draw_oswald_header(&mut self.display, &title_buf, (320 - tw) / 2, 25, COLOR_TEXT);
 
@@ -200,11 +200,13 @@ impl<'a> BootDisplay<'a> {
         let progress_w = if target > 0 { (260 * count / target).min(260) } else { 0 };
         Rectangle::new(Point::new(30, 35), Size::new(260, 8))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         if progress_w > 0 {
             Rectangle::new(Point::new(30, 35), Size::new(progress_w as u32, 8))
                 .into_styled(PrimitiveStyle::with_fill(KASPA_ACCENT))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
         }
 
         let sw = measure_body("Tap the dice value you rolled:");
@@ -226,9 +228,10 @@ impl<'a> BootDisplay<'a> {
             let bh = dh - 4;
 
             // Gray button background
-            RoundedRectangle::new(
-                Rectangle::new(Point::new(bx, by), Size::new(bw, bh)), btn_corner
-            ).into_styled(PrimitiveStyle::with_fill(COLOR_CARD)).draw(&mut self.display).ok();
+            RoundedRectangle::new(Rectangle::new(Point::new(bx, by), Size::new(bw, bh)), btn_corner)
+                .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
+                .draw(&mut self.display)
+                .ok();
 
             // Square teal dice centered in button — slightly smaller
             let dice_sz = bh.min(bw) - 10; // square, 10px margin
@@ -244,10 +247,10 @@ impl<'a> BootDisplay<'a> {
         let undo_rect = Rectangle::new(Point::new(undo_x, 200), Size::new(undo_w, 38));
         RoundedRectangle::new(undo_rect, btn_corner)
             .into_styled(PrimitiveStyle::with_fill(COLOR_RED_BTN))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let uw = measure_body("UNDO");
         draw_lato_body(&mut self.display, "UNDO", undo_x + (undo_w as i32 - uw) / 2, 225, COLOR_TEXT);
-
     }
 
     /// Partial redraw: only the dice count header + progress bar.
@@ -256,27 +259,30 @@ impl<'a> BootDisplay<'a> {
         // Clear header area — preserve back icon (x=0..34) and home icon (x=286..320)
         Rectangle::new(Point::new(34, 0), Size::new(252, 32))
             .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         // Redraw title
         let mut title_buf: heapless::String<30> = heapless::String::new();
-        core::fmt::Write::write_fmt(&mut title_buf,
-            format_args!("DICE {count}/{target}")).ok();
+        core::fmt::Write::write_fmt(&mut title_buf, format_args!("DICE {count}/{target}")).ok();
         let tw = measure_header(title_buf.as_str());
         draw_oswald_header(&mut self.display, &title_buf, (320 - tw) / 2, 25, COLOR_TEXT);
 
         // Clear + redraw progress bar
         Rectangle::new(Point::new(30, 35), Size::new(260, 8))
             .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         Rectangle::new(Point::new(30, 35), Size::new(260, 8))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let progress_w = if target > 0 { (260 * count / target).min(260) } else { 0 };
         if progress_w > 0 {
             Rectangle::new(Point::new(30, 35), Size::new(progress_w as u32, 8))
                 .into_styled(PrimitiveStyle::with_fill(KASPA_ACCENT))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
         }
     }
 
@@ -291,7 +297,6 @@ impl<'a> BootDisplay<'a> {
         self.draw_progress_screen("LOADING", message);
     }
 
-
     /// Draw a static wait surface for deliberately opaque operations such as
     /// Argon2 wallet unlock. Do not imply measurable progress when the worker
     /// cannot expose an honest percentage.
@@ -299,59 +304,23 @@ impl<'a> BootDisplay<'a> {
         self.display.clear(COLOR_BG).ok();
         let title = "LOADING";
         let title_width = measure_header(title);
-        draw_oswald_header(
-            &mut self.display,
-            title,
-            (320 - title_width) / 2,
-            82,
-            KASPA_TEAL,
-        );
+        draw_oswald_header(&mut self.display, title, (320 - title_width) / 2, 82, KASPA_TEAL);
         let message_width = measure_body(message);
-        draw_lato_body(
-            &mut self.display,
-            message,
-            (320 - message_width) / 2,
-            119,
-            COLOR_TEXT,
-        );
+        draw_lato_body(&mut self.display, message, (320 - message_width) / 2, 119, COLOR_TEXT);
         let wait = "PLEASE WAIT";
         let wait_width = measure_body(wait);
-        draw_lato_body(
-            &mut self.display,
-            wait,
-            (320 - wait_width) / 2,
-            148,
-            COLOR_TEXT_DIM,
-        );
+        draw_lato_body(&mut self.display, wait, (320 - wait_width) / 2, 148, COLOR_TEXT_DIM);
         let hint = "This can take up to 30 secs";
         let hint_width = measure_body(hint);
-        draw_lato_body(
-            &mut self.display,
-            hint,
-            (320 - hint_width) / 2,
-            174,
-            COLOR_TEXT_DIM,
-        );
+        draw_lato_body(&mut self.display, hint, (320 - hint_width) / 2, 174, COLOR_TEXT_DIM);
     }
 
     fn draw_progress_screen(&mut self, title: &str, message: &str) {
         self.display.clear(COLOR_BG).ok();
         let title_width = measure_header(title);
-        draw_oswald_header(
-            &mut self.display,
-            title,
-            (320 - title_width) / 2,
-            90,
-            KASPA_TEAL,
-        );
+        draw_oswald_header(&mut self.display, title, (320 - title_width) / 2, 90, KASPA_TEAL);
         let message_width = measure_body(message);
-        draw_lato_body(
-            &mut self.display,
-            message,
-            (320 - message_width) / 2,
-            125,
-            COLOR_TEXT_DIM,
-        );
+        draw_lato_body(&mut self.display, message, (320 - message_width) / 2, 125, COLOR_TEXT_DIM);
         Rectangle::new(Point::new(40, 145), Size::new(240, 10))
             .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
             .draw(&mut self.display)
@@ -365,12 +334,14 @@ impl<'a> BootDisplay<'a> {
     pub fn update_progress_bar(&mut self, pct: u8) {
         Rectangle::new(Point::new(40, 145), Size::new(240, 10))
             .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let fill = (pct as u32).min(100) * 240 / 100;
         if fill > 0 {
             Rectangle::new(Point::new(40, 145), Size::new(fill, 10))
                 .into_styled(PrimitiveStyle::with_fill(KASPA_TEAL))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
         }
     }
     /// Draw word import keyboard screen (a-z + backspace + suggestions)
@@ -383,19 +354,14 @@ impl<'a> BootDisplay<'a> {
         self.clear_keep_nav();
 
         let mut title_buf: heapless::String<24> = heapless::String::new();
-        core::fmt::Write::write_fmt(&mut title_buf,
-            format_args!("IMPORT {}/{}", word_idx + 1, word_count)).ok();
+        core::fmt::Write::write_fmt(&mut title_buf, format_args!("IMPORT {}/{}", word_idx + 1, word_count)).ok();
         let tw = measure_header(title_buf.as_str());
         draw_oswald_header(&mut self.display, &title_buf, (320 - tw) / 2, 24, COLOR_TEXT);
 
         self.draw_import_keyboard_full(word_input);
     }
 
-    pub fn draw_restore_word_screen(
-        &mut self,
-        word_idx: u8,
-        word_input: &crate::wallet::mnemonic::WordInput,
-    ) {
+    pub fn draw_restore_word_screen(&mut self, word_idx: u8, word_input: &crate::wallet::mnemonic::WordInput) {
         self.clear_keep_nav();
         let mut title: heapless::String<28> = heapless::String::new();
         core::fmt::Write::write_fmt(&mut title, format_args!("RECOVERY WORD {}", word_idx + 1)).ok();
@@ -415,17 +381,15 @@ impl<'a> BootDisplay<'a> {
         // Clear header through separator line (preserve back/home icons)
         Rectangle::new(Point::new(34, 0), Size::new(252, 36))
             .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         let mut title_buf: heapless::String<24> = heapless::String::new();
-        core::fmt::Write::write_fmt(&mut title_buf,
-            format_args!("IMPORT {}/{}", word_idx + 1, word_count)).ok();
+        core::fmt::Write::write_fmt(&mut title_buf, format_args!("IMPORT {}/{}", word_idx + 1, word_count)).ok();
         let tw = measure_header(title_buf.as_str());
         draw_oswald_header(&mut self.display, &title_buf, (320 - tw) / 2, 24, COLOR_TEXT);
 
         // Redraw input + suggestions (no keyboard)
         self.draw_import_keyboard(word_input);
     }
-
-
 }

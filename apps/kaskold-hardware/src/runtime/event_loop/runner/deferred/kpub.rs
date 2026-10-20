@@ -16,8 +16,12 @@ pub(in crate::runtime::event_loop) fn service_operation(
     liveness: &mut (impl FnMut() + ?Sized),
 ) {
     use crate::runtime::data::OperationKind;
-    let Some(kind) = crate::runtime::presentation::operation_kind(ad) else { return; };
-    if !matches!(kind, OperationKind::ConnectCompanion | OperationKind::DeriveMultisigKpub) { return; }
+    let Some(kind) = crate::runtime::presentation::operation_kind(ad) else {
+        return;
+    };
+    if !matches!(kind, OperationKind::ConnectCompanion | OperationKind::DeriveMultisigKpub) {
+        return;
+    }
     match kind {
         OperationKind::ConnectCompanion => service_connect_operation(ad, boot_display, liveness),
         OperationKind::DeriveMultisigKpub => service_multisig_operation(ad, boot_display, liveness),
@@ -47,15 +51,14 @@ fn service_multisig_operation(
 }
 
 #[cfg(feature = "m5stack")]
-fn service_connect_kpub_m5stack(
-    ad: &mut AppData,
-    boot_display: &mut crate::hw::display::BootDisplay<'_>,
-) {
+fn service_connect_kpub_m5stack(ad: &mut AppData, boot_display: &mut crate::hw::display::BootDisplay<'_>) {
     use crate::services::wallet_keys::worker as kpub_worker;
 
     if let Some(generation) = ad.export.kpub_worker_generation {
         update_progress(ad, boot_display, kpub_worker::progress(generation));
-        let Some(mut result) = kpub_worker::take_result(generation) else { return; };
+        let Some(mut result) = kpub_worker::take_result(generation) else {
+            return;
+        };
         ad.export.kpub_worker_generation = None;
         if result.kind() != kpub_worker::WorkerResultKind::AccountKpub {
             fail(ad, "Account derivation worker result mismatch");
@@ -77,26 +80,25 @@ fn service_connect_kpub_m5stack(
     }
 
     // Never steal a worker generation from Receive/Change or multisig export.
-    if ad.wallet.addresses.cache_worker_generation.is_some()
-        || ad.export.multisig_worker_generation.is_some()
-    {
+    if ad.wallet.addresses.cache_worker_generation.is_some() || ad.export.multisig_worker_generation.is_some() {
         return;
     }
     kpub_worker::discard_completed();
-    if !kpub_worker::is_idle() { return; }
+    if !kpub_worker::is_idle() {
+        return;
+    }
     begin_m5stack(ad);
 }
 
 #[cfg(feature = "m5stack")]
-fn service_multisig_kpub_m5stack(
-    ad: &mut AppData,
-    boot_display: &mut crate::hw::display::BootDisplay<'_>,
-) {
+fn service_multisig_kpub_m5stack(ad: &mut AppData, boot_display: &mut crate::hw::display::BootDisplay<'_>) {
     use crate::services::wallet_keys::worker as kpub_worker;
 
     if let Some(generation) = ad.export.multisig_worker_generation {
         update_progress(ad, boot_display, kpub_worker::progress(generation));
-        let Some(mut result) = kpub_worker::take_result(generation) else { return; };
+        let Some(mut result) = kpub_worker::take_result(generation) else {
+            return;
+        };
         ad.export.multisig_worker_generation = None;
         if result.kind() != kpub_worker::WorkerResultKind::MultisigKpub {
             fail_multisig(ad, "Multisig derivation worker result mismatch");
@@ -128,13 +130,17 @@ fn service_multisig_kpub_m5stack(
 
     if ad.export.multisig_seed_derivation.is_some() {
         let (seed, progress) = {
-            let Some(work) = ad.export.multisig_seed_derivation.as_mut() else { return; };
+            let Some(work) = ad.export.multisig_seed_derivation.as_mut() else {
+                return;
+            };
             let seed = work.advance(KPUB_PBKDF2_ROUNDS_PER_STEP);
             let progress = ((u16::from(work.progress_percent()) * 88) / 100) as u8;
             (seed, progress)
         };
         update_progress(ad, boot_display, progress);
-        let Some(mut seed) = seed else { return; };
+        let Some(mut seed) = seed else {
+            return;
+        };
         ad.export.multisig_seed_derivation = None;
         match kpub_worker::submit_multisig_seed(&mut seed) {
             Ok(generation) => {
@@ -149,13 +155,13 @@ fn service_multisig_kpub_m5stack(
         return;
     }
 
-    if ad.wallet.addresses.cache_worker_generation.is_some()
-        || ad.export.kpub_worker_generation.is_some()
-    {
+    if ad.wallet.addresses.cache_worker_generation.is_some() || ad.export.kpub_worker_generation.is_some() {
         return;
     }
     kpub_worker::discard_completed();
-    if !kpub_worker::is_idle() { return; }
+    if !kpub_worker::is_idle() {
+        return;
+    }
     let Some(slot) = ad.wallet.seeds.seed_mgr.active_slot() else {
         fail_multisig(ad, "No active wallet");
         return;
@@ -215,18 +221,19 @@ fn begin_m5stack(ad: &mut AppData) {
 
 #[cfg(feature = "m5stack")]
 #[inline(never)]
-fn advance_m5stack_seed(
-    ad: &mut AppData,
-    boot_display: &mut crate::hw::display::BootDisplay<'_>,
-) {
+fn advance_m5stack_seed(ad: &mut AppData, boot_display: &mut crate::hw::display::BootDisplay<'_>) {
     let (seed, progress) = {
-        let Some(work) = ad.export.kpub_seed_derivation.as_mut() else { return; };
+        let Some(work) = ad.export.kpub_seed_derivation.as_mut() else {
+            return;
+        };
         let seed = work.advance(KPUB_PBKDF2_ROUNDS_PER_STEP);
         let progress = ((u16::from(work.progress_percent()) * 88) / 100) as u8;
         (seed, progress)
     };
     update_progress(ad, boot_display, progress);
-    let Some(mut seed) = seed else { return; };
+    let Some(mut seed) = seed else {
+        return;
+    };
     ad.export.kpub_seed_derivation = None;
     crate::log!("   Connect Companion PBKDF2 DONE; Core1 finalizer submit BEGIN");
     match crate::services::wallet_keys::worker::submit_seed(&mut seed) {
@@ -241,22 +248,16 @@ fn advance_m5stack_seed(
     }
 }
 
-fn update_progress(
-    ad: &mut AppData,
-    boot_display: &mut crate::hw::display::BootDisplay<'_>,
-    progress: u8,
-) {
-    if progress == ad.export.kpub_progress { return; }
+fn update_progress(ad: &mut AppData, boot_display: &mut crate::hw::display::BootDisplay<'_>, progress: u8) {
+    if progress == ad.export.kpub_progress {
+        return;
+    }
     ad.export.kpub_progress = progress;
     crate::runtime::presentation::set_progress(ad, progress);
     boot_display.update_progress_bar(progress);
 }
 
-fn finish_encoded(
-    ad: &mut AppData,
-    encoded: &mut [u8; offline_signer::derivation::xpub::KPUB_MAX_LEN],
-    length: usize,
-) {
+fn finish_encoded(ad: &mut AppData, encoded: &mut [u8; offline_signer::derivation::xpub::KPUB_MAX_LEN], length: usize) {
     if length > ad.export.kpub_data.len() {
         shared_signer::bytes::zeroize_bytes(encoded);
         fail(ad, "kpub serialization length invalid");
@@ -276,7 +277,6 @@ fn finish_encoded(
     crate::runtime::presentation::finish_success(ad);
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ExportKpub));
 }
-
 
 fn encoded_kpub_is_valid(encoded: &[u8]) -> bool {
     let mut payload = [0u8; offline_signer::derivation::xpub::XPUB_PAYLOAD_LEN];

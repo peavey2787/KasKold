@@ -7,7 +7,9 @@ pub(in crate::services::persistent_wallet) struct DevicePreferences {
 }
 
 impl Default for DevicePreferences {
-    fn default() -> Self { Self::DEFAULT }
+    fn default() -> Self {
+        Self::DEFAULT
+    }
 }
 
 impl DevicePreferences {
@@ -16,8 +18,7 @@ impl DevicePreferences {
     const REQUIRE_PIN_AFTER_DIM: u8 = 1 << 1;
     const NETWORK_SHIFT: u8 = 2;
     const NETWORK_MASK: u8 = 0b11 << Self::NETWORK_SHIFT;
-    pub(super) const KNOWN_MASK: u8 =
-        Self::STARTUP_SOUND | Self::REQUIRE_PIN_AFTER_DIM | Self::NETWORK_MASK;
+    pub(super) const KNOWN_MASK: u8 = Self::STARTUP_SOUND | Self::REQUIRE_PIN_AFTER_DIM | Self::NETWORK_MASK;
 
     #[cfg(feature = "m5stack")]
     pub const fn startup_sound_enabled(self) -> bool {
@@ -28,7 +29,9 @@ impl DevicePreferences {
         self.flags & Self::REQUIRE_PIN_AFTER_DIM != 0
     }
 
-    pub const fn dim_timeout_code(self) -> u8 { self.dim_timeout_code }
+    pub const fn dim_timeout_code(self) -> u8 {
+        self.dim_timeout_code
+    }
 
     pub const fn wallet_network(self) -> crate::wallet::seed_manager::WalletNetwork {
         match crate::wallet::seed_manager::WalletNetwork::from_preference_code(
@@ -42,7 +45,8 @@ impl DevicePreferences {
     pub const fn wallet_network_code_valid(self) -> bool {
         crate::wallet::seed_manager::WalletNetwork::from_preference_code(
             (self.flags & Self::NETWORK_MASK) >> Self::NETWORK_SHIFT,
-        ).is_some()
+        )
+        .is_some()
     }
 
     #[cfg(feature = "m5stack")]
@@ -67,4 +71,3 @@ impl DevicePreferences {
         self
     }
 }
-

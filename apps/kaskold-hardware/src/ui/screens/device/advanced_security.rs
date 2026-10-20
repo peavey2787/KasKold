@@ -1,17 +1,16 @@
 //! Advanced irreversible security-policy screens.
 
-use super::super::{
-    BootDisplay, COLOR_BG, COLOR_CARD, COLOR_CARD_BORDER, COLOR_DANGER, COLOR_TEXT,
-    COLOR_TEXT_DIM, KASPA_TEAL, CornerRadii, Drawable, Line, Point, Primitive,
-    PrimitiveStyle, Rectangle, RoundedRectangle, Size, draw_lato_hint, draw_lato_title,
-    draw_oswald_header, measure_header, measure_hint, measure_title,
-};
 #[cfg(feature = "m5stack")]
 use super::super::draw_lato_body;
+use super::super::{
+    draw_lato_hint, draw_lato_title, draw_oswald_header, measure_header, measure_hint, measure_title, BootDisplay,
+    CornerRadii, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size, COLOR_BG,
+    COLOR_CARD, COLOR_CARD_BORDER, COLOR_DANGER, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_TEAL,
+};
 use embedded_graphics::draw_target::DrawTarget;
-use kaskold_hardware_core::advanced_policy::UtcDateTime;
 #[cfg(feature = "m5stack")]
 use kaskold_hardware_core::advanced_policy::SigningWindow;
+use kaskold_hardware_core::advanced_policy::UtcDateTime;
 
 pub(crate) const ADV_CARD_X: core::ops::RangeInclusive<u16> = 14..=306;
 pub(crate) const DURESS_Y: core::ops::RangeInclusive<u16> = 38..=72;
@@ -31,7 +30,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, title, (320 - tw) / 2, 26, KASPA_TEAL);
         Line::new(Point::new(18, 34), Point::new(302, 34))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         if !ad.storage.persistence.advanced.availability.is_available() {
             self.draw_unavailable_advanced_features(ad);
@@ -65,7 +65,6 @@ impl<'a> BootDisplay<'a> {
     }
 
     fn draw_available_advanced_features(&mut self, ad: &crate::runtime::data::AppData) {
-
         let duress_status = if ad.storage.persistence.advanced.duress.is_enabled() {
             match ad.storage.persistence.advanced.credential_kind {
                 Some(crate::services::credential_policy::CredentialKind::Pin) => "ENABLED PIN - READ ONLY",
@@ -89,7 +88,12 @@ impl<'a> BootDisplay<'a> {
         } else {
             "Optional - configure"
         };
-        self.draw_advanced_card(76, "No-sign-before (UTC)", time_status, ad.storage.persistence.advanced.policy.not_before_unix != 0);
+        self.draw_advanced_card(
+            76,
+            "No-sign-before (UTC)",
+            time_status,
+            ad.storage.persistence.advanced.policy.not_before_unix != 0,
+        );
 
         let mut weekly_buf = [0u8; 32];
         let weekly_status = if ad.storage.persistence.advanced.policy.weekly_enabled {
@@ -98,7 +102,12 @@ impl<'a> BootDisplay<'a> {
         } else {
             "Optional - configure"
         };
-        self.draw_advanced_card(114, "Weekly signing windows", weekly_status, ad.storage.persistence.advanced.policy.weekly_enabled);
+        self.draw_advanced_card(
+            114,
+            "Weekly signing windows",
+            weekly_status,
+            ad.storage.persistence.advanced.policy.weekly_enabled,
+        );
 
         let sd_enabled = ad.storage.persistence.advanced.persistence_backend.is_sd();
         let sd_status = if sd_enabled {
@@ -117,7 +126,12 @@ impl<'a> BootDisplay<'a> {
         } else {
             "Set/verify current UTC time first"
         };
-        self.draw_advanced_card(190, "Hardware RTC (UTC)", rtc_status, ad.storage.persistence.advanced.policy.has_time_policy());
+        self.draw_advanced_card(
+            190,
+            "Hardware RTC (UTC)",
+            rtc_status,
+            ad.storage.persistence.advanced.policy.has_time_policy(),
+        );
     }
 
     pub fn draw_advanced_warning(&mut self, title: &str, line1: &str, line2: &str, line3: &str) {
@@ -179,13 +193,11 @@ impl<'a> BootDisplay<'a> {
         // avoids painting over either the title separator or the first key row.
         if input.len == 0 {
             let hw = measure_hint(hint);
-            draw_lato_hint(
-                &mut self.display, hint, ((320 - hw) / 2).max(40), 62, COLOR_TEXT_DIM,
-            );
+            draw_lato_hint(&mut self.display, hint, ((320 - hw) / 2).max(40), 62, COLOR_TEXT_DIM);
         }
     }
 
-#[cfg(feature = "m5stack")]
+    #[cfg(feature = "m5stack")]
     pub fn draw_time_lock_confirmation(&mut self, unix: u64) {
         let mut buf = [0u8; 32];
         let len = format_datetime_unix(unix, &mut buf);
@@ -193,7 +205,7 @@ impl<'a> BootDisplay<'a> {
         self.draw_advanced_final_warning("ENABLE NO-SIGN-BEFORE?", value, "Transactions stay locked until then.");
     }
 
-#[cfg(feature = "m5stack")]
+    #[cfg(feature = "m5stack")]
     pub fn draw_weekly_confirmation(&mut self, count: u8) {
         let mut buf = [0u8; 32];
         let len = format_window_count(count, &mut buf);
@@ -201,7 +213,7 @@ impl<'a> BootDisplay<'a> {
         self.draw_advanced_final_warning("ENABLE SIGNING WINDOWS?", value, "All other times will be refused.");
     }
 
-#[cfg(feature = "m5stack")]
+    #[cfg(feature = "m5stack")]
     pub fn draw_weekly_policy_readonly(&mut self, windows: &[SigningWindow], count: u8) {
         self.clear_keep_nav();
         let title = "WEEKLY WINDOWS";
@@ -228,10 +240,13 @@ impl<'a> BootDisplay<'a> {
         let rectangle = Rectangle::new(Point::new(14, y), Size::new(292, 34));
         let corners = CornerRadii::new(Size::new(6, 6));
         RoundedRectangle::new(rectangle, corners)
-            .into_styled(PrimitiveStyle::with_fill(COLOR_CARD)).draw(&mut self.display).ok();
+            .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(rectangle, corners)
             .into_styled(PrimitiveStyle::with_stroke(if danger { COLOR_DANGER } else { COLOR_CARD_BORDER }, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         draw_lato_title(&mut self.display, label, 22, y + 16, COLOR_TEXT);
         draw_lato_hint(&mut self.display, status, 22, y + 31, if danger { COLOR_DANGER } else { COLOR_TEXT_DIM });
     }
@@ -246,9 +261,13 @@ impl<'a> BootDisplay<'a> {
         let corners = CornerRadii::new(Size::new(6, 6));
         let fill = if strong { COLOR_BG } else { COLOR_DANGER };
         RoundedRectangle::new(rectangle, corners)
-            .into_styled(PrimitiveStyle::with_fill(fill)).draw(&mut self.display).ok();
+            .into_styled(PrimitiveStyle::with_fill(fill))
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(rectangle, corners)
-            .into_styled(PrimitiveStyle::with_stroke(COLOR_TEXT, 2)).draw(&mut self.display).ok();
+            .into_styled(PrimitiveStyle::with_stroke(COLOR_TEXT, 2))
+            .draw(&mut self.display)
+            .ok();
         let width = measure_title(label);
         draw_lato_title(&mut self.display, label, x + (132 - width) / 2, 218, COLOR_TEXT);
     }
@@ -261,13 +280,17 @@ fn format_datetime_unix(unix: u64, out: &mut [u8; 32]) -> usize {
     };
     let mut cursor = 0usize;
     cursor += write_u4(value.year, &mut out[cursor..]);
-    out[cursor] = b'-'; cursor += 1;
+    out[cursor] = b'-';
+    cursor += 1;
     cursor += write_u2(value.month, &mut out[cursor..]);
-    out[cursor] = b'-'; cursor += 1;
+    out[cursor] = b'-';
+    cursor += 1;
     cursor += write_u2(value.day, &mut out[cursor..]);
-    out[cursor] = b' '; cursor += 1;
+    out[cursor] = b' ';
+    cursor += 1;
     cursor += write_u2(value.hour, &mut out[cursor..]);
-    out[cursor] = b':'; cursor += 1;
+    out[cursor] = b':';
+    cursor += 1;
     cursor += write_u2(value.minute, &mut out[cursor..]);
     out[cursor..cursor + 4].copy_from_slice(b" UTC");
     cursor + 4
@@ -277,7 +300,8 @@ fn format_window_count(count: u8, out: &mut [u8; 32]) -> usize {
     let prefix = b"ENABLED - ";
     out[..prefix.len()].copy_from_slice(prefix);
     let mut cursor = prefix.len();
-    out[cursor] = b'0' + count.min(9); cursor += 1;
+    out[cursor] = b'0' + count.min(9);
+    cursor += 1;
     let suffix: &[u8] = if count == 1 { b" window" } else { b" windows" };
     out[cursor..cursor + suffix.len()].copy_from_slice(suffix);
     cursor + suffix.len()
@@ -286,7 +310,13 @@ fn format_window_count(count: u8, out: &mut [u8; 32]) -> usize {
 #[cfg(feature = "m5stack")]
 fn format_window(window: SigningWindow, out: &mut [u8; 32]) -> usize {
     let day = match window.weekday {
-        0 => b"MON", 1 => b"TUE", 2 => b"WED", 3 => b"THU", 4 => b"FRI", 5 => b"SAT", _ => b"SUN",
+        0 => b"MON",
+        1 => b"TUE",
+        2 => b"WED",
+        3 => b"THU",
+        4 => b"FRI",
+        5 => b"SAT",
+        _ => b"SUN",
     };
     out[..3].copy_from_slice(day);
     out[3] = b' ';

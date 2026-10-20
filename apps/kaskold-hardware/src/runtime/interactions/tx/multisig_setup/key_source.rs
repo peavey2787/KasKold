@@ -1,8 +1,5 @@
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
-use crate::{
-    runtime::data::AppData,
-    hw::display,
-};
+use crate::{hw::display, runtime::data::AppData};
 
 pub(super) fn handle(
     ad: &mut AppData,
@@ -41,9 +38,7 @@ fn go_back(ad: &mut AppData, key_idx: u8) -> bool {
         ad.signing.multisig.creating.n = 0;
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigChooseMN));
     } else {
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigAddKey {
-            key_idx: key_idx - 1,
-        }));
+        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigAddKey { key_idx: key_idx - 1 }));
     }
     true
 }

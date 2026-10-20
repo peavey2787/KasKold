@@ -203,7 +203,7 @@ def audit() -> tuple[list[str], dict[str, object]]:
         "warns_permanent_owner_key": "permanent" in owner_ui and "cannot be undone" in owner_ui,
         "requires_typed_owner_enroll": "ENROLL OWNER" in owner_ui and 'b"ENROLL OWNER"' in owner_controller,
         "requires_typed_owner_install": "INSTALL OWNER" in owner_ui and 'b"INSTALL OWNER"' in owner_controller,
-        "secure_profile_only_boot_control": '#[cfg(feature="secure-provisioning-core")]' in boot_control,
+        "secure_profile_only_boot_control": '#[cfg(feature = "secure-provisioning-core")]' in boot_control,
         "development_simulation_only": owner_controller.count("DEVELOPMENT SIMULATION") >= 2,
         "owner_efuse_bootloader_owned": "esp_efuse_write_key" in owner_boot_source
         and "esp_efuse_set_write_protect_of_digest_revoke" in owner_boot_source,

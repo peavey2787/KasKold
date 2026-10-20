@@ -1,6 +1,6 @@
 use crate::runtime::input::AppState;
 
-use super::{begin_restore, finish_restored_session, choose_no_passphrase, RestoreIo, BUTTON_X};
+use super::{begin_restore, choose_no_passphrase, finish_restored_session, RestoreIo, BUTTON_X};
 
 const KEY_A: (u16, u16) = (19, 100);
 const KEY_B: (u16, u16) = (54, 100);
@@ -13,7 +13,8 @@ const KEY_OK: (u16, u16) = (295, 210);
 const SUGGESTION_FIRST: (u16, u16) = (4, 80);
 
 pub(super) fn restore_12(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    if !begin_restore(ctx) || ctx.source_touch(0) != Some(true)
+    if !begin_restore(ctx)
+        || ctx.source_touch(0) != Some(true)
         || ctx.base.ad.navigation.app.state != (AppState::RestoreWord { word_idx: 0 })
     {
         return false;
@@ -25,7 +26,8 @@ pub(super) fn restore_12(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
         return false;
     }
     ctx.redraw_step();
-    if !detected_back_and_reenter(ctx) || ctx.detected_touch(93, false) != Some(true)
+    if !detected_back_and_reenter(ctx)
+        || ctx.detected_touch(93, false) != Some(true)
         || ctx.base.ad.navigation.app.state != AppState::PassphraseChoice
         || !choose_no_passphrase(ctx)
         || ctx.base.ad.navigation.app.state != (AppState::WalletNameEntry { purpose: 3 })
@@ -49,15 +51,18 @@ fn detected_back_and_reenter(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
 }
 
 pub(super) fn restore_24(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    if !begin_restore(ctx) || ctx.source_touch(0) != Some(true)
-        || !enter_abandon_repeated(ctx, 11) || !enter_about(ctx)
+    if !begin_restore(ctx)
+        || ctx.source_touch(0) != Some(true)
+        || !enter_abandon_repeated(ctx, 11)
+        || !enter_about(ctx)
         || ctx.base.ad.navigation.app.state != AppState::RestoreWord12Detected
     {
         return false;
     }
     if ctx.detected_touch(147, false) != Some(true)
         || ctx.base.ad.navigation.app.state != (AppState::RestoreWord { word_idx: 12 })
-        || !enter_abandon_repeated(ctx, 11) || !enter_almost(ctx)
+        || !enter_abandon_repeated(ctx, 11)
+        || !enter_almost(ctx)
         || ctx.base.ad.navigation.app.state != AppState::PassphraseChoice
         || !choose_passphrase_a1(ctx)
         || ctx.base.ad.navigation.app.state != (AppState::WalletNameEntry { purpose: 3 })
@@ -74,9 +79,7 @@ pub(super) fn restore_24(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
 }
 
 pub(super) fn reject_invalid_24(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    if !begin_restore(ctx) || ctx.source_touch(0) != Some(true)
-        || !enter_abandon_repeated(ctx, 24)
-    {
+    if !begin_restore(ctx) || ctx.source_touch(0) != Some(true) || !enter_abandon_repeated(ctx, 24) {
         return false;
     }
     if ctx.base.ad.navigation.app.state != AppState::StorageSeedSourceChoice
@@ -90,12 +93,11 @@ pub(super) fn reject_invalid_24(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
 }
 
 fn keyboard_error_matrix(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    if !tap_pending(ctx, KEY_Z) || !tap_pending(ctx, KEY_Z)
-        || ctx.base.ad.wallet.seeds.word_input.match_count != 0
-    {
+    if !tap_pending(ctx, KEY_Z) || !tap_pending(ctx, KEY_Z) || ctx.base.ad.wallet.seeds.word_input.match_count != 0 {
         return false;
     }
-    if !tap_pending(ctx, KEY_BACKSPACE) || !tap_pending(ctx, KEY_BACKSPACE)
+    if !tap_pending(ctx, KEY_BACKSPACE)
+        || !tap_pending(ctx, KEY_BACKSPACE)
         || ctx.base.ad.wallet.seeds.word_input.prefix_len != 0
     {
         return false;
@@ -114,17 +116,22 @@ fn enter_abandon_repeated(ctx: &mut RestoreIo<'_, '_, '_>, count: usize) -> bool
 }
 
 fn enter_abandon(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    tap_pending(ctx, KEY_A) && tap_pending(ctx, KEY_B)
+    tap_pending(ctx, KEY_A)
+        && tap_pending(ctx, KEY_B)
         && ctx.base.seed_touch(SUGGESTION_FIRST.0, SUGGESTION_FIRST.1, false) == Some(true)
 }
 
 fn enter_about(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    tap_pending(ctx, KEY_A) && tap_pending(ctx, KEY_B) && tap_pending(ctx, KEY_O)
+    tap_pending(ctx, KEY_A)
+        && tap_pending(ctx, KEY_B)
+        && tap_pending(ctx, KEY_O)
         && ctx.base.seed_touch(SUGGESTION_FIRST.0, SUGGESTION_FIRST.1, false) == Some(true)
 }
 
 fn enter_almost(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    tap_pending(ctx, KEY_A) && tap_pending(ctx, KEY_L) && tap_pending(ctx, KEY_M)
+    tap_pending(ctx, KEY_A)
+        && tap_pending(ctx, KEY_L)
+        && tap_pending(ctx, KEY_M)
         && ctx.base.seed_touch(KEY_OK.0, KEY_OK.1, false) == Some(true)
 }
 
@@ -151,6 +158,8 @@ fn choose_passphrase_a1(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
 
 fn name_restored_wallet(ctx: &mut RestoreIo<'_, '_, '_>, name: &[u8]) -> bool {
     ctx.base.ad.wallet.seeds.pp_input.reset();
-    for byte in name { ctx.base.ad.wallet.seeds.pp_input.push_char(*byte); }
+    for byte in name {
+        ctx.base.ad.wallet.seeds.pp_input.push_char(*byte);
+    }
     ctx.base.seed_touch(KEY_OK.0, KEY_OK.1, false) == Some(true)
 }

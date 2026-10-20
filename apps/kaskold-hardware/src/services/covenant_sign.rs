@@ -9,17 +9,24 @@
 //! anti-klepto reveal.
 
 use sha2::{Digest, Sha256};
-use shared_signer::covenant_sign::{
-    self, BindingHint, CovenantSignResponse, KnownScheme, RequestKind, ResponseKind,
-};
+use shared_signer::covenant_sign::{self, BindingHint, CovenantSignResponse, KnownScheme, RequestKind, ResponseKind};
 
 use crate::runtime::data::{AppData, CovenantSigningMode, CovenantSigningPhase};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CovenantSignError {
-    InvalidEnvelope, MnemonicRequired, DerivationFailed, CommitmentMismatch,
-    CovenantKeyNotBound, InvalidKnownContext, EntropyUnavailable, SigningFailed,
-    RevealMismatch, AntiKleptoFailed, ResponseEncodingFailed, BindingRequired,
+    InvalidEnvelope,
+    MnemonicRequired,
+    DerivationFailed,
+    CommitmentMismatch,
+    CovenantKeyNotBound,
+    InvalidKnownContext,
+    EntropyUnavailable,
+    SigningFailed,
+    RevealMismatch,
+    AntiKleptoFailed,
+    ResponseEncodingFailed,
+    BindingRequired,
     BindingMismatch,
 }
 
@@ -43,9 +50,15 @@ impl CovenantSignError {
     }
 }
 
-pub fn prepare_request(ad: &mut AppData, wire: &[u8], checkpoint: &mut (impl FnMut() + ?Sized)) -> Result<(), CovenantSignError> {
+pub fn prepare_request(
+    ad: &mut AppData,
+    wire: &[u8],
+    checkpoint: &mut (impl FnMut() + ?Sized),
+) -> Result<(), CovenantSignError> {
     let request = covenant_sign::parse_request(wire).map_err(|_| CovenantSignError::InvalidEnvelope)?;
-    if request.kind == RequestKind::KeyInfo { return prepare_key_info(ad, checkpoint); }
+    if request.kind == RequestKind::KeyInfo {
+        return prepare_key_info(ad, checkpoint);
+    }
 
     let mut seed = crate::services::wallet_keys::derive_active_seed_with_checkpoint(ad, checkpoint)
         .map_err(|_| CovenantSignError::MnemonicRequired)?;
@@ -57,7 +70,9 @@ pub fn prepare_request(ad: &mut AppData, wire: &[u8], checkpoint: &mut (impl FnM
 fn prepare_key_info(ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Sized)) -> Result<(), CovenantSignError> {
     let mut key_id = [0u8; 32];
     crate::crypto::entropy::fill(&mut key_id).map_err(|_| CovenantSignError::EntropyUnavailable)?;
-    if key_id == [0u8; 32] { return Err(CovenantSignError::EntropyUnavailable); }
+    if key_id == [0u8; 32] {
+        return Err(CovenantSignError::EntropyUnavailable);
+    }
     let mut seed = crate::services::wallet_keys::derive_active_seed_with_checkpoint(ad, checkpoint)
         .map_err(|_| CovenantSignError::MnemonicRequired)?;
     let pubkey_result = offline_signer::derivation::covenant::covenant_public_key(&seed.bytes, &key_id);
@@ -85,9 +100,15 @@ fn prepare_with_seed(
         return prepare_binding(ad, request, &pubkey_x, script_hash);
     }
     let binding_ok = offline_signer::derivation::covenant::covenant_binding_matches(
-        seed, &request.key_id, &script_hash, &request.binding_token,
-    ).map_err(|_| CovenantSignError::DerivationFailed)?;
-    if !binding_ok { return Err(CovenantSignError::BindingMismatch); }
+        seed,
+        &request.key_id,
+        &script_hash,
+        &request.binding_token,
+    )
+    .map_err(|_| CovenantSignError::DerivationFailed)?;
+    if !binding_ok {
+        return Err(CovenantSignError::BindingMismatch);
+    }
     ad.signing.covenant.reset();
     set_request_identity(ad, request, pubkey_x, script_hash);
     ad.signing.covenant.binding_token = request.binding_token;
@@ -104,9 +125,9 @@ fn prepare_binding(
     pubkey_x: &[u8; 32],
     script_hash: [u8; 32],
 ) -> Result<(), CovenantSignError> {
-    if request.key_id != ad.signing.covenant.pending_key_id
-        || *pubkey_x != ad.signing.covenant.pending_pubkey_x
-    { return Err(CovenantSignError::BindingRequired); }
+    if request.key_id != ad.signing.covenant.pending_key_id || *pubkey_x != ad.signing.covenant.pending_pubkey_x {
+        return Err(CovenantSignError::BindingRequired);
+    }
 
     ad.signing.covenant.reset();
     set_request_identity(ad, request, *pubkey_x, script_hash);
@@ -138,7 +159,9 @@ fn set_request_identity(
 }
 
 fn prepare_known(
-    ad: &mut AppData, request: &covenant_sign::CovenantSignRequest<'_>, pubkey_x: &[u8; 32],
+    ad: &mut AppData,
+    request: &covenant_sign::CovenantSignRequest<'_>,
+    pubkey_x: &[u8; 32],
 ) -> Result<(), CovenantSignError> {
     validate_known_shape(request, pubkey_x)?;
     copy_review_context(ad, request.context)?;
@@ -148,12 +171,17 @@ fn prepare_known(
 }
 
 fn validate_known_shape(
-    request: &covenant_sign::CovenantSignRequest<'_>, pubkey_x: &[u8; 32],
+    request: &covenant_sign::CovenantSignRequest<'_>,
+    pubkey_x: &[u8; 32],
 ) -> Result<(), CovenantSignError> {
-    if request.binding != covenant_sign::expected_known_binding(request.scheme) { return Err(CovenantSignError::InvalidEnvelope); }
+    if request.binding != covenant_sign::expected_known_binding(request.scheme) {
+        return Err(CovenantSignError::InvalidEnvelope);
+    }
     let recomputed = covenant_sign::recompute_known_commitment(request.scheme, request.context)
         .ok_or(CovenantSignError::InvalidKnownContext)?;
-    if recomputed != request.commitment { return Err(CovenantSignError::CommitmentMismatch); }
+    if recomputed != request.commitment {
+        return Err(CovenantSignError::CommitmentMismatch);
+    }
     if !covenant_sign::known_script_binds(request.scheme, request.script, &recomputed, pubkey_x) {
         return Err(CovenantSignError::CovenantKeyNotBound);
     }
@@ -161,7 +189,9 @@ fn validate_known_shape(
 }
 
 fn prepare_opaque(
-    ad: &mut AppData, request: &covenant_sign::CovenantSignRequest<'_>, pubkey_x: &[u8; 32],
+    ad: &mut AppData,
+    request: &covenant_sign::CovenantSignRequest<'_>,
+    pubkey_x: &[u8; 32],
 ) -> Result<(), CovenantSignError> {
     validate_opaque_shape(request, pubkey_x)?;
     ad.signing.covenant.mode = CovenantSigningMode::Opaque;
@@ -170,12 +200,14 @@ fn prepare_opaque(
 }
 
 fn validate_opaque_shape(
-    request: &covenant_sign::CovenantSignRequest<'_>, pubkey_x: &[u8; 32],
+    request: &covenant_sign::CovenantSignRequest<'_>,
+    pubkey_x: &[u8; 32],
 ) -> Result<(), CovenantSignError> {
     if request.scheme != KnownScheme::None || !matches!(request.binding, BindingHint::None | BindingHint::KeyPresent) {
         return Err(CovenantSignError::InvalidEnvelope);
     }
-    if request.binding == BindingHint::KeyPresent && !covenant_sign::script_contains_xonly_key(request.script, pubkey_x) {
+    if request.binding == BindingHint::KeyPresent && !covenant_sign::script_contains_xonly_key(request.script, pubkey_x)
+    {
         return Err(CovenantSignError::CovenantKeyNotBound);
     }
     Ok(())
@@ -199,11 +231,15 @@ pub fn complete_binding(ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Size
     if !matches!(ad.signing.covenant.mode, CovenantSigningMode::BindKnown | CovenantSigningMode::BindOpaque)
         || ad.signing.covenant.phase != CovenantSigningPhase::Prepared
         || ad.signing.covenant.key_id != ad.signing.covenant.pending_key_id
-    { return Err(CovenantSignError::BindingRequired); }
+    {
+        return Err(CovenantSignError::BindingRequired);
+    }
     let mut seed = crate::services::wallet_keys::derive_active_seed_with_checkpoint(ad, checkpoint)
         .map_err(|_| CovenantSignError::MnemonicRequired)?;
     let token = offline_signer::derivation::covenant::covenant_binding_token(
-        &seed.bytes, &ad.signing.covenant.key_id, &ad.signing.covenant.script_hash,
+        &seed.bytes,
+        &ad.signing.covenant.key_id,
+        &ad.signing.covenant.script_hash,
     );
     crate::services::wallet_keys::zeroize_seed(&mut seed.bytes);
     ad.signing.covenant.binding_token = token.map_err(|_| CovenantSignError::DerivationFailed)?;
@@ -219,16 +255,24 @@ pub fn begin_signing(ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Sized))
     if !matches!(ad.signing.covenant.mode, CovenantSigningMode::Known | CovenantSigningMode::Opaque)
         || ad.signing.covenant.phase != CovenantSigningPhase::Prepared
         || ad.signing.covenant.binding_token == [0u8; 32]
-    { return Err(CovenantSignError::InvalidEnvelope); }
+    {
+        return Err(CovenantSignError::InvalidEnvelope);
+    }
 
     let mut aux = [0u8; 32];
     crate::crypto::entropy::fill(&mut aux).map_err(|_| CovenantSignError::EntropyUnavailable)?;
     let mut seed = match crate::services::wallet_keys::derive_active_seed_with_checkpoint(ad, checkpoint) {
         Ok(seed) => seed,
-        Err(_) => { shared_signer::bytes::zeroize_bytes(&mut aux); return Err(CovenantSignError::MnemonicRequired); }
+        Err(_) => {
+            shared_signer::bytes::zeroize_bytes(&mut aux);
+            return Err(CovenantSignError::MnemonicRequired);
+        }
     };
     let provisional = offline_signer::derivation::covenant::provisional_covenant_signature(
-        &seed.bytes, &ad.signing.covenant.key_id, &ad.signing.covenant.commitment, &aux,
+        &seed.bytes,
+        &ad.signing.covenant.key_id,
+        &ad.signing.covenant.commitment,
+        &aux,
     );
     crate::services::wallet_keys::zeroize_seed(&mut seed.bytes);
     shared_signer::bytes::zeroize_bytes(&mut aux);
@@ -241,7 +285,11 @@ pub fn begin_signing(ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Sized))
     build_response(ad, ResponseKind::NonceCommitment, [0u8; 64])
 }
 
-pub fn finalize_reveal(ad: &mut AppData, wire: &[u8], checkpoint: &mut (impl FnMut() + ?Sized)) -> Result<(), CovenantSignError> {
+pub fn finalize_reveal(
+    ad: &mut AppData,
+    wire: &[u8],
+    checkpoint: &mut (impl FnMut() + ?Sized),
+) -> Result<(), CovenantSignError> {
     let mut reveal = covenant_sign::parse_reveal(wire).map_err(|_| CovenantSignError::InvalidEnvelope)?;
     let result = validate_reveal(ad, &reveal).and_then(|()| finalize_signature(ad, &reveal.host_secret, checkpoint));
     shared_signer::bytes::zeroize_bytes(&mut reveal.host_secret);
@@ -251,18 +299,29 @@ pub fn finalize_reveal(ad: &mut AppData, wire: &[u8], checkpoint: &mut (impl FnM
 fn validate_reveal(ad: &AppData, reveal: &covenant_sign::CovenantSignReveal) -> Result<(), CovenantSignError> {
     let state = &ad.signing.covenant;
     let identity_matches = state.phase == CovenantSigningPhase::AwaitingReveal
-        && state.session_id == reveal.session_id && state.key_id == reveal.key_id
+        && state.session_id == reveal.session_id
+        && state.key_id == reveal.key_id
         && state.commitment == reveal.commitment;
     let secret_matches = shared_signer::anti_klepto::verify_host_secret(&state.host_commitment, &reveal.host_secret);
     (identity_matches && secret_matches).then_some(()).ok_or(CovenantSignError::RevealMismatch)
 }
 
-fn finalize_signature(ad: &mut AppData, host_secret: &[u8; 32], checkpoint: &mut (impl FnMut() + ?Sized)) -> Result<(), CovenantSignError> {
-    let provisional = offline_signer::crypto::schnorr::SchnorrSignature { bytes: ad.signing.covenant.provisional_signature };
-    let mut seed = crate::services::wallet_keys::derive_active_seed_with_checkpoint(ad, checkpoint).map_err(|_| CovenantSignError::MnemonicRequired)?;
+fn finalize_signature(
+    ad: &mut AppData,
+    host_secret: &[u8; 32],
+    checkpoint: &mut (impl FnMut() + ?Sized),
+) -> Result<(), CovenantSignError> {
+    let provisional =
+        offline_signer::crypto::schnorr::SchnorrSignature { bytes: ad.signing.covenant.provisional_signature };
+    let mut seed = crate::services::wallet_keys::derive_active_seed_with_checkpoint(ad, checkpoint)
+        .map_err(|_| CovenantSignError::MnemonicRequired)?;
     let final_signature = offline_signer::derivation::covenant::finalize_covenant_signature(
-        &seed.bytes, &ad.signing.covenant.key_id, &ad.signing.covenant.commitment, &provisional,
-        &ad.signing.covenant.session_id, host_secret,
+        &seed.bytes,
+        &ad.signing.covenant.key_id,
+        &ad.signing.covenant.commitment,
+        &provisional,
+        &ad.signing.covenant.session_id,
+        host_secret,
     );
     crate::services::wallet_keys::zeroize_seed(&mut seed.bytes);
     let final_signature = final_signature.map_err(|_| CovenantSignError::SigningFailed)?;
@@ -273,13 +332,23 @@ fn finalize_signature(ad: &mut AppData, host_secret: &[u8; 32], checkpoint: &mut
 }
 
 fn verify_nonce_relation(
-    ad: &AppData, host_secret: &[u8; 32], signature: &offline_signer::crypto::schnorr::SchnorrSignature,
+    ad: &AppData,
+    host_secret: &[u8; 32],
+    signature: &offline_signer::crypto::schnorr::SchnorrSignature,
 ) -> Result<(), CovenantSignError> {
-    let mut public_key = [0u8; 33]; public_key[0] = 0x02; public_key[1..].copy_from_slice(&ad.signing.covenant.pubkey_x);
+    let mut public_key = [0u8; 33];
+    public_key[0] = 0x02;
+    public_key[1..].copy_from_slice(&ad.signing.covenant.pubkey_x);
     offline_signer::crypto::anti_klepto::verify_nonce_relation(
-        &ad.signing.covenant.nonce_point, signature, &ad.signing.covenant.session_id,
-        host_secret, 0, 0, &public_key,
-    ).map_err(|_| CovenantSignError::AntiKleptoFailed)
+        &ad.signing.covenant.nonce_point,
+        signature,
+        &ad.signing.covenant.session_id,
+        host_secret,
+        0,
+        0,
+        &public_key,
+    )
+    .map_err(|_| CovenantSignError::AntiKleptoFailed)
 }
 
 fn build_response(ad: &mut AppData, kind: ResponseKind, signature: [u8; 64]) -> Result<(), CovenantSignError> {

@@ -4,13 +4,15 @@
 
 use crate::hw::display;
 use crate::runtime::data::AppData;
-use kaskold_hardware_core::security::{SigningAuthorization, authorize_transaction_signing};
+use kaskold_hardware_core::security::{authorize_transaction_signing, SigningAuthorization};
 
 use super::{kspt, output, pskt, strategy};
 
 pub(super) fn prepare_anti_klepto_commitment(ad: &mut AppData) {
     use crate::runtime::data::AntiKleptoPhase;
-    if ad.signing.anti_klepto.phase != AntiKleptoPhase::Reviewing { return; }
+    if ad.signing.anti_klepto.phase != AntiKleptoPhase::Reviewing {
+        return;
+    }
     let records = match offline_signer::transaction::kspt::nonce_commitment_records(
         &ad.signing.transaction.active,
         &ad.signing.anti_klepto.initial_sig_counts,
@@ -57,22 +59,33 @@ pub fn handle_signing_operation_step(
     liveness: &mut (impl FnMut() + ?Sized),
 ) {
     use crate::runtime::data::OperationKind;
-    if !crate::runtime::presentation::operation_active(ad, OperationKind::SignTransaction) { return; }
+    if !crate::runtime::presentation::operation_active(ad, OperationKind::SignTransaction) {
+        return;
+    }
     let input_idx = crate::runtime::presentation::operation_cursor(ad);
-    if reject_missing_seed(ad) { return; }
-    if input_idx >= ad.signing.transaction.active.num_inputs { reject_signing(ad); return; }
+    if reject_missing_seed(ad) {
+        return;
+    }
+    if input_idx >= ad.signing.transaction.active.num_inputs {
+        reject_signing(ad);
+        return;
+    }
 
     let Some(policy_now) = authorize_policy_time(ad, i2c, persistence) else {
         rollback_session(ad);
         return;
     };
-    if !authorize_review(ad, input_idx) { rollback_session(ad); return; }
+    if !authorize_review(ad, input_idx) {
+        rollback_session(ad);
+        return;
+    }
     if input_idx == 0 {
         let counts = offline_signer::transaction::kspt::initial_signature_counts(&ad.signing.transaction.active);
         ad.signing.transaction.initial_signature_counts.clear();
-        ad.signing.transaction.initial_signature_counts.extend_from_slice(
-            &counts[..ad.signing.transaction.active.num_inputs],
-        );
+        ad.signing
+            .transaction
+            .initial_signature_counts
+            .extend_from_slice(&counts[..ad.signing.transaction.active.num_inputs]);
     }
 
     log!("   Signing input {}/{}...", input_idx + 1, ad.navigation.app.total_inputs);
@@ -103,7 +116,10 @@ pub fn handle_signing_operation_step(
 
 #[inline(never)]
 fn sign_one_input(ad: &mut AppData, input_idx: usize, liveness: &mut (impl FnMut() + ?Sized)) -> bool {
-    let Some(signing_strategy) = strategy::select(ad) else { reject_signing(ad); return false; };
+    let Some(signing_strategy) = strategy::select(ad) else {
+        reject_signing(ad);
+        return false;
+    };
     let mut signing_entropy = [0u8; 32];
     if let Err(error) = crate::crypto::entropy::fill(&mut signing_entropy) {
         log!("   ✗ Signing entropy refused: {}", error.message());
@@ -133,7 +149,9 @@ fn finish_transaction(
     boot_display.draw_saving_screen("Finalizing TX...");
     liveness();
     if ad.signing.transaction.input_format.is_pskt() {
-        if !pskt::serialize_transaction(ad) { return false; }
+        if !pskt::serialize_transaction(ad) {
+            return false;
+        }
     } else if ad.signing.anti_klepto.phase == crate::runtime::data::AntiKleptoPhase::Reviewing {
         prepare_anti_klepto_commitment(ad);
     } else if !kspt::serialize_transaction(ad) {
@@ -153,7 +171,9 @@ fn finish_transaction(
 }
 
 fn reject_missing_seed(ad: &mut AppData) -> bool {
-    if ad.wallet.seeds.seed_loaded { return false; }
+    if ad.wallet.seeds.seed_loaded {
+        return false;
+    }
     reject_signing_with(ad, crate::runtime::presentation::SIGN_KEY);
     true
 }
@@ -164,7 +184,9 @@ fn authorize_policy_time(
     persistence: &crate::services::persistent_wallet::PersistentWallet<'_>,
 ) -> Option<Option<u64>> {
     match crate::services::signing_policy::authorize_transaction_time(
-        persistence.signing_policy(), persistence.security_integrity_ok(), i2c,
+        persistence.signing_policy(),
+        persistence.security_integrity_ok(),
+        i2c,
     ) {
         Ok(value) => Some(value),
         Err(error) => {
@@ -183,7 +205,9 @@ fn authorize_review(ad: &mut AppData, input_idx: usize) -> bool {
         transaction_inputs: ad.signing.transaction.active.num_inputs,
         signing_input_index: input_idx,
     };
-    let Err(error) = authorize_transaction_signing(authorization) else { return true; };
+    let Err(error) = authorize_transaction_signing(authorization) else {
+        return true;
+    };
     log!("   ✗ Signing authorization refused: {:?}", error);
     reject_signing_with(ad, crate::runtime::presentation::SIGN_REVIEW);
     false
@@ -196,9 +220,15 @@ fn persist_policy_floor(
     persistence: &mut crate::services::persistent_wallet::PersistentWallet<'_>,
     policy_now: Option<u64>,
 ) -> bool {
-    if ad.qr.outgoing.length == 0 { return true; }
-    let Some(now_unix) = policy_now else { return true; };
-    if anti_klepto_is_pending(ad) { return true; }
+    if ad.qr.outgoing.length == 0 {
+        return true;
+    }
+    let Some(now_unix) = policy_now else {
+        return true;
+    };
+    if anti_klepto_is_pending(ad) {
+        return true;
+    }
     if persistence.record_rtc_floor(now_unix, &ad.wallet.seeds.seed_mgr, i2c, delay).is_ok() {
         persistence.refresh_security_mirror(ad);
         return true;
@@ -232,9 +262,7 @@ fn reject_signing(ad: &mut AppData) {
 fn reject_signing_with(ad: &mut AppData, error: crate::runtime::presentation::ErrorSpec) {
     ad.qr.outgoing.length = 0;
     ad.navigation.app.review_authorized = false;
-    if crate::runtime::presentation::operation_active(
-        ad, crate::runtime::data::OperationKind::SignTransaction,
-    ) {
+    if crate::runtime::presentation::operation_active(ad, crate::runtime::data::OperationKind::SignTransaction) {
         crate::runtime::presentation::fail_recoverable_spec(ad, error);
     } else {
         crate::runtime::presentation::show_error_spec(ad, error);

@@ -6,17 +6,12 @@
 
 use crate::halt_forever;
 use crate::hw::display::BootDisplay;
-use crate::services::verify::{
-    FIRMWARE_MAX_SIZE, FirmwareInfo, VerificationResult, firmware_start_addr,
-};
 #[cfg(feature = "production")]
 use crate::services::verify::AttestationEvidence;
+use crate::services::verify::{firmware_start_addr, FirmwareInfo, VerificationResult, FIRMWARE_MAX_SIZE};
 
 /// Verify firmware integrity and show an honest trust state on the display.
-pub fn run_firmware_verify(
-    boot_display: &mut BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-) {
+pub fn run_firmware_verify(boot_display: &mut BootDisplay<'_>, delay: &mut esp_hal::delay::Delay) {
     log!("Verifying Firmware");
     log!("────────────────────────────────");
 
@@ -43,7 +38,7 @@ pub fn run_firmware_verify(
         #[cfg(all(feature = "m5stack", feature = "production"))]
         VerificationResult::AntiRollbackUnprovisioned => {
             fail_boot(boot_display, delay, "ANTI-ROLLBACK NOT PROVISIONED")
-        },
+        }
         VerificationResult::ReadError => fail_boot(boot_display, delay, "READ ERROR"),
         #[cfg(feature = "production")]
         VerificationResult::FlowViolation => fail_boot(boot_display, delay, "FLOW VIOLATION"),
@@ -79,10 +74,7 @@ fn finish_verified_boot(
     delay: &mut esp_hal::delay::Delay,
     firmware_info: &FirmwareInfo,
 ) {
-    log!(
-        "Development firmware v{}: hardware attestation is not claimed",
-        firmware_info.version_string().as_str()
-    );
+    log!("Development firmware v{}: hardware attestation is not claimed", firmware_info.version_string().as_str());
     boot_display.show_logo_screen().ok();
     delay.delay_millis(400);
 }
@@ -120,21 +112,12 @@ fn show_attestation(
 }
 
 #[cfg(feature = "production")]
-fn attestation_phrase(
-    firmware_info: &FirmwareInfo,
-    evidence: &AttestationEvidence,
-) -> heapless::String<64> {
+fn attestation_phrase(firmware_info: &FirmwareInfo, evidence: &AttestationEvidence) -> heapless::String<64> {
     use core::fmt::Write;
 
     let words = firmware_info.attestation_phrase(&evidence.identity_hash);
     let mut text = heapless::String::new();
-    write!(
-        &mut text,
-        "{} {}",
-        evidence.hash_scope.phrase_prefix(),
-        words.as_str()
-    )
-    .ok();
+    write!(&mut text, "{} {}", evidence.hash_scope.phrase_prefix(), words.as_str()).ok();
     text
 }
 
@@ -143,11 +126,7 @@ fn short_commit(commit: &'static str) -> &'static str {
     crate::ui::display::truncate_chars(commit, 12)
 }
 
-fn fail_boot(
-    boot_display: &mut BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    reason: &'static str,
-) -> ! {
+fn fail_boot(boot_display: &mut BootDisplay<'_>, delay: &mut esp_hal::delay::Delay, reason: &'static str) -> ! {
     log!("CRITICAL: firmware verification failed: {}", reason);
     #[cfg(feature = "hardware-tests")]
     log!("KASKOLD_HARDWARE_TESTS: FAIL");

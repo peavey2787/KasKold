@@ -36,7 +36,7 @@ pub const FIRMWARE_MAX_SIZE: usize = CODE_SEGMENT_MAX_SIZE;
 
 // ─── Magic values for anti-glitch ────────────────────────────────────
 
-pub(super) const CANARY_PRE_VERIFY: u32  = 0xDEAD_BEEF;
+pub(super) const CANARY_PRE_VERIFY: u32 = 0xDEAD_BEEF;
 #[cfg(feature = "production")]
 pub(super) const CANARY_POST_VERIFY: u32 = 0xCAFE_BABE;
 
@@ -77,7 +77,7 @@ pub struct FirmwareInfo {
 }
 
 impl FirmwareInfo {
-pub fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             version_major: crate::version::MAJOR,
             version_minor: crate::version::MINOR,

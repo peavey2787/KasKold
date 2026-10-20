@@ -10,11 +10,7 @@ use core::{
     sync::atomic::{AtomicPtr, Ordering},
 };
 
-use esp_hal::{
-    Blocking,
-    gpio::Output,
-    spi::master::Spi,
-};
+use esp_hal::{gpio::Output, spi::master::Spi, Blocking};
 use static_cell::StaticCell;
 
 use super::{config, gpio35};
@@ -29,10 +25,7 @@ static SHARED_BUS_STORAGE: StaticCell<SharedBus> = StaticCell::new();
 static SHARED_BUS_PTR: AtomicPtr<SharedBus> = AtomicPtr::new(ptr::null_mut());
 
 /// Install the sole HAL owner of CoreS3 SPI2 and the SD chip-select pin.
-pub(crate) fn initialize(
-    spi: Spi<'static, Blocking>,
-    mut sd_cs: Output<'static>,
-) -> Result<(), &'static str> {
+pub(crate) fn initialize(spi: Spi<'static, Blocking>, mut sd_cs: Output<'static>) -> Result<(), &'static str> {
     if !SHARED_BUS_PTR.load(Ordering::Acquire).is_null() {
         return Err("CoreS3 SPI2 owner already initialized");
     }
@@ -98,20 +91,14 @@ pub(super) fn complete_sd_transaction(
     spi: &mut Spi<'static, Blocking>,
     sd_cs: &mut Output<'static>,
 ) -> Result<(), &'static str> {
-    let flush_result = embedded_hal::spi::SpiBus::flush(spi)
-        .map_err(|_| "CoreS3 SPI2 SD transaction flush failed");
+    let flush_result = embedded_hal::spi::SpiBus::flush(spi).map_err(|_| "CoreS3 SPI2 SD transaction flush failed");
     sd_cs.set_high();
     flush_result?;
     super::sd_release::release_sd_clock(spi)
 }
 /// Provide idle clocks with SD deselected, as required during card startup.
-pub(crate) fn sd_idle_clocks(
-    initialization_speed: bool,
-    byte_count: usize,
-) -> Result<(), &'static str> {
-    with_resources(config::sd_frequency(initialization_speed), |spi, sd_cs| {
-        clock_sd_idle(spi, sd_cs, byte_count)
-    })
+pub(crate) fn sd_idle_clocks(initialization_speed: bool, byte_count: usize) -> Result<(), &'static str> {
+    with_resources(config::sd_frequency(initialization_speed), |spi, sd_cs| clock_sd_idle(spi, sd_cs, byte_count))
 }
 fn clock_sd_idle(
     spi: &mut Spi<'static, Blocking>,
@@ -126,8 +113,7 @@ fn clock_sd_idle(
         embedded_hal::spi::SpiBus::write(spi, &clocks[..count])
             .map_err(|_| "CoreS3 SPI2 idle clock transfer failed")?;
     }
-    embedded_hal::spi::SpiBus::flush(spi)
-        .map_err(|_| "CoreS3 SPI2 idle clock flush failed")
+    embedded_hal::spi::SpiBus::flush(spi).map_err(|_| "CoreS3 SPI2 idle clock flush failed")
 }
 fn with_spi<T>(
     frequency_hz: u32,
@@ -140,10 +126,7 @@ fn with_spi<T>(
 }
 fn with_resources<T>(
     frequency_hz: u32,
-    operation: impl FnOnce(
-        &mut Spi<'static, Blocking>,
-        &mut Output<'static>,
-    ) -> Result<T, &'static str>,
+    operation: impl FnOnce(&mut Spi<'static, Blocking>, &mut Output<'static>) -> Result<T, &'static str>,
 ) -> Result<T, &'static str> {
     let shared = shared_bus()?;
     let mut spi = borrow_spi(shared)?;
@@ -153,10 +136,7 @@ fn with_sd_cs<T>(
     shared: &'static SharedBus,
     spi: &mut Spi<'static, Blocking>,
     frequency_hz: u32,
-    operation: impl FnOnce(
-        &mut Spi<'static, Blocking>,
-        &mut Output<'static>,
-    ) -> Result<T, &'static str>,
+    operation: impl FnOnce(&mut Spi<'static, Blocking>, &mut Output<'static>) -> Result<T, &'static str>,
 ) -> Result<T, &'static str> {
     let mut sd_cs = borrow_sd_cs(shared)?;
     config::ensure_frequency(&shared.frequency_hz, spi, frequency_hz)?;
@@ -175,4 +155,3 @@ pub(super) fn shared_bus() -> Result<&'static SharedBus, &'static str> {
     }
     Ok(unsafe { &*pointer })
 }
-

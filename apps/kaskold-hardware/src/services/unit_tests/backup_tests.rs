@@ -1,30 +1,86 @@
 //! Regression coverage for versioned Argon2id backup formats and device-bound
 //! cryptographic separation.
 
-use offline_signer::crypto::device_bound_storage::{
-    open_in_place, seal_in_place, DeviceBoundError, HardwareHmac, KdfParameters, OpenRequest,
-    StoragePurpose, TAG_SIZE,
-};
-use sha2::{Digest,Sha256};
+use crate::services::backup::{self, BackupDevice, BackupError, BackupKind};
 use crate::services::credential_policy::CredentialKind;
-use crate::services::backup::{self,BackupDevice,BackupError,BackupKind};
+use offline_signer::crypto::device_bound_storage::{
+    open_in_place, seal_in_place, DeviceBoundError, HardwareHmac, KdfParameters, OpenRequest, StoragePurpose, TAG_SIZE,
+};
+use sha2::{Digest, Sha256};
 
-const PASSWORD:&[u8]=b"correct7horse";
-const WRONG_PASSWORD:&[u8]=b"incorrect7horse";
-const SALT:[u8;16]=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
-const NONCE:[u8;12]=[0x40,0x41,0x42,0x43,0x44,0x45,0x46,0x47,0x48,0x49,0x4a,0x4b];
-const DEVICE_A:[u8;32]=[0x5a;32];
-const DEVICE_B:[u8;32]=[0xa5;32];
-const PAYLOAD:&[u8]=b"device-bound-backup-payload";
+const PASSWORD: &[u8] = b"correct7horse";
+const WRONG_PASSWORD: &[u8] = b"incorrect7horse";
+const SALT: [u8; 16] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+const NONCE: [u8; 12] = [0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b];
+const DEVICE_A: [u8; 32] = [0x5a; 32];
+const DEVICE_B: [u8; 32] = [0xa5; 32];
+const PAYLOAD: &[u8] = b"device-bound-backup-payload";
 
-struct MockHmac([u8;32]);
-impl HardwareHmac for MockHmac{fn hmac_sha256(&mut self,message:&[u8],output:&mut[u8;32])->Result<(),DeviceBoundError>{let mut h=Sha256::new();h.update(self.0);h.update(message);*output=h.finalize().into();Ok(())}}
-struct MockBackupDevice([u8;32]);
-impl BackupDevice for MockBackupDevice{
-    fn seal_backup_key(&mut self,purpose:StoragePurpose,credential_key:&[u8;32],salt:&[u8;16],nonce:&[u8;12],aad:&[u8],ciphertext:&mut[u8])->Result<[u8;TAG_SIZE],BackupError>{seal_in_place(&mut MockHmac(self.0),KdfParameters::current(purpose,CredentialKind::Password),credential_key,salt,nonce,aad,ciphertext).map_err(map_device_error)}
-    fn open_backup_key(&mut self,purpose:StoragePurpose,credential_key:&[u8;32],salt:&[u8;16],nonce:&[u8;12],aad:&[u8],ciphertext:&mut[u8],tag:&[u8;TAG_SIZE])->Result<(),BackupError>{open_in_place(&mut MockHmac(self.0),OpenRequest{parameters:KdfParameters::current(purpose,CredentialKind::Password),stretched_credential:credential_key,salt,nonce,authenticated_header:aad,tag},ciphertext).map_err(map_device_error)}
+struct MockHmac([u8; 32]);
+impl HardwareHmac for MockHmac {
+    fn hmac_sha256(&mut self, message: &[u8], output: &mut [u8; 32]) -> Result<(), DeviceBoundError> {
+        let mut h = Sha256::new();
+        h.update(self.0);
+        h.update(message);
+        *output = h.finalize().into();
+        Ok(())
+    }
 }
-fn map_device_error(e:DeviceBoundError)->BackupError{match e{DeviceBoundError::HardwareHmacUnavailable=>BackupError::DeviceKeyUnavailable,DeviceBoundError::EntropyUnavailable=>BackupError::EntropyUnavailable,DeviceBoundError::AuthenticationFailed=>BackupError::AuthenticationFailed,_=>BackupError::EncryptionFailed}}
+struct MockBackupDevice([u8; 32]);
+impl BackupDevice for MockBackupDevice {
+    fn seal_backup_key(
+        &mut self,
+        purpose: StoragePurpose,
+        credential_key: &[u8; 32],
+        salt: &[u8; 16],
+        nonce: &[u8; 12],
+        aad: &[u8],
+        ciphertext: &mut [u8],
+    ) -> Result<[u8; TAG_SIZE], BackupError> {
+        seal_in_place(
+            &mut MockHmac(self.0),
+            KdfParameters::current(purpose, CredentialKind::Password),
+            credential_key,
+            salt,
+            nonce,
+            aad,
+            ciphertext,
+        )
+        .map_err(map_device_error)
+    }
+    fn open_backup_key(
+        &mut self,
+        purpose: StoragePurpose,
+        credential_key: &[u8; 32],
+        salt: &[u8; 16],
+        nonce: &[u8; 12],
+        aad: &[u8],
+        ciphertext: &mut [u8],
+        tag: &[u8; TAG_SIZE],
+    ) -> Result<(), BackupError> {
+        open_in_place(
+            &mut MockHmac(self.0),
+            OpenRequest {
+                parameters: KdfParameters::current(purpose, CredentialKind::Password),
+                stretched_credential: credential_key,
+                salt,
+                nonce,
+                authenticated_header: aad,
+                tag,
+            },
+            ciphertext,
+        )
+        .map_err(map_device_error)
+    }
+}
+fn map_device_error(e: DeviceBoundError) -> BackupError {
+    match e {
+        DeviceBoundError::HardwareHmacUnavailable => BackupError::DeviceKeyUnavailable,
+        DeviceBoundError::EntropyUnavailable => BackupError::EntropyUnavailable,
+        DeviceBoundError::AuthenticationFailed => BackupError::AuthenticationFailed,
+        _ => BackupError::EncryptionFailed,
+    }
+}
 
 pub fn run_tests() -> (u32, u32) {
     let tests = [
@@ -37,10 +93,7 @@ pub fn run_tests() -> (u32, u32) {
     (tests.iter().filter(|value| **value).count() as u32, tests.len() as u32)
 }
 
-fn make_container(
-    kind: BackupKind,
-    device: &mut MockBackupDevice,
-) -> Option<([u8; 256], usize)> {
+fn make_container(kind: BackupKind, device: &mut MockBackupDevice) -> Option<([u8; 256], usize)> {
     let mut out = [0u8; 256];
     let len = backup::seal_for_test(kind, PAYLOAD, PASSWORD, device, &SALT, &NONCE, &mut out).ok()?;
     Some((out, len))
@@ -51,19 +104,11 @@ fn current_container_roundtrip() -> bool {
     let Some((container, length)) = make_container(BackupKind::Seed, &mut device) else {
         return false;
     };
-    if &container[..8] != b"KASDB005"
-        || backup::backup_kind(&container[..length]) != Ok(BackupKind::Seed)
-    {
+    if &container[..8] != b"KASDB005" || backup::backup_kind(&container[..length]) != Ok(BackupKind::Seed) {
         return false;
     }
     let mut out = [0u8; 120];
-    backup::test_open(
-        BackupKind::Seed,
-        &container[..length],
-        PASSWORD,
-        &mut device,
-        &mut out,
-    ) == Ok(PAYLOAD.len())
+    backup::test_open(BackupKind::Seed, &container[..length], PASSWORD, &mut device, &mut out) == Ok(PAYLOAD.len())
         && &out[..PAYLOAD.len()] == PAYLOAD
 }
 
@@ -75,50 +120,21 @@ fn current_container_rejects_tamper_wrong_password_device_and_kdf() -> bool {
     let mut out = [0xA5; 120];
     let mut tampered = container;
     tampered[60] ^= 1;
-    if backup::test_open(
-        BackupKind::Seed,
-        &tampered[..length],
-        PASSWORD,
-        &mut device,
-        &mut out,
-    )
-    .is_ok()
-    {
+    if backup::test_open(BackupKind::Seed, &tampered[..length], PASSWORD, &mut device, &mut out).is_ok() {
         return false;
     }
     out.fill(0xA5);
-    if backup::test_open(
-        BackupKind::Seed,
-        &container[..length],
-        WRONG_PASSWORD,
-        &mut device,
-        &mut out,
-    )
-    .is_ok()
-    {
+    if backup::test_open(BackupKind::Seed, &container[..length], WRONG_PASSWORD, &mut device, &mut out).is_ok() {
         return false;
     }
     let mut other = MockBackupDevice(DEVICE_B);
-    if backup::test_open(
-        BackupKind::Seed,
-        &container[..length],
-        PASSWORD,
-        &mut other,
-        &mut out,
-    )
-    .is_ok()
-    {
+    if backup::test_open(BackupKind::Seed, &container[..length], PASSWORD, &mut other, &mut out).is_ok() {
         return false;
     }
     let mut bad_kdf = container;
     bad_kdf[16] = 0xff;
-    backup::test_open(
-        BackupKind::Seed,
-        &bad_kdf[..length],
-        PASSWORD,
-        &mut device,
-        &mut out,
-    ) == Err(BackupError::UnsupportedFormat)
+    backup::test_open(BackupKind::Seed, &bad_kdf[..length], PASSWORD, &mut device, &mut out)
+        == Err(BackupError::UnsupportedFormat)
 }
 
 fn mnemonic_vector() -> [u16; 24] {
@@ -299,8 +315,15 @@ fn stego_modes_separated() -> bool {
         .is_err()
 }
 
-#[test]fn current_device_bound_backup_uses_argon2_metadata(){assert!(current_container_roundtrip());assert!(current_container_rejects_tamper_wrong_password_device_and_kdf())}
-#[test]fn portable_jpeg_is_password_only_cross_device(){assert!(portable_roundtrip_cross_device_and_tamper())}
+#[test]
+fn current_device_bound_backup_uses_argon2_metadata() {
+    assert!(current_container_roundtrip());
+    assert!(current_container_rejects_tamper_wrong_password_device_and_kdf())
+}
+#[test]
+fn portable_jpeg_is_password_only_cross_device() {
+    assert!(portable_roundtrip_cross_device_and_tamper())
+}
 
 #[test]
 fn current_device_bound_backup_rejects_corruption_in_authenticated_metadata_salt_tag_and_lengths() {
@@ -311,9 +334,7 @@ fn current_device_bound_backup_rejects_corruption_in_authenticated_metadata_salt
     for offset in [16usize, 17, 18, 19, 20, 28, 44, 59, length - 1] {
         let mut tampered = container;
         tampered[offset] ^= 1;
-        assert!(backup::test_open(
-            BackupKind::Seed, &tampered[..length], PASSWORD, &mut device, &mut output,
-        ).is_err());
+        assert!(backup::test_open(BackupKind::Seed, &tampered[..length], PASSWORD, &mut device, &mut output,).is_err());
         assert!(output.iter().all(|byte| *byte == 0));
         output.fill(0xa5);
     }
@@ -374,7 +395,8 @@ fn portable_jpeg_rejects_all_authenticated_header_tampering_and_clears_outputs()
             PASSWORD,
             &mut restored,
             &mut hint,
-        ).is_err());
+        )
+        .is_err());
         assert!(restored.iter().all(|word| *word == 0));
         assert!(hint.iter().all(|byte| *byte == 0));
     }

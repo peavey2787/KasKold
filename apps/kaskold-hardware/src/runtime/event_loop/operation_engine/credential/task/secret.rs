@@ -11,10 +11,7 @@ impl SecretBuffer {
     pub(super) fn take_from_app(ad: &mut AppData) -> Result<Self, PersistError> {
         let len = ad.wallet.seeds.pp_input.len;
         let mut bytes = [0u8; MAX_PASSWORD_SIZE];
-        let result = match (
-            ad.wallet.seeds.pp_input.buf.get(..len),
-            bytes.get_mut(..len),
-        ) {
+        let result = match (ad.wallet.seeds.pp_input.buf.get(..len), bytes.get_mut(..len)) {
             (Some(source), Some(target)) => {
                 target.copy_from_slice(source);
                 Ok(Self { bytes, len })
@@ -40,5 +37,7 @@ impl SecretBuffer {
 }
 
 impl Drop for SecretBuffer {
-    fn drop(&mut self) { self.clear(); }
+    fn drop(&mut self) {
+        self.clear();
+    }
 }

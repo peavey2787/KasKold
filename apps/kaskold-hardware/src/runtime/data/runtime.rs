@@ -19,7 +19,6 @@ pub struct DestructiveHoldState {
     pub(crate) prompt_drawn: bool,
 }
 
-
 #[cfg(feature = "argon2-bench")]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Argon2BenchmarkRequest {
@@ -72,25 +71,19 @@ impl RuntimeState {
 }
 
 impl RuntimeState {
-    pub(crate) fn begin_pin_reauth(
-        &mut self,
-        return_to: crate::runtime::navigation::ContinuationRoute,
-    ) -> bool {
-        if self.reauth_return_to.is_some() { return false; }
+    pub(crate) fn begin_pin_reauth(&mut self, return_to: crate::runtime::navigation::ContinuationRoute) -> bool {
+        if self.reauth_return_to.is_some() {
+            return false;
+        }
         self.reauth_return_to = Some(return_to);
         true
     }
 
-    pub(crate) fn take_pin_reauth_return(
-        &mut self,
-    ) -> Option<crate::runtime::navigation::ContinuationRoute> {
+    pub(crate) fn take_pin_reauth_return(&mut self) -> Option<crate::runtime::navigation::ContinuationRoute> {
         self.reauth_return_to.take()
     }
     pub(crate) fn begin_wallet_activation_reauth(&mut self, slot: usize) -> bool {
-        let Ok(slot) = u8::try_from(slot) else { return false; };
-        if self.pending_wallet_activation.is_some() { return false; }
-        self.pending_wallet_activation = Some(slot);
-        true
+        queue_pending_slot(&mut self.pending_wallet_activation, slot)
     }
 
     pub(crate) fn take_pending_wallet_activation(&mut self) -> Option<usize> {
@@ -106,10 +99,7 @@ impl RuntimeState {
     }
 
     pub(crate) fn begin_wallet_protection_update(&mut self, slot: usize) -> bool {
-        let Ok(slot) = u8::try_from(slot) else { return false; };
-        if self.pending_wallet_protection_update.is_some() { return false; }
-        self.pending_wallet_protection_update = Some(slot);
-        true
+        queue_pending_slot(&mut self.pending_wallet_protection_update, slot)
     }
 
     pub(crate) fn pending_wallet_protection_update(&self) -> Option<usize> {
@@ -122,6 +112,17 @@ impl RuntimeState {
 
     pub(crate) fn cancel_pending_wallet_protection_update(&mut self) -> bool {
         self.pending_wallet_protection_update.take().is_some()
+    }
+}
+
+/// Queue `slot` as the one pending request; refuse while another is queued.
+fn queue_pending_slot(pending: &mut Option<u8>, slot: usize) -> bool {
+    match u8::try_from(slot) {
+        Ok(slot) if pending.is_none() => {
+            *pending = Some(slot);
+            true
+        }
+        _ => false,
     }
 }
 

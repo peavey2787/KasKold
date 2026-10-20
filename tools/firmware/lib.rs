@@ -47,11 +47,7 @@ pub fn sign_test_firmware_hash(
     private_key: &[u8; 32],
     firmware_hash: &[u8; 32],
 ) -> Result<[u8; 64], offline_signer::crypto::schnorr::SchnorrError> {
-    sign_digest_for_identity(
-        private_key,
-        firmware_hash,
-        &DEV_TEST_PUBKEY,
-    )
+    sign_digest_for_identity(private_key, firmware_hash, &DEV_TEST_PUBKEY)
 }
 
 pub fn sign_firmware_hash(

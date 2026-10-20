@@ -19,9 +19,7 @@ pub(super) fn process_multiframe(
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     liveness: &mut (impl FnMut() + ?Sized),
 ) {
-    let frame = match shared_signer::qr_frame::parse_frame(
-        &data[..length.min(data.len())],
-    ) {
+    let frame = match shared_signer::qr_frame::parse_frame(&data[..length.min(data.len())]) {
         Ok(frame) => frame,
         Err(_) => return,
     };
@@ -75,18 +73,8 @@ pub(super) fn process_multiframe(
     multiframe.received[frame_index] = true;
     sound::qr_found();
 
-    let received_count = multiframe.received[..total]
-        .iter()
-        .filter(|received| **received)
-        .count();
-    log!(
-        "   → Frame {}/{} ({} bytes), {}/{}",
-        frame_index + 1,
-        total,
-        frame.fragment.len(),
-        received_count,
-        total,
-    );
+    let received_count = multiframe.received[..total].iter().filter(|received| **received).count();
+    log!("   → Frame {}/{} ({} bytes), {}/{}", frame_index + 1, total, frame.fragment.len(), received_count, total,);
     draw_mf_counter(boot_display, &multiframe.received, frame.total_frames);
 
     if !multiframe.received[..total].iter().all(|received| *received) {
@@ -115,15 +103,11 @@ fn process_complete_session(
     for index in 0..total {
         let slot = index * MF_SLOT_SIZE;
         let size = usize::from(multiframe.fragment_sizes[index]);
-        assembled[position..position + size]
-            .copy_from_slice(&multiframe.buffer()[slot..slot + size]);
+        assembled[position..position + size].copy_from_slice(&multiframe.buffer()[slot..slot + size]);
         position += size;
     }
     let expected_session = multiframe.session_id;
-    if !shared_signer::qr_frame::verify_session(
-        &assembled[..position],
-        &expected_session,
-    ) {
+    if !shared_signer::qr_frame::verify_session(&assembled[..position], &expected_session) {
         log!("   assembled QR session digest mismatch");
         sound::error();
         multiframe.reset();
@@ -143,11 +127,7 @@ fn process_complete_session(
 
 /// Draw one progress dot per expected frame, up to the 64-frame protocol maximum.
 #[inline(never)]
-fn draw_mf_counter(
-    boot_display: &mut display::BootDisplay<'_>,
-    received: &[bool; MF_MAX_FRAMES],
-    total: u8,
-) {
+fn draw_mf_counter(boot_display: &mut display::BootDisplay<'_>, received: &[bool; MF_MAX_FRAMES], total: u8) {
     use embedded_graphics::pixelcolor::Rgb565;
     use embedded_graphics::prelude::*;
     use embedded_graphics::primitives::{PrimitiveStyle, Rectangle};
@@ -163,13 +143,10 @@ fn draw_mf_counter(
         return;
     }
 
-    Rectangle::new(
-        embedded_graphics::geometry::Point::new(0, 221),
-        embedded_graphics::geometry::Size::new(320, 19),
-    )
-    .into_styled(PrimitiveStyle::with_fill(Rgb565::BLACK))
-    .draw(&mut boot_display.display)
-    .ok();
+    Rectangle::new(embedded_graphics::geometry::Point::new(0, 221), embedded_graphics::geometry::Size::new(320, 19))
+        .into_styled(PrimitiveStyle::with_fill(Rgb565::BLACK))
+        .draw(&mut boot_display.display)
+        .ok();
 
     draw_mf_row(
         boot_display,
@@ -181,15 +158,7 @@ fn draw_mf_counter(
         GAP,
     );
     if total_clamped > DOTS_PER_ROW {
-        draw_mf_row(
-            boot_display,
-            received,
-            DOTS_PER_ROW,
-            total_clamped - DOTS_PER_ROW,
-            SECOND_Y,
-            DOT_SIZE,
-            GAP,
-        );
+        draw_mf_row(boot_display, received, DOTS_PER_ROW, total_clamped - DOTS_PER_ROW, SECOND_Y, DOT_SIZE, GAP);
     }
 }
 
@@ -217,13 +186,10 @@ fn draw_mf_row(
         let index = start + offset;
         let x = x_start + offset as i32 * (dot_size as i32 + gap);
         let color = if received[index] { teal } else { pending };
-        Circle::new(
-            embedded_graphics::geometry::Point::new(x, y),
-            dot_size,
-        )
-        .into_styled(PrimitiveStyle::with_fill(color))
-        .draw(&mut boot_display.display)
-        .ok();
+        Circle::new(embedded_graphics::geometry::Point::new(x, y), dot_size)
+            .into_styled(PrimitiveStyle::with_fill(color))
+            .draw(&mut boot_display.display)
+            .ok();
     }
 }
 

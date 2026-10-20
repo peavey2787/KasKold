@@ -2,25 +2,22 @@
 // Settings controller façade; subsystem handlers live in focused modules.
 
 use crate::{
-    runtime::interactions::TouchInput,
-    hw::display as hw_display,
+    hw::display as hw_display, hw::touch, runtime::data::AppData, runtime::interactions::TouchInput,
     services::storage_device,
-    hw::touch,
-    runtime::data::AppData,
 };
 
-mod menu;
-mod display;
-mod scalar;
 pub(crate) mod advanced;
 #[cfg(feature = "m5stack")]
 mod audio;
+mod display;
+mod menu;
+mod scalar;
 mod storage;
 
-use menu::handle_settings_menu;
-use display::handle_display_settings;
 #[cfg(feature = "m5stack")]
 use audio::handle_audio_settings;
+use display::handle_display_settings;
+use menu::handle_settings_menu;
 use storage::handle_sd_card_settings;
 
 pub struct SettingsTouchContext<'ctx, 'display, 'hal> {
@@ -44,27 +41,22 @@ pub fn handle_settings_menu_navigation(
     if ad.navigation.app.state != crate::runtime::input::AppState::SettingsMenu {
         return None;
     }
-    Some(handle_settings_menu(
-        ad, list_zones, page_up_zone, page_down_zone,
-        input.x, input.y, input.is_back,
-    ))
+    Some(handle_settings_menu(ad, list_zones, page_up_zone, page_down_zone, input.x, input.y, input.is_back))
 }
-
 
 #[cfg(feature = "m5stack")]
 /// Route Display Settings without borrowing display/I2C/SD/camera resources.
 pub fn handle_display_settings_navigation(ad: &mut AppData, input: TouchInput) -> Option<bool> {
-    if ad.navigation.app.state != crate::runtime::input::AppState::DisplaySettings { return None; }
+    if ad.navigation.app.state != crate::runtime::input::AppState::DisplaySettings {
+        return None;
+    }
     Some(handle_display_settings(ad, input.x, input.y, input.is_back))
 }
 
 #[cfg(feature = "m5stack")]
 /// Route Audio Settings without borrowing board hardware. Volume changes are
 /// pure AppData/atomic state changes; the shared frame stage redraws the screen.
-pub fn handle_audio_settings_navigation(
-    ad: &mut AppData,
-    input: TouchInput,
-) -> Option<bool> {
+pub fn handle_audio_settings_navigation(ad: &mut AppData, input: TouchInput) -> Option<bool> {
     if ad.navigation.app.state != crate::runtime::input::AppState::AudioSettings {
         return None;
     }
@@ -73,12 +65,13 @@ pub fn handle_audio_settings_navigation(
 
 /// Route About without borrowing board hardware.
 pub fn handle_about_navigation(ad: &mut AppData, input: TouchInput) -> Option<bool> {
-    if ad.navigation.app.state != crate::runtime::input::AppState::About { return None; }
+    if ad.navigation.app.state != crate::runtime::input::AppState::About {
+        return None;
+    }
     let _ = input;
     crate::runtime::effects::back(ad);
     Some(true)
 }
-
 
 /// Pure Advanced navigation/editing pre-dispatch.
 pub fn handle_advanced_navigation(ad: &mut AppData, input: TouchInput) -> Option<bool> {
@@ -104,22 +97,15 @@ pub fn handle_sd_settings_navigation(ad: &mut AppData, input: TouchInput) -> Opt
 /// Handle settings screens that genuinely own board hardware.
 #[inline(never)]
 pub fn handle_settings_touch(context: SettingsTouchContext<'_, '_, '_>) -> Option<bool> {
-    let SettingsTouchContext {
-        ad,
-        boot_display,
-        delay,
-        i2c,
-        sd_card_type,
-        input,
-    } = context;
+    let SettingsTouchContext { ad, boot_display, delay, i2c, sd_card_type, input } = context;
     let TouchInput { x, y, is_back } = input;
     let needs_redraw = match ad.navigation.app.state {
-        crate::runtime::input::AppState::SdCardSettings => handle_sd_card_settings(
-            ad, boot_display, delay, i2c, sd_card_type, x, y, is_back,
-        ),
-        crate::runtime::input::AppState::SdCardUnlockPassword => storage::handle_unlock_password(
-            ad, boot_display, delay, i2c, x, y, is_back,
-        ),
+        crate::runtime::input::AppState::SdCardSettings => {
+            handle_sd_card_settings(ad, boot_display, delay, i2c, sd_card_type, x, y, is_back)
+        }
+        crate::runtime::input::AppState::SdCardUnlockPassword => {
+            storage::handle_unlock_password(ad, boot_display, delay, i2c, x, y, is_back)
+        }
         _ => return None,
     };
     Some(needs_redraw)

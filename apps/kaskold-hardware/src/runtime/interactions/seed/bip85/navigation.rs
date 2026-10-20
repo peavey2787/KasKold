@@ -7,8 +7,8 @@ pub(super) fn advance_word(ad: &mut AppData, word_idx: u8, word_count: u8, is_ba
         crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SeedTool);
         return;
     }
-    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(Bip85ShowWord {
-        word_idx: word_idx + 1,
-        word_count,
-    }));
+    crate::runtime::effects::route(
+        ad,
+        crate::runtime::navigation::route!(Bip85ShowWord { word_idx: word_idx + 1, word_count }),
+    );
 }

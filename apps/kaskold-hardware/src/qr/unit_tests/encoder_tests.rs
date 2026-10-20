@@ -24,10 +24,7 @@ pub fn run_tests() -> (u32, u32) {
         // gf_mul(2, 2) = 4 (no reduction)
         // gf_mul(0, anything) = 0
         // gf_mul(1, x) = x
-        let ok = gf_mul(0, 42) == 0
-            && gf_mul(1, 42) == 42
-            && gf_mul(2, 2) == 4
-            && gf_mul(2, 128) != 0; // should trigger reduction
+        let ok = gf_mul(0, 42) == 0 && gf_mul(1, 42) == 42 && gf_mul(2, 2) == 4 && gf_mul(2, 128) != 0; // should trigger reduction
         if ok {
             passed += 1;
         }
@@ -57,7 +54,7 @@ pub fn run_tests() -> (u32, u32) {
         data[3] = b'N';
         data[4] = 0x01; // version
         data[5] = 0x01; // 1 signature
-        // Fill rest with test pattern
+                        // Fill rest with test pattern
         for i in 6..72 {
             data[i] = (i & 0xFF) as u8;
         }

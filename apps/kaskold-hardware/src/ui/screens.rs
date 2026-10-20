@@ -14,29 +14,24 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 // ui/screens.rs — Stable screen-rendering module root.
 //
 // Screen implementations are grouped by responsibility under ui/screens/.
 // BootDisplay method names and signatures remain unchanged for callers.
 
+pub(super) use crate::hw::display::BootDisplay;
+pub(super) use crate::hw::sound;
+pub(super) use crate::ui::display::*;
 pub(super) use embedded_graphics::{
-    prelude::*,
-    pixelcolor::Rgb565,
-    primitives::{
-        Circle, CornerRadii, Line, PrimitiveStyle, Rectangle, RoundedRectangle, Triangle,
-    },
     image::Image,
+    pixelcolor::Rgb565,
+    prelude::*,
+    primitives::{Circle, CornerRadii, Line, PrimitiveStyle, Rectangle, RoundedRectangle, Triangle},
 };
 pub(super) use embedded_iconoir::icons::size24px;
-pub(super) use crate::hw::display::BootDisplay;
-pub(super) use crate::ui::display::*;
-pub(super) use crate::hw::sound;
 
 mod components;
-pub(crate) use components::qr_brightness::{
-    QR_BRIGHTNESS_MINUS_ZONE, QR_BRIGHTNESS_PLUS_ZONE,
-};
+pub(crate) use components::qr_brightness::{QR_BRIGHTNESS_MINUS_ZONE, QR_BRIGHTNESS_PLUS_ZONE};
 pub(crate) mod device;
 mod dialogs;
 mod navigation;

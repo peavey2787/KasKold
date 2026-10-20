@@ -2,14 +2,14 @@
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
 // License: GPL-3.0
 
-use super::{AppData, display, stego};
+use super::{display, stego, AppData};
+use crate::runtime::input::AppState;
 use crate::runtime::interactions::{
     feedback::{show_rejection, ErrorSound},
-    keyboard::{KeyboardAction, handle_passphrase_keyboard},
+    keyboard::{handle_passphrase_keyboard, KeyboardAction},
 };
-use crate::runtime::input::AppState;
-use shared_signer::bytes::zeroize_bytes;
 use crate::services::credential_policy::{confirmation_digest, confirmation_matches, CredentialKind};
+use shared_signer::bytes::zeroize_bytes;
 
 pub(super) fn handle(
     ad: &mut AppData,
@@ -23,9 +23,7 @@ pub(super) fn handle(
         AppState::StegoJpegPpAsk => handle_prompt(ad, x, y, is_back),
         AppState::StegoJpegPpInfo => handle_hint_choice(ad, x, y, is_back),
         AppState::StegoJpegPpEntry => handle_custom_hint(ad, boot_display, x, y, is_back),
-        AppState::StegoPortablePassword => {
-            handle_portable_password(ad, boot_display, delay, x, y, is_back, false)
-        }
+        AppState::StegoPortablePassword => handle_portable_password(ad, boot_display, delay, x, y, is_back, false),
         AppState::StegoPortablePasswordConfirm => {
             handle_portable_password(ad, boot_display, delay, x, y, is_back, true)
         }
@@ -39,7 +37,9 @@ fn handle_prompt(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoJpegDescPreview));
         return true;
     }
-    if !(175..=215).contains(&y) { return false; }
+    if !(175..=215).contains(&y) {
+        return false;
+    }
     if (20..=150).contains(&x) {
         clear_hint_state(ad);
         advance_after_hint(ad);
@@ -57,7 +57,9 @@ fn handle_hint_choice(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoJpegPpAsk));
         return true;
     }
-    let Some(row) = hint_row(x, y) else { return false; };
+    let Some(row) = hint_row(x, y) else {
+        return false;
+    };
     if row == 3 {
         ad.wallet.seeds.pp_input.reset();
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoJpegPpEntry));
@@ -72,7 +74,9 @@ fn handle_hint_choice(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
 }
 
 fn hint_row(x: u16, y: u16) -> Option<u8> {
-    if !(15..=305).contains(&x) { return None; }
+    if !(15..=305).contains(&x) {
+        return None;
+    }
     (0..4u8).find(|row| {
         let top = 68 + u16::from(*row) * 36;
         y >= top && y < top + 30
@@ -176,8 +180,7 @@ fn submit_portable_password(
 fn copy_custom_hint(ad: &mut AppData) {
     clear_hint_state(ad);
     let length = ad.wallet.seeds.pp_input.len.min(ad.stego.hint.buffer.len());
-    ad.stego.hint.buffer[..length]
-        .copy_from_slice(&ad.wallet.seeds.pp_input.buf[..length]);
+    ad.stego.hint.buffer[..length].copy_from_slice(&ad.wallet.seeds.pp_input.buf[..length]);
     ad.stego.hint.length = length;
     ad.wallet.seeds.pp_input.reset();
 }

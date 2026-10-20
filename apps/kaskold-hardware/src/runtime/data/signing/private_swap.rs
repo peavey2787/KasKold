@@ -105,12 +105,7 @@ impl PrivateSwapState {
         self.nonce_qr_shown = false;
     }
 
-    pub fn replace_pending(
-        &mut self,
-        key_id: [u8; 32],
-        pubkey: [u8; 32],
-        adaptor: [u8; 32],
-    ) {
+    pub fn replace_pending(&mut self, key_id: [u8; 32], pubkey: [u8; 32], adaptor: [u8; 32]) {
         self.pending_key_id = key_id;
         self.pending_pubkey = pubkey;
         self.pending_adaptor_point = adaptor;

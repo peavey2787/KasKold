@@ -7,9 +7,13 @@ pub(crate) struct UiRoute(AppState);
 
 impl UiRoute {
     #[doc(hidden)]
-    pub(crate) const fn new(state: AppState) -> Self { Self(state) }
+    pub(crate) const fn new(state: AppState) -> Self {
+        Self(state)
+    }
 
-    pub(super) const fn state(self) -> AppState { self.0 }
+    pub(super) const fn state(self) -> AppState {
+        self.0
+    }
 }
 
 /// Opaque data-driven continuation route. Domain state may store this token,
@@ -20,8 +24,12 @@ pub(crate) struct ContinuationRoute(AppState);
 
 impl ContinuationRoute {
     #[doc(hidden)]
-    pub(crate) const fn new(state: AppState) -> Self { Self(state) }
-    pub(super) const fn state(self) -> AppState { self.0 }
+    pub(crate) const fn new(state: AppState) -> Self {
+        Self(state)
+    }
+    pub(super) const fn state(self) -> AppState {
+        self.0
+    }
 }
 
 /// User/controller events accepted by the navigation reducer.

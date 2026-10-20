@@ -16,9 +16,7 @@ pub(crate) fn payload_limit(ad: &AppData) -> usize {
 }
 
 pub(crate) fn is_single_frame(ad: &AppData) -> bool {
-    !ad.qr.presentation.large
-        && ad.qr.presentation.mode == 0
-        && ad.qr.outgoing.length <= SINGLE_FRAME_LIMIT
+    !ad.qr.presentation.large && ad.qr.presentation.mode == 0 && ad.qr.outgoing.length <= SINGLE_FRAME_LIMIT
 }
 
 /// Prepare multi-frame QR state before rendering so UI code never proposes a
@@ -33,7 +31,9 @@ pub(crate) fn prepare_navigation(ad: &mut AppData) {
         return;
     }
     let frame_count = ad.qr.outgoing.length.div_ceil(payload_limit(ad));
-    if frame_count > shared_signer::qr_frame::MAX_FRAMES { return; }
+    if frame_count > shared_signer::qr_frame::MAX_FRAMES {
+        return;
+    }
     ad.qr.outgoing.frame = 0;
     ad.qr.outgoing.frame_count = frame_count as u8;
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ShowQrModeChoice));
@@ -63,36 +63,22 @@ pub(crate) fn present_anti_klepto_final(ad: &mut AppData) -> bool {
     ad.qr.outgoing.manual_frames = false;
 
     if is_single_frame(ad) {
-        return crate::runtime::effects::route(
-            ad,
-            crate::runtime::navigation::route!(ShowQR),
-        );
+        return crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ShowQR));
     }
 
     let frame_count = ad.qr.outgoing.length.div_ceil(payload_limit(ad));
     if frame_count > shared_signer::qr_frame::MAX_FRAMES {
         // Preserve the existing renderer-owned oversized-payload error surface.
-        return crate::runtime::effects::route(
-            ad,
-            crate::runtime::navigation::route!(ShowQR),
-        );
+        return crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ShowQR));
     }
     ad.qr.outgoing.frame_count = frame_count as u8;
-    crate::runtime::effects::route(
-        ad,
-        crate::runtime::navigation::route!(ShowQrModeChoice),
-    )
+    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ShowQrModeChoice))
 }
-
 
 /// Queue a controller-produced payload for the normal event-loop-owned QR
 /// presentation flow. This replaces modal controller loops that used to own
 /// touch transport while cycling QR frames.
-pub(crate) fn present_payload(
-    ad: &mut AppData,
-    payload: &[u8],
-    close_state: ContinuationRoute,
-) -> Result<(), ()> {
+pub(crate) fn present_payload(ad: &mut AppData, payload: &[u8], close_state: ContinuationRoute) -> Result<(), ()> {
     ad.qr.outgoing.ensure_len(payload.len())?;
     ad.qr.outgoing.clear();
     ad.qr.outgoing.buffer[..payload.len()].copy_from_slice(payload);

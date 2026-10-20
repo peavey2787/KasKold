@@ -1,42 +1,44 @@
 //! Recovery-word acknowledgement stage.
 
 use super::{
-    ACK_BUTTON_X, ACK_BUTTON_Y, AppData, BootDisplay, DeviceStorageIntent, ErrorSound,
-    TouchInput, cancel_seed_onboarding, show_rejection,
+    cancel_seed_onboarding, show_rejection, AppData, BootDisplay, DeviceStorageIntent, ErrorSound, TouchInput,
+    ACK_BUTTON_X, ACK_BUTTON_Y,
 };
 
 fn onboarding_mnemonic_ready(ad: &AppData) -> bool {
     ad.wallet.seeds.seed_loaded
-        && ad.wallet.seeds.seed_mgr.active_slot()
-            .and_then(|slot| slot.mnemonic_word_count())
-            .is_some()
+        && ad.wallet.seeds.seed_mgr.active_slot().and_then(|slot| slot.mnemonic_word_count()).is_some()
 }
 
 pub(super) fn handle_recovery_acknowledgement(
-    input: TouchInput, ad: &mut AppData, display: &mut BootDisplay<'_>,
+    input: TouchInput,
+    ad: &mut AppData,
+    display: &mut BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
 ) -> Option<bool> {
     let intent = ad.storage.persistence.device_storage_intent;
     if input.is_back {
         ad.storage.persistence.recovery_words_acknowledged = false;
         if ad.wallet.seeds.has_pending_add_wallet() {
-            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedBackup {
-                word_idx: ad.wallet.seeds.word_count.saturating_sub(1),
-            }));
+            crate::runtime::effects::route(
+                ad,
+                crate::runtime::navigation::route!(SeedBackup {
+                    word_idx: ad.wallet.seeds.word_count.saturating_sub(1),
+                }),
+            );
             return Some(true);
         }
         let route = recovery_ack_back_route(ad, intent);
         crate::runtime::effects::route(ad, route);
         return Some(true);
     }
-    if !ACK_BUTTON_X.contains(&input.x) || !ACK_BUTTON_Y.contains(&input.y) { return None; }
+    if !ACK_BUTTON_X.contains(&input.x) || !ACK_BUTTON_Y.contains(&input.y) {
+        return None;
+    }
 
     if ad.wallet.seeds.has_pending_add_wallet() {
         let valid_staged = matches!(ad.wallet.seeds.word_count, 12 | 24)
-            && crate::wallet::mnemonic::validate(
-                &ad.wallet.seeds.mnemonic_indices,
-                ad.wallet.seeds.word_count,
-            );
+            && crate::wallet::mnemonic::validate(&ad.wallet.seeds.mnemonic_indices, ad.wallet.seeds.word_count);
         if !valid_staged {
             ad.wallet.seeds.clear_pending_add_wallet();
             show_rejection(display, delay, "Recovery words unavailable", 1700, ErrorSound::Silent);
@@ -104,11 +106,7 @@ fn complete_recovery_ack(ad: &mut AppData, intent: DeviceStorageIntent) {
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedSdStorageWarning));
         }
         DeviceStorageIntent::None => {
-            let _ = crate::runtime::effects::route(
-                ad,
-                crate::runtime::navigation::route!(StorageModeChoice),
-            );
+            let _ = crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageModeChoice));
         }
     }
 }
-

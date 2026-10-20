@@ -26,11 +26,9 @@ pub(super) static GC0308_DEFAULTS: &[(u8, u8)] = &[
     // Espressif gc0308_sensor_default_regs table
     // from espressif/esp32-camera (sensors/private_include/gc0308_settings.h)
     // Uses subsample mode (Page 1 regs 0x53-0x59) for clean QVGA output.
-
     (0xfe, 0x80), // Soft reset
     // (delay 20ms inserted by code)
     (0xfe, 0x00), // Select page 0
-
     // === Espressif default register table — Page 0 ===
     (0xec, 0x20),
     (0x05, 0x00), // ROW_START_H
@@ -81,7 +79,6 @@ pub(super) static GC0308_DEFAULTS: &[(u8, u8)] = &[
     (0x3d, 0x00), // G2 offset
     (0x3e, 0x00),
     (0x3f, 0x00),
-
     // Pre-gain
     (0x50, 0x14), // GLOBAL_GAIN
     (0x52, 0x41),
@@ -89,12 +86,10 @@ pub(super) static GC0308_DEFAULTS: &[(u8, u8)] = &[
     (0x54, 0x80),
     (0x55, 0x80),
     (0x56, 0x80),
-
     // AWB gains
     (0x5a, 0x56), // AWB_R_GAIN
     (0x5b, 0x40), // AWB_G_GAIN
     (0x5c, 0x4a), // AWB_B_GAIN
-
     // AEC weights
     (0x8b, 0x20),
     (0x8c, 0x20),
@@ -104,12 +99,10 @@ pub(super) static GC0308_DEFAULTS: &[(u8, u8)] = &[
     (0x90, 0x14),
     (0x91, 0x3c),
     (0x92, 0x50),
-
     // LSC (Lens Shading)
     (0x5d, 0x12),
     (0x5e, 0x1a),
     (0x5f, 0x24),
-
     // DNDD (Denoise)
     (0x60, 0x07),
     (0x61, 0x15),
@@ -118,7 +111,6 @@ pub(super) static GC0308_DEFAULTS: &[(u8, u8)] = &[
     (0x66, 0xe8),
     (0x67, 0x86),
     (0x68, 0x82),
-
     // ASDE
     (0x69, 0x18),
     (0x6a, 0x0f),
@@ -129,7 +121,6 @@ pub(super) static GC0308_DEFAULTS: &[(u8, u8)] = &[
     (0x6f, 0x38),
     (0x70, 0x15),
     (0x71, 0x33),
-
     // INTPEE (Edge Enhancement) — boosted for sharper QR/BB edges
     (0x72, 0xfe), // stronger edge enhance (was 0xdc)
     (0x73, 0x00),
@@ -142,7 +133,6 @@ pub(super) static GC0308_DEFAULTS: &[(u8, u8)] = &[
     (0x7a, 0x81),
     (0x7b, 0x22),
     (0x7c, 0xff),
-
     // Gamma / Color matrix
     (0x93, 0x48),
     (0x94, 0x02),
@@ -150,17 +140,14 @@ pub(super) static GC0308_DEFAULTS: &[(u8, u8)] = &[
     (0x96, 0xe0),
     (0x97, 0x40),
     (0x98, 0xf0),
-
     // Saturation + Contrast
     (0xb1, 0x40), // Cb saturation
     (0xb2, 0x40), // Cr saturation
     (0xb3, 0x50), // Contrast 1.25x (was 0x40=1.0x) — wider QR black/white gap
     (0xb6, 0xe0),
-
     // More ISP
     (0xbd, 0x38),
     (0xbe, 0x36),
-
     // AEC registers
     (0xd0, 0xCB),
     (0xd1, 0x10),
@@ -178,7 +165,6 @@ pub(super) static GC0308_DEFAULTS: &[(u8, u8)] = &[
     (0xee, 0xa0),
     (0xef, 0x40),
     (0x80, 0x03),
-
     // Gamma curve
     (0x9F, 0x10),
     (0xA0, 0x20),
@@ -197,7 +183,6 @@ pub(super) static GC0308_DEFAULTS: &[(u8, u8)] = &[
     (0xAD, 0xF8),
     (0xAE, 0xFD),
     (0xAF, 0xFF),
-
     // Second gamma/Y curve
     (0xc0, 0x00),
     (0xc1, 0x10),
@@ -212,7 +197,6 @@ pub(super) static GC0308_DEFAULTS: &[(u8, u8)] = &[
     (0xca, 0xCB),
     (0xcb, 0xE6),
     (0xcc, 0xFF),
-
     // Clock / PLL
     (0xf0, 0x02),
     (0xf1, 0x01),
@@ -222,7 +206,6 @@ pub(super) static GC0308_DEFAULTS: &[(u8, u8)] = &[
     (0xf8, 0x02),
     (0xf9, 0x9f),
     (0xfa, 0x78),
-
     // === Page 1: AWB / AEC measure window / misc ===
     (0xfe, 0x01),
     (0x00, 0xf5),
@@ -285,7 +268,6 @@ pub(super) static GC0308_DEFAULTS: &[(u8, u8)] = &[
     (0x64, 0xd3),
     (0x65, 0xd3),
     (0x66, 0x60),
-
     // Back to Page 0 for frame timing
     (0xfe, 0x00),
     (0x01, 0x32), // HBLANK
@@ -316,7 +298,6 @@ pub(super) static GC0308_DEFAULTS: &[(u8, u8)] = &[
 pub(super) static GC0308_SUBSAMPLE_QVGA: &[(u8, u8)] = &[
     // Ensure Page 0
     (0xfe, 0x00),
-
     // Window covers full sensor (subsample block reduces output)
     (0x05, 0x00), // ROW_START_H = 0
     (0x06, 0x00), // ROW_START_L = 0
@@ -326,20 +307,16 @@ pub(super) static GC0308_SUBSAMPLE_QVGA: &[(u8, u8)] = &[
     (0x0a, 0xe8), // WIN_HEIGHT_L
     (0x0b, 0x02), // WIN_WIDTH_H   (648 = 0x0288)
     (0x0c, 0x88), // WIN_WIDTH_L
-
     // Disable crop mode — subsample handles size reduction
     (0x46, 0x00),
-
     // Switch to Page 1 for subsample registers
     (0xfe, 0x01),
-
     // Subsample mode: 1/2 ratio in both H and V
     (0x54, 0x22), // SUBSAMPLE_MODE
     (0x56, 0x00), // Y subsample config 0
     (0x57, 0x00), // Y subsample config 1
     (0x58, 0x00), // UV subsample config 0
     (0x59, 0x00), // UV subsample config 1
-
     // Back to Page 0
     (0xfe, 0x00),
 ];

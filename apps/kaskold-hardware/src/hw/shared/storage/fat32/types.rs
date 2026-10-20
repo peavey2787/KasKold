@@ -1,4 +1,3 @@
-
 // KasKold — Air-gapped offline signing device for Kaspa
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
 //
@@ -12,9 +11,9 @@
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SdCardType {
-    SdV1 = 1,    // SD v1 (byte addressing)
-    SdV2Sc = 2,  // SD v2 Standard Capacity (byte addressing)
-    SdV2Hc = 3,  // SD v2 High/Extended Capacity (block addressing)
+    SdV1 = 1,   // SD v1 (byte addressing)
+    SdV2Sc = 2, // SD v2 Standard Capacity (byte addressing)
+    SdV2Hc = 3, // SD v2 High/Extended Capacity (block addressing)
 }
 
 pub struct Fat32Info {

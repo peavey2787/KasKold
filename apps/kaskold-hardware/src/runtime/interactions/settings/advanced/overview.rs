@@ -1,14 +1,14 @@
 use crate::{
+    hw::display::BootDisplay,
+    runtime::data::{AppData, DeviceStorageIntent},
     runtime::interactions::{
         feedback::{show_rejection, ErrorSound},
         TouchInput,
     },
-    hw::display::BootDisplay,
-    runtime::data::{AppData, DeviceStorageIntent},
     services::persistent_wallet::{PersistError, PersistentWallet},
     ui::screens::device::advanced_security::{
-        ADV_CARD_X, DURESS_Y, RTC_Y, SD_STORAGE_Y, TIME_LOCK_Y, WARNING_BUTTON_Y, WARNING_CANCEL_X,
-        WARNING_ENABLE_X, WEEKLY_Y,
+        ADV_CARD_X, DURESS_Y, RTC_Y, SD_STORAGE_Y, TIME_LOCK_Y, WARNING_BUTTON_Y, WARNING_CANCEL_X, WARNING_ENABLE_X,
+        WEEKLY_Y,
     },
 };
 
@@ -38,13 +38,7 @@ pub(super) fn handle_overview(
         return Some(true);
     }
     if !ad.storage.persistence.advanced.policy_integrity.is_valid() {
-        show_rejection(
-            display,
-            delay,
-            PersistError::PolicyIntegrity.message(),
-            2000,
-            ErrorSound::Beep,
-        );
+        show_rejection(display, delay, PersistError::PolicyIntegrity.message(), 2000, ErrorSound::Beep);
         return Some(true);
     }
 
@@ -65,13 +59,7 @@ pub(super) fn handle_overview(
     }
     if SD_STORAGE_Y.contains(&input.y) {
         if ad.storage.persistence.advanced.outer_device_only {
-            show_rejection(
-                display,
-                delay,
-                "SD storage unavailable with per-wallet protection",
-                2200,
-                ErrorSound::Beep,
-            );
+            show_rejection(display, delay, "SD storage unavailable with per-wallet protection", 2200, ErrorSound::Beep);
             return Some(true);
         }
         if !ad.storage.persistence.advanced.persistence_backend.is_sd() {
@@ -96,9 +84,7 @@ pub(super) fn handle_sd_warning(
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
 ) -> Option<bool> {
-    if input.is_back
-        || (WARNING_BUTTON_Y.contains(&input.y) && WARNING_CANCEL_X.contains(&input.x))
-    {
+    if input.is_back || (WARNING_BUTTON_Y.contains(&input.y) && WARNING_CANCEL_X.contains(&input.x)) {
         ad.storage.persistence.recovery_words_acknowledged = false;
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedFeatures));
         return Some(true);
@@ -117,7 +103,7 @@ pub(super) fn handle_sd_warning(
         Ok(()) => {
             ad.storage.persistence.recovery_words_acknowledged = false;
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedFeatures));
-        },
+        }
         Err(error) => {
             if persistence.is_sd_mode() {
                 crate::services::device_wipe::zeroize_volatile(ad);
@@ -129,10 +115,12 @@ pub(super) fn handle_sd_warning(
     Some(true)
 }
 
-pub(super) fn handle_warning(input: TouchInput, ad: &mut AppData, next: crate::runtime::navigation::ContinuationRoute) -> Option<bool> {
-    if input.is_back
-        || (WARNING_BUTTON_Y.contains(&input.y) && WARNING_CANCEL_X.contains(&input.x))
-    {
+pub(super) fn handle_warning(
+    input: TouchInput,
+    ad: &mut AppData,
+    next: crate::runtime::navigation::ContinuationRoute,
+) -> Option<bool> {
+    if input.is_back || (WARNING_BUTTON_Y.contains(&input.y) && WARNING_CANCEL_X.contains(&input.x)) {
         ad.storage.persistence.advanced.clear_pending();
         ad.wallet.seeds.pp_input.reset();
         let _ = crate::runtime::effects::back(ad);
@@ -156,13 +144,7 @@ pub(super) fn handle_time_lock_card(
         if !ad.storage.persistence.advanced.policy.has_time_policy()
             && !ad.storage.persistence.advanced.rtc_verification.is_verified()
         {
-            show_rejection(
-                display,
-                delay,
-                "Set/verify hardware RTC first",
-                1900,
-                ErrorSound::Beep,
-            );
+            show_rejection(display, delay, "Set/verify hardware RTC first", 1900, ErrorSound::Beep);
         } else {
             ad.storage.persistence.advanced.clear_pending();
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedTimeLockWarning));
@@ -170,11 +152,7 @@ pub(super) fn handle_time_lock_card(
     }
 }
 
-pub(super) fn handle_weekly_card(
-    ad: &mut AppData,
-    display: &mut BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-) {
+pub(super) fn handle_weekly_card(ad: &mut AppData, display: &mut BootDisplay<'_>, delay: &mut esp_hal::delay::Delay) {
     #[cfg(feature = "m5stack")]
     if ad.storage.persistence.advanced.policy.weekly_enabled {
         display.draw_weekly_policy_readonly(
@@ -185,33 +163,17 @@ pub(super) fn handle_weekly_card(
     } else if !ad.storage.persistence.advanced.policy.has_time_policy()
         && !ad.storage.persistence.advanced.rtc_verification.is_verified()
     {
-        show_rejection(
-            display,
-            delay,
-            "Set/verify hardware RTC first",
-            1900,
-            ErrorSound::Beep,
-        );
+        show_rejection(display, delay, "Set/verify hardware RTC first", 1900, ErrorSound::Beep);
     } else {
         ad.storage.persistence.advanced.clear_pending();
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedWeeklyWarning));
     }
 }
 
-pub(super) fn handle_rtc_card(
-    ad: &mut AppData,
-    display: &mut BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-) {
+pub(super) fn handle_rtc_card(ad: &mut AppData, display: &mut BootDisplay<'_>, delay: &mut esp_hal::delay::Delay) {
     #[cfg(feature = "m5stack")]
     if ad.storage.persistence.advanced.policy.has_time_policy() {
-        show_rejection(
-            display,
-            delay,
-            "RTC is locked by permanent signing policy",
-            1900,
-            ErrorSound::Beep,
-        );
+        show_rejection(display, delay, "RTC is locked by permanent signing policy", 1900, ErrorSound::Beep);
     } else {
         ad.wallet.seeds.pp_input.reset();
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedRtcEntry));

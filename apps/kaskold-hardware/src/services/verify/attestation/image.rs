@@ -47,13 +47,10 @@ fn verify_appended_image_hash(image_end: u32) -> Result<(), AttestationError> {
 }
 
 fn verify_secure_boot_digest(image_end: u32) -> Result<[u8; 32], AttestationError> {
-    let signature_offset = layout::secure_boot_signature_offset(image_end)
-        .map_err(|_| AttestationError::ImageLayout)?;
-    let prefix = read_fixed::<{ layout::SECURE_BOOT_SIGNATURE_PREFIX_SIZE }>(
-        flash_address(signature_offset)?,
-    )?;
-    let expected = layout::parse_signature_digest(&prefix.0)
-        .map_err(|_| AttestationError::SecureBootDigestMissing)?;
+    let signature_offset =
+        layout::secure_boot_signature_offset(image_end).map_err(|_| AttestationError::ImageLayout)?;
+    let prefix = read_fixed::<{ layout::SECURE_BOOT_SIGNATURE_PREFIX_SIZE }>(flash_address(signature_offset)?)?;
+    let expected = layout::parse_signature_digest(&prefix.0).map_err(|_| AttestationError::SecureBootDigestMissing)?;
     let actual = hash_flash(APP_FLASH_OFFSET, signature_offset)?;
     if constant_time::eq(&actual, &expected) {
         Ok(actual)

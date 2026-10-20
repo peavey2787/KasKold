@@ -30,87 +30,42 @@ mod watch_only;
 pub(crate) use watch_only::prepare_multisig_kpub_qr;
 mod xprv;
 
-
 use crate::runtime::interactions::feedback::RedrawFlag;
 use crate::runtime::interactions::TouchInput;
 
 pub use context::ExportTouchContext;
 
-use context::{ExportMenuContext, ExportStorageContext};
-
-
 /// Handle touch events for export/display screens.
 #[inline(never)]
-pub fn handle_export_touch(context: ExportTouchContext<'_, '_, '_>) -> Option<bool> {
-    let ExportTouchContext {
-        ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones,
-        page_up_zone, page_down_zone, input,
-    } = context;
-    let TouchInput { x, y, is_back } = input;
-    if let Some(result) = seed_backup::handle(ad, is_back) {
+pub fn handle_export_touch(mut context: ExportTouchContext<'_, '_, '_>) -> Option<bool> {
+    let TouchInput { x, y, is_back } = context.input;
+    if let Some(result) = seed_backup::handle(context.ad, is_back) {
         return Some(result);
     }
-    if let Some(result) = address::handle(ad, boot_display, x, y, is_back) {
+    if let Some(result) = address::handle(context.ad, context.boot_display, x, y, is_back) {
         return Some(result);
     }
-    if let Some(result) = seed_qr::handle(ad, x, y, is_back) {
+    if let Some(result) = seed_qr::handle(context.ad, x, y, is_back) {
         return Some(result);
     }
-    if let Some(result) = kpub::handle(ad, delay, i2c, x, is_back) {
+    if let Some(result) = kpub::handle(context.ad, context.delay, context.i2c, x, is_back) {
         return Some(result);
     }
-    if let Some(result) = menus::root::handle(ExportMenuContext {
-        ad: &mut *ad,
-        boot_display: &mut *boot_display,
-        delay: &mut *delay,
-        list_zones,
-        page_up_zone,
-        page_down_zone,
-        input,
-    }) {
+    if let Some(result) = menus::root::handle(context.menu()) {
         return Some(result);
     }
-    if let Some(result) = menus::seed::handle(ExportMenuContext {
-        ad: &mut *ad,
-        boot_display: &mut *boot_display,
-        delay: &mut *delay,
-        list_zones,
-        page_up_zone,
-        page_down_zone,
-        input,
-    }) {
+    if let Some(result) = menus::seed::handle(context.menu()) {
         return Some(result);
     }
-    if let Some(result) = watch_only::handle(ExportStorageContext {
-        ad: &mut *ad,
-        boot_display: &mut *boot_display,
-        delay: &mut *delay,
-        liveness: &mut *liveness,
-        i2c: &mut *i2c,
-        sd_card_type,
-        list_zones,
-        page_up_zone,
-        page_down_zone,
-        input,
-    }) {
+    if let Some(result) = watch_only::handle(context.storage()) {
         return Some(result);
     }
-    if let Some(result) = menus::signing_keys::handle(ad, list_zones, x, y, is_back) {
+    if let Some(result) = menus::signing_keys::handle(context.ad, context.list_zones, x, y, is_back) {
         return Some(result);
     }
-    if let Some(result) = xprv::handle(ExportStorageContext {
-        ad: &mut *ad,
-        boot_display: &mut *boot_display,
-        delay: &mut *delay,
-        liveness: &mut *liveness,
-        i2c: &mut *i2c,
-        sd_card_type,
-        list_zones,
-        page_up_zone,
-        page_down_zone,
-        input,
-    }) {
+    if let Some(result) = xprv::handle(context.storage()) {
         return Some(result);
     }
+    let ExportTouchContext { ad, boot_display, delay, liveness, .. } = context;
     private_key::handle(ad, boot_display, delay, liveness, x, y, is_back)
 }

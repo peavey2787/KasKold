@@ -60,7 +60,11 @@ pub(crate) fn is_back_tap(x: u16, y: u16) -> bool {
 
 pub(crate) fn nav_header_x(centered_x: i32, width: i32) -> i32 {
     let shifted = centered_x.max(NAV_HEADER_CONTENT_LEFT);
-    if shifted.saturating_add(width) <= 320 { shifted } else { centered_x }
+    if shifted.saturating_add(width) <= 320 {
+        shifted
+    } else {
+        centered_x
+    }
 }
 
 #[cfg(feature = "m5stack")]
@@ -68,26 +72,52 @@ pub(crate) fn audio_toggle_visible(state: crate::runtime::input::AppState) -> bo
     use crate::runtime::input::AppState;
     if matches!(
         state,
-        AppState::StorageModeChoice | AppState::AddWalletChoice | AppState::StorageSeedSourceChoice
-            | AppState::StorageSeedDiceChoice | AppState::StorageSeedDiceCountChoice
-            | AppState::StorageSeedTouchChoice | AppState::StorageSeedWordCountChoice { .. }
-            | AppState::SeedEntropyUnavailable { .. } | AppState::AdvancedRestoreMenu
-            | AppState::StorageRecoveryAcknowledgement | AppState::StorageFinalizeChoice
-            | AppState::PassphraseChoice | AppState::SeedBackup { .. }
+        AppState::StorageModeChoice
+            | AppState::AddWalletChoice
+            | AppState::StorageSeedSourceChoice
+            | AppState::StorageSeedDiceChoice
+            | AppState::StorageSeedDiceCountChoice
+            | AppState::StorageSeedTouchChoice
+            | AppState::StorageSeedWordCountChoice { .. }
+            | AppState::SeedEntropyUnavailable { .. }
+            | AppState::AdvancedRestoreMenu
+            | AppState::StorageRecoveryAcknowledgement
+            | AppState::StorageFinalizeChoice
+            | AppState::PassphraseChoice
+            | AppState::SeedBackup { .. }
             | AppState::StorageCredentialType
-            | AppState::MainMenu | AppState::SeedsMenu | AppState::SeedList
-            | AppState::ConfirmDeleteSeed | AppState::WalletBackupMethodsMenu
-            | AppState::WalletDetails | AppState::SeedToolsMenu
-            | AppState::ImportExportChoice | AppState::ImportMenu | AppState::SingleSigMenu
-            | AppState::MultisigMenu | AppState::SettingsMenu
-            | AppState::AdvancedMenu | AppState::FirmwareUpdateReady | AppState::FactoryResetWarning
-            | AppState::FactoryResetConfirm | AppState::WalletAdvancedMenu
+            | AppState::MainMenu
+            | AppState::SeedsMenu
+            | AppState::SeedList
+            | AppState::ConfirmDeleteSeed
+            | AppState::WalletBackupMethodsMenu
+            | AppState::WalletDetails
+            | AppState::SeedToolsMenu
+            | AppState::ImportExportChoice
+            | AppState::ImportMenu
+            | AppState::SingleSigMenu
+            | AppState::MultisigMenu
+            | AppState::SettingsMenu
+            | AppState::AdvancedMenu
+            | AppState::FirmwareUpdateReady
+            | AppState::FactoryResetWarning
+            | AppState::FactoryResetConfirm
+            | AppState::WalletAdvancedMenu
             | AppState::BackupRecoveryMenu
-            | AppState::DisplaySettings | AppState::AudioSettings | AppState::SdCardSettings | AppState::SdCardUnlockPassword
-            | AppState::AdvancedFeatures | AppState::AdvancedDuressWarning
-            | AppState::AdvancedSdStorageWarning | AppState::About | AppState::SeedBackupMenu
-            | AppState::WatchOnlyMenu | AppState::SigningKeysMenu | AppState::QrExportMenu
-            | AppState::XprvExportMenu | AppState::StorageUnlockPin
+            | AppState::DisplaySettings
+            | AppState::AudioSettings
+            | AppState::SdCardSettings
+            | AppState::SdCardUnlockPassword
+            | AppState::AdvancedFeatures
+            | AppState::AdvancedDuressWarning
+            | AppState::AdvancedSdStorageWarning
+            | AppState::About
+            | AppState::SeedBackupMenu
+            | AppState::WatchOnlyMenu
+            | AppState::SigningKeysMenu
+            | AppState::QrExportMenu
+            | AppState::XprvExportMenu
+            | AppState::StorageUnlockPin
             | AppState::StorageUnlockPassword
     ) {
         return true;
@@ -97,12 +127,13 @@ pub(crate) fn audio_toggle_visible(state: crate::runtime::input::AppState) -> bo
         return true;
     }
     #[cfg(feature = "developer-ui")]
-    if matches!(state, AppState::DeveloperMenu | AppState::NetworkMenu | AppState::DiagnosticInfo) { return true; }
+    if matches!(state, AppState::DeveloperMenu | AppState::NetworkMenu | AppState::DiagnosticInfo) {
+        return true;
+    }
     #[cfg(feature = "workflow-tests")]
     if matches!(
         state,
-        AppState::WorkflowTestsMenu | AppState::WorkflowTestsCategory { .. }
-            | AppState::WorkflowTestsResult
+        AppState::WorkflowTestsMenu | AppState::WorkflowTestsCategory { .. } | AppState::WorkflowTestsResult
     ) {
         return true;
     }

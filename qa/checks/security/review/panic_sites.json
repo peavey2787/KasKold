@@ -34,7 +34,7 @@
     },
     {
       "path": "apps/kaskold-hardware/src/boot/shared/application.rs",
-      "line": 27,
+      "line": 24,
       "source": "panic!(\"boot cryptographic known-answer test failed\");",
       "fingerprint": "b6c8a40b022b89259233e6650b200dfded69fd865dbdb1ed1be887d9ee4b36c2",
       "rationale": "Reviewed fail-stop hardware invariant: continuing after this boot/peripheral invariant fails would be unsafe; the device intentionally halts rather than entering signing operation in a partially initialized state.",
@@ -50,9 +50,9 @@
     },
     {
       "path": "apps/kaskold-hardware/src/hw/shared/screenshot.rs",
-      "line": 52,
-      "source": ".expect(\"screenshot framebuffer layout\");",
-      "fingerprint": "caf8a4d6bc0579e3f3d26af67b6d815ca2873667ea17dd5885a5a6256a167dd9",
+      "line": 48,
+      "source": "let layout = alloc::alloc::Layout::from_size_align(BUF_SIZE, 4).expect(\"screenshot framebuffer layout\");",
+      "fingerprint": "948bb55c272d179e387c85086ecc201ec625255b5e582508fc52cc0cdacaafe9",
       "rationale": "Reviewed fail-stop hardware invariant: continuing after this boot/peripheral invariant fails would be unsafe; the device intentionally halts rather than entering signing operation in a partially initialized state.",
       "reviewed": true
     }

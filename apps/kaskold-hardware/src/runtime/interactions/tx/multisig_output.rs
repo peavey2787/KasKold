@@ -19,11 +19,8 @@ use crate::runtime::input::AppState;
 
 fn build_multisig_descriptor(ad: &mut AppData) {
     let config = &ad.signing.multisig.creating;
-    ad.qr.outgoing.length = config
-        .write_descriptor(&mut ad.qr.outgoing.buffer)
-        .unwrap_or(0);
+    ad.qr.outgoing.length = config.write_descriptor(&mut ad.qr.outgoing.buffer).unwrap_or(0);
 }
-
 
 pub(super) fn handle(
     ad: &mut AppData,
@@ -38,27 +35,14 @@ pub(super) fn handle(
     let redraw = match ad.navigation.app.state {
         AppState::MultisigShowAddress => handle_address(ad, x, y, is_back),
         AppState::MultisigShowAddressQR => handle_address_qr(ad),
-        AppState::MultisigSaveDescriptorAsk => handle_descriptor_save_prompt(
-            ad,
-            boot_display,
-            delay,
-            persistent_wallet.as_deref_mut(),
-            x,
-            y,
-            is_back,
-        ),
+        AppState::MultisigSaveDescriptorAsk => {
+            handle_descriptor_save_prompt(ad, boot_display, delay, persistent_wallet.as_deref_mut(), x, y, is_back)
+        }
         AppState::MultisigSaveAddrAsk => handle_save_prompt(ad, i2c, delay, x, y, is_back),
         AppState::MultisigDescriptor => handle_descriptor(ad, i2c, delay, x, y, is_back),
-        AppState::MultisigDescriptorList { action } => handle_descriptor_list(
-            ad,
-            boot_display,
-            delay,
-            i2c,
-            persistent_wallet.as_deref_mut(),
-            action,
-            y,
-            is_back,
-        ),
+        AppState::MultisigDescriptorList { action } => {
+            handle_descriptor_list(ad, boot_display, delay, i2c, persistent_wallet.as_deref_mut(), action, y, is_back)
+        }
         _ => return None,
     };
     let mut flag = RedrawFlag::default();
@@ -83,8 +67,7 @@ fn handle_address(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
     if ad.signing.multisig.creating.v45 && (62..=110).contains(&x) {
         let count = ad.signing.multisig.creating.n;
         if count > 0 {
-            ad.signing.multisig.creating.cosigner_index =
-                (ad.signing.multisig.creating.cosigner_index + 1) % count;
+            ad.signing.multisig.creating.cosigner_index = (ad.signing.multisig.creating.cosigner_index + 1) % count;
             rebuild_and_persist(ad);
         }
     } else if ad.signing.multisig.creating.v45 && (118..=158).contains(&x) {
@@ -104,11 +87,8 @@ fn handle_address(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
 
 fn change_address_index(ad: &mut AppData, direction: i32) {
     let current = ad.signing.multisig.creating.addr_index;
-    let next = if direction < 0 {
-        current.saturating_sub(1)
-    } else {
-        current.saturating_add(1).min(u32::from(u16::MAX))
-    };
+    let next =
+        if direction < 0 { current.saturating_sub(1) } else { current.saturating_add(1).min(u32::from(u16::MAX)) };
     if next == current {
         return;
     }
@@ -126,7 +106,6 @@ fn rebuild_and_persist(ad: &mut AppData) {
     ad.signing.multisig.creating.build_script();
     crate::runtime::interactions::multisig_config::persist_creating_config(ad);
 }
-
 
 fn handle_address_qr(ad: &mut AppData) -> bool {
     let route = if ad.signing.multisig.creating.active {
@@ -164,12 +143,7 @@ fn handle_descriptor_save_prompt(
             .is_some_and(|wallet| wallet.persist_multisig_store(ad).is_ok());
         ad.signing.multisig.descriptor_save_prompted = true;
         if saved {
-            crate::runtime::interactions::feedback::show_success(
-                boot_display,
-                delay,
-                "Descriptor saved",
-                700,
-            );
+            crate::runtime::interactions::feedback::show_success(boot_display, delay, "Descriptor saved", 700);
         } else {
             crate::runtime::interactions::feedback::show_rejection(
                 boot_display,
@@ -216,11 +190,7 @@ fn handle_save_prompt(
 
 fn prepare_address_export(ad: &mut AppData) {
     let mut address = [0u8; offline_signer::address::MAX_ADDR_LEN];
-    let length = ad
-        .signing
-        .multisig
-        .creating
-        .address(ad.wallet.seeds.seed_mgr.network().kaspa_network(), &mut address);
+    let length = ad.signing.multisig.creating.address(ad.wallet.seeds.seed_mgr.network().kaspa_network(), &mut address);
     ad.export.kpub_data[..length].copy_from_slice(&address[..length]);
     ad.export.kpub_len = length;
 }
@@ -261,7 +231,6 @@ fn handle_descriptor(
     false
 }
 
-
 fn handle_descriptor_list(
     ad: &mut AppData,
     boot_display: &mut crate::hw::display::BootDisplay<'_>,
@@ -290,7 +259,9 @@ fn handle_descriptor_list(
         return false;
     }
     let slot = usize::from(ad.signing.multisig.descriptor_indices[row]);
-    let Some(config) = ad.signing.multisig.store.configs.get(slot).cloned() else { return false; };
+    let Some(config) = ad.signing.multisig.store.configs.get(slot).cloned() else {
+        return false;
+    };
     match action {
         0 => {
             ad.signing.multisig.creating = config;
@@ -305,15 +276,9 @@ fn handle_descriptor_list(
             if !crate::runtime::interactions::multisig_config::delete_descriptor(ad, slot) {
                 return false;
             }
-            let persisted = persistent_wallet
-                .is_some_and(|wallet| wallet.persist_multisig_store(ad).is_ok());
+            let persisted = persistent_wallet.is_some_and(|wallet| wallet.persist_multisig_store(ad).is_ok());
             if persisted {
-                crate::runtime::interactions::feedback::show_success(
-                    boot_display,
-                    delay,
-                    "Descriptor deleted",
-                    700,
-                );
+                crate::runtime::interactions::feedback::show_success(boot_display, delay, "Descriptor deleted", 700);
             } else {
                 crate::runtime::interactions::feedback::show_rejection(
                     boot_display,

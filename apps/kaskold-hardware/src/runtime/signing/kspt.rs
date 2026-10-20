@@ -31,10 +31,11 @@ pub(super) fn sign_input(
     match strategy {
         super::strategy::SigningStrategy::RawKey => {
             let mut key = [0u8; 32];
-            let loaded = ad.wallet.seeds.seed_mgr.active_slot()
-                .map(|slot| slot.raw_key_bytes(&mut key))
-                .unwrap_or(false);
-            if !loaded { return Err(kspt::PsktError::DerivationFailed); }
+            let loaded =
+                ad.wallet.seeds.seed_mgr.active_slot().map(|slot| slot.raw_key_bytes(&mut key)).unwrap_or(false);
+            if !loaded {
+                return Err(kspt::PsktError::DerivationFailed);
+            }
             checkpoint();
             let result = kspt::sign_matching_input_in_place_with_entropy(
                 &mut ad.signing.transaction.active,
@@ -48,10 +49,7 @@ pub(super) fn sign_input(
             result.map(|_| ())
         }
         super::strategy::SigningStrategy::Multisig => {
-            let mut accounts = LoadedSigningAccounts::derive_active(
-                &ad.wallet.seeds.seed_mgr,
-                checkpoint,
-            );
+            let mut accounts = LoadedSigningAccounts::derive_active(&ad.wallet.seeds.seed_mgr, checkpoint);
             let result = kspt::sign_multisig_account_sets_input_with_entropy(
                 &mut ad.signing.transaction.active,
                 input_index,
@@ -66,10 +64,11 @@ pub(super) fn sign_input(
             result.map(|_| ())
         }
         super::strategy::SigningStrategy::AccountKey | super::strategy::SigningStrategy::Mnemonic => {
-            let account = ad.wallet.seeds.seed_mgr.active_slot()
-                .ok_or(kspt::PsktError::DerivationFailed)
-                .and_then(|slot| super::derivation::derive_slot_account_key_with_checkpoint(slot, checkpoint)
-                    .map_err(|_| kspt::PsktError::DerivationFailed))?;
+            let account =
+                ad.wallet.seeds.seed_mgr.active_slot().ok_or(kspt::PsktError::DerivationFailed).and_then(|slot| {
+                    super::derivation::derive_slot_account_key_with_checkpoint(slot, checkpoint)
+                        .map_err(|_| kspt::PsktError::DerivationFailed)
+                })?;
             checkpoint();
             let result = kspt::sign_account_input_with_entropy_checkpointed(
                 &mut ad.signing.transaction.active,
@@ -78,7 +77,8 @@ pub(super) fn sign_input(
                 SigHashType::All,
                 signing_entropy,
                 checkpoint,
-            ).map(|_| ());
+            )
+            .map(|_| ());
             checkpoint();
             result
         }
@@ -86,11 +86,11 @@ pub(super) fn sign_input(
 }
 
 pub(super) fn serialize_transaction(ad: &mut crate::runtime::data::AppData) -> bool {
-    match offline_signer::transaction::kspt::serialize_compact_kspt_vec(
-        &ad.signing.transaction.active,
-    ) {
+    match offline_signer::transaction::kspt::serialize_compact_kspt_vec(&ad.signing.transaction.active) {
         Ok(wire) => {
-            if ad.qr.outgoing.ensure_len(wire.len()).is_err() { return false; }
+            if ad.qr.outgoing.ensure_len(wire.len()).is_err() {
+                return false;
+            }
             ad.qr.outgoing.buffer[..wire.len()].copy_from_slice(&wire);
             ad.qr.outgoing.length = wire.len();
             super::signature_status::update_kspt(ad);
@@ -125,10 +125,11 @@ pub(super) fn finalize_anti_klepto_with_checkpoint(
     match strategy {
         super::strategy::SigningStrategy::RawKey => {
             let mut key = [0u8; 32];
-            let loaded = ad.wallet.seeds.seed_mgr.active_slot()
-                .map(|slot| slot.raw_key_bytes(&mut key))
-                .unwrap_or(false);
-            if !loaded { return Err(offline_signer::transaction::kspt::PsktError::DerivationFailed); }
+            let loaded =
+                ad.wallet.seeds.seed_mgr.active_slot().map(|slot| slot.raw_key_bytes(&mut key)).unwrap_or(false);
+            if !loaded {
+                return Err(offline_signer::transaction::kspt::PsktError::DerivationFailed);
+            }
             checkpoint();
             let result = offline_signer::transaction::kspt::finalize_raw_key_signatures(
                 &mut ad.signing.transaction.active,
@@ -142,10 +143,7 @@ pub(super) fn finalize_anti_klepto_with_checkpoint(
             result.map(|_| ())
         }
         super::strategy::SigningStrategy::Multisig => {
-            let mut accounts = LoadedSigningAccounts::derive_active(
-                &ad.wallet.seeds.seed_mgr,
-                checkpoint,
-            );
+            let mut accounts = LoadedSigningAccounts::derive_active(&ad.wallet.seeds.seed_mgr, checkpoint);
             let result = offline_signer::transaction::kspt::finalize_account_set_signatures_with_checkpoint(
                 &mut ad.signing.transaction.active,
                 accounts.entries(),
@@ -159,10 +157,16 @@ pub(super) fn finalize_anti_klepto_with_checkpoint(
             result.map(|_| ())
         }
         super::strategy::SigningStrategy::AccountKey | super::strategy::SigningStrategy::Mnemonic => {
-            let account = ad.wallet.seeds.seed_mgr.active_slot()
+            let account = ad
+                .wallet
+                .seeds
+                .seed_mgr
+                .active_slot()
                 .ok_or(offline_signer::transaction::kspt::PsktError::DerivationFailed)
-                .and_then(|slot| super::derivation::derive_slot_account_key_with_checkpoint(slot, checkpoint)
-                    .map_err(|_| offline_signer::transaction::kspt::PsktError::DerivationFailed))?;
+                .and_then(|slot| {
+                    super::derivation::derive_slot_account_key_with_checkpoint(slot, checkpoint)
+                        .map_err(|_| offline_signer::transaction::kspt::PsktError::DerivationFailed)
+                })?;
             checkpoint();
             let result = offline_signer::transaction::kspt::finalize_account_signatures_with_checkpoint(
                 &mut ad.signing.transaction.active,
@@ -171,7 +175,8 @@ pub(super) fn finalize_anti_klepto_with_checkpoint(
                 &session_id,
                 host_secret,
                 checkpoint,
-            ).map(|_| ());
+            )
+            .map(|_| ());
             checkpoint();
             result
         }

@@ -7,9 +7,9 @@
 #[cfg(any(test, all(feature = "verbose-boot", not(feature = "skip-tests"))))]
 use super::button::ButtonEvent;
 use super::menu::Menu;
-use super::state::{AppState, MAIN_MENU_ITEMS};
 #[cfg(any(test, all(feature = "verbose-boot", not(feature = "skip-tests"))))]
 use super::state::CONFIRM_MENU_ITEMS;
+use super::state::{AppState, MAIN_MENU_ITEMS};
 
 /// Result of handling a button event
 #[cfg(any(test, all(feature = "verbose-boot", not(feature = "skip-tests"))))]
@@ -65,9 +65,7 @@ impl WalletApp {
             AppState::InspectUtxoSummary => self.handle_inspect_summary(event),
             AppState::InspectUtxo { index, address_page } => self.handle_inspect_input(event, index, address_page),
             AppState::ConfirmTx => self.handle_confirmation(event),
-            AppState::ConfirmDeleteSeed => {
-                self.return_on_press(event, AppState::SeedList)
-            }
+            AppState::ConfirmDeleteSeed => self.return_on_press(event, AppState::SeedList),
             state if returns_to_main_on_press(state) => {
                 if is_press(event) {
                     self.go_main_menu();
@@ -111,7 +109,9 @@ impl WalletApp {
 
     #[cfg(any(test, all(feature = "verbose-boot", not(feature = "skip-tests"))))]
     fn handle_inspect_summary(&mut self, event: ButtonEvent) -> Action {
-        if !is_press(event) { return Action::None; }
+        if !is_press(event) {
+            return Action::None;
+        }
         self.state = if self.total_inputs == 0 {
             AppState::ReviewTx { page: 0 }
         } else {
@@ -122,7 +122,9 @@ impl WalletApp {
 
     #[cfg(any(test, all(feature = "verbose-boot", not(feature = "skip-tests"))))]
     fn handle_inspect_input(&mut self, event: ButtonEvent, index: usize, address_page: bool) -> Action {
-        if !is_press(event) { return Action::None; }
+        if !is_press(event) {
+            return Action::None;
+        }
         if !address_page {
             self.state = AppState::InspectUtxo { index, address_page: true };
         } else if index + 1 < self.total_inputs {
@@ -177,7 +179,9 @@ impl WalletApp {
     /// Advance signing progress
     #[cfg(any(test, all(feature = "verbose-boot", not(feature = "skip-tests"))))]
     pub fn advance_signing(&mut self) -> bool {
-        let Some(input_idx) = self.signing_input_idx else { return false; };
+        let Some(input_idx) = self.signing_input_idx else {
+            return false;
+        };
         let next = input_idx + 1;
         if next >= self.total_inputs {
             self.review_authorized = false;
@@ -213,44 +217,44 @@ fn is_press(event: ButtonEvent) -> bool {
 fn returns_to_main_on_press(state: AppState) -> bool {
     match state {
         AppState::ShowQR
-            | AppState::Rejected
-            | AppState::About
-            | AppState::ShowAddress
-            | AppState::ShowAddressQR
-            | AppState::ScanQR
-            | AppState::SeedBackup { .. }
-            | AppState::DiceRoll
-            | AppState::ImportWord { .. }
-            | AppState::ChooseWordCount { .. }
-            | AppState::ExportSeedQR
-            | AppState::ExportKpub
-            | AppState::ExportKpubPopup
-            | AppState::KpubScannedPopup
-            | AppState::SeedList
-            | AppState::DisplaySettings
-            | AppState::SdCardSettings
-            | AppState::SdCardUnlockPassword
-            | AppState::SignTxGuide
-            | AppState::SignMsgChoice
-            | AppState::SignMsgType
-            | AppState::SignMsgScan
-            | AppState::SignMsgFile
-            | AppState::SignMsgPreview
-                        | AppState::SignMsgResult
-            | AppState::SignMsgResultQr
-            | AppState::CommitRevealType
-            | AppState::CommitRevealPreview
-            | AppState::CommitRevealResult
-            | AppState::CommitRevealResultQr
-            | AppState::DecryptSecretScan
-            | AppState::DecryptSecretResult
-            | AppState::DecryptSecretResultQr
-            | AppState::QrExportMenu
-            | AppState::XprvExportMenu
-            | AppState::SeedBackupMenu
-            | AppState::WatchOnlyMenu
-            | AppState::SigningKeysMenu
-            | AppState::ExportPlainWordsQR => true,
+        | AppState::Rejected
+        | AppState::About
+        | AppState::ShowAddress
+        | AppState::ShowAddressQR
+        | AppState::ScanQR
+        | AppState::SeedBackup { .. }
+        | AppState::DiceRoll
+        | AppState::ImportWord { .. }
+        | AppState::ChooseWordCount { .. }
+        | AppState::ExportSeedQR
+        | AppState::ExportKpub
+        | AppState::ExportKpubPopup
+        | AppState::KpubScannedPopup
+        | AppState::SeedList
+        | AppState::DisplaySettings
+        | AppState::SdCardSettings
+        | AppState::SdCardUnlockPassword
+        | AppState::SignTxGuide
+        | AppState::SignMsgChoice
+        | AppState::SignMsgType
+        | AppState::SignMsgScan
+        | AppState::SignMsgFile
+        | AppState::SignMsgPreview
+        | AppState::SignMsgResult
+        | AppState::SignMsgResultQr
+        | AppState::CommitRevealType
+        | AppState::CommitRevealPreview
+        | AppState::CommitRevealResult
+        | AppState::CommitRevealResultQr
+        | AppState::DecryptSecretScan
+        | AppState::DecryptSecretResult
+        | AppState::DecryptSecretResultQr
+        | AppState::QrExportMenu
+        | AppState::XprvExportMenu
+        | AppState::SeedBackupMenu
+        | AppState::WatchOnlyMenu
+        | AppState::SigningKeysMenu
+        | AppState::ExportPlainWordsQR => true,
         #[cfg(feature = "m5stack")]
         AppState::AudioSettings => true,
         _ => false,

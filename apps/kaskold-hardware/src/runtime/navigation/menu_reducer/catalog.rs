@@ -1,5 +1,5 @@
-use crate::runtime::input::AppState;
 use super::super::ui_graph::{self, UiMenuItemSpec};
+use crate::runtime::input::AppState;
 
 pub(super) fn item_for(state: AppState, index: u8) -> Option<&'static UiMenuItemSpec> {
     primary(state)

@@ -1,15 +1,15 @@
 //! Authenticated immutable advanced-security metadata stored in the unused
 //! second half of each persistent-wallet flash sector.
 
-use offline_signer::{crypto::password_kdf::PasswordKdfPurpose, derivation::hmac::zeroize_buf};
 use crate::services::credential_policy::{self, CredentialKind, SALT_SIZE};
 use kaskold_hardware_core::advanced_policy::{SigningPolicy, SigningWindow, MAX_WEEKLY_WINDOWS};
+use offline_signer::{crypto::password_kdf::PasswordKdfPurpose, derivation::hmac::zeroize_buf};
 
 use super::{
-    PersistError,
-    crypto::{DeviceCrypto, POLICY_START, RECORD_SIZE, RecordHeader},
+    crypto::{DeviceCrypto, RecordHeader, POLICY_START, RECORD_SIZE},
     flash::AlignedBytes,
     kdf::{self, CredentialKdf},
+    PersistError,
 };
 
 const MAGIC: [u8; 8] = *b"KSPOL001";
@@ -33,13 +33,7 @@ pub(super) struct DuressPolicy {
 
 impl DuressPolicy {
     pub const fn disabled() -> Self {
-        Self {
-            enabled: false,
-            kind: CredentialKind::Pin,
-            key_slot: 0,
-            salt: [0u8; SALT_SIZE],
-            verifier: [0u8; 32],
-        }
+        Self { enabled: false, kind: CredentialKind::Pin, key_slot: 0, salt: [0u8; SALT_SIZE], verifier: [0u8; 32] }
     }
 }
 
@@ -74,9 +68,15 @@ pub(super) fn encode(
     region[..8].copy_from_slice(&MAGIC);
     region[8] = VERSION;
     let mut flags = 0u8;
-    if policy.duress.enabled { flags |= FLAG_DURESS; }
-    if policy.signing.not_before_unix != 0 { flags |= FLAG_NOT_BEFORE; }
-    if policy.signing.weekly_enabled { flags |= FLAG_WEEKLY; }
+    if policy.duress.enabled {
+        flags |= FLAG_DURESS;
+    }
+    if policy.signing.not_before_unix != 0 {
+        flags |= FLAG_NOT_BEFORE;
+    }
+    if policy.signing.weekly_enabled {
+        flags |= FLAG_WEEKLY;
+    }
     region[9] = flags;
     region[10] = if policy.duress.enabled { policy.duress.kind as u8 } else { 0 };
     region[11] = if policy.duress.enabled { policy.duress.key_slot } else { 0 };
@@ -110,9 +110,15 @@ pub(super) fn decode(
     if !policy_region_header_is_valid(region) || !policy_region_reserved_bytes_are_zero(region) {
         return DecodeResult::Corrupt;
     }
-    if !policy_tag_is_valid(crypto, header, region) { return DecodeResult::Corrupt; }
-    let Ok(duress) = decode_duress(region) else { return DecodeResult::Corrupt; };
-    let Ok(signing) = decode_signing(region) else { return DecodeResult::Corrupt; };
+    if !policy_tag_is_valid(crypto, header, region) {
+        return DecodeResult::Corrupt;
+    }
+    let Ok(duress) = decode_duress(region) else {
+        return DecodeResult::Corrupt;
+    };
+    let Ok(signing) = decode_signing(region) else {
+        return DecodeResult::Corrupt;
+    };
     DecodeResult::Valid(SecurityPolicy { duress, signing })
 }
 
@@ -125,15 +131,10 @@ fn policy_region_header_is_valid(region: &[u8]) -> bool {
 }
 
 fn policy_region_reserved_bytes_are_zero(region: &[u8]) -> bool {
-    region[13..16].iter().all(|byte| *byte == 0)
-        && region[100..ENCODED_SIZE].iter().all(|byte| *byte == 0)
+    region[13..16].iter().all(|byte| *byte == 0) && region[100..ENCODED_SIZE].iter().all(|byte| *byte == 0)
 }
 
-fn policy_tag_is_valid(
-    crypto: &mut DeviceCrypto<'_>,
-    header: RecordHeader,
-    region: &[u8],
-) -> bool {
+fn policy_tag_is_valid(crypto: &mut DeviceCrypto<'_>, header: RecordHeader, region: &[u8]) -> bool {
     let Ok(expected) = crypto.policy_tag(header.key_slot, header.sequence, &region[..ENCODED_SIZE]) else {
         return false;
     };
@@ -141,10 +142,14 @@ fn policy_tag_is_valid(
 }
 
 fn decode_duress(region: &[u8]) -> Result<DuressPolicy, ()> {
-    if region[9] & FLAG_DURESS == 0 { return decode_disabled_duress(region); }
+    if region[9] & FLAG_DURESS == 0 {
+        return decode_disabled_duress(region);
+    }
     let kind = CredentialKind::from_byte(region[10]).ok_or(())?;
     let key_slot = region[11];
-    if !super::crypto::valid_key_slot(key_slot) { return Err(()); }
+    if !super::crypto::valid_key_slot(key_slot) {
+        return Err(());
+    }
     let mut salt = [0u8; SALT_SIZE];
     salt.copy_from_slice(&region[16..32]);
     let mut verifier = [0u8; 32];
@@ -164,22 +169,22 @@ fn decode_signing(region: &[u8]) -> Result<SigningPolicy, ()> {
     let not_before_unix = read_u64(region, 64);
     let rtc_floor_unix = read_u64(region, 72);
     let flags = region[9];
-    if (flags & FLAG_NOT_BEFORE == 0) != (not_before_unix == 0) { return Err(()); }
+    if (flags & FLAG_NOT_BEFORE == 0) != (not_before_unix == 0) {
+        return Err(());
+    }
     let weekly_count = region[12];
-    if usize::from(weekly_count) > MAX_WEEKLY_WINDOWS { return Err(()); }
+    if usize::from(weekly_count) > MAX_WEEKLY_WINDOWS {
+        return Err(());
+    }
     let weekly_enabled = flags & FLAG_WEEKLY != 0;
-    if weekly_enabled != (weekly_count != 0) { return Err(()); }
+    if weekly_enabled != (weekly_count != 0) {
+        return Err(());
+    }
     let windows = decode_windows(region);
     if windows[usize::from(weekly_count)..].iter().any(|window| *window != SigningWindow::EMPTY) {
         return Err(());
     }
-    let signing = SigningPolicy {
-        not_before_unix,
-        weekly_enabled,
-        weekly_count,
-        windows,
-        rtc_floor_unix,
-    };
+    let signing = SigningPolicy { not_before_unix, weekly_enabled, weekly_count, windows, rtc_floor_unix };
     signing.validate().map_err(|_| ())?;
     Ok(signing)
 }
@@ -212,10 +217,8 @@ pub(super) fn create_duress(
     credential_policy::validate(kind, secret)?;
     let mut salt = [0u8; SALT_SIZE];
     crate::services::entropy::fill(&mut salt).map_err(|_| PersistError::Entropy)?;
-    let mut stretched = kdf::derive(
-        CredentialKdf::current(), PasswordKdfPurpose::PersistentWallet,
-        secret, &salt, &mut || {},
-    )?;
+    let mut stretched =
+        kdf::derive(CredentialKdf::current(), PasswordKdfPurpose::PersistentWallet, secret, &salt, &mut || {})?;
     let verifier_result = crypto.duress_verifier(key_slot, kind, &salt, &stretched);
     zeroize_buf(&mut stretched);
     let verifier = verifier_result?;
@@ -229,11 +232,14 @@ pub(super) fn duress_matches(
     secret: &[u8],
     liveness: &mut (impl FnMut() + ?Sized),
 ) -> bool {
-    if !policy.enabled { return false; }
-    let Ok(mut stretched) = kdf::derive(
-        credential_kdf, PasswordKdfPurpose::PersistentWallet,
-        secret, &policy.salt, liveness,
-    ) else { return false; };
+    if !policy.enabled {
+        return false;
+    }
+    let Ok(mut stretched) =
+        kdf::derive(credential_kdf, PasswordKdfPurpose::PersistentWallet, secret, &policy.salt, liveness)
+    else {
+        return false;
+    };
     let actual = crypto.duress_verifier(policy.key_slot, policy.kind, &policy.salt, &stretched);
     zeroize_buf(&mut stretched);
     match actual {

@@ -15,10 +15,9 @@
 //! fail-closed with no actionable control.
 
 use super::super::{
-    BootDisplay, COLOR_BG, COLOR_CARD, COLOR_CARD_BORDER, COLOR_DANGER, COLOR_TEXT,
-    COLOR_TEXT_DIM, CornerRadii, DrawTarget, Drawable, Line, Point, Primitive,
-    PrimitiveStyle, Rectangle, RoundedRectangle, Size, draw_lato_body, draw_lato_title,
-    draw_oswald_header, measure_body, measure_header, measure_title, sound,
+    draw_lato_body, draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_title, sound,
+    BootDisplay, CornerRadii, DrawTarget, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle,
+    RoundedRectangle, Size, COLOR_BG, COLOR_CARD, COLOR_CARD_BORDER, COLOR_DANGER, COLOR_TEXT, COLOR_TEXT_DIM,
     KASPA_TEAL,
 };
 
@@ -75,30 +74,18 @@ fn body_wrap_split(text: &str) -> usize {
             last_space = Some(index);
         }
     }
-    last_space.or_else(|| (last_boundary > 0).then_some(last_boundary)).unwrap_or_else(|| {
-        text.char_indices().nth(1).map(|(index, _)| index).unwrap_or(text.len())
-    })
+    last_space
+        .or_else(|| (last_boundary > 0).then_some(last_boundary))
+        .unwrap_or_else(|| text.char_indices().nth(1).map(|(index, _)| index).unwrap_or(text.len()))
 }
 
-
 impl<'a> BootDisplay<'a> {
-    fn draw_error_surface(
-        &mut self,
-        primary: &str,
-        secondary: Option<&str>,
-        action: ErrorAction,
-    ) {
+    fn draw_error_surface(&mut self, primary: &str, secondary: Option<&str>, action: ErrorAction) {
         sound::stop_ticking();
         self.display.clear(COLOR_BG).ok();
 
         let title_width = measure_header("ERROR");
-        draw_oswald_header(
-            &mut self.display,
-            "ERROR",
-            (320 - title_width) / 2,
-            30,
-            COLOR_DANGER,
-        );
+        draw_oswald_header(&mut self.display, "ERROR", (320 - title_width) / 2, 30, COLOR_DANGER);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(COLOR_DANGER, 1))
             .draw(&mut self.display)
@@ -106,34 +93,25 @@ impl<'a> BootDisplay<'a> {
 
         let primary_lines = wrap_error_text(primary);
         let secondary_lines = secondary.map(wrap_error_text);
-        let total_lines = primary_lines.count
-            + secondary_lines.as_ref().map_or(0, |lines| lines.count);
+        let total_lines = primary_lines.count + secondary_lines.as_ref().map_or(0, |lines| lines.count);
         debug_assert!(total_lines <= ERROR_MAX_LINES, "error surface exceeds display line budget");
 
         let mut line_index = 0usize;
         for line in primary_lines.lines.iter().flatten() {
-            if line_index >= ERROR_MAX_LINES { break; }
+            if line_index >= ERROR_MAX_LINES {
+                break;
+            }
             let width = measure_body(line);
-            draw_lato_body(
-                &mut self.display,
-                line,
-                (320 - width) / 2,
-                ERROR_LINE_Y[line_index],
-                COLOR_TEXT,
-            );
+            draw_lato_body(&mut self.display, line, (320 - width) / 2, ERROR_LINE_Y[line_index], COLOR_TEXT);
             line_index += 1;
         }
         if let Some(lines) = secondary_lines {
             for line in lines.lines.iter().flatten() {
-                if line_index >= ERROR_MAX_LINES { break; }
+                if line_index >= ERROR_MAX_LINES {
+                    break;
+                }
                 let width = measure_body(line);
-                draw_lato_body(
-                    &mut self.display,
-                    line,
-                    (320 - width) / 2,
-                    ERROR_LINE_Y[line_index],
-                    COLOR_TEXT_DIM,
-                );
+                draw_lato_body(&mut self.display, line, (320 - width) / 2, ERROR_LINE_Y[line_index], COLOR_TEXT_DIM);
                 line_index += 1;
             }
         }
@@ -147,14 +125,8 @@ impl<'a> BootDisplay<'a> {
 
     fn draw_error_acknowledge(&mut self, ready: bool, action_label: &'static str) {
         let rect = Rectangle::new(
-            Point::new(
-                i32::from(crate::ui::layout::ERROR_OK_ZONE.x),
-                i32::from(crate::ui::layout::ERROR_OK_ZONE.y),
-            ),
-            Size::new(
-                u32::from(crate::ui::layout::ERROR_OK_ZONE.w),
-                u32::from(crate::ui::layout::ERROR_OK_ZONE.h),
-            ),
+            Point::new(i32::from(crate::ui::layout::ERROR_OK_ZONE.x), i32::from(crate::ui::layout::ERROR_OK_ZONE.y)),
+            Size::new(u32::from(crate::ui::layout::ERROR_OK_ZONE.w), u32::from(crate::ui::layout::ERROR_OK_ZONE.h)),
         );
         let corners = CornerRadii::new(Size::new(6, 6));
         RoundedRectangle::new(rect, corners)
@@ -162,10 +134,7 @@ impl<'a> BootDisplay<'a> {
             .draw(&mut self.display)
             .ok();
         RoundedRectangle::new(rect, corners)
-            .into_styled(PrimitiveStyle::with_stroke(
-                if ready { KASPA_TEAL } else { COLOR_CARD_BORDER },
-                1,
-            ))
+            .into_styled(PrimitiveStyle::with_stroke(if ready { KASPA_TEAL } else { COLOR_CARD_BORDER }, 1))
             .draw(&mut self.display)
             .ok();
         let label = if ready { action_label } else { "PLEASE WAIT" };
@@ -182,11 +151,7 @@ impl<'a> BootDisplay<'a> {
     /// Persistent Rejected state: OK is a real touch target handled by the
     /// production input router.
     pub fn draw_rejected_screen(&mut self, reason: &str) {
-        self.draw_error_surface(
-            reason,
-            None,
-            ErrorAction::Acknowledge { ready: true, label: "OK" },
-        );
+        self.draw_error_surface(reason, None, ErrorAction::Acknowledge { ready: true, label: "OK" });
     }
 
     /// Stable-state fault: Back is the only action advertised because the
@@ -226,11 +191,7 @@ impl<'a> BootDisplay<'a> {
         ready: bool,
         action_label: &'static str,
     ) {
-        self.draw_error_surface(
-            message,
-            Some(code),
-            ErrorAction::Acknowledge { ready, label: action_label },
-        );
+        self.draw_error_surface(message, Some(code), ErrorAction::Acknowledge { ready, label: action_label });
     }
 
     /// Fatal errors are intentionally non-interactive and cannot imply that OK

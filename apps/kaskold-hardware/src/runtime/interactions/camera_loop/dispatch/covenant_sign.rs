@@ -15,7 +15,8 @@ pub(super) fn process_hex(data: &[u8], len: usize, ad: &mut AppData, liveness: &
         return;
     };
     let Ok(decoded_len) = decode_hex(input, &mut decoded) else {
-        reject(ad, "Invalid covenant message"); return;
+        reject(ad, "Invalid covenant message");
+        return;
     };
     process(&decoded[..decoded_len], ad, liveness);
     shared_signer::bytes::zeroize_bytes(&mut decoded);
@@ -34,9 +35,16 @@ fn process_request(wire: &[u8], ad: &mut AppData, liveness: &mut (impl FnMut() +
         Ok(()) => {
             let route = match ad.signing.covenant.mode {
                 CovenantSigningMode::KeyInfo => crate::runtime::navigation::route!(CovenantKeyResult),
-                CovenantSigningMode::Known | CovenantSigningMode::BindKnown => crate::runtime::navigation::route!(CovenantSignReview),
-                CovenantSigningMode::Opaque | CovenantSigningMode::BindOpaque => crate::runtime::navigation::route!(CovenantSignOpaqueWarning),
-                CovenantSigningMode::None => { reject(ad, "Invalid covenant request"); return; }
+                CovenantSigningMode::Known | CovenantSigningMode::BindKnown => {
+                    crate::runtime::navigation::route!(CovenantSignReview)
+                }
+                CovenantSigningMode::Opaque | CovenantSigningMode::BindOpaque => {
+                    crate::runtime::navigation::route!(CovenantSignOpaqueWarning)
+                }
+                CovenantSigningMode::None => {
+                    reject(ad, "Invalid covenant request");
+                    return;
+                }
             };
             crate::runtime::effects::route(ad, route);
             crate::runtime::effects::redraw(ad);
@@ -47,8 +55,14 @@ fn process_request(wire: &[u8], ad: &mut AppData, liveness: &mut (impl FnMut() +
 
 fn process_reveal(wire: &[u8], ad: &mut AppData, liveness: &mut (impl FnMut() + ?Sized)) {
     match crate::services::covenant_sign::finalize_reveal(ad, wire, liveness) {
-        Ok(()) => { crate::runtime::effects::route(ad, crate::runtime::navigation::route!(CovenantSignResult)); crate::runtime::effects::redraw(ad); }
-        Err(error) => { ad.signing.covenant.reset(); reject(ad, error.message()); }
+        Ok(()) => {
+            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(CovenantSignResult));
+            crate::runtime::effects::redraw(ad);
+        }
+        Err(error) => {
+            ad.signing.covenant.reset();
+            reject(ad, error.message());
+        }
     }
 }
 

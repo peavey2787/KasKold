@@ -47,12 +47,7 @@ where
 }
 
 pub(crate) fn test_mapped_flash() -> bool {
-    let data = unsafe {
-        core::slice::from_raw_parts(
-            DATA_SEGMENT_BASE as *const u8,
-            FLASH_TEST_READ_SIZE,
-        )
-    };
+    let data = unsafe { core::slice::from_raw_parts(DATA_SEGMENT_BASE as *const u8, FLASH_TEST_READ_SIZE) };
     let mut all_ff = true;
     let mut all_zero = true;
     let mut seen = [false; 256];

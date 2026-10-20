@@ -1,12 +1,10 @@
 //! Shared optional-encryption workflows for SD exports.
 
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound, show_success};
-use super::super::{AppData, SdIoContext, display, sound, write_file_to_sd};
-use crate::{
-    runtime::{
-        data::{EncryptedFileOperation, EncryptedPayloadKind, TextFileKind},
-        navigation::ContinuationRoute,
-    },
+use super::super::{display, sound, write_file_to_sd, AppData, SdIoContext};
+use crate::runtime::interactions::feedback::{show_rejection, show_success, ErrorSound};
+use crate::runtime::{
+    data::{EncryptedFileOperation, EncryptedPayloadKind, TextFileKind},
+    navigation::ContinuationRoute,
 };
 
 pub(super) enum EncryptionPromptAction {
@@ -90,20 +88,8 @@ fn navigate(ad: &mut AppData, destination: PromptDestination) {
     }
 }
 
-pub(crate) fn run_encryption_prompt(
-    ctx: SdIoContext<'_, '_, '_>,
-    workflow: EncryptionPromptWorkflow,
-) -> bool {
-    let SdIoContext {
-        ad,
-        boot_display,
-        delay,
-        i2c,
-        x,
-        y,
-        is_back,
-        ..
-    } = ctx;
+pub(crate) fn run_encryption_prompt(ctx: SdIoContext<'_, '_, '_>, workflow: EncryptionPromptWorkflow) -> bool {
+    let SdIoContext { ad, boot_display, delay, i2c, x, y, is_back, .. } = ctx;
     match encryption_prompt_action(x, y, is_back) {
         EncryptionPromptAction::Back => {
             let _ = crate::runtime::effects::continue_to(ad, workflow.back_state);

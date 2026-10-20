@@ -11,8 +11,8 @@ mod persistent_display;
 
 #[cfg(feature = "m5stack")]
 use audio::AudioPreferences;
-use persistent_display::DisplayPreferences;
 pub use dim_timeout::ScreenDimTimeout;
+use persistent_display::DisplayPreferences;
 
 pub struct SettingsState {
     pub brightness: u8,

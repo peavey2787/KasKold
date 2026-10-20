@@ -1,11 +1,7 @@
 use super::{AppData, BootDisplay, SdCardType};
 use crate::runtime::input::AppState;
 
-pub(super) fn redraw(
-    ad: &AppData,
-    display: &mut BootDisplay<'_>,
-    sd_card_type: &Option<SdCardType>,
-) -> bool {
+pub(super) fn redraw(ad: &AppData, display: &mut BootDisplay<'_>, sd_card_type: &Option<SdCardType>) -> bool {
     match ad.navigation.app.state {
         AppState::SdCardUnlockPassword => {
             display.draw_storage_secret_entry(&ad.wallet.seeds.pp_input, "SD PASSWORD", false, false);

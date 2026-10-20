@@ -1,7 +1,6 @@
 use super::super::{
-    BootDisplay, COLOR_CARD, COLOR_TEXT, CornerRadii, Drawable, Image, KASPA_TEAL, Point,
-    Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size, draw_lato_title,
-    measure_title,
+    draw_lato_title, measure_title, BootDisplay, CornerRadii, Drawable, Image, Point, Primitive, PrimitiveStyle,
+    Rectangle, RoundedRectangle, Size, COLOR_CARD, COLOR_TEXT, KASPA_TEAL,
 };
 use crate::hw::touch::TouchZone;
 
@@ -32,9 +31,7 @@ impl<'a> BootDisplay<'a> {
 
         static ICON_BRIGHTNESS: &[u8] = include_bytes!("../../../../assets/icon_brightness_24.raw");
         let icon: ImageRawLE<super::super::Rgb565> = ImageRawLE::new(ICON_BRIGHTNESS, 24);
-        Image::new(&icon, QR_BRIGHTNESS_ICON_ORIGIN)
-            .draw(&mut self.display)
-            .ok();
+        Image::new(&icon, QR_BRIGHTNESS_ICON_ORIGIN).draw(&mut self.display).ok();
     }
 
     fn draw_qr_brightness_button(&mut self, zone: TouchZone, label: &str) {

@@ -24,10 +24,7 @@ impl ProbeSummary {
             log!("KASKOLD_WORKFLOW_TESTS: REMAINING PROBE {} PASS", name);
         } else {
             self.failed += 1;
-            log!(
-                "KASKOLD_WORKFLOW_TESTS: REMAINING PROBE {} FAILED; CONTINUING",
-                name,
-            );
+            log!("KASKOLD_WORKFLOW_TESTS: REMAINING PROBE {} FAILED; CONTINUING", name,);
         }
     }
 

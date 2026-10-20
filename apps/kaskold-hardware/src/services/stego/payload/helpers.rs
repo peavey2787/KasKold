@@ -5,8 +5,8 @@ use shared_signer::bytes::{zeroize_bytes, zeroize_u16};
 use crate::services::backup::BackupError;
 
 use super::{
-    portable, PayloadError, StegoCarrier, StegoSecurity, MAX_HINT_SIZE, PLAINTEXT_SIZE,
-    SECURITY_DEVICE, SECURITY_PORTABLE, WORD_BYTES, WORD_SLOTS,
+    portable, PayloadError, StegoCarrier, StegoSecurity, MAX_HINT_SIZE, PLAINTEXT_SIZE, SECURITY_DEVICE,
+    SECURITY_PORTABLE, WORD_BYTES, WORD_SLOTS,
 };
 
 pub(super) fn reset_outputs(indices: &mut [u16; WORD_SLOTS], hint: &mut [u8; MAX_HINT_SIZE]) {
@@ -101,10 +101,7 @@ fn decode_plaintext(
         return Err(PayloadError::InvalidInput);
     }
     let hint_start = 3 + WORD_BYTES;
-    if plaintext[hint_start + hint_len..]
-        .iter()
-        .any(|byte| *byte != 0)
-    {
+    if plaintext[hint_start + hint_len..].iter().any(|byte| *byte != 0) {
         return Err(PayloadError::InvalidInput);
     }
     hint[..hint_len].copy_from_slice(&plaintext[hint_start..hint_start + hint_len]);
@@ -123,9 +120,7 @@ pub(super) fn map_portable_error(error: portable::PortableError) -> PayloadError
 pub(super) fn map_backup_error(error: BackupError) -> PayloadError {
     match error {
         BackupError::EntropyUnavailable => PayloadError::EntropyUnavailable,
-        BackupError::AuthenticationFailed | BackupError::InvalidCredential => {
-            PayloadError::AuthenticationFailed
-        }
+        BackupError::AuthenticationFailed | BackupError::InvalidCredential => PayloadError::AuthenticationFailed,
         BackupError::DeviceKeyUnavailable => PayloadError::DeviceKeyUnavailable,
         _ => PayloadError::EncryptionFailed,
     }

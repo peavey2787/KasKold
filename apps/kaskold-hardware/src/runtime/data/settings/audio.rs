@@ -9,10 +9,7 @@ pub(super) struct AudioPreferences {
 
 impl AudioPreferences {
     pub(super) const fn new() -> Self {
-        Self {
-            muted: false,
-            startup_sound_enabled: true,
-        }
+        Self { muted: false, startup_sound_enabled: true }
     }
 }
 

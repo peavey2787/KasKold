@@ -24,19 +24,8 @@ pub(super) fn handle(
     is_back: bool,
 ) -> Option<bool> {
     let redraw = match ad.navigation.app.state {
-        AppState::SignMsgPreview => preview::handle(
-            ad, boot_display, delay, liveness, x, y, is_back,
-        ),
-        AppState::SignMsgResult => result::handle(
-            ad,
-            boot_display,
-            delay,
-            i2c,
-            sd_card_type.is_some(),
-            x,
-            y,
-            is_back,
-        ),
+        AppState::SignMsgPreview => preview::handle(ad, boot_display, delay, liveness, x, y, is_back),
+        AppState::SignMsgResult => result::handle(ad, boot_display, delay, i2c, sd_card_type.is_some(), x, y, is_back),
         AppState::SignMsgResultQr => result::close_qr(ad),
         _ => return None,
     };

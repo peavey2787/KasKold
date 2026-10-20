@@ -1,14 +1,10 @@
 mod helpers;
-use helpers::{hydrate_fsinfo_hint, next_directory_cluster, probe_common_offsets, try_mbr_partition, try_superfloppy, write_entry_into_sector};
-pub(super) use helpers::{mark_dir_entry_deleted, replace_dir_entry_at};
-use super::{
-    DirEntry,
-    Fat32Info,
-    SdCardType,
-    read_fat_entry,
-    sd_read_block,
-    sd_write_block,
+use super::{read_fat_entry, sd_read_block, sd_write_block, DirEntry, Fat32Info, SdCardType};
+use helpers::{
+    hydrate_fsinfo_hint, next_directory_cluster, probe_common_offsets, try_mbr_partition, try_superfloppy,
+    write_entry_into_sector,
 };
+pub(super) use helpers::{mark_dir_entry_deleted, replace_dir_entry_at};
 // KasKold — Air-gapped offline signing device for Kaspa
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
 //
@@ -22,8 +18,14 @@ use super::{
 pub fn mount_fat32(card_type: SdCardType) -> Result<Fat32Info, &'static str> {
     let mut sector = [0u8; 512];
     sd_read_block(card_type, 0, &mut sector)?;
-    log!("[FAT32] Sector 0: {:02x} {:02x} {:02x} .. sig={:02x}{:02x}",
-        sector[0], sector[1], sector[2], sector[510], sector[511]);
+    log!(
+        "[FAT32] Sector 0: {:02x} {:02x} {:02x} .. sig={:02x}{:02x}",
+        sector[0],
+        sector[1],
+        sector[2],
+        sector[510],
+        sector[511]
+    );
     if let Some(info) = try_superfloppy(&sector) {
         return hydrate_fsinfo_hint(card_type, info);
     }
@@ -37,7 +39,6 @@ pub fn mount_fat32(card_type: SdCardType) -> Result<Fat32Info, &'static str> {
     Err("No FAT32 filesystem found")
 }
 
-
 pub fn find_file_in_root(
     card_type: SdCardType,
     fat32: &Fat32Info,
@@ -50,10 +51,13 @@ pub fn find_file_in_root(
         let base_sector = fat32.cluster_to_sector(cluster);
         for s in 0..fat32.sectors_per_cluster as u32 {
             sd_read_block(card_type, base_sector + s, &mut buf)?;
-            for i in 0..16 { // 16 entries per 512-byte sector
+            for i in 0..16 {
+                // 16 entries per 512-byte sector
                 let off = i * 32;
-                if buf[off] == 0x00 { return Err("File not found"); } // end of dir
-                if let Some(entry) = DirEntry::from_bytes(&buf[off..off+32]) {
+                if buf[off] == 0x00 {
+                    return Err("File not found");
+                } // end of dir
+                if let Some(entry) = DirEntry::from_bytes(&buf[off..off + 32]) {
                     if entry.matches(name_83) {
                         return Ok((entry, base_sector + s, off));
                     }
@@ -62,7 +66,9 @@ pub fn find_file_in_root(
         }
         // Follow cluster chain
         let next = read_fat_entry(card_type, fat32, cluster)?;
-        if next >= 0x0FFF_FFF8 { break; } // EOC
+        if next >= 0x0FFF_FFF8 {
+            break;
+        } // EOC
         cluster = next;
     }
     Err("File not found")
@@ -89,14 +95,7 @@ pub(super) fn write_dir_entry_to_root(
     }
 }
 
-
-
-
-pub fn list_root_dir<F>(
-    card_type: SdCardType,
-    fat32: &Fat32Info,
-    mut callback: F,
-) -> Result<(), &'static str>
+pub fn list_root_dir<F>(card_type: SdCardType, fat32: &Fat32Info, mut callback: F) -> Result<(), &'static str>
 where
     F: FnMut(&DirEntry) -> bool,
 {
@@ -109,16 +108,24 @@ where
             sd_read_block(card_type, base_sector + s, &mut buf)?;
             for i in 0..16 {
                 let off = i * 32;
-                if buf[off] == 0x00 { return Ok(()); } // end of dir
-                if let Some(entry) = DirEntry::from_bytes(&buf[off..off+32]) {
+                if buf[off] == 0x00 {
+                    return Ok(());
+                } // end of dir
+                if let Some(entry) = DirEntry::from_bytes(&buf[off..off + 32]) {
                     // Skip volume label entries
-                    if entry.attr & 0x08 != 0 { continue; }
-                    if !callback(&entry) { return Ok(()); }
+                    if entry.attr & 0x08 != 0 {
+                        continue;
+                    }
+                    if !callback(&entry) {
+                        return Ok(());
+                    }
                 }
             }
         }
         let next = read_fat_entry(card_type, fat32, cluster)?;
-        if next >= 0x0FFF_FFF8 { break; }
+        if next >= 0x0FFF_FFF8 {
+            break;
+        }
         cluster = next;
     }
     Ok(())

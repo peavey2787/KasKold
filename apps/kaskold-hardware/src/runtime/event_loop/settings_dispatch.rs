@@ -16,7 +16,11 @@ pub(crate) fn handle(
             #[cfg(feature = "m5stack")]
             crate::log!("   TOUCH CoreS3 SettingsMenu pure dispatch BEGIN ({}, {})", x, y);
             let result = crate::runtime::interactions::settings::handle_settings_menu_navigation(
-                ad, list_zones, page_up_zone, page_down_zone, input,
+                ad,
+                list_zones,
+                page_up_zone,
+                page_down_zone,
+                input,
             );
             #[cfg(feature = "m5stack")]
             if let Some(redraw) = result {
@@ -29,7 +33,11 @@ pub(crate) fn handle(
             crate::log!("   TOUCH CoreS3 DisplaySettings pure dispatch BEGIN ({}, {})", x, y);
             let result = crate::runtime::interactions::settings::handle_display_settings_navigation(ad, input);
             if let Some(redraw) = result {
-                crate::log!("   TOUCH CoreS3 DisplaySettings pure dispatch DONE redraw={} brightness={}", redraw, ad.settings.brightness);
+                crate::log!(
+                    "   TOUCH CoreS3 DisplaySettings pure dispatch DONE redraw={} brightness={}",
+                    redraw,
+                    ad.settings.brightness
+                );
             }
             result
         }
@@ -38,7 +46,11 @@ pub(crate) fn handle(
             crate::log!("   TOUCH CoreS3 AudioSettings pure dispatch BEGIN ({}, {})", x, y);
             let result = crate::runtime::interactions::settings::handle_audio_settings_navigation(ad, input);
             if let Some(redraw) = result {
-                crate::log!("   TOUCH CoreS3 AudioSettings pure dispatch DONE redraw={} volume={}", redraw, ad.settings.volume);
+                crate::log!(
+                    "   TOUCH CoreS3 AudioSettings pure dispatch DONE redraw={} volume={}",
+                    redraw,
+                    ad.settings.volume
+                );
             }
             result
         }
@@ -58,7 +70,9 @@ pub(crate) fn persist_device_preferences(
     ad: &mut AppData,
     persistence: &mut crate::services::persistent_wallet::PersistentWallet<'_>,
 ) {
-    if !ad.settings.device_preferences_dirty() { return; }
+    if !ad.settings.device_preferences_dirty() {
+        return;
+    }
     match persistence.save_display_preferences(ad) {
         Ok(()) => ad.settings.clear_device_preferences_dirty(),
         Err(error) => crate::log!("   SETTINGS preference save failed: {:?}", error),

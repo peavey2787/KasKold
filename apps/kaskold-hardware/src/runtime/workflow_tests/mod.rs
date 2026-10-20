@@ -10,10 +10,7 @@ mod command;
 mod connected;
 mod runner;
 
-pub(crate) use catalog::{
-    category_from_menu_index, category_labels, category_menu, workflow_at,
-    WorkflowCategory,
-};
+pub(crate) use catalog::{category_from_menu_index, category_labels, category_menu, workflow_at, WorkflowCategory};
 pub(crate) use command::{execute, WorkflowCommand};
 pub(crate) use runner::WorkflowSummary;
 
@@ -24,14 +21,9 @@ pub(crate) fn run_boot_gate() {
     log!("KASKOLD_WORKFLOW_TESTS: PREBOARD GATE COMPLETE");
 }
 
-
-
 #[cfg(feature = "workflow-test-auto")]
 #[inline(never)]
-pub(crate) fn park_after_gate(
-    delay: &mut esp_hal::delay::Delay,
-    watchdog_feed: &mut impl FnMut(),
-) -> ! {
+pub(crate) fn park_after_gate(delay: &mut esp_hal::delay::Delay, watchdog_feed: &mut impl FnMut()) -> ! {
     log!("KASKOLD_WORKFLOW_TESTS: HARNESS PARKED");
     loop {
         watchdog_feed();
@@ -59,8 +51,16 @@ pub(crate) fn run_connected_gate(
     #[cfg(not(feature = "workflow-runtime-auto"))]
     log!("KASKOLD_WORKFLOW_TESTS: CONTROLLER NAVIGATION BEGIN");
     if connected::run(
-        ad, boot_display, i2c, sd_card_type, delay,
-        dvp_camera_opt, cam_dma_buf_opt, cam_status, persistent_wallet, watchdog_feed,
+        ad,
+        boot_display,
+        i2c,
+        sd_card_type,
+        delay,
+        dvp_camera_opt,
+        cam_dma_buf_opt,
+        cam_status,
+        persistent_wallet,
+        watchdog_feed,
     ) {
         log!("KASKOLD_WORKFLOW_TESTS: CONNECTED ROOT NAV PASS 4/4");
         log!("KASKOLD_WORKFLOW_TESTS: PASS ALL");

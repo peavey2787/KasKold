@@ -26,4 +26,6 @@ pub fn harden_touch_entropy(touch_digest: &mut [u8; 32]) -> Result<[u8; 32], Ent
 }
 
 /// Latched hardware timer observation used by the touch transcript.
-pub fn touch_timestamp() -> u32 { platform::systimer_low() }
+pub fn touch_timestamp() -> u32 {
+    platform::systimer_low()
+}

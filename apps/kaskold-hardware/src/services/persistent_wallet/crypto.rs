@@ -4,22 +4,18 @@
 //! through a read-protected eFuse HMAC_UP key. Only the HMAC result is exposed
 //! to software; the raw 256-bit eFuse secret is never readable through this API.
 
+use crate::services::credential_policy::{CredentialKind, SALT_SIZE};
 use esp_hal::{
     efuse::{Efuse, RD_DIS},
     hmac::{Hmac, HmacPurpose, KeyId},
     peripherals::HMAC,
 };
 use offline_signer::{
-    crypto::{
-        device_bound_storage::{
-            self as bound, DeviceBoundError, HardwareHmac, KdfParameters, StoragePurpose,
-        },
-    },
+    crypto::device_bound_storage::{self as bound, DeviceBoundError, HardwareHmac, KdfParameters, StoragePurpose},
     derivation::hmac::zeroize_buf,
 };
-use crate::services::credential_policy::{CredentialKind, SALT_SIZE};
 
-use super::{PersistError, codec::PAYLOAD_SIZE, flash::AlignedBytes, kdf::CredentialKdf};
+use super::{codec::PAYLOAD_SIZE, flash::AlignedBytes, kdf::CredentialKdf, PersistError};
 
 #[cfg(all(feature = "m5stack", not(feature = "production")))]
 mod dev_storage;
@@ -64,14 +60,8 @@ struct SlotHmac<'a, 'd> {
 }
 
 impl HardwareHmac for SlotHmac<'_, '_> {
-    fn hmac_sha256(
-        &mut self,
-        message: &[u8],
-        output: &mut [u8; 32],
-    ) -> Result<(), DeviceBoundError> {
-        self.crypto
-            .hmac_sha256(self.key_slot, message, output)
-            .map_err(|_| DeviceBoundError::HardwareHmacUnavailable)
+    fn hmac_sha256(&mut self, message: &[u8], output: &mut [u8; 32]) -> Result<(), DeviceBoundError> {
+        self.crypto.hmac_sha256(self.key_slot, message, output).map_err(|_| DeviceBoundError::HardwareHmacUnavailable)
     }
 }
 
@@ -81,10 +71,7 @@ impl<'d> DeviceCrypto<'d> {
     }
 
     pub fn available_key_slot(&mut self) -> Option<u8> {
-        if let Some(slot) = PERSISTENT_KEY_SLOTS
-            .into_iter()
-            .find(|slot| self.configure(*slot).is_ok())
-        {
+        if let Some(slot) = PERSISTENT_KEY_SLOTS.into_iter().find(|slot| self.configure(*slot).is_ok()) {
             return Some(slot);
         }
         #[cfg(all(feature = "m5stack", not(feature = "production")))]
@@ -148,10 +135,7 @@ impl<'d> DeviceCrypto<'d> {
             bound::open_in_place(
                 &mut provider,
                 bound::OpenRequest {
-                    parameters: KdfParameters::current(
-                        StoragePurpose::InternalWallet,
-                        header.credential_kind,
-                    ),
+                    parameters: KdfParameters::current(StoragePurpose::InternalWallet, header.credential_kind),
                     stretched_credential: credential_key,
                     salt: &header.salt,
                     nonce: &header.nonce,
@@ -225,7 +209,8 @@ impl<'d> DeviceCrypto<'d> {
         aad: &[u8],
         ciphertext: &mut [u8],
     ) -> Result<[u8; bound::TAG_SIZE], PersistError> {
-        if !matches!(purpose, StoragePurpose::SdSeedBackup | StoragePurpose::SdXprvBackup | StoragePurpose::StegoWallet) {
+        if !matches!(purpose, StoragePurpose::SdSeedBackup | StoragePurpose::SdXprvBackup | StoragePurpose::StegoWallet)
+        {
             return Err(PersistError::InvalidWallet);
         }
         let key_slot = self.available_key_slot().ok_or(PersistError::DeviceKeyMissing)?;
@@ -252,7 +237,8 @@ impl<'d> DeviceCrypto<'d> {
         ciphertext: &mut [u8],
         tag: &[u8; bound::TAG_SIZE],
     ) -> Result<(), PersistError> {
-        if !matches!(purpose, StoragePurpose::SdSeedBackup | StoragePurpose::SdXprvBackup | StoragePurpose::StegoWallet) {
+        if !matches!(purpose, StoragePurpose::SdSeedBackup | StoragePurpose::SdXprvBackup | StoragePurpose::StegoWallet)
+        {
             return Err(PersistError::InvalidWallet);
         }
         let key_slot = self.available_key_slot().ok_or(PersistError::DeviceKeyMissing)?;
@@ -272,12 +258,7 @@ impl<'d> DeviceCrypto<'d> {
         .map_err(map_bound_error)
     }
 
-    pub(super) fn policy_tag(
-        &mut self,
-        key_slot: u8,
-        sequence: u32,
-        encoded: &[u8],
-    ) -> Result<[u8; 32], PersistError> {
+    pub(super) fn policy_tag(&mut self, key_slot: u8, sequence: u32, encoded: &[u8]) -> Result<[u8; 32], PersistError> {
         let sequence_bytes = sequence.to_le_bytes();
         #[cfg(all(feature = "m5stack", not(feature = "production")))]
         if key_slot == dev_storage::KEY_SLOT {
@@ -302,9 +283,7 @@ impl<'d> DeviceCrypto<'d> {
         let kind_byte = [kind as u8];
         #[cfg(all(feature = "m5stack", not(feature = "production")))]
         if key_slot == dev_storage::KEY_SLOT {
-            return Ok(dev_storage::hmac(&[
-                WALLET_ACTIVATION_MAC_DOMAIN, &slot_byte, &kind_byte, salt, stretched_key,
-            ]));
+            return Ok(dev_storage::hmac(&[WALLET_ACTIVATION_MAC_DOMAIN, &slot_byte, &kind_byte, salt, stretched_key]));
         }
         self.configure(key_slot)?;
         self.update_all(WALLET_ACTIVATION_MAC_DOMAIN)?;
@@ -335,12 +314,7 @@ impl<'d> DeviceCrypto<'d> {
         self.finalize_key()
     }
 
-    fn hmac_sha256(
-        &mut self,
-        key_slot: u8,
-        message: &[u8],
-        output: &mut [u8; 32],
-    ) -> Result<(), PersistError> {
+    fn hmac_sha256(&mut self, key_slot: u8, message: &[u8], output: &mut [u8; 32]) -> Result<(), PersistError> {
         #[cfg(all(feature = "m5stack", not(feature = "production")))]
         if key_slot == dev_storage::KEY_SLOT {
             *output = dev_storage::hmac(&[message]);
@@ -349,7 +323,9 @@ impl<'d> DeviceCrypto<'d> {
         self.configure(key_slot)?;
         self.update_all(message)?;
         let result = self.finalize_into(output);
-        if result.is_err() { zeroize_buf(output); }
+        if result.is_err() {
+            zeroize_buf(output);
+        }
         result
     }
 
@@ -380,7 +356,9 @@ impl<'d> DeviceCrypto<'d> {
 
     fn finalize_into(&mut self, output: &mut [u8; 32]) -> Result<(), PersistError> {
         for _ in 0..HMAC_BUSY_RETRY_LIMIT {
-            if self.hmac.finalize(output).is_ok() { return Ok(()); }
+            if self.hmac.finalize(output).is_ok() {
+                return Ok(());
+            }
         }
         Err(PersistError::DeviceKeyMissing)
     }
@@ -393,11 +371,11 @@ impl<'d> DeviceCrypto<'d> {
             return Err(PersistError::DeviceKeyMissing);
         }
         let key_id = key_id(key_slot).ok_or(PersistError::DeviceKeyMissing)?;
-        if !key_is_read_protected(key_slot) { return Err(PersistError::DeviceKeyMissing); }
+        if !key_is_read_protected(key_slot) {
+            return Err(PersistError::DeviceKeyMissing);
+        }
         self.hmac.init();
-        self.hmac
-            .configure(HmacPurpose::ToUser, key_id)
-            .map_err(|_| PersistError::DeviceKeyMissing)
+        self.hmac.configure(HmacPurpose::ToUser, key_id).map_err(|_| PersistError::DeviceKeyMissing)
     }
 }
 
@@ -416,7 +394,9 @@ fn map_bound_error(error: DeviceBoundError) -> PersistError {
 }
 
 pub(super) fn valid_key_slot(slot: u8) -> bool {
-    if key_id(slot).is_some() { return true; }
+    if key_id(slot).is_some() {
+        return true;
+    }
     #[cfg(all(feature = "m5stack", not(feature = "production")))]
     {
         return slot == dev_storage::KEY_SLOT;

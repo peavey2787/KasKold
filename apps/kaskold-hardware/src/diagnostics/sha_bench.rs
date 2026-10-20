@@ -18,11 +18,7 @@ pub(crate) fn run() {
         block.copy_from_slice(&hash.finalize());
     }
     let sha_cycles = esp_hal::xtensa_lx::timer::get_cycle_count().wrapping_sub(sha_start);
-    crate::log!(
-        "[sha-bench] SHA-256 {} rounds: {} cycles/round",
-        SHA_ROUNDS,
-        sha_cycles / SHA_ROUNDS,
-    );
+    crate::log!("[sha-bench] SHA-256 {} rounds: {} cycles/round", SHA_ROUNDS, sha_cycles / SHA_ROUNDS,);
     crate::log!("[sha-bench] password KDF calibration moved to Settings -> Developer -> Argon2 Bench");
     zeroize_bytes(&mut block);
 }

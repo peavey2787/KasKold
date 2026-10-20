@@ -27,12 +27,7 @@ pub(super) fn matches(data: &[u8], length: usize) -> bool {
     decode_payload(data, length, &mut payload)
 }
 
-pub(super) fn process(
-    data: &[u8],
-    length: usize,
-    ad: &mut AppData,
-    checkpoint: &mut (impl FnMut() + ?Sized),
-) {
+pub(super) fn process(data: &[u8], length: usize, ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Sized)) {
     let mut payload = [0u8; offline_signer::derivation::xpub::XPUB_PAYLOAD_LEN];
     if !decode_payload(data, length, &mut payload) {
         sound::error();
@@ -53,16 +48,19 @@ fn import_multisig_cosigner(
 ) {
     let mut canonical = [0u8; offline_signer::derivation::xpub::KPUB_MAX_LEN];
     let Ok(length) = offline_signer::derivation::xpub::encode_kpub_text(payload, &mut canonical) else {
-        sound::error(); return;
+        sound::error();
+        return;
     };
     let Some(parts) = offline_signer::derivation::xpub::parse_kpub_parts(&canonical[..length]) else {
-        sound::error(); return;
+        sound::error();
+        return;
     };
     let key_index = (0..ad.signing.multisig.creating.n)
         .find(|index| ad.signing.multisig.creating.slot_empty(*index as usize))
         .unwrap_or(0);
     if !ad.signing.multisig.creating.set_cosigner(key_index as usize, &parts) {
-        sound::error(); return;
+        sound::error();
+        return;
     }
     log!("   → multisig kpub imported for key {}/{}", key_index + 1, ad.signing.multisig.creating.n);
     sound::qr_decoded();
@@ -70,10 +68,7 @@ fn import_multisig_cosigner(
     crate::runtime::effects::redraw(ad);
 }
 
-fn store_scanned_account_key(
-    payload: &[u8; offline_signer::derivation::xpub::XPUB_PAYLOAD_LEN],
-    ad: &mut AppData,
-) {
+fn store_scanned_account_key(payload: &[u8; offline_signer::derivation::xpub::XPUB_PAYLOAD_LEN], ad: &mut AppData) {
     let mut encoded = [0u8; offline_signer::derivation::xpub::KPUB_MAX_LEN];
     let Ok(length) = offline_signer::derivation::xpub::encode_kpub_text(payload, &mut encoded) else {
         sound::error();

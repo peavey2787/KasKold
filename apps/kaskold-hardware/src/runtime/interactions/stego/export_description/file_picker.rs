@@ -1,6 +1,6 @@
 use crate::{
-    runtime::interactions::text_files::{self, TextFileSelectionContext, TextFileSelectionWorkflow},
     runtime::data::AppData,
+    runtime::interactions::text_files::{self, TextFileSelectionContext, TextFileSelectionWorkflow},
 };
 
 pub(super) fn handle(context: TextFileSelectionContext<'_, '_, '_>) -> bool {

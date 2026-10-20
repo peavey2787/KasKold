@@ -1,10 +1,9 @@
 use crate::hw::{display, touch};
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use crate::runtime::data::AppData;
 use crate::runtime::input::AppState;
+use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 
 use super::common::{prepare_signing_addresses, require_seed, selected_item};
-
 
 pub(super) fn handle_pure(
     ad: &mut AppData,
@@ -25,9 +24,7 @@ pub(super) fn handle_pure(
     }
     use crate::runtime::interactions::menu_selection::{handle_paged_menu_touch, PagedMenuAction};
     if matches!(
-        handle_paged_menu_touch(
-            &mut ad.navigation.single_sig_menu, list_zones, page_up, page_down, x, y,
-        ),
+        handle_paged_menu_touch(&mut ad.navigation.single_sig_menu, list_zones, page_up, page_down, x, y,),
         PagedMenuAction::PageChanged
     ) {
         return Some(true);
@@ -99,40 +96,27 @@ pub(super) fn handle(
         return false;
     };
     match item {
-        0 => {
-            match prepare_signing_addresses(ad, boot_display, liveness) {
-                Ok(()) => { let _ = crate::runtime::effects::menu_select(ad, 0); },
-                Err(message) => {
-                    show_rejection(
-                        boot_display,
-                        delay,
-                        message,
-                        1500,
-                        ErrorSound::Beep,
-                    );
-                }
+        0 => match prepare_signing_addresses(ad, boot_display, liveness) {
+            Ok(()) => {
+                let _ = crate::runtime::effects::menu_select(ad, 0);
             }
-        }
+            Err(message) => {
+                show_rejection(boot_display, delay, message, 1500, ErrorSound::Beep);
+            }
+        },
         1 if require_seed(ad, boot_display, delay) => {
             ad.wallet.seeds.pp_input.reset();
             ad.signing.message.payload_len = 0;
             let _ = crate::runtime::effects::menu_select(ad, 1);
         }
         2 if require_seed(ad, boot_display, delay) => {
-            let mnemonic_loaded = ad.wallet.seeds.seed_mgr.active_slot()
-                .map(|slot| slot.is_mnemonic())
-                .unwrap_or(false);
+            let mnemonic_loaded =
+                ad.wallet.seeds.seed_mgr.active_slot().map(|slot| slot.is_mnemonic()).unwrap_or(false);
             if mnemonic_loaded {
                 ad.signing.covenant.reset();
                 let _ = crate::runtime::effects::menu_select(ad, 2);
             } else {
-                show_rejection(
-                    boot_display,
-                    delay,
-                    "Covenant signing requires mnemonic",
-                    1800,
-                    ErrorSound::Beep,
-                );
+                show_rejection(boot_display, delay, "Covenant signing requires mnemonic", 1800, ErrorSound::Beep);
             }
         }
         3 if require_seed(ad, boot_display, delay) => {

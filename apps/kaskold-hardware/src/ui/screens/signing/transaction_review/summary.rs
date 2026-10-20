@@ -1,8 +1,7 @@
 //! Transaction review summary.
 use super::{
-    BootDisplay, COLOR_HINT, COLOR_ORANGE, COLOR_TEXT, Drawable, KASPA_ACCENT, KASPA_TEAL,
-    Line, Point, Primitive, PrimitiveStyle, draw_lato_body, draw_lato_title, draw_oswald_header,
-    measure_body, measure_header, measure_title,
+    draw_lato_body, draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_title, BootDisplay,
+    Drawable, Line, Point, Primitive, PrimitiveStyle, COLOR_HINT, COLOR_ORANGE, COLOR_TEXT, KASPA_ACCENT, KASPA_TEAL,
 };
 use core::fmt::Write;
 
@@ -16,7 +15,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, "TX REVIEW", (320 - tw) / 2, 28, COLOR_TEXT);
         Line::new(Point::new(20, 43), Point::new(300, 43))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         let Ok(totals) = crate::runtime::signing::transaction_review_totals(tx, ownership) else {
             self.draw_tx_error_screen("Invalid transaction", "Invalid monetary totals");
@@ -26,13 +26,20 @@ impl<'a> BootDisplay<'a> {
         centered_body(self, tx.network.label(), 64, KASPA_ACCENT);
 
         let mut line = heapless::String::<40>::new();
-        write!(&mut line, "Send: {}.{:08} KAS", totals.external_total / 100_000_000, totals.external_total % 100_000_000).ok();
+        write!(
+            &mut line,
+            "Send: {}.{:08} KAS",
+            totals.external_total / 100_000_000,
+            totals.external_total % 100_000_000
+        )
+        .ok();
         centered_body(self, line.as_str(), 88, COLOR_TEXT);
         line.clear();
         write!(&mut line, "Fee: {}.{:08} KAS", totals.fee / 100_000_000, totals.fee % 100_000_000).ok();
         centered_body(self, line.as_str(), 111, COLOR_ORANGE);
         line.clear();
-        write!(&mut line, "Change: {}.{:08} KAS", totals.change_total / 100_000_000, totals.change_total % 100_000_000).ok();
+        write!(&mut line, "Change: {}.{:08} KAS", totals.change_total / 100_000_000, totals.change_total % 100_000_000)
+            .ok();
         centered_body(self, line.as_str(), 134, KASPA_TEAL);
         line.clear();
         write!(&mut line, "Inputs: {}   Outputs: {}", tx.num_inputs, tx.num_outputs).ok();
@@ -43,14 +50,10 @@ impl<'a> BootDisplay<'a> {
     }
 }
 
-fn draw_transaction_class(
-    display: &mut BootDisplay<'_>,
-    tx: &offline_signer::transaction::model::Transaction,
-    y: i32,
-) {
+fn draw_transaction_class(display: &mut BootDisplay<'_>, tx: &offline_signer::transaction::model::Transaction, y: i32) {
     // A KRC-20 reveal carries its Kasplex envelope in an input's redeem script.
-    let krc20 = (0..tx.num_inputs)
-        .find_map(|index| offline_signer::contract::krc20::krc20_operation(tx.redeem_bytes(index)));
+    let krc20 =
+        (0..tx.num_inputs).find_map(|index| offline_signer::contract::krc20::krc20_operation(tx.redeem_bytes(index)));
     if let Some(krc20) = krc20 {
         let mut text = heapless::String::<48>::new();
         write!(&mut text, "KRC-20 {} {}", krc20.op.label(), krc20.ticker).ok();
@@ -59,7 +62,9 @@ fn draw_transaction_class(
     }
 
     use offline_signer::transaction::model::{detect_script_type, parse_multisig_script, ScriptType};
-    let Some(first_input) = tx.inputs().first() else { return; };
+    let Some(first_input) = tx.inputs().first() else {
+        return;
+    };
     let script = &first_input.utxo_entry.script_public_key;
     let script_type = detect_script_type(&script.script, script.script_len);
     if script_type == ScriptType::Multisig {
@@ -77,7 +82,9 @@ fn draw_transaction_class(
 }
 
 fn draw_payload_check(display: &mut BootDisplay<'_>, tx: &offline_signer::transaction::model::Transaction) {
-    if tx.payload.is_empty() { return; }
+    if tx.payload.is_empty() {
+        return;
+    }
     use sha2::{Digest, Sha256};
     let hash = Sha256::digest(&tx.payload);
     let hex = b"0123456789abcdef";

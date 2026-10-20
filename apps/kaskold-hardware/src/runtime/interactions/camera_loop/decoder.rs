@@ -4,20 +4,18 @@
 
 //! QR image decoding and confirmed-result routing.
 
-use super::{AppData, Vec, display, sound};
 use super::dispatch::process_confirmed_qr;
 use super::multiframe::{is_multiframe, process_multiframe};
 use super::state::CameraSessionState;
 use super::timing::systick;
+use super::{display, sound, AppData, Vec};
 
 /// Decode QR codes from a grayscale image using rqrr.
 /// Returns `(version, raw_bytes)` for each detected QR.
 #[inline(never)]
 pub(super) fn rqrr_decode(gray: &[u8], w: usize, h: usize) -> Vec<(u8, Vec<u8>)> {
     let t0 = systick();
-    let mut img = rqrr::PreparedImage::prepare_from_greyscale(w, h, |x, y| {
-        gray[y * w + x]
-    });
+    let mut img = rqrr::PreparedImage::prepare_from_greyscale(w, h, |x, y| gray[y * w + x]);
     let t1 = systick();
 
     let grids = img.detect_grids();
@@ -65,15 +63,14 @@ pub(super) fn handle_decode_result(
         session.decoder.guide_version = ver;
     }
 
-
     if is_multiframe(decoded, len) {
         process_multiframe(session, decoded, len, ad, boot_display, delay, i2c, liveness);
         return;
     }
 
-    if matches!(ad.navigation.app.state,
-        crate::runtime::input::AppState::PassphraseChoice
-            | crate::runtime::input::AppState::PassphraseEntry
+    if matches!(
+        ad.navigation.app.state,
+        crate::runtime::input::AppState::PassphraseChoice | crate::runtime::input::AppState::PassphraseEntry
     ) {
         return;
     }

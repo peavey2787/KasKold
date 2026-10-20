@@ -22,14 +22,8 @@ fuzz_target!(|data: &[u8]| {
             TxInputFormat::PsktSingle
         };
         let mut canonical = [0u8; 32_768];
-        let written = serialize_pskt(
-            &transaction,
-            &parsed,
-            &scratch,
-            format,
-            &mut canonical,
-        )
-        .expect("every accepted PSKT must serialize canonically");
+        let written = serialize_pskt(&transaction, &parsed, &scratch, format, &mut canonical)
+            .expect("every accepted PSKT must serialize canonically");
 
         let mut second_scratch = [0u8; 8_192];
         let Ok(mut second_transaction) = Transaction::try_new() else {

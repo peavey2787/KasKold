@@ -1,8 +1,8 @@
 use super::Fat32Info;
 
 pub(super) fn parse_boot_sector(sector: &[u8; 512]) -> Result<Fat32Info, &'static str> {
-    let parsed = kaskold_hardware_core::storage::fat32_metadata::parse_boot_sector(sector)
-        .map_err(|error| error.message())?;
+    let parsed =
+        kaskold_hardware_core::storage::fat32_metadata::parse_boot_sector(sector).map_err(|error| error.message())?;
     Ok(Fat32Info {
         sectors_per_cluster: parsed.sectors_per_cluster,
         num_fats: parsed.num_fats,

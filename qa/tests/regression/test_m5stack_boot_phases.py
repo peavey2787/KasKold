@@ -1,7 +1,10 @@
+import sys
 from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "qa/checks"))
+from firmware.source_contract_support import flat  # noqa: E402
 BOOT = ROOT / "apps/kaskold-hardware/src/boot/m5stack"
 
 
@@ -153,18 +156,18 @@ class M5StackBootPhaseTests(unittest.TestCase):
         runner = (ROOT / "apps/kaskold-hardware/src/runtime/event_loop/runner.rs").read_text()
         self.assertIn(
             '#[cfg(not(feature = "workflow-test-auto"))] let mut delay = delay;',
-            runner,
+            flat(runner),
         )
         self.assertNotIn(
             '#[cfg(all(feature = "m5stack", feature = "workflow-test-auto"))] let delay = delay;',
-            runner,
+            flat(runner),
         )
         self.assertIn(
-            'workflow_auto::run(\n        ad, boot_display, i2c, sd_card_type, delay,',
-            runner,
+            'workflow_auto::run(ad, boot_display, i2c, sd_card_type, delay,',
+            flat(runner),
         )
-        self.assertNotIn('#[cfg(feature = "m5stack")] let delay = delay;', runner)
-        self.assertNotIn('#[cfg(feature = "m5stack")] let mut delay = delay;', runner)
+        self.assertNotIn('#[cfg(feature = "m5stack")] let delay = delay;', flat(runner))
+        self.assertNotIn('#[cfg(feature = "m5stack")] let mut delay = delay;', flat(runner))
 
     def test_startup_screen_is_rendered_before_touch_loop(self) -> None:
         runner = (ROOT / "apps/kaskold-hardware/src/runtime/event_loop/runner.rs").read_text()

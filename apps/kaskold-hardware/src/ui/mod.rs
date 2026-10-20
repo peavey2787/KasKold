@@ -18,9 +18,9 @@
 
 #![cfg_attr(feature = "hardware-tests", allow(dead_code))]
 pub mod display;
-pub mod redraw;
-mod runtime_evidence;
 pub mod keyboard;
 pub(crate) mod layout;
 pub mod prop_fonts;
+pub mod redraw;
+mod runtime_evidence;
 pub mod screens;

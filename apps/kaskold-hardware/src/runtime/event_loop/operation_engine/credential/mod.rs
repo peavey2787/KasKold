@@ -70,7 +70,9 @@ impl CredentialDriver {
             }
         }
         let step = {
-            let Some(task) = self.task.as_mut() else { return; };
+            let Some(task) = self.task.as_mut() else {
+                return;
+            };
             task.step(ad, persistence, display, delay, i2c, liveness)
         };
         match step {

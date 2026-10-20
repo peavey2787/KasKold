@@ -1,10 +1,14 @@
+use super::QrContext;
 use alloc::vec;
 use kaskold_hardware_core::qr::classification::{classify_qr_payload, QrPayloadKind};
-use super::QrContext;
 
 pub(super) fn exercise(ctx: &mut QrContext<'_, '_, '_>) -> bool {
-    let Some(anti) = anti_request(ctx) else { return false; };
-    let Some(pairing) = pairing_request() else { return false; };
+    let Some(anti) = anti_request(ctx) else {
+        return false;
+    };
+    let Some(pairing) = pairing_request() else {
+        return false;
+    };
     let mut firmware = vec![0u8; kaskold_hardware_core::update::manifest::MANIFEST_LEN];
     firmware[..4].copy_from_slice(b"KSFU");
     let cov_sign_raw = [b'C', b'V', b'R', b'V', shared_signer::covenant_sign::VERSION];
@@ -17,7 +21,13 @@ pub(super) fn exercise(ctx: &mut QrContext<'_, '_, '_>) -> bool {
         (b"PSKT", QrPayloadKind::StandardPskt),
         (b"000000000000000000000000000000000000000000000000", QrPayloadKind::SeedQr),
         (&[0u8; 16], QrPayloadKind::RawSeedEntropy),
-        (&[b'S', b'T', b'L', b'H', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], QrPayloadKind::StealthRequest),
+        (
+            &[
+                b'S', b'T', b'L', b'H', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0,
+            ],
+            QrPayloadKind::StealthRequest,
+        ),
         (&firmware, QrPayloadKind::FirmwareUpdate),
         (b"COVB\x01", QrPayloadKind::CovenantRaw),
         (b"434f564200", QrPayloadKind::CovenantHex),
@@ -36,23 +46,21 @@ pub(super) fn exercise(ctx: &mut QrContext<'_, '_, '_>) -> bool {
     let malformed = [b"KSPT\x03".as_slice(), b"KAKP\xff".as_slice(), b"KSFU".as_slice()];
     if classify_qr_payload(&oversized, usize::MAX) != QrPayloadKind::Unknown
         || malformed.iter().any(|wire| classify_qr_payload(wire, usize::MAX) != QrPayloadKind::Unknown)
-    { return false; }
-    if !stealth_request_boundaries() { return false; }
+    {
+        return false;
+    }
+    if !stealth_request_boundaries() {
+        return false;
+    }
     log!("KASKOLD_WORKFLOW_TESTS: QR CLASSIFIER 16/16 + MALFORMED/OVERSIZED PASS");
     true
 }
 
 fn pairing_request() -> Option<[u8; shared_signer::pairing::REQUEST_LEN]> {
-    let request = shared_signer::pairing::AddressBatchRequest::new(
-        [0xA5; shared_signer::pairing::NONCE_LEN],
-        0,
-        20,
-        0,
-        20,
-    );
+    let request =
+        shared_signer::pairing::AddressBatchRequest::new([0xA5; shared_signer::pairing::NONCE_LEN], 0, 20, 0, 20);
     let mut wire = [0u8; shared_signer::pairing::REQUEST_LEN];
-    (shared_signer::pairing::encode_request(request, &mut wire)
-        == Ok(shared_signer::pairing::REQUEST_LEN))
+    (shared_signer::pairing::encode_request(request, &mut wire) == Ok(shared_signer::pairing::REQUEST_LEN))
         .then_some(wire)
 }
 
@@ -71,24 +79,24 @@ fn stealth_request_boundaries() -> bool {
     let truncated = request(2);
     let too_short = [b'S', b'T', b'L', b'H'];
 
-    let valid = crate::runtime::interactions::camera_loop::workflow_validate_stealth_request(
-        &minimum, minimum.len(),
-    ) == Ok(1)
+    let valid = crate::runtime::interactions::camera_loop::workflow_validate_stealth_request(&minimum, minimum.len())
+        == Ok(1)
+        && crate::runtime::interactions::camera_loop::workflow_validate_stealth_request(&maximum, maximum.len())
+            == Ok(64);
+    let invalid = crate::runtime::interactions::camera_loop::workflow_validate_stealth_request(&zero, zero.len())
+        .is_err()
         && crate::runtime::interactions::camera_loop::workflow_validate_stealth_request(
-            &maximum, maximum.len(),
-        ) == Ok(64);
-    let invalid = crate::runtime::interactions::camera_loop::workflow_validate_stealth_request(
-        &zero, zero.len(),
-    ).is_err()
+            &above_maximum,
+            above_maximum.len(),
+        )
+        .is_err()
         && crate::runtime::interactions::camera_loop::workflow_validate_stealth_request(
-            &above_maximum, above_maximum.len(),
-        ).is_err()
-        && crate::runtime::interactions::camera_loop::workflow_validate_stealth_request(
-            &truncated, truncated.len().saturating_sub(1),
-        ).is_err()
-        && crate::runtime::interactions::camera_loop::workflow_validate_stealth_request(
-            &too_short, too_short.len(),
-        ).is_err();
+            &truncated,
+            truncated.len().saturating_sub(1),
+        )
+        .is_err()
+        && crate::runtime::interactions::camera_loop::workflow_validate_stealth_request(&too_short, too_short.len())
+            .is_err();
     if valid && invalid {
         log!("KASKOLD_WORKFLOW_TESTS: STEALTH REQUEST MIN/MAX/INVALID-COUNT/LENGTH PASS");
         true
@@ -98,10 +106,7 @@ fn stealth_request_boundaries() -> bool {
 }
 
 fn anti_request(ctx: &QrContext<'_, '_, '_>) -> Option<alloc::vec::Vec<u8>> {
-    let tx = super::super::signing::fixture::wire(
-        ctx.ad,
-        super::super::signing::fixture::WireFormat::CompactKspt,
-    )?;
+    let tx = super::super::signing::fixture::wire(ctx.ad, super::super::signing::fixture::WireFormat::CompactKspt)?;
     let mut output = vec![0u8; tx.len().saturating_add(192)];
     let len = shared_signer::anti_klepto::encode_request(&[0x33; 32], &tx, &mut output).ok()?;
     output.truncate(len);

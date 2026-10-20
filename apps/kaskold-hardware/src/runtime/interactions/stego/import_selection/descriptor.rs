@@ -1,6 +1,6 @@
-use super::super::{AppData, display};
-use crate::{
-    runtime::interactions::text_files::{self, TextFileScanWorkflow, TextFileSelectionContext, TextFileSelectionWorkflow},
+use super::super::{display, AppData};
+use crate::runtime::interactions::text_files::{
+    self, TextFileScanWorkflow, TextFileSelectionContext, TextFileSelectionWorkflow,
 };
 
 pub(super) fn handle_choice(

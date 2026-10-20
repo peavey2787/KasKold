@@ -8,7 +8,9 @@ const HEALTHY_DISTINCT_PCT: u32 = 60;
 fn mark_seen(seen: &mut [u32; 8], value: u8) -> bool {
     let word = usize::from(value >> 5);
     let bit = 1u32 << (value & 0x1f);
-    if seen[word] & bit != 0 { return false; }
+    if seen[word] & bit != 0 {
+        return false;
+    }
     seen[word] |= bit;
     true
 }
@@ -27,7 +29,9 @@ pub(crate) fn axis_distinct(bytes: &[u8]) -> [u32; 3] {
 /// Require independent diversity on every gyro axis at the point of use.
 pub(crate) fn buffer_is_healthy(bytes: &[u8]) -> bool {
     let per_axis = (bytes.len() / 3) as u32;
-    if per_axis < 4 || bytes.len() % 3 != 0 { return false; }
+    if per_axis < 4 || bytes.len() % 3 != 0 {
+        return false;
+    }
     let required = per_axis * HEALTHY_DISTINCT_PCT / 100;
     axis_distinct(bytes).into_iter().all(|count| count >= required)
 }

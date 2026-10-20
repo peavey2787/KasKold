@@ -1,9 +1,6 @@
 //! Shared bounded discovery and complete-file reading for SD-card content.
 
-use crate::{
-    hw::sdcard,
-    runtime::data::TextFileList,
-};
+use crate::{hw::sdcard, runtime::data::TextFileList};
 
 const MAX_FILES: usize = 8;
 
@@ -65,8 +62,7 @@ pub fn scan_jpeg_files(
             }
             let extension = &entry.name[8..11];
             let hidden = matches!(entry.name[0], b'.' | b'_' | 0xE5);
-            let jpeg = extension.eq_ignore_ascii_case(b"JPG")
-                || extension.eq_ignore_ascii_case(b"JPE");
+            let jpeg = extension.eq_ignore_ascii_case(b"JPG") || extension.eq_ignore_ascii_case(b"JPE");
             if hidden || !jpeg {
                 return true;
             }
@@ -98,18 +94,12 @@ pub fn scan_short_name_files(
         let fat32 = sdcard::mount_fat32(card)?;
         sdcard::list_root_dir(card, &fat32, |entry| {
             let index = *file_count as usize;
-            if entry.is_dir()
-                || entry.file_size == 0
-                || entry.file_size > maximum_size
-                || index >= MAX_FILES
-            {
+            if entry.is_dir() || entry.file_size == 0 || entry.file_size > maximum_size || index >= MAX_FILES {
                 return true;
             }
             let hidden = matches!(entry.name[0], b'.' | b'_' | 0xE5);
             let extension = [entry.name[8], entry.name[9], entry.name[10]];
-            let matches_extension = extensions
-                .iter()
-                .any(|candidate| extension.eq_ignore_ascii_case(candidate));
+            let matches_extension = extensions.iter().any(|candidate| extension.eq_ignore_ascii_case(candidate));
             if (exclude_hidden && hidden) || !matches_extension {
                 return true;
             }
@@ -130,11 +120,7 @@ fn capture_text_file(
     display_len: usize,
 ) -> bool {
     let index = files.file_count as usize;
-    if entry.is_dir()
-        || entry.file_size == 0
-        || entry.file_size > maximum_size
-        || index >= MAX_FILES
-    {
+    if entry.is_dir() || entry.file_size == 0 || entry.file_size > maximum_size || index >= MAX_FILES {
         return true;
     }
 
@@ -166,11 +152,7 @@ fn normalize_text_content(output: &mut [u8], length: usize) -> Result<usize, &'s
         return Err("Text file exceeds buffer");
     }
 
-    let start = if length >= 3 && output[..3] == [0xEF, 0xBB, 0xBF] {
-        3
-    } else {
-        0
-    };
+    let start = if length >= 3 && output[..3] == [0xEF, 0xBB, 0xBF] { 3 } else { 0 };
     let mut end = length;
     while end > start && matches!(output[end - 1], b'\n' | b'\r' | b' ' | b'\t' | 0) {
         end -= 1;

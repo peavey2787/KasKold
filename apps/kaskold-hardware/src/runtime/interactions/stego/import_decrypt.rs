@@ -1,13 +1,13 @@
 // KasKold — Air-gapped offline signing device for Kaspa
 // License: GPL-3.0-or-later.
 
-use super::{AppData, display, sdcard, sound, stego};
+use super::{display, sdcard, sound, stego, AppData};
 use crate::{
+    runtime::input::AppState,
     runtime::interactions::{
         feedback::{show_rejection, show_success, ErrorSound},
         keyboard::{handle_passphrase_keyboard, KeyboardAction},
     },
-    runtime::input::AppState,
     services::backup::BackupDevice,
 };
 use shared_signer::{bytes::zeroize_bytes, bytes::zeroize_u16};
@@ -24,9 +24,9 @@ pub(super) fn handle(
     is_back: bool,
 ) -> Option<bool> {
     match ad.navigation.app.state {
-        AppState::StegoImportPass => handle_descriptor_entry(
-            ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back,
-        ),
+        AppState::StegoImportPass => {
+            handle_descriptor_entry(ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back)
+        }
         AppState::StegoImportPortablePassword => {
             handle_portable_password(ad, boot_display, delay, liveness, i2c, x, y, is_back)
         }
@@ -82,8 +82,7 @@ fn identify_and_open(
         return true;
     }
     ad.stego.import.clear_descriptor();
-    ad.stego.import.descriptor_buf[..descriptor_len]
-        .copy_from_slice(&ad.wallet.seeds.pp_input.buf[..descriptor_len]);
+    ad.stego.import.descriptor_buf[..descriptor_len].copy_from_slice(&ad.wallet.seeds.pp_input.buf[..descriptor_len]);
     ad.stego.import.descriptor_len = descriptor_len;
     ad.wallet.seeds.pp_input.reset();
     ad.stego.import.carrier = None;
@@ -99,8 +98,7 @@ fn identify_and_open(
             return true;
         }
         fallback_len = ad.stego.import.embedded_payload_len;
-        fallback_payload[..fallback_len]
-            .copy_from_slice(&ad.stego.import.embedded_payload[..fallback_len]);
+        fallback_payload[..fallback_len].copy_from_slice(&ad.stego.import.embedded_payload[..fallback_len]);
         fallback_carrier = Some(stego::StegoCarrier::Descriptor);
     }
 
@@ -110,7 +108,8 @@ fn identify_and_open(
         jpeg.as_bytes(),
         &ad.stego.import.descriptor_buf[..descriptor_len],
         &mut ad.stego.import.embedded_payload,
-    ).unwrap_or(0);
+    )
+    .unwrap_or(0);
     if ad.stego.import.embedded_payload_len == stego::STEGO_PAYLOAD_SIZE {
         if open_device_bound(ad, boot_display, delay, stego::StegoCarrier::Picture, backup_device) {
             liveness();
@@ -126,8 +125,7 @@ fn identify_and_open(
     if let Some(carrier) = fallback_carrier {
         if carrier == stego::StegoCarrier::Descriptor {
             zeroize_bytes(&mut ad.stego.import.embedded_payload);
-            ad.stego.import.embedded_payload[..fallback_len]
-                .copy_from_slice(&fallback_payload[..fallback_len]);
+            ad.stego.import.embedded_payload[..fallback_len].copy_from_slice(&fallback_payload[..fallback_len]);
             ad.stego.import.embedded_payload_len = fallback_len;
         }
         zeroize_bytes(&mut fallback_payload);
@@ -164,9 +162,9 @@ fn handle_portable_password(
         KeyboardAction::Edited => true,
         KeyboardAction::Submitted => {
             let password_len = ad.wallet.seeds.pp_input.len;
-            if let Err(message) = stego::validate_entered_portable_password(
-                &ad.wallet.seeds.pp_input.buf[..password_len],
-            ) {
+            if let Err(message) =
+                stego::validate_entered_portable_password(&ad.wallet.seeds.pp_input.buf[..password_len])
+            {
                 show_rejection(boot_display, delay, message, 1_700, ErrorSound::Beep);
                 return Some(true);
             }
@@ -194,7 +192,9 @@ fn read_selected_image(
         let fat32 = sdcard::mount_fat32(card)?;
         let (entry, _, _) = sdcard::find_file_in_root(card, &fat32, &filename)?;
         let size = entry.file_size as usize;
-        if size == 0 || size > 2_000_000 { return Err("JPEG size unsupported"); }
+        if size == 0 || size > 2_000_000 {
+            return Err("JPEG size unsupported");
+        }
         const IMPORT_HEADROOM: usize = 1_310_720;
         let mut jpeg = crate::services::memory::psram::PsramAllocation::allocate_with_reserve(size, 8, IMPORT_HEADROOM)
             .map_err(|_| "Not enough PSRAM for JPEG import")?;
@@ -209,11 +209,10 @@ fn read_selected_image(
 fn extract_descriptor_payload(ad: &mut AppData, jpeg: &[u8]) -> bool {
     zeroize_bytes(&mut ad.stego.import.embedded_payload);
     ad.stego.import.embedded_payload_len = 0;
-    let Some((offset, length)) = stego::find_exif_app1(jpeg) else { return false; };
-    let extracted = stego::extract_user_comment(
-        &jpeg[offset..offset + length],
-        &mut ad.stego.import.embedded_payload,
-    );
+    let Some((offset, length)) = stego::find_exif_app1(jpeg) else {
+        return false;
+    };
+    let extracted = stego::extract_user_comment(&jpeg[offset..offset + length], &mut ad.stego.import.embedded_payload);
     ad.stego.import.embedded_payload_len = extracted;
     extracted == stego::STEGO_PAYLOAD_SIZE
 }
@@ -246,7 +245,9 @@ fn try_alternate_picture_portable(
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
 ) -> bool {
-    if ad.stego.import.carrier != Some(stego::StegoCarrier::Descriptor) { return false; }
+    if ad.stego.import.carrier != Some(stego::StegoCarrier::Descriptor) {
+        return false;
+    }
     let mut descriptor_payload = [0u8; 256];
     let descriptor_payload_len = ad.stego.import.embedded_payload_len;
     descriptor_payload[..descriptor_payload_len]
@@ -264,11 +265,10 @@ fn try_alternate_picture_portable(
         jpeg.as_bytes(),
         &ad.stego.import.descriptor_buf[..ad.stego.import.descriptor_len],
         &mut ad.stego.import.embedded_payload,
-    ).unwrap_or(0);
+    )
+    .unwrap_or(0);
     ad.stego.import.carrier = Some(stego::StegoCarrier::Picture);
-    if ad.stego.import.embedded_payload_len == stego::STEGO_PAYLOAD_SIZE
-        && open_portable(ad, boot_display, delay)
-    {
+    if ad.stego.import.embedded_payload_len == stego::STEGO_PAYLOAD_SIZE && open_portable(ad, boot_display, delay) {
         zeroize_bytes(&mut descriptor_payload);
         return true;
     }
@@ -286,7 +286,9 @@ fn open_portable(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
 ) -> bool {
-    let Some(carrier) = ad.stego.import.carrier else { return false; };
+    let Some(carrier) = ad.stego.import.carrier else {
+        return false;
+    };
     let descriptor_len = ad.stego.import.descriptor_len;
     let mut indices = [0u16; 24];
     let mut hint = [0u8; 64];
@@ -299,7 +301,9 @@ fn open_portable(
         &mut hint,
     );
     let opened = commit_recovery(ad, boot_display, delay, carrier, result, &mut indices, &mut hint);
-    if opened { clear_import_secret(ad); }
+    if opened {
+        clear_import_secret(ad);
+    }
     opened
 }
 
@@ -340,11 +344,7 @@ fn clear_import_secret(ad: &mut AppData) {
     ad.stego.import.embedded_payload_len = 0;
 }
 
-fn finish_recovery(
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-) {
+fn finish_recovery(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, delay: &mut esp_hal::delay::Delay) {
     if ad.stego.import.recovered_hint_len > 0 {
         sound::success();
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoHintReveal));
@@ -355,12 +355,9 @@ fn finish_recovery(
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(PassphraseChoice));
         return;
     }
-    if let Some(slot) = ad.wallet.seeds.seed_mgr.store(
-        &ad.wallet.seeds.mnemonic_indices,
-        ad.wallet.seeds.word_count,
-        &[],
-        0,
-    ) {
+    if let Some(slot) =
+        ad.wallet.seeds.seed_mgr.store(&ad.wallet.seeds.mnemonic_indices, ad.wallet.seeds.word_count, &[], 0)
+    {
         match crate::services::wallet_session::activate_slot(ad, slot) {
             Ok(()) => show_success(boot_display, delay, "Seed Recovered!", 2_000),
             Err(error) => show_rejection(boot_display, delay, error.message(), 2_000, ErrorSound::Beep),

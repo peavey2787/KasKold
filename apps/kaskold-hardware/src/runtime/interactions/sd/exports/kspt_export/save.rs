@@ -1,11 +1,9 @@
 //! Encrypt and save the payload selected by an explicit export operation.
 
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound, show_success};
-use super::super::super::{
-    AppData, display, generate_trng_nonce, sdcard, sound, write_file_to_sd,
-};
+use super::super::super::{display, generate_trng_nonce, sdcard, sound, write_file_to_sd, AppData};
 use super::navigation::finish_operation;
 use crate::runtime::data::EncryptedFileOperation;
+use crate::runtime::interactions::feedback::{show_rejection, show_success, ErrorSound};
 
 pub(super) fn save_encrypted_payload(
     ad: &mut AppData,
@@ -14,12 +12,7 @@ pub(super) fn save_encrypted_payload(
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     operation: EncryptedFileOperation,
 ) {
-    let EncryptedFileOperation::Export {
-        filename,
-        success_state,
-        ..
-    } = operation
-    else {
+    let EncryptedFileOperation::Export { filename, success_state, .. } = operation else {
         return;
     };
 
@@ -46,9 +39,8 @@ pub(super) fn save_encrypted_payload(
         return;
     };
     boot_display.update_progress_bar(10);
-    let encryption_result = super::crypto::seal_envelope(
-        &ad.qr.outgoing.buffer[..data_len], passphrase, &salt, &nonce, &mut encrypted,
-    );
+    let encryption_result =
+        super::crypto::seal_envelope(&ad.qr.outgoing.buffer[..data_len], passphrase, &salt, &nonce, &mut encrypted);
     shared_signer::bytes::zeroize_bytes(&mut salt);
     let encrypted_size = encryption_result.as_ref().copied().unwrap_or_default();
 

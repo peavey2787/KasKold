@@ -1,10 +1,10 @@
 //! Transaction-review output rendering using signer-verified ownership.
 use super::{
-    BootDisplay, COLOR_ORANGE, COLOR_TEXT, COLOR_TEXT_DIM, Drawable, KASPA_TEAL, Line, Point,
-    Primitive, PrimitiveStyle, draw_lato_title, draw_oswald_header, measure_header, measure_title,
+    draw_lato_title, draw_oswald_header, measure_header, measure_title, BootDisplay, Drawable, Line, Point, Primitive,
+    PrimitiveStyle, COLOR_ORANGE, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_TEAL,
 };
-use core::fmt::Write;
 use crate::runtime::data::OutputOwnership;
+use core::fmt::Write;
 
 impl<'a> BootDisplay<'a> {
     pub(super) fn draw_tx_output(
@@ -14,7 +14,9 @@ impl<'a> BootDisplay<'a> {
         ownership: OutputOwnership,
     ) {
         let output_index = usize::from(page - 1);
-        if output_index >= transaction.num_outputs { return; }
+        if output_index >= transaction.num_outputs {
+            return;
+        }
         let output = &transaction.outputs[output_index];
         self.draw_output_heading(output_index, ownership);
         self.draw_output_amount(output.value, ownership);
@@ -34,7 +36,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, title.as_str(), (320 - width) / 2, 30, color);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
     }
 
     fn draw_output_amount(&mut self, value: u64, ownership: OutputOwnership) {

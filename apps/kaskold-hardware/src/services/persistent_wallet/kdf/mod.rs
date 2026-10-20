@@ -3,8 +3,8 @@
 //! KasKold has no pre-production PBKDF2 compatibility reader. Persisted wallet
 //! records authenticate explicit Argon2id parameters and unsupported formats fail closed.
 
-use offline_signer::crypto::password_kdf::{self, PasswordKdfParams, PasswordKdfPurpose};
 use crate::services::credential_policy::SALT_SIZE;
+use offline_signer::crypto::password_kdf::{self, PasswordKdfParams, PasswordKdfPurpose};
 
 use super::PersistError;
 
@@ -33,13 +33,9 @@ pub(super) fn derive(
     liveness: &mut (impl FnMut() + ?Sized),
 ) -> Result<[u8; 32], PersistError> {
     liveness();
-    let result = crate::services::memory::password_kdf::derive_key_32_with_params(
-        purpose,
-        secret,
-        salt,
-        kdf.parameters(),
-    )
-    .map_err(map_argon_error);
+    let result =
+        crate::services::memory::password_kdf::derive_key_32_with_params(purpose, secret, salt, kdf.parameters())
+            .map_err(map_argon_error);
     liveness();
     result
 }

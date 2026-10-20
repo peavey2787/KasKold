@@ -1,11 +1,11 @@
 use crate::{
-    runtime::interactions::{TouchInput, sd::SdTouchContext, stego::StegoTouchContext},
     hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
     runtime::input::AppState,
+    runtime::interactions::{sd::SdTouchContext, stego::StegoTouchContext, TouchInput},
 };
 
-use super::OnboardingContext;
 use super::super::backup::WorkflowBackupDevice;
+use super::OnboardingContext;
 
 mod qr;
 mod raw_key;
@@ -68,7 +68,8 @@ impl RestoreIo<'_, '_, '_> {
             ad: &mut *self.base.ad,
             boot_display: &mut *self.base.display,
             delay: &mut *self.base.delay,
-            liveness: &mut || {}, i2c: &mut *self.base.i2c,
+            liveness: &mut || {},
+            i2c: &mut *self.base.i2c,
             sd_card_type: self.base.sd,
             backup_device: &mut self.backup_device,
             list_zones: &self.list,
@@ -139,7 +140,9 @@ pub(super) fn begin_restore(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     if crate::runtime::interactions::persistence::workflow_handle_mode_choice(
         TouchInput::new(BUTTON_X, 142, false),
         ctx.base.ad,
-    ) != Some(true) || ctx.base.ad.navigation.app.state != AppState::StorageSeedSourceChoice {
+    ) != Some(true)
+        || ctx.base.ad.navigation.app.state != AppState::StorageSeedSourceChoice
+    {
         return false;
     }
     ctx.redraw_step();
@@ -152,15 +155,14 @@ pub(super) fn choose_no_passphrase(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
 }
 
 pub(super) fn finish_restored_session(ctx: &mut RestoreIo<'_, '_, '_>, word_count: u8) -> bool {
-    if ctx.base.ad.wallet.seeds.seed_loaded
-        || ctx.base.ad.navigation.app.state != AppState::StorageFinalizeChoice
-    {
+    if ctx.base.ad.wallet.seeds.seed_loaded || ctx.base.ad.navigation.app.state != AppState::StorageFinalizeChoice {
         return false;
     }
     if crate::runtime::interactions::persistence::workflow_handle_finalize_choice(
         TouchInput::new(BUTTON_X, 142, false),
         ctx.base.ad,
-    ) != Some(true) {
+    ) != Some(true)
+    {
         return false;
     }
     ctx.base.ad.wallet.seeds.seed_loaded

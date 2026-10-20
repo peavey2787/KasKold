@@ -7,9 +7,7 @@
 
 use crate::runtime::data::{AppData, PrivateSwapMode, PrivateSwapPhase};
 use sha2::{Digest, Sha256};
-use shared_signer::covenant_sign::private_swap::{
-    self as wire, PrivateSwapResponse, RequestKind, ResponseKind,
-};
+use shared_signer::covenant_sign::private_swap::{self as wire, PrivateSwapResponse, RequestKind, ResponseKind};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrivateSwapError {
@@ -48,7 +46,11 @@ impl PrivateSwapError {
     }
 }
 
-pub fn prepare_request(ad: &mut AppData, input: &[u8], checkpoint: &mut (impl FnMut() + ?Sized)) -> Result<(), PrivateSwapError> {
+pub fn prepare_request(
+    ad: &mut AppData,
+    input: &[u8],
+    checkpoint: &mut (impl FnMut() + ?Sized),
+) -> Result<(), PrivateSwapError> {
     let request = wire::parse_request(input).map_err(|_| PrivateSwapError::InvalidEnvelope)?;
     match request.kind {
         RequestKind::KeyInfo => prepare_key_info(ad, checkpoint),
@@ -60,23 +62,16 @@ pub fn prepare_request(ad: &mut AppData, input: &[u8], checkpoint: &mut (impl Fn
 
 fn prepare_key_info(ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Sized)) -> Result<(), PrivateSwapError> {
     let mut key_id = [0u8; 32];
-    crate::crypto::entropy::fill(&mut key_id)
-        .map_err(|_| PrivateSwapError::EntropyUnavailable)?;
+    crate::crypto::entropy::fill(&mut key_id).map_err(|_| PrivateSwapError::EntropyUnavailable)?;
     if key_id == [0; 32] {
         return Err(PrivateSwapError::EntropyUnavailable);
     }
     let mut seed = crate::services::wallet_keys::derive_active_seed_with_checkpoint(ad, checkpoint)
         .map_err(|_| PrivateSwapError::MnemonicRequired)?;
-    let pubkey = offline_signer::derivation::covenant::private_swap_public_key(
-        &seed.bytes,
-        &key_id,
-    )
-    .map_err(|_| PrivateSwapError::DerivationFailed)?;
-    let adaptor = offline_signer::derivation::covenant::private_swap_adaptor_point(
-        &seed.bytes,
-        &key_id,
-    )
-    .map_err(|_| PrivateSwapError::DerivationFailed)?;
+    let pubkey = offline_signer::derivation::covenant::private_swap_public_key(&seed.bytes, &key_id)
+        .map_err(|_| PrivateSwapError::DerivationFailed)?;
+    let adaptor = offline_signer::derivation::covenant::private_swap_adaptor_point(&seed.bytes, &key_id)
+        .map_err(|_| PrivateSwapError::DerivationFailed)?;
     crate::services::wallet_keys::zeroize_seed(&mut seed.bytes);
     let state = &mut ad.signing.private_swap;
     state.reset();
@@ -88,20 +83,13 @@ fn prepare_key_info(ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Sized)) 
     build_response(ad, ResponseKind::KeyInfo, [0; 64], false)
 }
 
-fn prepare_bind(
-    ad: &mut AppData,
-    request: &wire::PrivateSwapRequest<'_>,
-) -> Result<(), PrivateSwapError> {
+fn prepare_bind(ad: &mut AppData, request: &wire::PrivateSwapRequest<'_>) -> Result<(), PrivateSwapError> {
     let state = &ad.signing.private_swap;
-    if request.key_id != state.pending_key_id
-        || request.adaptor_point != state.pending_adaptor_point
-    {
+    if request.key_id != state.pending_key_id || request.adaptor_point != state.pending_adaptor_point {
         return Err(PrivateSwapError::BindingRequired);
     }
-    let policy = offline_signer::transaction::private_swap::parse_private_swap_script(
-        request.payload,
-    )
-    .map_err(|_| PrivateSwapError::InvalidScript)?;
+    let policy = offline_signer::transaction::private_swap::parse_private_swap_script(request.payload)
+        .map_err(|_| PrivateSwapError::InvalidScript)?;
     if policy.claimer_pubkey != state.pending_pubkey {
         return Err(PrivateSwapError::InvalidScript);
     }
@@ -149,24 +137,14 @@ fn prepare_presign(
 ) -> Result<(), PrivateSwapError> {
     let mut seed = crate::services::wallet_keys::derive_active_seed_with_checkpoint(ad, checkpoint)
         .map_err(|_| PrivateSwapError::MnemonicRequired)?;
-    let pubkey = offline_signer::derivation::covenant::private_swap_public_key(
-        &seed.bytes,
-        &request.key_id,
-    )
-    .map_err(|_| PrivateSwapError::DerivationFailed)?;
-    offline_signer::transaction::kspt::parse_compact_kspt(
-        request.payload,
-        &mut ad.signing.transaction.active,
-    )
-    .map_err(|_| PrivateSwapError::InvalidTransaction)?;
-    let (sighash, policy) =
-        offline_signer::transaction::private_swap::private_swap_claim_sighash(
-            &ad.signing.transaction.active,
-            &pubkey,
-        )
+    let pubkey = offline_signer::derivation::covenant::private_swap_public_key(&seed.bytes, &request.key_id)
+        .map_err(|_| PrivateSwapError::DerivationFailed)?;
+    offline_signer::transaction::kspt::parse_compact_kspt(request.payload, &mut ad.signing.transaction.active)
         .map_err(|_| PrivateSwapError::InvalidTransaction)?;
-    let script_hash: [u8; 32] =
-        Sha256::digest(ad.signing.transaction.active.redeem_bytes(0)).into();
+    let (sighash, policy) =
+        offline_signer::transaction::private_swap::private_swap_claim_sighash(&ad.signing.transaction.active, &pubkey)
+            .map_err(|_| PrivateSwapError::InvalidTransaction)?;
+    let script_hash: [u8; 32] = Sha256::digest(ad.signing.transaction.active.redeem_bytes(0)).into();
     let bound = offline_signer::derivation::covenant::private_swap_binding_matches(
         &seed.bytes,
         &request.key_id,
@@ -179,8 +157,7 @@ fn prepare_presign(
         return Err(PrivateSwapError::BindingMismatch);
     }
     let mut aux = [0u8; 32];
-    crate::crypto::entropy::fill(&mut aux)
-        .map_err(|_| PrivateSwapError::EntropyUnavailable)?;
+    crate::crypto::entropy::fill(&mut aux).map_err(|_| PrivateSwapError::EntropyUnavailable)?;
     let nonce = offline_signer::derivation::covenant::private_swap_adaptor_base_nonce_point(
         &seed.bytes,
         &request.key_id,
@@ -224,7 +201,11 @@ pub fn begin_presign(ad: &mut AppData) -> Result<(), PrivateSwapError> {
     build_response(ad, ResponseKind::Nonce, [0; 64], false)
 }
 
-pub fn finalize_reveal(ad: &mut AppData, input: &[u8], checkpoint: &mut (impl FnMut() + ?Sized)) -> Result<(), PrivateSwapError> {
+pub fn finalize_reveal(
+    ad: &mut AppData,
+    input: &[u8],
+    checkpoint: &mut (impl FnMut() + ?Sized),
+) -> Result<(), PrivateSwapError> {
     let mut reveal = wire::parse_reveal(input).map_err(|_| PrivateSwapError::InvalidEnvelope)?;
     let state = &ad.signing.private_swap;
     let reveal_matches = state.mode == PrivateSwapMode::PreSign
@@ -232,10 +213,7 @@ pub fn finalize_reveal(ad: &mut AppData, input: &[u8], checkpoint: &mut (impl Fn
         && reveal.session_id == state.session_id
         && reveal.key_id == state.key_id
         && reveal.sighash == state.sighash
-        && shared_signer::anti_klepto::verify_host_secret(
-            &state.host_commitment,
-            &reveal.host_secret,
-        );
+        && shared_signer::anti_klepto::verify_host_secret(&state.host_commitment, &reveal.host_secret);
     if !reveal_matches {
         shared_signer::bytes::zeroize_bytes(&mut reveal.host_secret);
         return Err(PrivateSwapError::RevealMismatch);
@@ -269,12 +247,7 @@ pub fn finalize_reveal(ad: &mut AppData, input: &[u8], checkpoint: &mut (impl Fn
     state.presignature = presig.bytes;
     state.presignature_negated = presig.negated;
     state.phase = PrivateSwapPhase::FinalResponse;
-    build_response(
-        ad,
-        ResponseKind::PreSignature,
-        presig.bytes,
-        presig.negated,
-    )
+    build_response(ad, ResponseKind::PreSignature, presig.bytes, presig.negated)
 }
 
 fn prepare_complete(
@@ -284,33 +257,20 @@ fn prepare_complete(
 ) -> Result<(), PrivateSwapError> {
     let mut seed = crate::services::wallet_keys::derive_active_seed_with_checkpoint(ad, checkpoint)
         .map_err(|_| PrivateSwapError::MnemonicRequired)?;
-    let pubkey = offline_signer::derivation::covenant::private_swap_public_key(
-        &seed.bytes,
-        &request.key_id,
-    )
-    .map_err(|_| PrivateSwapError::DerivationFailed)?;
-    let own_adaptor = offline_signer::derivation::covenant::private_swap_adaptor_point(
-        &seed.bytes,
-        &request.key_id,
-    )
-    .map_err(|_| PrivateSwapError::DerivationFailed)?;
+    let pubkey = offline_signer::derivation::covenant::private_swap_public_key(&seed.bytes, &request.key_id)
+        .map_err(|_| PrivateSwapError::DerivationFailed)?;
+    let own_adaptor = offline_signer::derivation::covenant::private_swap_adaptor_point(&seed.bytes, &request.key_id)
+        .map_err(|_| PrivateSwapError::DerivationFailed)?;
     if own_adaptor != request.adaptor_point {
         crate::services::wallet_keys::zeroize_seed(&mut seed.bytes);
         return Err(PrivateSwapError::InvalidAdaptorPoint);
     }
-    offline_signer::transaction::kspt::parse_compact_kspt(
-        request.payload,
-        &mut ad.signing.transaction.active,
-    )
-    .map_err(|_| PrivateSwapError::InvalidTransaction)?;
-    let (sighash, policy) =
-        offline_signer::transaction::private_swap::private_swap_claim_sighash(
-            &ad.signing.transaction.active,
-            &pubkey,
-        )
+    offline_signer::transaction::kspt::parse_compact_kspt(request.payload, &mut ad.signing.transaction.active)
         .map_err(|_| PrivateSwapError::InvalidTransaction)?;
-    let script_hash: [u8; 32] =
-        Sha256::digest(ad.signing.transaction.active.redeem_bytes(0)).into();
+    let (sighash, policy) =
+        offline_signer::transaction::private_swap::private_swap_claim_sighash(&ad.signing.transaction.active, &pubkey)
+            .map_err(|_| PrivateSwapError::InvalidTransaction)?;
+    let script_hash: [u8; 32] = Sha256::digest(ad.signing.transaction.active.redeem_bytes(0)).into();
     let bound = offline_signer::derivation::covenant::private_swap_binding_matches(
         &seed.bytes,
         &request.key_id,
@@ -367,22 +327,15 @@ pub fn complete_claim(ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Sized)
     };
     let mut seed = crate::services::wallet_keys::derive_active_seed_with_checkpoint(ad, checkpoint)
         .map_err(|_| PrivateSwapError::MnemonicRequired)?;
-    let completed =
-        offline_signer::derivation::covenant::complete_private_swap_adaptor_presignature(
-            &seed.bytes,
-            &state.key_id,
-            &presig,
-        )
-        .map_err(|_| PrivateSwapError::SigningFailed)?;
+    let completed = offline_signer::derivation::covenant::complete_private_swap_adaptor_presignature(
+        &seed.bytes,
+        &state.key_id,
+        &presig,
+    )
+    .map_err(|_| PrivateSwapError::SigningFailed)?;
     crate::services::wallet_keys::zeroize_seed(&mut seed.bytes);
     let completed_sig = offline_signer::crypto::schnorr::SchnorrSignature { bytes: completed };
-    if offline_signer::crypto::schnorr::schnorr_verify(
-        &state.claim_pubkey,
-        &state.sighash,
-        &completed_sig,
-    )
-    .is_err()
-    {
+    if offline_signer::crypto::schnorr::schnorr_verify(&state.claim_pubkey, &state.sighash, &completed_sig).is_err() {
         return Err(PrivateSwapError::SigningFailed);
     }
     let state = &mut ad.signing.private_swap;
@@ -409,10 +362,7 @@ fn build_response(
         claim_pubkey: state.claim_pubkey,
         binding_token: if matches!(
             kind,
-            ResponseKind::Binding
-                | ResponseKind::Nonce
-                | ResponseKind::PreSignature
-                | ResponseKind::Completed
+            ResponseKind::Binding | ResponseKind::Nonce | ResponseKind::PreSignature | ResponseKind::Completed
         ) {
             state.binding_token
         } else {
@@ -421,9 +371,7 @@ fn build_response(
         adaptor_point: state.adaptor_point,
         commitment: match kind {
             ResponseKind::Binding => state.script_hash,
-            ResponseKind::Nonce | ResponseKind::PreSignature | ResponseKind::Completed => {
-                state.sighash
-            }
+            ResponseKind::Nonce | ResponseKind::PreSignature | ResponseKind::Completed => state.sighash,
             ResponseKind::KeyInfo => [0; 32],
         },
         nonce_point: if matches!(kind, ResponseKind::Nonce | ResponseKind::PreSignature) {
@@ -434,10 +382,7 @@ fn build_response(
         signature,
         negated,
     };
-    ad.signing.private_swap.response_len = wire::encode_response(
-        &response,
-        &mut ad.signing.private_swap.response,
-    )
-    .map_err(|_| PrivateSwapError::ResponseEncodingFailed)?;
+    ad.signing.private_swap.response_len = wire::encode_response(&response, &mut ad.signing.private_swap.response)
+        .map_err(|_| PrivateSwapError::ResponseEncodingFailed)?;
     Ok(())
 }

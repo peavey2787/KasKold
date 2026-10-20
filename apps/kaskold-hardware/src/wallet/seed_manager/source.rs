@@ -47,7 +47,6 @@ impl WalletSource {
     }
 }
 
-
 use super::SeedSlot;
 
 impl SeedSlot {
@@ -62,7 +61,9 @@ impl SeedSlot {
     /// The 32 raw-key bytes are packed into indices[0..16] as LE u16 pairs.
     pub fn raw_key_bytes(&self, out: &mut [u8; 32]) -> bool {
         shared_signer::bytes::zeroize_bytes(out);
-        if !self.is_raw_key() { return false; }
+        if !self.is_raw_key() {
+            return false;
+        }
         for index in 0..16 {
             let pair = self.indices[index].to_le_bytes();
             out[index * 2] = pair[0];

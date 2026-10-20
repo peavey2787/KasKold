@@ -1,7 +1,7 @@
-use super::super::{
-    DirEntry, Fat32Info, SdCardType, allocate_cluster, read_fat_entry, sd_read_block, sd_write_block, write_fat_entry,
-};
 use super::super::policy::detect_fat32_partition;
+use super::super::{
+    allocate_cluster, read_fat_entry, sd_read_block, sd_write_block, write_fat_entry, DirEntry, Fat32Info, SdCardType,
+};
 
 pub(super) fn has_boot_signature(sector: &[u8; 512]) -> bool {
     sector[510] == 0x55 && sector[511] == 0xAA
@@ -112,19 +112,22 @@ pub(super) fn allocate_directory_cluster(
     Ok(new_cluster)
 }
 
-pub(super) fn hydrate_fsinfo_hint(
-    card_type: SdCardType,
-    mut info: Fat32Info,
-) -> Result<Fat32Info, &'static str> {
-    let Some(sector) = info.fs_info_sector else { return Ok(info); };
+pub(super) fn hydrate_fsinfo_hint(card_type: SdCardType, mut info: Fat32Info) -> Result<Fat32Info, &'static str> {
+    let Some(sector) = info.fs_info_sector else {
+        return Ok(info);
+    };
     let mut buf = [0u8; 512];
-    if sd_read_block(card_type, sector, &mut buf).is_err() { return Ok(info); }
+    if sd_read_block(card_type, sector, &mut buf).is_err() {
+        return Ok(info);
+    }
     if &buf[0..4] != b"RRaA" || &buf[484..488] != b"rrAa" || buf[510..512] != [0x55, 0xAA] {
         return Ok(info);
     }
     let hint = u32::from_le_bytes([buf[492], buf[493], buf[494], buf[495]]);
     let max_cluster = info.cluster_count.saturating_add(2);
-    if (2..max_cluster).contains(&hint) { info.next_free_cluster = hint; }
+    if (2..max_cluster).contains(&hint) {
+        info.next_free_cluster = hint;
+    }
     Ok(info)
 }
 
@@ -148,7 +151,9 @@ pub(in crate::hw::shared::storage::fat32) fn mark_dir_entry_deleted(
     sector: u32,
     offset: usize,
 ) -> Result<(), &'static str> {
-    if offset >= 512 { return Err("Directory entry offset out of range"); }
+    if offset >= 512 {
+        return Err("Directory entry offset out of range");
+    }
     let mut buf = [0u8; 512];
     sd_read_block(card_type, sector, &mut buf)?;
     buf[offset] = 0xE5;

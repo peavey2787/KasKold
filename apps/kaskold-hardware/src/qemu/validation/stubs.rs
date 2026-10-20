@@ -12,11 +12,7 @@ use crate::qemu::hw::{
 };
 use esp_hal::delay::Delay;
 
-pub(crate) fn run(
-    report: &mut Report,
-    display: &mut ConsoleDisplay,
-    delay: &mut Delay,
-) {
+pub(crate) fn run(report: &mut Report, display: &mut ConsoleDisplay, delay: &mut Delay) {
     report.check("UART console output", display.emit_uart_probe());
     report.check("deterministic touch script", test_touch());
     report.check("QEMU power-idle facade", test_power(delay));
@@ -24,11 +20,7 @@ pub(crate) fn run(
 
 fn test_touch() -> bool {
     let mut touch = ScriptedTouch::new();
-    let expected = [
-        TouchEvent::Tap { x: 160, y: 120 },
-        TouchEvent::Tap { x: 280, y: 24 },
-        TouchEvent::Back,
-    ];
+    let expected = [TouchEvent::Tap { x: 160, y: 120 }, TouchEvent::Tap { x: 280, y: 24 }, TouchEvent::Back];
     for event in expected {
         if touch.next_event() != Some(event) {
             return false;

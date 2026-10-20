@@ -23,11 +23,7 @@ pub enum Stage {
 
 #[inline]
 const fn mix(state: u32, stage: Stage) -> u32 {
-    state
-        .rotate_left(7)
-        .wrapping_add(stage as u32)
-        .wrapping_mul(MIX_MULTIPLIER)
-        ^ 0xD3A2_64C5
+    state.rotate_left(7).wrapping_add(stage as u32).wrapping_mul(MIX_MULTIPLIER) ^ 0xD3A2_64C5
 }
 
 #[inline(never)]
@@ -43,12 +39,7 @@ pub fn advance(stage: Stage) {
     let mut current = TRANSCRIPT.load(Ordering::SeqCst);
     loop {
         let next = mix(current, stage);
-        match TRANSCRIPT.compare_exchange(
-            current,
-            next,
-            Ordering::SeqCst,
-            Ordering::SeqCst,
-        ) {
+        match TRANSCRIPT.compare_exchange(current, next, Ordering::SeqCst, Ordering::SeqCst) {
             Ok(_) => break,
             Err(observed) => current = observed,
         }

@@ -880,6 +880,14 @@
     },
     {
       "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/workspace/check_rust_format.py",
+      "role": "check",
+      "step": "preflight.core-ci"
+    },
+    {
+      "commands": [
         "make qa",
         "make android-qa",
         "make ios-qa"

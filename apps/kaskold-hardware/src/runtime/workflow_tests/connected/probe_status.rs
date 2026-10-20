@@ -28,11 +28,7 @@ impl ProbeSummary {
             log!("KASKOLD_WORKFLOW_TESTS: {} PROBE {} PASS", self.scope, name);
         } else {
             self.failed += 1;
-            log!(
-                "KASKOLD_WORKFLOW_TESTS: {} PROBE {} FAILED; CONTINUING",
-                self.scope,
-                name,
-            );
+            log!("KASKOLD_WORKFLOW_TESTS: {} PROBE {} FAILED; CONTINUING", self.scope, name,);
         }
     }
 
@@ -47,7 +43,6 @@ impl ProbeSummary {
         self.failed == 0 && self.passed == attempted
     }
 }
-
 
 pub(super) fn replay_mask(scope: &str, mask: &AtomicU16, labels: &[&str]) {
     let bits = mask.load(Ordering::Relaxed);

@@ -10,14 +10,10 @@
 compile_error!("select one platform feature: m5stack or qemu");
 
 #[cfg(all(feature = "m5stack", feature = "qemu"))]
-compile_error!(
-    "platform features are mutually exclusive; QEMU requires --no-default-features --features qemu"
-);
+compile_error!("platform features are mutually exclusive; QEMU requires --no-default-features --features qemu");
 
 #[cfg(all(feature = "m5stack-lite", feature = "production"))]
-compile_error!(
-    "CoreS3 Lite is build-supported but hardware qualification is pending; production images are forbidden"
-);
+compile_error!("CoreS3 Lite is build-supported but hardware qualification is pending; production images are forbidden");
 
 #[cfg(all(
     feature = "qemu",
@@ -38,13 +34,8 @@ compile_error!(
 ))]
 compile_error!("qemu cannot be combined with non-QEMU firmware features");
 
-#[cfg(all(
-    feature = "qemu",
-    feature = "verbose-boot",
-    not(feature = "qemu-tests")
-))]
+#[cfg(all(feature = "qemu", feature = "verbose-boot", not(feature = "qemu-tests")))]
 compile_error!("qemu verbose boot tests require the qemu-tests feature");
-
 
 #[cfg(all(
     feature = "silent",
@@ -83,8 +74,7 @@ compile_error!("secure-provisioning-core is internal; select secure-provisioning
 #[cfg(all(any(feature = "secure-provisioning", feature = "secure-owner-only"), not(feature = "m5stack")))]
 compile_error!("secure provisioning profiles are supported only on M5Stack CoreS3");
 
-#[cfg(all(
-    feature = "owner-firmware",
-    any(feature = "secure-provisioning", feature = "secure-owner-only")
-))]
-compile_error!("owner-firmware is a post-provisioning application profile and cannot be combined with a provisioning profile");
+#[cfg(all(feature = "owner-firmware", any(feature = "secure-provisioning", feature = "secure-owner-only")))]
+compile_error!(
+    "owner-firmware is a post-provisioning application profile and cannot be combined with a provisioning profile"
+);

@@ -1,18 +1,14 @@
 //! Explicit factory-reset warning and irreversible reset boundary.
 
+use crate::ui::screens::device::advanced_security::{WARNING_BUTTON_Y, WARNING_CANCEL_X, WARNING_ENABLE_X};
 use crate::{
     hw::display::BootDisplay,
     runtime::{data::AppData, interactions::TouchInput},
     services::persistent_wallet::PersistentWallet,
 };
-use crate::ui::screens::device::advanced_security::{
-    WARNING_BUTTON_Y, WARNING_CANCEL_X, WARNING_ENABLE_X,
-};
 
 pub(super) fn handle_warning(input: TouchInput, ad: &mut AppData) -> Option<bool> {
-    if input.is_back
-        || (WARNING_BUTTON_Y.contains(&input.y) && WARNING_CANCEL_X.contains(&input.x))
-    {
+    if input.is_back || (WARNING_BUTTON_Y.contains(&input.y) && WARNING_CANCEL_X.contains(&input.x)) {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedMenu));
         return Some(true);
     }
@@ -31,13 +27,13 @@ pub(super) fn execute_confirmed_reset(
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
 ) -> Option<bool> {
-    if input.is_back
-        || (WARNING_BUTTON_Y.contains(&input.y) && WARNING_CANCEL_X.contains(&input.x))
-    {
+    if input.is_back || (WARNING_BUTTON_Y.contains(&input.y) && WARNING_CANCEL_X.contains(&input.x)) {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedMenu));
         return Some(true);
     }
-    if !WARNING_BUTTON_Y.contains(&input.y) || !WARNING_ENABLE_X.contains(&input.x) { return None; }
+    if !WARNING_BUTTON_Y.contains(&input.y) || !WARNING_ENABLE_X.contains(&input.x) {
+        return None;
+    }
     display.draw_loading_screen("Erasing user data...");
     match persistence.factory_reset(ad, i2c, delay) {
         Ok(()) => {
@@ -48,7 +44,10 @@ pub(super) fn execute_confirmed_reset(
         Err(error) => {
             crate::log!("   Factory reset failed: {:?}", error);
             crate::runtime::interactions::feedback::show_rejection(
-                display, delay, error.message(), 2200,
+                display,
+                delay,
+                error.message(),
+                2200,
                 crate::runtime::interactions::feedback::ErrorSound::Beep,
             );
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedMenu));

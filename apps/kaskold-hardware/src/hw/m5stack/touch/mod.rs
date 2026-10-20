@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 // hw/touch/touch_ft6336u.rs — FT6336U capacitive touch driver + TouchTracker
 // 100% Rust, no-std, no-alloc
 //
@@ -76,12 +75,9 @@ pub(crate) fn probe(i2c: &mut I2c<'_, esp_hal::Blocking>) -> bool {
     i2c.write_read(FT6336U_ADDR, &[REG_TD_STATUS], &mut status).is_ok()
 }
 
-pub(crate) fn read_touch_checked(
-    i2c: &mut I2c<'_, esp_hal::Blocking>,
-) -> Result<TouchState, ()> {
+pub(crate) fn read_touch_checked(i2c: &mut I2c<'_, esp_hal::Blocking>) -> Result<TouchState, ()> {
     let mut registers = [0u8; 5];
-    i2c.write_read(FT6336U_ADDR, &[REG_TD_STATUS], &mut registers)
-        .map_err(|_| ())?;
+    i2c.write_read(FT6336U_ADDR, &[REG_TD_STATUS], &mut registers).map_err(|_| ())?;
     // FT6336U supports two simultaneous contacts. The application is strictly
     // single-touch: treating TD_STATUS=2 as NoTouch would fabricate a release
     // edge and let a second key slip through the contact gate. Fail this sample
@@ -89,9 +85,7 @@ pub(crate) fn read_touch_checked(
     if registers[0] & 0x0F > 1 {
         return Err(());
     }
-    Ok(kaskold_hardware_core::input::touch::decode_rotated_single_touch(
-        registers, 319, 239,
-    ))
+    Ok(kaskold_hardware_core::input::touch::decode_rotated_single_touch(registers, 319, 239))
 }
 
 // ═══════════════════════════════════════════════════════════════

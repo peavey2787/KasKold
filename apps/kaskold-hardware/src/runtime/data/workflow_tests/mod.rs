@@ -15,9 +15,6 @@ pub(crate) struct WorkflowTestState {
 
 impl WorkflowTestState {
     pub(super) const fn new() -> Self {
-        Self {
-            selected_category: 0,
-            result: WorkflowTestResultData { total: 0, passed: 0, failed: 0, ran_all: false },
-        }
+        Self { selected_category: 0, result: WorkflowTestResultData { total: 0, passed: 0, failed: 0, ran_all: false } }
     }
 }

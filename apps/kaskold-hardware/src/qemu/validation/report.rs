@@ -12,11 +12,7 @@ pub(crate) struct Report {
 
 impl Report {
     pub(crate) const fn new() -> Self {
-        Self {
-            passed: 0,
-            failed: 0,
-            skipped: 0,
-        }
+        Self { passed: 0, failed: 0, skipped: 0 }
     }
 
     pub(crate) fn check(&mut self, name: &str, passed: bool) {
@@ -46,12 +42,7 @@ impl Report {
     }
 
     pub(crate) fn finish(self) -> bool {
-        crate::log!(
-            "QEMU test summary: {} passed, {} failed, {} skipped",
-            self.passed,
-            self.failed,
-            self.skipped
-        );
+        crate::log!("QEMU test summary: {} passed, {} failed, {} skipped", self.passed, self.failed, self.skipped);
         if self.failed == 0 {
             crate::log!("KASKOLD_QEMU_TESTS_PASS");
             true

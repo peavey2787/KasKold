@@ -1,14 +1,12 @@
 use crate::{
+    hw::display::BootDisplay,
+    runtime::data::AppData,
     runtime::interactions::{
         feedback::{show_rejection, ErrorSound},
         TouchInput,
     },
-    hw::display::BootDisplay,
-    runtime::data::AppData,
     services::persistent_wallet::PersistentWallet,
-    ui::screens::device::advanced_security::{
-        WARNING_BUTTON_Y, WARNING_CANCEL_X, WARNING_ENABLE_X,
-    },
+    ui::screens::device::advanced_security::{WARNING_BUTTON_Y, WARNING_CANCEL_X, WARNING_ENABLE_X},
 };
 use kaskold_hardware_core::advanced_policy::{parse_utc_yyyymmddhhmm, parse_weekly_windows};
 
@@ -30,30 +28,18 @@ pub(super) fn handle_time_lock_entry(
         EditAction::None => None,
         EditAction::Edited => Some(true),
         EditAction::Submitted => {
-            let parsed = parse_utc_yyyymmddhhmm(
-                &ad.wallet.seeds.pp_input.buf[..ad.wallet.seeds.pp_input.len],
-            )
-            .and_then(|value| value.to_unix_seconds());
+            let parsed = parse_utc_yyyymmddhhmm(&ad.wallet.seeds.pp_input.buf[..ad.wallet.seeds.pp_input.len])
+                .and_then(|value| value.to_unix_seconds());
             match (parsed, read_now_unix(i2c)) {
                 (Ok(target), Ok(current)) if target > current => {
                     ad.storage.persistence.advanced.pending_not_before_unix = target;
                     ad.wallet.seeds.pp_input.reset();
                     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedTimeLockConfirm));
                 }
-                (Ok(_), Ok(_)) => show_rejection(
-                    display,
-                    delay,
-                    "Lock date must be in the future",
-                    1800,
-                    ErrorSound::Beep,
-                ),
-                (Err(_), _) => show_rejection(
-                    display,
-                    delay,
-                    "Use valid UTC YYYYMMDDHHMM",
-                    1800,
-                    ErrorSound::Beep,
-                ),
+                (Ok(_), Ok(_)) => {
+                    show_rejection(display, delay, "Lock date must be in the future", 1800, ErrorSound::Beep)
+                }
+                (Err(_), _) => show_rejection(display, delay, "Use valid UTC YYYYMMDDHHMM", 1800, ErrorSound::Beep),
                 (_, Err(error)) => handle_rtc_read_error(error, ad, display, delay),
             }
             Some(true)
@@ -106,9 +92,7 @@ pub(super) fn handle_weekly_entry(
         EditAction::None => None,
         EditAction::Edited => Some(true),
         EditAction::Submitted => {
-            let parsed = parse_weekly_windows(
-                &ad.wallet.seeds.pp_input.buf[..ad.wallet.seeds.pp_input.len],
-            );
+            let parsed = parse_weekly_windows(&ad.wallet.seeds.pp_input.buf[..ad.wallet.seeds.pp_input.len]);
             match (parsed, read_now_unix(i2c)) {
                 (Ok((windows, count)), Ok(_)) => {
                     ad.storage.persistence.advanced.pending_windows = windows;
@@ -116,13 +100,7 @@ pub(super) fn handle_weekly_entry(
                     ad.wallet.seeds.pp_input.reset();
                     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedWeeklyConfirm));
                 }
-                (Err(_), _) => show_rejection(
-                    display,
-                    delay,
-                    "Use DAY HH:MM-HH:MM; max 4",
-                    1900,
-                    ErrorSound::Beep,
-                ),
+                (Err(_), _) => show_rejection(display, delay, "Use DAY HH:MM-HH:MM; max 4", 1900, ErrorSound::Beep),
                 (_, Err(error)) => handle_rtc_read_error(error, ad, display, delay),
             }
             Some(true)
@@ -169,8 +147,7 @@ fn handle_rtc_read_error(
     delay: &mut esp_hal::delay::Delay,
 ) {
     if error == RtcReadError::LowVoltage {
-        ad.storage.persistence.advanced.rtc_verification =
-            crate::runtime::data::RtcVerification::Unverified;
+        ad.storage.persistence.advanced.rtc_verification = crate::runtime::data::RtcVerification::Unverified;
         ad.storage.persistence.advanced.clear_pending();
         ad.wallet.seeds.pp_input.reset();
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedRtcEntry));

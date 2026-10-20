@@ -75,7 +75,9 @@ pub fn fill_words(output: &mut [u8]) -> Result<HealthReport, EntropyError> {
 #[cfg(feature = "rng-probe")]
 pub(super) fn probe(count: usize) -> (usize, u32, usize, usize) {
     let _ = enable_hardware_rng();
-    let Ok(mut seen) = crate::services::memory::fallible_vec(count) else { return (0, 0, count, 0); };
+    let Ok(mut seen) = crate::services::memory::fallible_vec(count) else {
+        return (0, 0, count, 0);
+    };
     let mut ones = 0u32;
     let mut zero_words = 0usize;
     let mut repeats = 0usize;

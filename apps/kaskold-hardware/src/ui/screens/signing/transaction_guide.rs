@@ -2,15 +2,13 @@
 // License: GPL-3.0-or-later.
 
 use super::super::{
-    BootDisplay, COLOR_BG, COLOR_CARD_BORDER, COLOR_DANGER, COLOR_ORANGE, COLOR_TEXT,
-    COLOR_TEXT_DIM, CornerRadii, Drawable, KASPA_TEAL, Line, Point, Primitive,
-    PrimitiveStyle, Rectangle, RoundedRectangle, Size, draw_lato_18, draw_lato_body,
-    draw_lato_title, draw_oswald_header, measure_18, measure_body, measure_header,
-    measure_title,
+    draw_lato_18, draw_lato_body, draw_lato_title, draw_oswald_header, measure_18, measure_body, measure_header,
+    measure_title, BootDisplay, CornerRadii, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle,
+    RoundedRectangle, Size, COLOR_BG, COLOR_CARD_BORDER, COLOR_DANGER, COLOR_ORANGE, COLOR_TEXT, COLOR_TEXT_DIM,
+    KASPA_TEAL,
 };
 
 impl<'a> BootDisplay<'a> {
-
     /// Explain the second Companion -> KasKold anti-klepto handoff before
     /// reopening the camera. This prevents the reveal scan from looking like
     /// the signing workflow unexpectedly restarted.
@@ -19,44 +17,21 @@ impl<'a> BootDisplay<'a> {
 
         let title = "SCAN COMPANION QR";
         let title_width = measure_header(title);
-        draw_oswald_header(
-            &mut self.display,
-            title,
-            (320 - title_width) / 2,
-            30,
-            KASPA_TEAL,
-        );
+        draw_oswald_header(&mut self.display, title, (320 - title_width) / 2, 30, KASPA_TEAL);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
             .draw(&mut self.display)
             .ok();
 
-        let lines = [
-            "Companion should now show",
-            "the next signing QR.",
-            "Press OK, then scan it",
-            "with KasKold.",
-        ];
+        let lines = ["Companion should now show", "the next signing QR.", "Press OK, then scan it", "with KasKold."];
         for (index, line) in lines.iter().enumerate() {
             let width = measure_18(line);
-            draw_lato_18(
-                &mut self.display,
-                line,
-                (320 - width) / 2,
-                70 + index as i32 * 24,
-                COLOR_TEXT,
-            );
+            draw_lato_18(&mut self.display, line, (320 - width) / 2, 70 + index as i32 * 24, COLOR_TEXT);
         }
 
         let hint = "Signing session stays active";
         let hint_width = measure_body(hint);
-        draw_lato_body(
-            &mut self.display,
-            hint,
-            (320 - hint_width) / 2,
-            165,
-            COLOR_TEXT_DIM,
-        );
+        draw_lato_body(&mut self.display, hint, (320 - hint_width) / 2, 165, COLOR_TEXT_DIM);
 
         let zone = crate::ui::layout::ERROR_OK_ZONE;
         let rectangle = Rectangle::new(
@@ -82,13 +57,7 @@ impl<'a> BootDisplay<'a> {
         self.clear_keep_nav();
 
         let title_width = measure_header("SIGN TRANSACTION");
-        draw_oswald_header(
-            &mut self.display,
-            "SIGN TRANSACTION",
-            (320 - title_width) / 2,
-            28,
-            KASPA_TEAL,
-        );
+        draw_oswald_header(&mut self.display, "SIGN TRANSACTION", (320 - title_width) / 2, 28, KASPA_TEAL);
         Line::new(Point::new(20, 38), Point::new(300, 38))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
             .draw(&mut self.display)
@@ -96,35 +65,17 @@ impl<'a> BootDisplay<'a> {
 
         if !seed_loaded {
             let warning_width = measure_header("Load a seed first");
-            draw_oswald_header(
-                &mut self.display,
-                "Load a seed first",
-                (320 - warning_width) / 2,
-                110,
-                COLOR_DANGER,
-            );
+            draw_oswald_header(&mut self.display, "Load a seed first", (320 - warning_width) / 2, 110, COLOR_DANGER);
             let instruction = "Go to Seeds menu to create or import";
             let instruction_width = measure_body(instruction);
-            draw_lato_body(
-                &mut self.display,
-                instruction,
-                (320 - instruction_width) / 2,
-                140,
-                COLOR_TEXT_DIM,
-            );
+            draw_lato_body(&mut self.display, instruction, (320 - instruction_width) / 2, 140, COLOR_TEXT_DIM);
             return;
         }
 
         if address.is_empty() {
             let note = "Network verified during review";
             let width = measure_body(note);
-            draw_lato_body(
-                &mut self.display,
-                note,
-                (320 - width) / 2,
-                58,
-                COLOR_ORANGE,
-            );
+            draw_lato_body(&mut self.display, note, (320 - width) / 2, 58, COLOR_ORANGE);
         } else {
             self.draw_compact_address(address);
         }
@@ -133,28 +84,17 @@ impl<'a> BootDisplay<'a> {
             .draw(&mut self.display)
             .ok();
 
-        const STEPS: [&str; 4] = [
-            "Open your Kaspa wallet",
-            "Import the kpub",
-            "Create a Send transaction",
-            "Show the PSKB QR code",
-        ];
+        const STEPS: [&str; 4] =
+            ["Open your Kaspa wallet", "Import the kpub", "Create a Send transaction", "Show the PSKB QR code"];
         const STEP_HEIGHT: i32 = 26;
         const AVAILABLE_TOP: i32 = 92;
         const AVAILABLE_BOTTOM: i32 = 186;
         let block_height = STEPS.len() as i32 * STEP_HEIGHT;
-        let start_y =
-            AVAILABLE_TOP + (AVAILABLE_BOTTOM - AVAILABLE_TOP - block_height) / 2;
+        let start_y = AVAILABLE_TOP + (AVAILABLE_BOTTOM - AVAILABLE_TOP - block_height) / 2;
         for (index, step) in STEPS.iter().enumerate() {
             let y = start_y + index as i32 * STEP_HEIGHT;
             let width = measure_18(step);
-            draw_lato_18(
-                &mut self.display,
-                step,
-                (320 - width) / 2,
-                y,
-                COLOR_TEXT,
-            );
+            draw_lato_18(&mut self.display, step, (320 - width) / 2, y, COLOR_TEXT);
         }
 
         self.draw_guide_button(30, "EXP. KPUB");
@@ -182,13 +122,7 @@ impl<'a> BootDisplay<'a> {
             address
         };
         let width = measure_title(shown);
-        draw_lato_title(
-            &mut self.display,
-            shown,
-            (320 - width) / 2,
-            58,
-            COLOR_ORANGE,
-        );
+        draw_lato_title(&mut self.display, shown, (320 - width) / 2, 58, COLOR_ORANGE);
     }
 
     fn draw_guide_button(&mut self, x: i32, label: &str) {
@@ -201,12 +135,6 @@ impl<'a> BootDisplay<'a> {
             .draw(&mut self.display)
             .ok();
         let label_width = measure_title(label);
-        draw_lato_title(
-            &mut self.display,
-            label,
-            x + (WIDTH as i32 - label_width) / 2,
-            Y + 24,
-            COLOR_BG,
-        );
+        draw_lato_title(&mut self.display, label, x + (WIDTH as i32 - label_width) / 2, Y + 24, COLOR_BG);
     }
 }

@@ -51,13 +51,7 @@ impl SeedManager {
         }
 
         if let Some(existing) = self.slots.iter().position(|slot| {
-            super::matching::mnemonic_matches(
-                slot,
-                indices,
-                word_count,
-                &passphrase[..pp_len],
-                self.selected_network,
-            )
+            super::matching::mnemonic_matches(slot, indices, word_count, &passphrase[..pp_len], self.selected_network)
         }) {
             return Some(existing);
         }
@@ -78,8 +72,9 @@ impl SeedManager {
         slot.passphrase_len = pp_len as u8;
         slot.fingerprint = tmp.fingerprint;
         slot.transient = transient;
-        if !transient { self.mark_changed(); }
+        if !transient {
+            self.mark_changed();
+        }
         Some(slot_idx)
     }
-
 }

@@ -1,6 +1,6 @@
 //! Domain-owned wallet runtime state.
-use crate::wallet::{mnemonic, seed_manager};
 use crate::services::credential_policy::SALT_SIZE;
+use crate::wallet::{mnemonic, seed_manager};
 
 mod security;
 mod seed_session;
@@ -61,11 +61,7 @@ pub struct KeyMaterialState {
 }
 impl KeyMaterialState {
     pub(in crate::runtime::data) fn new() -> Self {
-        Self {
-            acct_key_raw: [0; 65],
-            hex_input: [0; 64],
-            hex_input_len: 0,
-        }
+        Self { acct_key_raw: [0; 65], hex_input: [0; 64], hex_input_len: 0 }
     }
 }
 pub struct AddressState {

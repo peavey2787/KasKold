@@ -1,6 +1,6 @@
 use crate::{
-    runtime::interactions::{TouchInput, tx::TxTouchContext},
-    hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
+    hw::{display::BootDisplay, sdcard::SdCardType},
+    runtime::interactions::TouchInput,
     runtime::{data::AppData, input::AppState},
 };
 use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
@@ -10,35 +10,10 @@ mod messages;
 mod secrets;
 mod seed_tools;
 
-pub(super) struct AdvancedToolsContext<'ctx, 'display, 'hal> {
-    pub(super) ad: &'ctx mut AppData,
-    pub(super) display: &'ctx mut BootDisplay<'display>,
-    pub(super) i2c: &'ctx mut I2c<'hal, Blocking>,
-    pub(super) sd: &'ctx Option<SdCardType>,
-    pub(super) delay: &'ctx mut Delay,
-    pub(super) grid: [TouchZone; 4],
-    pub(super) list: [TouchZone; 4],
-    pub(super) up: TouchZone,
-    pub(super) down: TouchZone,
-}
+pub(super) type AdvancedToolsContext<'ctx, 'display, 'hal> =
+    super::menu_context::MenuWorkflowContext<'ctx, 'display, 'hal>;
 
 impl AdvancedToolsContext<'_, '_, '_> {
-    pub(super) fn redraw_step(&mut self) {
-        super::redraw_step(self.ad, self.display, self.i2c, self.sd);
-        super::show_step(self.delay);
-    }
-
-    pub(super) fn menu_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
-        crate::runtime::interactions::menu::handle_navigation_touch(
-            self.ad,
-            &self.grid,
-            &self.list,
-            &self.up,
-            &self.down,
-            TouchInput::new(x, y, is_back),
-        )
-    }
-
     pub(super) fn seed_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
         crate::runtime::interactions::seed::handle_seed_touch(
             self.ad,
@@ -46,88 +21,6 @@ impl AdvancedToolsContext<'_, '_, '_> {
             self.delay,
             &mut || {},
             TouchInput::new(x, y, is_back),
-        )
-    }
-
-    pub(super) fn tx_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
-        let input = TouchInput::new(x, y, is_back);
-        let context = TxTouchContext {
-            ad: self.ad,
-            boot_display: self.display,
-            delay: self.delay,
-            liveness: &mut || {}, i2c: self.i2c,
-            persistent_wallet: None,
-            sd_card_type: self.sd,
-            list_zones: &self.list,
-            input,
-        };
-        crate::runtime::interactions::tx::handle_tx_touch(context)
-    }
-
-    pub(super) fn tx_touch_without_sd(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
-        let no_sd = None;
-        crate::runtime::interactions::tx::handle_tx_touch(TxTouchContext {
-            ad: self.ad,
-            boot_display: self.display,
-            delay: self.delay,
-            liveness: &mut || {}, i2c: self.i2c,
-            persistent_wallet: None,
-            sd_card_type: &no_sd,
-            list_zones: &self.list,
-            input: TouchInput::new(x, y, is_back),
-        })
-    }
-
-    pub(super) fn export_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
-        let input = TouchInput::new(x, y, is_back);
-        if let Some(result) = crate::runtime::interactions::export::menus::handle_navigation_touch(
-            self.ad,
-            &self.list,
-            &self.up,
-            &self.down,
-            input,
-        ) {
-            return Some(result);
-        }
-        crate::runtime::interactions::export::handle_export_touch(
-            crate::runtime::interactions::export::ExportTouchContext {
-                ad: self.ad,
-                boot_display: self.display,
-                delay: self.delay,
-                liveness: &mut || {}, i2c: self.i2c,
-                sd_card_type: self.sd,
-                list_zones: &self.list,
-                page_up_zone: &self.up,
-                page_down_zone: &self.down,
-                input,
-            },
-        )
-    }
-
-    pub(super) fn export_touch_without_sd(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
-        let input = TouchInput::new(x, y, is_back);
-        if let Some(result) = crate::runtime::interactions::export::menus::handle_navigation_touch(
-            self.ad,
-            &self.list,
-            &self.up,
-            &self.down,
-            input,
-        ) {
-            return Some(result);
-        }
-        let no_sd = None;
-        crate::runtime::interactions::export::handle_export_touch(
-            crate::runtime::interactions::export::ExportTouchContext {
-                ad: self.ad,
-                boot_display: self.display,
-                delay: self.delay,
-                liveness: &mut || {}, i2c: self.i2c,
-                sd_card_type: &no_sd,
-                list_zones: &self.list,
-                page_up_zone: &self.up,
-                page_down_zone: &self.down,
-                input,
-            },
         )
     }
 
@@ -202,8 +95,7 @@ pub(super) fn exercise(
     sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
-    let (grid, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
-    let mut ctx = AdvancedToolsContext { ad, display, i2c, sd, delay, grid, list, up, down };
+    let mut ctx = AdvancedToolsContext::new(ad, display, i2c, sd, delay);
     log!("KASKOLD_WORKFLOW_TESTS: ADVANCED WALLET TOOLS TRANCHE BEGIN");
     let mut summary = super::probe_status::ProbeSummary::new("ADVANCED-TOOLS");
 

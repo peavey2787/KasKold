@@ -1,9 +1,5 @@
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
-use crate::{
-    hw::display,
-    runtime::data::AppData,
-    services::audio as sound,
-};
+use crate::{hw::display, runtime::data::AppData, services::audio as sound};
 
 use super::service;
 

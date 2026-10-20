@@ -15,8 +15,8 @@ mod xprv;
 pub use container::{kind as backup_kind, BackupKind};
 pub use device::BackupDevice;
 pub use error::BackupError;
-pub use seed::{MAX_BACKUP_SIZE, decrypt_backup_progress, encrypt_backup_progress};
-pub use xprv::{MAX_XPRV_BACKUP_SIZE, MAX_XPRV_DATA, decrypt_xprv_backup_progress, encrypt_xprv_backup};
+pub use seed::{decrypt_backup_progress, encrypt_backup_progress, MAX_BACKUP_SIZE};
+pub use xprv::{decrypt_xprv_backup_progress, encrypt_xprv_backup, MAX_XPRV_BACKUP_SIZE, MAX_XPRV_DATA};
 
 #[cfg(test)]
 pub(crate) use container::open as test_open;

@@ -19,10 +19,7 @@
 use super::display;
 use crate::runtime::input::AppState;
 
-pub(super) fn redraw(
-    ad: &mut crate::runtime::data::AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) -> bool {
+pub(super) fn redraw(ad: &mut crate::runtime::data::AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     match ad.navigation.app.state {
         AppState::SignMsgChoice => boot_display.draw_sign_msg_choice(),
         AppState::SignMsgType => {
@@ -39,17 +36,12 @@ pub(super) fn redraw(
             );
         }
         AppState::SignMsgPreview => {
-            let message = core::str::from_utf8(
-                &ad.signing.message.payload[..ad.signing.message.payload_len],
-            )
-            .unwrap_or("");
+            let message =
+                core::str::from_utf8(&ad.signing.message.payload[..ad.signing.message.payload_len]).unwrap_or("");
             boot_display.draw_sign_msg_preview(message);
         }
         AppState::SignMsgResult | AppState::SignMsgResultQr => {
-            boot_display.draw_sign_msg_result(
-                &ad.signing.message.signature,
-                &ad.signing.message.hash,
-            );
+            boot_display.draw_sign_msg_result(&ad.signing.message.signature, &ad.signing.message.hash);
         }
         AppState::CommitRevealType => {
             boot_display.draw_keyboard_screen_full(&ad.wallet.seeds.pp_input, "SECRET");
@@ -58,20 +50,14 @@ pub(super) fn redraw(
             // Current preimages begin with an eight-byte salt; only the secret is shown.
             let start = 8.min(ad.signing.commit_reveal.plaintext_len);
             let message = core::str::from_utf8(
-                &ad.signing.commit_reveal.plaintext
-                    [start..ad.signing.commit_reveal.plaintext_len],
+                &ad.signing.commit_reveal.plaintext[start..ad.signing.commit_reveal.plaintext_len],
             )
             .unwrap_or("");
-            boot_display.draw_commit_reveal_preview(
-                message,
-                &ad.signing.commit_reveal.hash,
-            );
+            boot_display.draw_commit_reveal_preview(message, &ad.signing.commit_reveal.hash);
         }
         AppState::CommitRevealResult | AppState::CommitRevealResultQr => {
-            boot_display.draw_commit_reveal_result(
-                &ad.signing.commit_reveal.hash,
-                ad.signing.commit_reveal.ciphertext.len(),
-            );
+            boot_display
+                .draw_commit_reveal_result(&ad.signing.commit_reveal.hash, ad.signing.commit_reveal.ciphertext.len());
         }
         AppState::DecryptSecretScan => {
             // The camera loop owns drawing while the scanner is active.
@@ -79,8 +65,7 @@ pub(super) fn redraw(
         AppState::DecryptSecretResult | AppState::DecryptSecretResultQr => {
             let start = 8.min(ad.signing.commit_reveal.plaintext_len);
             let message = core::str::from_utf8(
-                &ad.signing.commit_reveal.plaintext
-                    [start..ad.signing.commit_reveal.plaintext_len],
+                &ad.signing.commit_reveal.plaintext[start..ad.signing.commit_reveal.plaintext_len],
             )
             .unwrap_or("");
             boot_display.draw_decrypt_secret_result(message);

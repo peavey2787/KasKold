@@ -14,17 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 // Device settings and camera screens.
 
-mod camera;
-pub(crate) mod persistence;
 pub(crate) mod advanced_security;
-#[cfg(feature = "provisioning-ui")]
-pub(crate) mod pop_it;
+mod camera;
 #[cfg(feature = "provisioning-ui")]
 pub(crate) mod owner_firmware;
+pub(crate) mod persistence;
+#[cfg(feature = "provisioning-ui")]
+pub(crate) mod pop_it;
 mod settings;
-pub(crate) use settings::{DISPLAY_DIM_ROW_Y, DISPLAY_PIN_ROW_Y};
 #[cfg(feature = "m5stack")]
 pub(crate) use settings::AUDIO_STARTUP_ROW_Y;
+pub(crate) use settings::{DISPLAY_DIM_ROW_Y, DISPLAY_PIN_ROW_Y};

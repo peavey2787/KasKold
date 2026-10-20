@@ -1,11 +1,7 @@
 //! Shared BIP39 word-entry controller.
 
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
-use crate::{
-    hw::display,
-    runtime::data::AppData,
-    wallet::mnemonic,
-};
+use crate::{hw::display, runtime::data::AppData, wallet::mnemonic};
 
 fn reject_phrase(
     ad: &mut AppData,
@@ -61,10 +57,7 @@ fn accept_word(
         return finish_import(ad, boot_display, delay, word_count);
     }
     log!("   Word {}/{} accepted", next, word_count);
-    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ImportWord {
-        word_idx: next,
-        word_count,
-    }));
+    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ImportWord { word_idx: next, word_count }));
     boot_display.update_import_word_header(next, word_count, &ad.wallet.seeds.word_input);
     false
 }

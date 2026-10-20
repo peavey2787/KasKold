@@ -39,17 +39,11 @@ use super::mmio::{clear_bits, read, set_bits, write};
 pub fn early_lockdown() -> bool {
     unsafe {
         let wifi_clock = read(APB_CTRL_WIFI_CLK_EN);
-        write(
-            APB_CTRL_WIFI_CLK_EN,
-            wifi_clock & APB_CTRL_WIFI_CLK_RNG_EN,
-        );
+        write(APB_CTRL_WIFI_CLK_EN, wifi_clock & APB_CTRL_WIFI_CLK_RNG_EN);
         write(SYSTEM_BT_LPCK_DIV_FRAC, 0);
 
         let power = read(RTC_CNTL_DIG_PWC);
-        write(
-            RTC_CNTL_DIG_PWC,
-            (power & !RTC_CNTL_WIFI_FORCE_PU) | RTC_CNTL_WIFI_FORCE_PD,
-        );
+        write(RTC_CNTL_DIG_PWC, (power & !RTC_CNTL_WIFI_FORCE_PU) | RTC_CNTL_WIFI_FORCE_PD);
 
         clear_bits(SYSTEM_PERIP_CLK_EN0, USB_CLK_EN);
         set_bits(SYSTEM_PERIP_RST_EN0, USB_CLK_EN);

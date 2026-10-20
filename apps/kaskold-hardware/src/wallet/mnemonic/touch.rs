@@ -19,13 +19,7 @@ pub struct TouchEntropyCollector {
 
 impl TouchEntropyCollector {
     pub const fn new() -> Self {
-        Self {
-            hasher: None,
-            count: 0,
-            polls: 0,
-            last_x: u16::MAX,
-            last_y: u16::MAX,
-        }
+        Self { hasher: None, count: 0, polls: 0, last_x: u16::MAX, last_y: u16::MAX }
     }
 
     /// Destroy an in-progress transcript and restore the collector defaults.
@@ -55,8 +49,12 @@ impl TouchEntropyCollector {
         self.zeroize();
     }
 
-    pub const fn count(&self) -> usize { self.count }
-    pub const fn target(&self) -> usize { TOUCH_ENTROPY_TARGET }
+    pub const fn count(&self) -> usize {
+        self.count
+    }
+    pub const fn target(&self) -> usize {
+        TOUCH_ENTROPY_TARGET
+    }
 
     /// Record one raw touch-controller observation. Returns true only when a
     /// new movement sample was accepted into the entropy transcript.
@@ -95,5 +93,7 @@ impl TouchEntropyCollector {
 }
 
 impl Default for TouchEntropyCollector {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }

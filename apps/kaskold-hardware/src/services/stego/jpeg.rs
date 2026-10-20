@@ -76,12 +76,8 @@ fn append(output: &mut [u8], position: usize, bytes: &[u8]) -> Option<usize> {
 
 fn is_exif_app1(jpeg: &[u8], position: usize, end: usize) -> bool {
     end >= position.saturating_add(10)
-        && jpeg
-            .get(position..position + 2)
-            .is_some_and(|marker| marker == [0xFF, 0xE1])
-        && jpeg
-            .get(position + 4..position + 10)
-            .is_some_and(|header| header == EXIF_HEADER)
+        && jpeg.get(position..position + 2).is_some_and(|marker| marker == [0xFF, 0xE1])
+        && jpeg.get(position + 4..position + 10).is_some_and(|header| header == EXIF_HEADER)
 }
 
 fn next_segment(jpeg: &[u8], position: usize) -> Option<(u8, usize)> {
@@ -98,10 +94,7 @@ fn next_segment(jpeg: &[u8], position: usize) -> Option<(u8, usize)> {
     if position + 4 > jpeg.len() {
         return None;
     }
-    let segment_length = usize::from(u16::from_be_bytes([
-        jpeg[position + 2],
-        jpeg[position + 3],
-    ]));
+    let segment_length = usize::from(u16::from_be_bytes([jpeg[position + 2], jpeg[position + 3]]));
     let end = position.checked_add(2)?.checked_add(segment_length)?;
     (segment_length >= 2 && end <= jpeg.len()).then_some((marker, end))
 }

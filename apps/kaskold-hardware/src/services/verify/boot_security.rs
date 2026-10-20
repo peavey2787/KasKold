@@ -6,19 +6,19 @@
 //! bootloader. The bootloader performs Espressif's final signature/eFuse
 //! viability checks immediately before any irreversible write.
 
+#[cfg(all(feature = "provisioning-ui", feature = "m5stack", not(feature = "production")))]
+use core::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 #[cfg(not(feature = "qemu"))]
-use esp_hal::efuse::{DIS_PAD_JTAG, DIS_USB_JTAG, Efuse, SECURE_BOOT_EN, SPI_BOOT_CRYPT_CNT};
+use esp_hal::efuse::{Efuse, DIS_PAD_JTAG, DIS_USB_JTAG, SECURE_BOOT_EN, SPI_BOOT_CRYPT_CNT};
 #[cfg(all(feature = "provisioning-ui", feature = "m5stack", not(feature = "qemu")))]
 use esp_hal::efuse::{
-    KEY_PURPOSE_0, KEY_PURPOSE_1, KEY_PURPOSE_2, KEY_PURPOSE_3, KEY_PURPOSE_4, KEY_PURPOSE_5,
-    SECURE_BOOT_KEY_REVOKE0, SECURE_BOOT_KEY_REVOKE1, SECURE_BOOT_KEY_REVOKE2, WR_DIS,
+    KEY_PURPOSE_0, KEY_PURPOSE_1, KEY_PURPOSE_2, KEY_PURPOSE_3, KEY_PURPOSE_4, KEY_PURPOSE_5, SECURE_BOOT_KEY_REVOKE0,
+    SECURE_BOOT_KEY_REVOKE1, SECURE_BOOT_KEY_REVOKE2, WR_DIS,
 };
 use kaskold_hardware_core::security::boot_fuses;
 pub use kaskold_hardware_core::security::boot_fuses::BootSecurityLevel;
 #[cfg(feature = "secure-provisioning-core")]
 pub use kaskold_hardware_core::security::boot_fuses::PopItPreflightError;
-#[cfg(all(feature = "provisioning-ui", feature = "m5stack", not(feature = "production")))]
-use core::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 
 #[cfg(all(feature = "provisioning-ui", feature = "m5stack", not(feature = "production")))]
 static DEV_POP_IT_INDICATOR_DEMO: AtomicBool = AtomicBool::new(false);
@@ -27,10 +27,7 @@ pub fn level() -> BootSecurityLevel {
     // Normal UI is reached only after the profile-appropriate signature and
     // code hash have verified. Development uses a repository-public TEST key;
     // production uses the private release identity and may later add ROM eFuse enforcement.
-    boot_fuses::boot_security_level(
-        secure_boot_enabled(),
-        crate::services::verify::software_verification_configured(),
-    )
+    boot_fuses::boot_security_level(secure_boot_enabled(), crate::services::verify::software_verification_configured())
 }
 
 /// Trust icon state. Development may deliberately preview the teal hardware
@@ -54,11 +51,10 @@ pub fn dev_pop_it_indicator_demo_active() -> bool {
     DEV_POP_IT_INDICATOR_DEMO.load(AtomicOrdering::Relaxed)
 }
 
-#[cfg(all(
-    feature = "provisioning-ui",
-    not(all(feature = "m5stack", not(feature = "production")))
-))]
-pub const fn dev_pop_it_indicator_demo_active() -> bool { false }
+#[cfg(all(feature = "provisioning-ui", not(all(feature = "m5stack", not(feature = "production")))))]
+pub const fn dev_pop_it_indicator_demo_active() -> bool {
+    false
+}
 
 #[cfg(feature = "secure-provisioning-core")]
 pub fn pop_it_preflight() -> Result<(), PopItPreflightError> {
@@ -85,7 +81,9 @@ pub fn secure_boot_enabled() -> bool {
 }
 
 #[cfg(feature = "qemu")]
-pub const fn secure_boot_enabled() -> bool { false }
+pub const fn secure_boot_enabled() -> bool {
+    false
+}
 
 /// Whether the chip is hardware-locked. Production firmware stores wallets only
 /// in this state, so a physically captured unlocked chip never holds a
@@ -96,7 +94,9 @@ pub fn hardware_protection_active() -> bool {
 }
 
 #[cfg(feature = "qemu")]
-pub const fn hardware_protection_active() -> bool { false }
+pub const fn hardware_protection_active() -> bool {
+    false
+}
 
 #[cfg(all(feature = "provisioning-ui", feature = "m5stack", not(feature = "qemu")))]
 const AUTHORITY_PROFILE: boot_fuses::AuthorityProfile = if cfg!(feature = "secure-owner-only") {
@@ -119,4 +119,6 @@ pub fn owner_authority_enrolled() -> bool {
 }
 
 #[cfg(all(feature = "provisioning-ui", not(all(feature = "m5stack", not(feature = "qemu")))))]
-pub const fn owner_authority_enrolled() -> bool { false }
+pub const fn owner_authority_enrolled() -> bool {
+    false
+}

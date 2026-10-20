@@ -11,9 +11,9 @@
 //! deterministic SHA-256 digest of the complete Secure-Boot-signed app content
 //! (including v2 secure padding, excluding the appended signature sector).
 
-use esp_hal::efuse::{Efuse, SECURE_BOOT_EN};
 #[cfg(all(feature = "m5stack", feature = "production"))]
 use esp_hal::efuse::DIS_DOWNLOAD_MANUAL_ENCRYPT;
+use esp_hal::efuse::{Efuse, SECURE_BOOT_EN};
 
 mod flash;
 mod image;
@@ -73,9 +73,7 @@ pub struct AttestationEvidence {
     pub build_commit: &'static str,
 }
 
-pub fn verify_running_image(
-    verified_code_hash: &[u8; 32],
-) -> Result<AttestationEvidence, AttestationError> {
+pub fn verify_running_image(verified_code_hash: &[u8; 32]) -> Result<AttestationEvidence, AttestationError> {
     let hardware_secure_boot = secure_boot_enabled();
     let build_commit = build_commit()?;
 
@@ -94,14 +92,12 @@ pub fn verify_running_image(
         });
     }
 
-    flash::with_other_core_parked(image::verify_running_image).map(|identity_hash| {
-        AttestationEvidence {
-            identity_hash,
-            hash_scope: AttestationHashScope::SignedImage,
-            flash_encryption: false,
-            hardware_secure_boot,
-            build_commit,
-        }
+    flash::with_other_core_parked(image::verify_running_image).map(|identity_hash| AttestationEvidence {
+        identity_hash,
+        hash_scope: AttestationHashScope::SignedImage,
+        flash_encryption: false,
+        hardware_secure_boot,
+        build_commit,
     })
 }
 

@@ -1,9 +1,9 @@
 //! Manual raw-private-key import.
 
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
-use crate::{hw::display, runtime::data::AppData};
 use crate::services::audio as sound;
 use crate::services::raw_key::{decode_and_install, decode_and_install_transient, RawKeyImportError};
+use crate::{hw::display, runtime::data::AppData};
 
 fn import_input(ad: &mut AppData) -> Result<usize, RawKeyImportError> {
     let length = ad.wallet.keys.hex_input_len as usize;
@@ -32,10 +32,7 @@ fn complete_import_navigation(ad: &mut AppData, slot_index: usize) -> Result<(),
         }
         ad.wallet.seeds.mark_pending_add_wallet_installed();
         ad.wallet.seeds.pp_input.reset();
-        crate::runtime::effects::route(
-            ad,
-            crate::runtime::navigation::route!(WalletNameEntry { purpose: 3 }),
-        );
+        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(WalletNameEntry { purpose: 3 }));
     } else if ad.storage.persistence.device_storage_intent.is_seed_onboarding() {
         ad.storage.persistence.recovery_words_acknowledged = true;
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageFinalizeChoice));
@@ -72,13 +69,7 @@ fn finish_import(
             }
         }
         Err(error) => {
-            show_rejection(
-                boot_display,
-                delay,
-                rejection_message(error),
-                2000,
-                ErrorSound::Silent,
-            );
+            show_rejection(boot_display, delay, rejection_message(error), 2000, ErrorSound::Silent);
         }
     }
     true
@@ -101,11 +92,7 @@ fn apply_back(ad: &mut AppData) -> bool {
 }
 
 fn write_character(ad: &mut AppData, character: u8) {
-    let normalized = if (b'A'..=b'F').contains(&character) {
-        character + 32
-    } else {
-        character
-    };
+    let normalized = if (b'A'..=b'F').contains(&character) { character + 32 } else { character };
     if ad.wallet.keys.hex_input_len < 64 {
         ad.wallet.keys.hex_input[ad.wallet.keys.hex_input_len as usize] = normalized;
         ad.wallet.keys.hex_input_len += 1;
@@ -133,19 +120,13 @@ pub(super) fn handle(
         KeyAction::Char(character) => {
             write_character(ad, character);
             if crate::runtime::interactions::feedback::physical_presentation_enabled() {
-                boot_display.update_import_privkey_input(
-                    &ad.wallet.keys.hex_input,
-                    ad.wallet.keys.hex_input_len,
-                );
+                boot_display.update_import_privkey_input(&ad.wallet.keys.hex_input, ad.wallet.keys.hex_input_len);
             }
         }
         KeyAction::Backspace => {
             backspace(ad);
             if crate::runtime::interactions::feedback::physical_presentation_enabled() {
-                boot_display.update_import_privkey_input(
-                    &ad.wallet.keys.hex_input,
-                    ad.wallet.keys.hex_input_len,
-                );
+                boot_display.update_import_privkey_input(&ad.wallet.keys.hex_input, ad.wallet.keys.hex_input_len);
             }
         }
         KeyAction::Ok => {

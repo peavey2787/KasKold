@@ -1,11 +1,10 @@
-use core::fmt::Write as _;
 use super::super::{
-    BootDisplay, COLOR_BG, COLOR_ORANGE, COLOR_TEXT_DIM, CornerRadii, Drawable,
-    KASPA_ACCENT, KASPA_TEAL, Line, Point, Primitive, PrimitiveStyle, Rectangle,
-    RoundedRectangle, Size, draw_lato_body, draw_lato_hint, draw_lato_title,
-    draw_oswald_header, measure_body, measure_header, measure_title,
+    draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_title,
+    BootDisplay, CornerRadii, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size,
+    COLOR_BG, COLOR_ORANGE, COLOR_TEXT_DIM, KASPA_ACCENT, KASPA_TEAL,
 };
 use crate::runtime::data::{AppData, CovenantSigningMode, CovenantSigningPhase};
+use core::fmt::Write as _;
 use shared_signer::covenant_sign::KnownScheme;
 
 impl<'a> BootDisplay<'a> {
@@ -32,7 +31,11 @@ impl<'a> BootDisplay<'a> {
         let binding = ad.signing.covenant.mode == CovenantSigningMode::BindOpaque;
         self.covenant_header(if binding { "BIND OPAQUE KEY" } else { "OPAQUE COVENANT" });
         self.center_body("KasKold cannot verify", 65, COLOR_ORANGE);
-        self.center_body(if binding { "how this script uses the key." } else { "what this hash authorizes." }, 84, COLOR_ORANGE);
+        self.center_body(
+            if binding { "how this script uses the key." } else { "what this hash authorizes." },
+            84,
+            COLOR_ORANGE,
+        );
         self.center_body("Only the isolated covenant", 112, COLOR_TEXT_DIM);
         self.center_body("key can sign it; wallet funds", 130, COLOR_TEXT_DIM);
         self.center_body("cannot be authorized by this key.", 148, COLOR_TEXT_DIM);
@@ -74,7 +77,8 @@ impl<'a> BootDisplay<'a> {
             self.covenant_button(button, 188, KASPA_ACCENT);
             return;
         }
-        let binding = matches!(ad.signing.covenant.mode, CovenantSigningMode::BindKnown | CovenantSigningMode::BindOpaque);
+        let binding =
+            matches!(ad.signing.covenant.mode, CovenantSigningMode::BindKnown | CovenantSigningMode::BindOpaque);
         self.covenant_header(if binding { "COVENANT KEY BOUND" } else { "COVENANT SIGNED" });
         let mode = match ad.signing.covenant.mode {
             CovenantSigningMode::Known => "Known context verified",
@@ -98,7 +102,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, title, (320 - width) / 2, 28, KASPA_TEAL);
         Line::new(Point::new(20, 38), Point::new(300, 38))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
     }
 
     fn center_body(&mut self, text: &str, y: i32, color: embedded_graphics::pixelcolor::Rgb565) {
@@ -146,12 +151,12 @@ impl<'a> BootDisplay<'a> {
         let rect = Rectangle::new(Point::new(60, y), Size::new(200, 38));
         RoundedRectangle::new(rect, CornerRadii::new(Size::new(8, 8)))
             .into_styled(PrimitiveStyle::with_fill(color))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let width = measure_title(label);
         draw_lato_title(&mut self.display, label, 60 + (200 - width) / 2, y + 27, COLOR_BG);
     }
 }
-
 
 fn private_swap_kas_line(label: &str, value: u64) -> heapless::String<40> {
     let mut out = heapless::String::<40>::new();
@@ -162,59 +167,69 @@ fn private_swap_kas_line(label: &str, value: u64) -> heapless::String<40> {
 impl<'a> BootDisplay<'a> {
     pub fn draw_private_swap_review(&mut self, ad: &AppData) {
         use crate::runtime::data::PrivateSwapMode;
-        let s=&ad.signing.private_swap;
-        let (title, action)=match s.mode {
-            PrivateSwapMode::Bind=>("BIND PRIVATE SWAP","BIND KEY"),
-            PrivateSwapMode::PreSign=>("PRIVATE SWAP CLAIM","PRE-SIGN"),
-            PrivateSwapMode::Complete=>("COMPLETE SWAP CLAIM","COMPLETE"),
-            _=>("PRIVATE SWAP","CONFIRM"),
+        let s = &ad.signing.private_swap;
+        let (title, action) = match s.mode {
+            PrivateSwapMode::Bind => ("BIND PRIVATE SWAP", "BIND KEY"),
+            PrivateSwapMode::PreSign => ("PRIVATE SWAP CLAIM", "PRE-SIGN"),
+            PrivateSwapMode::Complete => ("COMPLETE SWAP CLAIM", "COMPLETE"),
+            _ => ("PRIVATE SWAP", "CONFIRM"),
         };
         self.covenant_header(title);
-        self.center_body("ADAPTOR SIGNATURE v2",52,KASPA_TEAL);
-        if s.mode==PrivateSwapMode::Bind {
-            self.draw_hex_prefix("DEST SCRIPT SHA-256",&s.destination_hash,82);
-            self.draw_hex_prefix("KEY INSTANCE",&s.key_id,124);
+        self.center_body("ADAPTOR SIGNATURE v2", 52, KASPA_TEAL);
+        if s.mode == PrivateSwapMode::Bind {
+            self.draw_hex_prefix("DEST SCRIPT SHA-256", &s.destination_hash, 82);
+            self.draw_hex_prefix("KEY INSTANCE", &s.key_id, 124);
         } else {
             let amount = private_swap_kas_line("OUTPUT", s.output_amount);
             let fee = private_swap_kas_line("FEE", s.fee);
             let mut refund = heapless::String::<40>::new();
             let _ = write!(&mut refund, "REFUND DAA {}", s.refund_locktime_daa);
-            self.center_body(amount.as_str(),63,KASPA_TEAL);
-            self.center_body(fee.as_str(),82,COLOR_TEXT_DIM);
-            self.center_body(refund.as_str(),101,COLOR_TEXT_DIM);
-            self.draw_hex_prefix("DEST SCRIPT SHA-256",&s.destination_hash,116);
-            self.draw_hex_prefix("TX SIGHASH",&s.sighash,151);
+            self.center_body(amount.as_str(), 63, KASPA_TEAL);
+            self.center_body(fee.as_str(), 82, COLOR_TEXT_DIM);
+            self.center_body(refund.as_str(), 101, COLOR_TEXT_DIM);
+            self.draw_hex_prefix("DEST SCRIPT SHA-256", &s.destination_hash, 116);
+            self.draw_hex_prefix("TX SIGHASH", &s.sighash, 151);
         }
-        self.covenant_button(action,188,KASPA_ACCENT);
+        self.covenant_button(action, 188, KASPA_ACCENT);
     }
 
-    pub fn draw_private_swap_key_result(&mut self, ad:&AppData) {
-        let s=&ad.signing.private_swap;
+    pub fn draw_private_swap_key_result(&mut self, ad: &AppData) {
+        let s = &ad.signing.private_swap;
         self.covenant_header("PRIVATE SWAP KEY");
-        self.center_body("Isolated swap key ready",54,KASPA_TEAL);
-        self.draw_hex_prefix("KEY ID",&s.key_id,78);
-        self.draw_hex_prefix("CLAIM PUBKEY",&s.claim_pubkey,116);
-        self.draw_hex_prefix("ADAPTOR POINT",&s.adaptor_point,154);
-        self.covenant_button("SHOW QR",188,KASPA_ACCENT);
+        self.center_body("Isolated swap key ready", 54, KASPA_TEAL);
+        self.draw_hex_prefix("KEY ID", &s.key_id, 78);
+        self.draw_hex_prefix("CLAIM PUBKEY", &s.claim_pubkey, 116);
+        self.draw_hex_prefix("ADAPTOR POINT", &s.adaptor_point, 154);
+        self.covenant_button("SHOW QR", 188, KASPA_ACCENT);
     }
 
-    pub fn draw_private_swap_result(&mut self, ad:&AppData) {
-        use crate::runtime::data::{PrivateSwapMode,PrivateSwapPhase};
-        let s=&ad.signing.private_swap;
-        if s.phase==PrivateSwapPhase::AwaitingReveal {
+    pub fn draw_private_swap_result(&mut self, ad: &AppData) {
+        use crate::runtime::data::{PrivateSwapMode, PrivateSwapPhase};
+        let s = &ad.signing.private_swap;
+        if s.phase == PrivateSwapPhase::AwaitingReveal {
             self.covenant_header("SWAP NONCE COMMITTED");
-            self.center_body("Host contribution required",60,KASPA_TEAL);
-            self.draw_hex_prefix("TX SIGHASH",&s.sighash,92);
-            let mut nx=[0u8;32]; nx.copy_from_slice(&s.nonce_point[1..33]);
-            self.draw_hex_prefix("BASE NONCE",&nx,132);
-            self.covenant_button(if s.nonce_qr_shown{"SCAN REVEAL"}else{"SHOW NONCE QR"},188,KASPA_ACCENT);
+            self.center_body("Host contribution required", 60, KASPA_TEAL);
+            self.draw_hex_prefix("TX SIGHASH", &s.sighash, 92);
+            let mut nx = [0u8; 32];
+            nx.copy_from_slice(&s.nonce_point[1..33]);
+            self.draw_hex_prefix("BASE NONCE", &nx, 132);
+            self.covenant_button(if s.nonce_qr_shown { "SCAN REVEAL" } else { "SHOW NONCE QR" }, 188, KASPA_ACCENT);
             return;
         }
-        let title=match s.mode {PrivateSwapMode::Bind=>"SWAP KEY BOUND",PrivateSwapMode::PreSign=>"ADAPTOR PRE-SIGNED",PrivateSwapMode::Complete=>"SWAP CLAIM COMPLETE",_=>"PRIVATE SWAP"};
+        let title = match s.mode {
+            PrivateSwapMode::Bind => "SWAP KEY BOUND",
+            PrivateSwapMode::PreSign => "ADAPTOR PRE-SIGNED",
+            PrivateSwapMode::Complete => "SWAP CLAIM COMPLETE",
+            _ => "PRIVATE SWAP",
+        };
         self.covenant_header(title);
-        self.center_body("No preimage / tx-sighash bound",62,KASPA_TEAL);
-        self.draw_hex_prefix("TX / SCRIPT",if s.mode==PrivateSwapMode::Bind{&s.script_hash}else{&s.sighash},104);
-        self.draw_hex_prefix("CLAIM PUBKEY",&s.claim_pubkey,144);
-        self.covenant_button("SHOW QR",188,KASPA_ACCENT);
+        self.center_body("No preimage / tx-sighash bound", 62, KASPA_TEAL);
+        self.draw_hex_prefix(
+            "TX / SCRIPT",
+            if s.mode == PrivateSwapMode::Bind { &s.script_hash } else { &s.sighash },
+            104,
+        );
+        self.draw_hex_prefix("CLAIM PUBKEY", &s.claim_pubkey, 144);
+        self.covenant_button("SHOW QR", 188, KASPA_ACCENT);
     }
 }

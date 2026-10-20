@@ -19,10 +19,7 @@
 use super::display;
 use crate::runtime::input::AppState;
 
-pub(super) fn redraw(
-    ad: &mut crate::runtime::data::AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) -> bool {
+pub(super) fn redraw(ad: &mut crate::runtime::data::AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     redraw_state(ad.navigation.app.state, ad, boot_display)
 }
 
@@ -103,19 +100,13 @@ fn redraw_stego_import(
             boot_display.draw_keyboard_screen_full(&ad.wallet.seeds.pp_input, "BACKUP PASSWORD")
         }
         AppState::StegoHintReveal => draw_stego_hint(ad, boot_display),
-        AppState::StegoHintPassphrase => {
-            boot_display.draw_keyboard_screen_full(&ad.wallet.seeds.pp_input, "25TH WORD")
-        }
+        AppState::StegoHintPassphrase => boot_display.draw_keyboard_screen_full(&ad.wallet.seeds.pp_input, "25TH WORD"),
         _ => return false,
     }
     true
 }
 
-
-fn draw_stego_result(
-    ad: &crate::runtime::data::AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) {
+fn draw_stego_result(ad: &crate::runtime::data::AppData, boot_display: &mut display::BootDisplay<'_>) {
     if ad.stego.session.result_ok {
         boot_display.draw_success_screen("Stego Backup Created");
     } else {
@@ -123,31 +114,18 @@ fn draw_stego_result(
     }
 }
 
-fn draw_stego_description_preview(
-    ad: &crate::runtime::data::AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) {
-    let description = core::str::from_utf8(
-        &ad.stego.export_flow.jpeg_desc_buf[..ad.stego.export_flow.jpeg_desc_len],
-    )
-    .unwrap_or("");
+fn draw_stego_description_preview(ad: &crate::runtime::data::AppData, boot_display: &mut display::BootDisplay<'_>) {
+    let description =
+        core::str::from_utf8(&ad.stego.export_flow.jpeg_desc_buf[..ad.stego.export_flow.jpeg_desc_len]).unwrap_or("");
     boot_display.draw_stego_desc_preview(description);
 }
 
-fn draw_stego_confirmation(
-    ad: &crate::runtime::data::AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) {
+fn draw_stego_confirmation(ad: &crate::runtime::data::AppData, boot_display: &mut display::BootDisplay<'_>) {
     let index = ad.stego.export_flow.jpeg_selected as usize;
     let name_length = ad.stego.export_flow.jpeg_display_lens[index] as usize;
-    let name = core::str::from_utf8(
-        &ad.stego.export_flow.jpeg_display_names[index][..name_length],
-    )
-    .unwrap_or("?");
-    let description = core::str::from_utf8(
-        &ad.stego.export_flow.jpeg_desc_buf[..ad.stego.export_flow.jpeg_desc_len],
-    )
-    .unwrap_or("");
+    let name = core::str::from_utf8(&ad.stego.export_flow.jpeg_display_names[index][..name_length]).unwrap_or("?");
+    let description =
+        core::str::from_utf8(&ad.stego.export_flow.jpeg_desc_buf[..ad.stego.export_flow.jpeg_desc_len]).unwrap_or("");
     boot_display.draw_stego_jpeg_confirm(
         name,
         description,
@@ -156,13 +134,8 @@ fn draw_stego_confirmation(
     );
 }
 
-fn draw_stego_hint(
-    ad: &crate::runtime::data::AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) {
-    let hint = core::str::from_utf8(
-        &ad.stego.import.recovered_hint[..ad.stego.import.recovered_hint_len],
-    )
-    .unwrap_or("???");
+fn draw_stego_hint(ad: &crate::runtime::data::AppData, boot_display: &mut display::BootDisplay<'_>) {
+    let hint =
+        core::str::from_utf8(&ad.stego.import.recovered_hint[..ad.stego.import.recovered_hint_len]).unwrap_or("???");
     boot_display.draw_stego_hint_reveal(hint);
 }

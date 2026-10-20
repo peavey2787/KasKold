@@ -1,8 +1,8 @@
 use super::super::common::context::SdImportMenuContext;
 // SD controller workflow: import menu.
-use super::super::{AppData, ImportScanRule, display, scan_by_rule};
-use crate::runtime::interactions::menu_selection::{handle_paged_menu_touch, PagedMenuAction};
+use super::super::{display, scan_by_rule, AppData, ImportScanRule};
 use crate::runtime::data::TextFileKind;
+use crate::runtime::interactions::menu_selection::{handle_paged_menu_touch, PagedMenuAction};
 use kaskold_hardware_core::storage::routing::{import_scan_plan, ImportScanPlan};
 const WALLET_BACKUP_RULE: ImportScanRule = ImportScanRule {
     extensions: &[*b"KAS"],
@@ -28,10 +28,8 @@ const KPUB_RULE: ImportScanRule = ImportScanRule {
     empty_message: "No .TXT files found",
     text_import_kind: Some(TextFileKind::Kpub),
 };
-const MULTISIG_ADDRESS_RULE: ImportScanRule = ImportScanRule {
-    text_import_kind: Some(TextFileKind::MultisigAddress),
-    ..KPUB_RULE
-};
+const MULTISIG_ADDRESS_RULE: ImportScanRule =
+    ImportScanRule { text_import_kind: Some(TextFileKind::MultisigAddress), ..KPUB_RULE };
 const MULTISIG_DESCRIPTOR_RULE: ImportScanRule = ImportScanRule {
     extensions: &[*b"TXT", *b"KSP"],
     max_size: 512,
@@ -49,13 +47,8 @@ const COVENANT_BACKUP_RULE: ImportScanRule = ImportScanRule {
     text_import_kind: None,
 };
 
-const IMPORT_RULES: [ImportScanRule; 5] = [
-    WALLET_BACKUP_RULE,
-    TRANSACTION_RULE,
-    KPUB_RULE,
-    MULTISIG_ADDRESS_RULE,
-    COVENANT_BACKUP_RULE,
-];
+const IMPORT_RULES: [ImportScanRule; 5] =
+    [WALLET_BACKUP_RULE, TRANSACTION_RULE, KPUB_RULE, MULTISIG_ADDRESS_RULE, COVENANT_BACKUP_RULE];
 
 fn scan_rule_plan(
     rule_index: usize,
@@ -65,14 +58,7 @@ fn scan_rule_plan(
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     card_present: bool,
 ) {
-    scan_by_rule(
-        ad,
-        boot_display,
-        delay,
-        i2c,
-        card_present,
-        IMPORT_RULES[rule_index],
-    );
+    scan_by_rule(ad, boot_display, delay, i2c, card_present, IMPORT_RULES[rule_index]);
 }
 
 fn dispatch_import_scan(
@@ -83,10 +69,11 @@ fn dispatch_import_scan(
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     card_present: bool,
 ) {
-    let Some(plan): Option<ImportScanPlan> = import_scan_plan(item) else { return; };
+    let Some(plan): Option<ImportScanPlan> = import_scan_plan(item) else {
+        return;
+    };
     scan_rule_plan(plan.rule_index(), ad, boot_display, delay, i2c, card_present);
 }
-
 
 pub(crate) fn scan_multisig_descriptor_files(
     ad: &mut AppData,
@@ -95,14 +82,7 @@ pub(crate) fn scan_multisig_descriptor_files(
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     card_present: bool,
 ) {
-    scan_by_rule(
-        ad,
-        boot_display,
-        delay,
-        i2c,
-        card_present,
-        MULTISIG_DESCRIPTOR_RULE,
-    );
+    scan_by_rule(ad, boot_display, delay, i2c, card_present, MULTISIG_DESCRIPTOR_RULE);
 }
 
 pub(crate) fn handle_sd_import_menu(ctx: SdImportMenuContext<'_, '_, '_>) -> bool {
@@ -126,14 +106,7 @@ pub(crate) fn handle_sd_import_menu(ctx: SdImportMenuContext<'_, '_, '_>) -> boo
         crate::runtime::effects::back(ad);
         return true;
     }
-    match handle_paged_menu_touch(
-        &mut ad.navigation.sd_import_menu,
-        list_zones,
-        page_up_zone,
-        page_down_zone,
-        x,
-        y,
-    ) {
+    match handle_paged_menu_touch(&mut ad.navigation.sd_import_menu, list_zones, page_up_zone, page_down_zone, x, y) {
         PagedMenuAction::PageChanged => true,
         PagedMenuAction::Selected(5) => {
             ad.wallet.keys.hex_input_len = 0;

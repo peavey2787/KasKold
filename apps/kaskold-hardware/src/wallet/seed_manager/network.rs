@@ -16,7 +16,9 @@ pub enum WalletNetwork {
 }
 
 impl Default for WalletNetwork {
-    fn default() -> Self { Self::Mainnet }
+    fn default() -> Self {
+        Self::Mainnet
+    }
 }
 
 impl WalletNetwork {
@@ -44,15 +46,16 @@ impl WalletNetwork {
         }
     }
 
-    pub const fn matches_transaction_network(
-        self,
-        network: offline_signer::address::KaspaNetwork,
-    ) -> bool {
+    pub const fn matches_transaction_network(self, network: offline_signer::address::KaspaNetwork) -> bool {
         self.kaspa_network() as u8 == network as u8
     }
 
     pub(crate) const fn preference_code(self) -> u8 {
-        match self { Self::Mainnet => 0, Self::Testnet10 => 1, Self::Testnet12 => 2 }
+        match self {
+            Self::Mainnet => 0,
+            Self::Testnet10 => 1,
+            Self::Testnet12 => 2,
+        }
     }
 
     pub(crate) const fn from_preference_code(value: u8) -> Option<Self> {
@@ -64,7 +67,9 @@ impl WalletNetwork {
         }
     }
 
-    pub(crate) const fn slot_tag(self) -> u8 { self.preference_code() }
+    pub(crate) const fn slot_tag(self) -> u8 {
+        self.preference_code()
+    }
     pub(crate) const fn from_slot_tag(value: u8) -> Option<Self> {
         Self::from_preference_code(value)
     }
@@ -73,13 +78,17 @@ impl WalletNetwork {
 use super::{SeedManager, MAX_SLOTS};
 
 impl SeedManager {
-    pub const fn network(&self) -> WalletNetwork { self.selected_network }
+    pub const fn network(&self) -> WalletNetwork {
+        self.selected_network
+    }
 
     /// Switch the visible wallet namespace and drop any active selection from
     /// the previous network. Slot material remains encrypted/persisted in its
     /// own tagged namespace.
     pub fn set_network(&mut self, network: WalletNetwork) {
-        if self.selected_network == network { return; }
+        if self.selected_network == network {
+            return;
+        }
         self.selected_network = network;
         if self.active < MAX_SLOTS as u8 && !self.slot_visible(self.active as usize) {
             self.active = u8::MAX;

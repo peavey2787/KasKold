@@ -6,10 +6,10 @@
 
 mod installed;
 
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
-use super::{AppData, RedrawFlag, display, sound};
-use crate::runtime::interactions::keyboard::{KeyboardAction, handle_passphrase_keyboard};
+use super::{display, sound, AppData, RedrawFlag};
 use crate::runtime::input::AppState;
+use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
+use crate::runtime::interactions::keyboard::{handle_passphrase_keyboard, KeyboardAction};
 
 pub(super) fn handle(
     ad: &mut AppData,
@@ -19,19 +19,16 @@ pub(super) fn handle(
     y: u16,
     is_back: bool,
 ) -> Option<bool> {
-    if ad.navigation.app.state != AppState::PassphraseEntry { return None; }
+    if ad.navigation.app.state != AppState::PassphraseEntry {
+        return None;
+    }
 
     let mut needs_redraw = RedrawFlag::default();
     if is_back {
         ad.wallet.seeds.pp_input.reset();
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(PassphraseChoice));
         needs_redraw.set(true);
-    } else if handle_passphrase_keyboard(
-        &mut ad.wallet.seeds.pp_input,
-        boot_display,
-        x,
-        y,
-    ) == KeyboardAction::Submitted
+    } else if handle_passphrase_keyboard(&mut ad.wallet.seeds.pp_input, boot_display, x, y) == KeyboardAction::Submitted
     {
         store_seed_with_passphrase(ad, boot_display, delay);
         needs_redraw.set(true);
@@ -62,7 +59,9 @@ pub(super) fn store_seed_with_passphrase(
         return;
     }
 
-    if !commit_current_seed(ad, boot_display, delay) { return; }
+    if !commit_current_seed(ad, boot_display, delay) {
+        return;
+    }
     finish_seed_commit_navigation(ad);
 }
 
@@ -102,8 +101,8 @@ pub(crate) fn workflow_commit_staged_onboarding_import(ad: &mut AppData) -> bool
     ) else {
         return false;
     };
-    let name_len = usize::from(ad.wallet.seeds.pending_wallet_name_len)
-        .min(crate::wallet::seed_manager::WALLET_NAME_MAX);
+    let name_len =
+        usize::from(ad.wallet.seeds.pending_wallet_name_len).min(crate::wallet::seed_manager::WALLET_NAME_MAX);
     if name_len > 0 {
         let mut name = [0u8; crate::wallet::seed_manager::WALLET_NAME_MAX];
         name[..name_len].copy_from_slice(&ad.wallet.seeds.pending_wallet_name[..name_len]);
@@ -131,30 +130,49 @@ pub(crate) fn commit_staged_add_wallet(
         return false;
     }
     let reserved = usize::from(ad.wallet.seeds.pending_add_wallet_slot);
-    if reserved >= crate::wallet::seed_manager::MAX_SLOTS { return false; }
+    if reserved >= crate::wallet::seed_manager::MAX_SLOTS {
+        return false;
+    }
     let protection = ad.wallet.seeds.pending_wallet_protection;
     let salt = ad.wallet.seeds.pending_wallet_activation_salt;
     let verifier = ad.wallet.seeds.pending_wallet_activation_verifier;
     if ad.wallet.seeds.pending_add_wallet_has_installed_source() {
         return installed::commit_add_wallet(
-            ad, persistence, boot_display, delay, reserved, protection, salt, verifier,
+            ad,
+            persistence,
+            boot_display,
+            delay,
+            reserved,
+            protection,
+            salt,
+            verifier,
         );
     }
     let bip39_len = usize::from(ad.wallet.seeds.pending_bip39_passphrase_len);
-    if ad.wallet.seeds.seed_mgr.find_matching_mnemonic(
-        &ad.wallet.seeds.mnemonic_indices,
-        ad.wallet.seeds.word_count,
-        &ad.wallet.seeds.pending_bip39_passphrase[..bip39_len],
-    ).is_some() {
+    if ad
+        .wallet
+        .seeds
+        .seed_mgr
+        .find_matching_mnemonic(
+            &ad.wallet.seeds.mnemonic_indices,
+            ad.wallet.seeds.word_count,
+            &ad.wallet.seeds.pending_bip39_passphrase[..bip39_len],
+        )
+        .is_some()
+    {
         ad.wallet.seeds.clear_pending_add_wallet();
         show_rejection(boot_display, delay, "Wallet already exists", 1_500, ErrorSound::Silent);
         super::seed_list::return_after_add_wallet(ad);
         return false;
     }
-    if !commit_current_seed(ad, boot_display, delay) { return false; }
+    if !commit_current_seed(ad, boot_display, delay) {
+        return false;
+    }
     let slot = usize::from(ad.wallet.seeds.seed_mgr.active);
     if slot != reserved || !ad.wallet.seeds.seed_mgr.set_slot_protection(slot, protection) {
-        if slot == reserved { ad.wallet.seeds.seed_mgr.delete(slot); }
+        if slot == reserved {
+            ad.wallet.seeds.seed_mgr.delete(slot);
+        }
         crate::services::wallet_session::clear_active_wallet(ad);
         show_rejection(boot_display, delay, "Wallet creation failed", 1_800, ErrorSound::Silent);
         return false;
@@ -183,16 +201,24 @@ pub(crate) fn commit_staged_session_wallet(
         return false;
     }
     let reserved = usize::from(ad.wallet.seeds.pending_add_wallet_slot);
-    if reserved >= crate::wallet::seed_manager::MAX_SLOTS { return false; }
+    if reserved >= crate::wallet::seed_manager::MAX_SLOTS {
+        return false;
+    }
     if ad.wallet.seeds.pending_add_wallet_has_installed_source() {
         return installed::finish_session_wallet(ad, boot_display, delay, reserved);
     }
     let bip39_len = usize::from(ad.wallet.seeds.pending_bip39_passphrase_len);
-    if ad.wallet.seeds.seed_mgr.find_matching_mnemonic(
-        &ad.wallet.seeds.mnemonic_indices,
-        ad.wallet.seeds.word_count,
-        &ad.wallet.seeds.pending_bip39_passphrase[..bip39_len],
-    ).is_some() {
+    if ad
+        .wallet
+        .seeds
+        .seed_mgr
+        .find_matching_mnemonic(
+            &ad.wallet.seeds.mnemonic_indices,
+            ad.wallet.seeds.word_count,
+            &ad.wallet.seeds.pending_bip39_passphrase[..bip39_len],
+        )
+        .is_some()
+    {
         ad.wallet.seeds.clear_pending_add_wallet();
         show_rejection(boot_display, delay, "Wallet already exists", 1_500, ErrorSound::Silent);
         super::seed_list::return_after_add_wallet(ad);
@@ -283,8 +309,8 @@ fn commit_current_seed(
         return false;
     };
 
-    let name_len = usize::from(ad.wallet.seeds.pending_wallet_name_len)
-        .min(crate::wallet::seed_manager::WALLET_NAME_MAX);
+    let name_len =
+        usize::from(ad.wallet.seeds.pending_wallet_name_len).min(crate::wallet::seed_manager::WALLET_NAME_MAX);
     if name_len > 0 {
         let mut name = [0u8; crate::wallet::seed_manager::WALLET_NAME_MAX];
         name[..name_len].copy_from_slice(&ad.wallet.seeds.pending_wallet_name[..name_len]);
@@ -300,14 +326,12 @@ fn commit_current_seed(
         return false;
     }
 
-    log!(
-        "   Seed stored in slot {} (pp={})",
-        slot_index,
-        if passphrase_len > 0 { "yes" } else { "no" }
-    );
+    log!("   Seed stored in slot {} (pp={})", slot_index, if passphrase_len > 0 { "yes" } else { "no" });
     sound::success();
     ad.wallet.seeds.pp_input.reset();
-    if staged_passphrase { ad.wallet.seeds.clear_pending_bip39_passphrase(); }
+    if staged_passphrase {
+        ad.wallet.seeds.clear_pending_bip39_passphrase();
+    }
     true
 }
 
@@ -315,9 +339,10 @@ fn finish_seed_commit_navigation(ad: &mut AppData) {
     // SeedBackup routes by onboarding intent; fresh Add Wallet commits through
     // its separate staged recovery-word acknowledgement path above.
     if ad.signing.multisig.creating.n > 0 && !ad.signing.multisig.creating.active {
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigPickSeed {
-            key_idx: first_empty_multisig_key(ad),
-        }));
+        crate::runtime::effects::route(
+            ad,
+            crate::runtime::navigation::route!(MultisigPickSeed { key_idx: first_empty_multisig_key(ad) }),
+        );
         return;
     }
 
@@ -328,10 +353,7 @@ fn finish_seed_commit_navigation(ad: &mut AppData) {
                 // Imported words were supplied by the user; do not re-display them
                 // or require a redundant "I backed them up" acknowledgement.
                 ad.storage.persistence.recovery_words_acknowledged = true;
-                crate::runtime::effects::route(
-                    ad,
-                    crate::runtime::navigation::route!(StorageFinalizeChoice),
-                );
+                crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageFinalizeChoice));
                 return;
             }
         }
@@ -341,19 +363,13 @@ fn finish_seed_commit_navigation(ad: &mut AppData) {
                 // Imported words were supplied by the user; do not re-display them
                 // or require a redundant "I backed them up" acknowledgement.
                 ad.storage.persistence.recovery_words_acknowledged = true;
-                crate::runtime::effects::route(
-                    ad,
-                    crate::runtime::navigation::route!(StorageFinalizeChoice),
-                );
+                crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageFinalizeChoice));
                 return;
             }
         }
         _ => {}
     }
-    crate::runtime::effects::route(
-        ad,
-        crate::runtime::navigation::route!(SeedBackup { word_idx: 0 }),
-    );
+    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedBackup { word_idx: 0 }));
 }
 
 fn recover_seed_setup_failure(ad: &mut AppData) {

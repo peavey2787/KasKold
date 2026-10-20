@@ -16,31 +16,39 @@
 // Screen redraw — device states.
 use super::display;
 mod onboarding;
-pub(super) fn redraw(
-    ad: &mut crate::runtime::data::AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) -> bool {
-    if onboarding::redraw(ad, boot_display) { return true; }
+pub(super) fn redraw(ad: &mut crate::runtime::data::AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
+    if onboarding::redraw(ad, boot_display) {
+        return true;
+    }
     redraw_device_runtime(ad, boot_display)
 }
 
-fn redraw_device_runtime(
-    ad: &mut crate::runtime::data::AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) -> bool {
+fn redraw_device_runtime(ad: &mut crate::runtime::data::AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     use crate::runtime::input::AppState;
     match ad.navigation.app.state {
         AppState::StoragePinEntry => boot_display.draw_storage_pin_entry(&ad.wallet.seeds.pp_input, "CREATE PIN", true),
-        AppState::StoragePinConfirm => boot_display.draw_storage_pin_entry(&ad.wallet.seeds.pp_input, "CONFIRM PIN", true),
-        AppState::StoragePasswordEntry => boot_display.draw_storage_secret_entry(&ad.wallet.seeds.pp_input, "CREATE PASSWORD", false, true),
-        AppState::StoragePasswordConfirm => boot_display.draw_storage_secret_entry(&ad.wallet.seeds.pp_input, "CONFIRM PASSWORD", false, true),
+        AppState::StoragePinConfirm => {
+            boot_display.draw_storage_pin_entry(&ad.wallet.seeds.pp_input, "CONFIRM PIN", true)
+        }
+        AppState::StoragePasswordEntry => {
+            boot_display.draw_storage_secret_entry(&ad.wallet.seeds.pp_input, "CREATE PASSWORD", false, true)
+        }
+        AppState::StoragePasswordConfirm => {
+            boot_display.draw_storage_secret_entry(&ad.wallet.seeds.pp_input, "CONFIRM PASSWORD", false, true)
+        }
         AppState::StorageUnlockPin => boot_display.draw_storage_pin_entry(
-            &ad.wallet.seeds.pp_input, ad.storage.persistence.unlock_feedback.pin_title(), false,
+            &ad.wallet.seeds.pp_input,
+            ad.storage.persistence.unlock_feedback.pin_title(),
+            false,
         ),
         AppState::StorageUnlockPassword => boot_display.draw_storage_secret_entry(
-            &ad.wallet.seeds.pp_input, ad.storage.persistence.unlock_feedback.password_title(), false, false,
+            &ad.wallet.seeds.pp_input,
+            ad.storage.persistence.unlock_feedback.password_title(),
+            false,
+            false,
         ),
-        AppState::StorageSdFailure => boot_display.draw_fatal_error_screen("Device-bound SD storage unavailable", "Use this signer/card and reboot"),
+        AppState::StorageSdFailure => boot_display
+            .draw_fatal_error_screen("Device-bound SD storage unavailable", "Use this signer/card and reboot"),
         AppState::ScanQR => {
             // Scanner entry/rendering is owned by the camera event-loop stage.
             // Keeping hardware-backed camera UI out of generic redraw prevents

@@ -1,6 +1,9 @@
 //! Navigation ownership and cross-workflow transition policy.
 
-use crate::runtime::{data::DeviceStorageIntent, input::{AppState, HandlerGroup}};
+use crate::runtime::{
+    data::DeviceStorageIntent,
+    input::{AppState, HandlerGroup},
+};
 use kaskold_hardware_core::screen_flow::onboarding;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -18,8 +21,11 @@ pub(crate) enum NavigationOwner {
     WorkflowTests,
 }
 
-
-pub(super) fn owner_for_intent(intent: DeviceStorageIntent, state: AppState, current: NavigationOwner) -> NavigationOwner {
+pub(super) fn owner_for_intent(
+    intent: DeviceStorageIntent,
+    state: AppState,
+    current: NavigationOwner,
+) -> NavigationOwner {
     if intent == DeviceStorageIntent::EnableSd && is_sd_enable_state(state) {
         return NavigationOwner::Settings;
     }
@@ -52,18 +58,22 @@ pub(crate) fn transition_allowed(
         return true;
     }
     if from == to {
-        return from != NavigationOwner::Onboarding
-            || onboarding::transition_allowed(from_state, to_state);
+        return from != NavigationOwner::Onboarding || onboarding::transition_allowed(from_state, to_state);
     }
     if from_state == AppState::MainMenu
-        && matches!(to_state, AppState::StorageModeChoice | AppState::StorageUnlockPin | AppState::StorageUnlockPassword)
+        && matches!(
+            to_state,
+            AppState::StorageModeChoice | AppState::StorageUnlockPin | AppState::StorageUnlockPassword
+        )
     {
         return true;
     }
     if from_state == AppState::MainMenu {
         return super::root::transition_allowed(to_state) && owner_transition_allowed(from, to);
     }
-    if to_state == AppState::MainMenu { return from != NavigationOwner::Onboarding; }
+    if to_state == AppState::MainMenu {
+        return from != NavigationOwner::Onboarding;
+    }
     owner_transition_allowed(from, to)
 }
 
@@ -76,13 +86,21 @@ fn special_transition_allowed(
     // Add Wallet reuses the hardened persistence credential screens without
     // becoming first-device onboarding. Keep only the exact bridges required
     // by recovery acknowledgement -> protection -> credential -> WALLETS.
-    if add_wallet_restore_transport_bridge(from, to, from_state, to_state) { return true; }
-    if add_wallet_persistence_bridge(from_state, to_state) { return true; }
-    if wallet_protection_persistence_bridge(from_state, to_state) { return true; }
+    if add_wallet_restore_transport_bridge(from, to, from_state, to_state) {
+        return true;
+    }
+    if add_wallet_persistence_bridge(from_state, to_state) {
+        return true;
+    }
+    if wallet_protection_persistence_bridge(from_state, to_state) {
+        return true;
+    }
     // Advanced Backup is Seeds-owned, while the steganographic export flow is
     // Stego-owned. Permit only this explicit production entry edge; do not
     // broaden Seeds -> Stego transitions generally.
-    if backup_recovery_stego_entry_allowed(from, to, from_state, to_state) { return true; }
+    if backup_recovery_stego_entry_allowed(from, to, from_state, to_state) {
+        return true;
+    }
     // Recovery-word viewing reuses the SeedBackup pager, but ordinary Wallet/
     // export callers are not onboarding. Permit only its explicit bounded
     // return destinations so Back cannot fall through to onboarding recovery.
@@ -114,8 +132,6 @@ pub(crate) fn recovery_owner(owner: NavigationOwner) -> NavigationOwner {
         _ => Main,
     }
 }
-
-
 
 fn add_wallet_restore_transport_bridge(
     from: NavigationOwner,
@@ -190,11 +206,7 @@ fn backup_recovery_stego_entry_allowed(
             && to_state == AppState::StegoImportPick)
 }
 
-fn seed_backup_return_allowed(
-    from: NavigationOwner,
-    from_state: AppState,
-    to_state: AppState,
-) -> bool {
+fn seed_backup_return_allowed(from: NavigationOwner, from_state: AppState, to_state: AppState) -> bool {
     from == NavigationOwner::Onboarding
         && matches!(from_state, AppState::SeedBackup { .. })
         && matches!(to_state, AppState::WalletBackupMethodsMenu | AppState::SeedBackupMenu | AppState::SeedList)
@@ -203,28 +215,58 @@ fn seed_backup_return_allowed(
 fn fixed_owner(state: AppState, current: NavigationOwner) -> Option<NavigationOwner> {
     use AppState::*;
     use NavigationOwner::*;
-    if matches!(state, StorageUnlockPin | StorageUnlockPassword) { return Some(Storage); }
-    if state == MainMenu { return Some(Main); }
-    if matches!(state, SeedsMenu | SeedList | AddWalletChoice | WalletNameEntry { .. } | ConfirmDeleteSeed
-        | WalletBackupMethodsMenu | WalletDetails | WalletAdvancedMenu | BackupRecoveryMenu | SeedToolsMenu)
-    {
+    if matches!(state, StorageUnlockPin | StorageUnlockPassword) {
+        return Some(Storage);
+    }
+    if state == MainMenu {
+        return Some(Main);
+    }
+    if matches!(
+        state,
+        SeedsMenu
+            | SeedList
+            | AddWalletChoice
+            | WalletNameEntry { .. }
+            | ConfirmDeleteSeed
+            | WalletBackupMethodsMenu
+            | WalletDetails
+            | WalletAdvancedMenu
+            | BackupRecoveryMenu
+            | SeedToolsMenu
+    ) {
         return Some(Seeds);
     }
-    if matches!(state, ImportExportChoice | ImportMenu) { return Some(Export); }
-    if state == SingleSigMenu { return Some(Signing); }
+    if matches!(state, ImportExportChoice | ImportMenu) {
+        return Some(Export);
+    }
+    if state == SingleSigMenu {
+        return Some(Signing);
+    }
     #[cfg(feature = "workflow-tests")]
-    if matches!(state, WorkflowTestsMenu | WorkflowTestsCategory { .. } | WorkflowTestsResult) { return Some(WorkflowTests); }
-    if is_multisig_menu_state(state) { return Some(Multisig); }
-    if is_settings_state(state) { return Some(Settings); }
-    if is_qr_state(state) { return Some(qr_owner(current)); }
-    if state == ShowQrPopup { return Some(Signing); }
+    if matches!(state, WorkflowTestsMenu | WorkflowTestsCategory { .. } | WorkflowTestsResult) {
+        return Some(WorkflowTests);
+    }
+    if is_multisig_menu_state(state) {
+        return Some(Multisig);
+    }
+    if is_settings_state(state) {
+        return Some(Settings);
+    }
+    if is_qr_state(state) {
+        return Some(qr_owner(current));
+    }
+    if state == ShowQrPopup {
+        return Some(Signing);
+    }
     None
 }
 
 fn owner_transition_allowed(from: NavigationOwner, to: NavigationOwner) -> bool {
     use NavigationOwner::*;
     #[cfg(feature = "workflow-tests")]
-    if matches!((from, to), (Settings, WorkflowTests) | (WorkflowTests, Settings)) { return true; }
+    if matches!((from, to), (Settings, WorkflowTests) | (WorkflowTests, Settings)) {
+        return true;
+    }
     match from {
         Onboarding => matches!(to, Onboarding | Main),
         Settings => matches!(to, Main | Seeds | Signing | Export | Storage | Stego | Multisig),
@@ -241,16 +283,16 @@ fn owner_transition_allowed(from: NavigationOwner, to: NavigationOwner) -> bool 
 }
 
 fn is_qr_state(state: AppState) -> bool {
-    matches!(
-        state,
-        AppState::ShowQR
-            | AppState::ShowQrModeChoice
-    )
+    matches!(state, AppState::ShowQR | AppState::ShowQrModeChoice)
 }
 
 fn qr_owner(current: NavigationOwner) -> NavigationOwner {
     use NavigationOwner::*;
-    if matches!(current, Signing | Export | Storage | Multisig) { current } else { Signing }
+    if matches!(current, Signing | Export | Storage | Multisig) {
+        current
+    } else {
+        Signing
+    }
 }
 
 fn owner_from_handler(group: HandlerGroup, current: NavigationOwner) -> NavigationOwner {
@@ -284,30 +326,73 @@ fn is_sd_enable_state(state: AppState) -> bool {
 
 fn is_multisig_menu_state(state: AppState) -> bool {
     use AppState::*;
-    matches!(state, MultisigMenu | MultisigDescriptorsMenu | MultisigDescriptorList { .. } | MultisigChooseMN | MultisigPickSeed { .. } | MultisigAddKey { .. }
-        | MultisigShowAddress | MultisigShowAddressQR | MultisigDescriptor | MultisigSaveAddrAsk | MultisigSaveDescriptorAsk)
+    matches!(
+        state,
+        MultisigMenu
+            | MultisigDescriptorsMenu
+            | MultisigDescriptorList { .. }
+            | MultisigChooseMN
+            | MultisigPickSeed { .. }
+            | MultisigAddKey { .. }
+            | MultisigShowAddress
+            | MultisigShowAddressQR
+            | MultisigDescriptor
+            | MultisigSaveAddrAsk
+            | MultisigSaveDescriptorAsk
+    )
 }
 
 fn is_settings_state(state: AppState) -> bool {
     use AppState::*;
-    if matches!(state, SettingsMenu | AdvancedMenu | FactoryResetWarning | FactoryResetConfirm
-        | DisplaySettings | SdCardSettings | SdCardUnlockPassword | AdvancedFeatures
-        | AdvancedDuressWarning | AdvancedDuressEntry | AdvancedDuressConfirm
-        | AdvancedSdStorageWarning | FirmwareUpdateReady | About)
-    {
+    if matches!(
+        state,
+        SettingsMenu
+            | AdvancedMenu
+            | FactoryResetWarning
+            | FactoryResetConfirm
+            | DisplaySettings
+            | SdCardSettings
+            | SdCardUnlockPassword
+            | AdvancedFeatures
+            | AdvancedDuressWarning
+            | AdvancedDuressEntry
+            | AdvancedDuressConfirm
+            | AdvancedSdStorageWarning
+            | FirmwareUpdateReady
+            | About
+    ) {
         return true;
     }
     #[cfg(feature = "provisioning-ui")]
-    if matches!(state, PopItPrompt | PopItExplain | PopItConfirm
-        | OwnerFirmwareMenu | OwnerKeyWarning | OwnerKeyConfirm
-        | OwnerInstallWarning | OwnerInstallConfirm) { return true; }
+    if matches!(
+        state,
+        PopItPrompt
+            | PopItExplain
+            | PopItConfirm
+            | OwnerFirmwareMenu
+            | OwnerKeyWarning
+            | OwnerKeyConfirm
+            | OwnerInstallWarning
+            | OwnerInstallConfirm
+    ) {
+        return true;
+    }
     #[cfg(feature = "developer-ui")]
-    if matches!(state, DeveloperMenu | NetworkMenu | DiagnosticInfo) { return true; }
+    if matches!(state, DeveloperMenu | NetworkMenu | DiagnosticInfo) {
+        return true;
+    }
     #[cfg(feature = "m5stack")]
-    if matches!(state, AudioSettings | AdvancedRtcEntry | AdvancedTimeLockWarning
-        | AdvancedTimeLockEntry | AdvancedTimeLockConfirm | AdvancedWeeklyWarning
-        | AdvancedWeeklyEntry | AdvancedWeeklyConfirm)
-    {
+    if matches!(
+        state,
+        AudioSettings
+            | AdvancedRtcEntry
+            | AdvancedTimeLockWarning
+            | AdvancedTimeLockEntry
+            | AdvancedTimeLockConfirm
+            | AdvancedWeeklyWarning
+            | AdvancedWeeklyEntry
+            | AdvancedWeeklyConfirm
+    ) {
         return true;
     }
     false

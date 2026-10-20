@@ -6,12 +6,12 @@
 
 pub(crate) mod core;
 pub(crate) mod display;
-pub(crate) mod dvp;
-pub(crate) mod flash;
 #[cfg(feature = "screenshot")]
 pub(crate) mod display_support;
-pub(crate) mod lockdown;
+pub(crate) mod dvp;
+pub(crate) mod flash;
 pub(crate) mod imu_health;
+pub(crate) mod lockdown;
 pub(crate) mod mmio;
 pub(crate) mod registers;
 #[cfg(feature = "screenshot")]

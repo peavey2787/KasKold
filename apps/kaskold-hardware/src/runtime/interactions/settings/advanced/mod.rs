@@ -10,18 +10,17 @@ mod overview;
 mod owner_firmware;
 #[cfg(feature = "provisioning-ui")]
 mod pop_it;
-#[cfg(feature = "workflow-test-auto")]
-pub(crate) mod workflow;
 #[cfg(feature = "m5stack")]
 mod time;
+#[cfg(feature = "workflow-test-auto")]
+pub(crate) mod workflow;
 
 use crate::{
-    runtime::interactions::TouchInput,
     hw::display::BootDisplay,
+    runtime::interactions::TouchInput,
     runtime::{data::AppData, input::AppState},
     services::persistent_wallet::PersistentWallet,
 };
-
 
 /// Handle Advanced-screen interactions that are purely local navigation/input
 /// editing. `None` is reserved for operations that really need persistence,
@@ -35,33 +34,49 @@ pub(crate) fn handle_pure(input: TouchInput, ad: &mut AppData) -> Option<bool> {
     #[cfg(not(feature = "provisioning-ui"))]
     let result = handle_pure_warning(input, ad).or_else(|| handle_pure_entry(input, ad));
     #[cfg(feature = "m5stack")]
-    { result.or_else(|| handle_pure_confirm(input, ad)) }
+    {
+        result.or_else(|| handle_pure_confirm(input, ad))
+    }
     #[cfg(not(feature = "m5stack"))]
-    { result }
+    {
+        result
+    }
 }
 
 fn handle_pure_warning(input: TouchInput, ad: &mut AppData) -> Option<bool> {
     match ad.navigation.app.state {
-        AppState::AdvancedFeatures if input.is_back => { crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SettingsMenu)); Some(true) }
-        AppState::FirmwareUpdateReady if input.is_back => { crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedMenu)); Some(true) }
+        AppState::AdvancedFeatures if input.is_back => {
+            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SettingsMenu));
+            Some(true)
+        }
+        AppState::FirmwareUpdateReady if input.is_back => {
+            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedMenu));
+            Some(true)
+        }
         AppState::FactoryResetWarning => factory_reset::handle_warning(input, ad),
-        AppState::AdvancedDuressWarning => overview::handle_warning(input, ad, crate::runtime::navigation::continuation!(AdvancedDuressEntry)),
+        AppState::AdvancedDuressWarning => {
+            overview::handle_warning(input, ad, crate::runtime::navigation::continuation!(AdvancedDuressEntry))
+        }
         #[cfg(feature = "m5stack")]
-        AppState::AdvancedTimeLockWarning => overview::handle_warning(input, ad, crate::runtime::navigation::continuation!(AdvancedTimeLockEntry)),
+        AppState::AdvancedTimeLockWarning => {
+            overview::handle_warning(input, ad, crate::runtime::navigation::continuation!(AdvancedTimeLockEntry))
+        }
         #[cfg(feature = "m5stack")]
-        AppState::AdvancedWeeklyWarning => overview::handle_warning(input, ad, crate::runtime::navigation::continuation!(AdvancedWeeklyEntry)),
+        AppState::AdvancedWeeklyWarning => {
+            overview::handle_warning(input, ad, crate::runtime::navigation::continuation!(AdvancedWeeklyEntry))
+        }
         AppState::AdvancedSdStorageWarning => handle_sd_warning_cancel(input, ad),
         _ => None,
     }
 }
 
-
 fn handle_sd_warning_cancel(input: TouchInput, ad: &mut AppData) -> Option<bool> {
-    let cancel = input.is_back || (
-        crate::ui::screens::device::advanced_security::WARNING_BUTTON_Y.contains(&input.y)
-            && crate::ui::screens::device::advanced_security::WARNING_CANCEL_X.contains(&input.x)
-    );
-    if !cancel { return None; }
+    let cancel = input.is_back
+        || (crate::ui::screens::device::advanced_security::WARNING_BUTTON_Y.contains(&input.y)
+            && crate::ui::screens::device::advanced_security::WARNING_CANCEL_X.contains(&input.x));
+    if !cancel {
+        return None;
+    }
     ad.storage.persistence.recovery_words_acknowledged = false;
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedFeatures));
     Some(true)
@@ -69,9 +84,7 @@ fn handle_sd_warning_cancel(input: TouchInput, ad: &mut AppData) -> Option<bool>
 
 fn handle_pure_entry(input: TouchInput, ad: &mut AppData) -> Option<bool> {
     match ad.navigation.app.state {
-        AppState::AdvancedDuressEntry | AppState::AdvancedDuressConfirm => {
-            handle_duress_edit(input, ad)
-        }
+        AppState::AdvancedDuressEntry | AppState::AdvancedDuressConfirm => handle_duress_edit(input, ad),
         #[cfg(feature = "m5stack")]
         AppState::AdvancedRtcEntry | AppState::AdvancedTimeLockEntry => pure_edit(input, ad, true),
         #[cfg(feature = "m5stack")]
@@ -88,9 +101,7 @@ fn handle_duress_edit(input: TouchInput, ad: &mut AppData) -> Option<bool> {
         return Some(true);
     }
     let kind = ad.storage.persistence.advanced.credential_kind?;
-    match input::edit(
-        input, ad, kind == crate::services::credential_policy::CredentialKind::Pin,
-    ) {
+    match input::edit(input, ad, kind == crate::services::credential_policy::CredentialKind::Pin) {
         input::EditAction::Edited => Some(true),
         input::EditAction::None => Some(false),
         input::EditAction::Submitted => None,
@@ -99,7 +110,9 @@ fn handle_duress_edit(input: TouchInput, ad: &mut AppData) -> Option<bool> {
 
 #[cfg(feature = "m5stack")]
 fn pure_edit(input: TouchInput, ad: &mut AppData, numeric: bool) -> Option<bool> {
-    if input.is_back { return input::return_to_advanced(ad); }
+    if input.is_back {
+        return input::return_to_advanced(ad);
+    }
     match input::edit(input, ad, numeric) {
         input::EditAction::Edited => Some(true),
         input::EditAction::None => Some(false),
@@ -110,23 +123,21 @@ fn pure_edit(input: TouchInput, ad: &mut AppData, numeric: bool) -> Option<bool>
 #[cfg(feature = "m5stack")]
 fn handle_pure_confirm(input: TouchInput, ad: &mut AppData) -> Option<bool> {
     if ad.navigation.app.state == AppState::FactoryResetConfirm {
-        let cancel = input.is_back || (
-            crate::ui::screens::device::advanced_security::WARNING_BUTTON_Y.contains(&input.y)
-                && crate::ui::screens::device::advanced_security::WARNING_CANCEL_X.contains(&input.x)
-        );
+        let cancel = input.is_back
+            || (crate::ui::screens::device::advanced_security::WARNING_BUTTON_Y.contains(&input.y)
+                && crate::ui::screens::device::advanced_security::WARNING_CANCEL_X.contains(&input.x));
         if cancel {
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedMenu));
             return Some(true);
         }
     }
-    if matches!(
-        ad.navigation.app.state, AppState::AdvancedTimeLockConfirm | AppState::AdvancedWeeklyConfirm
-    ) {
-        let cancel = input.is_back || (
-            crate::ui::screens::device::advanced_security::WARNING_BUTTON_Y.contains(&input.y)
-                && crate::ui::screens::device::advanced_security::WARNING_CANCEL_X.contains(&input.x)
-        );
-        if cancel { return input::return_to_advanced(ad); }
+    if matches!(ad.navigation.app.state, AppState::AdvancedTimeLockConfirm | AppState::AdvancedWeeklyConfirm) {
+        let cancel = input.is_back
+            || (crate::ui::screens::device::advanced_security::WARNING_BUTTON_Y.contains(&input.y)
+                && crate::ui::screens::device::advanced_security::WARNING_CANCEL_X.contains(&input.x));
+        if cancel {
+            return input::return_to_advanced(ad);
+        }
     }
     None
 }
@@ -141,8 +152,12 @@ pub(crate) fn handle(
 ) -> Option<bool> {
     #[cfg(feature = "provisioning-ui")]
     {
-        if let Some(result) = pop_it::handle(input, ad, persistence, display) { return Some(result); }
-        if let Some(result) = owner_firmware::handle(input, ad, persistence, display, delay, i2c) { return Some(result); }
+        if let Some(result) = pop_it::handle(input, ad, persistence, display) {
+            return Some(result);
+        }
+        if let Some(result) = owner_firmware::handle(input, ad, persistence, display, delay, i2c) {
+            return Some(result);
+        }
     }
     match ad.navigation.app.state {
         AppState::FactoryResetWarning => factory_reset::handle_warning(input, ad),
@@ -159,14 +174,16 @@ pub(crate) fn handle(
         AppState::AdvancedDuressConfirm => {
             credential::handle_duress_entry(input, ad, persistence, display, delay, i2c, true)
         }
-        AppState::AdvancedSdStorageWarning => {
-            overview::handle_sd_warning(input, ad, persistence, display, delay, i2c)
-        }
+        AppState::AdvancedSdStorageWarning => overview::handle_sd_warning(input, ad, persistence, display, delay, i2c),
         _ => {
             #[cfg(feature = "m5stack")]
-            { dispatch_m5stack_state(input, ad, persistence, display, delay, i2c) }
+            {
+                dispatch_m5stack_state(input, ad, persistence, display, delay, i2c)
+            }
             #[cfg(not(feature = "m5stack"))]
-            { None }
+            {
+                None
+            }
         }
     }
 }
@@ -193,13 +210,10 @@ fn dispatch_m5stack_state(
             overview::handle_warning(input, ad, crate::runtime::navigation::continuation!(AdvancedWeeklyEntry))
         }
         AppState::AdvancedWeeklyEntry => time::handle_weekly_entry(input, ad, display, delay, i2c),
-        AppState::AdvancedWeeklyConfirm => {
-            time::handle_weekly_confirm(input, ad, persistence, display, delay, i2c)
-        }
+        AppState::AdvancedWeeklyConfirm => time::handle_weekly_confirm(input, ad, persistence, display, delay, i2c),
         _ => None,
     }
 }
-
 
 pub(crate) fn is_advanced_state(state: AppState) -> bool {
     if matches!(
@@ -216,9 +230,16 @@ pub(crate) fn is_advanced_state(state: AppState) -> bool {
         return true;
     }
     #[cfg(feature = "provisioning-ui")]
-    if matches!(state, AppState::PopItPrompt | AppState::PopItExplain | AppState::PopItConfirm
-        | AppState::OwnerKeyWarning | AppState::OwnerKeyConfirm
-        | AppState::OwnerInstallWarning | AppState::OwnerInstallConfirm) {
+    if matches!(
+        state,
+        AppState::PopItPrompt
+            | AppState::PopItExplain
+            | AppState::PopItConfirm
+            | AppState::OwnerKeyWarning
+            | AppState::OwnerKeyConfirm
+            | AppState::OwnerInstallWarning
+            | AppState::OwnerInstallConfirm
+    ) {
         return true;
     }
     #[cfg(feature = "m5stack")]
@@ -237,4 +258,3 @@ pub(crate) fn is_advanced_state(state: AppState) -> bool {
     #[cfg(not(feature = "m5stack"))]
     false
 }
-

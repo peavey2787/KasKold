@@ -11,7 +11,12 @@ pub enum CovenantSigningMode {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum CovenantSigningPhase { Idle, Prepared, AwaitingReveal, FinalResponse }
+pub enum CovenantSigningPhase {
+    Idle,
+    Prepared,
+    AwaitingReveal,
+    FinalResponse,
+}
 
 pub struct CovenantSigningState {
     pub mode: CovenantSigningMode,
@@ -47,12 +52,23 @@ impl CovenantSigningState {
             phase: CovenantSigningPhase::Idle,
             scheme: shared_signer::covenant_sign::KnownScheme::None,
             session_id: [0; shared_signer::covenant_sign::SESSION_ID_LEN],
-            host_commitment: [0; 32], key_id: [0; 32], pubkey_x: [0; 32], binding_token: [0; 32],
-            commitment: [0; 32], script_hash: [0; 32],
-            context: [0; shared_signer::covenant_sign::MAX_CONTEXT_LEN], context_len: 0,
-            context_page: 0, provisional_signature: [0; 64], nonce_point: [0; 33], signature: [0; 64],
-            response: [0; shared_signer::covenant_sign::RESPONSE_LEN], response_len: 0,
-            nonce_qr_shown: false, pending_key_id: [0; 32], pending_pubkey_x: [0; 32],
+            host_commitment: [0; 32],
+            key_id: [0; 32],
+            pubkey_x: [0; 32],
+            binding_token: [0; 32],
+            commitment: [0; 32],
+            script_hash: [0; 32],
+            context: [0; shared_signer::covenant_sign::MAX_CONTEXT_LEN],
+            context_len: 0,
+            context_page: 0,
+            provisional_signature: [0; 64],
+            nonce_point: [0; 33],
+            signature: [0; 64],
+            response: [0; shared_signer::covenant_sign::RESPONSE_LEN],
+            response_len: 0,
+            nonce_qr_shown: false,
+            pending_key_id: [0; 32],
+            pending_pubkey_x: [0; 32],
         }
     }
 
@@ -72,9 +88,13 @@ impl CovenantSigningState {
         shared_signer::bytes::zeroize_bytes(&mut self.nonce_point);
         shared_signer::bytes::zeroize_bytes(&mut self.signature);
         shared_signer::bytes::zeroize_bytes(&mut self.response);
-        self.mode = CovenantSigningMode::None; self.phase = CovenantSigningPhase::Idle;
+        self.mode = CovenantSigningMode::None;
+        self.phase = CovenantSigningPhase::Idle;
         self.scheme = shared_signer::covenant_sign::KnownScheme::None;
-        self.context_len = 0; self.context_page = 0; self.response_len = 0; self.nonce_qr_shown = false;
+        self.context_len = 0;
+        self.context_page = 0;
+        self.response_len = 0;
+        self.nonce_qr_shown = false;
     }
 
     pub fn replace_pending_allocation(&mut self, key_id: [u8; 32], pubkey_x: [u8; 32]) {

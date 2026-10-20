@@ -1,5 +1,5 @@
 use super::super::{
-    DirEntry, Fat32Info, SdCardType, allocate_chain, fast_write_multi_block, read_fat_entry, sd_write_block,
+    allocate_chain, fast_write_multi_block, read_fat_entry, sd_write_block, DirEntry, Fat32Info, SdCardType,
 };
 
 pub(super) fn clusters_for_file(fat32: &Fat32Info, file_size: u32) -> u32 {
@@ -61,12 +61,7 @@ pub(super) fn write_cluster_data(
     let full_sectors = (*remaining / 512).min(sectors_per_cluster as usize) as u32;
     if full_sectors > 0 {
         let write_bytes = full_sectors as usize * 512;
-        fast_write_multi_block(
-            card_type,
-            base_sector,
-            &data[*position..*position + write_bytes],
-            full_sectors,
-        )?;
+        fast_write_multi_block(card_type, base_sector, &data[*position..*position + write_bytes], full_sectors)?;
         *position += write_bytes;
         *remaining -= write_bytes;
     }
@@ -132,6 +127,8 @@ pub(super) fn write_new_file_payload(
     data: &[u8],
     progress: &mut dyn FnMut(usize, usize),
 ) -> Result<(), &'static str> {
-    if data.is_empty() { return Ok(()); }
+    if data.is_empty() {
+        return Ok(());
+    }
     write_file_chain(card_type, fat32, first_cluster, data, progress)
 }

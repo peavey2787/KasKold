@@ -8,6 +8,8 @@ import unittest
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "qa/checks"))
+from firmware.source_contract_support import flat  # noqa: E402
 
 
 class PopItSecureBootTests(unittest.TestCase):
@@ -103,7 +105,7 @@ class PopItSecureBootTests(unittest.TestCase):
         self.assertIn("CONFIG_SECURE_BOOT_V2_ENABLED=y", config)
         self.assertIn("CONFIG_SECURE_BOOT_BUILD_SIGNED_BINARIES=y", config)
         self.assertIn("# CONFIG_SECURE_BOOT_FLASH_ENC_KEYS_BURN_TOGETHER is not set", config)
-        self.assertIn("const BOOTCTL_BASE:u32=0x0061_0000", boot_control)
+        self.assertIn("const BOOTCTL_BASE: u32 = 0x0061_0000;", boot_control)
         self.assertNotIn("KSPREF01", owner_patch)
         self.assertNotIn("KASKOLD_CONFIG_A", owner_patch)
         self.assertIn("owner_bootloader_patch.py", patcher)
@@ -278,7 +280,7 @@ class PopItSecureBootTests(unittest.TestCase):
         self.assertGreaterEqual(controller.count('"DEVELOPMENT SIMULATION"'), 2)
         self.assertIn("request_owner_enrollment", controller)
         self.assertIn("request_owner_install", controller)
-        self.assertIn('#[cfg(feature="secure-provisioning-core")]', boot_control)
+        self.assertIn('#[cfg(feature = "secure-provisioning-core")]', boot_control)
         self.assertNotIn("Efuse", controller)
         self.assertIn('#[cfg(feature = "owner-firmware")]', production)
         self.assertIn("Owner firmware requires hardware Secure Boot", production)
@@ -291,8 +293,8 @@ class PopItSecureBootTests(unittest.TestCase):
         self.assertIn("pub fn enable_dev_pop_it_indicator_demo()", boot_security)
         self.assertIn("pub fn dev_pop_it_indicator_demo_active() -> bool", boot_security)
         self.assertIn(
-            'feature = "provisioning-ui",\n    not(all(feature = "m5stack", not(feature = "production")))',
-            boot_security,
+            'feature = "provisioning-ui", not(all(feature = "m5stack", not(feature = "production")))',
+            flat(boot_security),
         )
         self.assertNotIn(
             '#[cfg(all(feature = "m5stack", not(feature = "production")))]\npub fn enable_dev_pop_it_indicator_demo()',

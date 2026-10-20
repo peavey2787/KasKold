@@ -3,10 +3,10 @@
 
 mod carrier;
 
-use super::{AppData, display, sound};
+use super::{display, sound, AppData};
 use crate::{
-    runtime::interactions::feedback::{show_rejection, ErrorSound},
     runtime::input::AppState,
+    runtime::interactions::feedback::{show_rejection, ErrorSound},
     services::{backup::BackupDevice, stego},
 };
 use shared_signer::{bytes::zeroize_bytes, bytes::zeroize_u16};
@@ -22,13 +22,17 @@ pub(super) fn handle(
     y: u16,
     is_back: bool,
 ) -> Option<bool> {
-    if ad.navigation.app.state != AppState::StegoJpegConfirm { return None; }
+    if ad.navigation.app.state != AppState::StegoJpegConfirm {
+        return None;
+    }
     if is_back {
         clear_portable_secret(ad);
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoJpegPpAsk));
         return Some(true);
     }
-    if !(182..=225).contains(&y) { return Some(false); }
+    if !(182..=225).contains(&y) {
+        return Some(false);
+    }
     if (20..=150).contains(&x) {
         clear_hint(ad);
         clear_portable_secret(ad);
@@ -77,7 +81,8 @@ fn confirm_export(
         portable_password,
         backup_device,
         &mut payload,
-    ).and_then(|payload_length| {
+    )
+    .and_then(|payload_length| {
         sound::task_done();
         carrier::write(ad, delay, i2c, &payload[..payload_length])
     });

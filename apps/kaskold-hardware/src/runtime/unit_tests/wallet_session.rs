@@ -4,9 +4,7 @@ use static_cell::StaticCell;
 
 use crate::{
     runtime::data::AppData,
-    services::wallet_session::{
-        activate_slot, activate_slot_with_cache, WalletActivationError,
-    },
+    services::wallet_session::{activate_slot, activate_slot_with_cache, WalletActivationError},
 };
 
 static WALLET_SESSION_APP_DATA: StaticCell<AppData> = StaticCell::new();
@@ -76,20 +74,10 @@ pub fn run_tests() -> (u32, u32) {
     };
     let first_raw = first.to_raw();
     let second_raw = second.to_raw();
-    let Some(first_slot) = ad
-        .wallet
-        .seeds
-        .seed_mgr
-        .store_account_key(&first_raw, [9, 9, 9, 9], [1, 1, 1, 1])
-    else {
+    let Some(first_slot) = ad.wallet.seeds.seed_mgr.store_account_key(&first_raw, [9, 9, 9, 9], [1, 1, 1, 1]) else {
         return (passed, total);
     };
-    let Some(second_slot) = ad
-        .wallet
-        .seeds
-        .seed_mgr
-        .store_account_key(&second_raw, [8, 8, 8, 8], [2, 2, 2, 2])
-    else {
+    let Some(second_slot) = ad.wallet.seeds.seed_mgr.store_account_key(&second_raw, [8, 8, 8, 8], [2, 2, 2, 2]) else {
         return (passed, total);
     };
 
@@ -101,7 +89,9 @@ pub fn run_tests() -> (u32, u32) {
         &ad.wallet.keys.acct_key_raw,
         5,
         &mut ad.wallet.addresses.extra_change_pubkey,
-    ).is_err() {
+    )
+    .is_err()
+    {
         return (passed, total);
     }
     ad.wallet.addresses.extra_change_pubkey_index = 5;
@@ -119,7 +109,8 @@ pub fn run_tests() -> (u32, u32) {
         &ad.wallet.keys.acct_key_raw,
         5,
         &mut second_extended_change,
-    ).is_ok();
+    )
+    .is_ok();
     if second_derived && first_extended_change != second_extended_change && second_extended_change != [0; 32] {
         passed += 1;
     }
@@ -131,8 +122,7 @@ pub fn run_tests() -> (u32, u32) {
     };
     ad.wallet.seeds.seed_mgr.slots[invalid_raw_slot].source = crate::wallet::seed_manager::WalletSource::RawPrivateKey;
     ad.wallet.seeds.seed_mgr.slots[invalid_raw_slot].fingerprint = [3, 3, 3, 3];
-    if activate_slot_with_cache(ad, invalid_raw_slot, &mut checkpoint)
-        == Err(WalletActivationError::InvalidRawKey)
+    if activate_slot_with_cache(ad, invalid_raw_slot, &mut checkpoint) == Err(WalletActivationError::InvalidRawKey)
         && ActiveWalletSnapshot::capture(ad) == before_failure
     {
         passed += 1;
@@ -141,17 +131,16 @@ pub fn run_tests() -> (u32, u32) {
     let Some(invalid_account_slot) = ad.wallet.seeds.seed_mgr.find_free() else {
         return (passed, total);
     };
-    ad.wallet.seeds.seed_mgr.slots[invalid_account_slot].source = crate::wallet::seed_manager::WalletSource::AccountXprv;
+    ad.wallet.seeds.seed_mgr.slots[invalid_account_slot].source =
+        crate::wallet::seed_manager::WalletSource::AccountXprv;
     ad.wallet.seeds.seed_mgr.slots[invalid_account_slot].fingerprint = [4, 4, 4, 4];
-    if activate_slot(ad, invalid_account_slot)
-        == Err(WalletActivationError::InvalidAccountKey)
+    if activate_slot(ad, invalid_account_slot) == Err(WalletActivationError::InvalidAccountKey)
         && ActiveWalletSnapshot::capture(ad) == before_failure
     {
         passed += 1;
     }
 
-    if activate_slot(ad, usize::MAX)
-        == Err(WalletActivationError::InvalidSlot)
+    if activate_slot(ad, usize::MAX) == Err(WalletActivationError::InvalidSlot)
         && ActiveWalletSnapshot::capture(ad) == before_failure
     {
         passed += 1;

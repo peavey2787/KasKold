@@ -1,37 +1,21 @@
 use crate::runtime::interactions::feedback::{show_rejection, show_success, ErrorSound};
 // SD controller workflow: kpub.
-use super::super::{
-    AppData,
-    display,
-    EncryptionPayload,
-    EncryptionPromptWorkflow,
-    PromptDestination,
-    FilenameWorkflow,
-    run_encryption_prompt,
-    run_sd_file_list_context, FileListWorkflow,
-    parse_descriptor,
-    run_filename_workflow,
-    sdcard,
-};
 use super::super::common::context::{SdFileListContext, SdIoContext};
+use super::super::{
+    display, parse_descriptor, run_encryption_prompt, run_filename_workflow, run_sd_file_list_context, sdcard, AppData,
+    EncryptionPayload, EncryptionPromptWorkflow, FileListWorkflow, FilenameWorkflow, PromptDestination,
+};
 use crate::runtime::{data::TextFileKind, input::AppState};
 
 pub(crate) fn handle_sd_kpub_file_list(context: SdFileListContext<'_, '_, '_>) -> bool {
-    let back_state = if matches!(
-        context.ad.storage.browser.text_import_kind,
-        Some(TextFileKind::MultisigDescriptor)
-    ) {
+    let back_state = if matches!(context.ad.storage.browser.text_import_kind, Some(TextFileKind::MultisigDescriptor)) {
         crate::runtime::navigation::continuation!(MultisigDescriptorsMenu)
     } else {
         crate::runtime::navigation::continuation!(SdImportMenu)
     };
     run_sd_file_list_context(
         context,
-        FileListWorkflow {
-            allow_delete: true,
-            current_state: AppState::SdKpubFileList,
-            back_state,
-        },
+        FileListWorkflow { allow_delete: true, current_state: AppState::SdKpubFileList, back_state },
         load_selected_text,
     )
 }
@@ -76,11 +60,7 @@ fn read_selected_file(
     let _ = &mut *i2c;
     sdcard::with_sd_card!(i2c, delay, |card| {
         let fat32 = sdcard::mount_fat32(card)?;
-        let (entry, _, _) = sdcard::find_file_in_root(
-            card,
-            &fat32,
-            &ad.storage.browser.selected_file,
-        )?;
+        let (entry, _, _) = sdcard::find_file_in_root(card, &fat32, &ad.storage.browser.selected_file)?;
         sdcard::read_file(card, &fat32, &entry, buffer)
     })
 }
@@ -94,19 +74,9 @@ fn handle_import_payload(
 ) {
     match ad.storage.browser.text_import_kind {
         Some(TextFileKind::Kpub) => load_kpub(ad, boot_display, delay, payload),
-        Some(TextFileKind::MultisigAddress) => {
-            load_multisig_address(ad, boot_display, delay, payload)
-        }
-        Some(TextFileKind::MultisigDescriptor) => {
-            load_descriptor(ad, boot_display, delay, liveness, payload)
-        }
-        None => show_rejection(
-            boot_display,
-            delay,
-            "Unsupported text import",
-            2000,
-            ErrorSound::Silent,
-        ),
+        Some(TextFileKind::MultisigAddress) => load_multisig_address(ad, boot_display, delay, payload),
+        Some(TextFileKind::MultisigDescriptor) => load_descriptor(ad, boot_display, delay, liveness, payload),
+        None => show_rejection(boot_display, delay, "Unsupported text import", 2000, ErrorSound::Silent),
     }
 }
 
@@ -120,11 +90,10 @@ fn stage_encrypted_import(ad: &mut AppData, payload: &[u8], kind: TextFileKind) 
     }
     ad.qr.outgoing.buffer[..payload.len()].copy_from_slice(payload);
     ad.qr.outgoing.length = payload.len();
-    ad.storage.export_file.encrypted_operation =
-        crate::runtime::data::EncryptedFileOperation::Import {
-            kind: crate::runtime::data::EncryptedPayloadKind::Text(kind),
-            back_state: crate::runtime::navigation::continuation!(SdKpubFileList),
-        };
+    ad.storage.export_file.encrypted_operation = crate::runtime::data::EncryptedFileOperation::Import {
+        kind: crate::runtime::data::EncryptedPayloadKind::Text(kind),
+        back_state: crate::runtime::navigation::continuation!(SdKpubFileList),
+    };
     ad.wallet.seeds.pp_input.reset();
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SdKsptEncryptPass));
 }
@@ -140,8 +109,7 @@ fn load_kpub(
         return;
     }
     let mut canonical = [0u8; offline_signer::derivation::xpub::KPUB_MAX_LEN];
-    let Ok(length) = offline_signer::derivation::xpub::normalize_kpub_text(payload, &mut canonical)
-    else {
+    let Ok(length) = offline_signer::derivation::xpub::normalize_kpub_text(payload, &mut canonical) else {
         show_rejection(boot_display, delay, "Not a valid kpub", 2000, ErrorSound::Silent);
         return;
     };
@@ -164,9 +132,8 @@ fn load_multisig_address(
         show_rejection(boot_display, delay, "Not a valid address", 2000, ErrorSound::Silent);
         return;
     }
-    let maximum = offline_signer::derivation::xpub::KPUB_MAX_LEN
-        .min(ad.qr.outgoing.buffer.len())
-        .min(ad.export.kpub_data.len());
+    let maximum =
+        offline_signer::derivation::xpub::KPUB_MAX_LEN.min(ad.qr.outgoing.buffer.len()).min(ad.export.kpub_data.len());
     if payload.len() > maximum {
         show_rejection(boot_display, delay, "Address too long", 2000, ErrorSound::Silent);
         return;

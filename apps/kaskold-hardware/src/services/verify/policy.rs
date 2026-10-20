@@ -1,11 +1,4 @@
-use super::{
-    CANARY_PRE_VERIFY,
-    FirmwareInfo,
-    Ordering,
-    VerificationResult,
-    compiler_fence,
-    flow,
-};
+use super::{compiler_fence, flow, FirmwareInfo, Ordering, VerificationResult, CANARY_PRE_VERIFY};
 #[cfg(not(feature = "production"))]
 use super::{constant_time, embedded_firmware_signed};
 
@@ -15,11 +8,7 @@ mod production;
 // Firmware verification policy and anti-glitch orchestration.
 impl FirmwareInfo {
     /// Verify firmware integrity: hash check + signature validation.
-    pub fn verify_firmware(
-        &self,
-        firmware_start: u32,
-        max_size: usize,
-    ) -> VerificationResult {
+    pub fn verify_firmware(&self, firmware_start: u32, max_size: usize) -> VerificationResult {
         flow::reset();
         flow::advance(flow::Stage::VerifyStart);
         log!("   Verifying firmware...");
@@ -43,11 +32,9 @@ impl FirmwareInfo {
 
     fn verify_anti_rollback(&self) -> Result<(), VerificationResult> {
         match super::anti_rollback::verify_device_floor() {
-            Ok(floor) => log!(
-                "   Security version {} >= device floor {} OK",
-                super::anti_rollback::APP_SECURITY_VERSION,
-                floor
-            ),
+            Ok(floor) => {
+                log!("   Security version {} >= device floor {} OK", super::anti_rollback::APP_SECURITY_VERSION, floor)
+            }
             #[cfg(all(feature = "m5stack", feature = "production"))]
             Err(super::anti_rollback::AntiRollbackError::Unprovisioned) => {
                 log!("   FAIL: anti-rollback eFuse floor is not provisioned");
@@ -63,12 +50,7 @@ impl FirmwareInfo {
     }
 
     #[cfg(not(feature = "production"))]
-    fn verify_development(
-        &self,
-        firmware_start: u32,
-        max_size: usize,
-        canary_pre: u32,
-    ) -> VerificationResult {
+    fn verify_development(&self, firmware_start: u32, max_size: usize, canary_pre: u32) -> VerificationResult {
         log!("   [DEV] Test-signed development mode");
         if constant_time::eq(&self.expected_hash, &[0u8; 32]) {
             log!("   [DEV] FAIL: firmware hash is not configured");

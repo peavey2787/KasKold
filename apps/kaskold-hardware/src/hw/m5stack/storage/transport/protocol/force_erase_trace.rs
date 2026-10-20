@@ -18,8 +18,7 @@ pub(super) fn log_pre_force_erase_status() -> Result<(), &'static str> {
 }
 
 pub(super) fn probe_due(elapsed_ms: u64) -> bool {
-    matches!(elapsed_ms, 100 | 1_000 | 5_000)
-        || (elapsed_ms >= 30_000 && elapsed_ms % 30_000 == 0)
+    matches!(elapsed_ms, 100 | 1_000 | 5_000) || (elapsed_ms >= 30_000 && elapsed_ms % 30_000 == 0)
 }
 
 pub(super) fn log_provenance_samples(elapsed_ms: u64, samples: [u8; 3]) {
@@ -39,13 +38,10 @@ fn log_provenance(elapsed_ms: u64, selected_before: u8, deselected: u8, reselect
         bus_stuck_low,
     );
     if unexpected_wire_value(selected_before, deselected, reselected) {
-        crate::log!(
-            "[SD-DIAG] BUSY provenance unexpected wire value; expected selected 0x00/0xff and deselected 0xff",
-        );
+        crate::log!("[SD-DIAG] BUSY provenance unexpected wire value; expected selected 0x00/0xff and deselected 0xff",);
     }
 }
 
 fn unexpected_wire_value(a: u8, b: u8, c: u8) -> bool {
     !matches!(a, 0x00 | 0xFF) || b != 0xFF || !matches!(c, 0x00 | 0xFF)
 }
-

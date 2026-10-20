@@ -10,9 +10,7 @@ pub(super) const APP_FLASH_OFFSET: u32 = 0x0001_0000;
 pub(super) const MAX_APP_IMAGE_SPAN: u32 = 8 * 1024 * 1024;
 const HASH_CHUNK_SIZE: usize = 1024;
 
-pub(super) fn read_fixed<const N: usize>(
-    address: u32,
-) -> Result<raw_flash::AlignedBytes<N>, AttestationError> {
+pub(super) fn read_fixed<const N: usize>(address: u32) -> Result<raw_flash::AlignedBytes<N>, AttestationError> {
     raw_flash::read_fixed(address).map_err(map_read_error)
 }
 

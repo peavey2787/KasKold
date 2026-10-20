@@ -75,12 +75,7 @@ pub struct MessageSigningState {
 }
 impl MessageSigningState {
     fn new() -> Self {
-        Self {
-            payload: [0; 1_024],
-            payload_len: 0,
-            signature: [0; 64],
-            hash: [0; 32],
-        }
+        Self { payload: [0; 1_024], payload_len: 0, signature: [0; 64], hash: [0; 32] }
     }
 }
 mod covenant;
@@ -96,12 +91,7 @@ pub struct CommitRevealState {
 }
 impl CommitRevealState {
     fn new() -> Self {
-        Self {
-            plaintext: [0; 128],
-            plaintext_len: 0,
-            hash: [0; 32],
-            ciphertext: alloc::vec::Vec::new(),
-        }
+        Self { plaintext: [0; 128], plaintext_len: 0, hash: [0; 32], ciphertext: alloc::vec::Vec::new() }
     }
 }
 mod anti_klepto;
@@ -124,10 +114,7 @@ impl SigningState {
     /// Initialize signing directly at its final `AppData` address.
     /// # Safety: `target` is aligned, uninitialized, exclusively-owned storage.
     #[inline(never)]
-    pub(super) unsafe fn initialize_in_place(
-        target: *mut Self,
-        transaction: TransactionSigningState,
-    ) {
+    pub(super) unsafe fn initialize_in_place(target: *mut Self, transaction: TransactionSigningState) {
         placement::initialize_in_place(target, transaction);
     }
 }

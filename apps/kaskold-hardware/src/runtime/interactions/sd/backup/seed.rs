@@ -1,16 +1,15 @@
 //! Device-bound mnemonic backup export workflow.
 
 use crate::{
-    runtime::interactions::feedback::{show_rejection, show_success, ErrorSound},
     runtime::input::AppState,
+    runtime::interactions::feedback::{show_rejection, show_success, ErrorSound},
 };
 use shared_signer::{bytes::zeroize_bytes, bytes::zeroize_u16};
 
-use super::super::{
-    format_auto_name, run_filename_workflow, scan_auto_increment, sd_backup,
-    write_file_to_sd, FilenameWorkflow,
-};
 use super::super::common::context::SdIoContext;
+use super::super::{
+    format_auto_name, run_filename_workflow, scan_auto_increment, sd_backup, write_file_to_sd, FilenameWorkflow,
+};
 
 pub(crate) fn handle_seed_backup_warning(ctx: SdIoContext<'_, '_, '_>) -> bool {
     if ctx.is_back {
@@ -18,10 +17,7 @@ pub(crate) fn handle_seed_backup_warning(ctx: SdIoContext<'_, '_, '_>) -> bool {
         return true;
     }
     if crate::ui::layout::MODAL_RIGHT_BUTTON_ZONE.contains(ctx.x, ctx.y) {
-        crate::runtime::effects::return_to(
-            ctx.ad,
-            crate::runtime::navigation::ReturnScope::SeedBackup,
-        );
+        crate::runtime::effects::return_to(ctx.ad, crate::runtime::navigation::ReturnScope::SeedBackup);
         return true;
     }
     if !crate::ui::layout::MODAL_LEFT_BUTTON_ZONE.contains(ctx.x, ctx.y) {
@@ -46,24 +42,20 @@ fn prepare_seed_backup_filename(ad: &mut crate::runtime::data::AppData, next: u3
 }
 
 #[cfg(all(feature = "workflow-test-auto", not(feature = "workflow-hil-auto")))]
-pub(crate) fn workflow_prepare_seed_backup_filename(
-    ad: &mut crate::runtime::data::AppData,
-) -> bool {
+pub(crate) fn workflow_prepare_seed_backup_filename(ad: &mut crate::runtime::data::AppData) -> bool {
     if ad.navigation.app.state != AppState::SdBackupWarning {
         return false;
     }
     // Controller E2E validates the media-present transition without probing a
     // removable card. The physical filename scan belongs to workflow-hil.
     prepare_seed_backup_filename(ad, 0);
-    ad.navigation.app.state == AppState::SdSeedFilename
-        && crate::runtime::navigation::reconcile(ad)
+    ad.navigation.app.state == AppState::SdSeedFilename && crate::runtime::navigation::reconcile(ad)
 }
 
 pub(crate) fn handle_seed_backup_filename(ctx: SdIoContext<'_, '_, '_>) -> bool {
     let back_state = crate::runtime::navigation::continuation_from_state(
-        crate::runtime::navigation::return_target(
-            ctx.ad, crate::runtime::navigation::ReturnScope::SeedBackup,
-        ).unwrap_or(AppState::SeedBackupMenu),
+        crate::runtime::navigation::return_target(ctx.ad, crate::runtime::navigation::ReturnScope::SeedBackup)
+            .unwrap_or(AppState::SeedBackupMenu),
     );
     run_filename_workflow(
         ctx,
@@ -81,7 +73,9 @@ pub(crate) fn handle_seed_backup_filename(ctx: SdIoContext<'_, '_, '_>) -> bool 
 pub(crate) fn handle_seed_backup_export_passphrase(ctx: SdIoContext<'_, '_, '_>) -> bool {
     super::super::common::run_device_bound_passphrase_workflow(
         ctx,
-        super::super::common::PassphraseWorkflow { back_state: crate::runtime::navigation::continuation!(SdSeedFilename) },
+        super::super::common::PassphraseWorkflow {
+            back_state: crate::runtime::navigation::continuation!(SdSeedFilename),
+        },
         export_seed,
     )
 }
@@ -117,7 +111,8 @@ fn export_seed(
             &password[..password_len],
             backup_device,
             &mut encrypted,
-        ).map_err(|error| error.message())?;
+        )
+        .map_err(|error| error.message())?;
         liveness();
         boot_display.update_progress_bar(70);
         write_file_to_sd(i2c, delay, &ad.storage.export_file.filename, &encrypted[..encrypted_len])
@@ -132,14 +127,8 @@ fn export_seed(
         Ok(()) => show_success(boot_display, delay, "Seed backup saved!", 2_500),
         Err(message) => show_rejection(boot_display, delay, message, 2_500, ErrorSound::Silent),
     }
-    if !crate::runtime::effects::return_to(
-        ad,
-        crate::runtime::navigation::ReturnScope::SeedBackup,
-    ) {
-        let _ = crate::runtime::effects::route(
-            ad,
-            crate::runtime::navigation::route!(WalletBackupMethodsMenu),
-        );
+    if !crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SeedBackup) {
+        let _ = crate::runtime::effects::route(ad, crate::runtime::navigation::route!(WalletBackupMethodsMenu));
     }
     None
 }

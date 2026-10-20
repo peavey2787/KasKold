@@ -77,9 +77,7 @@ fn mnemonic_private_key(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if ctx.export_touch(235, 193, false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::ExportPrivKeyIndex
-    {
+    if ctx.export_touch(235, 193, false) != Some(true) || ctx.ad.navigation.app.state != AppState::ExportPrivKeyIndex {
         return false;
     }
     if ctx.export_touch(235, 90, false) != Some(true)
@@ -108,8 +106,7 @@ fn raw_private_key(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    ctx.export_touch(20, 20, true) == Some(true)
-        && ctx.ad.navigation.app.state == AppState::BackupRecoveryMenu
+    ctx.export_touch(20, 20, true) == Some(true) && ctx.ad.navigation.app.state == AppState::BackupRecoveryMenu
 }
 
 fn is_hex(value: &[u8; 64]) -> bool {

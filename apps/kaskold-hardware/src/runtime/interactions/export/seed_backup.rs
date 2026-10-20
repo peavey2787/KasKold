@@ -24,18 +24,19 @@ pub(crate) fn handle(ad: &mut AppData, is_back: bool) -> Option<bool> {
             if is_back {
                 if ad.wallet.seeds.has_pending_add_wallet() {
                     if word_idx > 0 {
-                        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedBackup {
-                            word_idx: word_idx - 1,
-                        }));
+                        crate::runtime::effects::route(
+                            ad,
+                            crate::runtime::navigation::route!(SeedBackup { word_idx: word_idx - 1 }),
+                        );
                     } else {
                         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(PassphraseChoice));
                     }
-                } else if ad.storage.persistence.device_storage_intent.is_seed_onboarding()
-                {
+                } else if ad.storage.persistence.device_storage_intent.is_seed_onboarding() {
                     if word_idx > 0 {
-                        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedBackup {
-                            word_idx: word_idx - 1,
-                        }));
+                        crate::runtime::effects::route(
+                            ad,
+                            crate::runtime::navigation::route!(SeedBackup { word_idx: word_idx - 1 }),
+                        );
                     } else {
                         // Back is one-step navigation, not cancellation. The mnemonic
                         // must remain staged so the user can revise the BIP39 passphrase
@@ -46,15 +47,15 @@ pub(crate) fn handle(ad: &mut AppData, is_back: bool) -> Option<bool> {
                     }
                 } else {
                     // Back during ordinary word display → return to where we came from.
-                    let _ = crate::runtime::effects::return_to(
-                        ad,
-                        crate::runtime::navigation::ReturnScope::SeedBackup,
-                    );
+                    let _ = crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SeedBackup);
                 }
             } else {
                 let next = word_idx + 1;
                 if next < ad.wallet.seeds.word_count {
-                    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedBackup { word_idx: next }));
+                    crate::runtime::effects::route(
+                        ad,
+                        crate::runtime::navigation::route!(SeedBackup { word_idx: next }),
+                    );
                 } else if ad.wallet.seeds.has_pending_add_wallet() {
                     ad.storage.persistence.recovery_words_acknowledged = false;
                     crate::runtime::effects::route(
@@ -70,16 +71,22 @@ pub(crate) fn handle(ad: &mut AppData, is_back: bool) -> Option<bool> {
                             // Generated onboarding mnemonics must always stop at the
                             // explicit backup acknowledgement before either RAM-only
                             // activation or device-bound credential setup can finish.
-                            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageRecoveryAcknowledgement));
+                            crate::runtime::effects::route(
+                                ad,
+                                crate::runtime::navigation::route!(StorageRecoveryAcknowledgement),
+                            );
                         }
                         _ if crate::runtime::navigation::return_target(
-                            ad, crate::runtime::navigation::ReturnScope::SeedBackup,
-                        ) == Some(crate::runtime::input::AppState::SeedToolsMenu) => {
+                            ad,
+                            crate::runtime::navigation::ReturnScope::SeedBackup,
+                        ) == Some(crate::runtime::input::AppState::SeedToolsMenu) =>
+                        {
                             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedList));
                         }
                         _ => {
                             let _ = crate::runtime::effects::return_to(
-                                ad, crate::runtime::navigation::ReturnScope::SeedBackup,
+                                ad,
+                                crate::runtime::navigation::ReturnScope::SeedBackup,
                             );
                         }
                     }

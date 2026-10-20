@@ -1,11 +1,10 @@
 //! User-controlled Secure Boot v2 eFuse provisioning screens.
 
 use super::super::{
-    BootDisplay, COLOR_BG, COLOR_CARD, COLOR_CARD_BORDER, COLOR_DANGER, COLOR_TEXT,
-    COLOR_TEXT_DIM, KASPA_TEAL, CornerRadii, Drawable, Line, Point, Primitive,
-    PrimitiveStyle, Rectangle, RoundedRectangle, Size, draw_lato_body, draw_lato_hint,
-    draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_hint,
-    measure_title, truncate_chars,
+    draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_hint,
+    measure_title, truncate_chars, BootDisplay, CornerRadii, Drawable, Line, Point, Primitive, PrimitiveStyle,
+    Rectangle, RoundedRectangle, Size, COLOR_BG, COLOR_CARD, COLOR_CARD_BORDER, COLOR_DANGER, COLOR_TEXT,
+    COLOR_TEXT_DIM, KASPA_TEAL,
 };
 use embedded_graphics::draw_target::DrawTarget;
 
@@ -25,7 +24,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, title, (320 - tw) / 2, 33, KASPA_TEAL);
         Line::new(Point::new(30, 43), Point::new(290, 43))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         self.draw_back_button();
 
         if !owner_authority_enrolled {
@@ -83,7 +83,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, title, (320 - tw) / 2, 30, KASPA_TEAL);
         Line::new(Point::new(18, 39), Point::new(302, 39))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         let dev_demo = cfg!(all(feature = "m5stack", not(feature = "production")));
         let lines = if dev_demo {
@@ -120,11 +121,7 @@ impl<'a> BootDisplay<'a> {
         self.draw_pop_centered("Back returns without changing eFuses.", 220, COLOR_TEXT_DIM);
     }
 
-    pub fn draw_pop_it_confirm(
-        &mut self,
-        input: &crate::wallet::seed_manager::PassphraseInput,
-        error: Option<&str>,
-    ) {
+    pub fn draw_pop_it_confirm(&mut self, input: &crate::wallet::seed_manager::PassphraseInput, error: Option<&str>) {
         self.draw_keyboard_screen_full(input, "FINAL: TYPE POP IT");
         let hint = "Accepts: pop it / POP-IT / pop it!";
         let hw = measure_hint(hint);
@@ -158,10 +155,12 @@ impl<'a> BootDisplay<'a> {
         let corners = CornerRadii::new(Size::new(7, 7));
         RoundedRectangle::new(rect, corners)
             .into_styled(PrimitiveStyle::with_fill(if primary { KASPA_TEAL } else { COLOR_CARD }))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(rect, corners)
             .into_styled(PrimitiveStyle::with_stroke(if primary { COLOR_TEXT } else { COLOR_CARD_BORDER }, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let width = measure_title(label);
         draw_lato_title(&mut self.display, label, x + (92 - width) / 2, 210, COLOR_TEXT);
     }
@@ -171,10 +170,12 @@ impl<'a> BootDisplay<'a> {
         let corners = CornerRadii::new(Size::new(7, 7));
         RoundedRectangle::new(rect, corners)
             .into_styled(PrimitiveStyle::with_fill(if primary { KASPA_TEAL } else { COLOR_CARD }))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(rect, corners)
             .into_styled(PrimitiveStyle::with_stroke(if primary { COLOR_TEXT } else { COLOR_CARD_BORDER }, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let width = measure_title(label);
         draw_lato_title(&mut self.display, label, (320 - width) / 2, y + 21, COLOR_TEXT);
     }

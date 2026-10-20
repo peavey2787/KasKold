@@ -2,6 +2,7 @@
 """Exhaustive production E2E requirements and coverage-ratchet contracts."""
 from __future__ import annotations
 
+import sys
 import importlib.util
 import json
 from pathlib import Path
@@ -10,6 +11,8 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "qa/checks"))
+from firmware.source_contract_support import flat  # noqa: E402
 CHECKER = ROOT / "qa/checks/firmware/production_e2e_coverage.py"
 SPEC = importlib.util.spec_from_file_location("production_e2e_coverage", CHECKER)
 assert SPEC and SPEC.loader
@@ -124,7 +127,7 @@ class ProductionE2ECoverageRatchetTests(unittest.TestCase):
         self.assertIn("UiEvent::RootSelect(event_index)", transition)
         kernel = (ROOT / "apps/kaskold-hardware/src/runtime/navigation/kernel.rs").read_text()
         self.assertIn("HistoryEffect::PushCurrent", kernel)
-        self.assertIn("ReturnScope::Address => ad.navigation.history.target", kernel)
+        self.assertIn("ReturnScope::Address => { ad.navigation.history.target(", flat(kernel))
         self.assertIn("AppState::MainMenu", kernel)
 
 

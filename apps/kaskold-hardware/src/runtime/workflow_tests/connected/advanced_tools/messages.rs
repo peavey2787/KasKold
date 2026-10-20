@@ -31,9 +31,7 @@ fn choice_and_typed(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
         return false;
     }
     ctx.ad.wallet.seeds.pp_input.reset();
-    if ctx.tx_touch(KEY_OK.0, KEY_OK.1, false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::SignMsgType
-    {
+    if ctx.tx_touch(KEY_OK.0, KEY_OK.1, false) != Some(true) || ctx.ad.navigation.app.state != AppState::SignMsgType {
         return false;
     }
     ctx.set_text(MESSAGE);
@@ -51,29 +49,31 @@ fn choice_and_typed(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
 }
 
 fn qr_source(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
-    if !open_choice(ctx) { return false; }
+    if !open_choice(ctx) {
+        return false;
+    }
     if ctx.tx_touch(160, 136, false) != Some(true) || ctx.ad.navigation.app.state != AppState::SignMsgScan {
         return false;
     }
-    if !crate::runtime::interactions::camera_loop::workflow_process_pending_payload(
-        b"", ctx.ad,
-    ) || ctx.ad.navigation.app.state != AppState::SignMsgScan {
+    if !crate::runtime::interactions::camera_loop::workflow_process_pending_payload(b"", ctx.ad)
+        || ctx.ad.navigation.app.state != AppState::SignMsgScan
+    {
         return false;
     }
-    if !crate::runtime::interactions::camera_loop::workflow_process_pending_payload(
-        b"bad\x01", ctx.ad,
-    ) || ctx.ad.navigation.app.state != AppState::SignMsgScan {
+    if !crate::runtime::interactions::camera_loop::workflow_process_pending_payload(b"bad\x01", ctx.ad)
+        || ctx.ad.navigation.app.state != AppState::SignMsgScan
+    {
         return false;
     }
     let oversized = [b'x'; 1_025];
-    if !crate::runtime::interactions::camera_loop::workflow_process_pending_payload(
-        &oversized, ctx.ad,
-    ) || ctx.ad.navigation.app.state != AppState::SignMsgScan {
+    if !crate::runtime::interactions::camera_loop::workflow_process_pending_payload(&oversized, ctx.ad)
+        || ctx.ad.navigation.app.state != AppState::SignMsgScan
+    {
         return false;
     }
-    if !crate::runtime::interactions::camera_loop::workflow_process_pending_payload(
-        MESSAGE, ctx.ad,
-    ) || ctx.ad.navigation.app.state != AppState::SignMsgPreview {
+    if !crate::runtime::interactions::camera_loop::workflow_process_pending_payload(MESSAGE, ctx.ad)
+        || ctx.ad.navigation.app.state != AppState::SignMsgPreview
+    {
         return false;
     }
     if ctx.tx_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::SignMsgChoice {
@@ -117,9 +117,7 @@ fn sign_and_result(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     }
     // Exercise the production no-card branch deterministically. The board may
     // have a physical QA card inserted, but controller E2E must not mutate it.
-    if ctx.tx_touch_without_sd(90, 170, false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::SignMsgResult
-    {
+    if ctx.tx_touch_without_sd(90, 170, false) != Some(true) || ctx.ad.navigation.app.state != AppState::SignMsgResult {
         return false;
     }
     if ctx.tx_touch(235, 170, false) != Some(false)

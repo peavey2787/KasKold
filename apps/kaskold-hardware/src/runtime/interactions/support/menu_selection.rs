@@ -1,9 +1,6 @@
 //! Pure menu hit-testing and paging helpers shared by touch controllers.
 
-use crate::{
-    hw::touch,
-    runtime::input::Menu,
-};
+use crate::{hw::touch, runtime::input::Menu};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum PagedMenuAction {
@@ -12,12 +9,7 @@ pub(crate) enum PagedMenuAction {
     Selected(u8),
 }
 
-pub(crate) fn selected_visible_item(
-    menu: &Menu,
-    zones: &[touch::TouchZone; 4],
-    x: u16,
-    y: u16,
-) -> Option<u8> {
+pub(crate) fn selected_visible_item(menu: &Menu, zones: &[touch::TouchZone; 4], x: u16, y: u16) -> Option<u8> {
     zones.iter().enumerate().find_map(|(slot, zone)| {
         if !zone.contains(x, y) {
             return None;
@@ -41,7 +33,5 @@ pub(crate) fn handle_paged_menu_touch(
     if page_down.contains(x, y) && menu.page_down() {
         return PagedMenuAction::PageChanged;
     }
-    selected_visible_item(menu, zones, x, y)
-        .map(PagedMenuAction::Selected)
-        .unwrap_or(PagedMenuAction::None)
+    selected_visible_item(menu, zones, x, y).map(PagedMenuAction::Selected).unwrap_or(PagedMenuAction::None)
 }

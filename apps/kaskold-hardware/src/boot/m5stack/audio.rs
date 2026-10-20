@@ -5,7 +5,7 @@
 //! its DMA work buffer moves into `RuntimeAudio`, which remains local to the
 //! application event loop.
 
-use esp_hal::{Blocking, delay::Delay, i2c::master::I2c, i2s::master::I2sTx};
+use esp_hal::{delay::Delay, i2c::master::I2c, i2s::master::I2sTx, Blocking};
 
 const SOUND_DMA_BYTES: usize = 4 * 4092;
 type BootSoundTx = I2sTx<'static, Blocking>;

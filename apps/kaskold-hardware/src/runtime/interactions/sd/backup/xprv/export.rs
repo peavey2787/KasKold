@@ -1,12 +1,9 @@
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound, show_success};
 use crate::runtime::input::AppState;
+use crate::runtime::interactions::feedback::{show_rejection, show_success, ErrorSound};
 use shared_signer::bytes::zeroize_bytes;
 
-use super::super::super::{
-    run_filename_workflow, sd_backup, write_file_to_sd,
-    zeroize_buf, FilenameWorkflow,
-};
 use super::super::super::common::context::SdIoContext;
+use super::super::super::{run_filename_workflow, sd_backup, write_file_to_sd, zeroize_buf, FilenameWorkflow};
 
 pub(crate) fn handle_sd_xprv_filename(ctx: SdIoContext<'_, '_, '_>) -> bool {
     run_filename_workflow(
@@ -59,12 +56,12 @@ fn export_xprv(
                 &password[..password_len],
                 backup_device,
                 &mut encrypted,
-            ).map_err(|error| error.message())?;
+            )
+            .map_err(|error| error.message())?;
             boot_display.draw_saving_screen("Writing to SD...");
             boot_display.update_progress_bar(70);
-            write_file_to_sd(
-                i2c, delay, &ad.storage.export_file.filename, &encrypted[..encrypted_length],
-            ).map_err(|_| "SD write failed")?;
+            write_file_to_sd(i2c, delay, &ad.storage.export_file.filename, &encrypted[..encrypted_length])
+                .map_err(|_| "SD write failed")?;
             log!("[SD-XPRV] Wrote {} bytes", encrypted_length);
             Ok(())
         })();
@@ -82,14 +79,8 @@ fn export_xprv(
             show_rejection(boot_display, delay, message, 2_000, ErrorSound::Silent);
         }
     }
-    if !crate::runtime::effects::return_to(
-        ad,
-        crate::runtime::navigation::ReturnScope::KeyExport,
-    ) {
-        let _ = crate::runtime::effects::route(
-            ad,
-            crate::runtime::navigation::route!(BackupRecoveryMenu),
-        );
+    if !crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::KeyExport) {
+        let _ = crate::runtime::effects::route(ad, crate::runtime::navigation::route!(BackupRecoveryMenu));
     }
     None
 }

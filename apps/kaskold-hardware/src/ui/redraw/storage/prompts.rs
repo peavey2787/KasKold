@@ -35,7 +35,6 @@ pub(super) fn redraw(ad: &AppData, display: &mut BootDisplay<'_>) -> bool {
 
 fn draw_overwrite_warning(ad: &AppData, display: &mut BootDisplay<'_>) {
     let length = ad.storage.export_file.overwrite_prompt_len as usize;
-    let prompt = core::str::from_utf8(&ad.storage.export_file.overwrite_prompt[..length])
-        .unwrap_or("Overwrite?");
+    let prompt = core::str::from_utf8(&ad.storage.export_file.overwrite_prompt[..length]).unwrap_or("Overwrite?");
     display.draw_yes_no_ask("FILE EXISTS", prompt, "");
 }

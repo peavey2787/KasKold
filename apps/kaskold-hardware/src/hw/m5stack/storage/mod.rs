@@ -57,7 +57,9 @@ pub(crate) fn record_manual_unlock_session(card_type: SdCardType) {
 
 pub(crate) fn manual_unlock_session_card_type() -> Option<SdCardType> {
     let value = MANUAL_UNLOCK_SESSION.load(Ordering::Relaxed);
-    if value == SESSION_SDV1 { return Some(SdCardType::SdV1); }
+    if value == SESSION_SDV1 {
+        return Some(SdCardType::SdV1);
+    }
     decode_v2_session(value)
 }
 
@@ -75,12 +77,12 @@ pub(crate) fn clear_manual_unlock_session() {
 
 mod transport;
 pub use transport::sd_read_block;
-pub(crate) use transport::{fast_read_multi_block, fast_write_multi_block, sd_sector_count, sd_write_block};
-pub(crate) use transport::{power_cycle_card, probe_boot_card};
 pub(crate) use transport::with_sd_card as with_sd_card_impl;
-pub(crate) use transport::{force_erase_locked_card_session, unlock_locked_card_session};
 #[cfg(all(feature = "workflow-hil-auto", feature = "m5stack"))]
 pub(crate) use transport::workflow_force_erase_locked_card;
+pub(crate) use transport::{fast_read_multi_block, fast_write_multi_block, sd_sector_count, sd_write_block};
+pub(crate) use transport::{force_erase_locked_card_session, unlock_locked_card_session};
+pub(crate) use transport::{power_cycle_card, probe_boot_card};
 
 macro_rules! with_sd_card {
     ($i2c:expr, $delay:expr, $operation:expr) => {
@@ -90,7 +92,6 @@ macro_rules! with_sd_card {
 pub(crate) use with_sd_card;
 
 pub use crate::hw::shared::storage::fat32::{
-    DirEntry, Fat32Info, SdCardType, create_file, delete_file, find_file_in_root,
-    format_83_display, format_fat32, list_root_dir, list_root_dir_lfn, mount_fat32,
-    overwrite_file, read_file, to_83_name,
+    create_file, delete_file, find_file_in_root, format_83_display, format_fat32, list_root_dir, list_root_dir_lfn,
+    mount_fat32, overwrite_file, read_file, to_83_name, DirEntry, Fat32Info, SdCardType,
 };

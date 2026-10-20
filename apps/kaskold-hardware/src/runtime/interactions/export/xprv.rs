@@ -4,14 +4,13 @@
 
 //! Extended-private-key export menu.
 
+use super::{context::ExportStorageContext, TouchInput};
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use crate::{
-    runtime::interactions::menu_selection::{PagedMenuAction, handle_paged_menu_touch},
     hw::{display, touch},
+    runtime::interactions::menu_selection::{handle_paged_menu_touch, PagedMenuAction},
     runtime::{data::AppData, input::AppState},
 };
-use super::{context::ExportStorageContext, TouchInput};
-
 
 pub(super) fn handle_pure(
     ad: &mut AppData,
@@ -54,7 +53,16 @@ pub(super) fn handle_pure(
 
 pub(super) fn handle(context: ExportStorageContext<'_, '_, '_>) -> Option<bool> {
     let ExportStorageContext {
-        ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones, page_up_zone, page_down_zone, input,
+        ad,
+        boot_display,
+        delay,
+        liveness,
+        i2c,
+        sd_card_type,
+        list_zones,
+        page_up_zone,
+        page_down_zone,
+        input,
     } = context;
     let TouchInput { x, y, is_back } = input;
     match ad.navigation.app.state {
@@ -102,14 +110,7 @@ fn handle_menu(
         return true;
     }
 
-    match handle_paged_menu_touch(
-        &mut ad.navigation.xprv_export_menu,
-        list_zones,
-        page_up_zone,
-        page_down_zone,
-        x,
-        y,
-    ) {
+    match handle_paged_menu_touch(&mut ad.navigation.xprv_export_menu, list_zones, page_up_zone, page_down_zone, x, y) {
         PagedMenuAction::None => false,
         PagedMenuAction::PageChanged => true,
         PagedMenuAction::Selected(0) => {

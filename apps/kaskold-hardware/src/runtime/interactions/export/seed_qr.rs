@@ -8,9 +8,7 @@ use crate::{
     runtime::{data::AppData, input::AppState},
     wallet::seed_manager,
 };
-use kaskold_hardware_core::presentation::seed_qr_grid::{
-    SeedQrGridEffect, SeedQrGridState, reduce_grid,
-};
+use kaskold_hardware_core::presentation::seed_qr_grid::{reduce_grid, SeedQrGridEffect, SeedQrGridState};
 
 pub(super) fn handle(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> Option<bool> {
     let state = ad.navigation.app.state;
@@ -19,11 +17,10 @@ pub(super) fn handle(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> Option<
             if is_back {
                 crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SeedBackup);
             } else {
-                crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedQrGrid {
-                    pan_x: 0,
-                    pan_y: 0,
-                    compact: false,
-                }));
+                crate::runtime::effects::route(
+                    ad,
+                    crate::runtime::navigation::route!(SeedQrGrid { pan_x: 0, pan_y: 0, compact: false }),
+                );
             }
             Some(true)
         }
@@ -31,11 +28,10 @@ pub(super) fn handle(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> Option<
             if is_back {
                 crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SeedBackup);
             } else {
-                crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedQrGrid {
-                    pan_x: 0,
-                    pan_y: 0,
-                    compact: true,
-                }));
+                crate::runtime::effects::route(
+                    ad,
+                    crate::runtime::navigation::route!(SeedQrGrid { pan_x: 0, pan_y: 0, compact: true }),
+                );
             }
             Some(true)
         }
@@ -48,13 +44,7 @@ pub(super) fn handle(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> Option<
                 };
                 size
             };
-            let effect = reduce_grid(
-                SeedQrGridState { pan_x, pan_y, compact },
-                qr_size,
-                x,
-                y,
-                is_back,
-            );
+            let effect = reduce_grid(SeedQrGridState { pan_x, pan_y, compact }, qr_size, x, y, is_back);
             Some(apply_grid_effect(ad, effect))
         }
         AppState::ExportPlainWordsQR => {
@@ -92,11 +82,14 @@ fn apply_grid_effect(ad: &mut AppData, effect: SeedQrGridEffect) -> bool {
             // Panning changes only the viewport of the same logical screen.
             // Replacing it in place preserves the ExportSeedQR/ExportCompactSeedQR
             // parent in bounded history no matter how far the user pans.
-            crate::runtime::effects::replace(ad, crate::runtime::navigation::route!(SeedQrGrid {
-                pan_x: next.pan_x,
-                pan_y: next.pan_y,
-                compact: next.compact,
-            }));
+            crate::runtime::effects::replace(
+                ad,
+                crate::runtime::navigation::route!(SeedQrGrid {
+                    pan_x: next.pan_x,
+                    pan_y: next.pan_y,
+                    compact: next.compact,
+                }),
+            );
             true
         }
     }

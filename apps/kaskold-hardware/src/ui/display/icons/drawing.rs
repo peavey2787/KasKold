@@ -7,8 +7,8 @@ use embedded_graphics::{
 use embedded_iconoir::{icons::size24px, prelude::*};
 
 use super::{
-    ActionIcon, AudioIcon, CustomIcon, DeviceIcon, DocsIcon, EditorIcon, FinanceIcon, GitIcon,
-    MediaIcon, MenuIcon, OtherIcon, SecurityIcon, UsersIcon,
+    ActionIcon, AudioIcon, CustomIcon, DeviceIcon, DocsIcon, EditorIcon, FinanceIcon, GitIcon, MediaIcon, MenuIcon,
+    OtherIcon, SecurityIcon, UsersIcon,
 };
 use crate::ui::display::{COLOR_BG, KASPA_TEAL};
 
@@ -19,11 +19,7 @@ macro_rules! draw_embedded_icon {
     }};
 }
 
-pub(super) fn draw_classified_icon<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    position: Point,
-    icon: MenuIcon,
-) {
+pub(super) fn draw_classified_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: MenuIcon) {
     match icon {
         MenuIcon::Action(icon) => draw_action_icon(display, position, icon),
         MenuIcon::Audio(icon) => draw_audio_icon(display, position, icon),
@@ -56,7 +52,9 @@ pub(super) fn draw_wallet_asset_icon<D: DrawTarget<Color = Rgb565>>(
         "Storage" => Some(include_bytes!("../../../../assets/icon_settings_storage_24.raw").as_slice()),
         _ => None,
     };
-    let Some(raw) = icon else { return false; };
+    let Some(raw) = icon else {
+        return false;
+    };
     draw_rgb565_black_transparent(display, raw, 24, 24, position);
     true
 }
@@ -75,26 +73,15 @@ fn draw_rgb565_black_transparent<D: DrawTarget<Color = Rgb565>>(
         if raw == 0 {
             return None;
         }
-        let color = Rgb565::new(
-            ((raw >> 11) & 0x1f) as u8,
-            ((raw >> 5) & 0x3f) as u8,
-            (raw & 0x1f) as u8,
-        );
+        let color = Rgb565::new(((raw >> 11) & 0x1f) as u8, ((raw >> 5) & 0x3f) as u8, (raw & 0x1f) as u8);
         let x = (index as u32 % width) as i32;
         let y = (index as u32 / width) as i32;
-        (y < height as i32).then_some(Pixel(
-            Point::new(top_left.x + x, top_left.y + y),
-            color,
-        ))
+        (y < height as i32).then_some(Pixel(Point::new(top_left.x + x, top_left.y + y), color))
     });
     display.draw_iter(pixels).ok();
 }
 
-fn draw_action_icon<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    position: Point,
-    icon: ActionIcon,
-) {
+fn draw_action_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: ActionIcon) {
     match icon {
         ActionIcon::Download => draw_embedded_icon!(display, position, size24px::actions::Download),
         ActionIcon::EyeEmpty => draw_embedded_icon!(display, position, size24px::actions::EyeEmpty),
@@ -112,32 +99,20 @@ fn draw_action_icon<D: DrawTarget<Color = Rgb565>>(
     }
 }
 
-fn draw_audio_icon<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    position: Point,
-    icon: AudioIcon,
-) {
+fn draw_audio_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: AudioIcon) {
     match icon {
         AudioIcon::SoundHigh => draw_embedded_icon!(display, position, size24px::audio::SoundHigh),
     }
 }
 
-fn draw_custom_icon<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    position: Point,
-    icon: CustomIcon,
-) {
+fn draw_custom_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: CustomIcon) {
     match icon {
         CustomIcon::Dice => draw_dice_icon(display, position),
         CustomIcon::Fallback => draw_fallback_icon(display, position),
     }
 }
 
-fn draw_device_icon<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    position: Point,
-    icon: DeviceIcon,
-) {
+fn draw_device_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: DeviceIcon) {
     match icon {
         DeviceIcon::Laptop => draw_embedded_icon!(display, position, size24px::devices::Laptop),
         DeviceIcon::SaveFloppyDisk => {
@@ -146,22 +121,14 @@ fn draw_device_icon<D: DrawTarget<Color = Rgb565>>(
     }
 }
 
-fn draw_docs_icon<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    position: Point,
-    icon: DocsIcon,
-) {
+fn draw_docs_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: DocsIcon) {
     match icon {
         DocsIcon::AddFolder => draw_embedded_icon!(display, position, size24px::docs::AddFolder),
         DocsIcon::Page => draw_embedded_icon!(display, position, size24px::docs::Page),
     }
 }
 
-fn draw_editor_icon<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    position: Point,
-    icon: EditorIcon,
-) {
+fn draw_editor_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: EditorIcon) {
     match icon {
         EditorIcon::EditPencil => {
             draw_embedded_icon!(display, position, size24px::editor::EditPencil)
@@ -172,11 +139,7 @@ fn draw_editor_icon<D: DrawTarget<Color = Rgb565>>(
     }
 }
 
-fn draw_finance_icon<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    position: Point,
-    icon: FinanceIcon,
-) {
+fn draw_finance_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: FinanceIcon) {
     match icon {
         FinanceIcon::AppleWallet => {
             draw_embedded_icon!(display, position, size24px::finance::AppleWallet)
@@ -184,21 +147,13 @@ fn draw_finance_icon<D: DrawTarget<Color = Rgb565>>(
     }
 }
 
-fn draw_git_icon<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    position: Point,
-    icon: GitIcon,
-) {
+fn draw_git_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: GitIcon) {
     match icon {
         GitIcon::Fork => draw_embedded_icon!(display, position, size24px::git::GitFork),
     }
 }
 
-fn draw_media_icon<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    position: Point,
-    icon: MediaIcon,
-) {
+fn draw_media_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: MediaIcon) {
     match icon {
         MediaIcon::Camera => {
             draw_embedded_icon!(display, position, size24px::photos_and_videos::Camera)
@@ -206,21 +161,13 @@ fn draw_media_icon<D: DrawTarget<Color = Rgb565>>(
     }
 }
 
-fn draw_other_icon<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    position: Point,
-    icon: OtherIcon,
-) {
+fn draw_other_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: OtherIcon) {
     match icon {
         OtherIcon::QrCode => draw_embedded_icon!(display, position, size24px::other::QrCode),
     }
 }
 
-fn draw_security_icon<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    position: Point,
-    icon: SecurityIcon,
-) {
+fn draw_security_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: SecurityIcon) {
     match icon {
         SecurityIcon::Lock => draw_embedded_icon!(display, position, size24px::security::Lock),
         SecurityIcon::PasswordCursor => {
@@ -232,11 +179,7 @@ fn draw_security_icon<D: DrawTarget<Color = Rgb565>>(
     }
 }
 
-fn draw_users_icon<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    position: Point,
-    icon: UsersIcon,
-) {
+fn draw_users_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: UsersIcon) {
     match icon {
         UsersIcon::Group => draw_embedded_icon!(display, position, size24px::users::Group),
     }
@@ -246,16 +189,10 @@ fn draw_dice_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Poin
     const SIZE: u32 = 24;
     const RADIUS: u32 = 2;
     let corner = CornerRadii::new(embedded_graphics::geometry::Size::new(4, 4));
-    RoundedRectangle::new(
-        Rectangle::new(
-            position,
-            embedded_graphics::geometry::Size::new(SIZE, SIZE),
-        ),
-        corner,
-    )
-    .into_styled(PrimitiveStyle::with_fill(KASPA_TEAL))
-    .draw(display)
-    .ok();
+    RoundedRectangle::new(Rectangle::new(position, embedded_graphics::geometry::Size::new(SIZE, SIZE)), corner)
+        .into_styled(PrimitiveStyle::with_fill(KASPA_TEAL))
+        .draw(display)
+        .ok();
 
     let center_x = position.x + SIZE as i32 / 2;
     let center_y = position.y + SIZE as i32 / 2;
@@ -271,19 +208,11 @@ fn draw_dice_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Poin
     }
 }
 
-fn draw_die_pip<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    x: i32,
-    y: i32,
-    radius: u32,
-) {
-    Circle::new(
-        Point::new(x - radius as i32, y - radius as i32),
-        radius * 2 + 1,
-    )
-    .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-    .draw(display)
-    .ok();
+fn draw_die_pip<D: DrawTarget<Color = Rgb565>>(display: &mut D, x: i32, y: i32, radius: u32) {
+    Circle::new(Point::new(x - radius as i32, y - radius as i32), radius * 2 + 1)
+        .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
+        .draw(display)
+        .ok();
 }
 
 fn draw_fallback_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point) {

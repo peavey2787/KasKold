@@ -32,6 +32,4 @@ impl PersistentWallet<'_> {
     ) -> Result<(), PersistError> {
         self.crypto.open_backup(purpose, credential_key, salt, nonce, aad, ciphertext, tag)
     }
-
-
 }

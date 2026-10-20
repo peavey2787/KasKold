@@ -1,6 +1,6 @@
 use crate::{
-    runtime::interactions::TouchInput,
     hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
+    runtime::interactions::TouchInput,
     runtime::{data::AppData, input::AppState},
 };
 use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
@@ -18,12 +18,7 @@ struct SettingsContext<'ctx, 'display, 'hal> {
 
 impl SettingsContext<'_, '_, '_> {
     fn redraw(&mut self) {
-        super::redraw_step(
-            &mut *self.ad,
-            &mut *self.display,
-            &mut *self.i2c,
-            self.sd,
-        );
+        super::redraw_step(&mut *self.ad, &mut *self.display, &mut *self.i2c, self.sd);
     }
 
     fn show_step(&mut self) {
@@ -66,16 +61,7 @@ pub(super) fn exercise(
     delay: &mut Delay,
 ) -> bool {
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
-    let mut ctx = SettingsContext {
-        ad,
-        display,
-        i2c,
-        sd,
-        delay,
-        list,
-        up,
-        down,
-    };
+    let mut ctx = SettingsContext { ad, display, i2c, sd, delay, list, up, down };
     log!("KASKOLD_WORKFLOW_TESTS: SETTINGS EXHAUSTIVE ROOT BEGIN");
 
     if ctx.select(320, 235) {
@@ -93,7 +79,9 @@ pub(super) fn exercise(
     if !audio_settings(&mut ctx) || !global_audio_control(&mut ctx) {
         return false;
     }
-    if !remaining_routes(&mut ctx) { return false; }
+    if !remaining_routes(&mut ctx) {
+        return false;
+    }
 
     let back = TouchInput::new(20, 20, true);
     if crate::runtime::interactions::settings::handle_settings_menu_navigation(
@@ -117,14 +105,15 @@ fn remaining_routes(ctx: &mut SettingsContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if !ctx.page(false) || ctx.ad.navigation.settings_menu.scroll != 4
-        || !ctx.page(true) || ctx.ad.navigation.settings_menu.scroll != 0
+    if !ctx.page(false)
+        || ctx.ad.navigation.settings_menu.scroll != 4
+        || !ctx.page(true)
+        || ctx.ad.navigation.settings_menu.scroll != 0
     {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: SETTINGS PAGING BOUNDARIES OK");
-    advanced_menu_flow(ctx)
-        && simple_item(ctx, 5, AppState::About, back_about)
+    advanced_menu_flow(ctx) && simple_item(ctx, 5, AppState::About, back_about)
 }
 
 fn advanced_menu_flow(ctx: &mut SettingsContext<'_, '_, '_>) -> bool {
@@ -140,20 +129,16 @@ fn advanced_menu_flow(ctx: &mut SettingsContext<'_, '_, '_>) -> bool {
     }
     ctx.redraw();
     ctx.show_step();
-    if crate::runtime::interactions::settings::handle_advanced_navigation(
-        ctx.ad,
-        TouchInput::new(240, 210, false),
-    ) != Some(true)
+    if crate::runtime::interactions::settings::handle_advanced_navigation(ctx.ad, TouchInput::new(240, 210, false))
+        != Some(true)
         || ctx.ad.navigation.app.state != AppState::FactoryResetConfirm
     {
         return false;
     }
     ctx.redraw();
     ctx.show_step();
-    if crate::runtime::interactions::settings::handle_advanced_navigation(
-        ctx.ad,
-        TouchInput::new(80, 210, false),
-    ) != Some(true)
+    if crate::runtime::interactions::settings::handle_advanced_navigation(ctx.ad, TouchInput::new(80, 210, false))
+        != Some(true)
         || ctx.ad.navigation.app.state != AppState::AdvancedMenu
     {
         return false;
@@ -177,19 +162,15 @@ fn owner_firmware_flow(ctx: &mut SettingsContext<'_, '_, '_>) -> bool {
         return false;
     }
     ctx.redraw();
-    if crate::runtime::interactions::settings::handle_advanced_navigation(
-        ctx.ad,
-        TouchInput::new(240, 210, false),
-    ) != Some(true)
+    if crate::runtime::interactions::settings::handle_advanced_navigation(ctx.ad, TouchInput::new(240, 210, false))
+        != Some(true)
         || ctx.ad.navigation.app.state != AppState::OwnerKeyConfirm
     {
         return false;
     }
     ctx.redraw();
-    if crate::runtime::interactions::settings::handle_advanced_navigation(
-        ctx.ad,
-        TouchInput::new(20, 20, true),
-    ) != Some(true)
+    if crate::runtime::interactions::settings::handle_advanced_navigation(ctx.ad, TouchInput::new(20, 20, true))
+        != Some(true)
         || ctx.ad.navigation.app.state != AppState::OwnerFirmwareMenu
     {
         return false;
@@ -201,19 +182,15 @@ fn owner_firmware_flow(ctx: &mut SettingsContext<'_, '_, '_>) -> bool {
         return false;
     }
     ctx.redraw();
-    if crate::runtime::interactions::settings::handle_advanced_navigation(
-        ctx.ad,
-        TouchInput::new(240, 210, false),
-    ) != Some(true)
+    if crate::runtime::interactions::settings::handle_advanced_navigation(ctx.ad, TouchInput::new(240, 210, false))
+        != Some(true)
         || ctx.ad.navigation.app.state != AppState::OwnerInstallConfirm
     {
         return false;
     }
     ctx.redraw();
-    if crate::runtime::interactions::settings::handle_advanced_navigation(
-        ctx.ad,
-        TouchInput::new(20, 20, true),
-    ) != Some(true)
+    if crate::runtime::interactions::settings::handle_advanced_navigation(ctx.ad, TouchInput::new(20, 20, true))
+        != Some(true)
         || ctx.ad.navigation.app.state != AppState::OwnerFirmwareMenu
         || !crate::runtime::interactions::menu::primary::workflow_owner_firmware_back(ctx.ad)
         || ctx.ad.navigation.app.state != AppState::AdvancedMenu
@@ -320,15 +297,12 @@ fn global_audio_control(ctx: &mut SettingsContext<'_, '_, '_>) -> bool {
     }
     ctx.ad.settings.set_volume(127);
     let before = ctx.ad.settings.audio_muted();
-    if crate::ui::layout::audio_toggle_zone(ctx.ad.navigation.app.state)
-        .is_some_and(|zone| zone.contains(95, 24))
+    if crate::ui::layout::audio_toggle_zone(ctx.ad.navigation.app.state).is_some_and(|zone| zone.contains(95, 24))
         || ctx.ad.settings.audio_muted() != before
     {
         return false;
     }
-    if !crate::ui::layout::audio_toggle_zone(ctx.ad.navigation.app.state)
-        .is_some_and(|zone| zone.contains(70, 24))
-    {
+    if !crate::ui::layout::audio_toggle_zone(ctx.ad.navigation.app.state).is_some_and(|zone| zone.contains(70, 24)) {
         return false;
     }
     let muted_volume = crate::runtime::event_loop::audio::toggle_global_mute(ctx.ad);
@@ -353,11 +327,7 @@ fn simple_item(
         return false;
     }
     ctx.redraw();
-    log!(
-        "KASKOLD_WORKFLOW_TESTS: SETTINGS ITEM {} SCREEN {:?}",
-        item,
-        expected
-    );
+    log!("KASKOLD_WORKFLOW_TESTS: SETTINGS ITEM {} SCREEN {:?}", item, expected);
     ctx.show_step();
     back(&mut *ctx.ad)
         && ctx.ad.navigation.app.state == AppState::SettingsMenu
@@ -365,8 +335,7 @@ fn simple_item(
 }
 
 fn back_security(ad: &mut AppData) -> bool {
-    crate::runtime::interactions::settings::handle_advanced_navigation(ad, TouchInput::new(20, 20, true))
-        == Some(true)
+    crate::runtime::interactions::settings::handle_advanced_navigation(ad, TouchInput::new(20, 20, true)) == Some(true)
 }
 
 fn back_storage(ad: &mut AppData) -> bool {
@@ -380,9 +349,7 @@ fn back_advanced(ad: &mut AppData) -> bool {
         return false;
     }
     let handled = crate::runtime::navigation::handle_back(ad);
-    let ok = handled
-        && ad.navigation.app.state == AppState::SettingsMenu
-        && crate::runtime::navigation::reconcile(ad);
+    let ok = handled && ad.navigation.app.state == AppState::SettingsMenu && crate::runtime::navigation::reconcile(ad);
     if ok {
         log!("KASKOLD_WORKFLOW_TESTS: SETTINGS ADVANCED BACK OK");
     }
@@ -390,6 +357,5 @@ fn back_advanced(ad: &mut AppData) -> bool {
 }
 
 fn back_about(ad: &mut AppData) -> bool {
-    crate::runtime::interactions::settings::handle_about_navigation(ad, TouchInput::new(20, 20, true))
-        == Some(true)
+    crate::runtime::interactions::settings::handle_about_navigation(ad, TouchInput::new(20, 20, true)) == Some(true)
 }

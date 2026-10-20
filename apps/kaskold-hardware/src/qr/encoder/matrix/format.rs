@@ -7,18 +7,42 @@ impl QrCode {
         let size = self.size;
 
         let top_left: [(u8, u8); 15] = [
-            (0, 8), (1, 8), (2, 8), (3, 8), (4, 8), (5, 8), (7, 8), (8, 8),
-            (8, 7), (8, 5), (8, 4), (8, 3), (8, 2), (8, 1), (8, 0),
+            (0, 8),
+            (1, 8),
+            (2, 8),
+            (3, 8),
+            (4, 8),
+            (5, 8),
+            (7, 8),
+            (8, 8),
+            (8, 7),
+            (8, 5),
+            (8, 4),
+            (8, 3),
+            (8, 2),
+            (8, 1),
+            (8, 0),
         ];
         for (index, &(x, y)) in top_left.iter().enumerate() {
             self.set(x, y, (format_bits >> (14 - index)) & 1 != 0);
         }
 
         let opposite: [(u8, u8); 15] = [
-            (8, size - 1), (8, size - 2), (8, size - 3), (8, size - 4),
-            (8, size - 5), (8, size - 6), (8, size - 7), (size - 8, 8),
-            (size - 7, 8), (size - 6, 8), (size - 5, 8), (size - 4, 8),
-            (size - 3, 8), (size - 2, 8), (size - 1, 8),
+            (8, size - 1),
+            (8, size - 2),
+            (8, size - 3),
+            (8, size - 4),
+            (8, size - 5),
+            (8, size - 6),
+            (8, size - 7),
+            (size - 8, 8),
+            (size - 7, 8),
+            (size - 6, 8),
+            (size - 5, 8),
+            (size - 4, 8),
+            (size - 3, 8),
+            (size - 2, 8),
+            (size - 1, 8),
         ];
         for (index, &(x, y)) in opposite.iter().enumerate() {
             self.set(x, y, (format_bits >> (14 - index)) & 1 != 0);

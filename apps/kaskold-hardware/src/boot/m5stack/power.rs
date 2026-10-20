@@ -1,9 +1,10 @@
 //! CoreS3 PMU and IO-expander initialization phase.
 
 use esp_hal::{
-    Blocking, delay::Delay,
+    delay::Delay,
     i2c::master::{Config as I2cConfig, I2c, SoftwareTimeout},
     time::{Duration, Rate},
+    Blocking,
 };
 
 pub(crate) fn control_bus_config() -> I2cConfig {
@@ -20,9 +21,7 @@ pub(crate) fn initialize(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) {
             crate::log!("   AXP2101 OK — DLDO1 enabled (3.3V backlight)");
             #[cfg(not(feature = "workflow-test-auto"))]
             match crate::hw::battery::refresh_boot_cache(i2c) {
-                Some(battery) => crate::log!(
-                    "   Battery boot snapshot: {}% {:?}", battery.percentage, battery.state
-                ),
+                Some(battery) => crate::log!("   Battery boot snapshot: {}% {:?}", battery.percentage, battery.state),
                 None => crate::log!("   Battery boot snapshot unavailable"),
             }
             #[cfg(feature = "workflow-test-auto")]

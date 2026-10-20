@@ -2,50 +2,27 @@
 // License: GPL-3.0-or-later.
 
 use super::{
-    BootDisplay,
-    COLOR_BG,
-    COLOR_CARD,
-    COLOR_CARD_BORDER,
-    COLOR_HINT,
-    COLOR_ORANGE,
-    COLOR_TEXT,
-    CornerRadii,
-    Drawable,
-    KASPA_ACCENT,
-    KASPA_TEAL,
-    Line,
-    Point,
-    Primitive,
-    PrimitiveStyle,
-    Rectangle,
-    Rgb565,
-    RoundedRectangle,
-    Size,
-    draw_lato_body,
-    draw_lato_hint,
-    draw_lato_title,
-    draw_oswald_header,
-    measure_body,
-    measure_header,
-    measure_hint,
-    measure_title,
-    truncate_chars,
+    draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_hint,
+    measure_title, truncate_chars, BootDisplay, CornerRadii, Drawable, Line, Point, Primitive, PrimitiveStyle,
+    Rectangle, Rgb565, RoundedRectangle, Size, COLOR_BG, COLOR_CARD, COLOR_CARD_BORDER, COLOR_HINT, COLOR_ORANGE,
+    COLOR_TEXT, KASPA_ACCENT, KASPA_TEAL,
 };
 
 impl<'a> BootDisplay<'a> {
-/// Draw steganography JPEG file picker
+    /// Draw steganography JPEG file picker
     pub fn draw_stego_jpeg_pick(&mut self, disp_names: &[[u8; 32]; 8], disp_lens: &[u8; 8], count: u8, selected: u8) {
         self.draw_stego_file_picker("SELECT JPEG", disp_names, disp_lens, count, Some(selected), true);
     }
 
-/// Draw steganography JPEG confirm overwrite screen
+    /// Draw steganography JPEG confirm overwrite screen
     pub fn draw_stego_jpeg_confirm(&mut self, filename: &str, description: &str, has_pp: bool, security: &str) {
         self.clear_keep_nav();
         let tw = measure_header("CONFIRM OVERWRITE");
         draw_oswald_header(&mut self.display, "CONFIRM OVERWRITE", (320 - tw) / 2, 30, COLOR_ORANGE);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(COLOR_ORANGE, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         let tw1 = measure_body("This will modify:");
         draw_lato_body(&mut self.display, "This will modify:", (320 - tw1) / 2, 65, COLOR_TEXT);
@@ -60,11 +37,7 @@ impl<'a> BootDisplay<'a> {
 
         let security_line: heapless::String<40> = {
             let mut text = heapless::String::new();
-            let detail = if security == "Portable" {
-                "Restore: JPEG + Password"
-            } else {
-                "Original device required"
-            };
+            let detail = if security == "Portable" { "Restore: JPEG + Password" } else { "Original device required" };
             core::fmt::Write::write_str(&mut text, detail).ok();
             text
         };
@@ -84,20 +57,21 @@ impl<'a> BootDisplay<'a> {
         let cancel_rect = Rectangle::new(Point::new(20, 190), Size::new(130, 32));
         RoundedRectangle::new(cancel_rect, btn_corner)
             .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(cancel_rect, btn_corner)
             .into_styled(PrimitiveStyle::with_stroke(COLOR_CARD_BORDER, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let cw = measure_body("CANCEL");
         draw_lato_body(&mut self.display, "CANCEL", 20 + (130 - cw) / 2, 212, COLOR_TEXT);
 
         let confirm_rect = Rectangle::new(Point::new(170, 190), Size::new(130, 32));
         RoundedRectangle::new(confirm_rect, btn_corner)
             .into_styled(PrimitiveStyle::with_fill(KASPA_TEAL))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let ow = measure_body("OVERWRITE");
         draw_lato_body(&mut self.display, "OVERWRITE", 170 + (130 - ow) / 2, 212, COLOR_BG);
-
     }
-
 }

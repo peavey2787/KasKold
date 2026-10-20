@@ -20,9 +20,15 @@ pub(crate) enum UiEffect {
 pub(crate) fn apply(ad: &mut AppData, effect: UiEffect) -> bool {
     match effect {
         UiEffect::Event(event) => crate::runtime::navigation::dispatch(ad, event),
-        UiEffect::Redraw => { ad.runtime.needs_redraw = true; true }
+        UiEffect::Redraw => {
+            ad.runtime.needs_redraw = true;
+            true
+        }
         #[cfg(feature = "workflow-test-auto")]
-        UiEffect::KeepFrame => { ad.runtime.needs_redraw = false; true }
+        UiEffect::KeepFrame => {
+            ad.runtime.needs_redraw = false;
+            true
+        }
     }
 }
 

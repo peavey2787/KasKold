@@ -1,8 +1,9 @@
-use embedded_iconoir::prelude::IconoirNewIcon;
 use super::super::{
-    BootDisplay, COLOR_CARD, COLOR_CARD_BORDER, COLOR_TEXT, Circle, CornerRadii, Drawable, Image, KASPA_ACCENT, KASPA_TEAL, Line, Point, Primitive, PrimitiveStyle,
-    Rectangle, Rgb565, RoundedRectangle, Size, Triangle, draw_lato_title,
-    draw_oswald_header, measure_header, size24px};
+    draw_lato_title, draw_oswald_header, measure_header, size24px, BootDisplay, Circle, CornerRadii, Drawable, Image,
+    Line, Point, Primitive, PrimitiveStyle, Rectangle, Rgb565, RoundedRectangle, Size, Triangle, COLOR_CARD,
+    COLOR_CARD_BORDER, COLOR_TEXT, KASPA_ACCENT, KASPA_TEAL,
+};
+use embedded_iconoir::prelude::IconoirNewIcon;
 
 impl<'a> BootDisplay<'a> {
     pub(crate) fn draw_stego_file_picker(
@@ -19,7 +20,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, header, (320 - title_width) / 2, 30, COLOR_TEXT);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         let page_size = 4u8;
         let scroll = selected.map_or(0, |index| (index / page_size) * page_size);
@@ -34,10 +36,12 @@ impl<'a> BootDisplay<'a> {
             let stroke = if is_selected { KASPA_TEAL } else { COLOR_CARD_BORDER };
             RoundedRectangle::new(rect, corner)
                 .into_styled(PrimitiveStyle::with_fill(fill))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
             RoundedRectangle::new(rect, corner)
                 .into_styled(PrimitiveStyle::with_stroke(stroke, 1))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
             if index >= count {
                 continue;
             }
@@ -73,7 +77,8 @@ impl<'a> BootDisplay<'a> {
         ] {
             Triangle::new(points.0, points.1, points.2)
                 .into_styled(PrimitiveStyle::with_fill(if enabled { KASPA_TEAL } else { dark_teal }))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
         }
 
         if jpeg && count > page_size {
@@ -84,7 +89,8 @@ impl<'a> BootDisplay<'a> {
                 let x = (320 - total_width) / 2 + i32::from(page) * 15;
                 Circle::new(Point::new(x, 232), 7)
                     .into_styled(PrimitiveStyle::with_fill(if page == current { KASPA_ACCENT } else { dark_teal }))
-                    .draw(&mut self.display).ok();
+                    .draw(&mut self.display)
+                    .ok();
             }
         }
     }

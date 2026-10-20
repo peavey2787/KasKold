@@ -73,7 +73,7 @@ def _consumer_requirements() -> dict[str, tuple[str, ...]]:
         ),
         ".github/workflows/core.yml": (
             "qa/config/toolchains.env", "KASKOLD_STABLE_RUST",
-            "make test STRICT_LOCKFILES=1",
+            "qa/checks/workspace/check_rust_format.py", "make test STRICT_LOCKFILES=1",
         ),
         ".github/workflows/kaskold-companion-ci.yml": (
             "qa/config/toolchains.env", "KASKOLD_STABLE_RUST",

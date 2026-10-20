@@ -2,20 +2,18 @@
 
 #![cfg_attr(feature = "hardware-tests", allow(dead_code))]
 #![cfg_attr(feature = "workflow-test-auto", allow(dead_code))]
-#[cfg(feature = "e12-capture")]
-pub(crate) mod e12_capture;
-#[cfg(feature = "sentinel-scan")]
-pub(crate) mod sentinel_scan;
-#[cfg(feature = "wdev-capture")]
-pub(crate) mod wdev_capture;
-#[cfg(feature = "sha-bench")]
-pub(crate) mod sha_bench;
 #[cfg(feature = "argon2-bench")]
 pub(crate) mod argon2_bench;
+#[cfg(feature = "e12-capture")]
+pub(crate) mod e12_capture;
 #[cfg(feature = "icon-browser")]
 pub(crate) mod icon_browser;
-
-
+#[cfg(feature = "sentinel-scan")]
+pub(crate) mod sentinel_scan;
+#[cfg(feature = "sha-bench")]
+pub(crate) mod sha_bench;
+#[cfg(feature = "wdev-capture")]
+pub(crate) mod wdev_capture;
 
 pub(crate) fn log_build_profile() {
     log!("KasKold package {}", env!("CARGO_PKG_VERSION"));
@@ -27,7 +25,12 @@ pub(crate) fn log_build_profile() {
     log!("   Firmware profile: hardware-tests HIL image");
     #[cfg(feature = "production")]
     log!("   Firmware profile: production");
-    #[cfg(not(any(feature = "workflow-tests", feature = "workflow-test-auto", feature = "hardware-tests", feature = "production")))]
+    #[cfg(not(any(
+        feature = "workflow-tests",
+        feature = "workflow-test-auto",
+        feature = "hardware-tests",
+        feature = "production"
+    )))]
     log!("   Firmware profile: development");
 }
 
@@ -51,33 +54,26 @@ pub(crate) fn maybe_finish_rng_probe(_: &mut esp_hal::delay::Delay) {}
 pub(crate) fn maybe_run_wdev_capture(
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     delay: &mut esp_hal::delay::Delay,
-) { wdev_capture::run_and_halt(i2c, delay); }
-#[cfg(feature = "sentinel-scan")]
-pub(crate) fn maybe_run_sentinel_scan(
-    ad: &mut crate::runtime::data::AppData,
-    delay: &mut esp_hal::delay::Delay,
 ) {
+    wdev_capture::run_and_halt(i2c, delay);
+}
+#[cfg(feature = "sentinel-scan")]
+pub(crate) fn maybe_run_sentinel_scan(ad: &mut crate::runtime::data::AppData, delay: &mut esp_hal::delay::Delay) {
     sentinel_scan::run_and_halt(ad, delay);
 }
 #[cfg(not(feature = "sentinel-scan"))]
-pub(crate) fn maybe_run_sentinel_scan(
-    _: &mut crate::runtime::data::AppData,
-    _: &mut esp_hal::delay::Delay,
-) {}
+pub(crate) fn maybe_run_sentinel_scan(_: &mut crate::runtime::data::AppData, _: &mut esp_hal::delay::Delay) {}
 
 #[cfg(feature = "icon-browser")]
 pub(crate) fn maybe_run_icon_browser<D>(display: &mut D, delay: &mut esp_hal::delay::Delay)
 where
-    D: embedded_graphics::draw_target::DrawTarget<
-        Color = embedded_graphics::pixelcolor::Rgb565,
-    >,
+    D: embedded_graphics::draw_target::DrawTarget<Color = embedded_graphics::pixelcolor::Rgb565>,
 {
     icon_browser::draw_and_halt(display, delay);
 }
 #[cfg(not(feature = "icon-browser"))]
 pub(crate) fn maybe_run_icon_browser<D>(_: &mut D, _: &mut esp_hal::delay::Delay)
 where
-    D: embedded_graphics::draw_target::DrawTarget<
-        Color = embedded_graphics::pixelcolor::Rgb565,
-    >,
-{}
+    D: embedded_graphics::draw_target::DrawTarget<Color = embedded_graphics::pixelcolor::Rgb565>,
+{
+}

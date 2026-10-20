@@ -7,6 +7,12 @@
 #[cfg(not(feature = "workflow-test-auto"))]
 pub(crate) use crate::runtime::input::is_scan_state;
 
+/// Camera peripheral, its DMA receive buffer, and its init status, handed from
+/// the entry point to the event loop as one hardware bundle.
+#[cfg(not(feature = "hardware-tests"))]
+pub(crate) type CameraHardware<'camera> =
+    (Option<esp_hal::lcd_cam::cam::Camera<'camera>>, Option<esp_hal::dma::DmaRxBuf>, crate::hw::camera::CameraStatus);
+
 #[cfg(not(feature = "workflow-test-auto"))]
 macro_rules! run_step {
     ($ad:ident, $boot_display:ident, $delay:ident, $i2c:ident,

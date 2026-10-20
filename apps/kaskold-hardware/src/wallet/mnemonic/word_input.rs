@@ -87,10 +87,7 @@ impl WordInput {
         for (idx, &word) in WORDLIST.iter().enumerate() {
             let word_bytes = word.as_bytes();
             if word_bytes.len() >= self.prefix_len {
-                let matches = word_bytes[..self.prefix_len]
-                    .iter()
-                    .zip(prefix.iter())
-                    .all(|(a, b)| *a == *b);
+                let matches = word_bytes[..self.prefix_len].iter().zip(prefix.iter()).all(|(a, b)| *a == *b);
 
                 if matches {
                     self.match_count += 1;

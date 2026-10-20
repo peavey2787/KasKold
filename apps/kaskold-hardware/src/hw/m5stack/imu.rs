@@ -4,9 +4,13 @@
 //! upload. KasKold owns normal-mode activation, startup/freshness timing,
 //! sampling, diversity checks, zeroization, and the fail-closed seed policy.
 
+use bmi2::{
+    config,
+    types::{Burst, PwrCtrl},
+    Bmi2, I2cAddr,
+};
 use core::sync::atomic::{AtomicBool, Ordering};
-use bmi2::{config, types::{Burst, PwrCtrl}, Bmi2, I2cAddr};
-use esp_hal::{Blocking, delay::Delay, i2c::master::I2c};
+use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
 const BMI270_ADDR: u8 = 0x69;
 const BMI270_CHIP_ID: u8 = 0x24;
@@ -71,26 +75,22 @@ fn upload_config(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) -> bool {
         I2cAddr::Alternative,
         Burst::new(255),
     );
-    if bmi.get_chip_id().ok() != Some(BMI270_CHIP_ID) { return false; }
-    if bmi.init(&config::BMI270_CONFIG_FILE).is_err() { return false; }
+    if bmi.get_chip_id().ok() != Some(BMI270_CHIP_ID) {
+        return false;
+    }
+    if bmi.init(&config::BMI270_CONFIG_FILE).is_err() {
+        return false;
+    }
     // Use the driver's typed power-control path while the BMI2 interface owns
     // the bus. This is the crate's documented post-init sequence and avoids
     // raw PWR_CTRL writes being ignored while BMI270 power-save handling is active.
-    bmi.set_pwr_ctrl(PwrCtrl {
-        aux_en: false,
-        gyr_en: true,
-        acc_en: true,
-        temp_en: false,
-    }).is_ok()
+    bmi.set_pwr_ctrl(PwrCtrl { aux_en: false, gyr_en: true, acc_en: true, temp_en: false }).is_ok()
 }
 
-fn write_named_reg(
-    i2c: &mut I2c<'_, Blocking>,
-    register: u8,
-    value: u8,
-    name: &str,
-) -> bool {
-    if write_reg(i2c, register, value) { return true; }
+fn write_named_reg(i2c: &mut I2c<'_, Blocking>, register: u8, value: u8, name: &str) -> bool {
+    if write_reg(i2c, register, value) {
+        return true;
+    }
     crate::log!("   [imu] BMI270 {} write failed", name);
     false
 }
@@ -127,18 +127,22 @@ fn normal_mode_matches(i2c: &mut I2c<'_, Blocking>) -> bool {
     let gyr_conf = read_reg(i2c, REG_GYR_CONF);
     let gyr_range = read_reg(i2c, REG_GYR_RANGE);
     let pwr_conf = read_reg(i2c, REG_PWR_CONF);
-    if mode_registers_match(pwr_ctrl, acc_conf, gyr_conf, gyr_range, pwr_conf) { return true; }
+    if mode_registers_match(pwr_ctrl, acc_conf, gyr_conf, gyr_range, pwr_conf) {
+        return true;
+    }
     crate::log!(
         "   [imu] BMI270 mode readback PWR_CTRL={:?} ACC_CONF={:?} GYR_CONF={:?} GYR_RANGE={:?} PWR_CONF={:?}",
-        pwr_ctrl, acc_conf, gyr_conf, gyr_range, pwr_conf
+        pwr_ctrl,
+        acc_conf,
+        gyr_conf,
+        gyr_range,
+        pwr_conf
     );
     false
 }
 
 fn initialized(i2c: &mut I2c<'_, Blocking>) -> bool {
-    read_reg(i2c, REG_INTERNAL_STATUS)
-        .map(|status| status & 0x0f == INTERNAL_STATUS_INITIALIZED)
-        .unwrap_or(false)
+    read_reg(i2c, REG_INTERNAL_STATUS).map(|status| status & 0x0f == INTERNAL_STATUS_INITIALIZED).unwrap_or(false)
 }
 
 fn fatal_error(i2c: &mut I2c<'_, Blocking>) -> bool {
@@ -147,14 +151,18 @@ fn fatal_error(i2c: &mut I2c<'_, Blocking>) -> bool {
 
 fn wait_ready(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) -> bool {
     for _ in 0..READY_POLLS {
-        if read_reg(i2c, REG_STATUS).unwrap_or(0) & GYR_DATA_READY != 0 { return true; }
+        if read_reg(i2c, REG_STATUS).unwrap_or(0) & GYR_DATA_READY != 0 {
+            return true;
+        }
         delay.delay_micros(READY_POLL_US);
     }
     false
 }
 
 fn read_fresh_triplet(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) -> Option<[u8; 3]> {
-    if !wait_ready(i2c, delay) { return None; }
+    if !wait_ready(i2c, delay) {
+        return None;
+    }
     let mut raw = [0u8; 6];
     i2c.write_read(BMI270_ADDR, &[REG_GYR_X_LSB], &mut raw).ok()?;
     // At 200 Hz a new gyro frame arrives every 5 ms. Waiting 6 ms before the
@@ -164,10 +172,14 @@ fn read_fresh_triplet(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) -> Option<
 }
 
 pub fn collect(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay, output: &mut [u8]) -> usize {
-    if !READY.load(Ordering::Acquire) { return 0; }
+    if !READY.load(Ordering::Acquire) {
+        return 0;
+    }
     let mut written = 0usize;
     for chunk in output.chunks_mut(3) {
-        let Some(sample) = read_fresh_triplet(i2c, delay) else { break; };
+        let Some(sample) = read_fresh_triplet(i2c, delay) else {
+            break;
+        };
         for (destination, source) in chunk.iter_mut().zip(sample) {
             *destination = source;
             written += 1;
@@ -214,19 +226,32 @@ fn prepare(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) -> bool {
 
 /// Configure and point-of-use health-check the CoreS3 BMI270.
 pub fn init(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) -> bool {
-    if READY.load(Ordering::Acquire) { return true; }
-    if !prepare(i2c, delay) { return false; }
+    if READY.load(Ordering::Acquire) {
+        return true;
+    }
+    if !prepare(i2c, delay) {
+        return false;
+    }
     READY.store(true, Ordering::Release);
     let (distinct, healthy) = boot_health(i2c, delay);
     if healthy {
-        crate::log!("   [imu] BMI270 0x69 healthy: distinct X{} Y{} Z{} of {}",
-            distinct[0], distinct[1], distinct[2], BOOT_HEALTH_BYTES / 3);
+        crate::log!(
+            "   [imu] BMI270 0x69 healthy: distinct X{} Y{} Z{} of {}",
+            distinct[0],
+            distinct[1],
+            distinct[2],
+            BOOT_HEALTH_BYTES / 3
+        );
     } else {
         // A low-diversity diagnostic window does not mean the configured BMI270
         // disappeared. Keep the operational latch set so the mandatory pre/post
         // seed windows can collect fresh samples and enforce the same health gate.
-        crate::log!("   [imu] BMI270 health sample rejected: distinct X{} Y{} Z{}; seed windows will retry",
-            distinct[0], distinct[1], distinct[2]);
+        crate::log!(
+            "   [imu] BMI270 health sample rejected: distinct X{} Y{} Z{}; seed windows will retry",
+            distinct[0],
+            distinct[1],
+            distinct[2]
+        );
     }
     true
 }

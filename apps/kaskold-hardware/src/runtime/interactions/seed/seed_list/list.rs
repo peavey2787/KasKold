@@ -1,7 +1,7 @@
 use crate::{
-    runtime::interactions::feedback::{show_rejection, ErrorSound},
     hw::display,
     runtime::data::AppData,
+    runtime::interactions::feedback::{show_rejection, ErrorSound},
     services::audio as sound,
     wallet::seed_manager,
 };
@@ -23,7 +23,9 @@ pub(super) fn handle(
         // WALLETS is a required-selection surface whenever inventory exists but
         // no wallet has successfully completed activation. Do not allow direct
         // handlers/workflow probes to bypass the central navigation guard.
-        if ad.wallet.seeds.seed_mgr.active_slot().is_none() { return true; }
+        if ad.wallet.seeds.seed_mgr.active_slot().is_none() {
+            return true;
+        }
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedsMenu));
         return true;
     }
@@ -31,10 +33,16 @@ pub(super) fn handle(
     let can_add = ad.wallet.seeds.seed_mgr.find_free().is_some();
     let total = loaded_count + usize::from(can_add);
     let scroll = usize::from(ad.wallet.seeds.seed_list_scroll);
-    if handle_paging(ad, x, y, scroll, total) { return true; }
-    if !(40..280).contains(&x) || !(START_Y..184).contains(&y) { return false; }
+    if handle_paging(ad, x, y, scroll, total) {
+        return true;
+    }
+    if !(40..280).contains(&x) || !(START_Y..184).contains(&y) {
+        return false;
+    }
     let row = usize::from((y - START_Y) / 46);
-    if row >= PAGE_SIZE { return false; }
+    if row >= PAGE_SIZE {
+        return false;
+    }
     let item = scroll + row;
     if can_add && item == 0 {
         ad.wallet.seeds.clear_multisig_wallet_return();
@@ -46,7 +54,9 @@ pub(super) fn handle(
         return true;
     }
     let wallet_index = item.saturating_sub(usize::from(can_add));
-    if wallet_index >= loaded_count { return false; }
+    if wallet_index >= loaded_count {
+        return false;
+    }
     activate(ad, boot_display, delay, loaded[wallet_index]);
     true
 }
@@ -64,7 +74,9 @@ fn loaded_slots(ad: &AppData) -> ([usize; 16], usize) {
 }
 
 fn handle_paging(ad: &mut AppData, x: u16, y: u16, scroll: usize, total: usize) -> bool {
-    if y < 42 { return false; }
+    if y < 42 {
+        return false;
+    }
     if x < 40 && scroll > 0 {
         ad.wallet.seeds.seed_list_scroll = ad.wallet.seeds.seed_list_scroll.saturating_sub(PAGE_SIZE as u8);
         return true;
@@ -76,15 +88,24 @@ fn handle_paging(ad: &mut AppData, x: u16, y: u16, scroll: usize, total: usize) 
     false
 }
 
-fn activate(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, delay: &mut esp_hal::delay::Delay, slot: usize) {
+fn activate(
+    ad: &mut AppData,
+    boot_display: &mut display::BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    slot: usize,
+) {
     if ad.wallet.seeds.seed_mgr.active == slot as u8 {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedsMenu));
         return;
     }
     let protection = ad.wallet.seeds.seed_mgr.slots[slot].protection;
     let challenge = match protection {
-        crate::wallet::seed_manager::WalletProtection::Pin => Some(crate::services::persistent_wallet::CredentialKind::Pin),
-        crate::wallet::seed_manager::WalletProtection::Password => Some(crate::services::persistent_wallet::CredentialKind::Password),
+        crate::wallet::seed_manager::WalletProtection::Pin => {
+            Some(crate::services::persistent_wallet::CredentialKind::Pin)
+        }
+        crate::wallet::seed_manager::WalletProtection::Password => {
+            Some(crate::services::persistent_wallet::CredentialKind::Password)
+        }
         crate::wallet::seed_manager::WalletProtection::DeviceOnly => None,
     };
     if let Some(kind) = challenge {

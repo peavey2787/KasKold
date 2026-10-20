@@ -43,7 +43,10 @@ pub(crate) fn render_profiled_response_frames(
     render_multi_response_frames(payload, payload_limit)
 }
 
-pub(crate) fn validate_profiled_payload(payload: &[u8], payload_limit: usize) -> Result<(), &'static str> {
+pub(crate) fn validate_profiled_payload(
+    payload: &[u8],
+    payload_limit: usize,
+) -> Result<(), &'static str> {
     const ALLOWED_LIMITS: [usize; 5] = [91, 70, 40, 25, 12];
     if payload.is_empty() {
         return Err("Signed response is empty.");
@@ -98,8 +101,7 @@ fn validate_frame_count(frame_count: usize) -> Result<(), JsValue> {
 }
 
 fn qr_frame_index(value: usize) -> Result<u8, JsValue> {
-    u8::try_from(value)
-        .map_err(|_| JsValue::from_str("Signed response has too many QR frames."))
+    u8::try_from(value).map_err(|_| JsValue::from_str("Signed response has too many QR frames."))
 }
 
 fn render_response_fragment(
@@ -114,14 +116,9 @@ fn render_response_fragment(
     let index = qr_frame_index(frame_index)?;
     let identifier = shared_signer::qr_frame::session_id(payload);
     let mut frame = [0u8; FRAME_BUFFER_LEN];
-    let display_len = shared_signer::qr_frame::encode_frame(
-        &identifier,
-        index,
-        total,
-        fragment,
-        &mut frame,
-    )
-    .map_err(|error| JsValue::from_str(&format!("QR frame failed: {error:?}")))?;
+    let display_len =
+        shared_signer::qr_frame::encode_frame(&identifier, index, total, fragment, &mut frame)
+            .map_err(|error| JsValue::from_str(&format!("QR frame failed: {error:?}")))?;
     response_frame(index, total, &frame[..display_len])
 }
 
@@ -147,8 +144,8 @@ fn response_frame(index: u8, total: u8, bytes: &[u8]) -> Result<ResponseFrame, J
 }
 
 pub(crate) fn qr_svg(data: &[u8]) -> Result<String, JsValue> {
-    let code = QrCode::new(data)
-        .map_err(|error| JsValue::from_str(&format!("QR failed: {error:?}")))?;
+    let code =
+        QrCode::new(data).map_err(|error| JsValue::from_str(&format!("QR failed: {error:?}")))?;
     Ok(qr_svg_document(&code))
 }
 

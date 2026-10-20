@@ -135,6 +135,8 @@ class QaOrchestrationCatalogTests(unittest.TestCase):
             self.assertGreaterEqual(len(selected), 2)
             self.assertEqual(selected[:2], ["preflight.crap-check", "preflight.core-ci"])
             self.assertIn("target/qa/core-ci/core-ci.log", output.replace("\\", "/"))
+            self.assertIn("qa/checks/workspace/check_rust_format.py", output.replace("\\", "/"))
+            self.assertNotIn("cargo fmt --all", output)
             self.assertIn("cargo clippy --workspace --all-targets --locked -- -D warnings", output)
             self.assertIn("make test STRICT_LOCKFILES=1", output)
             self.assertNotIn("[unit.shared-signer]", output)

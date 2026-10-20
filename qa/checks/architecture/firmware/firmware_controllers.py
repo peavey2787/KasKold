@@ -257,7 +257,7 @@ def _check_state_controllers(root: Path) -> list[str]:
             "state_digest": "76b3da3f2bd9b528ae979c8f315c677c605ce336446f212b65279c4c1dbf6e6c",
         },
         "menu": {
-            "modules": ("import_export/mod.rs", "primary.rs", "qr.rs", "seed_generation.rs", "seed_tools.rs", "signing.rs"),
+            "modules": ("context.rs", "import_export/mod.rs", "primary.rs", "qr.rs", "seed_generation.rs", "seed_tools.rs", "signing.rs"),
             "api_count": 1,
             "api_digest": "d7fb2213d77171c5030f2f9ca6c2c99b5d23089ebe1cf95844ac8b1676d378f4",
             "state_count": 15,

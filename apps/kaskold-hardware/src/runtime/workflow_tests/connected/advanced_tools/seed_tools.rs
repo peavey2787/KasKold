@@ -11,14 +11,10 @@ fn install_parent(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
 }
 
 fn choose_tool_word_count(ctx: &mut AdvancedToolsContext<'_, '_, '_>, item: usize, y: u16) -> bool {
-    if !install_parent(ctx)
-        || !ctx.open_advanced_item(item, AppState::ChooseWordCount { action: 4 })
-    {
+    if !install_parent(ctx) || !ctx.open_advanced_item(item, AppState::ChooseWordCount { action: 4 }) {
         return false;
     }
-    crate::runtime::interactions::menu::seed_generation::workflow_existing_tool_word_count(
-        ctx.ad, 160, y, false,
-    )
+    crate::runtime::interactions::menu::seed_generation::workflow_existing_tool_word_count(ctx.ad, 160, y, false)
 }
 
 fn bip85(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
@@ -38,8 +34,7 @@ fn bip85(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
 }
 
 fn bip85_first_child(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
-    if !choose_tool_word_count(ctx, 0, 100)
-        || ctx.ad.navigation.app.state != (AppState::Bip85Index { word_count: 12 })
+    if !choose_tool_word_count(ctx, 0, 100) || ctx.ad.navigation.app.state != (AppState::Bip85Index { word_count: 12 })
     {
         return false;
     }
@@ -59,10 +54,7 @@ fn bip85_determinism(ctx: &mut AdvancedToolsContext<'_, '_, '_>, child_zero: &[u
     if !derive_bip85(ctx, 0) || &ctx.ad.wallet.seeds.bip85_child_indices != child_zero {
         return false;
     }
-    if !walk_bip85_words(ctx, 12)
-        || !derive_bip85(ctx, 1)
-        || &ctx.ad.wallet.seeds.bip85_child_indices == child_zero
-    {
+    if !walk_bip85_words(ctx, 12) || !derive_bip85(ctx, 1) || &ctx.ad.wallet.seeds.bip85_child_indices == child_zero {
         return false;
     }
     walk_bip85_words(ctx, 12)
@@ -92,4 +84,3 @@ fn walk_bip85_words(ctx: &mut AdvancedToolsContext<'_, '_, '_>, count: u8) -> bo
     }
     true
 }
-

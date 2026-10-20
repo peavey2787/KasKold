@@ -4,8 +4,6 @@
 
 //! Post-input signing, backup persistence, redraw, and automatic stego work.
 
-
-
 #[cfg(not(feature = "workflow-test-auto"))]
 macro_rules! finish_frame {
     ($ad:ident, $persistent_wallet:ident, $boot_display:ident, $delay:ident, $i2c:ident, $sd_card_type:ident,
@@ -26,16 +24,19 @@ macro_rules! finish_frame {
             // CovBackupName. Never infer a save request from payload length alone.
             let fname = $ad.storage.browser.file_list[0];
             $boot_display.draw_saving_screen("Saving covenant...");
-            match $crate::runtime::interactions::sd::write_file_to_sd(&mut $i2c, &mut $delay, &fname, &$ad.qr.outgoing.buffer[..n]) {
+            match $crate::runtime::interactions::sd::write_file_to_sd(
+                &mut $i2c,
+                &mut $delay,
+                &fname,
+                &$ad.qr.outgoing.buffer[..n],
+            ) {
                 Ok(()) => {
                     $crate::log!("   COVB saved ({} bytes)", n);
                     $boot_display.draw_success_screen("Covenant saved to SD");
                 }
                 Err(e) => {
                     $crate::log!("   COVB save failed: {}", e);
-                    $crate::runtime::presentation::show_error_spec(
-                        $ad, $crate::runtime::presentation::SD_WRITE,
-                    );
+                    $crate::runtime::presentation::show_error_spec($ad, $crate::runtime::presentation::SD_WRITE);
                 }
             }
             $ad.qr.outgoing.covenant_backup_length = 0;
@@ -75,7 +76,8 @@ macro_rules! finish_frame {
                 // release/re-tap delay.
                 if $ad.navigation.app.state != $crate::runtime::input::AppState::TouchEntropy {
                     $crate::runtime::event_loop::navigation_dispatch::arm_release_for_state(
-                        &mut $tracker, $ad.navigation.app.state,
+                        &mut $tracker,
+                        $ad.navigation.app.state,
                     );
                     $crate::log!("   NAV frame input release barrier armed: {:?}", $ad.navigation.app.state);
                 } else {
@@ -88,7 +90,8 @@ macro_rules! finish_frame {
         }
 
         // Auto-trigger: stego JPEG scan
-        if $ad.stego.session.auto_scan && $ad.navigation.app.state == $crate::runtime::input::AppState::StegoModeSelect {
+        if $ad.stego.session.auto_scan && $ad.navigation.app.state == $crate::runtime::input::AppState::StegoModeSelect
+        {
             $ad.stego.session.auto_scan = false;
             let result = $crate::runtime::interactions::stego::handle_stego_touch(
                 $crate::runtime::interactions::stego::StegoTouchContext {
@@ -105,11 +108,12 @@ macro_rules! finish_frame {
                     input: $crate::runtime::interactions::TouchInput::new(160, 120, false),
                 },
             );
-            if let Some(r) = result { $ad.runtime.needs_redraw = r; }
+            if let Some(r) = result {
+                $ad.runtime.needs_redraw = r;
+            }
         }
     };
 }
 
 #[cfg(not(feature = "workflow-test-auto"))]
 pub(crate) use finish_frame;
-

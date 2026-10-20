@@ -17,16 +17,15 @@ pub(in crate::runtime::interactions::sd) type DeviceSubmitHandler = for<'display
     &mut dyn FnMut(),
     &mut esp_hal::i2c::master::I2c<'i2c, esp_hal::Blocking>,
     &mut dyn crate::services::backup::BackupDevice,
-) -> Option<ContinuationRoute>;
+)
+    -> Option<ContinuationRoute>;
 
 pub(in crate::runtime::interactions::sd) fn run_device_bound_passphrase_workflow(
     ctx: SdIoContext<'_, '_, '_>,
     workflow: PassphraseWorkflow,
     submit: DeviceSubmitHandler,
 ) -> bool {
-    let SdIoContext {
-        ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back, ..
-    } = ctx;
+    let SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back, .. } = ctx;
     if is_back {
         ad.wallet.seeds.pp_input.reset();
         crate::runtime::effects::continue_to(ad, workflow.back_state);
@@ -38,7 +37,9 @@ pub(in crate::runtime::interactions::sd) fn run_device_bound_passphrase_workflow
         KeyboardAction::Submitted => {
             let next_state = submit(ad, boot_display, delay, liveness, i2c, backup_device);
             ad.wallet.seeds.pp_input.reset();
-            if let Some(route) = next_state { crate::runtime::effects::continue_to(ad, route); }
+            if let Some(route) = next_state {
+                crate::runtime::effects::continue_to(ad, route);
+            }
             true
         }
     }

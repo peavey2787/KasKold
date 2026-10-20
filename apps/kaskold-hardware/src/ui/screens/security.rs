@@ -14,29 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 use super::{
-    BootDisplay,
-    COLOR_BG,
-    COLOR_CARD_BORDER,
-    COLOR_ORANGE,
-    COLOR_TEXT,
-    COLOR_TEXT_DIM,
-    CornerRadii,
-    Drawable,
-    KASPA_ACCENT,
-    KASPA_TEAL,
-    Line,
-    Point,
-    Primitive,
-    PrimitiveStyle,
-    Rectangle,
-    RoundedRectangle,
-    Size,
-    draw_lato_body,
-    draw_lato_title,
-    draw_oswald_header,
-    measure_body,
-    measure_header,
-    measure_title,
+    draw_lato_body, draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_title, BootDisplay,
+    CornerRadii, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size, COLOR_BG,
+    COLOR_CARD_BORDER, COLOR_ORANGE, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_ACCENT, KASPA_TEAL,
 };
 impl<'a> BootDisplay<'a> {
     // ─── Commit-Reveal Screens ───
@@ -47,7 +27,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, "COMMIT SECRET", (320 - tw) / 2, 28, KASPA_TEAL);
         Line::new(Point::new(20, 38), Point::new(300, 38))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         self.draw_centered_wrapped_title(message, 48, 22, 18, 118);
 
@@ -72,10 +53,10 @@ impl<'a> BootDisplay<'a> {
         let btn_x: i32 = (320 - btn_w as i32) / 2;
         let btn_y: i32 = 165;
         let btn_corner = CornerRadii::new(Size::new(6, 6));
-        RoundedRectangle::new(
-            Rectangle::new(Point::new(btn_x, btn_y), Size::new(btn_w, btn_h)), btn_corner)
+        RoundedRectangle::new(Rectangle::new(Point::new(btn_x, btn_y), Size::new(btn_w, btn_h)), btn_corner)
             .into_styled(PrimitiveStyle::with_fill(KASPA_TEAL))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let bw = measure_title("ENCRYPT & EXPORT");
         draw_lato_title(&mut self.display, "ENCRYPT & EXPORT", btn_x + (btn_w as i32 - bw) / 2, btn_y + 26, COLOR_BG);
     }
@@ -86,7 +67,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, "COMMITTED", (320 - tw) / 2, 25, KASPA_TEAL);
         Line::new(Point::new(20, 35), Point::new(300, 35))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         // BLAKE2B label
         let lw = measure_body("BLAKE2B Hash:");
@@ -115,7 +97,8 @@ impl<'a> BootDisplay<'a> {
         // Separator
         Line::new(Point::new(30, 132), Point::new(290, 132))
             .into_styled(PrimitiveStyle::with_stroke(COLOR_CARD_BORDER, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         // SHOW QR button at bottom
         let btn_w: u32 = 200;
@@ -123,10 +106,10 @@ impl<'a> BootDisplay<'a> {
         let btn_x: i32 = (320 - btn_w as i32) / 2;
         let btn_y: i32 = 150;
         let btn_corner = CornerRadii::new(Size::new(6, 6));
-        RoundedRectangle::new(
-            Rectangle::new(Point::new(btn_x, btn_y), Size::new(btn_w, btn_h)), btn_corner)
+        RoundedRectangle::new(Rectangle::new(Point::new(btn_x, btn_y), Size::new(btn_w, btn_h)), btn_corner)
             .into_styled(PrimitiveStyle::with_fill(KASPA_ACCENT))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let qw = measure_title("SHOW QR");
         draw_lato_title(&mut self.display, "SHOW QR", btn_x + (btn_w as i32 - qw) / 2, btn_y + 26, COLOR_BG);
     }
@@ -136,23 +119,20 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, "DECRYPTED", (320 - tw) / 2, 25, KASPA_TEAL);
         Line::new(Point::new(20, 35), Point::new(300, 35))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         // Plaintext in title font (bigger), up to 4 lines
         let chars_per_line: usize = 18;
         let character_count = plaintext.chars().count();
         for line_idx in 0..4u8 {
             let start_char = line_idx as usize * chars_per_line;
-            if start_char >= character_count { break; }
+            if start_char >= character_count {
+                break;
+            }
             let end_char = (start_char + chars_per_line).min(character_count);
-            let start = plaintext
-                .char_indices()
-                .nth(start_char)
-                .map_or(plaintext.len(), |(index, _)| index);
-            let end = plaintext
-                .char_indices()
-                .nth(end_char)
-                .map_or(plaintext.len(), |(index, _)| index);
+            let start = plaintext.char_indices().nth(start_char).map_or(plaintext.len(), |(index, _)| index);
+            let end = plaintext.char_indices().nth(end_char).map_or(plaintext.len(), |(index, _)| index);
             let line = &plaintext[start..end];
             let row_y = 44 + line_idx as i32 * 24;
             let lw = measure_title(line);
@@ -165,10 +145,10 @@ impl<'a> BootDisplay<'a> {
         let btn_x: i32 = (320 - btn_w as i32) / 2;
         let btn_y: i32 = 150;
         let btn_corner = CornerRadii::new(Size::new(6, 6));
-        RoundedRectangle::new(
-            Rectangle::new(Point::new(btn_x, btn_y), Size::new(btn_w, btn_h)), btn_corner)
+        RoundedRectangle::new(Rectangle::new(Point::new(btn_x, btn_y), Size::new(btn_w, btn_h)), btn_corner)
             .into_styled(PrimitiveStyle::with_fill(KASPA_ACCENT))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let qw = measure_title("Export as QR");
         draw_lato_title(&mut self.display, "Export as QR", btn_x + (btn_w as i32 - qw) / 2, btn_y + 26, COLOR_BG);
     }

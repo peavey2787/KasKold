@@ -10,27 +10,25 @@ use crate::{
     hw::{camera::CameraStatus, display::BootDisplay, sdcard::SdCardType},
     runtime::{self, data::AppData, input::AppState, interactions::TouchInput},
 };
-use esp_hal::{Blocking, delay::Delay, dma::DmaRxBuf, i2c::master::I2c, lcd_cam::cam::Camera};
+use esp_hal::{delay::Delay, dma::DmaRxBuf, i2c::master::I2c, lcd_cam::cam::Camera, Blocking};
 const KDF_PASSWORD: &[u8] = b"CorrectHorse9";
-const KDF_SALT: [u8; 16] = [
-    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-    0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-];
+const KDF_SALT: [u8; 16] =
+    [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f];
 const KDF_EXPECTED: [u8; 32] = [
-    0x0d, 0xf6, 0xba, 0x64, 0xd9, 0x61, 0x9f, 0x69,
-    0x93, 0x75, 0x18, 0x32, 0x15, 0x13, 0x14, 0xe9,
-    0x0c, 0xb1, 0x4a, 0x0d, 0x22, 0x1b, 0xcc, 0x83,
-    0x4c, 0x5a, 0x8d, 0x21, 0x12, 0xa1, 0xac, 0x77,
+    0x0d, 0xf6, 0xba, 0x64, 0xd9, 0x61, 0x9f, 0x69, 0x93, 0x75, 0x18, 0x32, 0x15, 0x13, 0x14, 0xe9, 0x0c, 0xb1, 0x4a,
+    0x0d, 0x22, 0x1b, 0xcc, 0x83, 0x4c, 0x5a, 0x8d, 0x21, 0x12, 0xa1, 0xac, 0x77,
 ];
 const PIN_KDF_PASSWORD: &[u8] = b"123456";
 const PIN_KDF_EXPECTED: [u8; 32] = [
-    0xd4, 0xa1, 0x6b, 0xc0, 0xef, 0xc4, 0x37, 0x30,
-    0x94, 0xaf, 0x96, 0x5d, 0x45, 0x41, 0x2b, 0xd8,
-    0x4e, 0x76, 0xf6, 0x10, 0xa5, 0xfa, 0xc9, 0xd4,
-    0xed, 0x16, 0x03, 0x1a, 0x24, 0x41, 0x07, 0x1b,
+    0xd4, 0xa1, 0x6b, 0xc0, 0xef, 0xc4, 0x37, 0x30, 0x94, 0xaf, 0x96, 0x5d, 0x45, 0x41, 0x2b, 0xd8, 0x4e, 0x76, 0xf6,
+    0x10, 0xa5, 0xfa, 0xc9, 0xd4, 0xed, 0x16, 0x03, 0x1a, 0x24, 0x41, 0x07, 0x1b,
 ];
-fn begin(name: &str) { log!("KASKOLD_WORKFLOW_RUNTIME: ACTION BEGIN {}", name); }
-fn pass(name: &str) { log!("KASKOLD_WORKFLOW_RUNTIME: ACTION PASS {}", name); }
+fn begin(name: &str) {
+    log!("KASKOLD_WORKFLOW_RUNTIME: ACTION BEGIN {}", name);
+}
+fn pass(name: &str) {
+    log!("KASKOLD_WORKFLOW_RUNTIME: ACTION PASS {}", name);
+}
 fn fail(name: &str, why: &str) -> bool {
     log!("KASKOLD_WORKFLOW_RUNTIME: ACTION FAIL {}: {}", name, why);
     false
@@ -52,7 +50,9 @@ fn render(
 
 fn open_root(ad: &mut AppData, tile: usize, expected: AppState) -> bool {
     crate::runtime::effects::home(ad);
-    let Some(zone) = crate::ui::layout::HOME_GRID_ZONES.get(tile) else { return false; };
+    let Some(zone) = crate::ui::layout::HOME_GRID_ZONES.get(tile) else {
+        return false;
+    };
     runtime::interactions::menu::handle_root_touch(ad, zone.x + zone.w / 2, zone.y + zone.h / 2)
         && ad.navigation.app.state == expected
         && crate::runtime::navigation::reconcile(ad)
@@ -68,7 +68,9 @@ fn open_view_words(ad: &mut AppData) -> bool {
 }
 
 fn open_advanced(ad: &mut AppData) -> bool {
-    if !open_root(ad, 3, AppState::SettingsMenu) { return false; }
+    if !open_root(ad, 3, AppState::SettingsMenu) {
+        return false;
+    }
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
     ad.navigation.settings_menu.reset();
     let page_down = TouchInput::new(down.x + down.w / 2, down.y + down.h / 2, false);
@@ -115,7 +117,6 @@ fn probe_view_words(
     pass(NAME);
     true
 }
-
 
 fn probe_pop_it(
     ad: &mut AppData,
@@ -170,8 +171,8 @@ fn probe_receive_change(
     }
     render(ad, display, i2c, sd, delay, watchdog_feed);
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
-    let toggled = runtime::interactions::export::handle_export_touch(
-        runtime::interactions::export::ExportTouchContext {
+    let toggled =
+        runtime::interactions::export::handle_export_touch(runtime::interactions::export::ExportTouchContext {
             ad,
             boot_display: display,
             delay,
@@ -185,8 +186,7 @@ fn probe_receive_change(
                 let (x, y) = crate::ui::layout::zone_center(crate::ui::layout::ADDRESS_CHAIN_ZONE);
                 crate::runtime::touch_dispatch::physical_touch_input(x, y)
             },
-        },
-    );
+        });
     if toggled != Some(true) || !ad.wallet.addresses.view_is_change {
         return fail(NAME, "Change toggle rejected");
     }
@@ -196,18 +196,25 @@ fn probe_receive_change(
 }
 
 fn probe_connect_companion(
-    ad: &mut AppData, display: &mut BootDisplay<'_>, i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>, delay: &mut Delay, watchdog_feed: &mut impl FnMut(),
+    ad: &mut AppData,
+    display: &mut BootDisplay<'_>,
+    i2c: &mut I2c<'_, Blocking>,
+    sd: &Option<SdCardType>,
+    delay: &mut Delay,
+    watchdog_feed: &mut impl FnMut(),
 ) -> bool {
     const NAME: &str = "connect-companion-real-derivation";
     begin(NAME);
-    if !open_root(ad, 0, AppState::SeedsMenu) { return fail(NAME, "production Home -> Connect Companion route rejected"); }
+    if !open_root(ad, 0, AppState::SeedsMenu) {
+        return fail(NAME, "production Home -> Connect Companion route rejected");
+    }
     // One physical loading render is the authoritative Queued -> Presented boundary.
     // Do not redraw the one-shot presentation before the operation engine has
     // advanced it into Running; production input dispatch follows the same order.
     render(ad, display, i2c, sd, delay, watchdog_feed);
-    if !crate::runtime::presentation::operation_active(ad, crate::runtime::data::OperationKind::ConnectCompanion)
-    { return fail(NAME, "production Connect Companion request did not enter loading"); }
+    if !crate::runtime::presentation::operation_active(ad, crate::runtime::data::OperationKind::ConnectCompanion) {
+        return fail(NAME, "production Connect Companion request did not enter loading");
+    }
     if !crate::runtime::event_loop::runner::workflow_drive_connect_companion(ad, display, delay, watchdog_feed) {
         return fail(NAME, "production Connect Companion derivation did not complete");
     }
@@ -234,16 +241,12 @@ fn probe_multisig_kpub(
     }
     render(ad, display, i2c, sd, delay, watchdog_feed);
     if !runtime::interactions::export::prepare_multisig_kpub_qr(ad, display, delay, watchdog_feed)
-        || !crate::runtime::presentation::operation_active(
-            ad, crate::runtime::data::OperationKind::DeriveMultisigKpub,
-        )
+        || !crate::runtime::presentation::operation_active(ad, crate::runtime::data::OperationKind::DeriveMultisigKpub)
     {
         return fail(NAME, "production request did not enter loading");
     }
     render(ad, display, i2c, sd, delay, watchdog_feed);
-    if !crate::runtime::event_loop::runner::workflow_drive_multisig_kpub(
-        ad, display, delay, watchdog_feed,
-    ) {
+    if !crate::runtime::event_loop::runner::workflow_drive_multisig_kpub(ad, display, delay, watchdog_feed) {
         return fail(NAME, "cooperative derivation did not complete");
     }
     render(ad, display, i2c, sd, delay, watchdog_feed);
@@ -262,9 +265,7 @@ fn probe_pin_unlock_order(
     const NAME: &str = "pin-unlock-loading-order";
     begin(NAME);
     crate::runtime::effects::home(ad);
-    if !crate::runtime::effects::route(
-        ad, crate::runtime::navigation::route!(StorageUnlockPin),
-    ) {
+    if !crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageUnlockPin)) {
         return fail(NAME, "production persistent-wallet PIN route rejected");
     }
     render(ad, display, i2c, sd, delay, watchdog_feed);
@@ -275,8 +276,11 @@ fn probe_pin_unlock_order(
     crate::runtime::event_loop::runner::sync_watchdog_budget(ad);
     watchdog_feed();
     if crate::runtime::interactions::persistence::workflow_handle_unlock_touch(
-        crate::runtime::interactions::TouchInput::new(260, 211, false), ad, display,
-    ) != Some(true) {
+        crate::runtime::interactions::TouchInput::new(260, 211, false),
+        ad,
+        display,
+    ) != Some(true)
+    {
         return fail(NAME, "production PIN-pad submit did not commit loading operation");
     }
     if crate::runtime::presentation::take_ready_operation(ad).is_some() {
@@ -306,9 +310,7 @@ fn probe_pin_unlock_order(
     if !crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MainMenu)) {
         return fail(NAME, "successful credential result could not commit Home");
     }
-    if !crate::runtime::presentation::credential_result_committed(
-        ad, operation, "success MainMenu",
-    ) {
+    if !crate::runtime::presentation::credential_result_committed(ad, operation, "success MainMenu") {
         return fail(NAME, "credential result commit ordering rejected");
     }
     crate::runtime::presentation::finish_success(ad);
@@ -399,16 +401,22 @@ pub(super) fn exercise(
     if !probe_view_words(ad, display, i2c, sd, delay, watchdog_feed)
         || !firmware::probe_firmware_update_guidance(ad, display, i2c, sd, delay, watchdog_feed)
         || !firmware::probe_scan_qr_camera(
-            ad, display, i2c, sd, delay, camera, camera_dma, camera_status, watchdog_feed,
+            ad,
+            display,
+            i2c,
+            sd,
+            delay,
+            camera,
+            camera_dma,
+            camera_status,
+            watchdog_feed,
         )
         || !probe_pop_it(ad, display, i2c, sd, delay, watchdog_feed)
         || !probe_receive_change(ad, display, i2c, sd, delay, watchdog_feed)
         || !probe_connect_companion(ad, display, i2c, sd, delay, watchdog_feed)
         || !probe_multisig_kpub(ad, display, i2c, sd, delay, watchdog_feed)
         || !probe_pin_unlock_order(ad, display, i2c, sd, delay, watchdog_feed)
-        || !super::onboarding::persistent_pin_round_trip(
-            ad, persistent_wallet, display, i2c, sd, delay, watchdog_feed,
-        )
+        || !super::onboarding::persistent_pin_round_trip(ad, persistent_wallet, display, i2c, sd, delay, watchdog_feed)
         || !probe_recoverable_operation_timeout(ad, display, i2c, sd, delay, watchdog_feed)
         || !probe_argon2(watchdog_feed)
     {

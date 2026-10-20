@@ -2,20 +2,17 @@
 
 use crate::services::credential_policy::CredentialKind;
 
+use super::{crypto, PersistError, PersistentWallet};
 use crate::runtime::data::AppData;
-use super::{PersistError, PersistentWallet, crypto};
 
 #[cfg(feature = "workflow-test-auto")]
-use offline_signer::{crypto::password_kdf::PasswordKdfPurpose, derivation::hmac::zeroize_buf};
+use super::{crypto::RECORD_SIZE, flash::AlignedBytes, journal, kdf, sd_backend, security_policy, StorageMode};
 #[cfg(feature = "workflow-test-auto")]
 use crate::services::credential_policy::SALT_SIZE;
 #[cfg(feature = "workflow-test-auto")]
 use crate::services::wallet_session;
 #[cfg(feature = "workflow-test-auto")]
-use super::{
-    StorageMode, crypto::RECORD_SIZE,
-    journal, kdf, flash::AlignedBytes, sd_backend, security_policy,
-};
+use offline_signer::{crypto::password_kdf::PasswordKdfPurpose, derivation::hmac::zeroize_buf};
 
 impl PersistentWallet<'_> {
     pub(crate) fn trigger_duress(
@@ -53,7 +50,9 @@ impl PersistentWallet<'_> {
         // Creation-time credential policy must never disclose rule details
         // during unlock. Every guess is handled as an authentication attempt.
         liveness();
-        if self.duress_entered(kind, secret, liveness)? { return self.trigger_duress(ad, i2c, delay); }
+        if self.duress_entered(kind, secret, liveness)? {
+            return self.trigger_duress(ad, i2c, delay);
+        }
         if self.mode == Some(StorageMode::SdCard) {
             self.unlock_from_sd(kind, secret, ad, i2c, delay, liveness)
         } else {
@@ -70,12 +69,21 @@ impl PersistentWallet<'_> {
         delay: &mut esp_hal::delay::Delay,
         liveness: &mut dyn FnMut(),
     ) -> Result<(), PersistError> {
-        if self.credential_kind != Some(kind) { return Err(PersistError::Authentication); }
+        if self.credential_kind != Some(kind) {
+            return Err(PersistError::Authentication);
+        }
         let mut key = derive_unlock_key(self.credential_kdf, secret, &self.credential_salt, liveness)?;
         let mut record = AlignedBytes::<RECORD_SIZE>::zeroed();
         let read = sd_backend::read_slot(
-            &mut self.crypto, kind, self.credential_kdf, &key, &self.credential_salt, self.sd_active_slot,
-            &mut record, i2c, delay,
+            &mut self.crypto,
+            kind,
+            self.credential_kdf,
+            &key,
+            &self.credential_salt,
+            self.sd_active_slot,
+            &mut record,
+            i2c,
+            delay,
         );
         if let Err(error) = read {
             zeroize_buf(&mut key);
@@ -160,8 +168,7 @@ impl PersistentWallet<'_> {
         liveness: &mut dyn FnMut(),
     ) -> Result<UnlockAttempt, PersistError> {
         let mut record = AlignedBytes::<RECORD_SIZE>::zeroed();
-        let header = journal::read_wallet(&mut self.flash, address, &mut record)?
-            .ok_or(PersistError::InvalidWallet)?;
+        let header = journal::read_wallet(&mut self.flash, address, &mut record)?.ok_or(PersistError::InvalidWallet)?;
         if header.credential_kind != kind {
             zeroize_buf(&mut record.0);
             return Ok(UnlockAttempt::Skipped);
@@ -214,13 +221,7 @@ fn derive_unlock_key(
     salt: &[u8; SALT_SIZE],
     liveness: &mut dyn FnMut(),
 ) -> Result<[u8; 32], PersistError> {
-    kdf::derive(
-        credential_kdf,
-        PasswordKdfPurpose::PersistentWallet,
-        unlock_secret_for_kdf(secret),
-        salt,
-        liveness,
-    )
+    kdf::derive(credential_kdf, PasswordKdfPurpose::PersistentWallet, unlock_secret_for_kdf(secret), salt, liveness)
 }
 
 // The current Argon2 reader rejects an empty byte string before doing KDF
@@ -228,7 +229,11 @@ fn derive_unlock_key(
 // one impossible-to-create sentinel byte into the KDF rather than exposing a
 // password-length/policy distinction. Credential creation rejects empty values.
 fn unlock_secret_for_kdf(secret: &[u8]) -> &[u8] {
-    if secret.is_empty() { b"\0" } else { secret }
+    if secret.is_empty() {
+        b"\0"
+    } else {
+        secret
+    }
 }
 
 pub(crate) mod asynchronous;

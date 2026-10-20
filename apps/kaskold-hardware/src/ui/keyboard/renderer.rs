@@ -8,9 +8,8 @@ use embedded_iconoir::prelude::*;
 use crate::ui::display::*;
 
 use kaskold_hardware_core::input::keyboard::{
-    action_row, display_page, is_active, keyboard_layout, page_active, page_label, row_start,
-    rows_for_mode, space_active, third_row_start, KeyboardMode, ARROW_WIDTH, DELETE_WIDTH,
-    KEY_CORNER, KEY_GAP, KEY_WIDTH, OK_WIDTH,
+    action_row, display_page, is_active, keyboard_layout, page_active, page_label, row_start, rows_for_mode,
+    space_active, third_row_start, KeyboardMode, ARROW_WIDTH, DELETE_WIDTH, KEY_CORNER, KEY_GAP, KEY_WIDTH, OK_WIDTH,
 };
 
 const SHADOW_BG: Rgb565 = Rgb565::new(0b00010, 0b000100, 0b00010);
@@ -25,11 +24,7 @@ struct ButtonStyle {
     corner: CornerRadii,
 }
 
-pub fn draw_keyboard(
-    display: &mut impl DrawTarget<Color = Rgb565>,
-    mode: KeyboardMode,
-    page: u8,
-) {
+pub fn draw_keyboard(display: &mut impl DrawTarget<Color = Rgb565>, mode: KeyboardMode, page: u8) {
     let key_corner = CornerRadii::new(Size::new(KEY_CORNER, KEY_CORNER));
     let button_corner = CornerRadii::new(Size::new(5, 5));
     let layout = keyboard_layout(mode);
@@ -41,42 +36,18 @@ pub fn draw_keyboard(
         let start_x = row_start(row.len());
         for (column, &character) in row.iter().enumerate() {
             let x = start_x + column as i32 * (KEY_WIDTH as i32 + KEY_GAP);
-            draw_character_key(
-                display,
-                x,
-                layout.row_y[row_index],
-                layout.key_height,
-                character,
-                mode,
-                key_corner,
-            );
+            draw_character_key(display, x, layout.row_y[row_index], layout.key_height, character, mode, key_corner);
         }
     }
 
     let third_row = rows[2];
     let third_start = third_row_start(third_row.len());
-    draw_page_key(
-        display,
-        third_start,
-        layout.row_y[2],
-        layout.key_height,
-        mode,
-        shown_page,
-        button_corner,
-    );
+    draw_page_key(display, third_start, layout.row_y[2], layout.key_height, mode, shown_page, button_corner);
 
     let letters_start = third_start + KEY_WIDTH as i32 + KEY_GAP;
     for (column, &character) in third_row.iter().enumerate() {
         let x = letters_start + column as i32 * (KEY_WIDTH as i32 + KEY_GAP);
-        draw_character_key(
-            display,
-            x,
-            layout.row_y[2],
-            layout.key_height,
-            character,
-            mode,
-            key_corner,
-        );
+        draw_character_key(display, x, layout.row_y[2], layout.key_height, character, mode, key_corner);
     }
 
     draw_action_row(display, mode, layout.action_y, layout.action_height, button_corner);
@@ -115,10 +86,7 @@ fn draw_page_key(
 ) {
     let rectangle = Rectangle::new(Point::new(x, y), Size::new(KEY_WIDTH, height));
     if !page_active(mode) {
-        RoundedRectangle::new(rectangle, corner)
-            .into_styled(PrimitiveStyle::with_fill(SHADOW_BG))
-            .draw(display)
-            .ok();
+        RoundedRectangle::new(rectangle, corner).into_styled(PrimitiveStyle::with_fill(SHADOW_BG)).draw(display).ok();
         RoundedRectangle::new(rectangle, corner)
             .into_styled(PrimitiveStyle::with_stroke(SHADOW_BORDER, 1))
             .draw(display)
@@ -131,23 +99,11 @@ fn draw_page_key(
         return;
     }
 
-    RoundedRectangle::new(rectangle, corner)
-        .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-        .draw(display)
-        .ok();
-    RoundedRectangle::new(rectangle, corner)
-        .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 2))
-        .draw(display)
-        .ok();
+    RoundedRectangle::new(rectangle, corner).into_styled(PrimitiveStyle::with_fill(COLOR_BG)).draw(display).ok();
+    RoundedRectangle::new(rectangle, corner).into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 2)).draw(display).ok();
     let label = page_label(page);
     let width = measure_header(label);
-    draw_oswald_header(
-        display,
-        label,
-        x + (KEY_WIDTH as i32 - width) / 2,
-        y + height as i32 - 8,
-        KASPA_TEAL,
-    );
+    draw_oswald_header(display, label, x + (KEY_WIDTH as i32 - width) / 2, y + height as i32 - 8, KASPA_TEAL);
 }
 
 fn draw_action_row(
@@ -164,27 +120,13 @@ fn draw_action_row(
     if space_active(mode) {
         draw_button(
             display,
-            Rectangle::new(
-                Point::new(row.space_x, y),
-                Size::new(row.space_width as u32, height),
-            ),
+            Rectangle::new(Point::new(row.space_x, y), Size::new(row.space_width as u32, height)),
             "SPACE",
-            ButtonStyle {
-                fill: COLOR_CARD,
-                border: COLOR_CARD_BORDER,
-                text: COLOR_TEXT_DIM,
-                corner,
-            },
+            ButtonStyle { fill: COLOR_CARD, border: COLOR_CARD_BORDER, text: COLOR_TEXT_DIM, corner },
         );
     } else {
-        let rectangle = Rectangle::new(
-            Point::new(row.space_x, y),
-            Size::new(row.space_width as u32, height),
-        );
-        RoundedRectangle::new(rectangle, corner)
-            .into_styled(PrimitiveStyle::with_fill(SHADOW_BG))
-            .draw(display)
-            .ok();
+        let rectangle = Rectangle::new(Point::new(row.space_x, y), Size::new(row.space_width as u32, height));
+        RoundedRectangle::new(rectangle, corner).into_styled(PrimitiveStyle::with_fill(SHADOW_BG)).draw(display).ok();
         RoundedRectangle::new(rectangle, corner)
             .into_styled(PrimitiveStyle::with_stroke(SHADOW_BORDER, 1))
             .draw(display)
@@ -204,12 +146,7 @@ fn draw_action_row(
         display,
         Rectangle::new(Point::new(row.ok_x, y), Size::new(OK_WIDTH, height)),
         "OK",
-        ButtonStyle {
-            fill: COLOR_GREEN_BTN,
-            border: COLOR_GREEN_BTN,
-            text: COLOR_TEXT,
-            corner,
-        },
+        ButtonStyle { fill: COLOR_GREEN_BTN, border: COLOR_GREEN_BTN, text: COLOR_TEXT, corner },
     );
 }
 
@@ -222,10 +159,7 @@ fn draw_arrow_button(
     corner: CornerRadii,
 ) {
     let rectangle = Rectangle::new(Point::new(x, y), Size::new(ARROW_WIDTH, height));
-    RoundedRectangle::new(rectangle, corner)
-        .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-        .draw(display)
-        .ok();
+    RoundedRectangle::new(rectangle, corner).into_styled(PrimitiveStyle::with_fill(COLOR_CARD)).draw(display).ok();
     RoundedRectangle::new(rectangle, corner)
         .into_styled(PrimitiveStyle::with_stroke(COLOR_CARD_BORDER, 1))
         .draw(display)
@@ -241,12 +175,7 @@ fn draw_arrow_button(
     }
 }
 
-fn draw_key(
-    display: &mut impl DrawTarget<Color = Rgb565>,
-    rectangle: Rectangle,
-    character: u8,
-    style: ButtonStyle,
-) {
+fn draw_key(display: &mut impl DrawTarget<Color = Rgb565>, rectangle: Rectangle, character: u8, style: ButtonStyle) {
     RoundedRectangle::new(rectangle, style.corner)
         .into_styled(PrimitiveStyle::with_fill(style.fill))
         .draw(display)
@@ -268,12 +197,7 @@ fn draw_key(
     }
 }
 
-fn draw_button(
-    display: &mut impl DrawTarget<Color = Rgb565>,
-    rectangle: Rectangle,
-    label: &str,
-    style: ButtonStyle,
-) {
+fn draw_button(display: &mut impl DrawTarget<Color = Rgb565>, rectangle: Rectangle, label: &str, style: ButtonStyle) {
     RoundedRectangle::new(rectangle, style.corner)
         .into_styled(PrimitiveStyle::with_fill(style.fill))
         .draw(display)
@@ -305,18 +229,12 @@ fn draw_delete_icon(
     use embedded_graphics::image::{Image, ImageRawLE};
 
     let rectangle = Rectangle::new(Point::new(x, y), Size::new(width, height));
-    RoundedRectangle::new(rectangle, corner)
-        .into_styled(PrimitiveStyle::with_fill(COLOR_RED_BTN))
-        .draw(display)
-        .ok();
+    RoundedRectangle::new(rectangle, corner).into_styled(PrimitiveStyle::with_fill(COLOR_RED_BTN)).draw(display).ok();
     let icon_width = crate::ui::display::icon_data::ICON_DEL_W as i32;
     let icon_height = crate::ui::display::icon_data::ICON_DEL_H as i32;
     let icon_x = x + (width as i32 - icon_width) / 2;
     let icon_y = y + (height as i32 - icon_height) / 2;
-    let raw: ImageRawLE<Rgb565> = ImageRawLE::new(
-        crate::ui::display::icon_data::ICON_DEL,
-        icon_width as u32,
-    );
+    let raw: ImageRawLE<Rgb565> = ImageRawLE::new(crate::ui::display::icon_data::ICON_DEL, icon_width as u32);
     Image::new(&raw, Point::new(icon_x, icon_y)).draw(display).ok();
 }
 
@@ -331,21 +249,12 @@ fn draw_shift_icon(
     use embedded_graphics::image::{Image, ImageRawLE};
 
     let rectangle = Rectangle::new(Point::new(x, y), Size::new(width, height));
-    RoundedRectangle::new(rectangle, corner)
-        .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-        .draw(display)
-        .ok();
-    RoundedRectangle::new(rectangle, corner)
-        .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 2))
-        .draw(display)
-        .ok();
+    RoundedRectangle::new(rectangle, corner).into_styled(PrimitiveStyle::with_fill(COLOR_BG)).draw(display).ok();
+    RoundedRectangle::new(rectangle, corner).into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 2)).draw(display).ok();
     let icon_width = crate::ui::display::icon_data::ICON_SHIFT_W as i32;
     let icon_height = crate::ui::display::icon_data::ICON_SHIFT_H as i32;
     let icon_x = x + (width as i32 - icon_width) / 2;
     let icon_y = y + (height as i32 - icon_height) / 2;
-    let raw: ImageRawLE<Rgb565> = ImageRawLE::new(
-        crate::ui::display::icon_data::ICON_SHIFT,
-        icon_width as u32,
-    );
+    let raw: ImageRawLE<Rgb565> = ImageRawLE::new(crate::ui::display::icon_data::ICON_SHIFT, icon_width as u32);
     Image::new(&raw, Point::new(icon_x, icon_y)).draw(display).ok();
 }

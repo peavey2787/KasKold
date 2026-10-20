@@ -1,8 +1,11 @@
+import sys
 from pathlib import Path
 import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "qa/checks"))
+from firmware.source_contract_support import flat  # noqa: E402
 SETTINGS = ROOT / "apps/kaskold-hardware/src/runtime/data/settings.rs"
 DISPLAY = ROOT / "apps/kaskold-hardware/src/runtime/data/settings/persistent_display.rs"
 AUDIO = ROOT / "apps/kaskold-hardware/src/runtime/data/settings/audio.rs"
@@ -59,7 +62,7 @@ class FirmwareTypedStateOwnershipTests(unittest.TestCase):
         self.assertIn("with_require_pin_after_dim(ad.settings.require_pin_after_dim())", persistence)
         self.assertIn("with_startup_sound(ad.settings.startup_sound_enabled())", persistence)
         self.assertIn("set_audio_muted($ad.settings.audio_muted())", dispatch)
-        self.assertIn("if !ad.settings.device_preferences_dirty() { return; }", settings_dispatch)
+        self.assertIn("if !ad.settings.device_preferences_dirty() { return; }", flat(settings_dispatch))
 
         journal = self.read("apps/kaskold-hardware/src/services/persistent_wallet/journal.rs")
         self.assertIn("fn set_flag(value: &mut u8, mask: u8, enabled: bool)", journal)

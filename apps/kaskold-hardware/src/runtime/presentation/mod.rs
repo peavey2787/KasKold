@@ -2,35 +2,34 @@
 //! this module owns transient operation and modal presentation state.
 
 mod errors;
-pub(crate) use errors::{
-    ErrorSpec, ANTI_KLEPTO, COVENANT,
-    OP_CONNECT_TIMEOUT, OP_CREDENTIAL_TIMEOUT, OP_MULTISIG_TIMEOUT, OP_SIGN_TIMEOUT,
-    POLICY_SAVE, PRIVATE_SWAP, QR_FRAME, SIGN_ENTROPY, SIGN_FINALIZE, SIGN_INPUT, SIGN_KEY,
-    SIGN_POLICY, SIGN_REVIEW, TX_IMPORT, TX_OWNERSHIP,
-};
-#[cfg(all(
-    not(feature = "hardware-tests"),
-    any(
-        not(feature = "workflow-test-auto"),
-        all(feature = "m5stack", feature = "workflow-runtime-auto")
-    )
-))]
-pub(crate) use errors::{CAMERA_CAPTURE, CAMERA_MEMORY};
-#[cfg(any(not(feature = "workflow-test-auto"), feature = "workflow-runtime-auto"))]
-pub(crate) use errors::NAVIGATION;
 #[cfg(all(
     feature = "m5stack",
     not(feature = "hardware-tests"),
     any(not(feature = "workflow-test-auto"), feature = "workflow-runtime-auto")
 ))]
 pub(crate) use errors::CAMERA_UNAVAILABLE;
+#[cfg(any(not(feature = "workflow-test-auto"), feature = "workflow-runtime-auto"))]
+pub(crate) use errors::NAVIGATION;
+pub(crate) use errors::{
+    ErrorSpec, ANTI_KLEPTO, COVENANT, OP_CONNECT_TIMEOUT, OP_CREDENTIAL_TIMEOUT, OP_MULTISIG_TIMEOUT, OP_SIGN_TIMEOUT,
+    POLICY_SAVE, PRIVATE_SWAP, QR_FRAME, SIGN_ENTROPY, SIGN_FINALIZE, SIGN_INPUT, SIGN_KEY, SIGN_POLICY, SIGN_REVIEW,
+    TX_IMPORT, TX_OWNERSHIP,
+};
 #[cfg(all(feature = "m5stack", not(feature = "hardware-tests")))]
 pub(crate) use errors::{ADDRESS_DERIVE, ADDRESS_TIMEOUT};
+#[cfg(all(
+    not(feature = "hardware-tests"),
+    any(not(feature = "workflow-test-auto"), all(feature = "m5stack", feature = "workflow-runtime-auto"))
+))]
+pub(crate) use errors::{CAMERA_CAPTURE, CAMERA_MEMORY};
 #[cfg(all(not(feature = "hardware-tests"), not(feature = "workflow-test-auto")))]
 pub(crate) use errors::{SD_WRITE, STORAGE_SYNC};
 
+use crate::runtime::{
+    data::{AppData, ModalState, OperationKind, OperationPhase},
+    input::AppState,
+};
 use esp_hal::time::Instant;
-use crate::runtime::{data::{AppData, ModalState, OperationKind, OperationPhase}, input::AppState};
 
 pub(crate) fn start_operation(ad: &mut AppData, kind: OperationKind) -> bool {
     let stable = ad.navigation.committed_state;
@@ -55,20 +54,19 @@ pub(crate) fn start_operation(ad: &mut AppData, kind: OperationKind) -> bool {
 /// Queue one credential operation with an explicit stable recovery target.
 /// Credential ordering is part of the same `OperationState` lifecycle used by
 /// every other long-running operation; there is no parallel credential machine.
-pub(crate) fn start_credential_operation(
-    ad: &mut AppData,
-    kind: OperationKind,
-    return_to: AppState,
-) -> bool {
-    if !kind.is_credential() || ad.presentation.modal != ModalState::None { return false; }
+pub(crate) fn start_credential_operation(ad: &mut AppData, kind: OperationKind, return_to: AppState) -> bool {
+    if !kind.is_credential() || ad.presentation.modal != ModalState::None {
+        return false;
+    }
     crate::log!("KASKOLD_PIN_FLOW: PIN SUBMIT {}", kind.credential_marker());
-    if !ad.presentation.operation.start_credential(kind, return_to) { return false; }
+    if !ad.presentation.operation.start_credential(kind, return_to) {
+        return false;
+    }
     crate::log!("KASKOLD_PIN_FLOW: LOADING COMMITTED {}", kind.credential_marker());
     ad.runtime.needs_redraw = true;
     crate::log!("   UI credential operation queued {:?} return {:?}", kind, return_to);
     true
 }
-
 
 pub(crate) fn previous_stable_screen(ad: &AppData) -> AppState {
     ad.navigation.history.peek().unwrap_or(ad.navigation.committed_state)
@@ -87,7 +85,6 @@ pub(crate) fn show_error_spec_previous(ad: &mut AppData, error: ErrorSpec) {
     show_error_spec_to(ad, return_to, error);
 }
 
-
 pub(crate) fn operation_active(ad: &AppData, kind: OperationKind) -> bool {
     ad.presentation.operation.kind() == Some(kind) && ad.presentation.operation.is_active()
 }
@@ -104,9 +101,10 @@ pub(crate) fn operation_cursor(ad: &AppData) -> usize {
     ad.presentation.operation.cursor()
 }
 
-
 pub(crate) fn mark_operation_presented(ad: &mut AppData) {
-    let Some(kind) = ad.presentation.operation.kind() else { return; };
+    let Some(kind) = ad.presentation.operation.kind() else {
+        return;
+    };
     if !ad.presentation.operation.mark_presented(now_millis()) {
         operation_order_violation(ad, "loading-render");
         return;
@@ -141,23 +139,14 @@ pub(crate) fn execution_done(ad: &mut AppData, kind: OperationKind, ok: bool) ->
 
 /// Emit terminal credential evidence while the unified operation lifecycle is
 /// still owned by `kind`. Call this immediately before clearing the operation.
-pub(crate) fn credential_result_committed(
-    ad: &mut AppData,
-    kind: OperationKind,
-    result: &'static str,
-) -> bool {
+pub(crate) fn credential_result_committed(ad: &mut AppData, kind: OperationKind, result: &'static str) -> bool {
     if ad.presentation.operation.kind() != Some(kind) || !ad.presentation.operation.is_active() {
         operation_order_violation(ad, "result-commit");
         return false;
     }
-    crate::log!(
-        "KASKOLD_PIN_FLOW: RESULT COMMITTED {} {}",
-        kind.credential_marker(),
-        result,
-    );
+    crate::log!("KASKOLD_PIN_FLOW: RESULT COMMITTED {} {}", kind.credential_marker(), result,);
     true
 }
-
 
 pub(crate) fn set_progress(ad: &mut AppData, progress: u8) {
     ad.presentation.operation.set_progress(progress, now_millis());
@@ -203,24 +192,14 @@ pub(crate) fn fail_recoverable_spec(ad: &mut AppData, error: ErrorSpec) {
     fail_recoverable(ad, error.message, error.code, 0);
 }
 
-pub(crate) fn fail_recoverable(
-    ad: &mut AppData,
-    message: &'static str,
-    code: &'static str,
-    retry_delay_ms: u32,
-) {
+pub(crate) fn fail_recoverable(ad: &mut AppData, message: &'static str, code: &'static str, retry_delay_ms: u32) {
     let return_to = ad.presentation.operation.return_to();
     ad.presentation.operation.mark_recoverable_error();
     ad.presentation.operation.clear();
     install_recoverable_error(ad, return_to, message, code, retry_delay_ms);
 }
 
-pub(crate) fn show_recoverable_error(
-    ad: &mut AppData,
-    message: &'static str,
-    code: &'static str,
-    retry_delay_ms: u32,
-) {
+pub(crate) fn show_recoverable_error(ad: &mut AppData, message: &'static str, code: &'static str, retry_delay_ms: u32) {
     let return_to = ad.navigation.committed_state;
     install_recoverable_error(ad, return_to, message, code, retry_delay_ms);
 }
@@ -274,7 +253,9 @@ pub(crate) fn clear_recoverable_modal(ad: &mut AppData) {
     }
 }
 
-pub(crate) fn blocks_input(ad: &AppData) -> bool { ad.presentation.blocks_input() }
+pub(crate) fn blocks_input(ad: &AppData) -> bool {
+    ad.presentation.blocks_input()
+}
 
 /// Consume a tap while a stage-3 modal/operation owns presentation. Recoverable
 /// errors dismiss only through the explicit OK button and never invent a new
@@ -299,14 +280,9 @@ pub(crate) fn handle_tap(ad: &mut AppData, x: u16, y: u16) -> bool {
     }
 }
 
-pub(crate) fn filter_action(
-    ad: &mut AppData,
-    action: crate::hw::touch::TouchAction,
-) -> crate::hw::touch::TouchAction {
+pub(crate) fn filter_action(ad: &mut AppData, action: crate::hw::touch::TouchAction) -> crate::hw::touch::TouchAction {
     match action {
-        crate::hw::touch::TouchAction::Tap { x, y } if handle_tap(ad, x, y) => {
-            crate::hw::touch::TouchAction::None
-        }
+        crate::hw::touch::TouchAction::Tap { x, y } if handle_tap(ad, x, y) => crate::hw::touch::TouchAction::None,
         _ if blocks_input(ad) => crate::hw::touch::TouchAction::None,
         other => other,
     }
@@ -327,4 +303,3 @@ fn operation_order_violation(ad: &mut AppData, boundary: &'static str) {
 fn now_millis() -> u64 {
     Instant::now().duration_since_epoch().as_millis()
 }
-

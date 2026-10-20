@@ -10,10 +10,7 @@ fn accepts_complete_files_at_requested_capacities() {
 #[test]
 fn rejects_files_larger_than_the_caller_buffer() {
     for (file_size, capacity) in [(130usize, 129usize), (257, 256), (513, 512), (1_025, 1_024)] {
-        assert_eq!(
-            validate_text_file_size(file_size, capacity),
-            Err("Text file exceeds buffer"),
-        );
+        assert_eq!(validate_text_file_size(file_size, capacity), Err("Text file exceeds buffer"),);
     }
 }
 

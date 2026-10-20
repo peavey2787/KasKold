@@ -40,10 +40,7 @@ mod workflow {
             _ => None,
         };
         if let Some(message) = message {
-            crate::log!(
-                "KASKOLD_WORKFLOW_TESTS: CONNECTED FAILURE REASON STANDARD-PSKT: {}",
-                message,
-            );
+            crate::log!("KASKOLD_WORKFLOW_TESTS: CONNECTED FAILURE REASON STANDARD-PSKT: {}", message,);
         }
     }
 }

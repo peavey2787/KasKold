@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 // hw/power/battery_m5.rs — Battery monitoring via AXP2101 PMU
 // 100% Rust, no-std, no-alloc
 //
@@ -62,11 +61,7 @@ fn read_battery_value(i2c: &mut I2c<'_, esp_hal::Blocking>) -> Option<BatterySta
     let status = read_reg(i2c, 0x01).ok()?;
     let voltage_high = read_reg(i2c, 0x34).ok()?;
     let voltage_low = read_reg(i2c, 0x35).ok()?;
-    let reading = kaskold_hardware_core::power::battery::decode_axp2101_battery(
-        status,
-        voltage_high,
-        voltage_low,
-    );
+    let reading = kaskold_hardware_core::power::battery::decode_axp2101_battery(status, voltage_high, voltage_low);
     Some(BatteryStatus { percentage: reading.percentage, state: reading.state })
 }
 
@@ -80,11 +75,10 @@ pub(crate) fn refresh_boot_cache(i2c: &mut I2c<'_, esp_hal::Blocking>) -> Option
 /// Return the last boot snapshot without touching I2C.
 pub(crate) fn cached_battery_value() -> Option<BatteryStatus> {
     let encoded = CACHED_BATTERY.load(Ordering::Relaxed);
-    if encoded & CACHE_VALID == 0 { return None; }
-    Some(BatteryStatus {
-        percentage: (encoded & 0xff) as u8,
-        state: decode_state(encoded),
-    })
+    if encoded & CACHE_VALID == 0 {
+        return None;
+    }
+    Some(BatteryStatus { percentage: (encoded & 0xff) as u8, state: decode_state(encoded) })
 }
 
 fn encode(status: BatteryStatus) -> u32 {

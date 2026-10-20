@@ -1,6 +1,6 @@
 //! Focused message-source controllers for reviewed typed and SD text input.
 
-use super::{AppData, RedrawFlag, TouchInput, display, touch};
+use super::{display, touch, AppData, RedrawFlag, TouchInput};
 use crate::runtime::interactions::text_files::TextFileSelectionContext;
 
 mod menu;
@@ -18,18 +18,16 @@ pub(super) fn handle(
     is_back: bool,
 ) -> Option<bool> {
     let changed = match ad.navigation.app.state {
-        crate::runtime::input::AppState::SignMsgChoice => {
-            menu::handle(ad, boot_display, delay, i2c, x, y, is_back)
-        }
-        crate::runtime::input::AppState::SignMsgType => {
-            typed::handle(ad, boot_display, delay, x, y, is_back)
-        }
-        crate::runtime::input::AppState::SignMsgFile => {
-            sd_files::handle(TextFileSelectionContext {
-                ad, boot_display, delay, i2c, list_zones,
-                input: TouchInput::new(x, y, is_back),
-            })
-        }
+        crate::runtime::input::AppState::SignMsgChoice => menu::handle(ad, boot_display, delay, i2c, x, y, is_back),
+        crate::runtime::input::AppState::SignMsgType => typed::handle(ad, boot_display, delay, x, y, is_back),
+        crate::runtime::input::AppState::SignMsgFile => sd_files::handle(TextFileSelectionContext {
+            ad,
+            boot_display,
+            delay,
+            i2c,
+            list_zones,
+            input: TouchInput::new(x, y, is_back),
+        }),
         _ => return None,
     };
     let mut needs_redraw = RedrawFlag::default();

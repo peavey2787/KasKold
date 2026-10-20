@@ -26,10 +26,7 @@ struct FramebufferGuard;
 
 impl FramebufferGuard {
     fn acquire() -> Self {
-        while FRAMEBUFFER_LOCK
-            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
-            .is_err()
-        {
+        while FRAMEBUFFER_LOCK.compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed).is_err() {
             core::hint::spin_loop();
         }
         Self
@@ -48,19 +45,13 @@ fn ensure_framebuffer() -> *mut u8 {
         return existing;
     }
 
-    let layout = alloc::alloc::Layout::from_size_align(BUF_SIZE, 4)
-        .expect("screenshot framebuffer layout");
+    let layout = alloc::alloc::Layout::from_size_align(BUF_SIZE, 4).expect("screenshot framebuffer layout");
     let candidate = unsafe { alloc::alloc::alloc_zeroed(layout) };
     if candidate.is_null() {
         return ptr::null_mut();
     }
 
-    match FRAMEBUFFER.compare_exchange(
-        ptr::null_mut(),
-        candidate,
-        Ordering::AcqRel,
-        Ordering::Acquire,
-    ) {
+    match FRAMEBUFFER.compare_exchange(ptr::null_mut(), candidate, Ordering::AcqRel, Ordering::Acquire) {
         Ok(_) => candidate,
         Err(winner) => {
             unsafe { alloc::alloc::dealloc(candidate, layout) };
@@ -166,7 +157,7 @@ pub fn dump_uart() {
 mod mirror_state {
     use core::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 
-    use super::{FRAMEBUFFER, H, W, print_rows, with_framebuffer};
+    use super::{print_rows, with_framebuffer, FRAMEBUFFER, H, W};
 
     const ROWS_PER_CHUNK: u16 = 4;
     static ROW: AtomicU16 = AtomicU16::new(0);

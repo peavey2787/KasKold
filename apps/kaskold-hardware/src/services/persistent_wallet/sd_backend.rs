@@ -4,12 +4,12 @@
 //! nonce and slot identity. Only the current Argon2id-backed envelope is accepted;
 //! retired pre-production PBKDF2 SD-slot layouts are intentionally unsupported.
 
+use crate::services::credential_policy::{CredentialKind, SALT_SIZE};
 use offline_signer::{
     crypto::password_kdf::{self, METADATA_SIZE},
     derivation::hmac::zeroize_buf,
 };
 use sha2::{Digest, Sha256};
-use crate::services::credential_policy::{CredentialKind, SALT_SIZE};
 
 use crate::hw::sdcard;
 
@@ -26,10 +26,8 @@ const TAG_SIZE: usize = 16;
 const CURRENT_HEADER_SIZE: usize = 4 + METADATA_SIZE + SALT_SIZE + NONCE_SIZE + TAG_SIZE;
 const CURRENT_ENVELOPE_SIZE: usize = CURRENT_HEADER_SIZE + RECORD_SIZE;
 const SLOT_FILES: [[u8; 11]; 2] = [*b"KSWALTA BIN", *b"KSWALTB BIN"];
-const SLOT_AAD: [&[u8]; 2] = [
-    b"KasSigner device-bound SD wallet slot A v4",
-    b"KasSigner device-bound SD wallet slot B v4",
-];
+const SLOT_AAD: [&[u8]; 2] =
+    [b"KasSigner device-bound SD wallet slot A v4", b"KasSigner device-bound SD wallet slot B v4"];
 
 // The encrypted SD envelope is slightly larger than one 4 KiB wallet record.
 // Keep it out of callers that already own a record-sized stack scratch buffer.
@@ -46,15 +44,7 @@ pub(super) fn write_slot(
 ) -> Result<(), PersistError> {
     let index = slot_index(slot)?;
     let mut envelope = AlignedBytes::<CURRENT_ENVELOPE_SIZE>::zeroed();
-    seal_current(
-        crypto,
-        kind,
-        credential_key,
-        salt,
-        index,
-        record,
-        &mut envelope,
-    )?;
+    seal_current(crypto, kind, credential_key, salt, index, record, &mut envelope)?;
     let expected = Sha256::digest(&envelope.0);
     let write_result = sdcard::with_sd_card!(i2c, delay, |card| {
         let fat = sdcard::mount_fat32(card)?;
@@ -93,16 +83,8 @@ pub(super) fn read_slot(
     let index = slot_index(slot)?;
     let mut envelope = AlignedBytes::<CURRENT_ENVELOPE_SIZE>::zeroed();
     read_raw_exact(index, &mut envelope.0, i2c, delay)?;
-    let result = open_current(
-        crypto,
-        kind,
-        credential_kdf.parameters(),
-        credential_key,
-        salt,
-        index,
-        &mut envelope,
-        out,
-    );
+    let result =
+        open_current(crypto, kind, credential_kdf.parameters(), credential_key, salt, index, &mut envelope, out);
     zeroize_buf(&mut envelope.0);
     result
 }
@@ -161,25 +143,17 @@ fn seal_current(
 ) -> Result<(), PersistError> {
     envelope.0.fill(0);
     envelope.0[..4].copy_from_slice(&CURRENT_MAGIC);
-    let metadata = password_kdf::encode_metadata(password_kdf::PasswordKdfParams::current())
-        .map_err(|_| PersistError::Crypto)?;
+    let metadata =
+        password_kdf::encode_metadata(password_kdf::PasswordKdfParams::current()).map_err(|_| PersistError::Crypto)?;
     envelope.0[4..16].copy_from_slice(&metadata);
     envelope.0[16..32].copy_from_slice(salt);
-    crate::services::entropy::fill(&mut envelope.0[32..44])
-        .map_err(|_| PersistError::Entropy)?;
+    crate::services::entropy::fill(&mut envelope.0[32..44]).map_err(|_| PersistError::Entropy)?;
     envelope.0[CURRENT_HEADER_SIZE..].copy_from_slice(&record.0);
 
     let mut nonce = [0u8; NONCE_SIZE];
     nonce.copy_from_slice(&envelope.0[32..44]);
     let aad = aad_digest(index, &envelope.0[..44]);
-    let mut tag = crypto.seal_sd(
-        kind,
-        credential_key,
-        salt,
-        &nonce,
-        &aad,
-        &mut envelope.0[CURRENT_HEADER_SIZE..],
-    )?;
+    let mut tag = crypto.seal_sd(kind, credential_key, salt, &nonce, &aad, &mut envelope.0[CURRENT_HEADER_SIZE..])?;
     envelope.0[44..60].copy_from_slice(&tag);
     zeroize_buf(&mut nonce);
     zeroize_buf(&mut tag);
@@ -199,8 +173,7 @@ fn open_current(
     if envelope.0[..4] != CURRENT_MAGIC {
         return Err(PersistError::SdStorageCorrupt);
     }
-    let parsed = password_kdf::parse_metadata(&envelope.0[4..16])
-        .map_err(|_| PersistError::SdStorageCorrupt)?;
+    let parsed = password_kdf::parse_metadata(&envelope.0[4..16]).map_err(|_| PersistError::SdStorageCorrupt)?;
     if parsed != parameters || &envelope.0[16..32] != expected_salt {
         return Err(PersistError::SdStorageCorrupt);
     }
@@ -210,15 +183,8 @@ fn open_current(
     let mut tag = [0u8; TAG_SIZE];
     tag.copy_from_slice(&envelope.0[44..60]);
     let aad = aad_digest(index, &envelope.0[..44]);
-    let result = crypto.open_sd(
-        kind,
-        credential_key,
-        expected_salt,
-        &nonce,
-        &aad,
-        &mut envelope.0[CURRENT_HEADER_SIZE..],
-        &tag,
-    );
+    let result =
+        crypto.open_sd(kind, credential_key, expected_salt, &nonce, &aad, &mut envelope.0[CURRENT_HEADER_SIZE..], &tag);
     zeroize_buf(&mut nonce);
     zeroize_buf(&mut tag);
     if result.is_err() {

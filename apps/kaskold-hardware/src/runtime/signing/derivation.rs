@@ -17,17 +17,15 @@ mod checkpoint;
 #[cfg(all(feature = "m5stack", not(feature = "hardware-tests")))]
 pub(crate) use checkpoint::begin_mnemonic_seed;
 
-pub use crate::services::wallet_keys::derive_active_seed_with_checkpoint;
 #[cfg(feature = "workflow-test-auto")]
 pub use crate::services::wallet_keys::derive_active_seed;
-pub(crate) use crate::services::wallet_keys::{derive_slot_seed_with_checkpoint, zeroize_seed};
+pub use crate::services::wallet_keys::derive_active_seed_with_checkpoint;
 #[cfg(any(feature = "workflow-test-auto", feature = "hardware-tests"))]
 pub(crate) use crate::services::wallet_keys::derive_slot_seed;
+pub(crate) use crate::services::wallet_keys::{derive_slot_seed_with_checkpoint, zeroize_seed};
 
 /// Parse and validate an imported account XPrv slot without mnemonic KDF work.
-fn parse_account_slot_key(
-    slot: &SeedSlot,
-) -> Result<offline_signer::derivation::bip32::ExtendedPrivKey, &'static str> {
+fn parse_account_slot_key(slot: &SeedSlot) -> Result<offline_signer::derivation::bip32::ExtendedPrivKey, &'static str> {
     let mut raw = [0u8; 65];
     if !slot.account_key_raw(&mut raw) {
         return Err("Invalid account key slot");
@@ -93,12 +91,7 @@ pub fn derive_active_account_key_with_checkpoint(
     ad: &AppData,
     checkpoint: &mut (impl FnMut() + ?Sized),
 ) -> Result<offline_signer::derivation::bip32::ExtendedPrivKey, &'static str> {
-    let slot = ad
-        .wallet
-        .seeds
-        .seed_mgr
-        .active_slot()
-        .ok_or("No active wallet")?;
+    let slot = ad.wallet.seeds.seed_mgr.active_slot().ok_or("No active wallet")?;
     derive_slot_account_key_with_checkpoint(slot, checkpoint)
 }
 
@@ -119,10 +112,8 @@ pub fn derive_active_account_key(
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) fn install_workflow_receive_fixture(ad: &mut AppData) {
     const GENERATOR_X: [u8; 32] = [
-        0x79, 0xbe, 0x66, 0x7e, 0xf9, 0xdc, 0xbb, 0xac,
-        0x55, 0xa0, 0x62, 0x95, 0xce, 0x87, 0x0b, 0x07,
-        0x02, 0x9b, 0xfc, 0xdb, 0x2d, 0xce, 0x28, 0xd9,
-        0x59, 0xf2, 0x81, 0x5b, 0x16, 0xf8, 0x17, 0x98,
+        0x79, 0xbe, 0x66, 0x7e, 0xf9, 0xdc, 0xbb, 0xac, 0x55, 0xa0, 0x62, 0x95, 0xce, 0x87, 0x0b, 0x07, 0x02, 0x9b,
+        0xfc, 0xdb, 0x2d, 0xce, 0x28, 0xd9, 0x59, 0xf2, 0x81, 0x5b, 0x16, 0xf8, 0x17, 0x98,
     ];
     ad.wallet.addresses.current_addr_index = 0;
     ad.wallet.addresses.view_is_change = false;
@@ -183,8 +174,7 @@ pub fn derive_slot_pubkeys_with_checkpoint(
         if !slot.raw_key_bytes(&mut raw_key) {
             return Err("Invalid raw key");
         }
-        let result = offline_signer::derivation::bip32::pubkey_from_raw_key(&raw_key)
-            .map_err(|_| "Invalid raw key");
+        let result = offline_signer::derivation::bip32::pubkey_from_raw_key(&raw_key).map_err(|_| "Invalid raw key");
         shared_signer::bytes::zeroize_bytes(&mut raw_key);
         receive_cache[0] = result?;
         return Ok(());
@@ -197,24 +187,19 @@ pub fn derive_slot_pubkeys_with_checkpoint(
     for index in 0..20u32 {
         let address_key = offline_signer::derivation::bip32::derive_address_key(&account, index)
             .map_err(|_| "Address key derivation failed")?;
-        receive_cache[index as usize] = address_key
-            .public_key_x_only()
-            .map_err(|_| "Public key derivation failed")?;
+        receive_cache[index as usize] = address_key.public_key_x_only().map_err(|_| "Public key derivation failed")?;
         checkpoint();
     }
 
     for index in 0..5u32 {
         let change_key = offline_signer::derivation::bip32::derive_change_key(&account, index)
             .map_err(|_| "Change key derivation failed")?;
-        change_cache[index as usize] = change_key
-            .public_key_x_only()
-            .map_err(|_| "Change public key derivation failed")?;
+        change_cache[index as usize] =
+            change_key.public_key_x_only().map_err(|_| "Change public key derivation failed")?;
         checkpoint();
     }
     Ok(())
 }
-
-
 
 /// Derive one active receive-chain private key with explicit liveness. Raw-key wallets support index 0.
 #[inline(never)]
@@ -226,9 +211,13 @@ pub fn derive_active_private_key_with_checkpoint(
     let slot = ad.wallet.seeds.seed_mgr.active_slot().ok_or("No active wallet")?;
     checkpoint();
     if slot.is_raw_key() {
-        if address_index != 0 { return Err("Raw key has no child addresses"); }
+        if address_index != 0 {
+            return Err("Raw key has no child addresses");
+        }
         let mut private_key = [0u8; 32];
-        if !slot.raw_key_bytes(&mut private_key) { return Err("Invalid raw key"); }
+        if !slot.raw_key_bytes(&mut private_key) {
+            return Err("Invalid raw key");
+        }
         checkpoint();
         return Ok(private_key);
     }
@@ -247,12 +236,7 @@ pub fn serialize_active_xprv_with_checkpoint(
     output: &mut [u8; offline_signer::derivation::xpub::XPRV_MAX_LEN],
     checkpoint: &mut (impl FnMut() + ?Sized),
 ) -> Result<usize, &'static str> {
-    let slot = ad
-        .wallet
-        .seeds
-        .seed_mgr
-        .active_slot()
-        .ok_or("No active wallet")?;
+    let slot = ad.wallet.seeds.seed_mgr.active_slot().ok_or("No active wallet")?;
     if slot.is_account_key() {
         let account = derive_slot_account_key_with_checkpoint(slot, checkpoint)?;
         return offline_signer::derivation::xpub::serialize_account_key_xprv(
@@ -264,11 +248,8 @@ pub fn serialize_active_xprv_with_checkpoint(
     }
     let mut seed = derive_slot_seed_with_checkpoint(slot, checkpoint)?;
     checkpoint();
-    let result = offline_signer::derivation::xpub::derive_and_serialize_xprv(
-        &seed.bytes,
-        output,
-    )
-    .map_err(|_| "xprv derivation failed");
+    let result = offline_signer::derivation::xpub::derive_and_serialize_xprv(&seed.bytes, output)
+        .map_err(|_| "xprv derivation failed");
     zeroize_seed(&mut seed.bytes);
     result
 }
@@ -307,8 +288,6 @@ fn derive_pubkey_from_account(
         offline_signer::derivation::bip32::derive_address_key(&account, u32::from(address_index))
     }
     .map_err(|_| "Address key derivation failed")?;
-    *output = key
-        .public_key_x_only()
-        .map_err(|_| "Address public key derivation failed")?;
+    *output = key.public_key_x_only().map_err(|_| "Address public key derivation failed")?;
     Ok(())
 }

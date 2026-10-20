@@ -2,15 +2,7 @@ use super::super::common::context::{SdActionContext, SdIoContext};
 // SD controller workflow: qr.
 use super::super::{format_auto_name, scan_auto_increment};
 pub(crate) fn handle_show_qr_popup(ctx: SdIoContext<'_, '_, '_>) -> bool {
-    let SdIoContext {
-        ad,
-        delay,
-        i2c,
-        x,
-        y,
-        is_back,
-        ..
-    } = ctx;
+    let SdIoContext { ad, delay, i2c, x, y, is_back, .. } = ctx;
     let mut needs_redraw = false;
 
     if is_back {
@@ -60,13 +52,7 @@ pub(crate) fn handle_show_qr_popup(ctx: SdIoContext<'_, '_, '_>) -> bool {
 }
 
 pub(crate) fn handle_show_qr_mode_choice(ctx: SdActionContext<'_>) -> bool {
-    let SdActionContext {
-        ad,
-        x,
-        y,
-        is_back,
-        ..
-    } = ctx;
+    let SdActionContext { ad, x, y, is_back, .. } = ctx;
 
     if is_back {
         ad.qr.outgoing.frame_count = 0;
@@ -81,8 +67,8 @@ pub(crate) fn handle_show_qr_mode_choice(ctx: SdActionContext<'_>) -> bool {
         if (30..=155).contains(&x) && (140..=185).contains(&y) {
             ad.qr.outgoing.manual_frames = false;
             ad.qr.outgoing.frame = 0; // start at frame 0 so the
-            // frame-0 screen clear in redraw fires and wipes the
-            // mode-choice text (Manual already resets this).
+                                      // frame-0 screen clear in redraw fires and wipes the
+                                      // mode-choice text (Manual already resets this).
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ShowQR));
         }
         // "Manual" button: right

@@ -10,11 +10,8 @@ pub(crate) enum TouchEvent {
     Back,
 }
 
-const STARTUP_EVENTS: [TouchEvent; 3] = [
-    TouchEvent::Tap { x: 160, y: 120 },
-    TouchEvent::Tap { x: 280, y: 24 },
-    TouchEvent::Back,
-];
+const STARTUP_EVENTS: [TouchEvent; 3] =
+    [TouchEvent::Tap { x: 160, y: 120 }, TouchEvent::Tap { x: 280, y: 24 }, TouchEvent::Back];
 
 pub(crate) struct ScriptedTouch {
     next_index: usize,

@@ -16,25 +16,29 @@
 
 use crate::runtime::interactions::feedback::RedrawFlag;
 use crate::runtime::interactions::TouchInput;
-use crate::{runtime::data::AppData, hw::{display, touch}, services::{audio as sound, storage_device}};
-mod transaction;
-mod multisig_setup;
-mod multisig_output;
-mod message_source;
-mod message_signing;
+use crate::{
+    hw::{display, touch},
+    runtime::data::AppData,
+    services::{audio as sound, storage_device},
+};
+mod commit_results;
 mod commit_reveal;
 mod covenant_signing;
+mod message_signing;
+mod message_source;
+mod multisig_output;
+mod multisig_setup;
 mod private_swap;
-mod commit_results;
+mod transaction;
 
-pub(crate) use transaction::{load_compact_transaction_with_checkpoint, load_standard_transaction_with_checkpoint};
+pub(crate) use multisig_setup::seed_picker::{advance_after_cosigner, resolve_loaded_cosigner_index};
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) use transaction::{
     load_compact_transaction, load_standard_transaction, workflow_load_compact_transaction,
     workflow_load_standard_transaction, workflow_mark_standard_pskt_review_state_failure,
     workflow_replay_standard_pskt_failure_reason,
 };
-pub(crate) use multisig_setup::seed_picker::{advance_after_cosigner, resolve_loaded_cosigner_index};
+pub(crate) use transaction::{load_compact_transaction_with_checkpoint, load_standard_transaction_with_checkpoint};
 
 pub struct TxTouchContext<'ctx, 'display, 'hal, 'wallet> {
     pub ad: &'ctx mut AppData,
@@ -50,17 +54,8 @@ pub struct TxTouchContext<'ctx, 'display, 'hal, 'wallet> {
 
 #[inline(never)]
 pub fn handle_tx_touch(context: TxTouchContext<'_, '_, '_, '_>) -> Option<bool> {
-    let TxTouchContext {
-        ad,
-        boot_display,
-        delay,
-        i2c,
-        persistent_wallet,
-        sd_card_type,
-        liveness,
-        list_zones,
-        input,
-    } = context;
+    let TxTouchContext { ad, boot_display, delay, i2c, persistent_wallet, sd_card_type, liveness, list_zones, input } =
+        context;
     let TouchInput { x, y, is_back } = input;
     if let Some(result) = transaction::handle(ad, boot_display, delay, liveness, x, y, is_back) {
         return Some(result);
@@ -71,14 +66,18 @@ pub fn handle_tx_touch(context: TxTouchContext<'_, '_, '_, '_>) -> Option<bool> 
     if let Some(result) = multisig_output::handle(ad, boot_display, delay, i2c, persistent_wallet, x, y, is_back) {
         return Some(result);
     }
-    if let Some(result) = message_source::handle(
-        ad, boot_display, delay, i2c, list_zones, x, y, is_back,
-    ) { return Some(result); }
-    if let Some(result) = message_signing::handle(
-        ad, boot_display, delay, liveness, i2c, sd_card_type, x, y, is_back,
-    ) { return Some(result); }
-    if let Some(result) = covenant_signing::handle(ad, boot_display, delay, liveness, x, y, is_back) { return Some(result); }
-    if let Some(result) = private_swap::handle(ad, boot_display, delay, liveness, x, y, is_back) { return Some(result); }
+    if let Some(result) = message_source::handle(ad, boot_display, delay, i2c, list_zones, x, y, is_back) {
+        return Some(result);
+    }
+    if let Some(result) = message_signing::handle(ad, boot_display, delay, liveness, i2c, sd_card_type, x, y, is_back) {
+        return Some(result);
+    }
+    if let Some(result) = covenant_signing::handle(ad, boot_display, delay, liveness, x, y, is_back) {
+        return Some(result);
+    }
+    if let Some(result) = private_swap::handle(ad, boot_display, delay, liveness, x, y, is_back) {
+        return Some(result);
+    }
     if let Some(result) = commit_reveal::handle(ad, boot_display, delay, liveness, x, y, is_back) {
         return Some(result);
     }
@@ -89,11 +88,10 @@ pub fn handle_tx_touch(context: TxTouchContext<'_, '_, '_, '_>) -> Option<bool> 
 }
 
 #[cfg(feature = "workflow-test-auto")]
+pub(crate) use commit_reveal::{
+    workflow_encrypt_preimage as workflow_encrypt_commit_secret, workflow_store_secret as workflow_store_commit_secret,
+};
+#[cfg(feature = "workflow-test-auto")]
 pub(crate) use message_signing::workflow_sign_preview as workflow_sign_message_preview;
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) use message_source::workflow_accept_file as workflow_accept_message_file;
-#[cfg(feature = "workflow-test-auto")]
-pub(crate) use commit_reveal::{
-    workflow_encrypt_preimage as workflow_encrypt_commit_secret,
-    workflow_store_secret as workflow_store_commit_secret,
-};

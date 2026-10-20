@@ -1,6 +1,6 @@
 use super::super::{
-    BootDisplay, COLOR_BG, COLOR_DANGER, COLOR_TEXT, DrawTarget, Drawable, Point, Primitive,
-    PrimitiveStyle, Rectangle, Size, draw_lato_title, measure_title, sound,
+    draw_lato_title, measure_title, sound, BootDisplay, DrawTarget, Drawable, Point, Primitive, PrimitiveStyle,
+    Rectangle, Size, COLOR_BG, COLOR_DANGER, COLOR_TEXT,
 };
 
 #[derive(Clone, Copy)]
@@ -22,7 +22,6 @@ pub(in crate::ui::screens) struct QrScreenOptions {
 }
 
 impl<'a> BootDisplay<'a> {
-
     pub(in crate::ui::screens) fn draw_qr_screen_with_options(
         &mut self,
         data: &[u8],
@@ -32,10 +31,7 @@ impl<'a> BootDisplay<'a> {
             sound::stop_ticking();
         }
         self.display.clear(COLOR_BG).ok();
-        if options
-            .max_payload_bytes
-            .is_some_and(|maximum| data.len() > maximum)
-        {
+        if options.max_payload_bytes.is_some_and(|maximum| data.len() > maximum) {
             self.draw_centered_qr_error(options.too_large_title);
             return false;
         }
@@ -49,41 +45,31 @@ impl<'a> BootDisplay<'a> {
 
     fn draw_centered_qr_error(&mut self, title: &str) {
         let width = measure_title(title);
-        draw_lato_title(
-            &mut self.display,
-            title,
-            (320 - width) / 2,
-            120,
-            COLOR_DANGER,
-        );
+        draw_lato_title(&mut self.display, title, (320 - width) / 2, 120, COLOR_DANGER);
     }
-    pub(in crate::ui::screens) fn draw_encoded_qr(
-        &mut self,
-        data: &[u8],
-        options: QrRenderOptions,
-    ) -> bool {
-        let Ok(qr) = crate::qr::encoder::encode(data) else { return false; };
+    pub(in crate::ui::screens) fn draw_encoded_qr(&mut self, data: &[u8], options: QrRenderOptions) -> bool {
+        let Ok(qr) = crate::qr::encoder::encode(data) else {
+            return false;
+        };
         let rendered = self.draw_qr_matrix(&qr, options);
-        if rendered { self.draw_qr_brightness_controls(); }
+        if rendered {
+            self.draw_qr_brightness_controls();
+        }
         rendered
     }
 
-    pub(in crate::ui::screens) fn draw_numeric_qr(
-        &mut self,
-        data: &[u8],
-        options: QrRenderOptions,
-    ) -> bool {
-        let Ok(qr) = crate::qr::encoder::encode_numeric(data) else { return false; };
+    pub(in crate::ui::screens) fn draw_numeric_qr(&mut self, data: &[u8], options: QrRenderOptions) -> bool {
+        let Ok(qr) = crate::qr::encoder::encode_numeric(data) else {
+            return false;
+        };
         let rendered = self.draw_qr_matrix(&qr, options);
-        if rendered { self.draw_qr_brightness_controls(); }
+        if rendered {
+            self.draw_qr_brightness_controls();
+        }
         rendered
     }
 
-    fn draw_qr_matrix(
-        &mut self,
-        qr: &crate::qr::encoder::QrCode,
-        options: QrRenderOptions,
-    ) -> bool {
+    fn draw_qr_matrix(&mut self, qr: &crate::qr::encoder::QrCode, options: QrRenderOptions) -> bool {
         let qr_size = i32::from(qr.size);
         let usable_width = options.width - options.quiet_zone * 2;
         let usable_height = options.height - options.quiet_zone * 2;
@@ -94,10 +80,7 @@ impl<'a> BootDisplay<'a> {
 
         Rectangle::new(
             Point::new(offset_x - options.quiet_zone, offset_y - options.quiet_zone),
-            Size::new(
-                (total + options.quiet_zone * 2) as u32,
-                (total + options.quiet_zone * 2) as u32,
-            ),
+            Size::new((total + options.quiet_zone * 2) as u32, (total + options.quiet_zone * 2) as u32),
         )
         .into_styled(PrimitiveStyle::with_fill(COLOR_TEXT))
         .draw(&mut self.display)

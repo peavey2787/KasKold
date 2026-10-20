@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 // Transaction and message signing screens.
 
 mod confirmation;
@@ -23,7 +22,7 @@ mod errors;
 mod message_preview;
 mod message_result;
 mod message_source;
-mod transaction_guide;
 mod progress;
 mod qr;
+mod transaction_guide;
 mod transaction_review;

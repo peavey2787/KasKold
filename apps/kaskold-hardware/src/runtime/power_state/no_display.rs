@@ -15,11 +15,15 @@ pub(crate) fn continue_without_display(delay: &mut esp_hal::delay::Delay) -> ! {
         crate::services::verify::VerificationResult::Valid => crate::log!("Firmware verified OK"),
         other => {
             crate::log!("CRITICAL: Verification failed: {:?}", other);
-            loop { delay.delay_millis(1000); }
+            loop {
+                delay.delay_millis(1000);
+            }
         }
     }
     crate::log!("===================================");
     crate::log!("  Boot completed (no display)");
     crate::log!("===================================");
-    loop { delay.delay_millis(5000); }
+    loop {
+        delay.delay_millis(5000);
+    }
 }

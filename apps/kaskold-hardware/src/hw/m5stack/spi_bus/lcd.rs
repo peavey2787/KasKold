@@ -89,16 +89,14 @@ impl SpiBus<u8> for LcdBus {
 
     fn transfer(&mut self, read: &mut [u8], write: &[u8]) -> Result<(), Self::Error> {
         state::with_lcd_bus(|spi| {
-            embedded_hal::spi::SpiBus::transfer(spi, read, write)
-                .map_err(|_| "LCD SPI transfer failed")
+            embedded_hal::spi::SpiBus::transfer(spi, read, write).map_err(|_| "LCD SPI transfer failed")
         })
         .map_err(|_| LcdSpiError::Bus)
     }
 
     fn transfer_in_place(&mut self, words: &mut [u8]) -> Result<(), Self::Error> {
         state::with_lcd_bus(|spi| {
-            embedded_hal::spi::SpiBus::transfer_in_place(spi, words)
-                .map_err(|_| "LCD SPI in-place transfer failed")
+            embedded_hal::spi::SpiBus::transfer_in_place(spi, words).map_err(|_| "LCD SPI in-place transfer failed")
         })
         .map_err(|_| LcdSpiError::Bus)
     }

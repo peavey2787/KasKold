@@ -6,11 +6,8 @@
 //! tap just because a visual component is shared with another workflow.
 
 use crate::{
-    runtime::interactions::TouchInput,
-    hw::display,
-    services::storage_device as sdcard,
-    runtime::data::AppData,
-    services::persistent_wallet::PersistentWallet,
+    hw::display, runtime::data::AppData, runtime::interactions::TouchInput,
+    services::persistent_wallet::PersistentWallet, services::storage_device as sdcard,
 };
 use esp_hal::{dma::DmaRxBuf, lcd_cam::cam::Camera as DvpCamera};
 
@@ -32,9 +29,7 @@ pub struct OnboardingTouchContext<'ctx, 'display, 'hal, 'camera, 'wallet> {
 
 /// Route one touch through the single first-wallet workflow facade.
 #[inline(never)]
-pub fn handle_onboarding_touch(
-    context: OnboardingTouchContext<'_, '_, '_, '_, '_>,
-) -> Option<bool> {
+pub fn handle_onboarding_touch(context: OnboardingTouchContext<'_, '_, '_, '_, '_>) -> Option<bool> {
     let OnboardingTouchContext {
         ad,
         persistent_wallet,
@@ -54,9 +49,7 @@ pub fn handle_onboarding_touch(
 
     match crate::runtime::navigation::onboarding_route(ad) {
         Some(crate::runtime::navigation::OnboardingRoute::Persistence) => {
-            crate::runtime::interactions::persistence::handle(
-                input, ad, persistent_wallet, boot_display, delay,
-            )
+            crate::runtime::interactions::persistence::handle(input, ad, persistent_wallet, boot_display, delay)
         }
         Some(crate::runtime::navigation::OnboardingRoute::Generation) => {
             crate::runtime::interactions::menu::seed_generation::handle(
@@ -74,14 +67,10 @@ pub fn handle_onboarding_touch(
             )
         }
         Some(crate::runtime::navigation::OnboardingRoute::Dice) => Some(
-            crate::runtime::interactions::menu::seed_tools::handle_onboarding_dice(
-                ad, boot_display, x, y, is_back,
-            ),
+            crate::runtime::interactions::menu::seed_tools::handle_onboarding_dice(ad, boot_display, x, y, is_back),
         ),
         Some(crate::runtime::navigation::OnboardingRoute::SeedEntry) => {
-            crate::runtime::interactions::seed::handle_seed_touch(
-                ad, boot_display, delay, liveness, input,
-            )
+            crate::runtime::interactions::seed::handle_seed_touch(ad, boot_display, delay, liveness, input)
         }
         Some(crate::runtime::navigation::OnboardingRoute::RecoveryWords) => {
             crate::runtime::interactions::export::seed_backup::handle(ad, is_back)
@@ -89,21 +78,38 @@ pub fn handle_onboarding_touch(
         Some(crate::runtime::navigation::OnboardingRoute::Scan) => Some(false),
         Some(crate::runtime::navigation::OnboardingRoute::Sd) => {
             crate::runtime::interactions::sd::handle_sd_touch(crate::runtime::interactions::sd::SdTouchContext {
-                ad, boot_display, delay, liveness, i2c, sd_card_type, backup_device: persistent_wallet,
-                list_zones, page_up_zone, page_down_zone, input,
+                ad,
+                boot_display,
+                delay,
+                liveness,
+                i2c,
+                sd_card_type,
+                backup_device: persistent_wallet,
+                list_zones,
+                page_up_zone,
+                page_down_zone,
+                input,
             })
         }
         Some(crate::runtime::navigation::OnboardingRoute::Stego) => {
-            crate::runtime::interactions::stego::handle_stego_touch(crate::runtime::interactions::stego::StegoTouchContext {
-                ad, boot_display, delay, liveness, i2c, sd_card_type, backup_device: persistent_wallet,
-                list_zones, page_up_zone, page_down_zone, input,
-            })
+            crate::runtime::interactions::stego::handle_stego_touch(
+                crate::runtime::interactions::stego::StegoTouchContext {
+                    ad,
+                    boot_display,
+                    delay,
+                    liveness,
+                    i2c,
+                    sd_card_type,
+                    backup_device: persistent_wallet,
+                    list_zones,
+                    page_up_zone,
+                    page_down_zone,
+                    input,
+                },
+            )
         }
         None => {
-            log!(
-                "   NAV invariant: onboarding owner has unroutable state {:?}",
-                ad.navigation.app.state
-            );
+            log!("   NAV invariant: onboarding owner has unroutable state {:?}", ad.navigation.app.state);
             crate::runtime::effects::recover_onboarding(ad);
             Some(true)
         }

@@ -1,12 +1,12 @@
 //! CoreS3 card-session lifecycle on the single HAL-owned SPI2 bus.
 
-use super::{Delay, SdCardType, power::power_cycle_card, protocol::{card_is_locked, initialize_card}};
+use super::{
+    power::power_cycle_card,
+    protocol::{card_is_locked, initialize_card},
+    Delay, SdCardType,
+};
 
-pub fn with_sd_card<I2C, F, T>(
-    i2c: &mut I2C,
-    delay: &mut Delay,
-    f: F,
-) -> Result<T, &'static str>
+pub fn with_sd_card<I2C, F, T>(i2c: &mut I2C, delay: &mut Delay, f: F) -> Result<T, &'static str>
 where
     I2C: embedded_hal::i2c::I2c,
     F: FnOnce(SdCardType) -> Result<T, &'static str>,
@@ -31,7 +31,9 @@ where
 
 fn finish_card_operation<T>(result: &Result<T, &'static str>) {
     crate::hw::sound::stop_ticking();
-    if result.is_ok() { crate::hw::sound::task_done(); }
+    if result.is_ok() {
+        crate::hw::sound::task_done();
+    }
 }
 
 fn initialize_unlocked_card(delay: &mut Delay) -> Result<SdCardType, &'static str> {
@@ -46,7 +48,9 @@ fn initialize_unlocked_card(delay: &mut Delay) -> Result<SdCardType, &'static st
 fn require_unlocked_card() -> Result<(), &'static str> {
     let locked = card_is_locked(true)?;
     crate::hw::m5stack::storage::record_card_lock_status(locked);
-    if !locked { return Ok(()); }
+    if !locked {
+        return Ok(());
+    }
     crate::log!("[SD] card detected but password-locked; data I/O blocked before CMD17/CMD24");
     Err("SD card is locked")
 }
@@ -68,7 +72,12 @@ fn log_boot_mbr(card_type: SdCardType) {
     match super::block::sd_read_block(card_type, 0, &mut sector0) {
         Ok(()) => crate::log!(
             "   MBR: {:02x}{:02x}{:02x}{:02x}..sig={:02x}{:02x} OK",
-            sector0[0], sector0[1], sector0[2], sector0[3], sector0[510], sector0[511]
+            sector0[0],
+            sector0[1],
+            sector0[2],
+            sector0[3],
+            sector0[510],
+            sector0[511]
         ),
         Err(error) => crate::log!("   MBR read failed: {}", error),
     }

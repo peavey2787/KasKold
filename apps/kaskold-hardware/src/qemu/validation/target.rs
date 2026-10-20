@@ -41,19 +41,16 @@ pub(crate) fn run(report: &mut Report) {
     report.check("address render model", test_address_render_model());
 }
 
-
 fn test_touch_state_machine() -> bool {
     use kaskold_hardware_core::input::touch::{
-        HwGesture, ImmediateTouchTracker, TouchAction, TouchEventType, TouchPoint, TouchState,
-        TouchTracker,
+        HwGesture, ImmediateTouchTracker, TouchAction, TouchEventType, TouchPoint, TouchState, TouchTracker,
     };
     let mut tracker = TouchTracker::new();
     let press = TouchState::One(TouchPoint { x: 20, y: 30, event: TouchEventType::PressDown });
     let contact = TouchState::One(TouchPoint { x: 20, y: 30, event: TouchEventType::Contact });
     let delayed_ok = tracker.update(press, HwGesture::None) == TouchAction::None
         && tracker.update(contact, HwGesture::None) == TouchAction::None
-        && tracker.update(TouchState::NoTouch, HwGesture::None)
-            == TouchAction::Tap { x: 20, y: 30 };
+        && tracker.update(TouchState::NoTouch, HwGesture::None) == TouchAction::Tap { x: 20, y: 30 };
     let mut immediate = ImmediateTouchTracker::new();
     delayed_ok
         && immediate.update(press) == TouchAction::Tap { x: 20, y: 30 }
@@ -61,20 +58,15 @@ fn test_touch_state_machine() -> bool {
 }
 
 fn test_seed_qr_reducer() -> bool {
-    use kaskold_hardware_core::presentation::seed_qr_grid::{
-        SeedQrGridEffect, SeedQrGridState, reduce_grid,
-    };
+    use kaskold_hardware_core::presentation::seed_qr_grid::{reduce_grid, SeedQrGridEffect, SeedQrGridState};
     let state = SeedQrGridState { pan_x: 0, pan_y: 0, compact: false };
-    reduce_grid(state, 29, 10, 150, false)
-        == SeedQrGridEffect::Move(SeedQrGridState { pan_x: 1, ..state })
+    reduce_grid(state, 29, 10, 150, false) == SeedQrGridEffect::Move(SeedQrGridState { pan_x: 1, ..state })
         && reduce_grid(state, 29, 160, 120, false) == SeedQrGridEffect::None
         && reduce_grid(state, 29, 0, 0, true) == SeedQrGridEffect::Exit
 }
 
 fn test_transaction_reducer() -> bool {
-    use kaskold_hardware_core::presentation::transaction::{
-        TransactionEffect, TransactionScreen, reduce_touch,
-    };
+    use kaskold_hardware_core::presentation::transaction::{reduce_touch, TransactionEffect, TransactionScreen};
 
     fn effect_name(effect: TransactionEffect) -> &'static str {
         match effect {
@@ -93,11 +85,7 @@ fn test_transaction_reducer() -> bool {
         }
     }
 
-    fn expect_case(
-        label: &str,
-        actual: TransactionEffect,
-        expected: TransactionEffect,
-    ) -> bool {
+    fn expect_case(label: &str, actual: TransactionEffect, expected: TransactionEffect) -> bool {
         if actual == expected {
             true
         } else {
@@ -146,9 +134,7 @@ fn test_transaction_reducer() -> bool {
 }
 
 fn test_fat32_lfn() -> bool {
-    use kaskold_hardware_core::storage::fat32_lfn::{
-        DirectoryEntryKind, LfnAccumulator, classify_directory_entry,
-    };
+    use kaskold_hardware_core::storage::fat32_lfn::{classify_directory_entry, DirectoryEntryKind, LfnAccumulator};
     let mut raw = [0u8; 32];
     let end_ok = classify_directory_entry(&raw) == DirectoryEntryKind::End;
     raw[0] = b'A';
@@ -161,7 +147,7 @@ fn test_fat32_lfn() -> bool {
 
 fn test_address_render_model() -> bool {
     use kaskold_hardware_core::presentation::render::{
-        AddressRenderInput, CHANGE_CACHE_SIZE, RECEIVE_CACHE_SIZE, address_render_model,
+        address_render_model, AddressRenderInput, CHANGE_CACHE_SIZE, RECEIVE_CACHE_SIZE,
     };
     let mut receive = [[0u8; 32]; RECEIVE_CACHE_SIZE];
     let change = [[0u8; 32]; CHANGE_CACHE_SIZE];

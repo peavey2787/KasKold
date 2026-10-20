@@ -8,13 +8,13 @@
 //! internal-SRAM fallback and no parameter reduction.
 
 use offline_signer::crypto::password_kdf::{
-    self, PasswordKdfBlock, PasswordKdfError, PasswordKdfParams, PasswordKdfPurpose,
-    MAX_PASSWORD_SIZE, SALT_SIZE, WORKSPACE_BLOCK_ALIGN, WORKSPACE_BLOCK_BYTES,
+    self, PasswordKdfBlock, PasswordKdfError, PasswordKdfParams, PasswordKdfPurpose, MAX_PASSWORD_SIZE, SALT_SIZE,
+    WORKSPACE_BLOCK_ALIGN, WORKSPACE_BLOCK_BYTES,
 };
 
-use super::psram::{PsramAllocation, PsramError};
 #[cfg(feature = "argon2-bench")]
 use super::psram::{self, PsramRegion};
+use super::psram::{PsramAllocation, PsramError};
 
 #[cfg(feature = "argon2-bench")]
 pub(crate) struct WorkspaceInfo {
@@ -31,11 +31,8 @@ struct Argon2Workspace {
 impl Argon2Workspace {
     fn allocate(parameters: PasswordKdfParams) -> Result<Self, PasswordKdfError> {
         let block_count = password_kdf::workspace_block_count(parameters)?;
-        let bytes = block_count
-            .checked_mul(WORKSPACE_BLOCK_BYTES)
-            .ok_or(PasswordKdfError::AllocationFailed)?;
-        let allocation = PsramAllocation::allocate(bytes, WORKSPACE_BLOCK_ALIGN)
-            .map_err(map_psram_error)?;
+        let bytes = block_count.checked_mul(WORKSPACE_BLOCK_BYTES).ok_or(PasswordKdfError::AllocationFailed)?;
+        let allocation = PsramAllocation::allocate(bytes, WORKSPACE_BLOCK_ALIGN).map_err(map_psram_error)?;
         Ok(Self { allocation, block_count })
     }
 
@@ -120,30 +117,19 @@ pub(crate) fn derive_key_32_with_params(
     // while the already-running peer derivation worker remains untouched.
     // Do not hard-stall a live peer core around allocator/PSRAM work.
     #[cfg(feature = "m5stack")]
-    crate::log!(
-        "   Argon2 PSRAM foreground BEGIN free={} bytes",
-        super::psram::free_bytes(),
-    );
+    crate::log!("   Argon2 PSRAM foreground BEGIN free={} bytes", super::psram::free_bytes(),);
     let result = derive_key_32_foreground(purpose, password, salt, parameters);
     #[cfg(feature = "m5stack")]
     match &result {
-        Ok(_) => crate::log!(
-            "   Argon2 PSRAM foreground DONE ok=true free={} bytes",
-            super::psram::free_bytes(),
-        ),
-        Err(error) => crate::log!(
-            "   Argon2 PSRAM foreground DONE error={:?} free={} bytes",
-            error,
-            super::psram::free_bytes(),
-        ),
+        Ok(_) => crate::log!("   Argon2 PSRAM foreground DONE ok=true free={} bytes", super::psram::free_bytes(),),
+        Err(error) => {
+            crate::log!("   Argon2 PSRAM foreground DONE error={:?} free={} bytes", error, super::psram::free_bytes(),)
+        }
     }
     result
 }
 
-fn validate_inputs(
-    password: &[u8],
-    parameters: PasswordKdfParams,
-) -> Result<(), PasswordKdfError> {
+fn validate_inputs(password: &[u8], parameters: PasswordKdfParams) -> Result<(), PasswordKdfError> {
     if password.is_empty() || password.len() > MAX_PASSWORD_SIZE {
         return Err(PasswordKdfError::InvalidPasswordLength);
     }
@@ -162,13 +148,7 @@ fn derive_key_32_foreground(
 ) -> Result<[u8; 32], PasswordKdfError> {
     let mut workspace = Argon2Workspace::allocate(parameters)?;
     workspace.validate_provenance()?;
-    password_kdf::derive_key_32_with_workspace(
-        purpose,
-        password,
-        salt,
-        parameters,
-        workspace.blocks(),
-    )
+    password_kdf::derive_key_32_with_workspace(purpose, password, salt, parameters, workspace.blocks())
 }
 
 #[cfg(feature = "argon2-bench")]
@@ -200,18 +180,9 @@ fn derive_benchmark_key_32_foreground(
     let info = workspace.info()?;
     let integrity_ok = workspace.full_buffer_integrity_test();
     if !integrity_ok {
-        return Ok(BenchmarkResult {
-            info,
-            integrity_ok: false,
-            key: Err(PasswordKdfError::AllocationFailed),
-        });
+        return Ok(BenchmarkResult { info, integrity_ok: false, key: Err(PasswordKdfError::AllocationFailed) });
     }
-    let key = password_kdf::derive_benchmark_key_32_with_workspace(
-        purpose,
-        password,
-        salt,
-        parameters,
-        workspace.blocks(),
-    );
+    let key =
+        password_kdf::derive_benchmark_key_32_with_workspace(purpose, password, salt, parameters, workspace.blocks());
     Ok(BenchmarkResult { info, integrity_ok, key })
 }

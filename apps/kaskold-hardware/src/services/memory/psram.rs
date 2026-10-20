@@ -22,8 +22,12 @@ impl PsramRegion {
     }
 
     pub fn contains(self, start: usize, len: usize) -> bool {
-        let Some(region_end) = self.end() else { return false; };
-        let Some(allocation_end) = start.checked_add(len) else { return false; };
+        let Some(region_end) = self.end() else {
+            return false;
+        };
+        let Some(allocation_end) = start.checked_add(len) else {
+            return false;
+        };
         start >= self.start && allocation_end <= region_end
     }
 }
@@ -60,20 +64,18 @@ pub(crate) fn initialize(peripheral: &esp_hal::peripherals::PSRAM<'_>) -> Result
     Ok(PsramRegion { start: start_addr, len })
 }
 
-
 pub(crate) fn initialize_or_halt(peripheral: &esp_hal::peripherals::PSRAM<'_>) -> PsramRegion {
     let region = match initialize(peripheral) {
         Ok(region) => region,
         Err(error) => {
             crate::log!("FATAL: PSRAM provenance initialization failed: {:?}", error);
-            loop { core::hint::spin_loop(); }
+            loop {
+                core::hint::spin_loop();
+            }
         }
     };
     let end = region.end().unwrap_or(region.start);
-    crate::log!(
-        "   PSRAM: runtime region 0x{:08x}..0x{:08x} ({} bytes)",
-        region.start, end, region.len,
-    );
+    crate::log!("   PSRAM: runtime region 0x{:08x}..0x{:08x} ({} bytes)", region.start, end, region.len,);
     region
 }
 
@@ -103,7 +105,9 @@ impl PsramAllocation {
 
     pub(crate) fn allocate_with_reserve(size: usize, align: usize, reserve: usize) -> Result<Self, PsramError> {
         let required = size.checked_add(reserve).ok_or(PsramError::InvalidLayout)?;
-        if free_bytes() < required { return Err(PsramError::AllocationFailed); }
+        if free_bytes() < required {
+            return Err(PsramError::AllocationFailed);
+        }
         let layout = Layout::from_size_align(size, align).map_err(|_| PsramError::InvalidLayout)?;
         if layout.size() == 0 {
             return Err(PsramError::InvalidLayout);
@@ -132,8 +136,12 @@ impl PsramAllocation {
         Ok(allocation)
     }
 
-    pub(crate) fn start(&self) -> usize { self.ptr as usize }
-    pub(crate) fn len(&self) -> usize { self.layout.size() }
+    pub(crate) fn start(&self) -> usize {
+        self.ptr as usize
+    }
+    pub(crate) fn len(&self) -> usize {
+        self.layout.size()
+    }
 
     pub(crate) fn has_valid_provenance(&self) -> bool {
         region().is_ok_and(|psram| psram.contains(self.start(), self.len()))
@@ -157,23 +165,35 @@ impl Drop for PsramAllocation {
 
 #[cfg(feature = "argon2-bench")]
 pub(crate) fn probe_largest_allocatable(cap: usize, granularity: usize) -> usize {
-    if granularity == 0 { return 0; }
+    if granularity == 0 {
+        return 0;
+    }
     let upper = free_bytes().min(cap) / granularity;
     let mut low = 0usize;
     let mut high = upper;
     while low < high {
         let mid = (low + high + 1) / 2;
-        if can_allocate(mid * granularity) { low = mid; } else { high = mid - 1; }
+        if can_allocate(mid * granularity) {
+            low = mid;
+        } else {
+            high = mid - 1;
+        }
     }
     low * granularity
 }
 
 #[cfg(feature = "argon2-bench")]
 fn can_allocate(size: usize) -> bool {
-    if size == 0 { return true; }
-    let Ok(layout) = Layout::from_size_align(size, 8) else { return false; };
+    if size == 0 {
+        return true;
+    }
+    let Ok(layout) = Layout::from_size_align(size, 8) else {
+        return false;
+    };
     let ptr = unsafe { HEAP.alloc_caps(MemoryCapability::External.into(), layout) };
-    if ptr.is_null() { return false; }
+    if ptr.is_null() {
+        return false;
+    }
     let provenance_ok = region().is_ok_and(|psram| psram.contains(ptr as usize, size));
     unsafe { HEAP.dealloc(ptr, layout) };
     provenance_ok

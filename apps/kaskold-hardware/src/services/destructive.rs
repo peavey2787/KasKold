@@ -9,9 +9,7 @@ use crate::{runtime::data::AppData, services::storage_device as sdcard};
 pub(crate) fn delete_seed(ad: &mut AppData) -> bool {
     let index = usize::from(ad.wallet.seeds.pending_delete_slot);
     let mut deleted = false;
-    if index < ad.wallet.seeds.seed_mgr.slots.len()
-        && ad.wallet.seeds.seed_mgr.slot_visible(index)
-    {
+    if index < ad.wallet.seeds.seed_mgr.slots.len() && ad.wallet.seeds.seed_mgr.slot_visible(index) {
         let was_active = ad.wallet.seeds.seed_mgr.active == index as u8;
         ad.wallet.seeds.seed_mgr.delete(index);
         if was_active {
@@ -22,7 +20,6 @@ pub(crate) fn delete_seed(ad: &mut AppData) -> bool {
     ad.wallet.seeds.pending_delete_slot = 0xFF;
     deleted
 }
-
 
 pub(crate) fn delete_sd_file(
     ad: &mut AppData,
@@ -64,15 +61,16 @@ fn remove_selected_file(ad: &mut AppData) {
         ad.storage.browser.file_list[7] = [b' '; 11];
         ad.storage.browser.file_count = ad.storage.browser.file_count.saturating_sub(1);
     }
-    if ad.storage.browser.file_scroll > 0
-        && ad.storage.browser.file_scroll >= ad.storage.browser.file_count
-    {
+    if ad.storage.browser.file_scroll > 0 && ad.storage.browser.file_scroll >= ad.storage.browser.file_count {
         ad.storage.browser.file_scroll = ad.storage.browser.file_count.saturating_sub(4);
     }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum FormatSdOutcome { Complete, Failed }
+pub(crate) enum FormatSdOutcome {
+    Complete,
+    Failed,
+}
 
 pub(crate) fn format_sd(
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
@@ -85,7 +83,7 @@ pub(crate) fn format_sd(
             Err(error) => {
                 log!("[SD-FORMAT] locked-card force erase failed: {}", error);
                 return FormatSdOutcome::Failed;
-            },
+            }
         }
     }
     if sdcard::format_fat32(i2c, delay, liveness) {
@@ -94,4 +92,3 @@ pub(crate) fn format_sd(
         FormatSdOutcome::Failed
     }
 }
-

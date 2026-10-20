@@ -12,10 +12,7 @@ pub(crate) fn print_banner() {
     crate::log!();
     crate::log!("Board: {}", crate::hw::ACTIVE_BOARD_NAME);
     crate::log!("╔════════════════════════════════════╗");
-    crate::log!(
-        "║      KasKold Firmware v{}       ║",
-        env!("CARGO_PKG_VERSION")
-    );
+    crate::log!("║      KasKold Firmware v{}       ║", env!("CARGO_PKG_VERSION"));
     crate::log!("║   Secure Boot for Kaspa Signer     ║");
     crate::log!("╚════════════════════════════════════╝");
     crate::log!();

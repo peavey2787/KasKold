@@ -1,6 +1,6 @@
 use crate::{
-    runtime::interactions::TouchInput,
     runtime::data::AppData,
+    runtime::interactions::TouchInput,
     ui::keyboard::{hit_test, KeyAction, KeyboardMode},
 };
 
@@ -12,11 +12,7 @@ pub(super) enum EditAction {
 }
 
 pub(super) fn edit(input: TouchInput, ad: &mut AppData, numeric: bool) -> EditAction {
-    let mode = if numeric {
-        KeyboardMode::Numeric
-    } else {
-        KeyboardMode::Full
-    };
+    let mode = if numeric { KeyboardMode::Numeric } else { KeyboardMode::Full };
     let action = hit_test(input.x, input.y, mode, ad.wallet.seeds.pp_input.page);
     let pp = &mut ad.wallet.seeds.pp_input;
     match action {

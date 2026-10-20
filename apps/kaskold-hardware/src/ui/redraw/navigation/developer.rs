@@ -1,12 +1,17 @@
 //! Developer/legacy navigation surfaces kept out of the production root.
 
-use crate::{hw::display, runtime::{data::AppData, input::AppState}};
+use crate::{
+    hw::display,
+    runtime::{data::AppData, input::AppState},
+};
 
 pub(super) fn redraw(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     match ad.navigation.app.state {
         AppState::SeedToolsMenu => boot_display.update_menu_content("SEED TOOLS", &ad.navigation.seed_tools_menu),
         #[cfg(feature = "workflow-tests")]
-        AppState::WorkflowTestsMenu => boot_display.update_menu_content("E2E TESTS", &ad.navigation.workflow_tests_menu),
+        AppState::WorkflowTestsMenu => {
+            boot_display.update_menu_content("E2E TESTS", &ad.navigation.workflow_tests_menu)
+        }
         #[cfg(feature = "workflow-tests")]
         AppState::WorkflowTestsCategory { category } => redraw_workflow_category(ad, boot_display, category),
         #[cfg(feature = "workflow-tests")]
@@ -32,6 +37,9 @@ fn redraw_workflow_result(ad: &AppData, boot_display: &mut display::BootDisplay<
     let result = ad.workflow_tests.result;
     let mut message: heapless::String<48> = heapless::String::new();
     let _ = core::fmt::Write::write_fmt(&mut message, format_args!("Contracts {}/{}", result.passed, result.total));
-    if result.failed == 0 { boot_display.draw_success_screen(message.as_str()); }
-    else { boot_display.draw_error_back_screen(message.as_str()); }
+    if result.failed == 0 {
+        boot_display.draw_success_screen(message.as_str());
+    } else {
+        boot_display.draw_error_back_screen(message.as_str());
+    }
 }

@@ -18,9 +18,8 @@
 
 mod history;
 mod production;
-pub use production::ProductionNavigationState;
 use history::NavigationHistory;
-
+pub use production::ProductionNavigationState;
 
 pub struct NavigationState {
     pub(crate) owner: crate::runtime::navigation::NavigationOwner,
@@ -58,48 +57,44 @@ impl NavigationState {
             app: crate::runtime::input::WalletApp::new(),
             history: NavigationHistory::new(),
             seed_tools_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::SEED_TOOLS_LABELS
+                crate::runtime::navigation::ui_graph::SEED_TOOLS_LABELS,
             ),
-            import_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::IMPORT_LABELS
-            ),
+            import_menu: crate::runtime::input::Menu::from_items(crate::runtime::navigation::ui_graph::IMPORT_LABELS),
             single_sig_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::SINGLE_SIG_LABELS
+                crate::runtime::navigation::ui_graph::SINGLE_SIG_LABELS,
             ),
             multisig_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::MULTISIG_LABELS
+                crate::runtime::navigation::ui_graph::MULTISIG_LABELS,
             ),
             multisig_descriptors_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::MULTISIG_DESCRIPTOR_LABELS
+                crate::runtime::navigation::ui_graph::MULTISIG_DESCRIPTOR_LABELS,
             ),
-            export_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::EXPORT_LABELS
-            ),
+            export_menu: crate::runtime::input::Menu::from_items(crate::runtime::navigation::ui_graph::EXPORT_LABELS),
             seed_backup_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::SEED_BACKUP_LABELS
+                crate::runtime::navigation::ui_graph::SEED_BACKUP_LABELS,
             ),
             watch_only_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::WATCH_ONLY_LABELS
+                crate::runtime::navigation::ui_graph::WATCH_ONLY_LABELS,
             ),
             signing_keys_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::SIGNING_KEYS_LABELS
+                crate::runtime::navigation::ui_graph::SIGNING_KEYS_LABELS,
             ),
             qr_export_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::QR_EXPORT_LABELS
+                crate::runtime::navigation::ui_graph::QR_EXPORT_LABELS,
             ),
             xprv_export_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::XPRV_EXPORT_LABELS
+                crate::runtime::navigation::ui_graph::XPRV_EXPORT_LABELS,
             ),
             settings_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::production::SETTINGS_ITEMS
+                crate::runtime::navigation::production::SETTINGS_ITEMS,
             ),
             production: ProductionNavigationState::new(),
             sd_import_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::SD_IMPORT_LABELS
+                crate::runtime::navigation::ui_graph::SD_IMPORT_LABELS,
             ),
             #[cfg(feature = "workflow-tests")]
             workflow_tests_menu: crate::runtime::input::Menu::from_items(
-                &crate::runtime::workflow_tests::category_labels()
+                &crate::runtime::workflow_tests::category_labels(),
             ),
             #[cfg(feature = "workflow-tests")]
             workflow_category_menu: crate::runtime::input::Menu::new(),

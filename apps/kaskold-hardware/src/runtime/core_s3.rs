@@ -20,7 +20,6 @@ pub(crate) fn leave_credential_watchdog_budget() {
     REQUESTED_WATCHDOG_MS.store(DEFAULT_WATCHDOG_MS, Ordering::Release);
 }
 
-
 #[inline]
 pub(crate) fn requested_watchdog_ms() -> u32 {
     REQUESTED_WATCHDOG_MS.load(Ordering::Acquire)
@@ -97,21 +96,17 @@ pub(crate) fn recovery_notice() -> Option<RecoveryNotice> {
             title: "SYSTEM RECOVERED",
             detail: "Previous session stopped responding",
         }),
-        SocResetReason::SysBrownOut | SocResetReason::CorePwrGlitch => Some(RecoveryNotice {
-            code: "SYS-PWR-01",
-            title: "POWER RESET",
-            detail: "Power became unstable",
-        }),
+        SocResetReason::SysBrownOut | SocResetReason::CorePwrGlitch => {
+            Some(RecoveryNotice { code: "SYS-PWR-01", title: "POWER RESET", detail: "Power became unstable" })
+        }
         SocResetReason::CoreEfuseCrc => Some(RecoveryNotice {
             code: "SYS-EFUSE-01",
             title: "SECURITY RESET",
             detail: "eFuse integrity reset detected",
         }),
-        _ => Some(RecoveryNotice {
-            code: "SYS-RST-01",
-            title: "SYSTEM RESTARTED",
-            detail: "Unexpected reset detected",
-        }),
+        _ => {
+            Some(RecoveryNotice { code: "SYS-RST-01", title: "SYSTEM RESTARTED", detail: "Unexpected reset detected" })
+        }
     }
 }
 
@@ -119,7 +114,9 @@ pub(crate) fn show_recovery_notice(
     display: &mut crate::hw::display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
 ) {
-    let Some(notice) = recovery_notice() else { return; };
+    let Some(notice) = recovery_notice() else {
+        return;
+    };
     display.draw_system_recovery_screen(notice.title, notice.detail, notice.code);
     delay.delay_millis(2_500);
 }

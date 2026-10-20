@@ -15,10 +15,7 @@ fn import_replaces_prior_export_without_inheriting_direction_or_filename() {
 
     assert!(matches!(
         operation,
-        EncryptedFileOperation::Import {
-            kind: EncryptedPayloadKind::Text(TextFileKind::Kpub),
-            ..
-        }
+        EncryptedFileOperation::Import { kind: EncryptedPayloadKind::Text(TextFileKind::Kpub), .. }
     ));
     assert_eq!(operation.back_state(), crate::runtime::navigation::continuation!(SdKpubFileList));
 }

@@ -1,9 +1,9 @@
 //! Decrypt and route the payload selected by an explicit import operation.
 
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
+use super::super::super::{display, AppData};
 use super::{content, crypto, navigation::finish_operation};
-use super::super::super::{AppData, display};
 use crate::runtime::data::EncryptedFileOperation;
+use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 
 pub(super) fn load_encrypted_payload(
     ad: &mut AppData,
@@ -19,20 +19,14 @@ pub(super) fn load_encrypted_payload(
     boot_display.draw_loading_screen("Decrypting...");
     let passphrase_length = ad.wallet.seeds.pp_input.len;
     let mut passphrase = [0u8; 64];
-    passphrase[..passphrase_length]
-        .copy_from_slice(&ad.wallet.seeds.pp_input.buf[..passphrase_length]);
+    passphrase[..passphrase_length].copy_from_slice(&ad.wallet.seeds.pp_input.buf[..passphrase_length]);
     let Ok(mut plaintext) = crate::services::memory::zeroed_bytes(1_024) else {
         show_rejection(boot_display, delay, "Not enough memory", 2_000, ErrorSound::Beep);
         finish_operation(ad, back_state);
         return;
     };
 
-    match crypto::decrypt_envelope(
-        ad,
-        boot_display,
-        &passphrase[..passphrase_length],
-        &mut plaintext,
-    ) {
+    match crypto::decrypt_envelope(ad, boot_display, &passphrase[..passphrase_length], &mut plaintext) {
         Ok(length) => {
             ad.storage.export_file.encrypted_operation = EncryptedFileOperation::None;
             ad.wallet.seeds.pp_input.reset();

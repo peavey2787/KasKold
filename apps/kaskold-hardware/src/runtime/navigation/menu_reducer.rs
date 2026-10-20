@@ -7,7 +7,10 @@
 mod catalog;
 mod routes;
 
-use crate::runtime::{data::{AppData, OperationKind}, input::AppState};
+use crate::runtime::{
+    data::{AppData, OperationKind},
+    input::AppState,
+};
 
 #[derive(Clone, Copy)]
 pub(super) struct MenuResolution {
@@ -22,11 +25,7 @@ pub(super) enum ResolveError {
     MissingDestination,
 }
 
-pub(super) fn resolve(
-    ad: &AppData,
-    state: AppState,
-    index: u8,
-) -> Result<MenuResolution, ResolveError> {
+pub(super) fn resolve(ad: &AppData, state: AppState, index: u8) -> Result<MenuResolution, ResolveError> {
     let item = catalog::item_for(state, index).ok_or(ResolveError::MissingItem)?;
     if !guard_allows(ad, item.guard) {
         crate::log!("   NAV menu guard rejected {} ({})", item.action, item.guard);
@@ -49,11 +48,13 @@ fn guard_allows(ad: &AppData, guard: &str) -> bool {
         // Hardware-present guards are kept fail-closed here. Hardware-owning
         // controllers validate those capabilities before emitting a fixed route;
         // Stage 3 will move those facts into typed operation events.
-        "review_complete" => ad.navigation.app.review_authorized
-            && ad.navigation.app.total_inputs > 0,
+        "review_complete" => ad.navigation.app.review_authorized && ad.navigation.app.total_inputs > 0,
         "review_available" => ad.navigation.app.review_pages > 0,
-        "camera_available" | "sd_present" | "sd_present_and_seed_loaded"
-        | "sd_jpeg_available" | "sd_covenant_available" => false,
+        "camera_available"
+        | "sd_present"
+        | "sd_present_and_seed_loaded"
+        | "sd_jpeg_available"
+        | "sd_covenant_available" => false,
         _ => false,
     }
 }

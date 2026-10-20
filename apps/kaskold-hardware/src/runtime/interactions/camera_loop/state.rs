@@ -31,8 +31,7 @@ pub(super) struct FrameState {
 
 impl FrameState {
     fn ensure_buffers(&mut self) -> bool {
-        ensure_zeroed_len(&mut self.db, DB_SIZE)
-            && ensure_zeroed_len(&mut self.crop, CROP_SIZE)
+        ensure_zeroed_len(&mut self.db, DB_SIZE) && ensure_zeroed_len(&mut self.crop, CROP_SIZE)
     }
 
     pub(super) fn db_ptr(&mut self) -> *mut u8 {
@@ -113,12 +112,7 @@ impl CameraSessionState {
     const fn empty() -> Self {
         Self {
             frame: FrameState { number: 0, db: Vec::new(), crop: Vec::new() },
-            decoder: QrDecoderState {
-                cooldown: 0,
-                finders_beeped: false,
-                error_showing: false,
-                guide_version: 0,
-            },
+            decoder: QrDecoderState { cooldown: 0, finders_beeped: false, error_showing: false, guide_version: 0 },
             multiframe: MultiFrameState {
                 buffer: Vec::new(),
                 received: [false; MF_MAX_FRAMES],
@@ -137,7 +131,9 @@ impl CameraSessionState {
     }
 
     pub(super) fn enter_screen(&mut self, state: crate::runtime::input::AppState) -> bool {
-        if self.active_screen == Some(state) { return false; }
+        if self.active_screen == Some(state) {
+            return false;
+        }
         self.active_screen = Some(state);
         self.capture_failures = 0;
         true

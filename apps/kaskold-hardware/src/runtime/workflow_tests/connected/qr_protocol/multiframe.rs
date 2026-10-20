@@ -1,43 +1,66 @@
-use alloc::vec;
-use crate::runtime::input::AppState;
 use super::QrContext;
+use crate::runtime::input::AppState;
+use alloc::vec;
 
 const FRAGMENT: usize = 120;
 
 pub(super) fn exercise(ctx: &mut QrContext<'_, '_, '_>) -> bool {
-    let Some(payload) = super::super::signing::fixture::wire(
-        ctx.ad,
-        super::super::signing::fixture::WireFormat::CompactKspt,
-    ) else { return false; };
-    let Some(frames) = encode_frames(&payload) else { return false; };
-    if frames.len() < 3 || !enter_scan(ctx) { return false; }
+    let Some(payload) =
+        super::super::signing::fixture::wire(ctx.ad, super::super::signing::fixture::WireFormat::CompactKspt)
+    else {
+        return false;
+    };
+    let Some(frames) = encode_frames(&payload) else {
+        return false;
+    };
+    if frames.len() < 3 || !enter_scan(ctx) {
+        return false;
+    }
     let mut session = new_camera_session();
     feed(ctx, &mut session, &frames[1]);
     feed(ctx, &mut session, &frames[1]);
-    if ctx.ad.navigation.app.state != AppState::ScanQR { return false; }
-    let Some(mixed) = mixed_frame(&frames[1]) else { return false; };
+    if ctx.ad.navigation.app.state != AppState::ScanQR {
+        return false;
+    }
+    let Some(mixed) = mixed_frame(&frames[1]) else {
+        return false;
+    };
     feed(ctx, &mut session, &mixed);
-    let Some(conflict) = conflicting_duplicate(&frames[1]) else { return false; };
+    let Some(conflict) = conflicting_duplicate(&frames[1]) else {
+        return false;
+    };
     feed(ctx, &mut session, &conflict);
-    if ctx.ad.navigation.app.state != AppState::ScanQR { return false; }
+    if ctx.ad.navigation.app.state != AppState::ScanQR {
+        return false;
+    }
     feed(ctx, &mut session, &frames[0]);
-    if ctx.ad.navigation.app.state != AppState::ScanQR { return false; }
-    for frame in frames.iter().skip(2) { feed(ctx, &mut session, frame); }
-    if ctx.ad.navigation.app.state != AppState::ConfirmTx { return false; }
-    if !ctx.tx_back() || !super::super::root::home_ok(ctx.ad) { return false; }
-    if !invalid_frame_matrix() { return false; }
+    if ctx.ad.navigation.app.state != AppState::ScanQR {
+        return false;
+    }
+    for frame in frames.iter().skip(2) {
+        feed(ctx, &mut session, frame);
+    }
+    if ctx.ad.navigation.app.state != AppState::ConfirmTx {
+        return false;
+    }
+    if !ctx.tx_back() || !super::super::root::home_ok(ctx.ad) {
+        return false;
+    }
+    if !invalid_frame_matrix() {
+        return false;
+    }
     log!("KASKOLD_WORKFLOW_TESTS: QR MULTIFRAME OUT-OF-ORDER/DUPLICATE/MIXED/MISSING/COMPLETE PASS {}", frames.len());
     true
 }
-
 
 fn new_camera_session() -> crate::runtime::interactions::camera_loop::CameraSessionState {
     crate::runtime::interactions::camera_loop::CameraSessionState::new()
 }
 
-
 fn enter_scan(ctx: &mut QrContext<'_, '_, '_>) -> bool {
-    if !super::super::root::home_ok(ctx.ad) { return false; }
+    if !super::super::root::home_ok(ctx.ad) {
+        return false;
+    }
     let zone = crate::ui::layout::HOME_GRID_ZONES[1];
     crate::runtime::interactions::menu::handle_connected_root_probe(ctx.ad, zone.x + zone.w / 2, zone.y + zone.h / 2)
         && ctx.ad.navigation.app.state == AppState::ScanQR
@@ -49,7 +72,12 @@ fn feed(
     frame: &[u8],
 ) {
     crate::runtime::interactions::camera_loop::workflow_process_multiframe(
-        session, frame, ctx.ad, ctx.display, ctx.delay, ctx.i2c,
+        session,
+        frame,
+        ctx.ad,
+        ctx.display,
+        ctx.delay,
+        ctx.i2c,
     );
 }
 
@@ -72,8 +100,13 @@ fn mixed_frame(source: &[u8]) -> Option<alloc::vec::Vec<u8>> {
     let other = shared_signer::qr_frame::session_id(b"different QR session");
     let mut output = vec![0u8; source.len() + 8];
     let len = shared_signer::qr_frame::encode_frame(
-        &other, parsed.frame_index, parsed.total_frames, parsed.fragment, &mut output,
-    ).ok()?;
+        &other,
+        parsed.frame_index,
+        parsed.total_frames,
+        parsed.fragment,
+        &mut output,
+    )
+    .ok()?;
     output.truncate(len);
     Some(output)
 }
@@ -84,8 +117,13 @@ fn conflicting_duplicate(source: &[u8]) -> Option<alloc::vec::Vec<u8>> {
     fragment[0] ^= 0x01;
     let mut output = vec![0u8; source.len() + 8];
     let len = shared_signer::qr_frame::encode_frame(
-        &parsed.session_id, parsed.frame_index, parsed.total_frames, &fragment, &mut output,
-    ).ok()?;
+        &parsed.session_id,
+        parsed.frame_index,
+        parsed.total_frames,
+        &fragment,
+        &mut output,
+    )
+    .ok()?;
     output.truncate(len);
     Some(output)
 }

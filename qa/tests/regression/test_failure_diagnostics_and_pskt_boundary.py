@@ -4,6 +4,7 @@ from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
 from portal_source import kaskold_source  # noqa: E402
+from firmware.source_contract_support import flat  # noqa: E402
 from pathlib import Path
 import unittest
 
@@ -58,7 +59,7 @@ class FailureDiagnosticsAndPsktBoundaryTests(unittest.TestCase):
         self.assertIn("measure_body(remaining) <= ERROR_TEXT_WIDTH", errors)
         self.assertNotIn("truncate_chars", errors)
         self.assertNotIn("split_recoverable_message", errors)
-        self.assertIn("message,\n            Some(code)", errors)
+        self.assertIn("message, Some(code)", flat(errors))
         self.assertIn("Password must be at least 12 characters", persist)
 
     def test_robolectric_runs_on_supported_sdk_while_app_stays_api_37(self) -> None:

@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 // Wallet, seed, address, export, and multisig screens.
 
 // One geometry source for both rendering and touch hit-testing.
@@ -40,7 +39,6 @@ pub(crate) fn word_count_choice_at(x: u16, y: u16) -> Option<u8> {
     None
 }
 
-
 pub(super) const ENTROPY_RECOVERY_BUTTON_Y: u16 = 172;
 pub(super) const ENTROPY_RECOVERY_BUTTON_HEIGHT: u16 = 44;
 pub(super) const ENTROPY_RECOVERY_LEFT_X: u16 = 18;
@@ -55,7 +53,9 @@ pub(crate) enum EntropyRecoveryChoice {
 
 pub(crate) fn entropy_recovery_choice_at(x: u16, y: u16) -> Option<EntropyRecoveryChoice> {
     let y_end = ENTROPY_RECOVERY_BUTTON_Y + ENTROPY_RECOVERY_BUTTON_HEIGHT;
-    if y < ENTROPY_RECOVERY_BUTTON_Y || y > y_end { return None; }
+    if y < ENTROPY_RECOVERY_BUTTON_Y || y > y_end {
+        return None;
+    }
     if (ENTROPY_RECOVERY_LEFT_X..=ENTROPY_RECOVERY_LEFT_X + ENTROPY_RECOVERY_BUTTON_WIDTH).contains(&x) {
         return Some(EntropyRecoveryChoice::Retry);
     }

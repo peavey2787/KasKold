@@ -15,9 +15,8 @@ use crate::hw::display::BootDisplay;
 mod attestation;
 
 use super::{
-    draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_body,
-    measure_header, measure_hint, measure_title, COLOR_BG, COLOR_DANGER, COLOR_ORANGE,
-    COLOR_TEXT, COLOR_TEXT_DIM, KASPA_TEAL,
+    draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_hint,
+    measure_title, COLOR_BG, COLOR_DANGER, COLOR_ORANGE, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_TEAL,
 };
 
 #[cfg(feature = "production")]
@@ -40,21 +39,10 @@ where
     let raw_coin: ImageRawLE<Rgb565> = ImageRawLE::new(coin, 90);
     Image::new(&raw_coin, Point::new(10, 6)).draw(display).ok();
 
-    attestation::draw_attestation_details(
-        display,
-        version,
-        commit,
-        image_hash,
-        phrase,
-        125,
-        155,
-        hardware_secure_boot,
-    )
+    attestation::draw_attestation_details(display, version, commit, image_hash, phrase, 125, 155, hardware_secure_boot)
 }
 
-fn show_logo_screen<D>(
-    display: &mut D,
-) -> Result<(), &'static str>
+fn show_logo_screen<D>(display: &mut D) -> Result<(), &'static str>
 where
     D: DrawTarget<Color = Rgb565>,
 {
@@ -76,69 +64,30 @@ where
         let _ = core::fmt::Write::write_fmt(&mut label, format_args!("V{}", version_text.trim_start_matches('v')));
         label
     };
-    draw_lato_hint(
-        display,
-        version_label.as_str(),
-        (320 - measure_hint(version_label.as_str())) / 2,
-        186,
-        COLOR_TEXT,
-    );
+    draw_lato_hint(display, version_label.as_str(), (320 - measure_hint(version_label.as_str())) / 2, 186, COLOR_TEXT);
 
     let site = "kaspa.org";
-    draw_lato_hint(
-        display,
-        site,
-        (320 - measure_hint(site)) / 2,
-        206,
-        KASPA_TEAL,
-    );
+    draw_lato_hint(display, site, (320 - measure_hint(site)) / 2, 206, KASPA_TEAL);
 
     Ok(())
 }
 
-fn show_panic_screen<D>(
-    display: &mut D,
-    message: &str,
-) -> Result<(), &'static str>
+fn show_panic_screen<D>(display: &mut D, message: &str) -> Result<(), &'static str>
 where
     D: DrawTarget<Color = Rgb565>,
 {
-    display
-        .clear(COLOR_DANGER)
-        .map_err(|_| "Clear failed")?;
+    display.clear(COLOR_DANGER).map_err(|_| "Clear failed")?;
 
-    let heading = if message.starts_with("ATTESTATION:") {
-        "ATTESTATION FAILED"
-    } else {
-        "!!! PANIC !!!"
-    };
+    let heading = if message.starts_with("ATTESTATION:") { "ATTESTATION FAILED" } else { "!!! PANIC !!!" };
     let panic_width = measure_header(heading);
-    draw_oswald_header(
-        display,
-        heading,
-        (320 - panic_width) / 2,
-        60,
-        COLOR_TEXT,
-    );
+    draw_oswald_header(display, heading, (320 - panic_width) / 2, 60, COLOR_TEXT);
 
     let truncated = super::truncate_chars(message, 35);
     let message_width = measure_body(truncated);
-    draw_lato_body(
-        display,
-        truncated,
-        (320 - message_width) / 2,
-        120,
-        COLOR_TEXT,
-    );
+    draw_lato_body(display, truncated, (320 - message_width) / 2, 120, COLOR_TEXT);
 
     let no_boot_width = measure_header("NO BOOT");
-    draw_oswald_header(
-        display,
-        "NO BOOT",
-        (320 - no_boot_width) / 2,
-        180,
-        COLOR_TEXT,
-    );
+    draw_oswald_header(display, "NO BOOT", (320 - no_boot_width) / 2, 180, COLOR_TEXT);
     Ok(())
 }
 
@@ -164,58 +113,26 @@ where
 
     let label = "FRAMES";
     let label_width = measure_hint(label);
-    draw_lato_hint(
-        display,
-        label,
-        column_center - label_width / 2,
-        184,
-        COLOR_TEXT_DIM,
-    );
+    draw_lato_hint(display, label, column_center - label_width / 2, 184, COLOR_TEXT_DIM);
 
     let text_width = measure_title(text);
-    draw_lato_title(
-        display,
-        text,
-        column_center - text_width / 2,
-        216,
-        KASPA_TEAL,
-    );
+    draw_lato_title(display, text, column_center - text_width / 2, 216, KASPA_TEAL);
 }
 
 fn draw_sig_status<D>(display: &mut D, present: u32, required: u32)
 where
     D: DrawTarget<Color = Rgb565>,
 {
-    let color = if present >= required {
-        KASPA_TEAL
-    } else {
-        COLOR_ORANGE
-    };
+    let color = if present >= required { KASPA_TEAL } else { COLOR_ORANGE };
     let column_center = 278;
     let label = "SIGNER";
     let label_width = measure_hint(label);
-    draw_lato_hint(
-        display,
-        label,
-        column_center - label_width / 2,
-        40,
-        COLOR_TEXT_DIM,
-    );
+    draw_lato_hint(display, label, column_center - label_width / 2, 40, COLOR_TEXT_DIM);
 
     let mut signature_count = heapless::String::<24>::new();
-    core::fmt::Write::write_fmt(
-        &mut signature_count,
-        format_args!("{present}/{required}"),
-    )
-    .ok();
+    core::fmt::Write::write_fmt(&mut signature_count, format_args!("{present}/{required}")).ok();
     let count_width = measure_title(signature_count.as_str());
-    draw_lato_title(
-        display,
-        signature_count.as_str(),
-        column_center - count_width / 2,
-        70,
-        color,
-    );
+    draw_lato_title(display, signature_count.as_str(), column_center - count_width / 2, 70, color);
 }
 
 const SECURITY_BADGE_SIZE: usize = 30;
@@ -254,10 +171,12 @@ where
         crate::services::verify::boot_security::BootSecurityLevel::None => {
             Line::new(Point::new(x_origin + 4, 6), Point::new(x_origin + 26, 28))
                 .into_styled(PrimitiveStyle::with_stroke(COLOR_DANGER, 4))
-                .draw(display).ok();
+                .draw(display)
+                .ok();
             Line::new(Point::new(x_origin + 26, 6), Point::new(x_origin + 4, 28))
                 .into_styled(PrimitiveStyle::with_stroke(COLOR_DANGER, 4))
-                .draw(display).ok();
+                .draw(display)
+                .ok();
         }
     }
 }
@@ -271,15 +190,12 @@ where
         for x in 0..SECURITY_BADGE_SIZE {
             let source_x = x * SECURITY_BADGE_SOURCE_SIZE / SECURITY_BADGE_SIZE;
             let index = (source_y * SECURITY_BADGE_SOURCE_SIZE + source_x) * 2;
-            if index + 1 >= raw.len() { return; }
+            if index + 1 >= raw.len() {
+                return;
+            }
             let value = u16::from(raw[index]) | (u16::from(raw[index + 1]) << 8);
-            let color = Rgb565::new(
-                ((value >> 11) & 0x1f) as u8,
-                ((value >> 5) & 0x3f) as u8,
-                (value & 0x1f) as u8,
-            );
-            Pixel(Point::new(x_origin + x as i32, SECURITY_BADGE_Y + y as i32), color)
-                .draw(display).ok();
+            let color = Rgb565::new(((value >> 11) & 0x1f) as u8, ((value >> 5) & 0x3f) as u8, (value & 0x1f) as u8);
+            Pixel(Point::new(x_origin + x as i32, SECURITY_BADGE_Y + y as i32), color).draw(display).ok();
         }
     }
 }
@@ -288,12 +204,8 @@ fn draw_back_button<D>(display: &mut D)
 where
     D: DrawTarget<Color = Rgb565>,
 {
-    let back: ImageRawLE<Rgb565> = ImageRawLE::new(
-        super::icon_data::ICON_BACK,
-        super::icon_data::ICON_BACK_W,
-    );
+    let back: ImageRawLE<Rgb565> = ImageRawLE::new(super::icon_data::ICON_BACK, super::icon_data::ICON_BACK_W);
     Image::new(&back, Point::new(0, 0)).draw(display).ok();
-
 }
 
 fn clear_keep_nav<D>(display: &mut D)
@@ -321,14 +233,7 @@ impl<'a> BootDisplay<'a> {
         phrase: &str,
         hardware_secure_boot: bool,
     ) -> Result<(), &'static str> {
-        show_verification_screen(
-            &mut self.display,
-            version,
-            commit,
-            image_hash,
-            phrase,
-            hardware_secure_boot
-        )
+        show_verification_screen(&mut self.display, version, commit, image_hash, phrase, hardware_secure_boot)
     }
 
     pub fn show_logo_screen(&mut self) -> Result<(), &'static str> {

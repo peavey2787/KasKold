@@ -33,10 +33,7 @@ where
     }
 }
 
-pub(crate) fn power_cycle_card<I2C>(
-    i2c: &mut I2C,
-    delay: &mut Delay,
-) -> Result<(), &'static str>
+pub(crate) fn power_cycle_card<I2C>(i2c: &mut I2C, delay: &mut Delay) -> Result<(), &'static str>
 where
     I2C: embedded_hal::i2c::I2c,
 {
@@ -52,11 +49,7 @@ where
     Ok(())
 }
 
-fn cycle_isolated_rail<I2C>(
-    i2c: &mut I2C,
-    before: u8,
-    delay: &mut Delay,
-) -> Result<(), &'static str>
+fn cycle_isolated_rail<I2C>(i2c: &mut I2C, before: u8, delay: &mut Delay) -> Result<(), &'static str>
 where
     I2C: embedded_hal::i2c::I2c,
 {
@@ -103,11 +96,12 @@ where
 {
     let value = read_ldo_enable(i2c, "SD rail PMU readback failed")?;
     let on = value & ALDO4_BIT != 0;
-    crate::log!(
-        "[SD] rail ALDO4 readback LDO_EN1=0x{:02x} state={}",
-        value, if on { "ON" } else { "OFF" },
-    );
-    if on == expected_on { Ok(()) } else { Err("SD rail power-cycle readback mismatch") }
+    crate::log!("[SD] rail ALDO4 readback LDO_EN1=0x{:02x} state={}", value, if on { "ON" } else { "OFF" },);
+    if on == expected_on {
+        Ok(())
+    } else {
+        Err("SD rail power-cycle readback mismatch")
+    }
 }
 
 fn read_pmu_register<I2C>(i2c: &mut I2C, register: u8) -> Result<u8, &'static str>
@@ -115,8 +109,7 @@ where
     I2C: embedded_hal::i2c::I2c,
 {
     let mut value = [0u8; 1];
-    i2c.write_read(AXP2101_ADDR, &[register], &mut value)
-        .map_err(|_| "SD rail PMU diagnostic read failed")?;
+    i2c.write_read(AXP2101_ADDR, &[register], &mut value).map_err(|_| "SD rail PMU diagnostic read failed")?;
     Ok(value[0])
 }
 
@@ -125,19 +118,13 @@ where
     I2C: embedded_hal::i2c::I2c,
 {
     let mut value = [0u8; 1];
-    i2c.write_read(AXP2101_ADDR, &[AXP_REG_LDO_EN1], &mut value)
-        .map_err(|_| error)?;
+    i2c.write_read(AXP2101_ADDR, &[AXP_REG_LDO_EN1], &mut value).map_err(|_| error)?;
     Ok(value[0])
 }
 
-fn write_ldo_enable<I2C>(
-    i2c: &mut I2C,
-    value: u8,
-    error: &'static str,
-) -> Result<(), &'static str>
+fn write_ldo_enable<I2C>(i2c: &mut I2C, value: u8, error: &'static str) -> Result<(), &'static str>
 where
     I2C: embedded_hal::i2c::I2c,
 {
-    i2c.write(AXP2101_ADDR, &[AXP_REG_LDO_EN1, value])
-        .map_err(|_| error)
+    i2c.write(AXP2101_ADDR, &[AXP_REG_LDO_EN1, value]).map_err(|_| error)
 }

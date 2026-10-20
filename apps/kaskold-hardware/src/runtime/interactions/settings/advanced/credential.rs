@@ -1,16 +1,14 @@
+use crate::services::credential_policy::{confirmation_digest, confirmation_matches, validate, CredentialKind};
 use crate::{
+    hw::display::BootDisplay,
+    runtime::data::{AppData, ConfirmationState},
     runtime::interactions::{
         feedback::{show_rejection, ErrorSound},
         TouchInput,
     },
-    hw::display::BootDisplay,
-    runtime::{
-        data::{AppData, ConfirmationState},
-    },
     services::persistent_wallet::{PersistError, PersistentWallet},
 };
 use shared_signer::bytes::zeroize_bytes;
-use crate::services::credential_policy::{confirmation_digest, confirmation_matches, validate, CredentialKind,};
 
 use super::input::{edit, EditAction};
 
@@ -54,13 +52,7 @@ fn submit_duress(
     if let Err(error) = validate(kind, &secret[..len]) {
         zeroize_bytes(&mut secret);
         restart_duress_entry(ad);
-        show_rejection(
-            display,
-            delay,
-            PersistError::from(error).message(),
-            1700,
-            ErrorSound::Beep,
-        );
+        show_rejection(display, delay, PersistError::from(error).message(), 1700, ErrorSound::Beep);
         return Some(true);
     }
 
@@ -79,24 +71,15 @@ fn submit_duress(
     {
         zeroize_bytes(&mut secret);
         restart_duress_entry(ad);
-        let message = if kind == CredentialKind::Pin {
-            "Duress PINs do not match"
-        } else {
-            "Duress passwords do not match"
-        };
+        let message =
+            if kind == CredentialKind::Pin { "Duress PINs do not match" } else { "Duress passwords do not match" };
         show_rejection(display, delay, message, 1700, ErrorSound::Beep);
         return Some(true);
     }
 
-    let wait_message = if kind == CredentialKind::Pin {
-        "Saving duress PIN..."
-    } else {
-        "Saving duress password..."
-    };
+    let wait_message = if kind == CredentialKind::Pin { "Saving duress PIN..." } else { "Saving duress password..." };
     display.draw_wait_screen(wait_message);
-    let result = persistence.enable_duress(
-        &secret[..len], &ad.wallet.seeds.seed_mgr, i2c, delay,
-    );
+    let result = persistence.enable_duress(&secret[..len], &ad.wallet.seeds.seed_mgr, i2c, delay);
     zeroize_bytes(&mut secret);
     ad.wallet.seeds.pp_input.reset();
     ad.storage.persistence.advanced.clear_pending();
@@ -116,8 +99,5 @@ fn submit_duress(
 fn restart_duress_entry(ad: &mut AppData) {
     ad.wallet.seeds.pp_input.reset();
     ad.storage.persistence.advanced.clear_pending();
-    crate::runtime::effects::replace(
-        ad,
-        crate::runtime::navigation::route!(AdvancedDuressEntry),
-    );
+    crate::runtime::effects::replace(ad, crate::runtime::navigation::route!(AdvancedDuressEntry));
 }

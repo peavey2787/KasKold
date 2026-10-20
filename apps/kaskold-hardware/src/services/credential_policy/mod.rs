@@ -5,16 +5,14 @@
 //! adapter in the ESP application prevents either GPL core from depending on
 //! the other solely to share a two-variant discriminator.
 
-pub use offline_signer::crypto::credential::{CredentialKind, SALT_SIZE};
-pub use kaskold_hardware_core::security::credential::{
-    confirmation_matches, unlock_attempt_limit_reached, unlock_attempts_remaining,
-    validate_entered_password, CredentialError, MAX_UNLOCK_FAILURES,
-};
 #[cfg(not(feature = "hardware-tests"))]
 pub use kaskold_hardware_core::security::credential::retry_delay_millis;
-use kaskold_hardware_core::security::credential::{
-    self as device_policy, CredentialPolicyKind,
+use kaskold_hardware_core::security::credential::{self as device_policy, CredentialPolicyKind};
+pub use kaskold_hardware_core::security::credential::{
+    confirmation_matches, unlock_attempt_limit_reached, unlock_attempts_remaining, validate_entered_password,
+    CredentialError, MAX_UNLOCK_FAILURES,
 };
+pub use offline_signer::crypto::credential::{CredentialKind, SALT_SIZE};
 
 #[inline]
 const fn policy_kind(kind: CredentialKind) -> CredentialPolicyKind {

@@ -1,8 +1,8 @@
 //! Generate a canonical v3 signed firmware-update manifest.
 
-use sha2::{Digest, Sha256};
 use kaskold_hardware_core::update::manifest as update_manifest;
 use kaskold_hardware_core::update::manifest::FirmwareUpdateManifest;
+use sha2::{Digest, Sha256};
 use std::{env, fs, path::Path};
 
 fn main() {
@@ -30,7 +30,8 @@ fn run() -> Result<(), String> {
         return Err("security-version must be within ESP32-S3 range 1..=16".to_string());
     }
     let partition_layout_hash = partition_hash(board, &args[7])?;
-    let image_size = u32::try_from(image.len()).map_err(|_| "firmware image exceeds u32 length".to_string())?;
+    let image_size =
+        u32::try_from(image.len()).map_err(|_| "firmware image exceeds u32 length".to_string())?;
     let image_hash = sha256(&image);
 
     let mut manifest = FirmwareUpdateManifest {
@@ -48,17 +49,28 @@ fn run() -> Result<(), String> {
     manifest.signature = firmware_tools::sign_release_digest(&key, &manifest.signing_digest())
         .map_err(|error| format!("release signature rejected: {error:?}"))?;
     fs::write(&args[8], manifest.encode()).map_err(|error| format!("write manifest: {error}"))?;
-    println!("Wrote {}-byte canonical KSFU v3 manifest: {}", update_manifest::MANIFEST_LEN, args[8]);
+    println!(
+        "Wrote {}-byte canonical KSFU v3 manifest: {}",
+        update_manifest::MANIFEST_LEN,
+        args[8]
+    );
     println!("release_sequence={}", manifest.release_sequence);
     println!("security_version={}", manifest.security_version);
     println!("image_sha256={}", hex(&manifest.image_hash));
-    println!("partition_layout_sha256={}", hex(&manifest.partition_layout_hash));
+    println!(
+        "partition_layout_sha256={}",
+        hex(&manifest.partition_layout_hash)
+    );
     Ok(())
 }
 
 fn parse_positive_u32(value: &str, label: &str) -> Result<u32, String> {
-    let parsed = value.parse::<u32>().map_err(|_| format!("{label} must be an integer"))?;
-    (parsed > 0).then_some(parsed).ok_or_else(|| format!("{label} must be greater than zero"))
+    let parsed = value
+        .parse::<u32>()
+        .map_err(|_| format!("{label} must be an integer"))?;
+    (parsed > 0)
+        .then_some(parsed)
+        .ok_or_else(|| format!("{label} must be greater than zero"))
 }
 
 fn board_id(name: &str) -> Result<u8, String> {
@@ -107,7 +119,10 @@ fn parse_component(value: Option<&str>, label: &str) -> Result<u32, String> {
 
 fn read_key(path: &Path) -> Result<[u8; 32], String> {
     let bytes = fs::read(path).map_err(|error| format!("read signing key: {error}"))?;
-    bytes.as_slice().try_into().map_err(|_| "signing key must be exactly 32 bytes".to_string())
+    bytes
+        .as_slice()
+        .try_into()
+        .map_err(|_| "signing key must be exactly 32 bytes".to_string())
 }
 
 fn sha256(data: &[u8]) -> [u8; 32] {

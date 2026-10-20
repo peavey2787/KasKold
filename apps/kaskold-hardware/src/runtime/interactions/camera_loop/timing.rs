@@ -16,8 +16,6 @@
 
 //! Camera timing and byte conversion helpers.
 
-
-
 /// Read SYSTIMER UNIT0 counter for timing (16MHz clock)
 /// Returns value in 16MHz ticks. Divide by 16000 for ms.
 #[inline(always)]

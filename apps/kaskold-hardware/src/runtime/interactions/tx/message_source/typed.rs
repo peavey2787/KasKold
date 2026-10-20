@@ -1,6 +1,7 @@
-use super::super::{AppData, display};
-use crate::{
-    runtime::interactions::{feedback::{show_rejection, ErrorSound}, keyboard::{handle_passphrase_keyboard, KeyboardAction}},
+use super::super::{display, AppData};
+use crate::runtime::interactions::{
+    feedback::{show_rejection, ErrorSound},
+    keyboard::{handle_passphrase_keyboard, KeyboardAction},
 };
 
 pub(super) fn handle(
@@ -31,7 +32,9 @@ pub(super) fn handle(
 
 fn store_message(ad: &mut AppData) -> Result<(), ()> {
     let message = ad.wallet.seeds.pp_input.as_str();
-    if message.is_empty() { return Err(()); }
+    if message.is_empty() {
+        return Err(());
+    }
     let length = message.len().min(ad.signing.message.payload.len());
     ad.signing.message.payload.fill(0);
     ad.signing.message.payload[..length].copy_from_slice(&message.as_bytes()[..length]);

@@ -1,7 +1,7 @@
 //! Per-wallet activation credential derivation and device-bound verification.
 
-use offline_signer::crypto::password_kdf::PasswordKdfPurpose;
 use crate::services::credential_policy::{self, CredentialKind, SALT_SIZE};
+use offline_signer::crypto::password_kdf::PasswordKdfPurpose;
 
 use crate::wallet::seed_manager::WalletProtection;
 
@@ -28,13 +28,7 @@ impl PersistentWallet<'_> {
         salt: &[u8; SALT_SIZE],
         liveness: &mut (impl FnMut() + ?Sized),
     ) -> Result<[u8; 32], PersistError> {
-        kdf::derive(
-            kdf::CredentialKdf::current(),
-            PasswordKdfPurpose::PersistentWallet,
-            secret,
-            salt,
-            liveness,
-        )
+        kdf::derive(kdf::CredentialKdf::current(), PasswordKdfPurpose::PersistentWallet, secret, salt, liveness)
     }
 
     pub(crate) fn make_wallet_activation_verifier(
@@ -79,9 +73,7 @@ impl PersistentWallet<'_> {
         &mut self,
         slot: usize,
     ) -> Result<([u8; SALT_SIZE], [u8; 32]), PersistError> {
-        let record = journal::read_wallet_activation(&mut self.flash)?
-            .get(slot)
-            .ok_or(PersistError::Authentication)?;
+        let record = journal::read_wallet_activation(&mut self.flash)?.get(slot).ok_or(PersistError::Authentication)?;
         Ok((record.salt, record.verifier))
     }
 
@@ -95,6 +87,10 @@ impl PersistentWallet<'_> {
     ) -> Result<(), PersistError> {
         let actual = self.make_wallet_activation_verifier(slot, kind, salt, stretched_key)?;
         let matches = shared_signer::bytes::constant_time_eq_32(expected, &actual);
-        if matches { Ok(()) } else { Err(PersistError::Authentication) }
+        if matches {
+            Ok(())
+        } else {
+            Err(PersistError::Authentication)
+        }
     }
 }

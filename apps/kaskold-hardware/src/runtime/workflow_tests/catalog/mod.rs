@@ -1,15 +1,18 @@
 //! Declarative catalog of every user-facing firmware workflow.
 
-use crate::runtime::{data::DeviceStorageIntent, input::{AppState, Menu}};
+use crate::runtime::{
+    data::DeviceStorageIntent,
+    input::{AppState, Menu},
+};
 
+mod export;
+mod multisig;
 mod onboarding;
 mod seeds;
-mod signing;
-mod export;
-mod storage;
-mod stego;
-mod multisig;
 mod settings;
+mod signing;
+mod stego;
+mod storage;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -26,15 +29,27 @@ pub(crate) enum WorkflowCategory {
 
 impl WorkflowCategory {
     pub(crate) const ALL: [Self; 8] = [
-        Self::WalletSetup, Self::Seeds, Self::Signing, Self::ExportBackup,
-        Self::StorageSd, Self::Steganography, Self::Multisig, Self::SettingsSecurity,
+        Self::WalletSetup,
+        Self::Seeds,
+        Self::Signing,
+        Self::ExportBackup,
+        Self::StorageSd,
+        Self::Steganography,
+        Self::Multisig,
+        Self::SettingsSecurity,
     ];
 
     pub(crate) const fn from_raw(value: u8) -> Option<Self> {
         match value {
-            0 => Some(Self::WalletSetup), 1 => Some(Self::Seeds), 2 => Some(Self::Signing),
-            3 => Some(Self::ExportBackup), 4 => Some(Self::StorageSd), 5 => Some(Self::Steganography),
-            6 => Some(Self::Multisig), 7 => Some(Self::SettingsSecurity), _ => None,
+            0 => Some(Self::WalletSetup),
+            1 => Some(Self::Seeds),
+            2 => Some(Self::Signing),
+            3 => Some(Self::ExportBackup),
+            4 => Some(Self::StorageSd),
+            5 => Some(Self::Steganography),
+            6 => Some(Self::Multisig),
+            7 => Some(Self::SettingsSecurity),
+            _ => None,
         }
     }
 
@@ -61,11 +76,17 @@ impl WorkflowFixtures {
     pub(crate) const CAMERA_QR: Self = Self(1 << 1);
     pub(crate) const SD_CARD: Self = Self(1 << 2);
     pub(crate) const SAVED_WALLET: Self = Self(1 << 3);
-    #[cfg(feature = "m5stack")] pub(crate) const RTC: Self = Self(1 << 4);
-    #[cfg(feature = "m5stack")] pub(crate) const AUDIO: Self = Self(1 << 5);
+    #[cfg(feature = "m5stack")]
+    pub(crate) const RTC: Self = Self(1 << 4);
+    #[cfg(feature = "m5stack")]
+    pub(crate) const AUDIO: Self = Self(1 << 5);
 
-    pub(crate) const fn union(self, other: Self) -> Self { Self(self.0 | other.0) }
-    pub(crate) const fn bits(self) -> u16 { self.0 }
+    pub(crate) const fn union(self, other: Self) -> Self {
+        Self(self.0 | other.0)
+    }
+    pub(crate) const fn bits(self) -> u16 {
+        self.0
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -143,4 +164,3 @@ pub(crate) fn workflow_at(category: WorkflowCategory, menu_index: u8) -> Option<
 pub(crate) fn workflows(category: WorkflowCategory) -> &'static [WorkflowSpec] {
     GROUPS[category as usize]
 }
-

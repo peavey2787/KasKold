@@ -10,11 +10,7 @@ pub fn camera_power_on<I2C: embedded_hal::i2c::I2c>(i2c: &mut I2C, delay: &mut D
     let mut direction_p1 = [0u8; 1];
     let _ = i2c.write_read(0x58u8, &[0x04u8], &mut direction_p0);
     let _ = i2c.write_read(0x58u8, &[0x05u8], &mut direction_p1);
-    log!(
-        "   Direction P0=0x{:02x} P1=0x{:02x} (expect 0x00=all outputs)",
-        direction_p0[0],
-        direction_p1[0]
-    );
+    log!("   Direction P0=0x{:02x} P1=0x{:02x} (expect 0x00=all outputs)", direction_p0[0], direction_p1[0]);
 
     if direction_p0[0] != 0x00 {
         log!("   FIXING P0 direction → outputs");
@@ -33,13 +29,7 @@ pub fn camera_power_on<I2C: embedded_hal::i2c::I2c>(i2c: &mut I2C, delay: &mut D
     let _ = i2c.write_read(0x58u8, &[0x03u8], &mut p1_value);
     let p0 = p0_value[0];
     let p1 = p1_value[0];
-    log!(
-        "   Before reset: P0=0x{:02x} P1=0x{:02x} (P0.4={} P1.0={})",
-        p0,
-        p1,
-        (p0 >> 4) & 1,
-        p1 & 1
-    );
+    log!("   Before reset: P0=0x{:02x} P1=0x{:02x} (P0.4={} P1.0={})", p0, p1, (p0 >> 4) & 1, p1 & 1);
 
     let p0_pwdn_high = p0 | 0x10;
     let _ = i2c.write(0x58u8, &[0x02u8, p0_pwdn_high]);

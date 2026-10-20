@@ -2,14 +2,12 @@
 //! This is measurement output, never seed material and never a production gate.
 
 use alloc::vec::Vec;
-use esp_hal::{Blocking, delay::Delay, i2c::master::I2c};
+use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
 const WORDS_PER_CAPTURE: usize = 1_000_000;
 const SPACINGS: [u32; 5] = [0, 16, 64, 256, 1024];
 
-pub(crate) fn run_and_halt(
-    i2c: &mut I2c<'_, Blocking>, delay: &mut Delay,
-) -> ! {
+pub(crate) fn run_and_halt(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) -> ! {
     crate::log!("[wdev-capture] raw measurement mode; {} words x {} spacings", WORDS_PER_CAPTURE, SPACINGS.len());
     for (run, spacing) in SPACINGS.into_iter().enumerate() {
         match capture_one(spacing).and_then(|blob| write_one(i2c, delay, run as u8, spacing, &blob)) {
@@ -28,15 +26,23 @@ fn capture_one(spacing: u32) -> Result<Vec<u8>, &'static str> {
     blob.try_reserve_exact(bytes).map_err(|_| "PSRAM allocation failed")?;
     for _ in 0..WORDS_PER_CAPTURE {
         blob.extend_from_slice(&crate::services::entropy::wdev_capture_sample().to_le_bytes());
-        for _ in 0..spacing { core::hint::spin_loop(); }
+        for _ in 0..spacing {
+            core::hint::spin_loop();
+        }
     }
     Ok(blob)
 }
 
 fn write_one(
-    i2c: &mut I2c<'_, Blocking>, delay: &mut Delay, run: u8, spacing: u32, blob: &[u8],
+    i2c: &mut I2c<'_, Blocking>,
+    delay: &mut Delay,
+    run: u8,
+    spacing: u32,
+    blob: &[u8],
 ) -> Result<usize, &'static str> {
-    if run >= 26 { return Err("too many capture files"); }
+    if run >= 26 {
+        return Err("too many capture files");
+    }
     let mut name = *b"WDEV00  BIN";
     name[4] = b'A' + run;
     // Encode the spacing experiment in the second tag when it is one of the
@@ -47,6 +53,11 @@ fn write_one(
         let fat32 = crate::hw::sdcard::mount_fat32(card)?;
         crate::hw::sdcard::overwrite_file(card, &fat32, &name, blob)
     })?;
-    crate::log!("[wdev-capture] file WDEV{}{}.BIN spacing={}", (b'A'+run) as char, (b'0'+run.min(9)) as char, spacing);
+    crate::log!(
+        "[wdev-capture] file WDEV{}{}.BIN spacing={}",
+        (b'A' + run) as char,
+        (b'0' + run.min(9)) as char,
+        spacing
+    );
     Ok(blob.len())
 }

@@ -51,7 +51,12 @@ mod gen_hash {
     pub mod output;
 }
 
-use gen_hash::{image::{process_elf, process_esp_image, ESP_IMAGE_HEADER_SIZE, ESP_IMAGE_MAGIC, SEGMENT_HEADER_SIZE}, output::SigningIdentity};
+use gen_hash::{
+    image::{
+        process_elf, process_esp_image, ESP_IMAGE_HEADER_SIZE, ESP_IMAGE_MAGIC, SEGMENT_HEADER_SIZE,
+    },
+    output::SigningIdentity,
+};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -80,7 +85,11 @@ fn main() {
     };
 
     println!("  File: {}", firmware_path);
-    println!("  Total size: {} bytes ({} KB)", firmware_data.len(), firmware_data.len() / 1024);
+    println!(
+        "  Total size: {} bytes ({} KB)",
+        firmware_data.len(),
+        firmware_data.len() / 1024
+    );
 
     // ── Detect format ────────────────────────────────────────
     // Si es un ELF (empieza con 0x7F 'E' 'L' 'F'), necesitamos
@@ -97,7 +106,11 @@ fn main() {
     // For simplicity, first try to parse as ESP-IDF image.
     // If that fails (it is an ELF), try to parse ELF sections.
 
-    let signing_key_path: Option<String> = if args.len() >= 3 { Some(args[2].clone()) } else { None };
+    let signing_key_path: Option<String> = if args.len() >= 3 {
+        Some(args[2].clone())
+    } else {
+        None
+    };
     let signing_identity = match args.get(3).map(String::as_str).unwrap_or("production") {
         "production" => SigningIdentity::Production,
         "development" => SigningIdentity::Development,
@@ -113,9 +126,17 @@ fn main() {
     }
 
     if firmware_data[0] == ESP_IMAGE_MAGIC {
-        process_esp_image(&firmware_data, signing_key_path.as_deref(), signing_identity);
+        process_esp_image(
+            &firmware_data,
+            signing_key_path.as_deref(),
+            signing_identity,
+        );
     } else if &firmware_data[0..4] == b"\x7fELF" {
-        process_elf(&firmware_data, signing_key_path.as_deref(), signing_identity);
+        process_elf(
+            &firmware_data,
+            signing_key_path.as_deref(),
+            signing_identity,
+        );
     } else {
         eprintln!("  Unrecognized format. Expected ESP-IDF image (0xE9) or ELF.");
         eprintln!("  First byte: 0x{:02X}", firmware_data[0]);

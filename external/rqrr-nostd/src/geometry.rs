@@ -50,8 +50,16 @@ impl Perspective {
         let y = (self.0[3] * u + self.0[4] * v + self.0[5]) / den;
 
         // no_std round: add 0.5 and truncate (works for positive and negative)
-        let x = if x >= 0.0 { (x + 0.5) as i64 as f64 } else { (x - 0.5) as i64 as f64 };
-        let y = if y >= 0.0 { (y + 0.5) as i64 as f64 } else { (y - 0.5) as i64 as f64 };
+        let x = if x >= 0.0 {
+            (x + 0.5) as i64 as f64
+        } else {
+            (x - 0.5) as i64 as f64
+        };
+        let y = if y >= 0.0 {
+            (y + 0.5) as i64 as f64
+        } else {
+            (y - 0.5) as i64 as f64
+        };
 
         assert!(x <= i32::MAX as f64);
         assert!(x >= i32::MIN as f64);

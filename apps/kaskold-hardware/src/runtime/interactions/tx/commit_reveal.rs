@@ -8,10 +8,11 @@
 
 //! Commit-reveal touch workflow.
 
-use super::{AppData, RedrawFlag, display, sound};
+use super::{display, sound, AppData, RedrawFlag};
 use crate::runtime::interactions::{
     feedback::{show_rejection, ErrorSound},
-    keyboard::{KeyboardAction, handle_passphrase_keyboard}};
+    keyboard::{handle_passphrase_keyboard, KeyboardAction},
+};
 use shared_signer::bytes::zeroize_bytes;
 
 const SALT_LEN: usize = 8;
@@ -19,8 +20,12 @@ const MAX_SECRET_LEN: usize = 33;
 
 fn store_salted_secret_with_salt(ad: &mut AppData, salt: &[u8; SALT_LEN]) -> Result<(), &'static str> {
     let secret_len = ad.wallet.seeds.pp_input.len;
-    if secret_len == 0 { return Err("Enter a message"); }
-    if secret_len > MAX_SECRET_LEN { return Err("Max 33 characters"); }
+    if secret_len == 0 {
+        return Err("Enter a message");
+    }
+    if secret_len > MAX_SECRET_LEN {
+        return Err("Max 33 characters");
+    }
 
     let copy_len = secret_len.min(ad.signing.commit_reveal.plaintext.len() - SALT_LEN);
     for index in (0..copy_len).rev() {
@@ -36,8 +41,7 @@ fn store_salted_secret_with_salt(ad: &mut AppData, salt: &[u8; SALT_LEN]) -> Res
 
 fn store_salted_secret(ad: &mut AppData) -> Result<(), &'static str> {
     let mut salt = [0u8; SALT_LEN];
-    crate::crypto::entropy::fill(&mut salt)
-        .map_err(crate::services::entropy::EntropyError::message)?;
+    crate::crypto::entropy::fill(&mut salt).map_err(crate::services::entropy::EntropyError::message)?;
     let result = store_salted_secret_with_salt(ad, &salt);
     zeroize_bytes(&mut salt);
     result
@@ -59,10 +63,7 @@ fn handle_secret_entry(
     match handle_passphrase_keyboard(&mut ad.wallet.seeds.pp_input, boot_display, x, y) {
         KeyboardAction::Submitted => match store_salted_secret(ad) {
             Ok(()) => {
-                let _ = crate::runtime::effects::route(
-                    ad,
-                    crate::runtime::navigation::route!(CommitRevealPreview,),
-                );
+                let _ = crate::runtime::effects::route(ad, crate::runtime::navigation::route!(CommitRevealPreview,));
             }
             Err(message) => show_rejection(boot_display, delay, message, 1500, ErrorSound::Beep),
         },
@@ -128,7 +129,9 @@ fn encrypt_preimage(
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) fn workflow_store_secret(ad: &mut AppData, secret: &[u8]) -> Result<(), &'static str> {
     ad.wallet.seeds.pp_input.reset();
-    if secret.len() > ad.wallet.seeds.pp_input.buf.len() { return Err("Max 33 characters"); }
+    if secret.len() > ad.wallet.seeds.pp_input.buf.len() {
+        return Err("Max 33 characters");
+    }
     ad.wallet.seeds.pp_input.buf[..secret.len()].copy_from_slice(secret);
     ad.wallet.seeds.pp_input.len = secret.len();
     ad.wallet.seeds.pp_input.cursor = secret.len();

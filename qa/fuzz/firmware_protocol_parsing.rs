@@ -1,10 +1,10 @@
 #![no_main]
 
-use libfuzzer_sys::fuzz_target;
-use shared_signer::bytes::encode_lower_hex;
 use kaskold_hardware_core::qr::classification::{
     classify_qr_payload, decode_hex, is_covenant_hex, QrPayloadKind,
 };
+use libfuzzer_sys::fuzz_target;
+use shared_signer::bytes::encode_lower_hex;
 
 fuzz_target!(|data: &[u8]| {
     let declared = data.first().copied().map(usize::from).unwrap_or(0);
@@ -14,7 +14,10 @@ fuzz_target!(|data: &[u8]| {
     let mut encoded = [0u8; 512];
     let encoded_len = encode_lower_hex(&data[..raw_len], &mut encoded).expect("hex buffer fits");
     let mut decoded = [0u8; 256];
-    assert_eq!(decode_hex(&encoded[..encoded_len], &mut decoded), Ok(raw_len));
+    assert_eq!(
+        decode_hex(&encoded[..encoded_len], &mut decoded),
+        Ok(raw_len)
+    );
     assert_eq!(&decoded[..raw_len], &data[..raw_len]);
 
     if is_covenant_hex(&encoded[..encoded_len]) {

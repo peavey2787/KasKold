@@ -1,13 +1,16 @@
+use crate::services::credential_policy::SALT_SIZE;
 use crate::{
-    runtime::interactions::{TouchInput, sd::SdTouchContext, stego::StegoTouchContext},
     hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
+    runtime::interactions::{sd::SdTouchContext, stego::StegoTouchContext, TouchInput},
     runtime::{data::AppData, input::AppState},
     services::backup::{BackupDevice, BackupError},
 };
+use aes_gcm::{
+    aead::{generic_array::GenericArray, AeadInPlace, KeyInit},
+    Aes256Gcm,
+};
 use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
-use offline_signer::crypto::device_bound_storage::{NONCE_SIZE, StoragePurpose, TAG_SIZE};
-use aes_gcm::{Aes256Gcm, aead::{AeadInPlace, KeyInit, generic_array::GenericArray}};
-use crate::services::credential_policy::SALT_SIZE;
+use offline_signer::crypto::device_bound_storage::{StoragePurpose, NONCE_SIZE, TAG_SIZE};
 
 mod recovery_words;
 mod seedqr;
@@ -72,12 +75,7 @@ impl BackupDevice for WorkflowBackupDevice {
         core::hint::black_box(salt);
         let cipher = Aes256Gcm::new(GenericArray::from_slice(credential_key));
         cipher
-            .decrypt_in_place_detached(
-                GenericArray::from_slice(nonce),
-                aad,
-                ciphertext,
-                GenericArray::from_slice(tag),
-            )
+            .decrypt_in_place_detached(GenericArray::from_slice(nonce), aad, ciphertext, GenericArray::from_slice(tag))
             .map_err(|_| BackupError::AuthenticationFailed)
     }
 }
@@ -201,17 +199,7 @@ pub(super) fn exercise(
         return false;
     }
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
-    let mut ctx = BackupContext {
-        ad,
-        display,
-        i2c,
-        sd,
-        delay,
-        list,
-        up,
-        down,
-        backup_device: WorkflowBackupDevice,
-    };
+    let mut ctx = BackupContext { ad, display, i2c, sd, delay, list, up, down, backup_device: WorkflowBackupDevice };
     log!("KASKOLD_WORKFLOW_TESTS: BACKUP/RECOVERY TRANCHE BEGIN");
 
     enter_backup_menu(&mut ctx)
@@ -313,12 +301,11 @@ fn encrypted_sd_entry(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
         return false;
     }
     ctx.redraw();
-    if ctx.sd_touch(20, 20, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::WalletBackupMethodsMenu
-    {
+    if ctx.sd_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::WalletBackupMethodsMenu {
         return false;
     }
-    if !ctx.menu_select(2) || !continue_seed_backup_without_scope_leak(ctx)
+    if !ctx.menu_select(2)
+        || !continue_seed_backup_without_scope_leak(ctx)
         || ctx.ad.navigation.app.state != AppState::SdSeedFilename
         || ctx.sd_touch(20, 20, true) != Some(true)
         || ctx.ad.navigation.app.state != AppState::WalletBackupMethodsMenu
@@ -364,7 +351,8 @@ fn advanced_compact(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
     if ctx.export_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::BackupRecoveryMenu {
         return false;
     }
-    if !ctx.menu_select(0) || ctx.export_touch(160, 120, false) != Some(true)
+    if !ctx.menu_select(0)
+        || ctx.export_touch(160, 120, false) != Some(true)
         || ctx.ad.navigation.app.state != (AppState::SeedQrGrid { pan_x: 0, pan_y: 0, compact: true })
     {
         return false;
@@ -419,9 +407,7 @@ fn raw_key_rejections(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
 
 fn finish_home(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
     log!("KASKOLD_WORKFLOW_TESTS: BACKUP FINISH HOME WALLET-BACK BEGIN");
-    if !crate::runtime::navigation::handle_back(ctx.ad)
-        || ctx.ad.navigation.app.state != AppState::SeedsMenu
-    {
+    if !crate::runtime::navigation::handle_back(ctx.ad) || ctx.ad.navigation.app.state != AppState::SeedsMenu {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: BACKUP FINISH HOME WALLET-BACK OK");

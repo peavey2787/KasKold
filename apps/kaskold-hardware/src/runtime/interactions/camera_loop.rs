@@ -20,13 +20,13 @@
 //! preserved while capture, decoding, dispatch, touch, and multi-frame state
 //! are grouped by responsibility below.
 
+use crate::wallet::mnemonic::validate as validate_mnemonic;
 use crate::{
     hw::{camera, display},
     runtime::data::AppData,
     services::audio as sound,
     wallet::seed_manager,
 };
-use crate::wallet::mnemonic::validate as validate_mnemonic;
 use esp_hal::dma::DmaRxBuf;
 use esp_hal::lcd_cam::cam::Camera as DvpCamera;
 
@@ -35,10 +35,7 @@ use alloc::vec::Vec;
 
 #[cfg(all(
     not(feature = "hardware-tests"),
-    any(
-        not(feature = "workflow-test-auto"),
-        all(feature = "m5stack", feature = "workflow-runtime-auto")
-    )
+    any(not(feature = "workflow-test-auto"), all(feature = "m5stack", feature = "workflow-runtime-auto"))
 ))]
 mod cycle;
 mod decoder;
@@ -50,10 +47,7 @@ mod state;
 mod timing;
 mod touch_input;
 
-#[cfg(any(
-    not(feature = "workflow-test-auto"),
-    all(feature = "m5stack", feature = "workflow-runtime-auto")
-))]
+#[cfg(any(not(feature = "workflow-test-auto"), all(feature = "m5stack", feature = "workflow-runtime-auto")))]
 #[cfg(not(feature = "hardware-tests"))]
 pub use cycle::run_camera_cycle;
 #[cfg(not(feature = "hardware-tests"))]
@@ -67,8 +61,7 @@ mod workflow;
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) use workflow::{
     process_anti_klepto_payload as workflow_process_anti_klepto_payload,
-    process_multiframe as workflow_process_multiframe,
-    process_pending_payload as workflow_process_pending_payload,
+    process_multiframe as workflow_process_multiframe, process_pending_payload as workflow_process_pending_payload,
     process_seed_payload as workflow_process_seed_payload,
     process_transaction_payload as workflow_process_transaction_payload,
     validate_stealth_request as workflow_validate_stealth_request,

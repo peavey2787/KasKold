@@ -1,7 +1,10 @@
 use crate::{
-    runtime::interactions::feedback::{show_rejection, ErrorSound},
     hw::display,
-    runtime::{data::{AppData, CovenantSigningMode, CovenantSigningPhase}, input::AppState},
+    runtime::interactions::feedback::{show_rejection, ErrorSound},
+    runtime::{
+        data::{AppData, CovenantSigningMode, CovenantSigningPhase},
+        input::AppState,
+    },
 };
 
 pub(super) fn handle(
@@ -16,11 +19,17 @@ pub(super) fn handle(
     match ad.navigation.app.state {
         AppState::CovenantSignReview => Some(handle_known(ad, boot_display, delay, liveness, x, y, is_back)),
         AppState::CovenantSignOpaqueWarning => Some(handle_opaque_warning(ad, x, y, is_back)),
-        AppState::CovenantSignOpaqueConfirm => Some(handle_opaque_confirm(ad, boot_display, delay, liveness, x, y, is_back)),
+        AppState::CovenantSignOpaqueConfirm => {
+            Some(handle_opaque_confirm(ad, boot_display, delay, liveness, x, y, is_back))
+        }
         AppState::CovenantKeyResult => Some(handle_key_result(ad, boot_display, x, y, is_back)),
-        AppState::CovenantKeyResultQr => Some(close_qr(ad, false, crate::runtime::navigation::route!(CovenantKeyResult))),
+        AppState::CovenantKeyResultQr => {
+            Some(close_qr(ad, false, crate::runtime::navigation::route!(CovenantKeyResult)))
+        }
         AppState::CovenantSignResult => Some(handle_sign_result(ad, boot_display, x, y, is_back)),
-        AppState::CovenantSignResultQr => Some(close_qr(ad, true, crate::runtime::navigation::route!(CovenantSignResult))),
+        AppState::CovenantSignResultQr => {
+            Some(close_qr(ad, true, crate::runtime::navigation::route!(CovenantSignResult)))
+        }
         _ => None,
     }
 }
@@ -87,7 +96,12 @@ fn handle_opaque_confirm(
     false
 }
 
-fn sign(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, delay: &mut esp_hal::delay::Delay, liveness: &mut dyn FnMut()) {
+fn sign(
+    ad: &mut AppData,
+    boot_display: &mut display::BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    liveness: &mut dyn FnMut(),
+) {
     let binding = matches!(ad.signing.covenant.mode, CovenantSigningMode::BindKnown | CovenantSigningMode::BindOpaque);
     if !binding && !matches!(ad.signing.covenant.mode, CovenantSigningMode::Known | CovenantSigningMode::Opaque) {
         return;
@@ -100,10 +114,7 @@ fn sign(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, delay: &m
     };
     match result {
         Ok(()) => {
-            let _ = crate::runtime::effects::route(
-                ad,
-                crate::runtime::navigation::route!(CovenantSignResult),
-            );
+            let _ = crate::runtime::effects::route(ad, crate::runtime::navigation::route!(CovenantSignResult));
         }
         Err(error) => {
             ad.signing.covenant.reset();
@@ -144,10 +155,10 @@ fn handle_sign_result(
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SingleSigMenu));
         return true;
     }
-    if !(178..=222).contains(&y) || !(60..=260).contains(&x) { return false; }
-    if ad.signing.covenant.phase == CovenantSigningPhase::AwaitingReveal
-        && ad.signing.covenant.nonce_qr_shown
-    {
+    if !(178..=222).contains(&y) || !(60..=260).contains(&x) {
+        return false;
+    }
+    if ad.signing.covenant.phase == CovenantSigningPhase::AwaitingReveal && ad.signing.covenant.nonce_qr_shown {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ScanQR));
         return true;
     }
@@ -156,11 +167,7 @@ fn handle_sign_result(
     true
 }
 
-fn close_qr(
-    ad: &mut AppData,
-    marks_nonce_shown: bool,
-    route: crate::runtime::navigation::UiRoute,
-) -> bool {
+fn close_qr(ad: &mut AppData, marks_nonce_shown: bool, route: crate::runtime::navigation::UiRoute) -> bool {
     if marks_nonce_shown && ad.signing.covenant.phase == CovenantSigningPhase::AwaitingReveal {
         ad.signing.covenant.nonce_qr_shown = true;
     }

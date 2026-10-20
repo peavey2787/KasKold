@@ -43,7 +43,9 @@ impl SecurityContext<'_, '_, '_> {
     pub(super) fn open_card(&mut self, y: u16) -> Option<bool> {
         crate::runtime::interactions::settings::advanced::workflow::open_card(
             crate::runtime::touch_dispatch::workflow_touch_input(160, y, false)?,
-            self.ad, self.display, self.delay,
+            self.ad,
+            self.display,
+            self.delay,
         )
     }
 
@@ -60,7 +62,9 @@ pub(super) fn exercise(
     sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
-    if !super::signing::fixture::install_wallet(ad) || !enter_security(ad) { return false; }
+    if !super::signing::fixture::install_wallet(ad) || !enter_security(ad) {
+        return false;
+    }
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
     let mut ctx = SecurityContext { ad, display, i2c, sd, delay, list, up, down };
     log!("KASKOLD_WORKFLOW_TESTS: SECURITY POLICIES TRANCHE BEGIN");
@@ -103,31 +107,37 @@ fn recover(ctx: &mut SecurityContext<'_, '_, '_>) {
     }
 }
 
-
 fn time_policy_exercise(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     time::exercise(ctx)
 }
 fn enter_security(ad: &mut AppData) -> bool {
-    if !super::root::home_ok(ad) { return false; }
+    if !super::root::home_ok(ad) {
+        return false;
+    }
     let settings = crate::ui::layout::HOME_GRID_ZONES[3];
     if !crate::runtime::interactions::menu::handle_connected_root_probe(
-        ad, settings.x + settings.w / 2, settings.y + settings.h / 2,
-    ) || ad.navigation.app.state != AppState::SettingsMenu { return false; }
+        ad,
+        settings.x + settings.w / 2,
+        settings.y + settings.h / 2,
+    ) || ad.navigation.app.state != AppState::SettingsMenu
+    {
+        return false;
+    }
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
     let security = list[2];
     crate::runtime::interactions::settings::handle_settings_menu_navigation(
-        ad, &list, &up, &down,
-        crate::runtime::touch_dispatch::physical_touch_input(
-            security.x + security.w / 2, security.y + security.h / 2,
-        ),
-    ) == Some(true) && ad.navigation.app.state == AppState::AdvancedFeatures
+        ad,
+        &list,
+        &up,
+        &down,
+        crate::runtime::touch_dispatch::physical_touch_input(security.x + security.w / 2, security.y + security.h / 2),
+    ) == Some(true)
+        && ad.navigation.app.state == AppState::AdvancedFeatures
 }
 
 fn unavailable_and_integrity(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
-    ctx.ad.storage.persistence.advanced.availability =
-        crate::runtime::data::AdvancedAvailability::Unavailable;
-    ctx.ad.storage.persistence.advanced.policy_integrity =
-        crate::runtime::data::PolicyIntegrity::Valid;
+    ctx.ad.storage.persistence.advanced.availability = crate::runtime::data::AdvancedAvailability::Unavailable;
+    ctx.ad.storage.persistence.advanced.policy_integrity = crate::runtime::data::PolicyIntegrity::Valid;
     if ctx.open_card(55) != Some(true) || ctx.ad.navigation.app.state != AppState::AdvancedFeatures {
         return false;
     }
@@ -145,7 +155,9 @@ fn unavailable_and_integrity(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
 }
 
 fn finish(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
-    if !ctx.home() { return false; }
+    if !ctx.home() {
+        return false;
+    }
     log!("KASKOLD_WORKFLOW_TESTS: SECURITY PERSISTENT FLASH/HMAC + PHYSICAL RTC/EFUSE HIL DEFERRED");
     log!("KASKOLD_WORKFLOW_TESTS: SECURITY POLICIES TRANCHE PASS");
     true

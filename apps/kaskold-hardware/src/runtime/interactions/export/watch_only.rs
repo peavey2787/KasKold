@@ -4,20 +4,29 @@
 
 //! Watch-only export workflows.
 
+use super::{context::ExportStorageContext, TouchInput};
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use crate::{
-    runtime::interactions::menu_selection::selected_visible_item,
     hw::display,
+    runtime::interactions::menu_selection::selected_visible_item,
     runtime::{data::AppData, input::AppState},
 };
-use super::{context::ExportStorageContext, TouchInput};
-
 
 pub(super) fn handle_pure(
-    ad: &mut AppData, list_zones: &[crate::hw::touch::TouchZone; 4], x: u16, y: u16, is_back: bool,
+    ad: &mut AppData,
+    list_zones: &[crate::hw::touch::TouchZone; 4],
+    x: u16,
+    y: u16,
+    is_back: bool,
 ) -> Option<bool> {
-    if ad.navigation.app.state != AppState::WatchOnlyMenu { return None; }
-    if is_back { ad.navigation.watch_only_menu.reset(); crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ExportChoice)); return Some(true); }
+    if ad.navigation.app.state != AppState::WatchOnlyMenu {
+        return None;
+    }
+    if is_back {
+        ad.navigation.watch_only_menu.reset();
+        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ExportChoice));
+        return Some(true);
+    }
     match selected_visible_item(&ad.navigation.watch_only_menu, list_zones, x, y) {
         None => Some(false),
         Some(_) => None,
@@ -25,9 +34,7 @@ pub(super) fn handle_pure(
 }
 
 pub(super) fn handle(context: ExportStorageContext<'_, '_, '_>) -> Option<bool> {
-    let ExportStorageContext {
-        ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones, input, ..
-    } = context;
+    let ExportStorageContext { ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones, input, .. } = context;
     let TouchInput { x, y, is_back } = input;
     if ad.navigation.app.state != AppState::WatchOnlyMenu {
         return None;
@@ -38,8 +45,7 @@ pub(super) fn handle(context: ExportStorageContext<'_, '_, '_>) -> Option<bool> 
         return Some(true);
     }
 
-    let Some(item) = selected_visible_item(&ad.navigation.watch_only_menu, list_zones, x, y)
-    else {
+    let Some(item) = selected_visible_item(&ad.navigation.watch_only_menu, list_zones, x, y) else {
         return Some(false);
     };
     match item {
@@ -142,9 +148,7 @@ pub(crate) fn prepare_multisig_kpub_qr(
             return false;
         };
         let mut encoded = [0u8; offline_signer::derivation::xpub::KPUB_MAX_LEN];
-        let result = offline_signer::derivation::xpub::derive_and_serialize_multisig_kpub(
-            &seed.bytes, &mut encoded,
-        );
+        let result = offline_signer::derivation::xpub::derive_and_serialize_multisig_kpub(&seed.bytes, &mut encoded);
         crate::runtime::signing::zeroize_seed(&mut seed.bytes);
         match result {
             Ok(length) => {

@@ -14,12 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 // hw/power/pmu_m5.rs — AXP2101 PMU and AW9523B IO expander initialization
 
 use esp_hal::delay::Delay;
 use esp_hal::i2c::master::I2c;
-use kaskold_hardware_core::power::sequencing::{RegisterWriteStep, run_register_writes};
+use kaskold_hardware_core::power::sequencing::{run_register_writes, RegisterWriteStep};
 
 // ═══════════════════════════════════════════════════════════════
 // I2C Device Addresses
@@ -90,10 +89,7 @@ const AW9523B_INIT_STEPS: &[RegisterWriteStep] = &[
     RegisterWriteStep::new(AW_REG_OUTPUT_P0, 0x05, 20, "AW9523B: P0 cam pwdn deassert failed"),
 ];
 
-pub fn init_axp2101(
-    i2c: &mut I2c<'_, esp_hal::Blocking>,
-    delay: &mut Delay,
-) -> Result<(), &'static str> {
+pub fn init_axp2101(i2c: &mut I2c<'_, esp_hal::Blocking>, delay: &mut Delay) -> Result<(), &'static str> {
     run_register_writes(
         AXP2101_ADDR,
         AXP2101_INIT_STEPS,
@@ -103,10 +99,7 @@ pub fn init_axp2101(
 }
 
 /// Initialize AW9523B IO Expander and sequence LCD, touch, speaker, and camera power.
-pub fn init_aw9523b(
-    i2c: &mut I2c<'_, esp_hal::Blocking>,
-    delay: &mut Delay,
-) -> Result<(), &'static str> {
+pub fn init_aw9523b(i2c: &mut I2c<'_, esp_hal::Blocking>, delay: &mut Delay) -> Result<(), &'static str> {
     run_register_writes(
         AW9523B_ADDR,
         AW9523B_INIT_STEPS,

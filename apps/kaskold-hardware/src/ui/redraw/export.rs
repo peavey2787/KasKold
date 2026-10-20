@@ -15,23 +15,15 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 // Screen redraw — export states.
 use super::{display, seed_manager};
-use kaskold_hardware_core::presentation::render::{
-    AddressRenderInput, AddressRenderModel, address_render_model,
-};
-fn draw_kpub_export(
-    ad: &crate::runtime::data::AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) {
+use kaskold_hardware_core::presentation::render::{address_render_model, AddressRenderInput, AddressRenderModel};
+fn draw_kpub_export(ad: &crate::runtime::data::AppData, boot_display: &mut display::BootDisplay<'_>) {
     if ad.export.kpub_len == 0 {
         boot_display.draw_tx_error_screen("Account key unavailable", "Wallet key could not be derived");
         return;
     }
     let mut payload = [0u8; offline_signer::derivation::xpub::XPUB_PAYLOAD_LEN];
-    if offline_signer::derivation::xpub::decode_kpub_or_xpub(
-        &ad.export.kpub_data[..ad.export.kpub_len],
-        &mut payload,
-    )
-    .is_err()
+    if offline_signer::derivation::xpub::decode_kpub_or_xpub(&ad.export.kpub_data[..ad.export.kpub_len], &mut payload)
+        .is_err()
     {
         boot_display.draw_error_back_screen("Account key format error");
         return;
@@ -43,10 +35,7 @@ fn draw_kpub_export(
 }
 
 fn address_model(ad: &crate::runtime::data::AppData) -> Option<AddressRenderModel> {
-    let raw_key = matches!(
-        ad.wallet.seeds.active_source,
-        crate::wallet::seed_manager::WalletSource::RawPrivateKey
-    );
+    let raw_key = matches!(ad.wallet.seeds.active_source, crate::wallet::seed_manager::WalletSource::RawPrivateKey);
     address_render_model(AddressRenderInput {
         receive_cache: &ad.wallet.addresses.pubkey_cache,
         change_cache: &ad.wallet.addresses.change_pubkey_cache,
@@ -70,8 +59,7 @@ fn draw_address(ad: &mut crate::runtime::data::AppData, boot_display: &mut displ
         return;
     }
     if ad.qr.scan.address_length > 0 {
-        let addr = core::str::from_utf8(&ad.qr.scan.address[..ad.qr.scan.address_length])
-            .unwrap_or("(invalid)");
+        let addr = core::str::from_utf8(&ad.qr.scan.address[..ad.qr.scan.address_length]).unwrap_or("(invalid)");
         boot_display.draw_address_screen(addr, ad.qr.scan.address_valid, None, None, false);
         return;
     }
@@ -88,11 +76,7 @@ fn draw_address(ad: &mut crate::runtime::data::AppData, boot_display: &mut displ
         &mut address_buffer,
     );
     if model.partial_update {
-        boot_display.update_address_content(
-            address,
-            model.index.unwrap_or(0),
-            model.is_change,
-        );
+        boot_display.update_address_content(address, model.index.unwrap_or(0), model.is_change);
         ad.wallet.addresses.partial_redraw = false;
     } else {
         boot_display.draw_address_screen(address, true, model.index, None, model.is_change);
@@ -125,10 +109,7 @@ mod addresses;
 mod menus;
 mod seed_qr;
 
-pub(super) fn redraw(
-    ad: &mut crate::runtime::data::AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) -> bool {
+pub(super) fn redraw(ad: &mut crate::runtime::data::AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     seed_qr::redraw(ad, boot_display)
         || menus::redraw(ad, boot_display)
         || account_keys::redraw(ad, boot_display)

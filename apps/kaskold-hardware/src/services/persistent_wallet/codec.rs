@@ -1,6 +1,6 @@
 //! Canonical binary encoding for the complete in-RAM wallet slot set.
 
-use crate::wallet::seed_manager::{MAX_SLOTS, SeedManager, WalletNetwork, WalletProtection, WalletSource};
+use crate::wallet::seed_manager::{SeedManager, WalletNetwork, WalletProtection, WalletSource, MAX_SLOTS};
 
 pub(super) const SLOT_SIZE: usize = 122;
 pub(super) const PAYLOAD_SIZE: usize = 4 + MAX_SLOTS * SLOT_SIZE;
@@ -21,7 +21,9 @@ pub(super) fn encode(manager: &SeedManager, out: &mut [u8; PAYLOAD_SIZE]) {
     out[..3].copy_from_slice(&MAGIC);
     out[3] = manager.persistent_active();
     for (index, slot) in manager.slots.iter().enumerate() {
-        if slot.transient { continue; }
+        if slot.transient {
+            continue;
+        }
         let base = 4 + index * SLOT_SIZE;
         out[base] = slot_header_byte(slot.source, slot.network, slot.protection);
         out[base + 1] = slot.passphrase_len;
@@ -56,26 +58,36 @@ pub(super) fn decode(input: &[u8; PAYLOAD_SIZE], manager: &mut SeedManager) -> R
     }
     if input[3] != u8::MAX {
         let active = usize::from(input[3]);
-        if restored.slot_visible(active) { let _ = restored.set_active(active); }
+        if restored.slot_visible(active) {
+            let _ = restored.set_active(active);
+        }
     }
     *manager = restored;
     Ok(())
 }
 
 fn validate(input: &[u8; PAYLOAD_SIZE]) -> Result<(), CodecError> {
-    if input[..3] != MAGIC { return Err(CodecError::Header); }
+    if input[..3] != MAGIC {
+        return Err(CodecError::Header);
+    }
     let active = input[3];
-    if active != u8::MAX && usize::from(active) >= MAX_SLOTS { return Err(CodecError::ActiveSlot); }
+    if active != u8::MAX && usize::from(active) >= MAX_SLOTS {
+        return Err(CodecError::ActiveSlot);
+    }
     for index in 0..MAX_SLOTS {
         let base = 4 + index * SLOT_SIZE;
         let (source, _, _) = decode_slot_header(input[base])?;
         let passphrase_len = usize::from(input[base + 1]);
-        if passphrase_len > 64 { return Err(CodecError::Passphrase); }
+        if passphrase_len > 64 {
+            return Err(CodecError::Passphrase);
+        }
         validate_slot(source, passphrase_len, &input[base..base + SLOT_SIZE])?;
     }
     if active != u8::MAX {
         let source = decode_slot_header(input[4 + usize::from(active) * SLOT_SIZE])?.0;
-        if source == WalletSource::Empty { return Err(CodecError::ActiveSlot); }
+        if source == WalletSource::Empty {
+            return Err(CodecError::ActiveSlot);
+        }
     }
     Ok(())
 }
@@ -88,9 +100,7 @@ fn validate_slot(source: WalletSource, passphrase_len: usize, slot: &[u8]) -> Re
         WalletSource::Mnemonic12 | WalletSource::Mnemonic24 => {
             validate_mnemonic_slot(source, passphrase_len, slot, passphrase, &indices)
         }
-        WalletSource::RawPrivateKey => {
-            validate_raw_key_slot(passphrase_len, slot, passphrase, &indices)
-        }
+        WalletSource::RawPrivateKey => validate_raw_key_slot(passphrase_len, slot, passphrase, &indices),
         WalletSource::AccountXprv => validate_account_xprv_slot(passphrase_len, passphrase, &indices),
     }
 }
@@ -140,11 +150,7 @@ fn validate_raw_key_slot(
     Ok(())
 }
 
-fn validate_account_xprv_slot(
-    passphrase_len: usize,
-    passphrase: &[u8],
-    indices: &[u16; 24],
-) -> Result<(), CodecError> {
+fn validate_account_xprv_slot(passphrase_len: usize, passphrase: &[u8], indices: &[u16; 24]) -> Result<(), CodecError> {
     if passphrase_len != 33
         || indices[16..].iter().any(|word| *word != 0)
         || passphrase[32] != 3
@@ -211,7 +217,9 @@ const fn slot_header_byte(source: WalletSource, network: WalletNetwork, protecti
 fn decode_slot_header(value: u8) -> Result<(WalletSource, WalletNetwork, WalletProtection), CodecError> {
     let source = source_from_byte(value & SOURCE_MASK).ok_or(CodecError::Source)?;
     if source == WalletSource::Empty {
-        if value != 0 { return Err(CodecError::Canonical); }
+        if value != 0 {
+            return Err(CodecError::Canonical);
+        }
         return Ok((source, WalletNetwork::Mainnet, WalletProtection::DeviceOnly));
     }
     let tag = value >> SLOT_TAG_SHIFT;

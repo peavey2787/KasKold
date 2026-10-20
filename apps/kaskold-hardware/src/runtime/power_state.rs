@@ -20,7 +20,9 @@ pub(crate) fn handle_wake(
     physical_touch: bool,
 ) -> bool {
     let _ = &mut *i2c;
-    if !physical_touch { return false; }
+    if !physical_touch {
+        return false;
+    }
 
     crate::log!("   TOUCH CoreS3 sleep wake BEGIN");
     crate::hw::sound::click();
@@ -48,7 +50,9 @@ pub(crate) fn handle_idle(
     dim_active: &mut bool,
 ) {
     let _ = &mut *i2c;
-    let Some(dim_ticks) = ad.settings.screen_dim_timeout.ticks() else { return; };
+    let Some(dim_ticks) = ad.settings.screen_dim_timeout.ticks() else {
+        return;
+    };
 
     if ad.runtime.idle_ticks >= dim_ticks && !*dim_active && !ad.runtime.display_asleep {
         if should_require_pin_after_dim(ad) {
@@ -72,15 +76,16 @@ fn should_require_pin_after_dim(ad: &crate::runtime::data::AppData) -> bool {
             == Some(crate::services::persistent_wallet::CredentialKind::Pin)
         && !matches!(
             ad.navigation.app.state,
-            crate::runtime::input::AppState::StorageUnlockPin
-                | crate::runtime::input::AppState::StorageUnlockPassword
+            crate::runtime::input::AppState::StorageUnlockPin | crate::runtime::input::AppState::StorageUnlockPassword
         )
 }
 
 fn arm_pin_reauthentication(ad: &mut crate::runtime::data::AppData) {
     let return_to = ad.navigation.committed_state;
     let return_route = crate::runtime::navigation::continuation_from_state(return_to);
-    if !ad.runtime.begin_pin_reauth(return_route) { return; }
+    if !ad.runtime.begin_pin_reauth(return_route) {
+        return;
+    }
     ad.wallet.seeds.pp_input.reset();
     ad.storage.persistence.unlock_feedback = crate::runtime::data::UnlockFeedback::None;
     ad.storage.persistence.unlock_retry_after_ms = 0;
@@ -91,30 +96,31 @@ fn arm_pin_reauthentication(ad: &mut crate::runtime::data::AppData) {
     }
 }
 
-pub(crate) fn qr_brightness_tap(
-    ad: &mut crate::runtime::data::AppData,
-    x: u16,
-    y: u16,
-) -> Option<bool> {
-    if !ad.navigation.app.state.shows_scannable_qr() { return None; }
+pub(crate) fn qr_brightness_tap(ad: &mut crate::runtime::data::AppData, x: u16, y: u16) -> Option<bool> {
+    if !ad.navigation.app.state.shows_scannable_qr() {
+        return None;
+    }
     let minus = crate::ui::screens::QR_BRIGHTNESS_MINUS_ZONE.contains(x, y);
     let plus = crate::ui::screens::QR_BRIGHTNESS_PLUS_ZONE.contains(x, y);
-    if !minus && !plus { return None; }
+    if !minus && !plus {
+        return None;
+    }
     Some(adjust_qr_brightness(ad, plus))
 }
 
-fn adjust_qr_brightness(
-    ad: &mut crate::runtime::data::AppData,
-    increase: bool,
-) -> bool {
-    if !ad.navigation.app.state.shows_scannable_qr() { return false; }
+fn adjust_qr_brightness(ad: &mut crate::runtime::data::AppData, increase: bool) -> bool {
+    if !ad.navigation.app.state.shows_scannable_qr() {
+        return false;
+    }
     let current = ad.runtime.qr_brightness_override.unwrap_or(ad.settings.brightness);
     let next = if increase {
         current.saturating_add(QR_BRIGHTNESS_STEP)
     } else {
         current.saturating_sub(QR_BRIGHTNESS_STEP).max(QR_BRIGHTNESS_MIN)
     };
-    if next == current { return false; }
+    if next == current {
+        return false;
+    }
     ad.runtime.qr_brightness_override = Some(next);
     crate::log!("   QR brightness temporary value={}", next);
     true
@@ -138,7 +144,9 @@ pub(crate) fn apply_requested_brightness(
         ad.runtime.qr_brightness_override = None;
     }
     let requested = effective_brightness(ad);
-    if *applied == requested { return; }
+    if *applied == requested {
+        return;
+    }
     crate::log!("   DISPLAY CoreS3 brightness apply BEGIN value={}", requested);
     crate::hw::pmu::set_brightness!(i2c, requested);
     *applied = requested;
@@ -147,5 +155,7 @@ pub(crate) fn apply_requested_brightness(
 
 pub fn halt_forever(delay: &mut esp_hal::delay::Delay) -> ! {
     delay.delay_millis(5000);
-    loop { delay.delay_millis(1000); }
+    loop {
+        delay.delay_millis(1000);
+    }
 }

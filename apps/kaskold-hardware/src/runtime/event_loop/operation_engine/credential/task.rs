@@ -66,10 +66,7 @@ impl Task {
 
 pub(super) enum Step {
     Continue,
-    Complete {
-        kind: OperationKind,
-        result: Result<(), PersistError>,
-    },
+    Complete { kind: OperationKind, result: Result<(), PersistError> },
 }
 
 /// Unlock operations are the ones subject to durable attempt accounting.
@@ -83,8 +80,6 @@ pub(super) const fn credential_kind(operation: OperationKind) -> Option<(Credent
         OperationKind::SaveWalletPassword => Some((CredentialKind::Password, false)),
         OperationKind::UnlockWalletPin => Some((CredentialKind::Pin, true)),
         OperationKind::UnlockWalletPassword => Some((CredentialKind::Password, true)),
-        OperationKind::ConnectCompanion
-        | OperationKind::DeriveMultisigKpub
-        | OperationKind::SignTransaction => None,
+        OperationKind::ConnectCompanion | OperationKind::DeriveMultisigKpub | OperationKind::SignTransaction => None,
     }
 }

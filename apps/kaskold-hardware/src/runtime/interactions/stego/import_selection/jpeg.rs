@@ -1,4 +1,4 @@
-use super::super::{AppData, touch};
+use super::super::{touch, AppData};
 
 pub(super) fn handle(
     ad: &mut AppData,
@@ -21,11 +21,9 @@ pub(super) fn handle(
         ad.stego.import.jpeg_selected = ad.stego.import.jpeg_selected.saturating_sub(4);
         return true;
     }
-    if page_down_zone.contains(x, y)
-        && (ad.stego.import.jpeg_selected / 4 + 1) * 4 < ad.stego.import.jpeg_count
-    {
-        ad.stego.import.jpeg_selected = (ad.stego.import.jpeg_selected + 4)
-            .min(ad.stego.import.jpeg_count.saturating_sub(1));
+    if page_down_zone.contains(x, y) && (ad.stego.import.jpeg_selected / 4 + 1) * 4 < ad.stego.import.jpeg_count {
+        ad.stego.import.jpeg_selected =
+            (ad.stego.import.jpeg_selected + 4).min(ad.stego.import.jpeg_count.saturating_sub(1));
         return true;
     }
 

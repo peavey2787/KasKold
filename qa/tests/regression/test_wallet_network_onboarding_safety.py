@@ -1,7 +1,10 @@
+import sys
 from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "qa/checks"))
+from firmware.source_contract_support import flat  # noqa: E402
 FW = ROOT / "apps" / "kaskold-hardware"
 
 
@@ -152,7 +155,7 @@ class WalletNetworkOnboardingSafetyTests(unittest.TestCase):
         stego_decrypt = read("apps/kaskold-hardware/src/runtime/interactions/stego/import_decrypt.rs")
         passphrase = read("apps/kaskold-hardware/src/runtime/interactions/seed/passphrase.rs")
         installed = read("apps/kaskold-hardware/src/runtime/interactions/seed/passphrase/installed.rs")
-        manager = read("apps/kaskold-hardware/src/wallet/seed_manager/manager.rs")
+        account_key_store = read("apps/kaskold-hardware/src/wallet/seed_manager/account_key_store.rs")
         matching = read("apps/kaskold-hardware/src/wallet/seed_manager/matching.rs")
 
         self.assertIn("pub(super) fn process_plain_words", qr)
@@ -175,9 +178,9 @@ class WalletNetworkOnboardingSafetyTests(unittest.TestCase):
         self.assertIn("installed::apply_pending_wallet_name(ad, slot);", passphrase)
         self.assertIn("pub(super) fn apply_pending_wallet_name", installed)
         self.assertIn("promote_transient", installed)
-        self.assertIn("pub fn store_account_key_transient", manager)
+        self.assertIn("pub fn store_account_key_transient", account_key_store)
         self.assertIn("pub fn store_raw_key_transient", matching)
-        self.assertIn("if slot.transient { continue; }", read("apps/kaskold-hardware/src/services/persistent_wallet/codec.rs"))
+        self.assertIn("if slot.transient { continue; }", flat(read("apps/kaskold-hardware/src/services/persistent_wallet/codec.rs")))
 
     def test_import_never_enters_recovery_word_backup(self):
         passphrase = read("apps/kaskold-hardware/src/runtime/interactions/seed/passphrase.rs")
@@ -198,11 +201,11 @@ class WalletNetworkOnboardingSafetyTests(unittest.TestCase):
         seed_controller = read("apps/kaskold-hardware/src/runtime/interactions/seed.rs")
         self.assertIn("pub fn store_transient", mnemonic_store)
         self.assertIn("persistent_active", manager)
-        self.assertIn("if slot.transient { continue; }", codec)
+        self.assertIn("if slot.transient { continue; }", flat(codec))
         self.assertIn("manager.persistent_active()", codec)
         self.assertIn("slot.is_empty() || slot.transient", journal)
         self.assertIn("commit_staged_session_wallet", finalize)
-        self.assertIn("commit_staged_session_wallet,", seed_controller)
+        self.assertRegex(seed_controller, r"pub\(crate\) use passphrase::\{[^}]*\bcommit_staged_session_wallet\b")
 
     def test_manual_restore_routes_passphrase_then_name_then_finalize(self):
         restore = read("apps/kaskold-hardware/src/runtime/interactions/seed/import/restore.rs")

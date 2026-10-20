@@ -39,8 +39,7 @@ fn commit_secret_preview(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    ctx.tx_touch(20, 20, true) == Some(true)
-        && ctx.ad.navigation.app.state == AppState::CommitRevealType
+    ctx.tx_touch(20, 20, true) == Some(true) && ctx.ad.navigation.app.state == AppState::CommitRevealType
 }
 
 fn commit_secret_encrypt(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
@@ -64,7 +63,9 @@ fn decrypt_secret(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
         return false;
     }
     let mut hex = [0u8; 300];
-    let Some(hex_len) = encode_hex(&ciphertext, &mut hex) else { return false; };
+    let Some(hex_len) = encode_hex(&ciphertext, &mut hex) else {
+        return false;
+    };
     if !decrypt_valid_payload(ctx, &hex[..hex_len])
         || !decrypt_result_navigation(ctx)
         || !wrong_recipient_rejects(ctx, &hex[..hex_len])
@@ -82,16 +83,14 @@ fn begin_decrypt_and_reject_malformed(ctx: &mut AdvancedToolsContext<'_, '_, '_>
     {
         return false;
     }
-    crate::runtime::interactions::camera_loop::workflow_process_pending_payload(
-        b"not-hex", ctx.ad,
-    ) && ctx.ad.navigation.app.state == AppState::DecryptSecretScan
+    crate::runtime::interactions::camera_loop::workflow_process_pending_payload(b"not-hex", ctx.ad)
+        && ctx.ad.navigation.app.state == AppState::DecryptSecretScan
 }
 
 fn decrypt_valid_payload(ctx: &mut AdvancedToolsContext<'_, '_, '_>, ciphertext_hex: &[u8]) -> bool {
     let expected_len = SALT.len() + SECRET.len();
-    crate::runtime::interactions::camera_loop::workflow_process_pending_payload(
-        ciphertext_hex, ctx.ad,
-    ) && ctx.ad.navigation.app.state == AppState::DecryptSecretResult
+    crate::runtime::interactions::camera_loop::workflow_process_pending_payload(ciphertext_hex, ctx.ad)
+        && ctx.ad.navigation.app.state == AppState::DecryptSecretResult
         && ctx.ad.signing.commit_reveal.plaintext_len == expected_len
         && ctx.ad.signing.commit_reveal.plaintext[..8] == SALT
         && &ctx.ad.signing.commit_reveal.plaintext[8..expected_len] == SECRET
@@ -113,9 +112,8 @@ fn wrong_recipient_rejects(ctx: &mut AdvancedToolsContext<'_, '_, '_>, ciphertex
     {
         return false;
     }
-    crate::runtime::interactions::camera_loop::workflow_process_pending_payload(
-        ciphertext_hex, ctx.ad,
-    ) && ctx.ad.navigation.app.state == AppState::DecryptSecretScan
+    crate::runtime::interactions::camera_loop::workflow_process_pending_payload(ciphertext_hex, ctx.ad)
+        && ctx.ad.navigation.app.state == AppState::DecryptSecretScan
 }
 
 fn caller_return_owners(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
@@ -144,11 +142,7 @@ fn caller_return_owners(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     true
 }
 
-fn single_sig_tool(
-    ctx: &mut AdvancedToolsContext<'_, '_, '_>,
-    item: usize,
-    expected: AppState,
-) -> bool {
+fn single_sig_tool(ctx: &mut AdvancedToolsContext<'_, '_, '_>, item: usize, expected: AppState) -> bool {
     crate::runtime::effects::route(ctx.ad, crate::runtime::navigation::route!(SingleSigMenu));
     ctx.ad.navigation.single_sig_menu.reset();
     let zone = ctx.list[item];

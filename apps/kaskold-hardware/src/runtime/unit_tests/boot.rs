@@ -20,7 +20,7 @@
 
 extern crate alloc;
 
-use crate::services::unit_tests::hardware::{HardwareTest, run_all_tests};
+use crate::services::unit_tests::hardware::{run_all_tests, HardwareTest};
 
 /// Decode QR from grayscale image using rqrr. Returns Option<(data, len)>.
 #[inline(never)]
@@ -28,9 +28,7 @@ fn rqrr_test_decode(img: &[u8], w: usize, h: usize) -> Option<alloc::vec::Vec<u8
     // rqrr's prepared image contains a large fixed LRU cache. Keep that verbose
     // boot-test fixture off the ProCpu stack; production decoding has its own
     // independently gated memory path.
-    let mut prepared = alloc::boxed::Box::new(
-        rqrr::PreparedImage::prepare_from_greyscale(w, h, |x, y| img[y * w + x]),
-    );
+    let mut prepared = alloc::boxed::Box::new(rqrr::PreparedImage::prepare_from_greyscale(w, h, |x, y| img[y * w + x]));
     let grids = prepared.detect_grids();
     for grid in grids {
         let mut out = alloc::vec::Vec::new();
@@ -48,13 +46,9 @@ fn rqrr_test_decode(img: &[u8], w: usize, h: usize) -> Option<alloc::vec::Vec<u8
 pub fn run_boot_tests() -> bool {
     let mut all_passed = true;
 
-    let signing_vector_ok = offline_signer::crypto::schnorr::bip340_known_answer(
-        &offline_signer::crypto::schnorr::BIP340_VECTOR0_EXPECTED,
-    );
-    log!(
-        "   BIP-340 published signing vector: {}",
-        if signing_vector_ok { "OK" } else { "FAIL" }
-    );
+    let signing_vector_ok =
+        offline_signer::crypto::schnorr::bip340_known_answer(&offline_signer::crypto::schnorr::BIP340_VECTOR0_EXPECTED);
+    log!("   BIP-340 published signing vector: {}", if signing_vector_ok { "OK" } else { "FAIL" });
     all_passed &= signing_vector_ok;
     {
         // Test payloads sized to fit each version (ECC Level L byte capacity)
@@ -80,29 +74,35 @@ pub fn run_boot_tests() -> bool {
                 let qr_size = qr.size as usize;
                 // Pick scale to fit in 160x120 with quiet zone
                 let scale = if qr_size + 2 <= 27 { 4 }     // V1-V2: scale 4
-                            else { 2 };                       // V3-V6: scale 2
+                            else { 2 }; // V3-V6: scale 2
                 let total_px = (qr_size + 2) * scale;
 
                 if total_px <= 120 {
                     // Clear image
-                    for p in test_img.iter_mut() { *p = 128; }
+                    for p in test_img.iter_mut() {
+                        *p = 128;
+                    }
                     let ox = (160 - total_px) / 2;
                     let oy = (120 - total_px) / 2;
                     // Draw quiet zone (white)
                     for dy in 0..total_px {
-                        for dx in 0..total_px { test_img[(oy+dy)*160+(ox+dx)] = 220; }
+                        for dx in 0..total_px {
+                            test_img[(oy + dy) * 160 + (ox + dx)] = 220;
+                        }
                     }
                     // Draw QR modules
                     for my in 0..qr_size {
                         for mx in 0..qr_size {
                             if qr.get(mx as u8, my as u8) {
-                                let px = ox + (mx+1)*scale;
-                                let py = oy + (my+1)*scale;
-                                for dy in 0..scale { for dx in 0..scale {
-                                    if (py+dy) < 120 && (px+dx) < 160 {
-                                        test_img[(py+dy)*160+(px+dx)] = 20;
+                                let px = ox + (mx + 1) * scale;
+                                let py = oy + (my + 1) * scale;
+                                for dy in 0..scale {
+                                    for dx in 0..scale {
+                                        if (py + dy) < 120 && (px + dx) < 160 {
+                                            test_img[(py + dy) * 160 + (px + dx)] = 20;
+                                        }
                                     }
-                                }}
+                                }
                             }
                         }
                     }
@@ -115,7 +115,14 @@ pub fn run_boot_tests() -> bool {
                             log!("   V{} ({} bytes): WRONG len={}", ver, payload.len(), decoded.len());
                         }
                         None => {
-                            log!("   V{} ({} bytes, {}x{}, scale {}): FAIL (no decode)", ver, payload.len(), qr_size, qr_size, scale);
+                            log!(
+                                "   V{} ({} bytes, {}x{}, scale {}): FAIL (no decode)",
+                                ver,
+                                payload.len(),
+                                qr_size,
+                                qr_size,
+                                scale
+                            );
                         }
                     }
                 } else {
@@ -134,8 +141,8 @@ pub fn run_boot_tests() -> bool {
             let mut camera_total = 0u32;
             let mut big_img = alloc::vec![128u8; 240 * 180];
             let cam_tests: [(&[u8], usize); 3] = [
-                (b"kaspa:qz0123456789abcdef0123456789abcdef01234", 3),  // V3 scale 3
-                (b"kaspa:qz0123456789abcdef0123456789abcdef01234", 4),  // V3 scale 4
+                (b"kaspa:qz0123456789abcdef0123456789abcdef01234", 3), // V3 scale 3
+                (b"kaspa:qz0123456789abcdef0123456789abcdef01234", 4), // V3 scale 4
                 (b"kaspa:qz0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef012", 3), // V4 scale 3
             ];
             for &(payload, scale) in &cam_tests {
@@ -143,23 +150,31 @@ pub fn run_boot_tests() -> bool {
                 if let Ok(qr) = crate::qr::encoder::encode(payload) {
                     let qr_size = qr.size as usize;
                     let total_px = (qr_size + 2) * scale;
-                    if total_px > 240 || total_px > 180 { continue; }
-                    for p in big_img.iter_mut() { *p = 128; }
+                    if total_px > 240 || total_px > 180 {
+                        continue;
+                    }
+                    for p in big_img.iter_mut() {
+                        *p = 128;
+                    }
                     let ox = (240 - total_px) / 2;
                     let oy = (180 - total_px) / 2;
                     for dy in 0..total_px {
-                        for dx in 0..total_px { big_img[(oy+dy)*240+(ox+dx)] = 220; }
+                        for dx in 0..total_px {
+                            big_img[(oy + dy) * 240 + (ox + dx)] = 220;
+                        }
                     }
                     for my in 0..qr_size {
                         for mx in 0..qr_size {
                             if qr.get(mx as u8, my as u8) {
-                                let px = ox + (mx+1)*scale;
-                                let py = oy + (my+1)*scale;
-                                for dy in 0..scale { for dx in 0..scale {
-                                    if (py+dy) < 180 && (px+dx) < 240 {
-                                        big_img[(py+dy)*240+(px+dx)] = 20;
+                                let px = ox + (mx + 1) * scale;
+                                let py = oy + (my + 1) * scale;
+                                for dy in 0..scale {
+                                    for dx in 0..scale {
+                                        if (py + dy) < 180 && (px + dx) < 240 {
+                                            big_img[(py + dy) * 240 + (px + dx)] = 20;
+                                        }
                                     }
-                                }}
+                                }
                             }
                         }
                     }
@@ -168,8 +183,12 @@ pub fn run_boot_tests() -> bool {
                             camera_ok = camera_ok.saturating_add(1);
                             log!("   240x180 {}x{} s{}: OK", qr_size, qr_size, scale);
                         }
-                        None => { log!("   240x180 {}x{} s{}: FAIL (no decode)", qr_size, qr_size, scale); }
-                        _ => { log!("   240x180 {}x{} s{}: WRONG", qr_size, qr_size, scale); }
+                        None => {
+                            log!("   240x180 {}x{} s{}: FAIL (no decode)", qr_size, qr_size, scale);
+                        }
+                        _ => {
+                            log!("   240x180 {}x{} s{}: WRONG", qr_size, qr_size, scale);
+                        }
                     }
                 }
             }
@@ -230,14 +249,15 @@ pub fn run_startup_tests(delay: &mut esp_hal::delay::Delay) -> bool {
     {
         let full_passed = run_boot_tests();
         log!("[boot-kats-full] expanded software/QR KATs: {}", if full_passed { "PASS" } else { "FAIL" });
-        if !(all_passed && full_passed) { log!("[boot-kats-full] FAIL; wallet routing disabled"); }
+        if !(all_passed && full_passed) {
+            log!("[boot-kats-full] FAIL; wallet routing disabled");
+        }
         crate::halt_forever(delay);
     }
 
     #[cfg(not(feature = "boot-kats-full"))]
     all_passed
 }
-
 
 #[cfg(feature = "hardware-tests")]
 /// Emit the machine-readable result consumed by the host runner, then halt.
@@ -254,10 +274,7 @@ pub(crate) fn report_hardware_test_result(
         if signing_tests_ok { "OK" } else { "FAIL" },
     );
     let all_passed = startup_tests_ok && boot_tests_ok && signing_tests_ok;
-    log!(
-        "KASKOLD_HARDWARE_TESTS: {}",
-        if all_passed { "PASS" } else { "FAIL" }
-    );
+    log!("KASKOLD_HARDWARE_TESTS: {}", if all_passed { "PASS" } else { "FAIL" });
     loop {
         delay.delay_millis(1000);
     }
@@ -266,7 +283,9 @@ pub(crate) fn report_hardware_test_result(
 /// Signing pipeline self-test — M5Stack only (called at boot)
 #[cfg(all(feature = "m5stack", feature = "hardware-tests"))]
 pub fn test_signing_pipeline(ad: &mut crate::runtime::data::AppData) -> bool {
-    use crate::runtime::signing::{derive_active_seed_with_checkpoint, populate_active_pubkeys_with_checkpoint, sign_and_serialize_multi};
+    use crate::runtime::signing::{
+        derive_active_seed_with_checkpoint, populate_active_pubkeys_with_checkpoint, sign_and_serialize_multi,
+    };
 
     log!("[SIGN-TEST] Starting signing pipeline test...");
 
@@ -281,10 +300,11 @@ pub fn test_signing_pipeline(ad: &mut crate::runtime::data::AppData) -> bool {
         log!("[SIGN-TEST] FAIL: pubkey derivation returned zeros");
         return false;
     }
-    log!("[SIGN-TEST] Derived pubkey[0]: {:02x}{:02x}{:02x}{:02x}...",
-        pk[0], pk[1], pk[2], pk[3]);
+    log!("[SIGN-TEST] Derived pubkey[0]: {:02x}{:02x}{:02x}{:02x}...", pk[0], pk[1], pk[2], pk[3]);
 
-    let mut tx = alloc::boxed::Box::new(offline_signer::transaction::model::Transaction::try_new().expect("transaction test allocation"));
+    let mut tx = alloc::boxed::Box::new(
+        offline_signer::transaction::model::Transaction::try_new().expect("transaction test allocation"),
+    );
     tx.version = 0;
     tx.network = offline_signer::address::KaspaNetwork::Mainnet;
     tx.num_inputs = 1;
@@ -329,8 +349,7 @@ pub fn test_signing_pipeline(ad: &mut crate::runtime::data::AppData) -> bool {
     }
 
     if tx.inputs[0].sig_count > 0 {
-        log!("[SIGN-TEST] OK — {} signature(s), response {} bytes",
-            tx.inputs[0].sig_count, signed_len);
+        log!("[SIGN-TEST] OK — {} signature(s), response {} bytes", tx.inputs[0].sig_count, signed_len);
         true
     } else {
         log!("[SIGN-TEST] FAIL: no signature on input[0]");
@@ -341,29 +360,18 @@ pub fn test_signing_pipeline(ad: &mut crate::runtime::data::AppData) -> bool {
 /// M5Stack: signing pipeline self-test at boot
 #[cfg(all(feature = "m5stack", feature = "hardware-tests"))]
 pub(crate) fn run_signing_pipeline_test(ad: &mut crate::runtime::data::AppData) -> bool {
-    let test_words = ["girl", "mad", "pet", "galaxy", "egg", "matter",
-                      "matrix", "prison", "refuse", "sense", "ordinary", "nose"];
+    let test_words =
+        ["girl", "mad", "pet", "galaxy", "egg", "matter", "matrix", "prison", "refuse", "sense", "ordinary", "nose"];
     for (i, word) in test_words.iter().enumerate() {
         ad.wallet.seeds.mnemonic_indices[i] = offline_signer::derivation::bip39::word_to_index(word).unwrap_or(0);
     }
     ad.wallet.seeds.word_count = 12;
-    let Some(slot_index) = ad.wallet.seeds.seed_mgr.store(
-        &ad.wallet.seeds.mnemonic_indices,
-        12,
-        b"",
-        0,
-    ) else {
+    let Some(slot_index) = ad.wallet.seeds.seed_mgr.store(&ad.wallet.seeds.mnemonic_indices, 12, b"", 0) else {
         log!("   Signing pipeline test: FAIL (slot storage)");
         return false;
     };
     let mut checkpoint = || {};
-    if crate::services::wallet_session::activate_slot_with_cache(
-        ad,
-        slot_index,
-        &mut checkpoint,
-    )
-    .is_err()
-    {
+    if crate::services::wallet_session::activate_slot_with_cache(ad, slot_index, &mut checkpoint).is_err() {
         log!("   Signing pipeline test: FAIL (activation)");
         return false;
     }

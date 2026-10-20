@@ -34,9 +34,7 @@ pub struct SelfTestResult {
 
 impl SelfTestResult {
     pub const fn new() -> Self {
-        Self {
-            passed: [false; HardwareTest::COUNT],
-        }
+        Self { passed: [false; HardwareTest::COUNT] }
     }
 
     fn record(&mut self, test: HardwareTest, passed: bool) {
@@ -77,34 +75,17 @@ pub fn run_all_tests() -> SelfTestResult {
     #[cfg(not(all(feature = "hardware-tests", feature = "argon2-bench")))]
     result.record(HardwareTest::Argon2Psram, true);
 
-    record(
-        &mut result,
-        HardwareTest::Flash,
-        "Flash mapped segment",
-        test_mapped_flash(),
-    );
+    record(&mut result, HardwareTest::Flash, "Flash mapped segment", test_mapped_flash());
     record(&mut result, HardwareTest::Sha256, "SHA256", test_sha256());
 
     log!("[6/6] Display: deferred until board initialization");
     result.record(HardwareTest::Display, true);
     log!();
-    log!(
-        "   {}",
-        if result.all_passed() {
-            "All tests passed"
-        } else {
-            "FAIL: Some tests failed"
-        }
-    );
+    log!("   {}", if result.all_passed() { "All tests passed" } else { "FAIL: Some tests failed" });
     result
 }
 
-fn record(
-    result: &mut SelfTestResult,
-    test: HardwareTest,
-    name: &str,
-    passed: bool,
-) {
+fn record(result: &mut SelfTestResult, test: HardwareTest, name: &str, passed: bool) {
     result.record(test, passed);
     log!("   {}: {}", name, if passed { "OK" } else { "FAIL" });
 }
@@ -127,11 +108,7 @@ fn test_psram() -> bool {
     for (index, byte) in allocation.as_mut_bytes().iter_mut().enumerate() {
         *byte = psram_probe_pattern(index);
     }
-    let valid = allocation
-        .as_bytes()
-        .iter()
-        .enumerate()
-        .all(|(index, byte)| *byte == psram_probe_pattern(index));
+    let valid = allocation.as_bytes().iter().enumerate().all(|(index, byte)| *byte == psram_probe_pattern(index));
     log!(
         "   PSRAM mapped probe: {} bytes at 0x{:08x} — {}",
         allocation.len(),

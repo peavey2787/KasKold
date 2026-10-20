@@ -18,7 +18,7 @@ mod configuration;
 mod key_source;
 pub(crate) mod seed_picker;
 
-use super::{AppData, display};
+use super::{display, AppData};
 use crate::runtime::input::AppState;
 
 pub(super) fn handle(
@@ -32,9 +32,7 @@ pub(super) fn handle(
 ) -> Option<bool> {
     let redraw = match ad.navigation.app.state {
         AppState::MultisigChooseMN => configuration::handle(ad, x, y, is_back),
-        AppState::MultisigAddKey { key_idx } => {
-            key_source::handle(ad, boot_display, delay, key_idx, x, y, is_back)
-        }
+        AppState::MultisigAddKey { key_idx } => key_source::handle(ad, boot_display, delay, key_idx, x, y, is_back),
         AppState::MultisigPickSeed { key_idx } => {
             seed_picker::handle(ad, boot_display, delay, liveness, key_idx, x, y, is_back)
         }

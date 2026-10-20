@@ -21,19 +21,19 @@
 
 pub(crate) use crate::controllers::TouchInput;
 
+pub mod camera_loop;
+pub mod export;
 pub mod menu;
+pub(crate) mod multisig_config;
 pub(crate) mod onboarding;
 pub(crate) mod persistence;
-pub mod stego;
 pub mod sd;
 pub mod seed;
-pub mod export;
 pub mod settings;
+pub mod stego;
+mod support;
 pub mod tx;
-pub(crate) mod multisig_config;
 #[cfg(feature = "workflow-tests")]
 pub(crate) mod workflow_tests;
-pub mod camera_loop;
-mod support;
 pub(crate) use support::{feedback, keyboard, menu_selection};
 mod text_files;

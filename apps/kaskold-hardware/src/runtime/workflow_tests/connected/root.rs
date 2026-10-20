@@ -1,5 +1,5 @@
-use core::sync::atomic::{AtomicU16, Ordering};
 use crate::runtime::input::AppState;
+use core::sync::atomic::{AtomicU16, Ordering};
 
 pub(super) static FAILURE_MASK: AtomicU16 = AtomicU16::new(0);
 pub(super) static WALLET_BACKUP_FAILURE_MASK: AtomicU16 = AtomicU16::new(0);
@@ -13,12 +13,8 @@ pub(super) fn exercise(
 ) -> bool {
     FAILURE_MASK.store(0, Ordering::Relaxed);
     WALLET_BACKUP_FAILURE_MASK.store(0, Ordering::Relaxed);
-    const EXPECTED: [AppState; 4] = [
-        AppState::SeedsMenu,
-        AppState::ScanQR,
-        AppState::SeedsMenu,
-        AppState::SettingsMenu,
-    ];
+    const EXPECTED: [AppState; 4] =
+        [AppState::SeedsMenu, AppState::ScanQR, AppState::SeedsMenu, AppState::SettingsMenu];
 
     log!("KASKOLD_WORKFLOW_TESTS: APP STATE INIT OK (static internal RAM)");
     log!("KASKOLD_WORKFLOW_TESTS: SCREEN HOME");
@@ -46,7 +42,9 @@ pub(super) fn exercise(
     for (index, (zone, expected)) in crate::ui::layout::HOME_GRID_ZONES.iter().zip(EXPECTED).enumerate() {
         log!("KASKOLD_WORKFLOW_TESTS: ROOT TILE {} BEGIN", index);
         if !crate::runtime::interactions::menu::handle_connected_root_probe(
-            ad, zone.x + zone.w / 2, zone.y + zone.h / 2,
+            ad,
+            zone.x + zone.w / 2,
+            zone.y + zone.h / 2,
         ) {
             return false;
         }
@@ -65,7 +63,10 @@ pub(super) fn exercise(
             3 => super::settings::exercise(ad, display, i2c, sd, delay),
             _ => return_home(ad),
         };
-        if !returned_home { FAILURE_MASK.fetch_or(1u16 << index, Ordering::Relaxed); return false; }
+        if !returned_home {
+            FAILURE_MASK.fetch_or(1u16 << index, Ordering::Relaxed);
+            return false;
+        }
 
         log!("KASKOLD_WORKFLOW_TESTS: ROOT TILE {} HOME ROUTE OK", index);
         super::redraw_step(ad, display, i2c, sd);
@@ -90,8 +91,12 @@ fn wallet_and_backup(
     let home_ready = super::reset_tranche_to_home(ad);
     let backup_ok = home_ready && super::backup::exercise(ad, display, i2c, sd, delay);
     let mut failure_mask = 0u16;
-    if !wallet_ok { failure_mask |= 1u16 << 0; }
-    if !backup_ok { failure_mask |= 1u16 << 1; }
+    if !wallet_ok {
+        failure_mask |= 1u16 << 0;
+    }
+    if !backup_ok {
+        failure_mask |= 1u16 << 1;
+    }
     WALLET_BACKUP_FAILURE_MASK.store(failure_mask, Ordering::Relaxed);
     wallet_ok && backup_ok
 }
@@ -113,8 +118,5 @@ fn connect_companion_from_home(ad: &mut crate::runtime::data::AppData) -> bool {
     }
     crate::runtime::effects::home(ad);
     home_ok(ad)
-        && !crate::runtime::presentation::operation_active(
-            ad,
-            crate::runtime::data::OperationKind::ConnectCompanion,
-        )
+        && !crate::runtime::presentation::operation_active(ad, crate::runtime::data::OperationKind::ConnectCompanion)
 }

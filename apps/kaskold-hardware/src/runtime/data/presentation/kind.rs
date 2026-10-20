@@ -26,10 +26,7 @@ impl OperationKind {
     pub(crate) const fn is_credential(self) -> bool {
         matches!(
             self,
-            Self::SaveWalletPin
-                | Self::SaveWalletPassword
-                | Self::UnlockWalletPin
-                | Self::UnlockWalletPassword
+            Self::SaveWalletPin | Self::SaveWalletPassword | Self::UnlockWalletPin | Self::UnlockWalletPassword
         )
     }
 
@@ -45,13 +42,10 @@ impl OperationKind {
 
     pub(crate) const fn execution(self) -> OperationExecution {
         match self {
-            Self::SaveWalletPin
-            | Self::SaveWalletPassword
-            | Self::UnlockWalletPin
-            | Self::UnlockWalletPassword => OperationExecution::ForegroundExclusive,
-            Self::ConnectCompanion | Self::DeriveMultisigKpub | Self::SignTransaction => {
-                OperationExecution::Stepped
+            Self::SaveWalletPin | Self::SaveWalletPassword | Self::UnlockWalletPin | Self::UnlockWalletPassword => {
+                OperationExecution::ForegroundExclusive
             }
+            Self::ConnectCompanion | Self::DeriveMultisigKpub | Self::SignTransaction => OperationExecution::Stepped,
         }
     }
 
@@ -69,20 +63,18 @@ impl OperationKind {
         match self {
             Self::ConnectCompanion | Self::DeriveMultisigKpub => 75_000,
             Self::SignTransaction => 180_000,
-            Self::SaveWalletPin
-            | Self::SaveWalletPassword
-            | Self::UnlockWalletPin
-            | Self::UnlockWalletPassword => 85_000,
+            Self::SaveWalletPin | Self::SaveWalletPassword | Self::UnlockWalletPin | Self::UnlockWalletPassword => {
+                85_000
+            }
         }
     }
 
     pub(crate) const fn stall_budget_ms(self) -> u64 {
         match self {
             Self::ConnectCompanion | Self::DeriveMultisigKpub | Self::SignTransaction => 20_000,
-            Self::SaveWalletPin
-            | Self::SaveWalletPassword
-            | Self::UnlockWalletPin
-            | Self::UnlockWalletPassword => 85_000,
+            Self::SaveWalletPin | Self::SaveWalletPassword | Self::UnlockWalletPin | Self::UnlockWalletPassword => {
+                85_000
+            }
         }
     }
 }

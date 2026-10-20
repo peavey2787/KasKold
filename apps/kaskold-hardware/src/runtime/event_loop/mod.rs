@@ -1,11 +1,19 @@
 // KasKold — Air-gapped offline signing device for Kaspa — GPL-3.0
 //! Firmware application-loop orchestration.
 pub(crate) const INITIAL_WAKE_DEBOUNCE: u32 = 0;
-pub(crate) mod audio; pub(crate) mod camera; pub(crate) mod dispatch; pub(crate) mod frame; pub(crate) mod operation_engine; pub(crate) mod persistence;
-pub(crate) mod settings_dispatch; pub(crate) mod navigation_dispatch;
+pub(crate) mod audio;
+pub(crate) mod camera;
+pub(crate) mod dispatch;
+pub(crate) mod frame;
+pub(crate) mod navigation_dispatch;
+pub(crate) mod operation_engine;
+pub(crate) mod persistence;
 #[cfg(not(feature = "hardware-tests"))]
 pub(crate) mod runner;
-pub(crate) mod touch; pub(crate) mod touch_entropy; pub(crate) mod touch_routes;
+pub(crate) mod settings_dispatch;
+pub(crate) mod touch;
+pub(crate) mod touch_entropy;
+pub(crate) mod touch_routes;
 #[cfg(not(feature = "workflow-test-auto"))]
 macro_rules! run {
     ($ad:ident, $persistent_wallet:ident, $boot_display:ident, $delay:ident, $i2c:ident,

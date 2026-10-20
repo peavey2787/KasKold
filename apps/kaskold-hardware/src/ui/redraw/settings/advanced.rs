@@ -3,10 +3,7 @@
 use super::super::display;
 use crate::runtime::{data::AppData, input::AppState};
 
-pub(super) fn redraw(
-    ad: &AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) -> bool {
+pub(super) fn redraw(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     match ad.navigation.app.state {
         AppState::AdvancedDuressWarning => {
             let (title, guidance) = duress_copy(ad);
@@ -34,11 +31,9 @@ pub(super) fn redraw(
         ),
         AppState::FactoryResetConfirm => boot_display.draw_factory_reset_confirmation(),
         #[cfg(feature = "m5stack")]
-        AppState::AdvancedRtcEntry => boot_display.draw_numeric_format_entry(
-            &ad.wallet.seeds.pp_input,
-            "SET RTC (UTC)",
-            "YYYYMMDDHHMM",
-        ),
+        AppState::AdvancedRtcEntry => {
+            boot_display.draw_numeric_format_entry(&ad.wallet.seeds.pp_input, "SET RTC (UTC)", "YYYYMMDDHHMM")
+        }
         #[cfg(feature = "m5stack")]
         AppState::AdvancedTimeLockWarning => boot_display.draw_advanced_warning(
             "NO-SIGN-BEFORE",
@@ -47,15 +42,13 @@ pub(super) fn redraw(
             "Hardware RTC is enforced in UTC.",
         ),
         #[cfg(feature = "m5stack")]
-        AppState::AdvancedTimeLockEntry => boot_display.draw_numeric_format_entry(
-            &ad.wallet.seeds.pp_input,
-            "LOCK UNTIL (UTC)",
-            "YYYYMMDDHHMM",
-        ),
+        AppState::AdvancedTimeLockEntry => {
+            boot_display.draw_numeric_format_entry(&ad.wallet.seeds.pp_input, "LOCK UNTIL (UTC)", "YYYYMMDDHHMM")
+        }
         #[cfg(feature = "m5stack")]
-        AppState::AdvancedTimeLockConfirm => boot_display.draw_time_lock_confirmation(
-            ad.storage.persistence.advanced.pending_not_before_unix,
-        ),
+        AppState::AdvancedTimeLockConfirm => {
+            boot_display.draw_time_lock_confirmation(ad.storage.persistence.advanced.pending_not_before_unix)
+        }
         #[cfg(feature = "m5stack")]
         AppState::AdvancedWeeklyWarning => boot_display.draw_advanced_warning(
             "WEEKLY SIGNING WINDOWS",
@@ -70,19 +63,15 @@ pub(super) fn redraw(
             "MON 08:10-08:25;MON 21:33-21:43",
         ),
         #[cfg(feature = "m5stack")]
-        AppState::AdvancedWeeklyConfirm => boot_display.draw_weekly_confirmation(
-            ad.storage.persistence.advanced.pending_weekly_count,
-        ),
+        AppState::AdvancedWeeklyConfirm => {
+            boot_display.draw_weekly_confirmation(ad.storage.persistence.advanced.pending_weekly_count)
+        }
         _ => return false,
     }
     true
 }
 
-fn draw_duress_entry(
-    ad: &AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    confirming: bool,
-) {
+fn draw_duress_entry(ad: &AppData, boot_display: &mut display::BootDisplay<'_>, confirming: bool) {
     use crate::services::credential_policy::CredentialKind;
     let kind = ad.storage.persistence.advanced.credential_kind;
     let numeric = kind == Some(CredentialKind::Pin);

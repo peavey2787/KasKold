@@ -5,12 +5,12 @@ use crate::runtime::navigation::ContinuationRoute;
 
 mod persistence;
 mod security;
-pub use persistence::{
-    AdvancedAvailability, ConfirmationState, DeviceStorageIntent, DuressActivation,
-    PersistenceCredentialState, PersistenceBackendState, PolicyIntegrity, UnlockFeedback,
-};
 #[cfg(feature = "m5stack")]
 pub use persistence::RtcVerification;
+pub use persistence::{
+    AdvancedAvailability, ConfirmationState, DeviceStorageIntent, DuressActivation, PersistenceBackendState,
+    PersistenceCredentialState, PolicyIntegrity, UnlockFeedback,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TextFileKind {
@@ -63,7 +63,6 @@ pub struct StorageState {
     pub text_files: TextFileList,
 }
 
-
 pub struct FileBrowserState {
     pub file_list: [[u8; 11]; 8],
     pub file_count: u8,
@@ -89,12 +88,7 @@ pub struct TextFileList {
 
 impl TextFileList {
     pub const fn empty() -> Self {
-        Self {
-            file_names: [[0; 11]; 8],
-            display_names: [[0; 32]; 8],
-            display_lens: [0; 8],
-            file_count: 0,
-        }
+        Self { file_names: [[0; 11]; 8], display_names: [[0; 32]; 8], display_lens: [0; 8], file_count: 0 }
     }
 }
 
@@ -130,7 +124,6 @@ impl StorageState {
         }
     }
 }
-
 
 #[cfg(test)]
 #[path = "unit_tests/storage_tests.rs"]

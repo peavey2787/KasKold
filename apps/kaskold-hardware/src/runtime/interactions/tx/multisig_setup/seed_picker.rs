@@ -1,7 +1,7 @@
 use crate::{
-    runtime::interactions::feedback::{show_rejection, ErrorSound},
-    runtime::data::AppData,
     hw::display::BootDisplay,
+    runtime::data::AppData,
+    runtime::interactions::feedback::{show_rejection, ErrorSound},
     ui::display::{draw_lato_hint, measure_hint, COLOR_TEXT_DIM},
     wallet::seed_manager::MAX_SLOTS,
 };
@@ -57,13 +57,7 @@ pub(super) fn handle(
     // The whole wallet row selects that wallet; deletion is available only
     // from the normal Wallet Details/management flow.
     if let Err(message) = activate_seed_if_needed(ad, boot_display, liveness, real_slot) {
-        show_rejection(
-            boot_display,
-            delay,
-            message,
-            1500,
-            ErrorSound::Beep,
-        );
+        show_rejection(boot_display, delay, message, 1500, ErrorSound::Beep);
         return true;
     }
     if !store_cosigner_and_advance(ad, liveness, key_idx) {
@@ -147,8 +141,7 @@ fn activate_seed_if_needed(
     liveness: &mut dyn FnMut(),
     real_slot: u8,
 ) -> Result<(), &'static str> {
-    let already_active = ad.wallet.seeds.seed_mgr.active == real_slot
-        && ad.wallet.addresses.pubkeys_cached;
+    let already_active = ad.wallet.seeds.seed_mgr.active == real_slot && ad.wallet.addresses.pubkeys_cached;
     if already_active {
         return Ok(());
     }
@@ -164,28 +157,34 @@ fn activate_seed_if_needed(
         boot_display.draw_saving_screen("Deriving addresses...");
         boot_display.update_progress_bar(50);
         let hint_width = measure_hint("Deriving...");
-        draw_lato_hint(
-            &mut boot_display.display,
-            "Deriving...",
-            (320 - hint_width) / 2,
-            170,
-            COLOR_TEXT_DIM,
-        );
+        draw_lato_hint(&mut boot_display.display, "Deriving...", (320 - hint_width) / 2, 170, COLOR_TEXT_DIM);
     }
     crate::services::wallet_session::activate_slot_with_cache(ad, real_slot as usize, liveness)
-    .map_err(|error| error.message())
+        .map_err(|error| error.message())
 }
 
 fn store_cosigner_and_advance(ad: &mut AppData, liveness: &mut dyn FnMut(), key_idx: u8) -> bool {
-    if key_idx >= ad.signing.multisig.creating.n { return false; }
+    if key_idx >= ad.signing.multisig.creating.n {
+        return false;
+    }
     let active = usize::from(ad.wallet.seeds.seed_mgr.active);
-    let Some(slot) = ad.wallet.seeds.seed_mgr.slots.get(active) else { return false; };
-    if !slot.is_mnemonic() { return false; }
-    let Ok(mut seed) = crate::services::wallet_keys::derive_slot_seed_with_checkpoint(slot, liveness) else { return false; };
+    let Some(slot) = ad.wallet.seeds.seed_mgr.slots.get(active) else {
+        return false;
+    };
+    if !slot.is_mnemonic() {
+        return false;
+    }
+    let Ok(mut seed) = crate::services::wallet_keys::derive_slot_seed_with_checkpoint(slot, liveness) else {
+        return false;
+    };
     let parts = offline_signer::derivation::xpub::derive_multisig_account_parts(&seed.bytes, 0);
     crate::runtime::signing::zeroize_seed(&mut seed.bytes);
-    let Ok(parts) = parts else { return false; };
-    if !ad.signing.multisig.creating.set_cosigner(key_idx as usize, &parts) { return false; }
+    let Ok(parts) = parts else {
+        return false;
+    };
+    if !ad.signing.multisig.creating.set_cosigner(key_idx as usize, &parts) {
+        return false;
+    }
     advance_after_cosigner(ad, key_idx + 1, liveness);
     true
 }
@@ -203,11 +202,7 @@ pub(crate) fn finish_cosigner_collection(ad: &mut AppData, checkpoint: &mut (imp
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigShowAddress));
 }
 
-pub(crate) fn advance_after_cosigner(
-    ad: &mut AppData,
-    next: u8,
-    checkpoint: &mut (impl FnMut() + ?Sized),
-) {
+pub(crate) fn advance_after_cosigner(ad: &mut AppData, next: u8, checkpoint: &mut (impl FnMut() + ?Sized)) {
     if next < ad.signing.multisig.creating.n {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigAddKey { key_idx: next }));
     } else {
@@ -215,20 +210,25 @@ pub(crate) fn advance_after_cosigner(
     }
 }
 
-pub(crate) fn resolve_loaded_cosigner_index(
-    ad: &mut AppData,
-    checkpoint: &mut (impl FnMut() + ?Sized),
-) -> bool {
+pub(crate) fn resolve_loaded_cosigner_index(ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Sized)) -> bool {
     let mut best: Option<u8> = None;
     for (slot_index, slot) in ad.wallet.seeds.seed_mgr.slots.iter().enumerate() {
-        if !ad.wallet.seeds.seed_mgr.slot_visible(slot_index) { continue; }
-        if !slot.is_mnemonic() { continue; }
-        let Ok(mut seed) = crate::services::wallet_keys::derive_slot_seed_with_checkpoint(slot, checkpoint) else { continue; };
+        if !ad.wallet.seeds.seed_mgr.slot_visible(slot_index) {
+            continue;
+        }
+        if !slot.is_mnemonic() {
+            continue;
+        }
+        let Ok(mut seed) = crate::services::wallet_keys::derive_slot_seed_with_checkpoint(slot, checkpoint) else {
+            continue;
+        };
         checkpoint();
         let parts = offline_signer::derivation::xpub::derive_multisig_account_parts(&seed.bytes, 0);
         checkpoint();
         crate::runtime::signing::zeroize_seed(&mut seed.bytes);
-        let Ok(parts) = parts else { continue; };
+        let Ok(parts) = parts else {
+            continue;
+        };
         let mut candidate = ad.signing.multisig.creating.clone();
         if candidate.resolve_cosigner_index(&parts) {
             best = Some(best.map_or(candidate.cosigner_index, |old| old.min(candidate.cosigner_index)));
@@ -237,6 +237,7 @@ pub(crate) fn resolve_loaded_cosigner_index(
     if let Some(index) = best {
         ad.signing.multisig.creating.cosigner_index = index;
         true
-    } else { false }
+    } else {
+        false
+    }
 }
-

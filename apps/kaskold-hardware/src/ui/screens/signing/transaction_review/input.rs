@@ -1,9 +1,9 @@
 //! Advanced inspection screens for the UTXOs actually consumed by a transaction.
 
 use super::{
-    BootDisplay, COLOR_BG, COLOR_ORANGE, COLOR_TEXT, COLOR_TEXT_DIM, DrawTarget, Drawable,
-    KASPA_ACCENT, KASPA_TEAL, Line, Point, Primitive, PrimitiveStyle, draw_lato_body,
-    draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_title,
+    draw_lato_body, draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_title, BootDisplay,
+    DrawTarget, Drawable, Line, Point, Primitive, PrimitiveStyle, COLOR_BG, COLOR_ORANGE, COLOR_TEXT, COLOR_TEXT_DIM,
+    KASPA_ACCENT, KASPA_TEAL,
 };
 use core::fmt::Write;
 
@@ -19,19 +19,38 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, title, (320 - width) / 2, 30, COLOR_TEXT);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         let mut line = heapless::String::<48>::new();
         write!(&mut line, "Transaction UTXOs: {}", tx.num_inputs).ok();
         centered_body(self, line.as_str(), 70, COLOR_TEXT);
         line.clear();
-        write!(&mut line, "Input total: {}.{:08} KAS", totals.input_total / 100_000_000, totals.input_total % 100_000_000).ok();
+        write!(
+            &mut line,
+            "Input total: {}.{:08} KAS",
+            totals.input_total / 100_000_000,
+            totals.input_total % 100_000_000
+        )
+        .ok();
         centered_body(self, line.as_str(), 96, COLOR_ORANGE);
         line.clear();
-        write!(&mut line, "Send total:  {}.{:08} KAS", totals.external_total / 100_000_000, totals.external_total % 100_000_000).ok();
+        write!(
+            &mut line,
+            "Send total:  {}.{:08} KAS",
+            totals.external_total / 100_000_000,
+            totals.external_total % 100_000_000
+        )
+        .ok();
         centered_body(self, line.as_str(), 122, COLOR_TEXT);
         line.clear();
-        write!(&mut line, "Change:      {}.{:08} KAS", totals.change_total / 100_000_000, totals.change_total % 100_000_000).ok();
+        write!(
+            &mut line,
+            "Change:      {}.{:08} KAS",
+            totals.change_total / 100_000_000,
+            totals.change_total % 100_000_000
+        )
+        .ok();
         centered_body(self, line.as_str(), 148, KASPA_TEAL);
         line.clear();
         write!(&mut line, "Fee:         {}.{:08} KAS", totals.fee / 100_000_000, totals.fee % 100_000_000).ok();
@@ -47,14 +66,17 @@ impl<'a> BootDisplay<'a> {
         address_page: bool,
     ) {
         self.display.clear(COLOR_BG).ok();
-        if index >= tx.num_inputs { return; }
+        if index >= tx.num_inputs {
+            return;
+        }
         let input = &tx.inputs[index];
         let mut title = heapless::String::<32>::new();
         write!(&mut title, "UTXO {} / {}", index + 1, tx.num_inputs).ok();
         centered_header(self, title.as_str(), 30, COLOR_TEXT);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         if address_page {
             centered_body(self, "SOURCE ADDRESS", 62, KASPA_ACCENT);
@@ -64,14 +86,24 @@ impl<'a> BootDisplay<'a> {
         }
 
         let mut amount = heapless::String::<36>::new();
-        write!(&mut amount, "{}.{:08} KAS", input.utxo_entry.amount / 100_000_000, input.utxo_entry.amount % 100_000_000).ok();
+        write!(
+            &mut amount,
+            "{}.{:08} KAS",
+            input.utxo_entry.amount / 100_000_000,
+            input.utxo_entry.amount % 100_000_000
+        )
+        .ok();
         centered_title(self, amount.as_str(), 68, COLOR_ORANGE);
         centered_body(self, "TXID", 92, COLOR_TEXT_DIM);
 
         let mut hex = [0u8; 64];
         encode_hex(&input.previous_outpoint.transaction_id, &mut hex);
-        if let Ok(first) = core::str::from_utf8(&hex[..32]) { centered_body(self, first, 112, COLOR_TEXT); }
-        if let Ok(second) = core::str::from_utf8(&hex[32..]) { centered_body(self, second, 132, COLOR_TEXT); }
+        if let Ok(first) = core::str::from_utf8(&hex[..32]) {
+            centered_body(self, first, 112, COLOR_TEXT);
+        }
+        if let Ok(second) = core::str::from_utf8(&hex[32..]) {
+            centered_body(self, second, 132, COLOR_TEXT);
+        }
 
         let mut meta = heapless::String::<48>::new();
         write!(&mut meta, "Output index: {}", input.previous_outpoint.index).ok();

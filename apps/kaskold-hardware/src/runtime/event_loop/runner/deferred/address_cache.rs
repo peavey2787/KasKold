@@ -30,7 +30,9 @@ fn service_worker(ad: &mut AppData, watchdog_feed: &mut impl FnMut(), generation
         ad.wallet.addresses.cache_last_progress_at_ms = now_millis();
         ad.runtime.needs_redraw = true;
     }
-    let Some(mut result) = kpub_worker::take_result(generation) else { return; };
+    let Some(mut result) = kpub_worker::take_result(generation) else {
+        return;
+    };
     ad.wallet.addresses.cache_worker_generation = None;
     if let Some(error) = result.error() {
         crate::log!("   ADDRESS Core1 derivation failed: {}", error);
@@ -53,9 +55,7 @@ fn service_worker(ad: &mut AppData, watchdog_feed: &mut impl FnMut(), generation
 #[cfg(feature = "m5stack")]
 fn fail(ad: &mut AppData) {
     cancel(ad);
-    crate::runtime::presentation::show_error_spec_previous(
-        ad, crate::runtime::presentation::ADDRESS_DERIVE,
-    );
+    crate::runtime::presentation::show_error_spec_previous(ad, crate::runtime::presentation::ADDRESS_DERIVE);
 }
 
 #[cfg(feature = "m5stack")]
@@ -66,15 +66,23 @@ pub(super) fn service(ad: &mut AppData, watchdog_feed: &mut impl FnMut()) {
         cancel(ad);
         return;
     }
-    if ad.wallet.addresses.pubkeys_cached { return; }
-    if timeout_if_stalled(ad) { return; }
+    if ad.wallet.addresses.pubkeys_cached {
+        return;
+    }
+    if timeout_if_stalled(ad) {
+        return;
+    }
     watchdog_feed();
     if let Some(generation) = ad.wallet.addresses.cache_worker_generation {
         service_worker(ad, watchdog_feed, generation);
         return;
     }
-    if advance_seed(ad, watchdog_feed) { return; }
-    if !kpub_worker::is_idle() { return; }
+    if advance_seed(ad, watchdog_feed) {
+        return;
+    }
+    if !kpub_worker::is_idle() {
+        return;
+    }
     start(ad);
     watchdog_feed();
 }
@@ -82,7 +90,9 @@ pub(super) fn service(ad: &mut AppData, watchdog_feed: &mut impl FnMut()) {
 #[cfg(feature = "m5stack")]
 fn advance_seed(ad: &mut AppData, watchdog_feed: &mut impl FnMut()) -> bool {
     use crate::services::wallet_keys::worker as kpub_worker;
-    let Some(work) = ad.wallet.addresses.cache_seed_derivation.as_mut() else { return false; };
+    let Some(work) = ad.wallet.addresses.cache_seed_derivation.as_mut() else {
+        return false;
+    };
     let seed = work.advance(PBKDF2_ROUNDS_PER_STEP);
     let progress = ((u16::from(work.progress_percent()) * 85) / 100) as u8;
     if progress != ad.wallet.addresses.cache_progress {
@@ -90,7 +100,9 @@ fn advance_seed(ad: &mut AppData, watchdog_feed: &mut impl FnMut()) -> bool {
         ad.wallet.addresses.cache_last_progress_at_ms = now_millis();
         ad.runtime.needs_redraw = true;
     }
-    let Some(mut seed) = seed else { return true; };
+    let Some(mut seed) = seed else {
+        return true;
+    };
     ad.wallet.addresses.cache_seed_derivation = None;
     match kpub_worker::submit_address_seed(&mut seed) {
         Ok(generation) => {
@@ -112,9 +124,7 @@ fn start(ad: &mut AppData) {
     use crate::services::wallet_keys::worker as kpub_worker;
     let Some(slot) = ad.wallet.seeds.seed_mgr.active_slot() else {
         crate::log!("   ADDRESS cache derivation failed: no active wallet");
-        crate::runtime::presentation::show_error_spec_previous(
-            ad, crate::runtime::presentation::ADDRESS_DERIVE,
-        );
+        crate::runtime::presentation::show_error_spec_previous(ad, crate::runtime::presentation::ADDRESS_DERIVE);
         return;
     };
     crate::log!("   ADDRESS cooperative cache derivation BEGIN");
@@ -131,7 +141,7 @@ fn start(ad: &mut AppData) {
             Err(error) => {
                 crate::log!("   ADDRESS PBKDF2 start failed: {}", error);
                 fail(ad);
-            },
+            }
         }
         return;
     }
@@ -144,18 +154,17 @@ fn start(ad: &mut AppData) {
         Err(error) => {
             crate::log!("   ADDRESS cache submit failed: {}", error);
             fail(ad);
-        },
+        }
     }
 }
 
 #[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))]
-pub(crate) fn workflow_drive_address_cache(
-    ad: &mut AppData,
-    watchdog_feed: &mut impl FnMut(),
-) -> bool {
+pub(crate) fn workflow_drive_address_cache(ad: &mut AppData, watchdog_feed: &mut impl FnMut()) -> bool {
     for _ in 0..8192u32 {
         service(ad, watchdog_feed);
-        if ad.wallet.addresses.pubkeys_cached { return true; }
+        if ad.wallet.addresses.pubkeys_cached {
+            return true;
+        }
         watchdog_feed();
         esp_hal::delay::Delay::new().delay_millis(1);
     }
@@ -165,18 +174,18 @@ pub(crate) fn workflow_drive_address_cache(
 #[cfg(feature = "m5stack")]
 fn timeout_if_stalled(ad: &mut AppData) -> bool {
     let started = ad.wallet.addresses.cache_started_at_ms;
-    if started == 0 { return false; }
+    if started == 0 {
+        return false;
+    }
     let now = now_millis();
     let total_expired = now.saturating_sub(started) >= ADDRESS_TOTAL_BUDGET_MS;
-    let progress_expired = now
-        .saturating_sub(ad.wallet.addresses.cache_last_progress_at_ms)
-        >= ADDRESS_STALL_BUDGET_MS;
-    if !total_expired && !progress_expired { return false; }
+    let progress_expired = now.saturating_sub(ad.wallet.addresses.cache_last_progress_at_ms) >= ADDRESS_STALL_BUDGET_MS;
+    if !total_expired && !progress_expired {
+        return false;
+    }
     crate::log!("   ADDRESS derivation timed out before watchdog");
     cancel(ad);
-    crate::runtime::presentation::show_error_spec_previous(
-        ad, crate::runtime::presentation::ADDRESS_TIMEOUT,
-    );
+    crate::runtime::presentation::show_error_spec_previous(ad, crate::runtime::presentation::ADDRESS_TIMEOUT);
     true
 }
 

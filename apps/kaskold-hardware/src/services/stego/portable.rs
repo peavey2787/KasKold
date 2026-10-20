@@ -4,6 +4,7 @@
 //! a random salt. The password is the only secret required to restore; there is
 //! deliberately no recovery-key factor and no legacy two-factor fallback.
 
+use crate::services::credential_policy::{self, CredentialKind};
 use aes_gcm::{
     aead::{generic_array::GenericArray, AeadInPlace, KeyInit},
     Aes256Gcm,
@@ -13,7 +14,6 @@ use offline_signer::crypto::{
     password_kdf::{PasswordKdfParams, PasswordKdfPurpose, SALT_SIZE},
 };
 use shared_signer::bytes::zeroize_bytes;
-use crate::services::credential_policy::{self, CredentialKind};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum PortableError {
@@ -24,13 +24,11 @@ pub(super) enum PortableError {
 }
 
 pub(super) fn validate_password(password: &[u8]) -> Result<(), PortableError> {
-    credential_policy::validate(CredentialKind::Password, password)
-        .map_err(|_| PortableError::InvalidPassword)
+    credential_policy::validate(CredentialKind::Password, password).map_err(|_| PortableError::InvalidPassword)
 }
 
 pub(super) fn validate_entered_password(password: &[u8]) -> Result<(), PortableError> {
-    credential_policy::validate_entered_password(password)
-        .map_err(|_| PortableError::InvalidPassword)
+    credential_policy::validate_entered_password(password).map_err(|_| PortableError::InvalidPassword)
 }
 
 pub(super) fn seal(
@@ -41,18 +39,11 @@ pub(super) fn seal(
     plaintext: &mut [u8],
 ) -> Result<[u8; TAG_SIZE], PortableError> {
     validate_password(password)?;
-    let mut key = crate::services::memory::password_kdf::derive_key_32(
-        PasswordKdfPurpose::PortableBackup,
-        password,
-        salt,
-    )
-    .map_err(|_| PortableError::UnsupportedKdf)?;
+    let mut key =
+        crate::services::memory::password_kdf::derive_key_32(PasswordKdfPurpose::PortableBackup, password, salt)
+            .map_err(|_| PortableError::UnsupportedKdf)?;
     let cipher = Aes256Gcm::new(GenericArray::from_slice(&key));
-    let result = cipher.encrypt_in_place_detached(
-        GenericArray::from_slice(nonce),
-        aad,
-        plaintext,
-    );
+    let result = cipher.encrypt_in_place_detached(GenericArray::from_slice(nonce), aad, plaintext);
     zeroize_bytes(&mut key);
 
     match result {

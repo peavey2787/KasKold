@@ -5,7 +5,7 @@
 use crate::runtime::data::{AppData, OperationKind, OperationPhase};
 use kaskold_hardware_core::{
     advanced_policy::SigningPolicy,
-    security::{SigningAuthorization, authorize_transaction_signing},
+    security::{authorize_transaction_signing, SigningAuthorization},
 };
 
 use super::{kspt, output, pskt, strategy};
@@ -43,9 +43,10 @@ pub(crate) fn workflow_signing_step(ad: &mut AppData) -> bool {
     if input_idx == 0 {
         let counts = offline_signer::transaction::kspt::initial_signature_counts(&ad.signing.transaction.active);
         ad.signing.transaction.initial_signature_counts.clear();
-        ad.signing.transaction.initial_signature_counts.extend_from_slice(
-            &counts[..ad.signing.transaction.active.num_inputs],
-        );
+        ad.signing
+            .transaction
+            .initial_signature_counts
+            .extend_from_slice(&counts[..ad.signing.transaction.active.num_inputs]);
     }
     let Some(signing_strategy) = strategy::select(ad) else {
         reject_workflow_signing(ad);
@@ -79,8 +80,7 @@ fn finish_transaction(ad: &mut AppData) -> bool {
         pskt::serialize_transaction(ad)
     } else if ad.signing.anti_klepto.phase == AntiKleptoPhase::Reviewing {
         super::workflow::prepare_anti_klepto_commitment(ad);
-        ad.signing.anti_klepto.phase == AntiKleptoPhase::AwaitingReveal
-            && ad.qr.outgoing.length != 0
+        ad.signing.anti_klepto.phase == AntiKleptoPhase::AwaitingReveal && ad.qr.outgoing.length != 0
     } else {
         kspt::serialize_transaction(ad)
     };
@@ -122,9 +122,7 @@ pub(crate) fn workflow_signing_step_with_policy(
     integrity_ok: bool,
     now_unix: u64,
 ) -> bool {
-    if crate::services::signing_policy::workflow_authorize_transaction_time(
-        policy, integrity_ok, now_unix,
-    ).is_err() {
+    if crate::services::signing_policy::workflow_authorize_transaction_time(policy, integrity_ok, now_unix).is_err() {
         reject_workflow_signing(ad);
         return false;
     }

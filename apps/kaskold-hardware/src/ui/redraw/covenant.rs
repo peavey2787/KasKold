@@ -7,10 +7,7 @@
 use super::display;
 use crate::runtime::input::AppState;
 
-pub(super) fn redraw(
-    ad: &mut crate::runtime::data::AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) -> bool {
+pub(super) fn redraw(ad: &mut crate::runtime::data::AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     match ad.navigation.app.state {
         AppState::CovenantSignReview => boot_display.draw_covenant_sign_review(ad),
         AppState::CovenantSignOpaqueWarning => boot_display.draw_covenant_opaque_warning(ad),
@@ -22,7 +19,9 @@ pub(super) fn redraw(
             boot_display.draw_covenant_sign_result(ad);
         }
         AppState::PrivateSwapReview => boot_display.draw_private_swap_review(ad),
-        AppState::PrivateSwapKeyResult | AppState::PrivateSwapKeyResultQr => boot_display.draw_private_swap_key_result(ad),
+        AppState::PrivateSwapKeyResult | AppState::PrivateSwapKeyResultQr => {
+            boot_display.draw_private_swap_key_result(ad)
+        }
         AppState::PrivateSwapResult | AppState::PrivateSwapResultQr => boot_display.draw_private_swap_result(ad),
         _ => return false,
     }

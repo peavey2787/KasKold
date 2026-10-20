@@ -1,4 +1,4 @@
-use crate::{runtime::interactions::TouchInput, runtime::input::AppState};
+use crate::{runtime::input::AppState, runtime::interactions::TouchInput};
 
 use super::{begin_restore, RestoreIo, RESTORE_ROWS};
 
@@ -9,7 +9,10 @@ pub(super) fn menu_routes(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     if crate::runtime::interactions::persistence::workflow_handle_seed_source_choice(
         TouchInput::new(20, RESTORE_ROWS[0], false),
         ctx.base.ad,
-    ).is_some() || ctx.base.ad.navigation.app.state != AppState::StorageSeedSourceChoice {
+    )
+    .is_some()
+        || ctx.base.ad.navigation.app.state != AppState::StorageSeedSourceChoice
+    {
         return false;
     }
     if !scan_seedqr_back(ctx) || !sd_back(ctx) || !advanced_back_matrix(ctx) {
@@ -31,9 +34,7 @@ fn scan_seedqr_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
 }
 
 fn sd_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    if ctx.source_touch(2) != Some(true)
-        || ctx.base.ad.navigation.app.state != AppState::SdWalletBackupFileList
-    {
+    if ctx.source_touch(2) != Some(true) || ctx.base.ad.navigation.app.state != AppState::SdWalletBackupFileList {
         return false;
     }
     let zone = ctx.list[0];
@@ -42,8 +43,7 @@ fn sd_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    ctx.sd_touch(20, 20, true) == Some(true)
-        && ctx.base.ad.navigation.app.state == AppState::StorageSeedSourceChoice
+    ctx.sd_touch(20, 20, true) == Some(true) && ctx.base.ad.navigation.app.state == AppState::StorageSeedSourceChoice
 }
 
 fn advanced_back_matrix(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
@@ -72,7 +72,6 @@ fn compact_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     ctx.base.ad.navigation.app.state == AppState::AdvancedRestoreMenu
 }
 
-
 fn plain_text_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     if ctx.advanced_touch(1) != Some(true) || ctx.base.ad.navigation.app.state != AppState::ScanQR {
         return false;
@@ -85,8 +84,7 @@ fn raw_key_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     if ctx.advanced_touch(3) != Some(true) || ctx.base.ad.navigation.app.state != AppState::ImportPrivKey {
         return false;
     }
-    ctx.base.seed_touch(20, 20, true) == Some(true)
-        && ctx.base.ad.navigation.app.state == AppState::AdvancedRestoreMenu
+    ctx.base.seed_touch(20, 20, true) == Some(true) && ctx.base.ad.navigation.app.state == AppState::AdvancedRestoreMenu
 }
 
 fn stego_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
@@ -97,7 +95,8 @@ fn stego_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
 }
 
 pub(super) fn sd_empty_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    if !begin_restore(ctx) || ctx.source_touch(2) != Some(true)
+    if !begin_restore(ctx)
+        || ctx.source_touch(2) != Some(true)
         || ctx.base.ad.navigation.app.state != AppState::SdWalletBackupFileList
     {
         return false;

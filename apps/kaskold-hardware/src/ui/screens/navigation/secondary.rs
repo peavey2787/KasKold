@@ -15,25 +15,12 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use super::super::{
-    BootDisplay,
-    COLOR_BG,
-    COLOR_TEXT,
-    DrawTarget,
-    Drawable,
-    KASPA_TEAL,
-    Line,
-    Point,
-    Primitive,
-    PrimitiveStyle,
-    Rgb565,
-    draw_lato_hint,
-    draw_oswald_header,
-    measure_header,
-    measure_hint,
+    draw_lato_hint, draw_oswald_header, measure_header, measure_hint, BootDisplay, DrawTarget, Drawable, Line, Point,
+    Primitive, PrimitiveStyle, Rgb565, COLOR_BG, COLOR_TEXT, KASPA_TEAL,
 };
 
 #[cfg(feature = "developer-ui")]
-use super::super::{COLOR_TEXT_DIM, draw_lato_body};
+use super::super::{draw_lato_body, COLOR_TEXT_DIM};
 
 impl<'a> BootDisplay<'a> {
     /// Draw QR Export sub-menu — dims "Plain Words QR" when seed is 24 words
@@ -44,7 +31,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, "QR EXPORT", (320 - tw) / 2, 30, COLOR_TEXT);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         let max_visible = crate::runtime::input::Menu::MAX_VISIBLE;
         let visible_count = max_visible.min(menu.count.saturating_sub(menu.scroll));
@@ -58,7 +46,9 @@ impl<'a> BootDisplay<'a> {
 
         for i in 0..visible_count {
             let item_idx = menu.scroll + i;
-            if item_idx >= menu.count { break; }
+            if item_idx >= menu.count {
+                break;
+            }
 
             // Plain-word QR is intentionally unavailable for 24-word seeds.
             if item_idx == 2 && word_count > 12 {
@@ -71,7 +61,6 @@ impl<'a> BootDisplay<'a> {
             self.draw_navigation_card(label, start_x, y, card_w, card_h as u32);
             drawn += 1;
         }
-
     }
 
     /// Draw about screen
@@ -83,21 +72,15 @@ impl<'a> BootDisplay<'a> {
         // Logo shifted up 20px for visual balance; Back is overlaid after the full-screen image.
         static LOGO_DATA: &[u8] = include_bytes!("../../../../assets/logo_320x240.raw");
         let raw_img: ImageRawLE<Rgb565> = ImageRawLE::new(LOGO_DATA, 320);
-        Image::new(&raw_img, Point::new(0, -20))
-            .draw(&mut self.display).ok();
+        Image::new(&raw_img, Point::new(0, -20)).draw(&mut self.display).ok();
 
         let mut vbuf = [0u8; 12];
-        let vlen = crate::services::fw_update::format_version(
-            crate::services::fw_update::CURRENT_VERSION,
-            &mut vbuf[1..],
-        );
+        let vlen =
+            crate::services::fw_update::format_version(crate::services::fw_update::CURRENT_VERSION, &mut vbuf[1..]);
         vbuf[0] = b'v';
         let vtxt = core::str::from_utf8(&vbuf[..vlen + 1]).unwrap_or("v?");
         let mut version_label: heapless::String<16> = heapless::String::new();
-        let _ = core::fmt::Write::write_fmt(
-            &mut version_label,
-            format_args!("V{}", vtxt.trim_start_matches('v')),
-        );
+        let _ = core::fmt::Write::write_fmt(&mut version_label, format_args!("V{}", vtxt.trim_start_matches('v')));
         draw_lato_hint(
             &mut self.display,
             version_label.as_str(),
@@ -123,7 +106,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, title, (320 - measure_header(title)) / 2, 30, COLOR_TEXT);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         let trust = match crate::services::verify::boot_security::level() {
             crate::services::verify::boot_security::BootSecurityLevel::HardwareEnforced => "HARDWARE SECURE BOOT",
@@ -133,11 +117,29 @@ impl<'a> BootDisplay<'a> {
         draw_lato_body(&mut self.display, "Trust", 26, 70, COLOR_TEXT_DIM);
         draw_lato_body(&mut self.display, trust, 118, 70, COLOR_TEXT);
         draw_lato_body(&mut self.display, "Profile", 26, 94, COLOR_TEXT_DIM);
-        draw_lato_body(&mut self.display, if cfg!(feature = "production") { "PRODUCTION" } else { "DEVELOPMENT" }, 118, 94, COLOR_TEXT);
+        draw_lato_body(
+            &mut self.display,
+            if cfg!(feature = "production") { "PRODUCTION" } else { "DEVELOPMENT" },
+            118,
+            94,
+            COLOR_TEXT,
+        );
         draw_lato_body(&mut self.display, "Signer", 26, 118, COLOR_TEXT_DIM);
-        draw_lato_body(&mut self.display, if cfg!(feature = "production") { "RELEASE KEY" } else { "DEV TEST KEY" }, 118, 118, COLOR_TEXT);
+        draw_lato_body(
+            &mut self.display,
+            if cfg!(feature = "production") { "RELEASE KEY" } else { "DEV TEST KEY" },
+            118,
+            118,
+            COLOR_TEXT,
+        );
         draw_lato_body(&mut self.display, "Secure Boot eFuse", 26, 142, COLOR_TEXT_DIM);
-        draw_lato_body(&mut self.display, if crate::services::verify::boot_security::secure_boot_enabled() { "ON" } else { "OFF" }, 188, 142, COLOR_TEXT);
+        draw_lato_body(
+            &mut self.display,
+            if crate::services::verify::boot_security::secure_boot_enabled() { "ON" } else { "OFF" },
+            188,
+            142,
+            COLOR_TEXT,
+        );
         #[cfg(feature = "provisioning-ui")]
         {
             draw_lato_body(&mut self.display, "Pop It", 26, 166, COLOR_TEXT_DIM);
@@ -153,10 +155,7 @@ impl<'a> BootDisplay<'a> {
             draw_lato_body(&mut self.display, pop_it, 118, 166, COLOR_TEXT);
         }
         let mut version: heapless::String<24> = heapless::String::new();
-        let _ = core::fmt::Write::write_fmt(
-            &mut version,
-            format_args!("Version {}", env!("CARGO_PKG_VERSION")),
-        );
+        let _ = core::fmt::Write::write_fmt(&mut version, format_args!("Version {}", env!("CARGO_PKG_VERSION")));
         draw_lato_hint(&mut self.display, version.as_str(), 26, 206, COLOR_TEXT_DIM);
     }
 
@@ -166,9 +165,6 @@ impl<'a> BootDisplay<'a> {
 
         static ICON_HOME: &[u8] = include_bytes!("../../../../assets/icon_home_24.raw");
         let raw_icon: ImageRawLE<Rgb565> = ImageRawLE::new(ICON_HOME, 24);
-        Image::new(&raw_icon, Point::new(284, 3))
-            .draw(&mut self.display)
-            .ok();
+        Image::new(&raw_icon, Point::new(284, 3)).draw(&mut self.display).ok();
     }
-
 }

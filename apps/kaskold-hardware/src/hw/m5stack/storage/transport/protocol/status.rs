@@ -9,4 +9,3 @@ pub(in crate::hw::m5stack::storage::transport) fn card_status_r2(
     let mut status = [0u8; 1];
     command(CMD13, 0, initialization_speed, &mut status).map(|r1| [r1, status[0]])
 }
-

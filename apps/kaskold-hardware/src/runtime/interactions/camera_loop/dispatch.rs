@@ -7,7 +7,7 @@
 //! Each payload family owns its validation and workflow. This router retains
 //! the original precedence and the stable camera-controller call surface.
 
-use super::{AppData, display, sound};
+use super::{display, sound, AppData};
 use kaskold_hardware_core::qr::classification::{classify_qr_payload, QrPayloadKind};
 
 mod address;
@@ -15,13 +15,13 @@ mod anti_klepto;
 mod covenant;
 mod covenant_sign;
 mod descriptor;
-mod private_swap;
 mod kpub;
 mod pairing;
-mod text;
+mod private_swap;
 mod secret;
 mod seed;
 mod stealth;
+mod text;
 mod transaction;
 
 #[inline(never)]
@@ -35,10 +35,10 @@ pub(super) fn process_confirmed_qr(
     liveness: &mut (impl FnMut() + ?Sized),
 ) {
     sound::qr_decoded();
-    if process_pending(data, len, ad, boot_display, delay, liveness) { return; }
-    dispatch_payload(
-        classify_qr_payload(data, len), data, len, ad, boot_display, delay, i2c, liveness,
-    );
+    if process_pending(data, len, ad, boot_display, delay, liveness) {
+        return;
+    }
+    dispatch_payload(classify_qr_payload(data, len), data, len, ad, boot_display, delay, i2c, liveness);
 }
 
 fn process_pending(
@@ -70,16 +70,29 @@ fn dispatch_payload(
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     liveness: &mut (impl FnMut() + ?Sized),
 ) {
-    if dispatch_identity(kind, data, len, ad, i2c, liveness) { return; }
-    if dispatch_transaction(kind, data, ad, liveness) { return; }
-    if dispatch_seed(kind, data, ad) { return; }
-    if dispatch_platform(kind, data, len, ad, boot_display, delay, liveness) { return; }
-    if dispatch_covenant(kind, data, len, ad, boot_display, liveness) { return; }
+    if dispatch_identity(kind, data, len, ad, i2c, liveness) {
+        return;
+    }
+    if dispatch_transaction(kind, data, ad, liveness) {
+        return;
+    }
+    if dispatch_seed(kind, data, ad) {
+        return;
+    }
+    if dispatch_platform(kind, data, len, ad, boot_display, delay, liveness) {
+        return;
+    }
+    if dispatch_covenant(kind, data, len, ad, boot_display, liveness) {
+        return;
+    }
     dispatch_last(kind, data, len, ad, liveness);
 }
 
 fn dispatch_identity(
-    kind: QrPayloadKind, data: &[u8], len: usize, ad: &mut AppData,
+    kind: QrPayloadKind,
+    data: &[u8],
+    len: usize,
+    ad: &mut AppData,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     liveness: &mut (impl FnMut() + ?Sized),
 ) -> bool {
@@ -92,7 +105,9 @@ fn dispatch_identity(
 }
 
 fn dispatch_transaction(
-    kind: QrPayloadKind, data: &[u8], ad: &mut AppData,
+    kind: QrPayloadKind,
+    data: &[u8],
+    ad: &mut AppData,
     liveness: &mut (impl FnMut() + ?Sized),
 ) -> bool {
     match kind {
@@ -102,7 +117,6 @@ fn dispatch_transaction(
     }
     true
 }
-
 
 #[cfg(feature = "workflow-test-auto")]
 pub(super) fn workflow_process_seed_payload(data: &[u8], compact: bool, ad: &mut AppData) {
@@ -114,11 +128,7 @@ pub(super) fn workflow_process_seed_payload(data: &[u8], compact: bool, ad: &mut
 }
 
 #[cfg(feature = "workflow-test-auto")]
-pub(super) fn workflow_process_transaction_payload(
-    data: &[u8],
-    standard_pskt: bool,
-    ad: &mut AppData,
-) {
+pub(super) fn workflow_process_transaction_payload(data: &[u8], standard_pskt: bool, ad: &mut AppData) {
     if standard_pskt {
         crate::runtime::interactions::tx::workflow_load_standard_transaction(data, ad);
     } else {
@@ -146,8 +156,12 @@ fn dispatch_seed(kind: QrPayloadKind, data: &[u8], ad: &mut AppData) -> bool {
 }
 
 fn dispatch_platform(
-    kind: QrPayloadKind, data: &[u8], len: usize, ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>, delay: &mut esp_hal::delay::Delay,
+    kind: QrPayloadKind,
+    data: &[u8],
+    len: usize,
+    ad: &mut AppData,
+    boot_display: &mut display::BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
     liveness: &mut (impl FnMut() + ?Sized),
 ) -> bool {
     match kind {
@@ -156,14 +170,17 @@ fn dispatch_platform(
         QrPayloadKind::FirmwareUpdate => {
             log!("   → Firmware update QR ignored; use Settings -> Advanced -> Firmware Update and USB");
             sound::error();
-        },
+        }
         _ => return false,
     }
     true
 }
 
 fn dispatch_covenant(
-    kind: QrPayloadKind, data: &[u8], len: usize, ad: &mut AppData,
+    kind: QrPayloadKind,
+    data: &[u8],
+    len: usize,
+    ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     liveness: &mut (impl FnMut() + ?Sized),
 ) -> bool {
@@ -192,12 +209,7 @@ fn dispatch_last(
     }
 }
 
-fn dispatch_unknown(
-    data: &[u8],
-    len: usize,
-    ad: &mut AppData,
-    liveness: &mut (impl FnMut() + ?Sized),
-) {
+fn dispatch_unknown(data: &[u8], len: usize, ad: &mut AppData, liveness: &mut (impl FnMut() + ?Sized)) {
     if seed::process_plain_words(&data[..len.min(data.len())], ad) {
         return;
     }
@@ -211,10 +223,7 @@ fn dispatch_unknown(
 }
 
 #[cfg(feature = "workflow-test-auto")]
-pub(super) fn workflow_validate_stealth_request(
-    data: &[u8],
-    length: usize,
-) -> Result<usize, &'static str> {
+pub(super) fn workflow_validate_stealth_request(data: &[u8], length: usize) -> Result<usize, &'static str> {
     stealth::workflow_validate_request(data, length)
 }
 

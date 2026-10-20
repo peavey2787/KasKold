@@ -20,10 +20,7 @@ enum KpubSource {
     AccountKpubSeed([u8; 64]),
     MultisigKpubSeed([u8; 64]),
     AddressSeed([u8; 64]),
-    AccountKpub {
-        raw: [u8; 65],
-        parent_fingerprint: [u8; 4],
-    },
+    AccountKpub { raw: [u8; 65], parent_fingerprint: [u8; 4] },
     AddressAccount([u8; 65]),
     AddressRawKey([u8; 32]),
 }
@@ -36,9 +33,9 @@ struct KpubJob {
 impl Drop for KpubJob {
     fn drop(&mut self) {
         match &mut self.source {
-            KpubSource::AccountKpubSeed(seed)
-            | KpubSource::MultisigKpubSeed(seed)
-            | KpubSource::AddressSeed(seed) => shared_signer::bytes::zeroize_bytes(seed),
+            KpubSource::AccountKpubSeed(seed) | KpubSource::MultisigKpubSeed(seed) | KpubSource::AddressSeed(seed) => {
+                shared_signer::bytes::zeroize_bytes(seed)
+            }
             KpubSource::AccountKpub { raw, parent_fingerprint } => {
                 shared_signer::bytes::zeroize_bytes(raw);
                 shared_signer::bytes::zeroize_bytes(parent_fingerprint);
@@ -61,20 +58,30 @@ pub(crate) struct KpubWorkerResult {
 }
 
 impl KpubWorkerResult {
-    pub(crate) fn generation(&self) -> u8 { self.generation }
-    pub(crate) fn kind(&self) -> WorkerResultKind { self.kind }
-    pub(crate) fn error(&self) -> Option<&'static str> { self.error }
+    pub(crate) fn generation(&self) -> u8 {
+        self.generation
+    }
+    pub(crate) fn kind(&self) -> WorkerResultKind {
+        self.kind
+    }
+    pub(crate) fn error(&self) -> Option<&'static str> {
+        self.error
+    }
     pub(crate) fn encoded_mut(&mut self) -> &mut [u8; offline_signer::derivation::xpub::KPUB_MAX_LEN] {
         &mut self.encoded
     }
-    pub(crate) fn length(&self) -> usize { self.length }
+    pub(crate) fn length(&self) -> usize {
+        self.length
+    }
     pub(crate) fn take_address_cache(
         &mut self,
         account_raw: &mut [u8; 65],
         receive_cache: &mut [[u8; 32]; 20],
         change_cache: &mut [[u8; 32]; 5],
     ) -> bool {
-        if self.kind != WorkerResultKind::AddressCache || self.error.is_some() { return false; }
+        if self.kind != WorkerResultKind::AddressCache || self.error.is_some() {
+            return false;
+        }
         account_raw.copy_from_slice(&self.account_raw);
         *receive_cache = self.receive_cache;
         *change_cache = self.change_cache;
@@ -86,33 +93,35 @@ impl Drop for KpubWorkerResult {
     fn drop(&mut self) {
         shared_signer::bytes::zeroize_bytes(&mut self.encoded);
         shared_signer::bytes::zeroize_bytes(&mut self.account_raw);
-        for key in &mut self.receive_cache { shared_signer::bytes::zeroize_bytes(key); }
-        for key in &mut self.change_cache { shared_signer::bytes::zeroize_bytes(key); }
+        for key in &mut self.receive_cache {
+            shared_signer::bytes::zeroize_bytes(key);
+        }
+        for key in &mut self.change_cache {
+            shared_signer::bytes::zeroize_bytes(key);
+        }
         self.length = 0;
     }
 }
 
 static MAILBOX: CrossCoreMailbox<KpubJob, KpubWorkerResult> = CrossCoreMailbox::new();
 
-pub(crate) fn mark_ready() { MAILBOX.mark_ready(); }
+pub(crate) fn mark_ready() {
+    MAILBOX.mark_ready();
+}
 
-pub(crate) fn is_idle() -> bool { MAILBOX.is_idle() }
+pub(crate) fn is_idle() -> bool {
+    MAILBOX.is_idle()
+}
 
-pub(crate) fn submit_seed(
-    seed: &mut offline_signer::derivation::bip39::Seed,
-) -> Result<u8, &'static str> {
+pub(crate) fn submit_seed(seed: &mut offline_signer::derivation::bip39::Seed) -> Result<u8, &'static str> {
     submit_seed_job(seed, KpubSource::AccountKpubSeed, 90)
 }
 
-pub(crate) fn submit_multisig_seed(
-    seed: &mut offline_signer::derivation::bip39::Seed,
-) -> Result<u8, &'static str> {
+pub(crate) fn submit_multisig_seed(seed: &mut offline_signer::derivation::bip39::Seed) -> Result<u8, &'static str> {
     submit_seed_job(seed, KpubSource::MultisigKpubSeed, 90)
 }
 
-pub(crate) fn submit_address_seed(
-    seed: &mut offline_signer::derivation::bip39::Seed,
-) -> Result<u8, &'static str> {
+pub(crate) fn submit_address_seed(seed: &mut offline_signer::derivation::bip39::Seed) -> Result<u8, &'static str> {
     submit_seed_job(seed, KpubSource::AddressSeed, 86)
 }
 
@@ -147,10 +156,7 @@ pub(crate) fn submit_account(slot: &SeedSlot) -> Result<u8, &'static str> {
     }
     let job = KpubJob {
         generation,
-        source: KpubSource::AccountKpub {
-            raw,
-            parent_fingerprint: slot.account_parent_fingerprint,
-        },
+        source: KpubSource::AccountKpub { raw, parent_fingerprint: slot.account_parent_fingerprint },
     };
     publish_job(job, 96)?;
     Ok(generation)
@@ -260,9 +266,14 @@ fn process(job: KpubJob) -> KpubWorkerResult {
             MAILBOX.set_progress(98);
             let account = offline_signer::derivation::bip32::ExtendedPrivKey::from_raw(raw);
             match offline_signer::derivation::xpub::serialize_account_kpub(
-                &account, *parent_fingerprint, &mut out.encoded,
+                &account,
+                *parent_fingerprint,
+                &mut out.encoded,
             ) {
-                Ok(length) => { out.length = length; MAILBOX.set_progress(100); }
+                Ok(length) => {
+                    out.length = length;
+                    MAILBOX.set_progress(100);
+                }
                 Err(_) => out.error = Some("kpub serialization failed"),
             }
             out
@@ -309,16 +320,16 @@ fn process_kpub_seed(generation: u8, seed: &[u8; 64], multisig: bool) -> KpubWor
         offline_signer::derivation::xpub::derive_and_serialize_kpub(seed, &mut out.encoded)
     };
     match result {
-        Ok(length) => { out.length = length; MAILBOX.set_progress(100); }
+        Ok(length) => {
+            out.length = length;
+            MAILBOX.set_progress(100);
+        }
         Err(_) => out.error = Some(if multisig { "45' kpub derivation failed" } else { "kpub derivation failed" }),
     }
     out
 }
 
-fn fill_address_cache(
-    account: &offline_signer::derivation::bip32::ExtendedPrivKey,
-    out: &mut KpubWorkerResult,
-) {
+fn fill_address_cache(account: &offline_signer::derivation::bip32::ExtendedPrivKey, out: &mut KpubWorkerResult) {
     out.account_raw.copy_from_slice(&account.to_raw());
     for index in 0..20u32 {
         MAILBOX.set_progress(88 + (index / 4) as u8);

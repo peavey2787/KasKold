@@ -1,10 +1,9 @@
 //! First-start wallet setup, final storage choice, and credential screens.
 
 use super::super::{
-    BootDisplay, COLOR_BG, COLOR_CARD, COLOR_CARD_BORDER, COLOR_TEXT, COLOR_TEXT_DIM,
-    CornerRadii, Drawable, KASPA_TEAL, Line, Point, Primitive, PrimitiveStyle, Rectangle,
-    RoundedRectangle, Size, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_header,
-    measure_hint, measure_title,
+    draw_lato_hint, draw_lato_title, draw_oswald_header, measure_header, measure_hint, measure_title, BootDisplay,
+    CornerRadii, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size, COLOR_BG,
+    COLOR_CARD, COLOR_CARD_BORDER, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_TEAL,
 };
 use crate::ui::keyboard::KeyboardMode;
 
@@ -17,9 +16,7 @@ pub(crate) const PROTECT_BUTTON_Y: core::ops::RangeInclusive<u16> = 48..=82;
 pub(crate) const NO_PROTECT_BUTTON_Y: core::ops::RangeInclusive<u16> = 118..=152;
 pub(crate) const ACK_BUTTON_X: core::ops::RangeInclusive<u16> = 18..=302;
 pub(crate) const ACK_BUTTON_Y: core::ops::RangeInclusive<u16> = 168..=207;
-pub(crate) const RESTORE_ROW_Y: [core::ops::RangeInclusive<u16>; 4] = [
-    46..=87, 92..=133, 138..=179, 184..=225,
-];
+pub(crate) const RESTORE_ROW_Y: [core::ops::RangeInclusive<u16>; 4] = [46..=87, 92..=133, 138..=179, 184..=225];
 pub(crate) const NO_DICE_BUTTON_Y: core::ops::RangeInclusive<u16> = 58..=92;
 pub(crate) const ADD_DICE_BUTTON_Y: core::ops::RangeInclusive<u16> = 112..=146;
 // Touch choice hitboxes include four pixels of non-overlapping vertical slop
@@ -67,7 +64,11 @@ impl<'a> BootDisplay<'a> {
     }
 
     fn draw_wallet_choice(&mut self, show_back: bool) {
-        if show_back { self.clear_keep_nav(); } else { self.clear_screen(); }
+        if show_back {
+            self.clear_keep_nav();
+        } else {
+            self.clear_screen();
+        }
         self.draw_storage_header("WELCOME");
         self.draw_storage_button(42, "Create Wallet");
         self.draw_centered_hint("Create new recovery words securely.", 96);
@@ -169,15 +170,16 @@ impl<'a> BootDisplay<'a> {
         self.draw_pin_pad();
     }
 
-    pub fn update_storage_pin_value(
-        &mut self,
-        input: &crate::wallet::seed_manager::PassphraseInput,
-        reveal: bool,
-    ) {
+    pub fn update_storage_pin_value(&mut self, input: &crate::wallet::seed_manager::PassphraseInput, reveal: bool) {
         Rectangle::new(Point::new(0, 40), Size::new(320, 38))
             .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-            .draw(&mut self.display).ok();
-        if reveal { self.draw_visible_pin(input); } else { self.draw_masked_pin(input); }
+            .draw(&mut self.display)
+            .ok();
+        if reveal {
+            self.draw_visible_pin(input);
+        } else {
+            self.draw_masked_pin(input);
+        }
     }
 
     pub fn draw_storage_secret_entry(
@@ -214,7 +216,8 @@ impl<'a> BootDisplay<'a> {
         if input.len == 0 {
             Rectangle::new(Point::new(0, 40), Size::new(320, 38))
                 .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
             self.draw_centered_hint(hint, 63);
         }
     }
@@ -245,12 +248,7 @@ impl<'a> BootDisplay<'a> {
     }
 
     fn draw_pin_pad(&mut self) {
-        const LABELS: [[&str; 3]; 4] = [
-            ["1", "2", "3"],
-            ["4", "5", "6"],
-            ["7", "8", "9"],
-            ["DEL", "0", "OK"],
-        ];
+        const LABELS: [[&str; 3]; 4] = [["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"], ["DEL", "0", "OK"]];
         for (row, y_range) in PIN_PAD_Y.iter().enumerate() {
             for (column, x_range) in PIN_PAD_X.iter().enumerate() {
                 let x = i32::from(*x_range.start());
@@ -261,19 +259,15 @@ impl<'a> BootDisplay<'a> {
                 let corners = CornerRadii::new(Size::new(6, 6));
                 RoundedRectangle::new(rectangle, corners)
                     .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-                    .draw(&mut self.display).ok();
+                    .draw(&mut self.display)
+                    .ok();
                 RoundedRectangle::new(rectangle, corners)
                     .into_styled(PrimitiveStyle::with_stroke(COLOR_CARD_BORDER, 1))
-                    .draw(&mut self.display).ok();
+                    .draw(&mut self.display)
+                    .ok();
                 let label = LABELS[row][column];
                 let label_width = measure_title(label);
-                draw_lato_title(
-                    &mut self.display,
-                    label,
-                    x + (width as i32 - label_width) / 2,
-                    y + 23,
-                    COLOR_TEXT,
-                );
+                draw_lato_title(&mut self.display, label, x + (width as i32 - label_width) / 2, y + 23, COLOR_TEXT);
             }
         }
     }
@@ -292,8 +286,12 @@ impl<'a> BootDisplay<'a> {
         let text = core::str::from_utf8(&input.buf[start..end]).unwrap_or("");
         let width = measure_title(text);
         draw_lato_title(&mut self.display, text, ((320 - width) / 2).max(18), 65, COLOR_TEXT);
-        if start > 0 { draw_lato_hint(&mut self.display, "<", 8, 62, COLOR_TEXT_DIM); }
-        if end < input.len { draw_lato_hint(&mut self.display, ">", 306, 62, COLOR_TEXT_DIM); }
+        if start > 0 {
+            draw_lato_hint(&mut self.display, "<", 8, 62, COLOR_TEXT_DIM);
+        }
+        if end < input.len {
+            draw_lato_hint(&mut self.display, ">", 306, 62, COLOR_TEXT_DIM);
+        }
     }
 
     fn draw_masked_credential(&mut self, input: &crate::wallet::seed_manager::PassphraseInput) {
@@ -318,7 +316,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, title, (320 - title_width) / 2, 26, KASPA_TEAL);
         Line::new(Point::new(20, 34), Point::new(300, 34))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
     }
 
     fn draw_storage_button(&mut self, y: i32, label: &str) {
@@ -326,10 +325,12 @@ impl<'a> BootDisplay<'a> {
         let corners = CornerRadii::new(Size::new(7, 7));
         RoundedRectangle::new(rectangle, corners)
             .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(rectangle, corners)
             .into_styled(PrimitiveStyle::with_stroke(COLOR_CARD_BORDER, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let width = measure_title(label);
         draw_lato_title(&mut self.display, label, (320 - width) / 2, y + 24, COLOR_TEXT);
     }

@@ -1,7 +1,7 @@
 use super::super::{
     bit_writer::BitWriter,
-    ecc::codewords::{build_matrix, finish_data_codewords, interleave_with_error_correction},
     constants::VERSION_TABLE,
+    ecc::codewords::{build_matrix, finish_data_codewords, interleave_with_error_correction},
     error::QrError,
     matrix::matrix::QrCode,
     matrix::version::select_version,
@@ -24,12 +24,6 @@ pub fn encode(data: &[u8]) -> Result<QrCode, QrError> {
     finish_data_codewords(&mut writer, data_count);
 
     let mut all_codewords = [0u8; 180];
-    let total = interleave_with_error_correction(
-        &data_codewords,
-        data_count,
-        ec_count,
-        ec_blocks,
-        &mut all_codewords,
-    );
+    let total = interleave_with_error_correction(&data_codewords, data_count, ec_count, ec_blocks, &mut all_codewords);
     Ok(build_matrix(version, &all_codewords[..total]))
 }

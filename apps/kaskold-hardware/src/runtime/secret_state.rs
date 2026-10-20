@@ -16,7 +16,9 @@ pub(crate) fn initialize() -> &'static mut AppData {
         Ok(data) => data.into_mut(),
         Err(()) => {
             crate::log!("FATAL: runtime state allocation failed");
-            loop { core::hint::spin_loop(); }
+            loop {
+                core::hint::spin_loop();
+            }
         }
     }
 }

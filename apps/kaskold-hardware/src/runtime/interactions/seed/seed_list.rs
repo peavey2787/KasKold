@@ -2,7 +2,7 @@
 
 mod list;
 
-use super::{AppData, display};
+use super::{display, AppData};
 
 pub(super) fn handle(
     ad: &mut AppData,
@@ -13,28 +13,26 @@ pub(super) fn handle(
     is_back: bool,
     liveness: &mut dyn FnMut(),
 ) -> Option<bool> {
-    if !matches!(
-        ad.navigation.app.state,
-        crate::runtime::input::AppState::SeedList
-    ) {
+    if !matches!(ad.navigation.app.state, crate::runtime::input::AppState::SeedList) {
         return None;
     }
     Some(list::handle(ad, boot_display, delay, x, y, is_back, liveness))
 }
 
-
-pub(super) fn handle_add_wallet_choice(
-    ad: &mut AppData, x: u16, y: u16, is_back: bool,
-) -> Option<bool> {
+pub(super) fn handle_add_wallet_choice(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> Option<bool> {
     use crate::runtime::input::AppState;
     use crate::ui::screens::device::persistence::{BUTTON_X, FRESH_BUTTON_Y, SAVE_BUTTON_Y};
-    if ad.navigation.app.state != AppState::AddWalletChoice { return None; }
+    if ad.navigation.app.state != AppState::AddWalletChoice {
+        return None;
+    }
     if is_back {
         ad.wallet.seeds.clear_pending_add_wallet();
         return_after_add_wallet(ad);
         return Some(true);
     }
-    if !BUTTON_X.contains(&x) { return Some(false); }
+    if !BUTTON_X.contains(&x) {
+        return Some(false);
+    }
     if FRESH_BUTTON_Y.contains(&y) {
         ad.wallet.seeds.pp_input.reset();
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(WalletNameEntry { purpose: 1 }));
@@ -62,19 +60,14 @@ pub(super) fn return_after_add_wallet(ad: &mut AppData) {
     // first; from that Seeds-owned state we can safely resume Multisig. Keep
     // the continuation token until the Multisig route itself commits so an
     // unexpected navigation rejection cannot silently lose the pending key.
-    if !matches!(
-        ad.navigation.app.state,
-        crate::runtime::input::AppState::SeedList
-    ) && !crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedList))
+    if !matches!(ad.navigation.app.state, crate::runtime::input::AppState::SeedList)
+        && !crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedList))
     {
         return;
     }
     if let Some(key_idx) = multisig_key {
         ad.signing.multisig.scroll = 0;
-        if crate::runtime::effects::route(
-            ad,
-            crate::runtime::navigation::route!(MultisigPickSeed { key_idx }),
-        ) {
+        if crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigPickSeed { key_idx })) {
             ad.wallet.seeds.clear_multisig_wallet_return();
         }
     }

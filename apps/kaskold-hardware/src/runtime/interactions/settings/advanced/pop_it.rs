@@ -11,8 +11,8 @@ use crate::{
     runtime::{data::AppData, input::AppState},
     services::persistent_wallet::PersistentWallet,
     ui::screens::device::pop_it::{
-        CONTINUE_WITHOUT_BUTTON_Y, EXPLAIN_BUTTON_X, NO_BUTTON_X, OWNER_PROMPT_BUTTON_X,
-        OWNER_SETUP_BUTTON_Y, PROMPT_BUTTON_Y, YES_BUTTON_X,
+        CONTINUE_WITHOUT_BUTTON_Y, EXPLAIN_BUTTON_X, NO_BUTTON_X, OWNER_PROMPT_BUTTON_X, OWNER_SETUP_BUTTON_Y,
+        PROMPT_BUTTON_Y, YES_BUTTON_X,
     },
 };
 
@@ -25,7 +25,9 @@ pub(super) fn handle_pure(input_event: TouchInput, ad: &mut AppData) -> Option<b
     match ad.navigation.app.state {
         AppState::PopItPrompt => pure_prompt(input_event, ad),
         AppState::PopItExplain => {
-            if !input_event.is_back { return Some(false); }
+            if !input_event.is_back {
+                return Some(false);
+            }
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(PopItPrompt));
             Some(true)
         }
@@ -51,7 +53,9 @@ fn pure_prompt(input: TouchInput, ad: &mut AppData) -> Option<bool> {
         }
         return Some(false);
     }
-    if !PROMPT_BUTTON_Y.contains(&input.y) { return Some(false); }
+    if !PROMPT_BUTTON_Y.contains(&input.y) {
+        return Some(false);
+    }
     if EXPLAIN_BUTTON_X.contains(&input.x) {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(PopItExplain));
         return Some(true);
@@ -94,15 +98,14 @@ pub(super) fn handle(
 
 pub(super) fn handle_prompt(input: TouchInput, ad: &mut AppData) -> Option<bool> {
     if !ad.pop_it.owner_authority_enrolled {
-        if !OWNER_PROMPT_BUTTON_X.contains(&input.x) { return Some(false); }
+        if !OWNER_PROMPT_BUTTON_X.contains(&input.x) {
+            return Some(false);
+        }
         if OWNER_SETUP_BUTTON_Y.contains(&input.y) {
             ad.pop_it.error = None;
             ad.wallet.seeds.pp_input.reset();
             ad.navigation.production.owner_firmware_menu.reset();
-            crate::runtime::effects::route(
-                ad,
-                crate::runtime::navigation::route!(OwnerFirmwareMenu),
-            );
+            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(OwnerFirmwareMenu));
             return Some(true);
         }
         if CONTINUE_WITHOUT_BUTTON_Y.contains(&input.y) {
@@ -118,7 +121,9 @@ pub(super) fn handle_prompt(input: TouchInput, ad: &mut AppData) -> Option<bool>
         return Some(false);
     }
 
-    if !PROMPT_BUTTON_Y.contains(&input.y) { return Some(false); }
+    if !PROMPT_BUTTON_Y.contains(&input.y) {
+        return Some(false);
+    }
     if YES_BUTTON_X.contains(&input.x) {
         ad.pop_it.error = None;
         ad.wallet.seeds.pp_input.reset();
@@ -196,9 +201,13 @@ fn return_to_saved_state(ad: &mut AppData) {
 /// surrounding/repeated whitespace or hyphens, and one optional terminal `!`.
 pub(super) fn confirmation_phrase_valid(bytes: &[u8]) -> bool {
     let index = skip_ascii_whitespace(bytes, 0);
-    let Some(index) = consume_ascii_word(bytes, index, b"pop") else { return false; };
+    let Some(index) = consume_ascii_word(bytes, index, b"pop") else {
+        return false;
+    };
     let index = consume_optional_separator(bytes, index);
-    let Some(mut index) = consume_ascii_word(bytes, index, b"it") else { return false; };
+    let Some(mut index) = consume_ascii_word(bytes, index, b"it") else {
+        return false;
+    };
     index = skip_ascii_whitespace(bytes, index);
     if bytes.get(index) == Some(&b'!') {
         index = skip_ascii_whitespace(bytes, index + 1);
@@ -207,13 +216,17 @@ pub(super) fn confirmation_phrase_valid(bytes: &[u8]) -> bool {
 }
 
 fn skip_ascii_whitespace(bytes: &[u8], mut index: usize) -> usize {
-    while bytes.get(index).is_some_and(u8::is_ascii_whitespace) { index += 1; }
+    while bytes.get(index).is_some_and(u8::is_ascii_whitespace) {
+        index += 1;
+    }
     index
 }
 
 fn consume_ascii_word(bytes: &[u8], mut index: usize, word: &[u8]) -> Option<usize> {
     for &expected in word {
-        if bytes.get(index).copied()?.to_ascii_lowercase() != expected { return None; }
+        if bytes.get(index).copied()?.to_ascii_lowercase() != expected {
+            return None;
+        }
         index += 1;
     }
     Some(index)

@@ -9,7 +9,7 @@
 use alloc::vec::Vec;
 use core::sync::atomic::{AtomicU8, Ordering};
 
-use esp_hal::{Blocking, delay::Delay, i2c::master::I2c};
+use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
 use crate::hw::sdcard;
 
@@ -28,8 +28,7 @@ pub(crate) struct Capture {
 impl Capture {
     pub(crate) fn new() -> Result<Self, &'static str> {
         let mut blob = Vec::new();
-        blob.try_reserve(EXPECTED_CAPTURE_BYTES)
-            .map_err(|_| "E12: PSRAM allocation failed")?;
+        blob.try_reserve(EXPECTED_CAPTURE_BYTES).map_err(|_| "E12: PSRAM allocation failed")?;
         Ok(Self { blob, frames: 0 })
     }
 
@@ -40,11 +39,7 @@ impl Capture {
         self.frames += 1;
     }
 
-    pub(crate) fn write_sd(
-        self,
-        i2c: &mut I2c<'_, Blocking>,
-        delay: &mut Delay,
-    ) -> Result<usize, &'static str> {
+    pub(crate) fn write_sd(self, i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) -> Result<usize, &'static str> {
         if self.frames < 2 {
             return Err("E12: need at least two captured frames");
         }

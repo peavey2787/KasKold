@@ -1,6 +1,9 @@
 //! Authoritative, transactional active-wallet lifecycle.
 
-use crate::{runtime::data::AppData, wallet::seed_manager::{SeedSlot, WalletSource}};
+use crate::{
+    runtime::data::AppData,
+    wallet::seed_manager::{SeedSlot, WalletSource},
+};
 
 pub const SLOTS_FULL_MESSAGE: &str = "All seed slots are full";
 
@@ -93,9 +96,7 @@ fn install_account_xprv_with_mode(
     use sha2::{Digest, Sha256};
 
     let mut raw = imported.key.to_raw();
-    if transient
-        && ad.wallet.seeds.seed_mgr.find_matching_account_key(&raw, &imported.parent_fingerprint).is_some()
-    {
+    if transient && ad.wallet.seeds.seed_mgr.find_matching_account_key(&raw, &imported.parent_fingerprint).is_some() {
         shared_signer::bytes::zeroize_bytes(&mut raw);
         return Err("Wallet already exists");
     }
@@ -103,20 +104,11 @@ fn install_account_xprv_with_mode(
     fingerprint_hasher.update(raw);
     fingerprint_hasher.update(imported.parent_fingerprint);
     let fingerprint_hash = fingerprint_hasher.finalize();
-    let fingerprint = [
-        fingerprint_hash[0],
-        fingerprint_hash[1],
-        fingerprint_hash[2],
-        fingerprint_hash[3],
-    ];
+    let fingerprint = [fingerprint_hash[0], fingerprint_hash[1], fingerprint_hash[2], fingerprint_hash[3]];
     let slot_index = if transient {
-        ad.wallet.seeds.seed_mgr.store_account_key_transient(
-            &raw, imported.parent_fingerprint, fingerprint,
-        )
+        ad.wallet.seeds.seed_mgr.store_account_key_transient(&raw, imported.parent_fingerprint, fingerprint)
     } else {
-        ad.wallet.seeds.seed_mgr.store_account_key(
-            &raw, imported.parent_fingerprint, fingerprint,
-        )
+        ad.wallet.seeds.seed_mgr.store_account_key(&raw, imported.parent_fingerprint, fingerprint)
     }
     .ok_or(SLOTS_FULL_MESSAGE);
     shared_signer::bytes::zeroize_bytes(&mut raw);
@@ -125,10 +117,7 @@ fn install_account_xprv_with_mode(
     Ok(slot_index)
 }
 
-pub fn activate_slot(
-    ad: &mut AppData,
-    slot_index: usize,
-) -> Result<(), WalletActivationError> {
+pub fn activate_slot(ad: &mut AppData, slot_index: usize) -> Result<(), WalletActivationError> {
     let plan = prepare_activation(ad, slot_index, None)?;
     commit_activation(ad, slot_index, plan);
     Ok(())
@@ -155,13 +144,7 @@ fn prepare_activation(
     if !ad.wallet.seeds.seed_mgr.slot_visible(slot_index) {
         return Err(WalletActivationError::InvalidSlot);
     }
-    let slot = ad
-        .wallet
-        .seeds
-        .seed_mgr
-        .slots
-        .get(slot_index)
-        .ok_or(WalletActivationError::InvalidSlot)?;
+    let slot = ad.wallet.seeds.seed_mgr.slots.get(slot_index).ok_or(WalletActivationError::InvalidSlot)?;
     let mut plan = ActivationPlan::new(slot);
 
     if let Some(checkpoint) = checkpoint {
@@ -180,10 +163,7 @@ fn prepare_activation(
     Ok(plan)
 }
 
-fn validate_slot(
-    slot: &SeedSlot,
-    account_key_raw: &mut [u8; 65],
-) -> Result<(), WalletActivationError> {
+fn validate_slot(slot: &SeedSlot, account_key_raw: &mut [u8; 65]) -> Result<(), WalletActivationError> {
     if slot.is_raw_key() {
         let mut raw_key = [0u8; 32];
         if !slot.raw_key_bytes(&mut raw_key) {
@@ -198,13 +178,8 @@ fn validate_slot(
         if !slot.account_key_raw(account_key_raw) {
             return Err(WalletActivationError::InvalidAccountKey);
         }
-        let account = offline_signer::derivation::bip32::ExtendedPrivKey::from_raw(
-            account_key_raw,
-        );
-        return account
-            .public_key_x_only()
-            .map(|_| ())
-            .map_err(|_| WalletActivationError::InvalidAccountKey);
+        let account = offline_signer::derivation::bip32::ExtendedPrivKey::from_raw(account_key_raw);
+        return account.public_key_x_only().map(|_| ()).map_err(|_| WalletActivationError::InvalidAccountKey);
     }
     if let Some(word_count) = slot.mnemonic_word_count() {
         return crate::wallet::mnemonic::validate(&slot.indices, word_count)
@@ -224,9 +199,7 @@ fn map_derivation_error(message: &'static str) -> WalletActivationError {
         "Address key derivation failed" => WalletActivationError::AddressKeyDerivationFailed,
         "Public key derivation failed" => WalletActivationError::PublicKeyDerivationFailed,
         "Change key derivation failed" => WalletActivationError::ChangeKeyDerivationFailed,
-        "Change public key derivation failed" => {
-            WalletActivationError::ChangePublicKeyDerivationFailed
-        }
+        "Change public key derivation failed" => WalletActivationError::ChangePublicKeyDerivationFailed,
         _ => WalletActivationError::InvalidSlotType,
     }
 }
@@ -273,9 +246,7 @@ pub fn restore_persistent_active_wallet(ad: &mut AppData) -> bool {
 /// single protected wallet can also arrive here inactive, in which case the
 /// same selection surface is required.
 pub fn visible_wallet_count(ad: &AppData) -> usize {
-    (0..crate::wallet::seed_manager::MAX_SLOTS)
-        .filter(|slot| ad.wallet.seeds.seed_mgr.slot_visible(*slot))
-        .count()
+    (0..crate::wallet::seed_manager::MAX_SLOTS).filter(|slot| ad.wallet.seeds.seed_mgr.slot_visible(*slot)).count()
 }
 
 pub fn require_startup_wallet_selection(ad: &mut AppData) -> bool {
@@ -290,13 +261,7 @@ pub fn require_startup_wallet_selection(ad: &mut AppData) -> bool {
 
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) fn install_workflow_wallet_inventory_fixture(ad: &mut AppData) -> bool {
-    const KEYS: [[u8; 32]; 5] = [
-        [0x11; 32],
-        [0x22; 32],
-        [0x33; 32],
-        [0x44; 32],
-        [0x55; 32],
-    ];
+    const KEYS: [[u8; 32]; 5] = [[0x11; 32], [0x22; 32], [0x33; 32], [0x44; 32], [0x55; 32]];
 
     clear_active_wallet(ad);
     ad.wallet.seeds.seed_mgr.zeroize_all();
@@ -305,7 +270,10 @@ pub(crate) fn install_workflow_wallet_inventory_fixture(ad: &mut AppData) -> boo
             return false;
         }
     }
-    { let mut checkpoint = || {}; activate_slot_with_cache(ad, 0, &mut checkpoint).is_ok() }
+    {
+        let mut checkpoint = || {};
+        activate_slot_with_cache(ad, 0, &mut checkpoint).is_ok()
+    }
 }
 
 #[cfg(feature = "workflow-test-auto")]
@@ -314,9 +282,14 @@ pub(crate) fn install_workflow_multisig_mnemonic_inventory(ad: &mut AppData) -> 
     ad.wallet.seeds.seed_mgr.zeroize_all();
     for marker in [0x11u8, 0x22, 0x33, 0x44, 0x55] {
         let indices = crate::wallet::mnemonic::generate_from_entropy(12, &[marker; 16]);
-        if ad.wallet.seeds.seed_mgr.store(&indices, 12, &[], 0).is_none() { return false; }
+        if ad.wallet.seeds.seed_mgr.store(&indices, 12, &[], 0).is_none() {
+            return false;
+        }
     }
-    { let mut checkpoint = || {}; activate_slot_with_cache(ad, 0, &mut checkpoint).is_ok() }
+    {
+        let mut checkpoint = || {};
+        activate_slot_with_cache(ad, 0, &mut checkpoint).is_ok()
+    }
 }
 
 #[cfg(feature = "workflow-test-auto")]

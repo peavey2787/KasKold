@@ -1,19 +1,14 @@
+use crate::hw::{display, touch};
+use crate::runtime::data::AppData;
+use crate::runtime::input::Menu;
 use crate::runtime::interactions::{
     feedback::{show_rejection, ErrorSound},
     menu_selection::selected_visible_item,
 };
-use crate::hw::{display, touch};
-use crate::runtime::data::AppData;
-use crate::runtime::input::Menu;
 
 const SEED_REQUIRED_MESSAGE: &str = "No seed loaded";
 
-pub(super) fn selected_item(
-    menu: &Menu,
-    list_zones: &[touch::TouchZone; 4],
-    x: u16,
-    y: u16,
-) -> Option<u8> {
+pub(super) fn selected_item(menu: &Menu, list_zones: &[touch::TouchZone; 4], x: u16, y: u16) -> Option<u8> {
     selected_visible_item(menu, list_zones, x, y)
 }
 
@@ -25,13 +20,7 @@ pub(super) fn require_seed(
     if ad.wallet.seeds.seed_loaded {
         return true;
     }
-    show_rejection(
-        boot_display,
-        delay,
-        SEED_REQUIRED_MESSAGE,
-        1500,
-        ErrorSound::Beep,
-    );
+    show_rejection(boot_display, delay, SEED_REQUIRED_MESSAGE, 1500, ErrorSound::Beep);
     false
 }
 

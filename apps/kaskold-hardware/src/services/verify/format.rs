@@ -42,12 +42,7 @@ impl FirmwareInfo {
     pub fn version_string(&self) -> heapless::String<16> {
         use core::fmt::Write;
         let mut s = heapless::String::new();
-        write!(
-            &mut s,
-            "{}.{}.{}",
-            self.version_major, self.version_minor, self.version_patch
-        )
-        .unwrap_or(());
+        write!(&mut s, "{}.{}.{}", self.version_major, self.version_minor, self.version_patch).unwrap_or(());
         s
     }
 }

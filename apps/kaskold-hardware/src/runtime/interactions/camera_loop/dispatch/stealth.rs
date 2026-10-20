@@ -2,8 +2,8 @@
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
 // License: GPL-3.0
 
+use super::super::{display, sound, AppData};
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
-use super::super::{AppData, display, sound};
 
 fn display_response(response: &[u8], ad: &mut AppData) {
     if crate::runtime::qr_presentation::present_payload(
@@ -52,13 +52,9 @@ pub(super) fn process(
         }
     };
     boot_display.update_progress_bar(30);
-    let response = match offline_signer::stealth::scan_request_with_progress(
-        &account_key,
-        input,
-        |completed, total| {
-            boot_display.update_progress_bar(30 + (completed * 60 / total) as u8);
-        },
-    ) {
+    let response = match offline_signer::stealth::scan_request_with_progress(&account_key, input, |completed, total| {
+        boot_display.update_progress_bar(30 + (completed * 60 / total) as u8);
+    }) {
         Ok(response) => response,
         Err(error) => {
             show_rejection(boot_display, delay, error.message(), 1_500, ErrorSound::Beep);
@@ -71,10 +67,7 @@ pub(super) fn process(
 }
 
 #[cfg(feature = "workflow-test-auto")]
-pub(super) fn workflow_validate_request(
-    data: &[u8],
-    length: usize,
-) -> Result<usize, &'static str> {
+pub(super) fn workflow_validate_request(data: &[u8], length: usize) -> Result<usize, &'static str> {
     offline_signer::stealth::validate_request(&data[..length.min(data.len())])
         .map_err(offline_signer::stealth::StealthError::message)
 }

@@ -20,7 +20,4 @@ const fn parse_u32(value: &str) -> u32 {
 }
 
 pub const SECURITY_VERSION: u32 = parse_u32(env!("KASKOLD_SECURITY_VERSION"));
-const _: () = assert!(
-    SECURITY_VERSION > 0 && SECURITY_VERSION <= 16,
-    "ESP32-S3 security version must be 1..=16"
-);
+const _: () = assert!(SECURITY_VERSION > 0 && SECURITY_VERSION <= 16, "ESP32-S3 security version must be 1..=16");

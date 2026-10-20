@@ -5,15 +5,14 @@ use offline_signer::derivation::hmac::zeroize_buf;
 use crate::{
     runtime::data::AppData,
     services::wallet_session,
-    wallet::seed_manager::{MAX_SLOTS, SeedManager},
+    wallet::seed_manager::{SeedManager, MAX_SLOTS},
 };
 
 use super::{
-    PersistError, PersistentWallet,
     codec::{self, PAYLOAD_SIZE},
     crypto::{self, RECORD_SIZE},
     flash::AlignedBytes,
-    journal, security_policy,
+    journal, security_policy, PersistError, PersistentWallet,
 };
 
 impl PersistentWallet<'_> {
@@ -26,8 +25,7 @@ impl PersistentWallet<'_> {
         // Network selection is device-persistent and not secret. Apply it
         // before decoding the encrypted wallet so a saved active slot from a
         // different namespace is never activated/derived during unlock.
-        let selected_network = journal::read_device_preferences(&mut self.flash)?
-            .wallet_network();
+        let selected_network = journal::read_device_preferences(&mut self.flash)?.wallet_network();
         ad.wallet.seeds.seed_mgr.set_network(selected_network);
 
         let mut payload = [0u8; PAYLOAD_SIZE];
@@ -56,7 +54,9 @@ impl PersistentWallet<'_> {
             return Ok(());
         }
         let active = ad.wallet.seeds.seed_mgr.active;
-        if active >= MAX_SLOTS as u8 { return Ok(()); }
+        if active >= MAX_SLOTS as u8 {
+            return Ok(());
+        }
         let slot = usize::from(active);
         let protection = ad.wallet.seeds.seed_mgr.slots[slot].protection;
         if matches!(
@@ -68,8 +68,7 @@ impl PersistentWallet<'_> {
             wallet_session::clear_active_wallet(ad);
             return Ok(());
         }
-        wallet_session::activate_slot(ad, slot)
-            .map_err(|_| PersistError::InvalidWallet)
+        wallet_session::activate_slot(ad, slot).map_err(|_| PersistError::InvalidWallet)
     }
 
     #[inline(never)]
@@ -92,28 +91,42 @@ impl PersistentWallet<'_> {
         i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
         delay: &mut esp_hal::delay::Delay,
     ) -> Result<(), PersistError> {
-        if self.sd_active_slot > 1 { return Err(PersistError::SdStorageCorrupt); }
+        if self.sd_active_slot > 1 {
+            return Err(PersistError::SdStorageCorrupt);
+        }
         let next_slot = 1u8 - self.sd_active_slot;
         let sequence = self.sd_wallet_sequence.wrapping_add(1);
-        if sequence == 0 { return Err(PersistError::SdStorageCorrupt); }
+        if sequence == 0 {
+            return Err(PersistError::SdStorageCorrupt);
+        }
         let mut record = AlignedBytes::<RECORD_SIZE>::zeroed();
         self.build_record_into(manager, sequence, &mut record)?;
         let kind = self.credential_kind.ok_or(PersistError::CredentialRequired)?;
         let mut key = *self.credential_key.as_ref().ok_or(PersistError::CredentialRequired)?;
         let result = super::sd_backend::write_slot(
-            &mut self.crypto, kind, &key, &self.credential_salt, next_slot, &record, i2c, delay,
+            &mut self.crypto,
+            kind,
+            &key,
+            &self.credential_salt,
+            next_slot,
+            &record,
+            i2c,
+            delay,
         );
         zeroize_buf(&mut key);
         zeroize_buf(&mut record.0);
         result?;
-        journal::write_sd_anchor(&mut self.flash, journal::SdAnchor {
-            credential_kind: kind,
-            salt: self.credential_salt,
-            active_slot: next_slot,
-            wallet_sequence: sequence,
-            duress: self.security_policy.duress,
-            credential_kdf: self.credential_kdf,
-        })?;
+        journal::write_sd_anchor(
+            &mut self.flash,
+            journal::SdAnchor {
+                credential_kind: kind,
+                salt: self.credential_salt,
+                active_slot: next_slot,
+                wallet_sequence: sequence,
+                duress: self.security_policy.duress,
+                credential_kdf: self.credential_kdf,
+            },
+        )?;
         self.sd_active_slot = next_slot;
         self.sd_wallet_sequence = sequence;
         journal::write_wallet_labels(&mut self.flash, journal::WalletLabels::from_manager(manager))?;
@@ -136,7 +149,14 @@ impl PersistentWallet<'_> {
         record.0.fill(0);
         let result = (|| {
             self.crypto.seal(
-                &payload, sequence, key_slot, kind, self.device_only, credential_key, &self.credential_salt, record,
+                &payload,
+                sequence,
+                key_slot,
+                kind,
+                self.device_only,
+                credential_key,
+                &self.credential_salt,
+                record,
             )?;
             let header = crypto::parse_header(record).ok_or(PersistError::InvalidWallet)?;
             security_policy::encode(&mut self.crypto, header, self.security_policy, record)

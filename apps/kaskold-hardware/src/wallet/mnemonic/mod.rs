@@ -17,17 +17,17 @@
 // Stable mnemonic-domain facade. Focused modules own dice entropy,
 // mnemonic generation, validation, and word input.
 
-mod generation;
 mod dice;
+mod generation;
 mod touch;
-mod word_input;
 mod validation;
+mod word_input;
 
-pub use generation::{generate_from_dice, generate_from_entropy};
 pub use dice::DiceCollector;
+pub use generation::{generate_from_dice, generate_from_entropy};
 pub use touch::TouchEntropyCollector;
-pub use word_input::WordInput;
 pub use validation::validate;
+pub use word_input::WordInput;
 
 #[cfg(any(test, feature = "verbose-boot"))]
 #[path = "../unit_tests/mnemonic_tests.rs"]

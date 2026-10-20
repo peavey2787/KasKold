@@ -1,15 +1,14 @@
-use core::sync::atomic::{AtomicU16, Ordering};
 use crate::{
-    runtime::interactions::{TouchInput, sd::SdTouchContext},
     hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
-    runtime::{data::AppData, input::{AppState}},
+    runtime::interactions::{sd::SdTouchContext, TouchInput},
+    runtime::{data::AppData, input::AppState},
 };
+use core::sync::atomic::{AtomicU16, Ordering};
 use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
 mod browser;
-mod imports;
 mod encrypted;
-
+mod imports;
 
 pub(super) static FAILURE_MASK: AtomicU16 = AtomicU16::new(0);
 pub(super) struct SdWorkflowContext<'ctx, 'display, 'hal> {
@@ -67,17 +66,21 @@ impl SdWorkflowContext<'_, '_, '_> {
     }
 
     pub(super) fn enter_import_list(&mut self, state: AppState) -> bool {
-        if !matches!(
-            state,
-            AppState::SdFileList | AppState::SdKsptFileList | AppState::SdKpubFileList
-        ) || !self.enter_import_menu()
+        if !matches!(state, AppState::SdFileList | AppState::SdKsptFileList | AppState::SdKpubFileList)
+            || !self.enter_import_menu()
         {
             return false;
         }
         match state {
-            AppState::SdFileList => crate::runtime::effects::route(self.ad, crate::runtime::navigation::route!(SdFileList)),
-            AppState::SdKsptFileList => crate::runtime::effects::route(self.ad, crate::runtime::navigation::route!(SdKsptFileList)),
-            AppState::SdKpubFileList => crate::runtime::effects::route(self.ad, crate::runtime::navigation::route!(SdKpubFileList)),
+            AppState::SdFileList => {
+                crate::runtime::effects::route(self.ad, crate::runtime::navigation::route!(SdFileList))
+            }
+            AppState::SdKsptFileList => {
+                crate::runtime::effects::route(self.ad, crate::runtime::navigation::route!(SdKsptFileList))
+            }
+            AppState::SdKpubFileList => {
+                crate::runtime::effects::route(self.ad, crate::runtime::navigation::route!(SdKpubFileList))
+            }
             _ => false,
         };
         self.ad.navigation.app.state == state && crate::runtime::navigation::reconcile(self.ad)
@@ -97,7 +100,14 @@ pub(super) fn exercise(
     }
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
     let mut ctx = SdWorkflowContext {
-        ad, display, i2c, sd, delay, list, up, down,
+        ad,
+        display,
+        i2c,
+        sd,
+        delay,
+        list,
+        up,
+        down,
         backup_device: super::backup::WorkflowBackupDevice,
     };
     log!("KASKOLD_WORKFLOW_TESTS: SD WORKFLOWS TRANCHE BEGIN");
@@ -119,10 +129,18 @@ pub(super) fn exercise(
     let finish_ok = finish(&mut ctx);
     summary.record("FINISH-HOME", finish_ok);
     let mut failure_mask = 0u16;
-    if !browser_ok { failure_mask |= 1u16 << 0; }
-    if !imports_ok { failure_mask |= 1u16 << 1; }
-    if !encrypted_ok { failure_mask |= 1u16 << 2; }
-    if !finish_ok { failure_mask |= 1u16 << 3; }
+    if !browser_ok {
+        failure_mask |= 1u16 << 0;
+    }
+    if !imports_ok {
+        failure_mask |= 1u16 << 1;
+    }
+    if !encrypted_ok {
+        failure_mask |= 1u16 << 2;
+    }
+    if !finish_ok {
+        failure_mask |= 1u16 << 3;
+    }
     FAILURE_MASK.store(failure_mask, Ordering::Relaxed);
     summary.finish(4)
 }
@@ -144,7 +162,9 @@ fn prepare_probe(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool {
 }
 
 fn finish(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool {
-    if !ctx.home() { return false; }
+    if !ctx.home() {
+        return false;
+    }
     log!("KASKOLD_WORKFLOW_TESTS: SD WORKFLOWS TRANCHE PASS");
     true
 }

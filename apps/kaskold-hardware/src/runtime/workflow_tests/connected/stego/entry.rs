@@ -1,13 +1,10 @@
 use super::StegoContext;
-use crate::{runtime::input::AppState, services::stego::{StegoCarrier, StegoSecurity}};
+use crate::{
+    runtime::input::AppState,
+    services::stego::{StegoCarrier, StegoSecurity},
+};
 
-const JPEG_NAMES: [[u8; 11]; 5] = [
-    *b"PHOTO1  JPG",
-    *b"PHOTO2  JPG",
-    *b"PHOTO3  JPG",
-    *b"PHOTO4  JPG",
-    *b"PHOTO5  JPG",
-];
+const JPEG_NAMES: [[u8; 11]; 5] = [*b"PHOTO1  JPG", *b"PHOTO2  JPG", *b"PHOTO3  JPG", *b"PHOTO4  JPG", *b"PHOTO5  JPG"];
 
 pub(super) fn exercise(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
     entry_failures(ctx) && carrier_security(ctx) && jpeg_picker(ctx)
@@ -17,18 +14,14 @@ fn entry_failures(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
     if !ctx.enter_export_mode() {
         return false;
     }
-    if ctx.touch(20, 20, true, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::BackupRecoveryMenu
-    {
+    if ctx.touch(20, 20, true, true) != Some(true) || ctx.ad.navigation.app.state != AppState::BackupRecoveryMenu {
         return false;
     }
 
     if !ctx.enter_export_mode() {
         return false;
     }
-    if ctx.touch(80, 90, false, false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::BackupRecoveryMenu
-    {
+    if ctx.touch(80, 90, false, false) != Some(true) || ctx.ad.navigation.app.state != AppState::BackupRecoveryMenu {
         return false;
     }
 
@@ -38,9 +31,7 @@ fn entry_failures(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
     if !ctx.enter_export_mode() {
         return false;
     }
-    if ctx.touch(80, 90, false, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::BackupRecoveryMenu
-    {
+    if ctx.touch(80, 90, false, true) != Some(true) || ctx.ad.navigation.app.state != AppState::BackupRecoveryMenu {
         return false;
     }
 
@@ -48,9 +39,7 @@ fn entry_failures(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
     if !ctx.enter_export_mode() {
         return false;
     }
-    if ctx.touch(80, 90, false, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::BackupRecoveryMenu
-    {
+    if ctx.touch(80, 90, false, true) != Some(true) || ctx.ad.navigation.app.state != AppState::BackupRecoveryMenu {
         return false;
     }
     if !crate::services::wallet_session::install_workflow_backup_mnemonic_fixture(ctx.ad) {
@@ -70,9 +59,7 @@ fn carrier_security(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if ctx.touch(20, 20, true, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::StegoModeSelect
-    {
+    if ctx.touch(20, 20, true, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoModeSelect {
         return false;
     }
     if ctx.touch(80, 165, false, true) != Some(true)
@@ -104,8 +91,7 @@ fn jpeg_picker(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if ctx.touch(ctx.up.x + 10, ctx.up.y + 10, false, true) != Some(true)
-        || ctx.ad.stego.export_flow.jpeg_selected != 0
+    if ctx.touch(ctx.up.x + 10, ctx.up.y + 10, false, true) != Some(true) || ctx.ad.stego.export_flow.jpeg_selected != 0
     {
         return false;
     }
@@ -118,14 +104,10 @@ fn jpeg_picker(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if ctx.touch(20, 20, true, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::StegoJpegPick
-    {
+    if ctx.touch(20, 20, true, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoJpegPick {
         return false;
     }
-    if ctx.touch(20, 20, true, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::StegoSecuritySelect
-    {
+    if ctx.touch(20, 20, true, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoSecuritySelect {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: STEGO JPEG PICKER PAGING/SELECT/BACK BOUNDARIES PASS");

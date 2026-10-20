@@ -6,8 +6,8 @@ mod test;
 use super::AppData;
 use crate::{
     hw::display as hw_display,
-    services::storage_device as sdcard,
     runtime::interactions::feedback::{show_rejection, show_success, ErrorSound},
+    services::storage_device as sdcard,
     ui::keyboard::{hit_test, KeyAction, KeyboardMode},
 };
 
@@ -30,7 +30,9 @@ pub(super) fn handle_sd_card_settings(
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SettingsMenu));
         return true;
     }
-    if sd_card_type.is_none() { return false; }
+    if sd_card_type.is_none() {
+        return false;
+    }
     if sdcard::card_is_known_locked() {
         return handle_locked_card(ad, x, y);
     }
@@ -46,7 +48,9 @@ pub(super) fn handle_sd_card_settings(
 }
 
 fn handle_locked_card(ad: &mut AppData, x: u16, y: u16) -> bool {
-    if !LOCKED_ACTION_Y.contains(&y) { return false; }
+    if !LOCKED_ACTION_Y.contains(&y) {
+        return false;
+    }
     if LEFT_ACTION_X.contains(&x) {
         ad.wallet.seeds.pp_input.reset();
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SdCardUnlockPassword));
@@ -80,7 +84,11 @@ pub(super) fn handle_unlock_password(
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum UnlockEdit { None, Edited, Submitted }
+enum UnlockEdit {
+    None,
+    Edited,
+    Submitted,
+}
 
 fn edit_password(ad: &mut AppData, x: u16, y: u16) -> UnlockEdit {
     let action = hit_test(x, y, KeyboardMode::Full, ad.wallet.seeds.pp_input.page);

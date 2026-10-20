@@ -194,6 +194,7 @@ def _check_mnemonic_and_seed_ui(root: Path) -> list[str]:
     seed_root = ROOT / "apps/kaskold-hardware/src/wallet/seed_manager"
     seed_limits = {
         "mod.rs": 80,
+        "account_key_store.rs": 100,
         "slot.rs": 180,
         "source.rs": 100,
         "manager.rs": 220,

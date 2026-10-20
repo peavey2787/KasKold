@@ -43,10 +43,7 @@ pub(crate) fn sync_watchdog_budget(ad: &crate::runtime::data::AppData) {
 
 #[cfg(all(feature = "m5stack", not(feature = "workflow-test-auto")))]
 #[inline]
-pub(crate) fn acknowledge_runtime(
-    ad: &crate::runtime::data::AppData,
-    watchdog_feed: &mut impl FnMut(),
-) {
+pub(crate) fn acknowledge_runtime(ad: &crate::runtime::data::AppData, watchdog_feed: &mut impl FnMut()) {
     sync_watchdog_budget(ad);
     watchdog_feed();
 }

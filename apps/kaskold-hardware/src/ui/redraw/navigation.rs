@@ -15,7 +15,9 @@ pub(super) fn redraw(
     boot_display: &mut display::BootDisplay<'_>,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
 ) -> bool {
-    if production::redraw(ad, boot_display) || developer::redraw(ad, boot_display) { return true; }
+    if production::redraw(ad, boot_display) || developer::redraw(ad, boot_display) {
+        return true;
+    }
     match ad.navigation.app.state {
         AppState::MainMenu => redraw_home(ad, boot_display, i2c),
         AppState::Rejected => boot_display.draw_rejected_screen("TX Cancelled"),

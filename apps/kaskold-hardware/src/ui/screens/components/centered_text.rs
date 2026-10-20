@@ -1,6 +1,5 @@
 use super::super::{
-    BootDisplay, COLOR_TEXT, COLOR_TEXT_DIM, draw_lato_body, draw_lato_title, measure_body,
-    measure_title,
+    draw_lato_body, draw_lato_title, measure_body, measure_title, BootDisplay, COLOR_TEXT, COLOR_TEXT_DIM,
 };
 
 impl<'a> BootDisplay<'a> {
@@ -17,7 +16,9 @@ impl<'a> BootDisplay<'a> {
         let character_count = message.chars().count();
         for line_index in 0..MAX_LINES {
             let start_char = line_index * CHARACTERS_PER_LINE;
-            if start_char >= character_count { break; }
+            if start_char >= character_count {
+                break;
+            }
             let end_char = (start_char + CHARACTERS_PER_LINE).min(character_count);
             let start = message.char_indices().nth(start_char).map(|(index, _)| index).unwrap_or(message.len());
             let end = message.char_indices().nth(end_char).map(|(index, _)| index).unwrap_or(message.len());
@@ -33,13 +34,7 @@ impl<'a> BootDisplay<'a> {
         }
         if character_count > CHARACTERS_PER_LINE * MAX_LINES {
             let width = measure_body("...");
-            draw_lato_body(
-                &mut self.display,
-                "...",
-                (320 - width) / 2,
-                ellipsis_y,
-                COLOR_TEXT_DIM,
-            );
+            draw_lato_body(&mut self.display, "...", (320 - width) / 2, ellipsis_y, COLOR_TEXT_DIM);
         }
     }
 }

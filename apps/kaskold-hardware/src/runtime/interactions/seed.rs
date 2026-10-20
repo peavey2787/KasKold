@@ -19,23 +19,19 @@
 
 use crate::runtime::interactions::feedback::RedrawFlag;
 use crate::runtime::interactions::TouchInput;
-use crate::{runtime::data::AppData, hw::display, services::audio as sound};
+use crate::{hw::display, runtime::data::AppData, services::audio as sound};
 
 mod bip85;
+mod delete_seed;
 mod import;
 mod passphrase;
 mod passphrase_choice;
 mod seed_list;
 mod wallet_name;
-mod delete_seed;
 
-pub(crate) use passphrase::{
-    commit_staged_add_wallet,
-    commit_staged_onboarding_import,
-    commit_staged_session_wallet,
-};
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) use passphrase::workflow_commit_staged_onboarding_import;
+pub(crate) use passphrase::{commit_staged_add_wallet, commit_staged_onboarding_import, commit_staged_session_wallet};
 
 pub fn handle_inventory_touch(
     ad: &mut AppData,
@@ -44,9 +40,9 @@ pub fn handle_inventory_touch(
     liveness: &mut dyn FnMut(),
     input: TouchInput,
 ) -> Option<bool> {
-    if !matches!(ad.navigation.app.state,
-        crate::runtime::input::AppState::SeedList
-    ) { return None; }
+    if !matches!(ad.navigation.app.state, crate::runtime::input::AppState::SeedList) {
+        return None;
+    }
     let TouchInput { x, y, is_back } = input;
     seed_list::handle(ad, boot_display, delay, x, y, is_back, liveness)
 }
@@ -69,11 +65,23 @@ pub fn handle_seed_touch(
     input: TouchInput,
 ) -> Option<bool> {
     let TouchInput { x, y, is_back } = input;
-    if let Some(result) = bip85::handle(ad, boot_display, delay, liveness, x, y, is_back) { return Some(result); }
-    if let Some(result) = import::handle(ad, boot_display, delay, x, y, is_back) { return Some(result); }
-    if let Some(result) = wallet_name::handle(ad, boot_display, delay, x, y, is_back) { return Some(result); }
-    if let Some(result) = passphrase_choice::handle(ad, boot_display, delay, x, y, is_back) { return Some(result); }
-    if let Some(result) = passphrase::handle(ad, boot_display, delay, x, y, is_back) { return Some(result); }
-    if let Some(result) = delete_seed::handle(ad, x, y, is_back) { return Some(result); }
+    if let Some(result) = bip85::handle(ad, boot_display, delay, liveness, x, y, is_back) {
+        return Some(result);
+    }
+    if let Some(result) = import::handle(ad, boot_display, delay, x, y, is_back) {
+        return Some(result);
+    }
+    if let Some(result) = wallet_name::handle(ad, boot_display, delay, x, y, is_back) {
+        return Some(result);
+    }
+    if let Some(result) = passphrase_choice::handle(ad, boot_display, delay, x, y, is_back) {
+        return Some(result);
+    }
+    if let Some(result) = passphrase::handle(ad, boot_display, delay, x, y, is_back) {
+        return Some(result);
+    }
+    if let Some(result) = delete_seed::handle(ad, x, y, is_back) {
+        return Some(result);
+    }
     None
 }

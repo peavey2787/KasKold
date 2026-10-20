@@ -1,6 +1,6 @@
 //! Selected-file interpretation and format-specific import routing.
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use super::payload_detection;
+use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 mod covenant_backup;
 mod private_key;
 mod xprv;

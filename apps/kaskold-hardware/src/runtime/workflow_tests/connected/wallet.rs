@@ -1,10 +1,10 @@
 use crate::{
-    runtime::interactions::TouchInput,
     hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
+    runtime::interactions::TouchInput,
     runtime::{data::AppData, input::AppState},
 };
-use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 use core::sync::atomic::{AtomicU8, Ordering};
+use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
 static FAILURE_STAGE: AtomicU8 = AtomicU8::new(0);
 
@@ -47,8 +47,7 @@ impl WalletContext<'_, '_, '_> {
         if item >= 4 && !self.ad.navigation.production.wallet_menu.page_down() {
             return false;
         }
-        let visible =
-            item % usize::from(kaskold_hardware_core::input::navigation::Menu::MAX_VISIBLE);
+        let visible = item % usize::from(kaskold_hardware_core::input::navigation::Menu::MAX_VISIBLE);
         let zone = self.list[visible];
         let selected = crate::runtime::interactions::menu_selection::selected_visible_item(
             &self.ad.navigation.production.wallet_menu,
@@ -102,19 +101,33 @@ pub(super) fn exercise(
     log!("KASKOLD_WORKFLOW_TESTS: WALLET MANAGEMENT BEGIN");
 
     mark_failure_stage(1);
-    if !wallet_menu_integrity(&mut ctx) { return false; }
+    if !wallet_menu_integrity(&mut ctx) {
+        return false;
+    }
     mark_failure_stage(2);
-    if !wallet_root_routes(&mut ctx) { return false; }
+    if !wallet_root_routes(&mut ctx) {
+        return false;
+    }
     mark_failure_stage(3);
-    if !wallet_details(&mut ctx) { return false; }
+    if !wallet_details(&mut ctx) {
+        return false;
+    }
     mark_failure_stage(4);
-    if !wallet_inventory(&mut ctx) { return false; }
+    if !wallet_inventory(&mut ctx) {
+        return false;
+    }
     mark_failure_stage(5);
-    if !add_wallet_routes(&mut ctx) { return false; }
+    if !add_wallet_routes(&mut ctx) {
+        return false;
+    }
     mark_failure_stage(6);
-    if !delete::exercise(&mut ctx) { return false; }
+    if !delete::exercise(&mut ctx) {
+        return false;
+    }
     mark_failure_stage(9);
-    if !finish_home(&mut ctx) { return false; }
+    if !finish_home(&mut ctx) {
+        return false;
+    }
     FAILURE_STAGE.store(0, Ordering::Relaxed);
     true
 }
@@ -149,14 +162,8 @@ fn wallet_menu_integrity(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
     use crate::runtime::interactions::menu_selection::{handle_paged_menu_touch, PagedMenuAction};
 
     log!("KASKOLD_WORKFLOW_TESTS: WALLET MENU NOOP BEGIN");
-    let no_op = handle_paged_menu_touch(
-        &mut ctx.ad.navigation.production.wallet_menu,
-        &ctx.list,
-        &ctx.up,
-        &ctx.down,
-        319,
-        239,
-    );
+    let no_op =
+        handle_paged_menu_touch(&mut ctx.ad.navigation.production.wallet_menu, &ctx.list, &ctx.up, &ctx.down, 319, 239);
     if no_op != PagedMenuAction::None || ctx.ad.navigation.app.state != AppState::SeedsMenu {
         return false;
     }
@@ -220,7 +227,8 @@ fn wallet_receive_route(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
             ad: &mut *ctx.ad,
             boot_display: &mut *ctx.display,
             delay: &mut *ctx.delay,
-            liveness: &mut || {}, i2c: &mut *ctx.i2c,
+            liveness: &mut || {},
+            i2c: &mut *ctx.i2c,
             sd_card_type: ctx.sd,
             list_zones: &list,
             page_up_zone: &up,
@@ -262,9 +270,15 @@ fn wallet_details_edit_name(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
         return false;
     }
     ctx.ad.wallet.seeds.pp_input.reset();
-    for byte in b"Edited Wallet" { ctx.ad.wallet.seeds.pp_input.push_char(*byte); }
+    for byte in b"Edited Wallet" {
+        ctx.ad.wallet.seeds.pp_input.push_char(*byte);
+    }
     if crate::runtime::interactions::seed::handle_seed_touch(
-        ctx.ad, ctx.display, ctx.delay, &mut || {}, TouchInput::new(300, 210, false),
+        ctx.ad,
+        ctx.display,
+        ctx.delay,
+        &mut || {},
+        TouchInput::new(300, 210, false),
     ) != Some(true)
         || ctx.ad.navigation.app.state != AppState::WalletDetails
         || ctx.ad.wallet.seeds.seed_mgr.active_slot().map(|slot| slot.name_str()) != Some("Edited Wallet")
@@ -285,7 +299,11 @@ fn wallet_details_delete_cancel(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
     ctx.redraw();
     ctx.show_step();
     if crate::runtime::interactions::seed::handle_seed_touch(
-        ctx.ad, ctx.display, ctx.delay, &mut || {}, TouchInput::new(90, 205, false),
+        ctx.ad,
+        ctx.display,
+        ctx.delay,
+        &mut || {},
+        TouchInput::new(90, 205, false),
     ) != Some(true)
         || ctx.ad.navigation.app.state != AppState::SeedList
         || ctx.ad.wallet.seeds.pending_delete_slot != u8::MAX
@@ -318,9 +336,7 @@ fn wallet_inventory(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
     // slot 0 is row 1 and slot 1 is row 2. Select the third visible row so
     // this probe actually exercises a wallet switch instead of re-selecting 0.
     mark_failure_stage(42);
-    if ctx.seed_list_touch(160, 158, false) != Some(true)
-        || ctx.ad.wallet.seeds.seed_mgr.active != 1
-    {
+    if ctx.seed_list_touch(160, 158, false) != Some(true) || ctx.ad.wallet.seeds.seed_mgr.active != 1 {
         return false;
     }
     mark_failure_stage(43);
@@ -350,7 +366,9 @@ fn open_add_wallet_menu(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
     ctx.redraw();
     ctx.show_step();
     log!("KASKOLD_WORKFLOW_TESTS: ADD WALLET NOOP BEGIN");
-    if crate::runtime::interactions::seed::handle_navigation_touch(ctx.ad, TouchInput::new(310, 100, false)) != Some(false) {
+    if crate::runtime::interactions::seed::handle_navigation_touch(ctx.ad, TouchInput::new(310, 100, false))
+        != Some(false)
+    {
         return false;
     }
     true
@@ -358,16 +376,24 @@ fn open_add_wallet_menu(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
 
 fn exercise_add_wallet_create(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
     log!("KASKOLD_WORKFLOW_TESTS: ADD WALLET CREATE BEGIN");
-    if crate::runtime::interactions::seed::handle_navigation_touch(ctx.ad, TouchInput::new(160, 58, false)) != Some(true)
+    if crate::runtime::interactions::seed::handle_navigation_touch(ctx.ad, TouchInput::new(160, 58, false))
+        != Some(true)
         || ctx.ad.navigation.app.state != (AppState::WalletNameEntry { purpose: 1 })
     {
         return false;
     }
     ctx.ad.wallet.seeds.pp_input.reset();
-    for byte in b"Added Wallet" { ctx.ad.wallet.seeds.pp_input.push_char(*byte); }
+    for byte in b"Added Wallet" {
+        ctx.ad.wallet.seeds.pp_input.push_char(*byte);
+    }
     if crate::runtime::interactions::seed::handle_seed_touch(
-        ctx.ad, ctx.display, ctx.delay, &mut || {}, TouchInput::new(300, 210, false),
-    ) != Some(true) || ctx.ad.navigation.app.state != (AppState::ChooseWordCount { action: 0 })
+        ctx.ad,
+        ctx.display,
+        ctx.delay,
+        &mut || {},
+        TouchInput::new(300, 210, false),
+    ) != Some(true)
+        || ctx.ad.navigation.app.state != (AppState::ChooseWordCount { action: 0 })
     {
         return false;
     }
@@ -379,10 +405,8 @@ fn exercise_add_wallet_create(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
 
 fn exercise_add_wallet_restore(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
     log!("KASKOLD_WORKFLOW_TESTS: ADD WALLET RESTORE BEGIN");
-    if crate::runtime::interactions::seed::handle_navigation_touch(
-        ctx.ad,
-        TouchInput::new(160, 142, false),
-    ) != Some(true)
+    if crate::runtime::interactions::seed::handle_navigation_touch(ctx.ad, TouchInput::new(160, 142, false))
+        != Some(true)
         || ctx.ad.navigation.app.state != AppState::StorageSeedSourceChoice
     {
         return false;

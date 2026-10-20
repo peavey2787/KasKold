@@ -6,10 +6,7 @@ static FAILURE_STAGE: AtomicU8 = AtomicU8::new(0);
 
 fn fail(stage: u8, name: &str) -> bool {
     let _ = FAILURE_STAGE.compare_exchange(0, stage, Ordering::Relaxed, Ordering::Relaxed);
-    log!(
-        "KASKOLD_WORKFLOW_TESTS: MULTISIG OUTPUT STAGE {} FAILED",
-        name
-    );
+    log!("KASKOLD_WORKFLOW_TESTS: MULTISIG OUTPUT STAGE {} FAILED", name);
     false
 }
 
@@ -36,14 +33,8 @@ const FAILURE_STAGE_NAMES: [&str; 15] = [
 ];
 
 pub(super) fn replay_failure_stage(stage: u8) {
-    let name = FAILURE_STAGE_NAMES
-        .get(stage.wrapping_sub(1) as usize)
-        .copied()
-        .unwrap_or("UNKNOWN");
-    log!(
-        "KASKOLD_WORKFLOW_TESTS: CONNECTED FAILED MULTISIG OUTPUT STAGE {}",
-        name
-    );
+    let name = FAILURE_STAGE_NAMES.get(stage.wrapping_sub(1) as usize).copied().unwrap_or("UNKNOWN");
+    log!("KASKOLD_WORKFLOW_TESTS: CONNECTED FAILED MULTISIG OUTPUT STAGE {}", name);
 }
 
 pub(super) fn replay_failure() {
@@ -71,27 +62,22 @@ fn address_controls(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
     {
         return fail(2, "ADDRESS-FAMILY");
     }
-    if ctx.tx_touch(138, 210, false) != Some(true)
-        || ctx.ad.signing.multisig.creating.chain != 1
-    {
+    if ctx.tx_touch(138, 210, false) != Some(true) || ctx.ad.signing.multisig.creating.chain != 1 {
         return fail(3, "ADDRESS-CHAIN");
     }
-    if ctx.tx_touch(205, 210, false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::AddrIndexPicker
-    {
+    if ctx.tx_touch(205, 210, false) != Some(true) || ctx.ad.navigation.app.state != AppState::AddrIndexPicker {
         return fail(4, "INDEX-PICKER-ENTRY");
     }
     // Numeric entry updates the picker field in place. Normal connected E2E
     // suppresses the physical LCD mutation but preserves this Some(false)
     // production redraw contract; HIL/production still render the field.
-    if ctx.export_touch(72, 82, false) != Some(false) {
+    if ctx.export_screen_touch(72, 82, false) != Some(false) {
         return fail(5, "INDEX-DIGIT");
     }
-    if ctx.export_touch(235, 192, false) != Some(true) {
+    if ctx.export_screen_touch(235, 192, false) != Some(true) {
         return fail(6, "INDEX-SUBMIT");
     }
-    if ctx.ad.navigation.app.state != AppState::MultisigShowAddress
-        || ctx.ad.signing.multisig.creating.addr_index != 1
+    if ctx.ad.navigation.app.state != AppState::MultisigShowAddress || ctx.ad.signing.multisig.creating.addr_index != 1
     {
         return fail(7, "INDEX-COMMIT");
     }
@@ -100,47 +86,33 @@ fn address_controls(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
 }
 
 fn qr_and_descriptor(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
-    if ctx.tx_touch(160, 120, false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::MultisigShowAddressQR
-    {
+    if ctx.tx_touch(160, 120, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigShowAddressQR {
         return fail(8, "ADDRESS-QR");
     }
     ctx.redraw_step();
-    if ctx.tx_touch(160, 120, false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::MultisigSaveDescriptorAsk
+    if ctx.tx_touch(160, 120, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigSaveDescriptorAsk
     {
         return fail(9, "DESCRIPTOR-SAVE-PROMPT");
     }
-    if ctx.tx_touch(230, 160, false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::MultisigSaveAddrAsk
-    {
+    if ctx.tx_touch(230, 160, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigSaveAddrAsk {
         return fail(10, "ADDRESS-SAVE-PROMPT");
     }
     log!("KASKOLD_WORKFLOW_TESTS: MULTISIG DESCRIPTOR SAVE PROMPT PASS");
-    if ctx.tx_touch(230, 160, false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::MultisigDescriptor
-    {
+    if ctx.tx_touch(230, 160, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigDescriptor {
         return fail(11, "DESCRIPTOR-ENTRY");
     }
-    if !crate::runtime::navigation::handle_back(ctx.ad)
-        || ctx.ad.navigation.app.state != AppState::MultisigShowAddress
+    if !crate::runtime::navigation::handle_back(ctx.ad) || ctx.ad.navigation.app.state != AppState::MultisigShowAddress
     {
         return fail(10, "DESCRIPTOR-BACK");
     }
-    if ctx.tx_touch(160, 120, false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::MultisigShowAddressQR
-    {
+    if ctx.tx_touch(160, 120, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigShowAddressQR {
         return fail(10, "DESCRIPTOR-BACK-REENTER-QR");
     }
     ctx.redraw_step();
-    if ctx.tx_touch(160, 120, false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::MultisigSaveAddrAsk
-    {
+    if ctx.tx_touch(160, 120, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigSaveAddrAsk {
         return fail(11, "DESCRIPTOR-BACK-REENTER-SAVE");
     }
-    if ctx.tx_touch(230, 160, false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::MultisigDescriptor
-    {
+    if ctx.tx_touch(230, 160, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigDescriptor {
         return fail(11, "DESCRIPTOR-BACK-REENTER");
     }
     if ctx.tx_touch(80, 210, false) != Some(true)
@@ -150,14 +122,10 @@ fn qr_and_descriptor(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
         return fail(12, "DESCRIPTOR-QR");
     }
     let descriptor = &ctx.ad.qr.outgoing.buffer[..ctx.ad.qr.outgoing.length];
-    if kaskold_protocol::wire::multisig_descriptor::parse_multisig_descriptor(descriptor)
-        .is_err()
-    {
+    if kaskold_protocol::wire::multisig_descriptor::parse_multisig_descriptor(descriptor).is_err() {
         return fail(13, "DESCRIPTOR-PARSE");
     }
-    if ctx.menu_touch(160, 120, false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::MultisigDescriptor
-    {
+    if ctx.menu_touch(160, 120, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigDescriptor {
         return fail(12, "DESCRIPTOR-QR");
     }
     if ctx.tx_touch(80, 210, false) != Some(true)
@@ -173,13 +141,21 @@ fn qr_and_descriptor(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
 fn descriptor_round_trip(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
     let descriptor = ctx.ad.qr.outgoing.buffer[..ctx.ad.qr.outgoing.length].to_vec();
     crate::runtime::interactions::sd::workflow_import_text_payload(
-        ctx.ad, ctx.display, ctx.delay, TextFileKind::MultisigDescriptor, b"multi_hd45(2,bad)",
+        ctx.ad,
+        ctx.display,
+        ctx.delay,
+        TextFileKind::MultisigDescriptor,
+        b"multi_hd45(2,bad)",
     );
     if ctx.ad.navigation.app.state == AppState::MultisigDescriptor {
         return fail(14, "INVALID-DESCRIPTOR-REJECT");
     }
     crate::runtime::interactions::sd::workflow_import_text_payload(
-        ctx.ad, ctx.display, ctx.delay, TextFileKind::MultisigDescriptor, &descriptor,
+        ctx.ad,
+        ctx.display,
+        ctx.delay,
+        TextFileKind::MultisigDescriptor,
+        &descriptor,
     );
     let config = &ctx.ad.signing.multisig.creating;
     let ok = ctx.ad.navigation.app.state == AppState::MultisigDescriptor
@@ -195,9 +171,7 @@ fn descriptor_round_trip(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
     {
         return fail(15, "IMPORTED-DESCRIPTOR-BACK");
     }
-    log!(
-        "KASKOLD_WORKFLOW_TESTS: MULTISIG DESCRIPTOR INVALID-REJECT/EXPORT-IMPORT ROUND-TRIP PASS"
-    );
+    log!("KASKOLD_WORKFLOW_TESTS: MULTISIG DESCRIPTOR INVALID-REJECT/EXPORT-IMPORT ROUND-TRIP PASS");
     log!("KASKOLD_WORKFLOW_TESTS: MULTISIG DESCRIPTOR BACK ROUTES PASS");
     true
 }

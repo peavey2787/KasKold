@@ -12,8 +12,8 @@
 //
 // Works on macOS (Intel + Apple Silicon), Linux (x86_64 + aarch64), Windows.
 
-use std::process::Command;
 use std::env;
+use std::process::Command;
 
 // ═══════════════════════════════════════════════════════════════
 // ANSI colors (disabled on Windows unless VIRTUAL_TERMINAL)
@@ -212,11 +212,17 @@ fn check_espflash() -> bool {
 
             // Check version >= 3.0
             if let Some(ver_str) = v.split_whitespace().nth(1) {
-                if let Some(major) = ver_str.split('.').next().and_then(|s| s.parse::<u32>().ok()) {
+                if let Some(major) = ver_str
+                    .split('.')
+                    .next()
+                    .and_then(|s| s.parse::<u32>().ok())
+                {
                     if major >= 3 {
                         ok("Version 3.x+ (compatible)");
                     } else {
-                        warn(&format!("Version {ver_str} may be outdated — consider: cargo install espflash"));
+                        warn(&format!(
+                            "Version {ver_str} may be outdated — consider: cargo install espflash"
+                        ));
                     }
                 }
             }
@@ -261,7 +267,13 @@ fn check_serial_ports() {
     match os {
         "macos" => {
             // Glob doesn't expand in Command args — use shell
-            let (_, output) = run_cmd("sh", &["-c", "ls /dev/cu.usbmodem* /dev/cu.usbserial* /dev/cu.SLAB* 2>/dev/null"]);
+            let (_, output) = run_cmd(
+                "sh",
+                &[
+                    "-c",
+                    "ls /dev/cu.usbmodem* /dev/cu.usbserial* /dev/cu.SLAB* 2>/dev/null",
+                ],
+            );
             if output.is_empty() {
                 warn("No USB serial devices found — connect your device and retry");
             } else {

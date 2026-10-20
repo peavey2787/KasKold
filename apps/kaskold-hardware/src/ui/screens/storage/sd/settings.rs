@@ -17,32 +17,9 @@
 use crate::ui::prop_fonts;
 
 use super::super::super::{
-    BootDisplay,
-    COLOR_BG,
-    COLOR_CARD,
-    COLOR_DANGER,
-    COLOR_TEXT,
-    COLOR_TEXT_DIM,
-    CornerRadii,
-    DrawTarget,
-    Drawable,
-    KASPA_TEAL,
-    Line,
-    Point,
-    Primitive,
-    PrimitiveStyle,
-    Rectangle,
-    Rgb565,
-    RoundedRectangle,
-    Size,
-    draw_lato_body,
-    draw_lato_hint,
-    draw_lato_title,
-    draw_oswald_header,
-    measure_body,
-    measure_header,
-    measure_hint,
-    measure_title,
+    draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_hint,
+    measure_title, BootDisplay, CornerRadii, DrawTarget, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle,
+    Rgb565, RoundedRectangle, Size, COLOR_BG, COLOR_CARD, COLOR_DANGER, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_TEAL,
 };
 
 impl<'a> BootDisplay<'a> {
@@ -50,13 +27,13 @@ impl<'a> BootDisplay<'a> {
     pub fn draw_sdcard_settings(&mut self, card_present: bool, card_locked: bool, card_type_str: &str) {
         self.clear_keep_nav();
 
-
         // Header — uniform y=30
         let tw = measure_header("SD CARD");
         draw_oswald_header(&mut self.display, "SD CARD", (320 - tw) / 2, 30, COLOR_TEXT);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         if card_present {
             // Card type + status — centered
@@ -81,32 +58,56 @@ impl<'a> BootDisplay<'a> {
             let btn1 = Rectangle::new(Point::new(15, 105), Size::new(140, 34));
             RoundedRectangle::new(btn1, btn_corner)
                 .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
             RoundedRectangle::new(btn1, btn_corner)
                 .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
             let fw = measure_body("Format FAT32");
             draw_lato_body(&mut self.display, "Format FAT32", 15 + (140 - fw) / 2, 127, COLOR_TEXT);
 
             let btn2 = Rectangle::new(Point::new(165, 105), Size::new(140, 34));
             RoundedRectangle::new(btn2, btn_corner)
                 .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
             RoundedRectangle::new(btn2, btn_corner)
                 .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
             let rw = measure_body("Test R/W");
             draw_lato_body(&mut self.display, "Test R/W", 165 + (140 - rw) / 2, 127, COLOR_TEXT);
 
             // Hints — centered
             let h1 = "Use Tools menu to import";
-            draw_lato_hint(&mut self.display, h1, (320 - prop_fonts::measure_prop_text(h1,
-                &prop_fonts::LATO_12_WIDTHS, prop_fonts::LATO_12_FIRST,
-                prop_fonts::LATO_12_LAST, prop_fonts::LATO_12_HEIGHT)) / 2, 170, COLOR_TEXT_DIM);
+            draw_lato_hint(
+                &mut self.display,
+                h1,
+                (320 - prop_fonts::measure_prop_text(
+                    h1,
+                    &prop_fonts::LATO_12_WIDTHS,
+                    prop_fonts::LATO_12_FIRST,
+                    prop_fonts::LATO_12_LAST,
+                    prop_fonts::LATO_12_HEIGHT,
+                )) / 2,
+                170,
+                COLOR_TEXT_DIM,
+            );
             let h2 = "Use Seeds > Export to backup";
-            draw_lato_hint(&mut self.display, h2, (320 - prop_fonts::measure_prop_text(h2,
-                &prop_fonts::LATO_12_WIDTHS, prop_fonts::LATO_12_FIRST,
-                prop_fonts::LATO_12_LAST, prop_fonts::LATO_12_HEIGHT)) / 2, 188, COLOR_TEXT_DIM);
+            draw_lato_hint(
+                &mut self.display,
+                h2,
+                (320 - prop_fonts::measure_prop_text(
+                    h2,
+                    &prop_fonts::LATO_12_WIDTHS,
+                    prop_fonts::LATO_12_FIRST,
+                    prop_fonts::LATO_12_LAST,
+                    prop_fonts::LATO_12_HEIGHT,
+                )) / 2,
+                188,
+                COLOR_TEXT_DIM,
+            );
         } else {
             let s1 = "No SD card detected";
             draw_lato_body(&mut self.display, s1, (320 - measure_body(s1)) / 2, 100, COLOR_TEXT_DIM);
@@ -119,9 +120,13 @@ impl<'a> BootDisplay<'a> {
         let rect = Rectangle::new(Point::new(x, y), Size::new(140, 34));
         let corners = CornerRadii::new(Size::new(6, 6));
         RoundedRectangle::new(rect, corners)
-            .into_styled(PrimitiveStyle::with_fill(COLOR_CARD)).draw(&mut self.display).ok();
+            .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(rect, corners)
-            .into_styled(PrimitiveStyle::with_stroke(stroke, 1)).draw(&mut self.display).ok();
+            .into_styled(PrimitiveStyle::with_stroke(stroke, 1))
+            .draw(&mut self.display)
+            .ok();
         let width = measure_body(label);
         draw_lato_body(&mut self.display, label, x + (140 - width) / 2, y + 22, COLOR_TEXT);
     }
@@ -151,8 +156,7 @@ impl<'a> BootDisplay<'a> {
         if success {
             static LOGO_DATA: &[u8] = include_bytes!("../../../../../assets/logo_320x240.raw");
             let raw_img: ImageRawLE<Rgb565> = ImageRawLE::new(LOGO_DATA, 320);
-            Image::new(&raw_img, Point::zero())
-                .draw(&mut self.display).ok();
+            Image::new(&raw_img, Point::zero()).draw(&mut self.display).ok();
 
             let tw = measure_title("!! Format Complete !!");
             draw_lato_title(&mut self.display, "!! Format Complete !!", (320 - tw) / 2, 170, KASPA_TEAL);
@@ -171,22 +175,10 @@ impl<'a> BootDisplay<'a> {
     fn draw_sdcard_operation(&mut self, title: &str) {
         self.display.clear(COLOR_BG).ok();
         let title_width = measure_title(title);
-        draw_lato_title(
-            &mut self.display,
-            title,
-            (320 - title_width) / 2,
-            100,
-            KASPA_TEAL,
-        );
+        draw_lato_title(&mut self.display, title, (320 - title_width) / 2, 100, KASPA_TEAL);
         let warning = "Do not remove card";
         let warning_width = measure_body(warning);
-        draw_lato_body(
-            &mut self.display,
-            warning,
-            (320 - warning_width) / 2,
-            135,
-            COLOR_TEXT_DIM,
-        );
+        draw_lato_body(&mut self.display, warning, (320 - warning_width) / 2, 135, COLOR_TEXT_DIM);
     }
 
     /// Draw SD card R/W test result (multi-line)
@@ -196,8 +188,7 @@ impl<'a> BootDisplay<'a> {
         if success {
             static LOGO_DATA: &[u8] = include_bytes!("../../../../../assets/logo_320x240.raw");
             let raw_img: ImageRawLE<Rgb565> = ImageRawLE::new(LOGO_DATA, 320);
-            Image::new(&raw_img, Point::zero())
-                .draw(&mut self.display).ok();
+            Image::new(&raw_img, Point::zero()).draw(&mut self.display).ok();
 
             let tw = measure_title("!! Test PASSED !!");
             draw_lato_title(&mut self.display, "!! Test PASSED !!", (320 - tw) / 2, 168, KASPA_TEAL);
@@ -212,7 +203,8 @@ impl<'a> BootDisplay<'a> {
             draw_oswald_header(&mut self.display, "Test FAILED", (320 - hw) / 2, 30, COLOR_DANGER);
             Line::new(Point::new(20, 40), Point::new(300, 40))
                 .into_styled(PrimitiveStyle::with_stroke(COLOR_DANGER, 1))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
 
             for (i, line) in lines.iter().enumerate() {
                 let lw = measure_body(line);

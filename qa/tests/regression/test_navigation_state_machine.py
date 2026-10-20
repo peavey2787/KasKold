@@ -1,9 +1,12 @@
+import sys
 from pathlib import Path
 import json
 import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "qa/checks"))
+from firmware.source_contract_support import flat  # noqa: E402
 
 
 def read(relative: str) -> str:
@@ -648,7 +651,7 @@ class NavigationStateMachineTests(unittest.TestCase):
         persistent_nav = read("apps/kaskold-hardware/src/runtime/interactions/persistence.rs")
         persistence = "\n".join(read(path) for path in ("apps/kaskold-hardware/src/runtime/interactions/persistence.rs", "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs", "apps/kaskold-hardware/src/runtime/interactions/persistence/credential.rs", "apps/kaskold-hardware/src/runtime/event_loop/operation_engine/credential/result.rs"))
 
-        self.assertIn("if to_state == AppState::MainMenu { return from != NavigationOwner::Onboarding; }", policy)
+        self.assertIn("if to_state == AppState::MainMenu { return from != NavigationOwner::Onboarding; }", flat(policy))
         terminal = facade[facade.index("pub(crate) fn complete_onboarding"):facade.index("fn result_screen_is_valid", facade.index("pub(crate) fn complete_onboarding"))]
         self.assertIn("NavigationOwner::Onboarding", terminal)
         self.assertIn("intent.is_seed_onboarding()", terminal)

@@ -7,20 +7,30 @@ use super::*;
 /// Test: 12-word SeedQR encode/decode round-trip.
 pub fn test_seedqr_roundtrip_12() -> bool {
     // "abandon" x 11 + "about" → indices [0,0,0,0,0,0,0,0,0,0,0,3]
-    let indices: [u16; 24] = [0,0,0,0,0,0,0,0,0,0,0,3, 0,0,0,0,0,0,0,0,0,0,0,0];
+    let indices: [u16; 24] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     let mut buf = [0u8; 96];
     let len = encode_seedqr(&indices, 12, &mut buf);
-    if len != 48 { return false; }
+    if len != 48 {
+        return false;
+    }
     // Should be "000000000000000000000000000000000000000000000003"
-    if &buf[44..48] != b"0003" { return false; }
-    if &buf[0..4] != b"0000" { return false; }
+    if &buf[44..48] != b"0003" {
+        return false;
+    }
+    if &buf[0..4] != b"0000" {
+        return false;
+    }
 
     // Decode back
     let mut decoded = [0u16; 24];
     let wc = decode_seedqr(&buf[..len], &mut decoded);
-    if wc != 12 { return false; }
+    if wc != 12 {
+        return false;
+    }
     for i in 0..11 {
-        if decoded[i] != 0 { return false; }
+        if decoded[i] != 0 {
+            return false;
+        }
     }
     decoded[11] == 3
 }
@@ -33,13 +43,21 @@ pub fn test_seedqr_roundtrip_24() -> bool {
     indices[23] = 104; // "art"
     let mut buf = [0u8; 96];
     let len = encode_seedqr(&indices, 24, &mut buf);
-    if len != 96 { return false; }
-    if &buf[0..4] != b"2047" { return false; }
-    if &buf[92..96] != b"0104" { return false; }
+    if len != 96 {
+        return false;
+    }
+    if &buf[0..4] != b"2047" {
+        return false;
+    }
+    if &buf[92..96] != b"0104" {
+        return false;
+    }
 
     let mut decoded = [0u16; 24];
     let wc = decode_seedqr(&buf[..len], &mut decoded);
-    if wc != 24 { return false; }
+    if wc != 24 {
+        return false;
+    }
     decoded[0] == 2047 && decoded[23] == 104
 }
 
@@ -50,9 +68,13 @@ pub fn test_compact_seedqr_12() -> bool {
     let entropy = [0u8; 16];
     let mut indices = [0u16; 24];
     let wc = decode_compact_seedqr(&entropy, &mut indices);
-    if wc != 12 { return false; }
+    if wc != 12 {
+        return false;
+    }
     for i in 0..11 {
-        if indices[i] != 0 { return false; }
+        if indices[i] != 0 {
+            return false;
+        }
     }
     // Last word should be "about" = index 3
     indices[11] == 3
@@ -64,7 +86,7 @@ pub fn test_fingerprint() -> bool {
     let mut slot = SeedSlot::empty();
     assert!(slot.set_mnemonic_source(12));
     // All zeros → "abandon" x 11 + "about"
-    slot.indices = [0,0,0,0,0,0,0,0,0,0,0,3, 0,0,0,0,0,0,0,0,0,0,0,0];
+    slot.indices = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     slot.compute_fingerprint();
     // SHA256 of 16 zero bytes: known hash
     // Just check fingerprint is not all zeros (entropy is all zeros but hash isn't)
@@ -78,15 +100,25 @@ pub fn test_seed_manager_store_delete() -> bool {
     let mut mgr = SeedManager::new();
     let indices = [0u16; 24];
     let slot = mgr.store(&indices, 12, b"", 0);
-    if slot != Some(0) { return false; }
-    if mgr.count() != 1 { return false; }
+    if slot != Some(0) {
+        return false;
+    }
+    if mgr.count() != 1 {
+        return false;
+    }
 
     mgr.active = 0;
-    if mgr.active != 0 { return false; }
+    if mgr.active != 0 {
+        return false;
+    }
 
     mgr.delete(0);
-    if mgr.count() != 0 { return false; }
-    if mgr.active != 0xFF { return false; }
+    if mgr.count() != 0 {
+        return false;
+    }
+    if mgr.active != 0xFF {
+        return false;
+    }
     true
 }
 
@@ -120,13 +152,21 @@ pub fn test_account_key_slot_roundtrip() -> bool {
 pub fn test_transient_seed_manager_is_persistence_neutral() -> bool {
     let mut manager = SeedManager::new();
     let indices = [0u16; 24];
-    let Some(saved) = manager.store(&indices, 12, b"", 0) else { return false; };
-    if !manager.set_active(saved) { return false; }
+    let Some(saved) = manager.store(&indices, 12, b"", 0) else {
+        return false;
+    };
+    if !manager.set_active(saved) {
+        return false;
+    }
     let saved_revision = manager.revision();
     let saved_name_revision = manager.name_revision();
 
-    let Some(transient) = manager.store_transient(&indices, 12, b"session", 7) else { return false; };
-    if transient == saved || manager.revision() != saved_revision { return false; }
+    let Some(transient) = manager.store_transient(&indices, 12, b"session", 7) else {
+        return false;
+    };
+    if transient == saved || manager.revision() != saved_revision {
+        return false;
+    }
     if !manager.set_slot_name(transient, b"One Time")
         || manager.name_revision() != saved_name_revision
         || !manager.set_active(transient)
@@ -147,13 +187,27 @@ pub fn run_seed_manager_tests() -> (u32, u32) {
     let mut passed = 0u32;
     let total = 7u32;
 
-    if test_seedqr_roundtrip_12() { passed += 1; }
-    if test_seedqr_roundtrip_24() { passed += 1; }
-    if test_compact_seedqr_12() { passed += 1; }
-    if test_fingerprint() { passed += 1; }
-    if test_seed_manager_store_delete() { passed += 1; }
-    if test_account_key_slot_roundtrip() { passed += 1; }
-    if test_transient_seed_manager_is_persistence_neutral() { passed += 1; }
+    if test_seedqr_roundtrip_12() {
+        passed += 1;
+    }
+    if test_seedqr_roundtrip_24() {
+        passed += 1;
+    }
+    if test_compact_seedqr_12() {
+        passed += 1;
+    }
+    if test_fingerprint() {
+        passed += 1;
+    }
+    if test_seed_manager_store_delete() {
+        passed += 1;
+    }
+    if test_account_key_slot_roundtrip() {
+        passed += 1;
+    }
+    if test_transient_seed_manager_is_persistence_neutral() {
+        passed += 1;
+    }
 
     (passed, total)
 }

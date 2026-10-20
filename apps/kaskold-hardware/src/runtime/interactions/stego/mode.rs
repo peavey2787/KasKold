@@ -5,7 +5,10 @@ use super::{display, sdcard, AppData, RedrawFlag};
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use crate::{
     runtime::input::AppState,
-    services::{stego::{StegoCarrier, StegoSecurity}, storage_files},
+    services::{
+        stego::{StegoCarrier, StegoSecurity},
+        storage_files,
+    },
 };
 
 pub(super) fn handle(
@@ -20,9 +23,9 @@ pub(super) fn handle(
 ) -> Option<bool> {
     let changed = match ad.navigation.app.state {
         AppState::StegoModeSelect => handle_carrier_select(ad, boot_display, delay, sd_card_type, x, y, is_back),
-        AppState::StegoSecuritySelect => handle_security_select(
-            ad, boot_display, delay, i2c, sd_card_type, x, y, is_back,
-        ),
+        AppState::StegoSecuritySelect => {
+            handle_security_select(ad, boot_display, delay, i2c, sd_card_type, x, y, is_back)
+        }
         AppState::StegoResult => {
             ad.wallet.seeds.pp_input.reset();
             ad.stego.export_flow.clear_portable_confirmation();
@@ -37,7 +40,6 @@ pub(super) fn handle(
     Some(redraw.value())
 }
 
-
 fn handle_carrier_select(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
@@ -51,7 +53,9 @@ fn handle_carrier_select(
         crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SeedBackup);
         return true;
     }
-    if !(15..=305).contains(&x) { return false; }
+    if !(15..=305).contains(&x) {
+        return false;
+    }
     let carrier = if (60..=126).contains(&y) {
         StegoCarrier::Descriptor
     } else if (136..=202).contains(&y) {
@@ -91,7 +95,9 @@ fn handle_security_select(
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoModeSelect));
         return true;
     }
-    if !(15..=305).contains(&x) { return false; }
+    if !(15..=305).contains(&x) {
+        return false;
+    }
     let security = if (60..=126).contains(&y) {
         StegoSecurity::DeviceBound
     } else if (136..=202).contains(&y) {
@@ -136,7 +142,6 @@ fn scan_jpegs(
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoJpegPick));
     true
 }
-
 
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) fn workflow_select_security_with_jpegs(

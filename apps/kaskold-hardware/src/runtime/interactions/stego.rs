@@ -27,13 +27,13 @@ use crate::{
 use context::StegoFileContext;
 
 mod context;
-mod mode;
+mod export_confirm;
 mod export_description;
 mod export_security;
-mod export_confirm;
-mod import_selection;
 mod import_decrypt;
 mod import_finish;
+mod import_selection;
+mod mode;
 
 pub use context::StegoTouchContext;
 #[cfg(feature = "workflow-test-auto")]
@@ -91,9 +91,7 @@ pub fn handle_stego_touch(context: StegoTouchContext<'_, '_, '_>) -> Option<bool
         page_down_zone,
         input,
     }));
-    handled!(import_decrypt::handle(
-        ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back,
-    ));
+    handled!(import_decrypt::handle(ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back,));
     handled!(import_finish::handle(ad, boot_display, delay, x, y, is_back));
     None
 }

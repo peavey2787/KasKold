@@ -29,16 +29,12 @@ pub(super) fn process(
         }
     };
     boot_display.draw_loading_screen("Pairing...");
-    let response = match offline_signer::privacy_pairing::respond_with_progress(
-        &account,
-        input,
-        |completed, total| {
-            liveness();
-            if total != 0 {
-                boot_display.update_progress_bar(((completed * 90) / total).min(90) as u8);
-            }
-        },
-    ) {
+    let response = match offline_signer::privacy_pairing::respond_with_progress(&account, input, |completed, total| {
+        liveness();
+        if total != 0 {
+            boot_display.update_progress_bar(((completed * 90) / total).min(90) as u8);
+        }
+    }) {
         Ok(response) => response,
         Err(_) => {
             show_rejection(boot_display, delay, "Pairing derivation failed", 1_500, ErrorSound::Silent);

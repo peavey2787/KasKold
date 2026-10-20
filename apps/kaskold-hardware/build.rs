@@ -31,10 +31,7 @@ fn emit_build_commit() {
 }
 
 fn git_commit() -> Option<String> {
-    let output = Command::new("git")
-        .args(["rev-parse", "--verify", "HEAD"])
-        .output()
-        .ok()?;
+    let output = Command::new("git").args(["rev-parse", "--verify", "HEAD"]).output().ok()?;
     if !output.status.success() {
         return None;
     }
@@ -47,16 +44,11 @@ fn valid_commit(value: &str) -> bool {
     (7..=40).contains(&value.len()) && value.bytes().all(|byte| byte.is_ascii_hexdigit())
 }
 
-
 fn emit_release_policy() {
     let path = Path::new("release-policy.env");
     let source = fs::read_to_string(path).expect("release-policy.env must be readable");
-    for key in [
-        "KASKOLD_SECURITY_VERSION",
-        "KASKOLD_ESPTOOL_VERSION",
-    ] {
-        let value = policy_value(&source, key)
-            .unwrap_or_else(|| panic!("release-policy.env missing {key}"));
+    for key in ["KASKOLD_SECURITY_VERSION", "KASKOLD_ESPTOOL_VERSION"] {
+        let value = policy_value(&source, key).unwrap_or_else(|| panic!("release-policy.env missing {key}"));
         if !value.bytes().all(|byte| byte.is_ascii_digit() || (key == "KASKOLD_ESPTOOL_VERSION" && byte == b'.')) {
             panic!("release-policy.env contains invalid {key}");
         }

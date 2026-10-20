@@ -5,38 +5,41 @@
 //! Hardware-ownership boundary for the application event loop; focused touch,
 //! dispatch, frame, and camera stages remain owned by their dedicated modules.
 
-mod deferred; mod liveness;
-#[cfg(feature = "workflow-test-auto")] mod workflow_auto;
-#[cfg(feature = "m5stack")] mod startup_audio;
+mod deferred;
+mod liveness;
+#[cfg(feature = "m5stack")]
+mod startup_audio;
 mod startup_ui;
+#[cfg(feature = "workflow-test-auto")]
+mod workflow_auto;
 #[cfg(not(feature = "workflow-test-auto"))]
 pub(super) use deferred::service as service_deferred;
 #[cfg(not(feature = "workflow-test-auto"))]
 pub(super) use deferred::service_request as service_navigation_request;
 
-pub(super) use deferred::service_operation as service_kpub_operation;
 pub(super) use deferred::cancel_operation as cancel_kpub_operation;
-#[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))]
-pub(crate) use deferred::{workflow_drive_address_cache, workflow_drive_connect_companion};
+pub(super) use deferred::service_operation as service_kpub_operation;
 #[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))]
 pub(crate) use deferred::workflow_drive_multisig_kpub;
+#[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))]
+pub(crate) use deferred::{workflow_drive_address_cache, workflow_drive_connect_companion};
 #[cfg(not(feature = "workflow-test-auto"))]
 pub(super) use liveness::acknowledge;
-#[cfg(all(feature = "m5stack", not(feature = "workflow-test-auto")))] pub(crate) use liveness::acknowledge_runtime;
-#[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))] pub(crate) use liveness::sync_watchdog_budget;
+#[cfg(all(feature = "m5stack", not(feature = "workflow-test-auto")))]
+pub(crate) use liveness::acknowledge_runtime;
+#[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))]
+pub(crate) use liveness::sync_watchdog_budget;
 
 #[cfg(not(feature = "workflow-test-auto"))]
 use crate::{hw::touch::TouchTracker, runtime::touch_dispatch::NavigationZones};
 
+use super::camera::CameraHardware;
 use crate::{
-    hw::{camera::CameraStatus, display::BootDisplay, sdcard::SdCardType},
+    hw::{display::BootDisplay, sdcard::SdCardType},
     runtime::data::AppData,
     services::persistent_wallet::PersistentWallet,
 };
-use esp_hal::{
-    Blocking, delay::Delay, dma::DmaRxBuf, i2c::master::I2c,
-    lcd_cam::cam::Camera as DvpCamera,
-};
+use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
 // LINT-JUSTIFICATION: Clippy scores four focused event-loop macro stages after expansion as one function even though touch, dispatch, frame, and camera policy remain separately owned modules.
 #[allow(clippy::cognitive_complexity)]
@@ -47,37 +50,49 @@ pub(crate) fn run(
     delay: Delay,
     mut i2c: I2c<'_, Blocking>,
     sd_card_type: Option<SdCardType>,
-    dvp_camera_opt: Option<DvpCamera<'_>>,
-    cam_dma_buf_opt: Option<DmaRxBuf>,
-    cam_status: CameraStatus,
+    camera: CameraHardware<'_>,
     #[cfg(not(feature = "workflow-test-auto"))] mut tracker: TouchTracker,
-    #[cfg(all(feature = "m5stack", not(feature = "workflow-test-auto")))]
-    mut runtime_audio: Option<crate::hw::sound::RuntimeAudio>,
+    #[cfg(all(feature = "m5stack", not(feature = "workflow-test-auto")))] mut runtime_audio: Option<
+        crate::hw::sound::RuntimeAudio,
+    >,
     #[cfg(feature = "m5stack")] watchdog_feed: impl FnMut(),
     #[cfg(not(feature = "workflow-test-auto"))] zones: NavigationZones,
 ) -> ! {
-    #[cfg(not(feature = "workflow-test-auto"))] let mut delay = delay;
+    #[cfg(not(feature = "workflow-test-auto"))]
+    let mut delay = delay;
     let startup = persistent_wallet.prepare_startup(ad);
     crate::runtime::interactions::persistence::apply_startup_navigation(ad, startup);
     #[cfg(feature = "m5stack")]
     startup_audio::apply_audio_preference(ad, &mut persistent_wallet);
     startup_ui::render(ad, &mut boot_display, &mut i2c, &sd_card_type);
     // Interactive loop alone owns the mutable watchdog acknowledgement.
-    #[cfg(all(feature = "m5stack", not(feature = "workflow-test-auto")))] let mut watchdog_feed = watchdog_feed;
-    #[cfg(all(feature = "m5stack", not(feature = "workflow-test-auto")))] acknowledge_runtime(ad, &mut watchdog_feed);
+    #[cfg(all(feature = "m5stack", not(feature = "workflow-test-auto")))]
+    let mut watchdog_feed = watchdog_feed;
+    #[cfg(all(feature = "m5stack", not(feature = "workflow-test-auto")))]
+    acknowledge_runtime(ad, &mut watchdog_feed);
     #[cfg(feature = "workflow-test-auto")]
-    workflow_auto::run(
-        ad, boot_display, i2c, sd_card_type, delay, dvp_camera_opt,
-        cam_dma_buf_opt, cam_status, persistent_wallet, watchdog_feed,
-    );
+    workflow_auto::run(ad, boot_display, i2c, sd_card_type, delay, camera, persistent_wallet, watchdog_feed);
     #[cfg(not(feature = "workflow-test-auto"))]
     {
-        let (mut dvp_camera_opt, mut cam_dma_buf_opt, mut cam_status) = (dvp_camera_opt, cam_dma_buf_opt, cam_status); let (grid_zones, list_zones, page_up_zone, page_down_zone) = zones;
+        let (mut dvp_camera_opt, mut cam_dma_buf_opt, mut cam_status) = camera;
+        let (grid_zones, list_zones, page_up_zone, page_down_zone) = zones;
         super::run!(
-            ad, persistent_wallet, boot_display, delay, i2c,
-            sd_card_type, dvp_camera_opt,
-            cam_dma_buf_opt, cam_status, tracker, runtime_audio, watchdog_feed,
-            grid_zones, list_zones, page_up_zone, page_down_zone
+            ad,
+            persistent_wallet,
+            boot_display,
+            delay,
+            i2c,
+            sd_card_type,
+            dvp_camera_opt,
+            cam_dma_buf_opt,
+            cam_status,
+            tracker,
+            runtime_audio,
+            watchdog_feed,
+            grid_zones,
+            list_zones,
+            page_up_zone,
+            page_down_zone
         );
     }
 }

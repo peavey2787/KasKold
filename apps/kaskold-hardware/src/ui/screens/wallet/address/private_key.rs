@@ -15,20 +15,8 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use super::super::super::{
-    BootDisplay,
-    COLOR_BG,
-    COLOR_TEXT,
-    Drawable,
-    KASPA_TEAL,
-    Line,
-    Point,
-    Primitive,
-    PrimitiveStyle,
-    Rectangle,
-    Size,
-    draw_lato_18,
-    draw_oswald_header,
-    measure_header,
+    draw_lato_18, draw_oswald_header, measure_header, BootDisplay, Drawable, Line, Point, Primitive, PrimitiveStyle,
+    Rectangle, Size, COLOR_BG, COLOR_TEXT, KASPA_TEAL,
 };
 
 impl<'a> BootDisplay<'a> {
@@ -47,11 +35,7 @@ impl<'a> BootDisplay<'a> {
         self.draw_private_key_input_area(hex_chars, hex_len);
 
         // Unified keyboard (Hex mode)
-        crate::ui::keyboard::draw_keyboard(
-            &mut self.display,
-            crate::ui::keyboard::KeyboardMode::Hex,
-            0,
-        );
+        crate::ui::keyboard::draw_keyboard(&mut self.display, crate::ui::keyboard::KeyboardMode::Hex, 0);
     }
 
     /// Partial redraw: only the hex input text + cursor. Keyboard stays static.
@@ -78,18 +62,12 @@ impl<'a> BootDisplay<'a> {
 
         let text_x = 10;
         let text_y = 62;
-        let drawn_width = if display.is_empty() {
-            0
-        } else {
-            draw_lato_18(&mut self.display, &display, text_x, text_y, COLOR_TEXT)
-        };
+        let drawn_width =
+            if display.is_empty() { 0 } else { draw_lato_18(&mut self.display, &display, text_x, text_y, COLOR_TEXT) };
         let cursor_x = text_x + drawn_width;
-        Line::new(
-            Point::new(cursor_x, text_y - 15),
-            Point::new(cursor_x, text_y + 1),
-        )
-        .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-        .draw(&mut self.display)
-        .ok();
+        Line::new(Point::new(cursor_x, text_y - 15), Point::new(cursor_x, text_y + 1))
+            .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
+            .draw(&mut self.display)
+            .ok();
     }
 }

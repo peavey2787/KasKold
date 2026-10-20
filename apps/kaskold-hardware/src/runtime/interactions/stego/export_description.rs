@@ -20,31 +20,17 @@ mod image_picker;
 mod keyboard;
 mod preview;
 
-use crate::{runtime::interactions::text_files::TextFileSelectionContext, runtime::input::AppState};
 use super::{context::StegoFileContext, TouchInput};
+use crate::{runtime::input::AppState, runtime::interactions::text_files::TextFileSelectionContext};
 
 pub(super) fn handle(context: StegoFileContext<'_, '_, '_>) -> Option<bool> {
-    let StegoFileContext {
-        ad, boot_display, delay, i2c, list_zones, page_up_zone, page_down_zone, input,
-    } = context;
+    let StegoFileContext { ad, boot_display, delay, i2c, list_zones, page_up_zone, page_down_zone, input } = context;
     let TouchInput { x, y, is_back } = input;
     let redraw = match ad.navigation.app.state {
-        AppState::StegoJpegPick => image_picker::handle(
-            ad,
-            list_zones,
-            page_up_zone,
-            page_down_zone,
-            x,
-            y,
-            is_back,
-        ),
-        AppState::StegoJpegDescChoice => {
-            choice::handle(ad, boot_display, delay, i2c, x, y, is_back)
-        }
+        AppState::StegoJpegPick => image_picker::handle(ad, list_zones, page_up_zone, page_down_zone, x, y, is_back),
+        AppState::StegoJpegDescChoice => choice::handle(ad, boot_display, delay, i2c, x, y, is_back),
         AppState::StegoJpegDescFile => {
-            file_picker::handle(TextFileSelectionContext {
-                ad, boot_display, delay, i2c, list_zones, input,
-            })
+            file_picker::handle(TextFileSelectionContext { ad, boot_display, delay, i2c, list_zones, input })
         }
         AppState::StegoJpegDesc => keyboard::handle(ad, boot_display, x, y, is_back),
         AppState::StegoJpegDescPreview => preview::handle(ad, x, y, is_back),

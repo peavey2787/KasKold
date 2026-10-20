@@ -18,9 +18,8 @@ pub(crate) mod address;
 mod dice;
 mod menu;
 
-use super::{AppData, display, touch};
+use super::{display, touch, AppData};
 use crate::runtime::input::AppState;
-
 
 /// Route Seed Tools choices that only mutate navigation/application state.
 pub(super) fn handle_pure(
@@ -48,18 +47,9 @@ pub(super) fn handle(
     is_back: bool,
 ) -> Option<bool> {
     let redraw = match ad.navigation.app.state {
-        AppState::SeedToolsMenu => menu::handle(
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            list_zones,
-            page_up_zone,
-            page_down_zone,
-            x,
-            y,
-            is_back,
-        ),
+        AppState::SeedToolsMenu => {
+            menu::handle(ad, boot_display, delay, liveness, list_zones, page_up_zone, page_down_zone, x, y, is_back)
+        }
         AppState::DiceRoll => dice::handle(ad, boot_display, x, y, is_back),
         _ => return None,
     };

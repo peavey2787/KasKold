@@ -2,15 +2,10 @@
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
 // License: GPL-3.0
 
-use super::super::{AppData, display};
+use super::super::{display, AppData};
 use kaskold_hardware_core::qr::classification::decode_hex;
 
-pub(super) fn process_raw(
-    data: &[u8],
-    len: usize,
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) {
+pub(super) fn process_raw(data: &[u8], len: usize, ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>) {
     // Raw binary COVB/COVI (from multi-frame assembly). Store directly.
     let n = len.min(data.len()).min(ad.qr.outgoing.buffer.len());
     ad.qr.outgoing.buffer[..n].copy_from_slice(&data[..n]);
@@ -22,12 +17,7 @@ pub(super) fn process_raw(
     log!("   → COVB raw: {} bytes", n);
 }
 
-pub(super) fn process_hex(
-    data: &[u8],
-    len: usize,
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) {
+pub(super) fn process_hex(data: &[u8], len: usize, ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>) {
     // Hex-encoded COVB/COVI (from single-frame Companion export QR).
     let input = &data[..len.min(data.len())];
     let Ok(n) = decode_hex(input, &mut ad.qr.outgoing.buffer) else {

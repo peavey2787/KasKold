@@ -14,9 +14,7 @@ fn prepare(ctx: &mut StegoContext<'_, '_, '_>, security: StegoSecurity) -> bool 
     if !ctx.enter_export_mode() {
         return false;
     }
-    if ctx.touch(80, 90, false, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::StegoSecuritySelect
-    {
+    if ctx.touch(80, 90, false, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoSecuritySelect {
         return false;
     }
     if !crate::runtime::interactions::stego::workflow_select_security_with_jpegs(ctx.ad, security, &JPEG_NAME) {
@@ -46,19 +44,13 @@ fn description_file_boundary(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
 }
 
 fn type_descriptor(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
-    if ctx.touch(100, 90, false, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::StegoJpegDesc
-    {
+    if ctx.touch(100, 90, false, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoJpegDesc {
         return false;
     }
-    if ctx.touch(18, 97, false, true) != Some(false)
-        || ctx.ad.wallet.seeds.pp_input.len != 1
-    {
+    if ctx.touch(18, 97, false, true) != Some(false) || ctx.ad.wallet.seeds.pp_input.len != 1 {
         return false;
     }
-    if ctx.touch(20, 210, false, true) != Some(false)
-        || ctx.ad.wallet.seeds.pp_input.len != 0
-    {
+    if ctx.touch(20, 210, false, true) != Some(false) || ctx.ad.wallet.seeds.pp_input.len != 0 {
         return false;
     }
     ctx.set_text(DESCRIPTOR);
@@ -76,10 +68,10 @@ fn description_preview(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
         return false;
     }
     crate::runtime::effects::route(ctx.ad, crate::runtime::navigation::route!(StegoJpegDescChoice));
-    if !type_descriptor(ctx) { return false; }
-    if ctx.touch(80, 205, false, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::StegoJpegDescChoice
-    {
+    if !type_descriptor(ctx) {
+        return false;
+    }
+    if ctx.touch(80, 205, false, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoJpegDescChoice {
         return false;
     }
     type_descriptor(ctx)
@@ -88,9 +80,7 @@ fn description_preview(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
 }
 
 fn preset_hint(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
-    if ctx.touch(230, 195, false, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::StegoJpegPpInfo
-    {
+    if ctx.touch(230, 195, false, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoJpegPpInfo {
         return false;
     }
     if ctx.touch(100, 80, false, true) != Some(true)
@@ -99,8 +89,7 @@ fn preset_hint(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    ctx.touch(20, 20, true, true) == Some(true)
-        && ctx.ad.navigation.app.state == AppState::StegoJpegPpAsk
+    ctx.touch(20, 20, true, true) == Some(true) && ctx.ad.navigation.app.state == AppState::StegoJpegPpAsk
 }
 
 fn custom_hint(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
@@ -135,8 +124,7 @@ fn portable_password_entry(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
         return false;
     }
     ctx.set_text(b"short1");
-    if ctx.touch(290, 215, false, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::StegoPortablePassword
+    if ctx.touch(290, 215, false, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoPortablePassword
     {
         return false;
     }
@@ -147,13 +135,14 @@ fn portable_password_entry(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
 
 fn portable_password_mismatch_retry(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
     ctx.set_text(WRONG_PASSWORD);
-    if ctx.touch(290, 215, false, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::StegoPortablePassword
+    if ctx.touch(290, 215, false, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoPortablePassword
     {
         return false;
     }
     ctx.set_text(PASSWORD);
-    if ctx.touch(290, 215, false, true) != Some(true) { return false; }
+    if ctx.touch(290, 215, false, true) != Some(true) {
+        return false;
+    }
     ctx.set_text(PASSWORD);
     let ok = ctx.touch(290, 215, false, true) == Some(true)
         && ctx.ad.navigation.app.state == AppState::StegoJpegConfirm
@@ -171,20 +160,14 @@ fn final_confirmation(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if ctx.touch(80, 195, false, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::StegoPortablePassword
-    {
+    if ctx.touch(80, 195, false, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoPortablePassword {
         return false;
     }
-    if ctx.touch(20, 20, true, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::StegoJpegPpAsk
-    {
+    if ctx.touch(20, 20, true, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoJpegPpAsk {
         return false;
     }
     ctx.ad.stego.export_flow.security = StegoSecurity::DeviceBound;
-    if ctx.touch(80, 195, false, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::StegoJpegConfirm
-    {
+    if ctx.touch(80, 195, false, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoJpegConfirm {
         return false;
     }
     if ctx.touch(80, 205, false, true) != Some(true)

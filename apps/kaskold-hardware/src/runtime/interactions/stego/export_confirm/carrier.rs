@@ -1,6 +1,6 @@
 //! JPEG carrier-specific read/modify/write operations.
 
-use super::super::{AppData, sdcard, stego};
+use super::super::{sdcard, stego, AppData};
 use crate::services::{entropy, memory::psram::PsramAllocation};
 use shared_signer::bytes::zeroize_bytes;
 
@@ -17,13 +17,9 @@ pub(super) fn write(
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     payload: &[u8],
 ) -> Result<(), &'static str> {
-    let filename = ad.stego.export_flow.jpeg_file_names
-        [ad.stego.export_flow.jpeg_selected as usize];
-    let description =
-        &ad.stego.export_flow.jpeg_desc_buf[..ad.stego.export_flow.jpeg_desc_len];
-    sdcard::with_sd_card!(i2c, delay, |card| {
-        write_on_card(ad, payload, description, filename, card)
-    })
+    let filename = ad.stego.export_flow.jpeg_file_names[ad.stego.export_flow.jpeg_selected as usize];
+    let description = &ad.stego.export_flow.jpeg_desc_buf[..ad.stego.export_flow.jpeg_desc_len];
+    sdcard::with_sd_card!(i2c, delay, |card| { write_on_card(ad, payload, description, filename, card) })
 }
 
 fn write_on_card(
@@ -44,7 +40,9 @@ fn write_on_card(
         &fat32,
         &filename,
     )?;
-    if written == 0 { return Err("JPEG write failed"); }
+    if written == 0 {
+        return Err("JPEG write failed");
+    }
     Ok(())
 }
 
@@ -56,12 +54,14 @@ fn load_jpeg(
 ) -> Result<(PsramAllocation, usize), &'static str> {
     let (entry, _, _) = sdcard::find_file_in_root(card, fat32, filename)?;
     let size = entry.file_size as usize;
-    if size == 0 || size > MAX_JPEG_SIZE { return Err("JPEG size unsupported"); }
+    if size == 0 || size > MAX_JPEG_SIZE {
+        return Err("JPEG size unsupported");
+    }
     let output_budget = carrier_output_budget(carrier, size)?;
     ensure_operation_headroom(size, output_budget)?;
     let reserve = output_budget + STEGO_CODEC_MARGIN + STEGO_WORK_HEADROOM;
-    let mut jpeg = PsramAllocation::allocate_with_reserve(size, 8, reserve)
-        .map_err(|_| "Not enough PSRAM for JPEG operation")?;
+    let mut jpeg =
+        PsramAllocation::allocate_with_reserve(size, 8, reserve).map_err(|_| "Not enough PSRAM for JPEG operation")?;
     let length = sdcard::read_file(card, fat32, &entry, jpeg.as_mut_bytes())?;
     if length < 4 || !jpeg.as_bytes()[..length].starts_with(&[0xFF, 0xD8]) {
         return Err("Not a valid JPEG");
@@ -70,10 +70,7 @@ fn load_jpeg(
 }
 
 #[inline(never)]
-fn carrier_output_budget(
-    carrier: stego::StegoCarrier,
-    size: usize,
-) -> Result<usize, &'static str> {
+fn carrier_output_budget(carrier: stego::StegoCarrier, size: usize) -> Result<usize, &'static str> {
     match carrier {
         stego::StegoCarrier::Descriptor => size.checked_add(MAX_APP1_SIZE + 16),
         stego::StegoCarrier::Picture => picture_output_capacity(size),
@@ -117,12 +114,8 @@ fn write_carrier(
     filename: &[u8; 11],
 ) -> Result<usize, &'static str> {
     match carrier {
-        stego::StegoCarrier::Descriptor => {
-            write_descriptor(jpeg, description, payload, card, fat32, filename)
-        }
-        stego::StegoCarrier::Picture => {
-            write_picture(jpeg, description, payload, card, fat32, filename)
-        }
+        stego::StegoCarrier::Descriptor => write_descriptor(jpeg, description, payload, card, fat32, filename),
+        stego::StegoCarrier::Picture => write_picture(jpeg, description, payload, card, fat32, filename),
     }
 }
 
@@ -133,24 +126,19 @@ fn write_descriptor(
     card: sdcard::SdCardType,
     fat32: &sdcard::Fat32Info,
     filename: &[u8; 11],
-) -> Result<usize, &'static str>
-{
+) -> Result<usize, &'static str> {
     let mut app1 = PsramAllocation::allocate_with_reserve(MAX_APP1_SIZE, 8, STEGO_WORK_HEADROOM)
         .map_err(|_| "Not enough PSRAM for EXIF operation")?;
     let app1_length = if let Some((offset, length)) = stego::find_exif_app1(jpeg) {
-        stego::build_exif_copyforward(
-            &jpeg[offset..offset + length],
-            description,
-            payload,
-            app1.as_mut_bytes(),
-        )
+        stego::build_exif_copyforward(&jpeg[offset..offset + length], description, payload, app1.as_mut_bytes())
     } else {
         build_template(jpeg, description, payload, app1.as_mut_bytes())?
     };
     if app1_length == 0 {
         return Err("EXIF build failed");
     }
-    let output_size = jpeg.len().checked_add(app1_length).and_then(|n| n.checked_add(16)).ok_or("JPEG output too large")?;
+    let output_size =
+        jpeg.len().checked_add(app1_length).and_then(|n| n.checked_add(16)).ok_or("JPEG output too large")?;
     let mut output = PsramAllocation::allocate_with_reserve(output_size, 8, STEGO_WORK_HEADROOM)
         .map_err(|_| "Not enough PSRAM for JPEG output")?;
     let output_length = stego::inject_exif(jpeg, &app1.as_bytes()[..app1_length], output.as_mut_bytes());
@@ -161,27 +149,15 @@ fn write_descriptor(
     Ok(output_length)
 }
 
-fn build_template(
-    jpeg: &[u8],
-    description: &[u8],
-    payload: &[u8],
-    output: &mut [u8],
-) -> Result<usize, &'static str> {
+fn build_template(jpeg: &[u8], description: &[u8], payload: &[u8], output: &mut [u8]) -> Result<usize, &'static str> {
     let (width, height) = stego::jpeg_dimensions(jpeg).ok_or("JPEG dimensions unavailable")?;
     let mut random = [0u8; 16];
     entropy::fill(&mut random).map_err(|_| "RNG health failed")?;
     let software = stego::SOFTWARE_TABLE[usize::from(random[0]) % stego::SOFTWARE_TABLE.len()];
     let mut datetime = [0u8; 19];
     stego::format_exif_datetime(&random[1..], &mut datetime);
-    let length = stego::build_exif_template(
-        description,
-        payload,
-        width,
-        height,
-        software.as_bytes(),
-        &datetime,
-        output,
-    );
+    let length =
+        stego::build_exif_template(description, payload, width, height, software.as_bytes(), &datetime, output);
     zeroize_bytes(&mut random);
     Ok(length)
 }
@@ -194,18 +170,16 @@ fn write_picture(
     card: sdcard::SdCardType,
     fat32: &sdcard::Fat32Info,
     filename: &[u8; 11],
-) -> Result<usize, &'static str>
-{
-    let required_bits = (payload.len() + 2)
-        .checked_mul(8)
-        .ok_or("Payload too large")? as u32;
+) -> Result<usize, &'static str> {
+    let required_bits = (payload.len() + 2).checked_mul(8).ok_or("Payload too large")? as u32;
     let capacity = stego::capacity_bits(jpeg, description)?;
     if capacity < required_bits {
         return Err("Photo has insufficient capacity");
     }
     let output_capacity = picture_output_capacity(jpeg.len()).ok_or("JPEG output too large")?;
-    let mut output = PsramAllocation::allocate_with_reserve(output_capacity, 8, STEGO_CODEC_MARGIN + STEGO_WORK_HEADROOM)
-        .map_err(|_| "Not enough PSRAM for JPEG output")?;
+    let mut output =
+        PsramAllocation::allocate_with_reserve(output_capacity, 8, STEGO_CODEC_MARGIN + STEGO_WORK_HEADROOM)
+            .map_err(|_| "Not enough PSRAM for JPEG output")?;
     let output_length = stego::embed_picture(jpeg, payload, description, output.as_mut_bytes())?;
     sdcard::overwrite_file(card, fat32, filename, &output.as_bytes()[..output_length])?;
     Ok(output_length)

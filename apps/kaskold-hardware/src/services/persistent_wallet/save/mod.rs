@@ -1,9 +1,9 @@
 //! Persistent-wallet credential save operations.
 
-use offline_signer::crypto::password_kdf::PasswordKdfPurpose;
+use super::{journal, kdf, PersistError, PersistentWallet, StorageMode};
 use crate::services::credential_policy::{self, CredentialKind, SALT_SIZE};
 use crate::wallet::seed_manager::SeedManager;
-use super::{journal, kdf, PersistError, PersistentWallet, StorageMode};
+use offline_signer::crypto::password_kdf::PasswordKdfPurpose;
 
 impl PersistentWallet<'_> {
     pub(crate) fn prepare_async_save(
@@ -33,13 +33,7 @@ impl PersistentWallet<'_> {
         salt: &[u8; SALT_SIZE],
         liveness: &mut (impl FnMut() + ?Sized),
     ) -> Result<[u8; 32], PersistError> {
-        kdf::derive(
-            kdf::CredentialKdf::current(),
-            PasswordKdfPurpose::PersistentWallet,
-            secret,
-            salt,
-            liveness,
-        )
+        kdf::derive(kdf::CredentialKdf::current(), PasswordKdfPurpose::PersistentWallet, secret, salt, liveness)
     }
 
     pub(crate) fn finish_async_save(
@@ -88,10 +82,16 @@ impl PersistentWallet<'_> {
         recovery_words_acknowledged: bool,
         progress: &mut dyn FnMut(u8),
     ) -> Result<(), PersistError> {
-        if !recovery_words_acknowledged { return Err(PersistError::RecoveryAcknowledgementRequired); }
-        if self.mode == Some(StorageMode::SdCard) { return Err(PersistError::AdvancedAlreadyEnabled); }
+        if !recovery_words_acknowledged {
+            return Err(PersistError::RecoveryAcknowledgementRequired);
+        }
+        if self.mode == Some(StorageMode::SdCard) {
+            return Err(PersistError::AdvancedAlreadyEnabled);
+        }
         credential_policy::validate(kind, secret)?;
-        if self.crypto.available_key_slot().is_none() { return Err(PersistError::DeviceKeyMissing); }
+        if self.crypto.available_key_slot().is_none() {
+            return Err(PersistError::DeviceKeyMissing);
+        }
 
         progress(1);
         let mut salt = [0u8; SALT_SIZE];
@@ -143,9 +143,15 @@ impl PersistentWallet<'_> {
         recovery_words_acknowledged: bool,
         progress: &mut dyn FnMut(u8),
     ) -> Result<(), PersistError> {
-        if !recovery_words_acknowledged { return Err(PersistError::RecoveryAcknowledgementRequired); }
-        if self.mode == Some(StorageMode::SdCard) { return Err(PersistError::AdvancedAlreadyEnabled); }
-        if self.crypto.available_key_slot().is_none() { return Err(PersistError::DeviceKeyMissing); }
+        if !recovery_words_acknowledged {
+            return Err(PersistError::RecoveryAcknowledgementRequired);
+        }
+        if self.mode == Some(StorageMode::SdCard) {
+            return Err(PersistError::AdvancedAlreadyEnabled);
+        }
+        if self.crypto.available_key_slot().is_none() {
+            return Err(PersistError::DeviceKeyMissing);
+        }
         let mut salt = [0u8; SALT_SIZE];
         crate::services::entropy::fill(&mut salt).map_err(|_| PersistError::Entropy)?;
         self.clear_credential();
@@ -186,13 +192,16 @@ impl PersistentWallet<'_> {
     /// Per-wallet PIN/password activation is the only current user-credential boundary.
     /// Current snapshots never retain a global wallet activation credential after a
     /// successful unlock; retired pre-production PBKDF2 wallet records are intentionally unsupported.
-    pub(crate) fn migrate_outer_to_device_only(
-        &mut self,
-        manager: &SeedManager,
-    ) -> Result<(), PersistError> {
-        if self.mode != Some(StorageMode::SaveWallet) { return Ok(()); }
-        if self.device_only { return Ok(()); }
-        if self.crypto.available_key_slot().is_none() { return Err(PersistError::DeviceKeyMissing); }
+    pub(crate) fn migrate_outer_to_device_only(&mut self, manager: &SeedManager) -> Result<(), PersistError> {
+        if self.mode != Some(StorageMode::SaveWallet) {
+            return Ok(());
+        }
+        if self.device_only {
+            return Ok(());
+        }
+        if self.crypto.available_key_slot().is_none() {
+            return Err(PersistError::DeviceKeyMissing);
+        }
 
         let mut salt = [0u8; SALT_SIZE];
         crate::services::entropy::fill(&mut salt).map_err(|_| PersistError::Entropy)?;
@@ -214,5 +223,4 @@ impl PersistentWallet<'_> {
         journal::erase_non_device_only_wallet_records(&mut self.flash)?;
         Ok(())
     }
-
 }

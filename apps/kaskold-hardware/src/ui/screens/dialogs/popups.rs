@@ -1,8 +1,7 @@
 use super::super::{
-    BootDisplay, COLOR_BG, COLOR_CARD, COLOR_CARD_BORDER, COLOR_HINT, COLOR_TEXT,
-    CornerRadii, DrawTarget, Drawable, KASPA_TEAL, Line, Point, Primitive, PrimitiveStyle,
-    Rectangle, RoundedRectangle, Size, draw_lato_body, draw_lato_hint, draw_lato_title,
-    draw_oswald_header, measure_body, measure_header, measure_hint, measure_title,
+    draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_hint,
+    measure_title, BootDisplay, CornerRadii, DrawTarget, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle,
+    RoundedRectangle, Size, COLOR_BG, COLOR_CARD, COLOR_CARD_BORDER, COLOR_HINT, COLOR_TEXT, KASPA_TEAL,
 };
 
 impl<'a> BootDisplay<'a> {
@@ -55,41 +54,17 @@ impl<'a> BootDisplay<'a> {
         );
         let auto_hint = "Auto: frames cycle automatically";
         let auto_width = measure_hint(auto_hint);
-        draw_lato_hint(
-            &mut self.display,
-            auto_hint,
-            (320 - auto_width) / 2,
-            200,
-            COLOR_HINT,
-        );
+        draw_lato_hint(&mut self.display, auto_hint, (320 - auto_width) / 2, 200, COLOR_HINT);
         let manual_hint = "Manual: tap to advance frames";
         let manual_width = measure_hint(manual_hint);
-        draw_lato_hint(
-            &mut self.display,
-            manual_hint,
-            (320 - manual_width) / 2,
-            216,
-            COLOR_HINT,
-        );
+        draw_lato_hint(&mut self.display, manual_hint, (320 - manual_width) / 2, 216, COLOR_HINT);
     }
 
-    fn draw_two_button_popup(
-        &mut self,
-        header: &str,
-        body: &[&str],
-        left_label: &str,
-        right_label: &str,
-    ) {
+    fn draw_two_button_popup(&mut self, header: &str, body: &[&str], left_label: &str, right_label: &str) {
         self.display.clear(COLOR_BG).ok();
 
         let title_width = measure_header(header);
-        draw_oswald_header(
-            &mut self.display,
-            header,
-            (320 - title_width) / 2,
-            30,
-            KASPA_TEAL,
-        );
+        draw_oswald_header(&mut self.display, header, (320 - title_width) / 2, 30, KASPA_TEAL);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
             .draw(&mut self.display)

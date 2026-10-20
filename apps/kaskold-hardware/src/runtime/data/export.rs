@@ -16,7 +16,6 @@
 
 // runtime/data/export.rs — ExportState
 
-
 pub struct ExportState {
     pub export_key_hex: [u8; 64],
     pub kpub_data: [u8; offline_signer::derivation::xpub::KPUB_MAX_LEN],
@@ -39,10 +38,8 @@ pub struct ExportState {
 }
 
 impl ExportState {
-
     pub fn connect_kpub_cached(&self) -> bool {
-        self.connect_kpub_cache_len != 0
-            && self.connect_kpub_cache_len <= self.connect_kpub_cache.len()
+        self.connect_kpub_cache_len != 0 && self.connect_kpub_cache_len <= self.connect_kpub_cache.len()
     }
 
     pub fn cache_connect_kpub(&mut self, encoded: &[u8]) {
@@ -81,7 +78,6 @@ impl ExportState {
             self.kpub_worker_generation = None;
         }
     }
-
 
     pub fn reset_multisig_kpub_work(&mut self) {
         #[cfg(feature = "m5stack")]

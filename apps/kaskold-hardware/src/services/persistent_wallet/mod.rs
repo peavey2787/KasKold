@@ -6,39 +6,35 @@
 //! key exists so persistence workflows can be exercised; production never does.
 //! The raw credential is stretched only during setup or unlock and is not retained.
 
+mod advanced;
 mod attempts;
 mod codec;
 mod crypto;
+mod device;
 mod flash;
 mod journal;
 mod kdf;
-mod security_policy;
 mod save;
 mod sd_backend;
+mod security_policy;
 mod snapshot;
 mod startup;
 mod unlock;
 mod wallet_activation;
-mod advanced;
-mod device;
 
 #[cfg(not(feature = "hardware-tests"))]
 pub(crate) use unlock::asynchronous::{AsyncUnlockApply, AsyncUnlockSession, UnlockKdfRequest};
 
-use esp_hal::peripherals::{FLASH, HMAC};
-use offline_signer::derivation::hmac::zeroize_buf;
 pub use crate::services::credential_policy::CredentialKind;
 use crate::services::credential_policy::{self, SALT_SIZE};
+use esp_hal::peripherals::{FLASH, HMAC};
+use offline_signer::derivation::hmac::zeroize_buf;
 
-use crate::{
-    runtime::data::AppData,
-    services::wallet_session,
-    wallet::seed_manager::SeedManager,
-};
+use crate::{runtime::data::AppData, services::wallet_session, wallet::seed_manager::SeedManager};
 
 use crypto::DeviceCrypto;
-use security_policy::SecurityPolicy;
 use flash::DeviceFlash;
+use security_policy::SecurityPolicy;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -145,7 +141,9 @@ impl PersistError {
 }
 
 impl From<flash::FlashError> for PersistError {
-    fn from(_: flash::FlashError) -> Self { Self::Flash }
+    fn from(_: flash::FlashError) -> Self {
+        Self::Flash
+    }
 }
 
 impl From<credential_policy::CredentialError> for PersistError {
@@ -242,12 +240,8 @@ impl<'d> PersistentWallet<'d> {
         Ok(())
     }
 
-
     #[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))]
-    pub(crate) fn workflow_reset_qa_storage(
-        &mut self,
-        ad: &mut AppData,
-    ) -> Result<(), PersistError> {
+    pub(crate) fn workflow_reset_qa_storage(&mut self, ad: &mut AppData) -> Result<(), PersistError> {
         journal::erase_all_user_data(&mut self.flash)?;
         self.mode = None;
         self.clear_credential();
@@ -287,8 +281,6 @@ impl<'d> PersistentWallet<'d> {
         }
     }
 
-
-
     /// Select the RAM-only policy. Device-bound storage is intentionally not available
     /// through this method because saving without a credential must be impossible.
     /// Report whether a device-storage HMAC identity is available. Production
@@ -302,8 +294,7 @@ impl<'d> PersistentWallet<'d> {
     pub fn device_storage_blocker(&mut self) -> Option<&'static str> {
         if self.device_key_available() {
             None
-        } else if cfg!(feature = "production")
-            && !crate::services::verify::boot_security::hardware_protection_active()
+        } else if cfg!(feature = "production") && !crate::services::verify::boot_security::hardware_protection_active()
         {
             Some("Pop It required to save")
         } else {
@@ -312,7 +303,9 @@ impl<'d> PersistentWallet<'d> {
     }
 
     pub fn select_fresh(&mut self, manager: &SeedManager) -> Result<(), PersistError> {
-        if self.mode == Some(StorageMode::SdCard) { return Err(PersistError::AdvancedAlreadyEnabled); }
+        if self.mode == Some(StorageMode::SdCard) {
+            return Err(PersistError::AdvancedAlreadyEnabled);
+        }
         journal::erase_wallet(&mut self.flash)?;
         journal::write_mode(&mut self.flash, StorageMode::AlwaysStartFresh)?;
         journal::write_wallet_labels(&mut self.flash, journal::WalletLabels::empty())?;
@@ -335,21 +328,26 @@ impl<'d> PersistentWallet<'d> {
         }
         let wallet_dirty = manager.revision() != self.saved_revision;
         let labels_dirty = manager.name_revision() != self.saved_name_revision;
-        if !wallet_dirty && !labels_dirty { return Ok(false); }
-        if wallet_dirty
-            && self.mode == Some(StorageMode::SaveWallet)
-            && !self.device_only
-        {
+        if !wallet_dirty && !labels_dirty {
+            return Ok(false);
+        }
+        if wallet_dirty && self.mode == Some(StorageMode::SaveWallet) && !self.device_only {
             self.migrate_outer_to_device_only(manager)?;
             return Ok(true);
         }
-        if self.credential_key.is_none() { return Err(PersistError::CredentialRequired); }
-        if wallet_dirty && self.failed_revision == Some(manager.revision()) { return Ok(false); }
+        if self.credential_key.is_none() {
+            return Err(PersistError::CredentialRequired);
+        }
+        if wallet_dirty && self.failed_revision == Some(manager.revision()) {
+            return Ok(false);
+        }
         let result = self.persist_dirty_state(manager, i2c, delay, wallet_dirty);
         match result {
             Ok(()) => Ok(true),
             Err(error) => {
-                if wallet_dirty { self.failed_revision = Some(manager.revision()); }
+                if wallet_dirty {
+                    self.failed_revision = Some(manager.revision());
+                }
                 Err(error)
             }
         }
@@ -387,7 +385,9 @@ impl<'d> PersistentWallet<'d> {
     }
 
     fn clear_credential(&mut self) {
-        if let Some(mut key) = self.credential_key.take() { zeroize_buf(&mut key); }
+        if let Some(mut key) = self.credential_key.take() {
+            zeroize_buf(&mut key);
+        }
         zeroize_buf(&mut self.credential_salt);
         self.credential_kind = None;
         self.device_only = false;
@@ -402,6 +402,7 @@ impl<'d> PersistentWallet<'d> {
 }
 
 impl Drop for PersistentWallet<'_> {
-    fn drop(&mut self) { self.clear_credential(); }
+    fn drop(&mut self) {
+        self.clear_credential();
+    }
 }
-

@@ -15,7 +15,9 @@ pub(super) fn mix_frame<'a>(
     tracker: &mut CameraEntropyTracker,
     #[cfg(feature = "e12-capture")] capture: Option<&mut crate::diagnostics::e12_capture::Capture>,
 ) -> bool {
-    let Some(camera_value) = camera.take() else { return false; };
+    let Some(camera_value) = camera.take() else {
+        return false;
+    };
     let Some(buffer_value) = dma_buffer.take() else {
         *camera = Some(camera_value);
         return false;
@@ -25,7 +27,11 @@ pub(super) fn mix_frame<'a>(
     let captured = status == FrameCaptureStatus::Complete;
     if captured {
         super::mix_observation(
-            pool, frame_tag, idle_ticks, buffer_back.as_slice(), tracker,
+            pool,
+            frame_tag,
+            idle_ticks,
+            buffer_back.as_slice(),
+            tracker,
             #[cfg(feature = "e12-capture")]
             capture,
         );

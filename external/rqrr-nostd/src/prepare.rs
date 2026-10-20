@@ -436,7 +436,8 @@ where
                 let next_reg_color = PixelColor::Discarded(reg_idx);
                 // Cap flood fill at 5000 pixels — capstones are <2000,
                 // background regions are 10000+ and dominate decode time
-                let counter = self.repaint_and_apply_max((x, y), next_reg_color, AreaCounter(0), 5000);
+                let counter =
+                    self.repaint_and_apply_max((x, y), next_reg_color, AreaCounter(0), 5000);
                 let new_reg = ColoredRegion::Unclaimed {
                     color: next_reg_color,
                     src_x: x,
@@ -505,7 +506,15 @@ where
         self.flood_fill_max(x, y, from, to, fill, usize::MAX)
     }
 
-    fn flood_fill_max<F>(&mut self, x: usize, y: usize, from: u8, to: u8, mut fill: F, max_pixels: usize) -> F
+    fn flood_fill_max<F>(
+        &mut self,
+        x: usize,
+        y: usize,
+        from: u8,
+        to: u8,
+        mut fill: F,
+        max_pixels: usize,
+    ) -> F
     where
         F: AreaFiller,
     {
@@ -541,10 +550,14 @@ where
             total_filled += span;
 
             // Early termination for large regions
-            if total_filled >= max_pixels { break; }
+            if total_filled >= max_pixels {
+                break;
+            }
 
             // Cap queue size
-            if queue.len() >= 2048 { continue; }
+            if queue.len() >= 2048 {
+                continue;
+            }
 
             /* Seed new flood-fills */
             if y > 0 {

@@ -1,6 +1,9 @@
-use super::super::super::{AppData, display, parse_descriptor};
+use super::super::super::{display, parse_descriptor, AppData};
 use crate::runtime::interactions::feedback::{show_rejection, show_success, ErrorSound};
-use crate::runtime::{data::{EncryptedPayloadKind, TextFileKind}, navigation::ContinuationRoute};
+use crate::runtime::{
+    data::{EncryptedPayloadKind, TextFileKind},
+    navigation::ContinuationRoute,
+};
 
 pub(super) fn route(
     ad: &mut AppData,
@@ -21,9 +24,7 @@ pub(super) fn route(
         EncryptedPayloadKind::Text(TextFileKind::MultisigAddress) => {
             load_address_only(ad, boot_display, delay, plaintext, failure_state)
         }
-        EncryptedPayloadKind::Transaction => {
-            route_transaction_import(ad, boot_display, delay, liveness, plaintext)
-        }
+        EncryptedPayloadKind::Transaction => route_transaction_import(ad, boot_display, delay, liveness, plaintext),
     }
 }
 
@@ -35,10 +36,23 @@ fn route_transaction_import(
     plaintext: &[u8],
 ) {
     if is_descriptor(plaintext) {
-        load_descriptor_only(ad, boot_display, delay, liveness, plaintext, crate::runtime::navigation::continuation!(SdKsptFileList));
+        load_descriptor_only(
+            ad,
+            boot_display,
+            delay,
+            liveness,
+            plaintext,
+            crate::runtime::navigation::continuation!(SdKsptFileList),
+        );
     } else if is_address(plaintext) {
         store_address(ad, plaintext);
-        complete_success(ad, boot_display, delay, "Address loaded!", crate::runtime::navigation::continuation!(MultisigShowAddress));
+        complete_success(
+            ad,
+            boot_display,
+            delay,
+            "Address loaded!",
+            crate::runtime::navigation::continuation!(MultisigShowAddress),
+        );
     } else if plaintext.starts_with(kaskold_protocol::wire::pskt_envelope::PSKT_MAGIC) {
         crate::runtime::interactions::tx::load_standard_transaction_with_checkpoint(plaintext, ad, liveness);
     } else {
@@ -81,28 +95,14 @@ fn load_kpub_only(
     failure_state: ContinuationRoute,
 ) {
     let mut canonical = [0u8; offline_signer::derivation::xpub::KPUB_MAX_LEN];
-    let Ok(length) =
-        offline_signer::derivation::xpub::normalize_kpub_text(plaintext, &mut canonical)
-    else {
-        failure(
-            ad,
-            boot_display,
-            delay,
-            "Not a valid kpub",
-            failure_state,
-        );
+    let Ok(length) = offline_signer::derivation::xpub::normalize_kpub_text(plaintext, &mut canonical) else {
+        failure(ad, boot_display, delay, "Not a valid kpub", failure_state);
         return;
     };
 
     ad.export.kpub_data[..length].copy_from_slice(&canonical[..length]);
     ad.export.kpub_len = length;
-    complete_success(
-        ad,
-        boot_display,
-        delay,
-        "Kpub loaded!",
-        crate::runtime::navigation::continuation!(ExportKpub),
-    );
+    complete_success(ad, boot_display, delay, "Kpub loaded!", crate::runtime::navigation::continuation!(ExportKpub));
 }
 
 fn load_address_only(
@@ -113,13 +113,7 @@ fn load_address_only(
     failure_state: ContinuationRoute,
 ) {
     if !is_address(plaintext) || plaintext.len() > offline_signer::derivation::xpub::KPUB_MAX_LEN {
-        failure(
-            ad,
-            boot_display,
-            delay,
-            "Not a valid address",
-            failure_state,
-        );
+        failure(ad, boot_display, delay, "Not a valid address", failure_state);
         return;
     }
     store_address(ad, plaintext);

@@ -1,9 +1,8 @@
 //! Final persistence/protection choice stage.
 
 use super::{
-    cancel_seed_onboarding, AppData, BootDisplay, BUTTON_X, DeviceStorageIntent, ErrorSound,
-    FRESH_BUTTON_Y, NO_PROTECT_BUTTON_Y, PROTECT_BUTTON_Y, PersistentWallet, SAVE_BUTTON_Y,
-    TouchInput, show_rejection,
+    cancel_seed_onboarding, show_rejection, AppData, BootDisplay, DeviceStorageIntent, ErrorSound, PersistentWallet,
+    TouchInput, BUTTON_X, FRESH_BUTTON_Y, NO_PROTECT_BUTTON_Y, PROTECT_BUTTON_Y, SAVE_BUTTON_Y,
 };
 
 pub(super) fn handle_finalize_choice(
@@ -18,7 +17,9 @@ pub(super) fn handle_finalize_choice(
         crate::runtime::effects::route(ad, route);
         return Some(true);
     }
-    if !BUTTON_X.contains(&input.x) { return None; }
+    if !BUTTON_X.contains(&input.x) {
+        return None;
+    }
     if FRESH_BUTTON_Y.contains(&input.y) {
         if let Some(blocker) = persistence.device_storage_blocker() {
             show_rejection(display, delay, blocker, 2400, ErrorSound::Silent);
@@ -34,9 +35,7 @@ pub(super) fn handle_finalize_choice(
     }
     if SAVE_BUTTON_Y.contains(&input.y) {
         if ad.wallet.seeds.pending_add_wallet_is_restore() {
-            let _ = crate::runtime::interactions::seed::commit_staged_session_wallet(
-                ad, display, delay,
-            );
+            let _ = crate::runtime::interactions::seed::commit_staged_session_wallet(ad, display, delay);
         } else {
             if staged_onboarding_mnemonic(ad)
                 && !crate::runtime::interactions::seed::commit_staged_onboarding_import(ad, display, delay)
@@ -49,7 +48,6 @@ pub(super) fn handle_finalize_choice(
     }
     None
 }
-
 
 fn staged_onboarding_mnemonic(ad: &AppData) -> bool {
     !ad.wallet.seeds.has_pending_add_wallet()
@@ -101,7 +99,9 @@ pub(super) fn handle_protection_choice(
         crate::runtime::effects::route(ad, route);
         return Some(true);
     }
-    if !BUTTON_X.contains(&input.x) { return None; }
+    if !BUTTON_X.contains(&input.x) {
+        return None;
+    }
     if PROTECT_BUTTON_Y.contains(&input.y) {
         super::super::enter_credential_type_choice(ad);
         return Some(true);
@@ -110,9 +110,7 @@ pub(super) fn handle_protection_choice(
         if ad.wallet.seeds.has_pending_add_wallet() {
             ad.wallet.seeds.pending_wallet_protection = crate::wallet::seed_manager::WalletProtection::DeviceOnly;
             ad.wallet.seeds.mark_pending_wallet_activation_ready();
-            let _ = crate::runtime::interactions::seed::commit_staged_add_wallet(
-                ad, persistence, display, delay,
-            );
+            let _ = crate::runtime::interactions::seed::commit_staged_add_wallet(ad, persistence, display, delay);
             return Some(true);
         }
         let acknowledged = ad.storage.persistence.recovery_words_acknowledged;
@@ -130,10 +128,7 @@ pub(super) fn handle_protection_choice(
     None
 }
 
-fn complete_session_only(
-    ad: &mut AppData,
-    persistence: &PersistentWallet<'_>,
-) {
+fn complete_session_only(ad: &mut AppData, persistence: &PersistentWallet<'_>) {
     ad.storage.persistence.device_storage_intent = DeviceStorageIntent::StartFresh;
     // One-time wallets must not expose or inherit any device-persistent
     // preference controls from a previously saved wallet. Keep ordinary
@@ -150,8 +145,7 @@ fn complete_workflow_session_only(ad: &mut AppData) {
     ad.settings.use_session_only_defaults();
     ad.storage.persistence.advanced.saved_wallet = false;
     ad.storage.persistence.advanced.outer_device_only = false;
-    ad.storage.persistence.advanced.availability =
-        crate::runtime::data::AdvancedAvailability::Unavailable;
+    ad.storage.persistence.advanced.availability = crate::runtime::data::AdvancedAvailability::Unavailable;
     ad.storage.persistence.advanced.credential_kind = None;
     super::super::complete_start_fresh(ad);
 }
@@ -171,7 +165,9 @@ pub(crate) fn workflow_handle_protection_choice(input: TouchInput, ad: &mut AppD
         crate::runtime::effects::route(ad, route);
         return Some(true);
     }
-    if !BUTTON_X.contains(&input.x) { return None; }
+    if !BUTTON_X.contains(&input.x) {
+        return None;
+    }
     if PROTECT_BUTTON_Y.contains(&input.y) {
         // This is the exact production protected-wallet navigation edge.  The
         // alternative device-only branch performs persistent FLASH/HMAC work
@@ -189,7 +185,9 @@ pub(crate) fn workflow_handle_finalize_choice(input: TouchInput, ad: &mut AppDat
         crate::runtime::effects::route(ad, route);
         return Some(true);
     }
-    if !BUTTON_X.contains(&input.x) { return None; }
+    if !BUTTON_X.contains(&input.x) {
+        return None;
+    }
     if FRESH_BUTTON_Y.contains(&input.y) {
         // Device-key availability is intentionally a persistence/HIL concern.
         // Exercise the exact post-preflight production transition only.

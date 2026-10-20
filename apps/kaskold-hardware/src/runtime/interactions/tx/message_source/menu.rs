@@ -1,7 +1,5 @@
-use super::super::{AppData, display};
-use crate::{
-    runtime::interactions::text_files::{self, TextFileScanWorkflow},
-};
+use super::super::{display, AppData};
+use crate::runtime::interactions::text_files::{self, TextFileScanWorkflow};
 
 pub(super) fn handle(
     ad: &mut AppData,

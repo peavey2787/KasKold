@@ -1,6 +1,6 @@
 //! Explicit BIP39 passphrase opt-in after mnemonic creation/import.
 
-use super::{AppData, display};
+use super::{display, AppData};
 use crate::runtime::input::AppState;
 
 pub(super) fn handle(
@@ -11,7 +11,9 @@ pub(super) fn handle(
     y: u16,
     is_back: bool,
 ) -> Option<bool> {
-    if ad.navigation.app.state != AppState::PassphraseChoice { return None; }
+    if ad.navigation.app.state != AppState::PassphraseChoice {
+        return None;
+    }
     if is_back {
         if ((ad.storage.persistence.device_storage_intent.is_seed_onboarding()
             && !ad.storage.persistence.onboarding_imported_mnemonic)
@@ -25,7 +27,9 @@ pub(super) fn handle(
         }
         return Some(true);
     }
-    if !(18..=302).contains(&x) { return Some(false); }
+    if !(18..=302).contains(&x) {
+        return Some(false);
+    }
     if (126..=160).contains(&y) {
         ad.wallet.seeds.pp_input.reset();
         super::passphrase::store_seed_with_passphrase(ad, boot_display, delay);
@@ -80,11 +84,8 @@ fn restage_generated_entropy(ad: &mut AppData) -> bool {
         return false;
     }
     let mut entropy = [0u8; 32];
-    let length = crate::wallet::seed_manager::encode_compact_seedqr(
-        &ad.wallet.seeds.mnemonic_indices,
-        word_count,
-        &mut entropy,
-    );
+    let length =
+        crate::wallet::seed_manager::encode_compact_seedqr(&ad.wallet.seeds.mnemonic_indices, word_count, &mut entropy);
     if length == 0 {
         shared_signer::bytes::zeroize_bytes(&mut entropy);
         return false;

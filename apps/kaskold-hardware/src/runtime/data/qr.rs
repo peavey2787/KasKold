@@ -13,7 +13,6 @@ pub enum OutgoingQrPurpose {
     AntiKlepto,
 }
 
-
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CameraScanFault {
@@ -30,7 +29,9 @@ pub enum CameraScanFault {
 }
 
 impl CameraScanFault {
-    pub const fn is_fault(self) -> bool { (self as u8) != 0 }
+    pub const fn is_fault(self) -> bool {
+        (self as u8) != 0
+    }
 }
 
 pub struct OutgoingQrState {
@@ -70,7 +71,9 @@ impl QrScanState {
         self.camera_reset_requested = true;
     }
 
-    pub fn has_camera_fault(&self) -> bool { self.camera_fault.is_fault() }
+    pub fn has_camera_fault(&self) -> bool {
+        self.camera_fault.is_fault()
+    }
 
     pub fn latch_camera_fault(&mut self, fault: CameraScanFault) {
         self.camera_fault = fault;
@@ -81,8 +84,6 @@ impl QrScanState {
         self.camera_reset_requested = false;
         requested
     }
-
-
 }
 
 pub struct QrState {
@@ -107,11 +108,7 @@ impl QrState {
         let outgoing = core::ptr::addr_of_mut!((*target).outgoing);
         core::ptr::addr_of_mut!((*outgoing).purpose).write(OutgoingQrPurpose::None);
         core::ptr::addr_of_mut!((*outgoing).manual_frames).write(false);
-        core::ptr::write_bytes(
-            core::ptr::addr_of_mut!((*outgoing).buffer).cast::<u8>(),
-            0,
-            OUTGOING_QR_BUFFER_SIZE,
-        );
+        core::ptr::write_bytes(core::ptr::addr_of_mut!((*outgoing).buffer).cast::<u8>(), 0, OUTGOING_QR_BUFFER_SIZE);
         core::ptr::addr_of_mut!((*outgoing).length).write(0);
         core::ptr::addr_of_mut!((*outgoing).frame).write(0);
         core::ptr::addr_of_mut!((*outgoing).frame_count).write(0);
@@ -124,11 +121,7 @@ impl QrState {
         core::ptr::addr_of_mut!((*presentation).via_density).write(false);
 
         let scan = core::ptr::addr_of_mut!((*target).scan);
-        core::ptr::write_bytes(
-            core::ptr::addr_of_mut!((*scan).address).cast::<u8>(),
-            0,
-            80,
-        );
+        core::ptr::write_bytes(core::ptr::addr_of_mut!((*scan).address).cast::<u8>(), 0, 80);
         core::ptr::addr_of_mut!((*scan).address_length).write(0);
         core::ptr::addr_of_mut!((*scan).address_valid).write(false);
         core::ptr::addr_of_mut!((*scan).camera_fault).write(CameraScanFault::None);

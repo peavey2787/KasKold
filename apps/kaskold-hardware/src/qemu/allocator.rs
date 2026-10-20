@@ -22,11 +22,7 @@ static QEMU_TEST_HEAP: StaticCell<[u8; QEMU_TEST_HEAP_BYTES]> = StaticCell::new(
 pub(crate) fn initialize() {
     let heap = QEMU_TEST_HEAP.init_with(|| [0; QEMU_TEST_HEAP_BYTES]);
     unsafe {
-        esp_alloc::HEAP.add_region(HeapRegion::new(
-            heap.as_mut_ptr(),
-            heap.len(),
-            MemoryCapability::Internal.into(),
-        ));
+        esp_alloc::HEAP.add_region(HeapRegion::new(heap.as_mut_ptr(), heap.len(), MemoryCapability::Internal.into()));
     }
 }
 

@@ -40,14 +40,18 @@ impl NavigationHistory {
         while index > 0 {
             index -= 1;
             let state = self.entries[index];
-            if candidates.contains(&state) { return Some(state); }
+            if candidates.contains(&state) {
+                return Some(state);
+            }
         }
         None
     }
 
     pub(crate) fn pop_to(&mut self, target: AppState) {
         while let Some(state) = self.pop() {
-            if state == target { break; }
+            if state == target {
+                break;
+            }
         }
     }
 
@@ -62,5 +66,4 @@ impl NavigationHistory {
     pub(crate) fn peek(&self) -> Option<AppState> {
         self.len.checked_sub(1).map(|index| self.entries[usize::from(index)])
     }
-
 }

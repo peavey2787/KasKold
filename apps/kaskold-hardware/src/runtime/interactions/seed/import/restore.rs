@@ -1,9 +1,9 @@
 //! Recovery-word restore with automatic 12/24-word detection.
 
 use crate::{
-    runtime::interactions::feedback::{show_rejection, ErrorSound},
     hw::display,
     runtime::data::AppData,
+    runtime::interactions::feedback::{show_rejection, ErrorSound},
     wallet::mnemonic,
 };
 
@@ -19,9 +19,7 @@ pub(super) fn handle(
     match super::word_entry::read_event(ad, boot_display, x, y, is_back) {
         super::word_entry::WordEntryEvent::Pending => false,
         super::word_entry::WordEntryEvent::Cancelled => true,
-        super::word_entry::WordEntryEvent::Accepted(index) => {
-            accept_word(ad, boot_display, delay, word_idx, index)
-        }
+        super::word_entry::WordEntryEvent::Accepted(index) => accept_word(ad, boot_display, delay, word_idx, index),
     }
 }
 
@@ -45,15 +43,14 @@ fn accept_word(
     if word_idx == 23 {
         return finish_24(ad, boot_display, delay);
     }
-    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(RestoreWord { word_idx: word_idx.saturating_add(1) }));
+    crate::runtime::effects::route(
+        ad,
+        crate::runtime::navigation::route!(RestoreWord { word_idx: word_idx.saturating_add(1) }),
+    );
     true
 }
 
-fn finish_24(
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-) -> bool {
+fn finish_24(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, delay: &mut esp_hal::delay::Delay) -> bool {
     if !mnemonic::validate(&ad.wallet.seeds.mnemonic_indices, 24) {
         show_rejection(boot_display, delay, "Invalid recovery words", 2200, ErrorSound::Silent);
         shared_signer::bytes::zeroize_u16(&mut ad.wallet.seeds.mnemonic_indices);

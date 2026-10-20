@@ -1,8 +1,5 @@
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
-use crate::{
-    hw::display,
-    runtime::data::AppData,
-};
+use crate::{hw::display, runtime::data::AppData};
 
 use super::derivation;
 use crate::runtime::interactions::export::index_keypad::{self, IndexKey};
@@ -42,10 +39,8 @@ fn append_digit(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, d
         ad.wallet.addresses.input_buf[ad.wallet.addresses.input_len as usize] = digit;
         ad.wallet.addresses.input_len += 1;
     }
-    let input = core::str::from_utf8(
-        &ad.wallet.addresses.input_buf[..ad.wallet.addresses.input_len as usize],
-    )
-    .unwrap_or("");
+    let input =
+        core::str::from_utf8(&ad.wallet.addresses.input_buf[..ad.wallet.addresses.input_len as usize]).unwrap_or("");
     if crate::runtime::interactions::feedback::physical_presentation_enabled() {
         boot_display.update_addr_index_input(input);
     }
@@ -81,9 +76,7 @@ fn parse_index(ad: &mut AppData) -> Option<u16> {
     }
     let result = ad.wallet.addresses.input_buf[..ad.wallet.addresses.input_len as usize]
         .iter()
-        .try_fold(0u16, |value, digit| {
-            value.checked_mul(10)?.checked_add(u16::from(digit.checked_sub(b'0')?))
-        });
+        .try_fold(0u16, |value, digit| value.checked_mul(10)?.checked_add(u16::from(digit.checked_sub(b'0')?)));
     reset_input(ad);
     result
 }

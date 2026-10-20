@@ -414,7 +414,7 @@ def run_core_ci(ns: argparse.Namespace) -> None:
     stable = os.environ["KASKOLD_STABLE_RUST"]
     commands = [
         ["rustup", "toolchain", "install", stable, "--profile", "minimal", "--component", "rustfmt", "--component", "clippy"],
-        ["rustup", "run", stable, "cargo", "fmt", "--all", "--", "--check"],
+        [PYTHON, "qa/checks/workspace/check_rust_format.py"],
         ["rustup", "run", stable, "cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"],
         ["make", "test", "STRICT_LOCKFILES=1"],
         ["git", "diff", "--check"],

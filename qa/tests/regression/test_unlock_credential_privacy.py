@@ -1,8 +1,11 @@
+import sys
 from pathlib import Path
 import unittest
 
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "qa/checks"))
+from firmware.source_contract_support import flat  # noqa: E402
 FW = ROOT / "apps" / "kaskold-hardware"
 
 
@@ -19,7 +22,7 @@ class UnlockCredentialPrivacyTests(unittest.TestCase):
         self.assertNotIn("credential_policy::validate", begin)
         self.assertIn("Unlock guesses are authentication inputs", begin)
         self.assertIn("super::unlock_secret_for_kdf(secret)", asynchronous)
-        self.assertIn('if secret.is_empty() { b"\\0" } else { secret }', workflow)
+        self.assertIn('if secret.is_empty() { b"\\0" } else { secret }', flat(workflow))
 
         unlock_saved = workflow[workflow.index("pub fn unlock_saved"):workflow.index("fn unlock_from_sd")]
         self.assertNotIn("credential_policy::validate", unlock_saved)

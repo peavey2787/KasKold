@@ -2,9 +2,8 @@
 // License: GPL-3.0-or-later.
 
 use super::super::{
-    BootDisplay, COLOR_CARD, COLOR_TEXT, COLOR_TEXT_DIM, CornerRadii, Drawable,
-    KASPA_TEAL, Point, Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size,
-    draw_lato_body, draw_lato_title, measure_body, measure_title,
+    draw_lato_body, draw_lato_title, measure_body, measure_title, BootDisplay, CornerRadii, Drawable, Point, Primitive,
+    PrimitiveStyle, Rectangle, RoundedRectangle, Size, COLOR_CARD, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_TEAL,
 };
 
 pub(crate) const DISPLAY_DIM_ROW_Y: core::ops::RangeInclusive<u16> = 148..=181;
@@ -42,19 +41,10 @@ impl<'a> BootDisplay<'a> {
     /// Draw audio settings. Volume remains session-local; startup sound is a
     /// future-boot preference and is hidden when the active wallet is one-time.
     #[cfg(feature = "m5stack")]
-    pub fn draw_audio_settings(
-        &mut self,
-        volume: u8,
-        persistent_controls: bool,
-        startup_sound_enabled: bool,
-    ) {
+    pub fn draw_audio_settings(&mut self, volume: u8, persistent_controls: bool, startup_sound_enabled: bool) {
         self.draw_level_settings("AUDIO", "Volume:", volume);
         if persistent_controls {
-            self.draw_setting_row(
-                "Startup sound",
-                if startup_sound_enabled { "ON" } else { "OFF" },
-                168,
-            );
+            self.draw_setting_row("Startup sound", if startup_sound_enabled { "ON" } else { "OFF" }, 168);
         } else {
             self.draw_session_only_hint();
         }

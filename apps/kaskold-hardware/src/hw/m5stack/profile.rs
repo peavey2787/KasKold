@@ -7,11 +7,8 @@ pub(crate) struct BoardProfile {
     pub(crate) qualification_note: &'static str,
 }
 
-pub(crate) const CORES3: BoardProfile = BoardProfile {
-    model: "M5Stack CoreS3",
-    hardware_qualified: true,
-    qualification_note: "hardware-qualified",
-};
+pub(crate) const CORES3: BoardProfile =
+    BoardProfile { model: "M5Stack CoreS3", hardware_qualified: true, qualification_note: "hardware-qualified" };
 
 pub(crate) const CORES3_LITE: BoardProfile = BoardProfile {
     model: "M5Stack CoreS3 Lite",

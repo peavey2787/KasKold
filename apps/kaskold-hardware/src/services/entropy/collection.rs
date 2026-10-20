@@ -1,12 +1,13 @@
 // Entropy-source orchestration and final whitening.
 
-use esp_hal::{Blocking, delay::Delay, dma::DmaRxBuf, i2c::master::I2c, lcd_cam::cam::Camera};
+use esp_hal::{delay::Delay, dma::DmaRxBuf, i2c::master::I2c, lcd_cam::cam::Camera, Blocking};
 use sha2::{Digest, Sha256};
 
 use super::{ambient, camera, health::EntropyError, imu, mixer, platform, seed, trng};
 /// Collect a seed-generation pool. Camera entropy is mandatory.
 pub fn collect<'a>(
-    delay: &mut Delay, liveness: &mut dyn FnMut(),
+    delay: &mut Delay,
+    liveness: &mut dyn FnMut(),
     i2c: &mut I2c<'_, Blocking>,
     idle_ticks: u32,
     camera_device: &mut Option<Camera<'a>>,
@@ -23,15 +24,13 @@ pub fn collect<'a>(
     let mut imu_pre = [0u8; imu::SEED_SAMPLE_BYTES];
     let imu_pre_count = collect_imu_window(i2c, delay, imu_initialized, &mut imu_pre);
 
-    log!(
-        "   RNG health: stuck {}/32 counter {}",
-        initial.report.repeated_words,
-        initial.report.counter_pattern
-    );
+    log!("   RNG health: stuck {}/32 counter {}", initial.report.repeated_words, initial.report.counter_pattern);
     let camera_report = camera::mix_frames(
         &mut pool,
         i2c,
-        delay, liveness, idle_ticks,
+        delay,
+        liveness,
+        idle_ticks,
         camera_device,
         dma_buffer,
         #[cfg(feature = "e12-capture")]
@@ -94,7 +93,9 @@ fn collect_imu_window(
     initialized: bool,
     output: &mut [u8; imu::SEED_SAMPLE_BYTES],
 ) -> usize {
-    if !initialized { return 0; }
+    if !initialized {
+        return 0;
+    }
     imu::collect_seed_sample(i2c, delay, output)
 }
 

@@ -15,21 +15,14 @@ pub fn derive_active_seed_with_checkpoint(
     ad: &AppData,
     checkpoint: &mut (impl FnMut() + ?Sized),
 ) -> Result<offline_signer::derivation::bip39::Seed, &'static str> {
-    let slot = ad
-        .wallet
-        .seeds
-        .seed_mgr
-        .active_slot()
-        .ok_or("No active wallet")?;
+    let slot = ad.wallet.seeds.seed_mgr.active_slot().ok_or("No active wallet")?;
     derive_slot_seed_with_checkpoint(slot, checkpoint)
 }
 
 /// Test/workflow convenience only. Production code must use the checkpointed API.
 #[cfg(any(feature = "workflow-test-auto", feature = "hardware-tests"))]
 #[inline(never)]
-pub fn derive_active_seed(
-    ad: &AppData,
-) -> Result<offline_signer::derivation::bip39::Seed, &'static str> {
+pub fn derive_active_seed(ad: &AppData) -> Result<offline_signer::derivation::bip39::Seed, &'static str> {
     let slot = ad.wallet.seeds.seed_mgr.active_slot().ok_or("No active wallet")?;
     derive_slot_seed(slot)
 }
@@ -38,12 +31,8 @@ pub fn derive_active_seed(
 /// must use `derive_slot_seed_with_checkpoint`.
 #[cfg(any(feature = "workflow-test-auto", feature = "hardware-tests"))]
 #[inline(never)]
-pub(crate) fn derive_slot_seed(
-    slot: &SeedSlot,
-) -> Result<offline_signer::derivation::bip39::Seed, &'static str> {
-    let word_count = slot
-        .mnemonic_word_count()
-        .ok_or("Active wallet is not a mnemonic")?;
+pub(crate) fn derive_slot_seed(slot: &SeedSlot) -> Result<offline_signer::derivation::bip39::Seed, &'static str> {
+    let word_count = slot.mnemonic_word_count().ok_or("Active wallet is not a mnemonic")?;
     derive_seed(&slot.indices, word_count, slot.passphrase_str())
 }
 
@@ -55,9 +44,7 @@ pub(crate) fn derive_slot_seed_with_checkpoint(
     slot: &SeedSlot,
     checkpoint: &mut (impl FnMut() + ?Sized),
 ) -> Result<offline_signer::derivation::bip39::Seed, &'static str> {
-    let word_count = slot
-        .mnemonic_word_count()
-        .ok_or("Active wallet is not a mnemonic")?;
+    let word_count = slot.mnemonic_word_count().ok_or("Active wallet is not a mnemonic")?;
     if !crate::wallet::mnemonic::validate(&slot.indices, word_count) {
         return Err("Invalid mnemonic");
     }
@@ -102,9 +89,7 @@ pub(crate) fn derive_seed(
             ))
         }
         24 => Ok(offline_signer::derivation::bip39::seed_from_mnemonic_24(
-            &offline_signer::derivation::bip39::Mnemonic24 {
-                indices: *mnemonic_indices,
-            },
+            &offline_signer::derivation::bip39::Mnemonic24 { indices: *mnemonic_indices },
             passphrase,
         )),
         _ => Err("Wallet source is not a mnemonic"),

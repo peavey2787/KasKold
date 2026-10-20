@@ -1,8 +1,5 @@
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
-use crate::{
-    hw::display,
-    runtime::data::AppData,
-};
+use crate::{hw::display, runtime::data::AppData};
 
 use super::export;
 

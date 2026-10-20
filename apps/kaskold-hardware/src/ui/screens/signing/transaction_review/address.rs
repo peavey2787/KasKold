@@ -1,13 +1,6 @@
 //! Transaction-review destination rendering.
 use super::{
-    BootDisplay,
-    COLOR_TEXT,
-    KASPA_ACCENT,
-    KASPA_TEAL,
-    draw_lato_body,
-    draw_lato_title,
-    measure_body,
-    measure_title,
+    draw_lato_body, draw_lato_title, measure_body, measure_title, BootDisplay, COLOR_TEXT, KASPA_ACCENT, KASPA_TEAL,
 };
 use core::fmt::Write;
 
@@ -17,9 +10,7 @@ impl<'a> BootDisplay<'a> {
         script: &offline_signer::transaction::model::ScriptPublicKey,
         network: offline_signer::address::KaspaNetwork,
     ) {
-        let is_p2pk = script.script_len == 34
-            && script.script[0] == 0x20
-            && script.script[33] == 0xAC;
+        let is_p2pk = script.script_len == 34 && script.script[0] == 0x20 && script.script[33] == 0xAC;
         let is_p2sh = script.script_len == 35
             && script.script[0] == 0xAA
             && script.script[1] == 0x20
@@ -55,13 +46,7 @@ impl<'a> BootDisplay<'a> {
         if is_p2sh {
             let tag = "To P2SH address:";
             let width = measure_body(tag);
-            draw_lato_body(
-                &mut self.display,
-                tag,
-                (320 - width) / 2,
-                95,
-                KASPA_ACCENT,
-            );
+            draw_lato_body(&mut self.display, tag, (320 - width) / 2, 95, KASPA_ACCENT);
         }
         self.draw_address_block(address, is_p2sh);
     }
@@ -69,19 +54,11 @@ impl<'a> BootDisplay<'a> {
     fn draw_address_block(&mut self, address: &str, is_p2sh: bool) {
         let bytes = address.as_bytes();
         let total_len = bytes.len();
-        let colon = bytes
-            .iter()
-            .position(|&byte| byte == b':')
-            .map(|position| position + 1)
-            .unwrap_or(0);
+        let colon = bytes.iter().position(|&byte| byte == b':').map(|position| position + 1).unwrap_or(0);
         let highlight_a_start = colon;
         let highlight_a_end = core::cmp::min(colon + 8, total_len);
         let highlight_b_start = total_len.saturating_sub(8);
-        let (available_top, available_bottom) = if is_p2sh {
-            (90i32, 188i32)
-        } else {
-            (70i32, 188i32)
-        };
+        let (available_top, available_bottom) = if is_p2sh { (90i32, 188i32) } else { (70i32, 188i32) };
 
         if total_len < 30 {
             let width = measure_title(address);
@@ -103,17 +80,8 @@ impl<'a> BootDisplay<'a> {
         let second_end = core::cmp::min(2 * third, total_len);
         let line_height = 26i32;
         let block_height = 3 * line_height;
-        let y = available_top
-            + (available_bottom - available_top - block_height) / 2
-            + line_height;
-        self.draw_address_line(
-            &bytes[..first_end],
-            0,
-            highlight_a_start,
-            highlight_a_end,
-            highlight_b_start,
-            y,
-        );
+        let y = available_top + (available_bottom - available_top - block_height) / 2 + line_height;
+        self.draw_address_line(&bytes[..first_end], 0, highlight_a_start, highlight_a_end, highlight_b_start, y);
         self.draw_address_line(
             &bytes[first_end..second_end],
             first_end,
@@ -180,28 +148,18 @@ impl<'a> BootDisplay<'a> {
         if bytes.is_empty() {
             return;
         }
-        let highlighted = |global: usize| {
-            (global >= highlight_a_start && global < highlight_a_end)
-                || global >= highlight_b_start
-        };
+        let highlighted =
+            |global: usize| (global >= highlight_a_start && global < highlight_a_end) || global >= highlight_b_start;
         let mut cursor = x;
         let mut segment_start = 0usize;
         let mut current_highlight = highlighted(line_start);
         for index in 1..=bytes.len() {
-            let next_highlight = if index < bytes.len() {
-                highlighted(line_start + index)
-            } else {
-                !current_highlight
-            };
+            let next_highlight = if index < bytes.len() { highlighted(line_start + index) } else { !current_highlight };
             if next_highlight == current_highlight {
                 continue;
             }
             if let Ok(segment) = core::str::from_utf8(&bytes[segment_start..index]) {
-                let color = if current_highlight {
-                    KASPA_TEAL
-                } else {
-                    COLOR_TEXT
-                };
+                let color = if current_highlight { KASPA_TEAL } else { COLOR_TEXT };
                 cursor += draw_lato_title(&mut self.display, segment, cursor, y, color);
             }
             segment_start = index;

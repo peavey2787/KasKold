@@ -16,7 +16,9 @@ pub enum WalletProtection {
 }
 
 impl Default for WalletProtection {
-    fn default() -> Self { Self::DeviceOnly }
+    fn default() -> Self {
+        Self::DeviceOnly
+    }
 }
 
 impl WalletProtection {
@@ -46,11 +48,14 @@ impl WalletProtection {
     }
 }
 
-
 impl super::SeedManager {
     pub fn set_slot_protection(&mut self, slot_index: usize, protection: WalletProtection) -> bool {
-        if slot_index >= super::MAX_SLOTS || self.slots[slot_index].is_empty() { return false; }
-        if self.slots[slot_index].protection == protection { return true; }
+        if slot_index >= super::MAX_SLOTS || self.slots[slot_index].is_empty() {
+            return false;
+        }
+        if self.slots[slot_index].protection == protection {
+            return true;
+        }
         self.slots[slot_index].protection = protection;
         self.mark_changed();
         true

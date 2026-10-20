@@ -7,9 +7,13 @@ import hashlib
 import hmac
 import re
 from pathlib import Path
+import sys
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "qa/checks"))
+
+from firmware.source_contract_support import flat  # noqa: E402
 
 
 def read(relative: str) -> str:
@@ -446,8 +450,8 @@ class DeviceBoundStorageTests(unittest.TestCase):
         self.assertIn("credential keys may click once", navigation)
         self.assertIn("tap_uses_router_click", dispatch)
         self.assertIn("crate::services::audio::click();", controller)
-        self.assertIn("if !matches!(action, KeyAction::None | KeyAction::Ok) { crate::services::audio::click(); }", controller)
-        self.assertIn("if !matches!(action, PinPadAction::Submit) { crate::services::audio::click(); }", controller)
+        self.assertIn("if !matches!(action, KeyAction::None | KeyAction::Ok) { crate::services::audio::click(); }", flat(controller))
+        self.assertIn("if !matches!(action, PinPadAction::Submit) { crate::services::audio::click(); }", flat(controller))
 
     def test_initial_wallet_resolver_hides_back_until_a_wallet_is_active(self) -> None:
         seed_ui = read("apps/kaskold-hardware/src/ui/screens/wallet/seed_management.rs")
@@ -470,8 +474,8 @@ class DeviceBoundStorageTests(unittest.TestCase):
         self.assertIn("CUES_SUSPENDED.swap(false, Ordering::AcqRel)", resume)
         self.assertIn("discard_pending();", resume)
         self.assertNotIn("discard_pending();\n    CUES_SUSPENDED.store(false", resume)
-        self.assertIn("if !matches!(action, PinPadAction::Submit) { crate::services::audio::click(); }", controller)
-        self.assertIn("if !matches!(action, KeyAction::None | KeyAction::Ok) { crate::services::audio::click(); }", controller)
+        self.assertIn("if !matches!(action, PinPadAction::Submit) { crate::services::audio::click(); }", flat(controller))
+        self.assertIn("if !matches!(action, KeyAction::None | KeyAction::Ok) { crate::services::audio::click(); }", flat(controller))
 
     def test_device_bound_pin_uses_dedicated_bounded_numeric_keypad(self) -> None:
         ui = read("apps/kaskold-hardware/src/ui/screens/device/persistence.rs")
@@ -590,7 +594,7 @@ class DeviceBoundStorageTests(unittest.TestCase):
         self.assertIn("Camera entropy auto-retry {}/{}", camera)
         self.assertIn("CameraEntropyTracker::new()", camera)
         self.assertIn("delay.delay_millis(RETRY_SETTLE_MS);", camera)
-        self.assertIn("if report.healthy() { break; }", camera)
+        self.assertIn("if report.healthy() { break; }", flat(camera))
 
         camera_reject = generation[generation.index("if error == crate::services::entropy::EntropyError::CameraUnavailable"):]
         camera_reject = camera_reject[:camera_reject.index("if error == crate::services::entropy::EntropyError::ImuUnavailable")]

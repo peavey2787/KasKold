@@ -15,11 +15,12 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 // menu controller — seed generation workflow.
 mod additive;
-use super::{display, AppData, DmaRxBuf, DvpCamera};
+use super::{display, AppData};
 use crate::{
     runtime::interactions::feedback::{show_rejection, ErrorSound},
     wallet::mnemonic,
 };
+use esp_hal::{dma::DmaRxBuf, lcd_cam::cam::Camera as DvpCamera};
 pub(crate) fn handle(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
@@ -64,20 +65,19 @@ pub(crate) fn handle(
             word_count,
         )),
         crate::runtime::input::AppState::StorageSeedDiceChoice => Some(additive::handle_dice_choice(ad, x, y, is_back)),
-        crate::runtime::input::AppState::StorageSeedDiceCountChoice => Some(additive::handle_dice_count(ad, x, y, is_back)),
-        crate::runtime::input::AppState::StorageSeedTouchChoice => Some(additive::handle_touch_choice(ad, x, y, is_back)),
+        crate::runtime::input::AppState::StorageSeedDiceCountChoice => {
+            Some(additive::handle_dice_count(ad, x, y, is_back))
+        }
+        crate::runtime::input::AppState::StorageSeedTouchChoice => {
+            Some(additive::handle_touch_choice(ad, x, y, is_back))
+        }
         crate::runtime::input::AppState::TouchEntropy => Some(handle_touch_entropy(ad, is_back)),
         _ => None,
     }
 }
 
 #[cfg(feature = "workflow-test-auto")]
-pub(crate) fn workflow_stage_word_count(
-    ad: &mut AppData,
-    x: u16,
-    y: u16,
-    is_back: bool,
-) -> bool {
+pub(crate) fn workflow_stage_word_count(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageModeChoice));
         return true;
@@ -113,12 +113,7 @@ pub(crate) fn workflow_touch_back(ad: &mut AppData, is_back: bool) -> bool {
 }
 
 #[cfg(feature = "workflow-test-auto")]
-pub(crate) fn workflow_existing_tool_word_count(
-    ad: &mut AppData,
-    x: u16,
-    y: u16,
-    is_back: bool,
-) -> bool {
+pub(crate) fn workflow_existing_tool_word_count(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
     let crate::runtime::input::AppState::ChooseWordCount { action } = ad.navigation.app.state else {
         return false;
     };
@@ -154,9 +149,7 @@ fn handle_word_count(
         if ad.storage.persistence.device_storage_intent.is_seed_onboarding() {
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageModeChoice));
         } else {
-            let _ = crate::runtime::effects::return_to(
-                ad, crate::runtime::navigation::ReturnScope::SeedTool,
-            );
+            let _ = crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SeedTool);
         }
         return true;
     }
@@ -180,8 +173,6 @@ fn handle_word_count(
     );
     true
 }
-
-
 
 fn start_word_count_action(
     ad: &mut AppData,
@@ -241,10 +232,7 @@ fn generate_random_seed(
     ) {
         Ok(mut pool) => {
             ad.wallet.seeds.stage_seed_entropy(&mut pool, word_count);
-            crate::runtime::effects::route(
-                ad,
-                crate::runtime::navigation::route!(StorageSeedDiceChoice),
-            );
+            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageSeedDiceChoice));
         }
         Err(error) => reject_entropy(ad, boot_display, delay, error, word_count),
     }
@@ -254,27 +242,14 @@ fn draw_entropy_status(boot_display: &mut display::BootDisplay<'_>) {
     use crate::ui::display::*;
     boot_display.clear_screen();
     let title_width = measure_header("GENERATING");
-    draw_oswald_header(
-        &mut boot_display.display,
-        "GENERATING",
-        (320 - title_width) / 2,
-        100,
-        KASPA_TEAL,
-    );
+    draw_oswald_header(&mut boot_display.display, "GENERATING", (320 - title_width) / 2, 100, KASPA_TEAL);
     let status_width = measure_body("Collecting entropy...");
-    draw_lato_body(
-        &mut boot_display.display,
-        "Collecting entropy...",
-        (320 - status_width) / 2,
-        130,
-        COLOR_TEXT_DIM,
-    );
+    draw_lato_body(&mut boot_display.display, "Collecting entropy...", (320 - status_width) / 2, 130, COLOR_TEXT_DIM);
 }
 
 fn accept_entropy_pool(ad: &mut AppData, pool: &mut [u8], word_count: u8) {
     let entropy_bytes = if word_count == 12 { 16 } else { 32 };
-    ad.wallet.seeds.mnemonic_indices =
-        mnemonic::generate_from_entropy(word_count, &pool[..entropy_bytes]);
+    ad.wallet.seeds.mnemonic_indices = mnemonic::generate_from_entropy(word_count, &pool[..entropy_bytes]);
     crate::services::entropy::zeroize(pool);
     ad.wallet.seeds.word_count = word_count;
     ad.wallet.seeds.pp_input.reset();
@@ -293,10 +268,7 @@ pub(crate) fn finalize_staged_entropy(ad: &mut AppData) -> bool {
     true
 }
 
-pub(crate) fn mix_dice_into_staged(
-    ad: &mut AppData,
-    dice: &mut mnemonic::DiceCollector,
-) -> bool {
+pub(crate) fn mix_dice_into_staged(ad: &mut AppData, dice: &mut mnemonic::DiceCollector) -> bool {
     additive::mix_dice_into_staged(ad, dice)
 }
 
@@ -384,20 +356,14 @@ fn handle_entropy_recovery(
 }
 
 fn start_dice_seed(ad: &mut AppData, word_count: u8) {
-    ad.wallet.seeds.dice_collector = if word_count == 24 {
-        mnemonic::DiceCollector::new_24_word()
-    } else {
-        mnemonic::DiceCollector::new_12_word()
-    };
+    ad.wallet.seeds.dice_collector =
+        if word_count == 24 { mnemonic::DiceCollector::new_24_word() } else { mnemonic::DiceCollector::new_12_word() };
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(DiceRoll));
 }
 
 fn start_word_import(ad: &mut AppData, word_count: u8) {
     ad.wallet.seeds.word_input.reset();
-    crate::runtime::effects::route(
-        ad,
-        crate::runtime::navigation::route!(ImportWord { word_idx: 0, word_count }),
-    );
+    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ImportWord { word_idx: 0, word_count }));
 }
 
 fn start_bip85(ad: &mut AppData, word_count: u8) {
@@ -412,7 +378,9 @@ fn start_touch_seed(ad: &mut AppData, word_count: u8) {
 }
 
 fn handle_touch_entropy(ad: &mut AppData, is_back: bool) -> bool {
-    if !is_back { return false; }
+    if !is_back {
+        return false;
+    }
     ad.wallet.seeds.touch_collector.reset();
     if ad.wallet.seeds.pending_seed_entropy_valid {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageSeedTouchChoice));

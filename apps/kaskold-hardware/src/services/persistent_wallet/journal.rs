@@ -1,15 +1,15 @@
 //! Power-loss-safe preference and encrypted-wallet journal selection.
 
 use crate::services::credential_policy::{CredentialKind, SALT_SIZE};
-use crate::wallet::seed_manager::{MAX_SLOTS, WALLET_NAME_MAX, SeedManager};
+use crate::wallet::seed_manager::{SeedManager, MAX_SLOTS, WALLET_NAME_MAX};
 use offline_signer::transaction::model::{MAX_MULTISIG_KEYS, MAX_MULTISIG_WALLETS};
 
 use super::{
-    StorageMode,
-    crypto::{RECORD_SIZE, RecordHeader, parse_header},
-    security_policy::DuressPolicy,
-    kdf::CredentialKdf,
+    crypto::{parse_header, RecordHeader, RECORD_SIZE},
     flash::{self, AlignedBytes, DeviceFlash, FlashError},
+    kdf::CredentialKdf,
+    security_policy::DuressPolicy,
+    StorageMode,
 };
 
 const CONFIG_SIZE: usize = 2048;
@@ -94,7 +94,9 @@ impl WalletLabels {
     pub fn from_manager(manager: &SeedManager) -> Self {
         let mut labels = Self::empty();
         for (index, slot) in manager.slots.iter().enumerate() {
-            if slot.is_empty() || slot.transient { continue; }
+            if slot.is_empty() || slot.transient {
+                continue;
+            }
             let len = usize::from(slot.name_len).min(WALLET_NAME_MAX);
             labels.lengths[index] = len as u8;
             labels.names[index][..len].copy_from_slice(&slot.name[..len]);
@@ -111,7 +113,9 @@ impl WalletLabels {
 }
 
 impl Default for WalletLabels {
-    fn default() -> Self { Self::empty() }
+    fn default() -> Self {
+        Self::empty()
+    }
 }
 
 /// Non-secret per-wallet activation KDF metadata. The protection kind itself is
@@ -140,20 +144,26 @@ impl WalletActivationRecords {
         (slot < MAX_SLOTS && self.present[slot]).then_some(self.records[slot])
     }
     pub fn set(&mut self, slot: usize, record: WalletActivationRecord) -> bool {
-        if slot >= MAX_SLOTS { return false; }
+        if slot >= MAX_SLOTS {
+            return false;
+        }
         self.present[slot] = true;
         self.records[slot] = record;
         true
     }
     pub fn clear(&mut self, slot: usize) {
-        if slot >= MAX_SLOTS { return; }
+        if slot >= MAX_SLOTS {
+            return;
+        }
         self.present[slot] = false;
         self.records[slot] = WalletActivationRecord { salt: [0; SALT_SIZE], verifier: [0; 32] };
     }
 }
 
 impl Default for WalletActivationRecords {
-    fn default() -> Self { Self::empty() }
+    fn default() -> Self {
+        Self::empty()
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -167,8 +177,7 @@ impl DeviceFlags {
     const AUDIO_MUTED: u8 = 1 << 2;
     #[cfg(all(feature = "m5stack", not(feature = "production")))]
     const LEGACY_DEV_POP_IT_TAG_MASK: u8 = 0b1111_1000;
-    const BASE_KNOWN_MASK: u8 =
-        Self::LEGACY_RESERVED_BIT_0 | Self::LEGACY_RESERVED_BIT_1 | Self::AUDIO_MUTED;
+    const BASE_KNOWN_MASK: u8 = Self::LEGACY_RESERVED_BIT_0 | Self::LEGACY_RESERVED_BIT_1 | Self::AUDIO_MUTED;
     #[cfg(all(feature = "m5stack", not(feature = "production")))]
     const KNOWN_MASK: u8 = Self::BASE_KNOWN_MASK | Self::LEGACY_DEV_POP_IT_TAG_MASK;
     #[cfg(not(all(feature = "m5stack", not(feature = "production"))))]
@@ -184,23 +193,25 @@ impl DeviceFlags {
         set_flag(&mut self.0, Self::AUDIO_MUTED, enabled);
         self
     }
-
 }
 mod preferences;
 pub(super) use preferences::DevicePreferences;
 mod config;
 use config::write_config;
-pub(in crate::services::persistent_wallet) use config::{
-    read_device_flags, read_device_preferences, read_mode, read_sd_anchor,
-    read_multisig_store, read_unlock_failures, read_wallet_activation, read_wallet_labels,
-    write_device_preferences, write_mode, write_multisig_store, write_sd_anchor,
-    write_unlock_failures, write_wallet_activation, write_wallet_labels,
-};
 #[cfg(feature = "m5stack")]
 pub(in crate::services::persistent_wallet) use config::write_device_flags;
+pub(in crate::services::persistent_wallet) use config::{
+    read_device_flags, read_device_preferences, read_mode, read_multisig_store, read_sd_anchor, read_unlock_failures,
+    read_wallet_activation, read_wallet_labels, write_device_preferences, write_mode, write_multisig_store,
+    write_sd_anchor, write_unlock_failures, write_wallet_activation, write_wallet_labels,
+};
 
 fn set_flag(value: &mut u8, mask: u8, enabled: bool) {
-    if enabled { *value |= mask; } else { *value &= !mask; }
+    if enabled {
+        *value |= mask;
+    } else {
+        *value &= !mask;
+    }
 }
 
 pub(super) fn read_wallet(
@@ -222,16 +233,12 @@ pub(super) fn newest_wallet_headers(
     Ok((a, b))
 }
 
-pub(super) fn latest_wallet_header(
-    device: &mut DeviceFlash<'_>,
-) -> Result<Option<RecordHeader>, FlashError> {
+pub(super) fn latest_wallet_header(device: &mut DeviceFlash<'_>) -> Result<Option<RecordHeader>, FlashError> {
     let (a, b) = newest_wallet_headers(device)?;
     Ok(newest_wallet(a, b).map(|(_, header)| header))
 }
 
-pub(super) fn next_wallet_target(
-    device: &mut DeviceFlash<'_>,
-) -> Result<(u32, u32), FlashError> {
+pub(super) fn next_wallet_target(device: &mut DeviceFlash<'_>) -> Result<(u32, u32), FlashError> {
     let (a, b) = newest_wallet_headers(device)?;
     let newest = newest_wallet(a, b);
     let sequence = newest.map_or(1, |(_, header)| header.sequence.wrapping_add(1));
@@ -264,15 +271,15 @@ pub(super) fn erase_wallet(device: &mut DeviceFlash<'_>) -> Result<(), FlashErro
 /// device-only record has been committed. This preserves power-fail safety
 /// during migration while ensuring the obsolete global-password ciphertext is not
 /// retained as a second recoverable copy.
-pub(super) fn erase_non_device_only_wallet_records(
-    device: &mut DeviceFlash<'_>,
-) -> Result<(), FlashError> {
+pub(super) fn erase_non_device_only_wallet_records(device: &mut DeviceFlash<'_>) -> Result<(), FlashError> {
     for address in [flash::WALLET_A, flash::WALLET_B] {
         let mut record = AlignedBytes::<RECORD_SIZE>::zeroed();
         let header = read_wallet(device, address, &mut record)?;
         let stale = header.is_some_and(|value| !value.device_only);
         offline_signer::derivation::hmac::zeroize_buf(&mut record.0);
-        if stale { device.erase_sector(address)?; }
+        if stale {
+            device.erase_sector(address)?;
+        }
     }
     Ok(())
 }
@@ -284,10 +291,14 @@ pub(super) fn erase_all_user_data(device: &mut DeviceFlash<'_>) -> Result<(), Fl
     let mut first_error = None;
     for address in [flash::CONFIG_A, flash::CONFIG_B, flash::WALLET_A, flash::WALLET_B] {
         if let Err(error) = erase_wallet_sector_if_used(device, address) {
-            if first_error.is_none() { first_error = Some(error); }
+            if first_error.is_none() {
+                first_error = Some(error);
+            }
         }
     }
-    if let Some(error) = first_error { return Err(error); }
+    if let Some(error) = first_error {
+        return Err(error);
+    }
     if device_flags.0 != 0 {
         write_config(device, &ConfigHeader { device_flags, ..ConfigHeader::EMPTY })?;
     }

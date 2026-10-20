@@ -38,28 +38,10 @@ pub(super) fn handle(
     is_back: bool,
 ) -> bool {
     match ad.navigation.app.state {
-        AppState::MultisigMenu => handle_root_menu(
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            list_zones,
-            x,
-            y,
-            is_back,
-        ),
-        AppState::MultisigDescriptorsMenu => handle_descriptors_menu(
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            i2c,
-            sd_card_type,
-            list_zones,
-            x,
-            y,
-            is_back,
-        ),
+        AppState::MultisigMenu => handle_root_menu(ad, boot_display, delay, liveness, list_zones, x, y, is_back),
+        AppState::MultisigDescriptorsMenu => {
+            handle_descriptors_menu(ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones, x, y, is_back)
+        }
         _ => false,
     }
 }
@@ -112,16 +94,11 @@ fn handle_descriptors_menu(
                 1 => 1,
                 _ => 2,
             };
-            let (indices, count) = crate::runtime::interactions::multisig_config::visible_descriptor_indices(
-                ad,
-                liveness,
-            );
+            let (indices, count) =
+                crate::runtime::interactions::multisig_config::visible_descriptor_indices(ad, liveness);
             ad.signing.multisig.descriptor_indices = indices;
             ad.signing.multisig.descriptor_count = count;
-            crate::runtime::effects::route(
-                ad,
-                crate::runtime::navigation::route!(MultisigDescriptorList { action }),
-            );
+            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigDescriptorList { action }));
             true
         }
         2 => {
@@ -175,11 +152,6 @@ fn export_multisig_kpub(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
 ) -> bool {
-    let _ = crate::runtime::interactions::export::prepare_multisig_kpub_qr(
-        ad,
-        boot_display,
-        delay,
-        liveness,
-    );
+    let _ = crate::runtime::interactions::export::prepare_multisig_kpub_qr(ad, boot_display, delay, liveness);
     true
 }

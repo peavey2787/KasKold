@@ -1,9 +1,9 @@
-use core::sync::atomic::{AtomicU16, Ordering};
 use crate::{
-    runtime::interactions::TouchInput,
     hw::{display::BootDisplay, sdcard::SdCardType},
+    runtime::interactions::TouchInput,
     runtime::{data::AppData, input::AppState},
 };
+use core::sync::atomic::{AtomicU16, Ordering};
 use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
 mod creation;
@@ -11,7 +11,6 @@ mod credentials;
 #[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))]
 pub(super) use credentials::persistent_pin_round_trip;
 mod restore;
-
 
 pub(super) static FAILURE_MASK: AtomicU16 = AtomicU16::new(0);
 pub(super) struct OnboardingContext<'ctx, 'display, 'hal> {
@@ -45,27 +44,23 @@ impl OnboardingContext<'_, '_, '_> {
     pub(super) fn additive_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
         use AppState::*;
         let handled = match self.ad.navigation.app.state {
-            StorageSeedDiceChoice => crate::runtime::interactions::menu::seed_generation::workflow_dice_choice(
-                self.ad, x, y, is_back,
-            ),
-            StorageSeedDiceCountChoice => crate::runtime::interactions::menu::seed_generation::workflow_dice_count(
-                self.ad, x, y, is_back,
-            ),
-            StorageSeedTouchChoice => crate::runtime::interactions::menu::seed_generation::workflow_touch_choice(
-                self.ad, x, y, is_back,
-            ),
-            TouchEntropy => crate::runtime::interactions::menu::seed_generation::workflow_touch_back(
-                self.ad, is_back,
-            ),
+            StorageSeedDiceChoice => {
+                crate::runtime::interactions::menu::seed_generation::workflow_dice_choice(self.ad, x, y, is_back)
+            }
+            StorageSeedDiceCountChoice => {
+                crate::runtime::interactions::menu::seed_generation::workflow_dice_count(self.ad, x, y, is_back)
+            }
+            StorageSeedTouchChoice => {
+                crate::runtime::interactions::menu::seed_generation::workflow_touch_choice(self.ad, x, y, is_back)
+            }
+            TouchEntropy => crate::runtime::interactions::menu::seed_generation::workflow_touch_back(self.ad, is_back),
             _ => return None,
         };
         Some(handled)
     }
 
     pub(super) fn dice_touch(&mut self, x: u16, y: u16, is_back: bool) -> bool {
-        crate::runtime::interactions::menu::seed_tools::handle_onboarding_dice(
-            self.ad, self.display, x, y, is_back,
-        )
+        crate::runtime::interactions::menu::seed_tools::handle_onboarding_dice(self.ad, self.display, x, y, is_back)
     }
 }
 
@@ -82,8 +77,7 @@ pub(super) fn reset_to_storage_choice(ad: &mut AppData) -> bool {
         return false;
     }
     crate::runtime::interactions::persistence::enter_storage_choice(ad);
-    ad.navigation.app.state == AppState::StorageModeChoice
-        && crate::runtime::navigation::reconcile(ad)
+    ad.navigation.app.state == AppState::StorageModeChoice && crate::runtime::navigation::reconcile(ad)
 }
 
 pub(super) fn exercise(
@@ -106,8 +100,7 @@ pub(super) fn exercise(
     summary.record("WELCOME", welcome_ok);
 
     summary.begin("CREATE-12");
-    let create_12_ok = reset_to_storage_choice(ctx.ad)
-        && creation::create_12_session_only(&mut ctx);
+    let create_12_ok = reset_to_storage_choice(ctx.ad) && creation::create_12_session_only(&mut ctx);
     summary.record("CREATE-12", create_12_ok);
 
     summary.begin("CREATE-24");
@@ -136,12 +129,24 @@ pub(super) fn exercise(
     let restore_ok = restore::exercise(ctx.ad, ctx.display, ctx.i2c, ctx.sd, ctx.delay);
     summary.record("RESTORE-IMPORT", restore_ok);
     let mut failure_mask = 0u16;
-    if !welcome_ok { failure_mask |= 1u16 << 0; }
-    if !create_12_ok { failure_mask |= 1u16 << 1; }
-    if !create_24_ok { failure_mask |= 1u16 << 2; }
-    if !credentials_ok { failure_mask |= 1u16 << 3; }
-    if !finish_ok { failure_mask |= 1u16 << 4; }
-    if !restore_ok { failure_mask |= 1u16 << 5; }
+    if !welcome_ok {
+        failure_mask |= 1u16 << 0;
+    }
+    if !create_12_ok {
+        failure_mask |= 1u16 << 1;
+    }
+    if !create_24_ok {
+        failure_mask |= 1u16 << 2;
+    }
+    if !credentials_ok {
+        failure_mask |= 1u16 << 3;
+    }
+    if !finish_ok {
+        failure_mask |= 1u16 << 4;
+    }
+    if !restore_ok {
+        failure_mask |= 1u16 << 5;
+    }
     FAILURE_MASK.store(failure_mask, Ordering::Relaxed);
     summary.finish(6)
 }
@@ -152,20 +157,25 @@ fn welcome_restore_back(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
     }
     ctx.redraw_step();
 
-    if crate::runtime::interactions::persistence::workflow_handle_mode_choice(
-        TouchInput::new(310, 100, false), ctx.ad,
-    ).is_some() || ctx.ad.navigation.app.state != AppState::StorageModeChoice {
+    if crate::runtime::interactions::persistence::workflow_handle_mode_choice(TouchInput::new(310, 100, false), ctx.ad)
+        .is_some()
+        || ctx.ad.navigation.app.state != AppState::StorageModeChoice
+    {
         return false;
     }
-    if crate::runtime::interactions::persistence::workflow_handle_mode_choice(
-        TouchInput::new(160, 142, false), ctx.ad,
-    ) != Some(true) || ctx.ad.navigation.app.state != AppState::StorageSeedSourceChoice {
+    if crate::runtime::interactions::persistence::workflow_handle_mode_choice(TouchInput::new(160, 142, false), ctx.ad)
+        != Some(true)
+        || ctx.ad.navigation.app.state != AppState::StorageSeedSourceChoice
+    {
         return false;
     }
     ctx.redraw_step();
     if crate::runtime::interactions::persistence::workflow_handle_seed_source_choice(
-        TouchInput::new(20, 20, true), ctx.ad,
-    ) != Some(true) || ctx.ad.navigation.app.state != AppState::StorageModeChoice {
+        TouchInput::new(20, 20, true),
+        ctx.ad,
+    ) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::StorageModeChoice
+    {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: ONBOARDING WELCOME CREATE/RESTORE/NOOP OK");
@@ -177,8 +187,11 @@ fn finish_session_only(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
         return false;
     }
     if crate::runtime::interactions::persistence::workflow_handle_finalize_choice(
-        TouchInput::new(160, 142, false), ctx.ad,
-    ) != Some(true) || !super::root::home_ok(ctx.ad) {
+        TouchInput::new(160, 142, false),
+        ctx.ad,
+    ) != Some(true)
+        || !super::root::home_ok(ctx.ad)
+    {
         return false;
     }
     ctx.redraw_step();

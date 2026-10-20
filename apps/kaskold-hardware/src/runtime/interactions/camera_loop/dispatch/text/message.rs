@@ -1,23 +1,18 @@
 //! Safe Sign Message QR source: accepts message bytes, never a generic digest.
-use super::super::super::{AppData, display};
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
+use super::super::super::{display, AppData};
 use crate::runtime::input::AppState;
+use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 
 pub(in crate::runtime::interactions::camera_loop::dispatch) fn is_pending(ad: &AppData) -> bool {
     ad.navigation.app.state == AppState::SignMsgScan
 }
 
 #[cfg(feature = "workflow-test-auto")]
-pub(in crate::runtime::interactions::camera_loop::dispatch) fn workflow_process(
-    data: &[u8],
-    ad: &mut AppData,
-) {
+pub(in crate::runtime::interactions::camera_loop::dispatch) fn workflow_process(data: &[u8], ad: &mut AppData) {
     if data.is_empty()
         || data.len() > ad.signing.message.payload.len()
         || core::str::from_utf8(data).is_err()
-        || data
-            .iter()
-            .any(|byte| *byte < 0x20 && !matches!(*byte, b'\n' | b'\r' | b'\t'))
+        || data.iter().any(|byte| *byte < 0x20 && !matches!(*byte, b'\n' | b'\r' | b'\t'))
     {
         crate::runtime::effects::redraw(ad);
         return;
@@ -29,17 +24,19 @@ pub(in crate::runtime::interactions::camera_loop::dispatch) fn workflow_process(
 }
 
 pub(in crate::runtime::interactions::camera_loop::dispatch) fn process(
-    data: &[u8], len: usize, ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>, delay: &mut esp_hal::delay::Delay,
+    data: &[u8],
+    len: usize,
+    ad: &mut AppData,
+    boot_display: &mut display::BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
 ) {
     let message = &data[..len.min(data.len())];
-    if message.is_empty() || message.len() > ad.signing.message.payload.len()
+    if message.is_empty()
+        || message.len() > ad.signing.message.payload.len()
         || core::str::from_utf8(message).is_err()
         || message.iter().any(|byte| *byte < 0x20 && !matches!(*byte, b'\n' | b'\r' | b'\t'))
     {
-        show_rejection(
-            boot_display, delay, "Message QR must contain readable text", 1_200, ErrorSound::Beep,
-        );
+        show_rejection(boot_display, delay, "Message QR must contain readable text", 1_200, ErrorSound::Beep);
         crate::runtime::effects::redraw(ad);
         return;
     }

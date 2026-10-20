@@ -1,6 +1,6 @@
 use crate::{
-    runtime::interactions::{stego::StegoTouchContext, TouchInput},
     hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
+    runtime::interactions::{stego::StegoTouchContext, TouchInput},
     runtime::{data::AppData, input::AppState},
 };
 use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};

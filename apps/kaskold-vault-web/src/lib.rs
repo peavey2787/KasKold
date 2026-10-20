@@ -143,7 +143,10 @@ pub fn kaskold_vault_is_unlocked() -> bool {
 #[wasm_bindgen]
 pub fn kaskold_vault_export_kpub() -> Result<String, JsValue> {
     VAULT.with(|vault| {
-        let kpub = vault.borrow().export_public_account().map_err(vault_error)?;
+        let kpub = vault
+            .borrow()
+            .export_public_account()
+            .map_err(vault_error)?;
         json(&KpubResponse { kpub })
     })
 }
@@ -156,7 +159,10 @@ pub fn kaskold_vault_begin_scan() -> Result<(), JsValue> {
 #[wasm_bindgen]
 pub fn kaskold_vault_accept_frame(frame: &[u8]) -> Result<String, JsValue> {
     VAULT.with(|vault| {
-        let result = vault.borrow_mut().accept_qr_frame(frame).map_err(vault_error)?;
+        let result = vault
+            .borrow_mut()
+            .accept_qr_frame(frame)
+            .map_err(vault_error)?;
         scan_result_json(result)
     })
 }
@@ -204,7 +210,10 @@ pub fn kaskold_vault_approve(now_unix: f64) -> Result<String, JsValue> {
     })
 }
 
-fn approve_response_frames(vault: &mut VaultRuntime, now_unix: u64) -> Result<Vec<ResponseFrame>, JsValue> {
+fn approve_response_frames(
+    vault: &mut VaultRuntime,
+    now_unix: u64,
+) -> Result<Vec<ResponseFrame>, JsValue> {
     let frames = vault.approve(now_unix).map_err(vault_error)?;
     render_response_frames(frames)
 }
@@ -255,8 +264,8 @@ pub fn kaskold_vault_signed_transaction() -> Result<Vec<u8>, JsValue> {
 
 #[wasm_bindgen]
 pub fn kaskold_vault_signed_response_frames(payload_limit: u32) -> Result<String, JsValue> {
-    let payload_limit = usize::try_from(payload_limit)
-        .map_err(|_| JsValue::from_str("Invalid QR density."))?;
+    let payload_limit =
+        usize::try_from(payload_limit).map_err(|_| JsValue::from_str("Invalid QR density."))?;
     VAULT.with(|vault| {
         let vault = vault.borrow();
         let wire = vault.signed_response_wire().map_err(vault_error)?;
@@ -273,7 +282,10 @@ pub fn kaskold_vault_reject() {
 #[wasm_bindgen]
 pub fn kaskold_vault_kpub_qr_svg() -> Result<String, JsValue> {
     VAULT.with(|vault| {
-        let kpub = vault.borrow().export_public_account().map_err(vault_error)?;
+        let kpub = vault
+            .borrow()
+            .export_public_account()
+            .map_err(vault_error)?;
         qr_svg(kpub.as_bytes())
     })
 }
@@ -404,7 +416,6 @@ fn hex_encode(bytes: &[u8]) -> String {
     }
     out
 }
-
 
 #[cfg(test)]
 #[path = "unit_tests/mod.rs"]

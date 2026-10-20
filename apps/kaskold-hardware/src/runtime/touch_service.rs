@@ -7,8 +7,6 @@
 use esp_hal::i2c::master::I2c;
 
 #[cfg(feature = "m5stack")]
-pub(crate) fn read_checked(
-    i2c: &mut I2c<'_, esp_hal::Blocking>,
-) -> Result<crate::hw::touch::TouchState, ()> {
+pub(crate) fn read_checked(i2c: &mut I2c<'_, esp_hal::Blocking>) -> Result<crate::hw::touch::TouchState, ()> {
     crate::hw::touch::read_touch_checked(i2c)
 }

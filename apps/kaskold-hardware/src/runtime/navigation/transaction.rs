@@ -1,6 +1,9 @@
 //! Transaction-review route events owned by the stage-2 navigation authority.
 
-use crate::runtime::{data::AppData, input::{AppState, Menu, CONFIRM_MENU_ITEMS}};
+use crate::runtime::{
+    data::AppData,
+    input::{AppState, Menu, CONFIRM_MENU_ITEMS},
+};
 
 use super::{dispatch, kernel, reconcile, route, UiEvent};
 
@@ -13,7 +16,9 @@ pub(crate) fn start_review(ad: &mut AppData, num_outputs: u8, num_inputs: usize)
 }
 
 pub(crate) fn advance_review(ad: &mut AppData) -> bool {
-    let AppState::ReviewTx { page } = ad.navigation.app.state else { return false; };
+    let AppState::ReviewTx { page } = ad.navigation.app.state else {
+        return false;
+    };
     let next = page.saturating_add(1);
     if next < ad.navigation.app.review_pages {
         let _ = dispatch(ad, UiEvent::Route(route!(ReviewTx { page: next })));
@@ -53,12 +58,16 @@ fn advance_input(ad: &mut AppData, index: usize) {
 }
 
 pub(crate) fn confirm_transaction(ad: &mut AppData, cursor: u8) -> bool {
-    if !matches!(cursor, 0 | 1 | 2) || !signing_route_ready(ad, AppState::ConfirmTx) { return false; }
+    if !matches!(cursor, 0 | 1 | 2) || !signing_route_ready(ad, AppState::ConfirmTx) {
+        return false;
+    }
     ad.navigation.app.menu.cursor = cursor;
     match cursor {
         0 => authorize_signing(ad),
         1 => reject_signing(ad),
-        2 => { let _ = dispatch(ad, UiEvent::Route(route!(ReviewTx { page: 0 }))); },
+        2 => {
+            let _ = dispatch(ad, UiEvent::Route(route!(ReviewTx { page: 0 })));
+        }
         _ => {}
     }
     true
@@ -75,9 +84,9 @@ fn reject_signing(ad: &mut AppData) {
 }
 
 pub(crate) fn advance_signing(ad: &mut AppData) -> bool {
-    if !crate::runtime::presentation::operation_active(
-        ad, crate::runtime::data::OperationKind::SignTransaction,
-    ) || !signing_route_ready(ad, AppState::ConfirmTx) {
+    if !crate::runtime::presentation::operation_active(ad, crate::runtime::data::OperationKind::SignTransaction)
+        || !signing_route_ready(ad, AppState::ConfirmTx)
+    {
         return false;
     }
     let input_idx = crate::runtime::presentation::operation_cursor(ad);
@@ -101,9 +110,9 @@ pub(crate) fn advance_signing(ad: &mut AppData) -> bool {
 
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) fn reject_active_signing(ad: &mut AppData) -> bool {
-    if !crate::runtime::presentation::operation_active(
-        ad, crate::runtime::data::OperationKind::SignTransaction,
-    ) || !signing_route_ready(ad, AppState::ConfirmTx) {
+    if !crate::runtime::presentation::operation_active(ad, crate::runtime::data::OperationKind::SignTransaction)
+        || !signing_route_ready(ad, AppState::ConfirmTx)
+    {
         return false;
     }
     ad.navigation.app.review_authorized = false;
@@ -112,7 +121,9 @@ pub(crate) fn reject_active_signing(ad: &mut AppData) -> bool {
 }
 
 fn signing_route_ready(ad: &mut AppData, expected: AppState) -> bool {
-    if !reconcile(ad) { return false; }
+    if !reconcile(ad) {
+        return false;
+    }
     if ad.navigation.committed_state == expected && ad.navigation.app.state == expected {
         return true;
     }

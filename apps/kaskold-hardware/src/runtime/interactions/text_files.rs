@@ -1,8 +1,11 @@
 //! Shared TXT discovery, selection, and complete bounded loading workflows.
 
 use crate::{
-    runtime::interactions::{feedback::{show_rejection, ErrorSound}, TouchInput},
     hw::{display, touch::TouchZone},
+    runtime::interactions::{
+        feedback::{show_rejection, ErrorSound},
+        TouchInput,
+    },
     runtime::{data::AppData, navigation::ContinuationRoute},
 };
 
@@ -45,23 +48,11 @@ pub(crate) fn scan(
             true
         }
         Ok(_) => {
-            show_rejection(
-                boot_display,
-                delay,
-                workflow.empty_message,
-                2_000,
-                ErrorSound::Beep,
-            );
+            show_rejection(boot_display, delay, workflow.empty_message, 2_000, ErrorSound::Beep);
             true
         }
         Err(_) => {
-            show_rejection(
-                boot_display,
-                delay,
-                "SD read error",
-                2_000,
-                ErrorSound::Beep,
-            );
+            show_rejection(boot_display, delay, "SD read error", 2_000, ErrorSound::Beep);
             true
         }
     }
@@ -92,23 +83,12 @@ pub(crate) fn handle_selection<const N: usize>(
     crate::services::timing::pause(delay, 50);
 
     let mut content = [0u8; N];
-    let result = crate::services::storage_files::read_text_file(
-        &filename,
-        delay,
-        i2c,
-        &mut content,
-    )
-    .and_then(|length| on_loaded(ad, &content[..length]));
+    let result = crate::services::storage_files::read_text_file(&filename, delay, i2c, &mut content)
+        .and_then(|length| on_loaded(ad, &content[..length]));
     shared_signer::bytes::zeroize_bytes(&mut content);
 
     if result.is_err() {
-        show_rejection(
-            boot_display,
-            delay,
-            workflow.read_error_message,
-            1_500,
-            ErrorSound::Beep,
-        );
+        show_rejection(boot_display, delay, workflow.read_error_message, 1_500, ErrorSound::Beep);
     }
     true
 }

@@ -17,27 +17,22 @@ pub(super) fn handle(
     y: u16,
     is_back: bool,
 ) -> Option<bool> {
-    if let Some(result) = production::handle(
-        ad, list_zones, page_up, page_down, x, y, is_back,
-    ) { return Some(result); }
+    if let Some(result) = production::handle(ad, list_zones, page_up, page_down, x, y, is_back) {
+        return Some(result);
+    }
     match ad.navigation.app.state {
         AppState::MainMenu => Some(handle_main_menu(ad, grid_zones, x, y)),
-        AppState::SeedToolsMenu => super::seed_tools::handle_pure(
-            ad, list_zones, page_up, page_down, x, y, is_back,
-        ),
+        AppState::SeedToolsMenu => super::seed_tools::handle_pure(ad, list_zones, page_up, page_down, x, y, is_back),
         AppState::ImportExportChoice | AppState::ImportMenu => {
             super::import_export::handle_pure(ad, list_zones, x, y, is_back)
         }
         AppState::SingleSigMenu | AppState::MultisigMenu | AppState::MultisigDescriptorsMenu => {
             super::signing::handle_pure(ad, list_zones, page_up, page_down, x, y, is_back)
         }
-        AppState::ShowQR | AppState::Rejected => {
-            super::qr::handle(ad, x, y, is_back)
-        }
+        AppState::ShowQR | AppState::Rejected => super::qr::handle(ad, x, y, is_back),
         _ => None,
     }
 }
-
 
 pub(super) fn handle_navigation_touch(
     ad: &mut AppData,
@@ -96,12 +91,7 @@ pub(super) fn handle_root_touch(ad: &mut AppData, x: u16, y: u16) -> bool {
     handle_main_menu(ad, &crate::ui::layout::HOME_GRID_ZONES, x, y)
 }
 
-pub(super) fn handle_main_menu(
-    ad: &mut AppData,
-    grid_zones: &[touch::TouchZone; 4],
-    x: u16,
-    y: u16,
-) -> bool {
+pub(super) fn handle_main_menu(ad: &mut AppData, grid_zones: &[touch::TouchZone; 4], x: u16, y: u16) -> bool {
     log!("   NAV root tap ({}, {})", x, y);
     debug_assert_eq!(*grid_zones, crate::ui::layout::HOME_GRID_ZONES);
     let Some((index, next)) = crate::runtime::navigation::main_menu_target_at(x, y) else {
@@ -115,4 +105,3 @@ pub(super) fn handle_main_menu(
     debug_assert_eq!(committed, next);
     true
 }
-

@@ -51,7 +51,9 @@ pub(crate) fn service(
     }
 
     if crate::runtime::presentation::operation_phase(ad) == OperationPhase::Presented {
-        if crate::runtime::presentation::take_ready_operation(ad) != Some(kind) { return; }
+        if crate::runtime::presentation::take_ready_operation(ad) != Some(kind) {
+            return;
+        }
         crate::log!("   Operation {:?} BEGIN after loading surface", kind);
     }
     if !matches!(
@@ -86,9 +88,7 @@ fn service_stepped(
             super::runner::service_kpub_operation(ad, display, liveness);
         }
         OperationKind::SignTransaction => {
-            crate::runtime::signing::handle_signing_operation_step(
-                ad, display, delay, i2c, persistence, liveness,
-            );
+            crate::runtime::signing::handle_signing_operation_step(ad, display, delay, i2c, persistence, liveness);
         }
         OperationKind::SaveWalletPin
         | OperationKind::SaveWalletPassword
@@ -97,16 +97,14 @@ fn service_stepped(
     }
 }
 
-fn timeout_operation(
-    engine: &mut OperationEngineState,
-    ad: &mut AppData,
-    kind: OperationKind,
-) {
+fn timeout_operation(engine: &mut OperationEngineState, ad: &mut AppData, kind: OperationKind) {
     match kind.execution() {
         OperationExecution::ForegroundExclusive => engine.credential.cancel(ad),
         OperationExecution::Stepped => cancel_stepped(ad, kind),
     }
-    let Some(error) = crate::runtime::presentation::timeout_error(kind) else { return; };
+    let Some(error) = crate::runtime::presentation::timeout_error(kind) else {
+        return;
+    };
     crate::log!("   Operation {:?} timed out before hardware watchdog", kind);
     crate::runtime::presentation::fail_recoverable_spec(ad, error);
 }
@@ -128,18 +126,25 @@ fn cancel_stepped(ad: &mut AppData, kind: OperationKind) {
 
 #[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))]
 pub(crate) fn workflow_inject_timeout(ad: &mut AppData, kind: OperationKind) {
-    if kind.stepped() { cancel_stepped(ad, kind); }
-    let Some(error) = crate::runtime::presentation::timeout_error(kind) else { return; };
+    if kind.stepped() {
+        cancel_stepped(ad, kind);
+    }
+    let Some(error) = crate::runtime::presentation::timeout_error(kind) else {
+        return;
+    };
     crate::runtime::presentation::fail_recoverable_spec(ad, error);
 }
 
 /// Cancel stepped work abandoned by an explicit Home transition. Credential
 /// foreground-exclusive operations block input and cannot be abandoned by ordinary touch.
 pub(crate) fn cancel_abandoned(ad: &mut AppData) {
-    let Some(kind) = crate::runtime::presentation::operation_kind(ad) else { return; };
-    if !kind.stepped() { return; }
+    let Some(kind) = crate::runtime::presentation::operation_kind(ad) else {
+        return;
+    };
+    if !kind.stepped() {
+        return;
+    }
     cancel_stepped(ad, kind);
     crate::runtime::presentation::clear_operation(ad);
     crate::log!("   UI abandoned stepped operation {:?} on Home", kind);
 }
-

@@ -3,10 +3,7 @@ use crate::runtime::input::AppState;
 use core::sync::atomic::{AtomicU8, Ordering};
 use offline_signer::{
     derivation::xpub::KpubParts,
-    transaction::model::{
-        Ms45Hint, MultisigConfig, SigHashType, Transaction, OP_BLAKE2B, OP_DATA_32,
-        OP_EQUAL,
-    },
+    transaction::model::{Ms45Hint, MultisigConfig, SigHashType, Transaction, OP_BLAKE2B, OP_DATA_32, OP_EQUAL},
 };
 
 const EXPECTED_THRESHOLD: u8 = 2;
@@ -15,10 +12,7 @@ static FAILURE_STAGE: AtomicU8 = AtomicU8::new(0);
 
 fn fail(stage: u8, name: &str) -> bool {
     let _ = FAILURE_STAGE.compare_exchange(0, stage, Ordering::Relaxed, Ordering::Relaxed);
-    log!(
-        "KASKOLD_WORKFLOW_TESTS: MULTISIG SIGN STAGE {} FAILED",
-        name
-    );
+    log!("KASKOLD_WORKFLOW_TESTS: MULTISIG SIGN STAGE {} FAILED", name);
     false
 }
 
@@ -39,10 +33,7 @@ pub(super) fn replay_failure_stage(stage: u8) {
         9 => "FINAL-RESULT",
         _ => "UNKNOWN",
     };
-    log!(
-        "KASKOLD_WORKFLOW_TESTS: CONNECTED FAILED MULTISIG SIGN STAGE {}",
-        name
-    );
+    log!("KASKOLD_WORKFLOW_TESTS: CONNECTED FAILED MULTISIG SIGN STAGE {}", name);
 }
 
 pub(super) fn replay_failure() {
@@ -95,15 +86,15 @@ fn reset_signing_context(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
     // Scan QR transaction route. Stored trusted descriptors remain intact.
     ctx.ad.signing.multisig.creating = MultisigConfig::new();
     crate::runtime::effects::home(ctx.ad);
-    if !enter_scan_route(ctx.ad) { return false; }
+    if !enter_scan_route(ctx.ad) {
+        return false;
+    }
     log!("KASKOLD_WORKFLOW_TESTS: MULTISIG SIGN FIXTURE CONTEXT RESET PASS");
     true
 }
 
 fn fixture_import_ok(ad: &crate::runtime::data::AppData, expected_hint: Ms45Hint) -> bool {
-    let (present, required) = offline_signer::transaction::kspt::signature_status(
-        &ad.signing.transaction.active,
-    );
+    let (present, required) = offline_signer::transaction::kspt::signature_status(&ad.signing.transaction.active);
     let input = &ad.signing.transaction.active.inputs[0];
     let ok = ad.navigation.app.state == AppState::ConfirmTx
         && input.ms45_hint == expected_hint
@@ -140,24 +131,16 @@ fn drive_review(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
         return false;
     }
     for page in 1..review_pages {
-        if ctx.tx_touch(260, 210, false) != Some(true)
-            || ctx.ad.navigation.app.state != (AppState::ReviewTx { page })
-        {
+        if ctx.tx_touch(260, 210, false) != Some(true) || ctx.ad.navigation.app.state != (AppState::ReviewTx { page }) {
             log!("KASKOLD_WORKFLOW_TESTS: MULTISIG SIGN REVIEW PAGE FAILED page={}", page);
             return false;
         }
     }
-    if ctx.tx_touch(260, 210, false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::ConfirmTx
-    {
+    if ctx.tx_touch(260, 210, false) != Some(true) || ctx.ad.navigation.app.state != AppState::ConfirmTx {
         log!("KASKOLD_WORKFLOW_TESTS: MULTISIG SIGN CONFIRM ENTRY FAILED");
         return false;
     }
-    log!(
-        "KASKOLD_WORKFLOW_TESTS: MULTISIG REVIEW PAGES {}/{} PASS",
-        review_pages,
-        review_pages,
-    );
+    log!("KASKOLD_WORKFLOW_TESTS: MULTISIG REVIEW PAGES {}/{} PASS", review_pages, review_pages,);
     true
 }
 
@@ -170,9 +153,7 @@ fn review_entry_ok(ctx: &MultisigContext<'_, '_, '_>, review_pages: u8) -> bool 
 fn authorize_signing(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
     let accepted = ctx.tx_touch(60, 208, false) == Some(true)
         && ctx.ad.navigation.app.state == AppState::ConfirmTx
-        && crate::runtime::presentation::operation_active(
-            ctx.ad, crate::runtime::data::OperationKind::SignTransaction,
-        )
+        && crate::runtime::presentation::operation_active(ctx.ad, crate::runtime::data::OperationKind::SignTransaction)
         && crate::runtime::presentation::operation_cursor(ctx.ad) == 0
         && ctx.ad.navigation.app.review_authorized;
     if !accepted {
@@ -207,9 +188,7 @@ fn run_signing_step(ad: &mut crate::runtime::data::AppData) -> bool {
 
 fn partial_result_ok(ad: &crate::runtime::data::AppData) -> bool {
     let input = &ad.signing.transaction.active.inputs[0];
-    let (present, required) = offline_signer::transaction::kspt::signature_status(
-        &ad.signing.transaction.active,
-    );
+    let (present, required) = offline_signer::transaction::kspt::signature_status(&ad.signing.transaction.active);
     let ok = input.sig_count == 1
         && present == 1
         && required == u32::from(EXPECTED_THRESHOLD)
@@ -233,41 +212,39 @@ fn switch_wallet_and_reimport(
         return false;
     }
     crate::runtime::effects::home(ctx.ad);
-    if !enter_scan_route(ctx.ad) { return false; }
+    if !enter_scan_route(ctx.ad) {
+        return false;
+    }
     crate::runtime::interactions::tx::load_compact_transaction(partial_wire, ctx.ad);
     let input = &ctx.ad.signing.transaction.active.inputs[0];
-    let (present, required) = offline_signer::transaction::kspt::signature_status(
-        &ctx.ad.signing.transaction.active,
-    );
+    let (present, required) = offline_signer::transaction::kspt::signature_status(&ctx.ad.signing.transaction.active);
     let ok = ctx.ad.navigation.app.state == AppState::ConfirmTx
         && input.ms45_hint == expected_hint
         && input.sig_count == 1
         && present == 1
         && required == u32::from(EXPECTED_THRESHOLD);
     if ok {
-        log!("KASKOLD_WORKFLOW_TESTS: MULTISIG RELAY SWITCH WALLET + PARTIAL KSPT REIMPORT PASS active=1 sigs=1/{}", required);
+        log!(
+            "KASKOLD_WORKFLOW_TESTS: MULTISIG RELAY SWITCH WALLET + PARTIAL KSPT REIMPORT PASS active=1 sigs=1/{}",
+            required
+        );
     }
     ok
 }
 
 fn enter_scan_route(ad: &mut crate::runtime::data::AppData) -> bool {
-    if ad.navigation.app.state != AppState::MainMenu
-        || !crate::runtime::navigation::reconcile(ad)
-    {
+    if ad.navigation.app.state != AppState::MainMenu || !crate::runtime::navigation::reconcile(ad) {
         return false;
     }
     let zone = crate::ui::layout::HOME_GRID_ZONES[1];
-    crate::runtime::interactions::menu::handle_root_touch(
-        ad, zone.x + zone.w / 2, zone.y + zone.h / 2,
-    ) && ad.navigation.app.state == AppState::ScanQR
+    crate::runtime::interactions::menu::handle_root_touch(ad, zone.x + zone.w / 2, zone.y + zone.h / 2)
+        && ad.navigation.app.state == AppState::ScanQR
         && crate::runtime::navigation::reconcile(ad)
 }
 
 fn verify_signing_result(ad: &crate::runtime::data::AppData) -> bool {
     let input = &ad.signing.transaction.active.inputs[0];
-    let (present, required) = offline_signer::transaction::kspt::signature_status(
-        &ad.signing.transaction.active,
-    );
+    let (present, required) = offline_signer::transaction::kspt::signature_status(&ad.signing.transaction.active);
     log!(
         "KASKOLD_WORKFLOW_TESTS: MULTISIG SIGN RESULT sigs={} present={} required={} qr={} state={:?}",
         input.sig_count,
@@ -276,17 +253,11 @@ fn verify_signing_result(ad: &crate::runtime::data::AppData) -> bool {
         ad.qr.outgoing.length,
         ad.navigation.app.state,
     );
-    let threshold_met = input.sig_count == EXPECTED_THRESHOLD
-        && required == u32::from(EXPECTED_THRESHOLD)
-        && present == required;
-    let ok = threshold_met
-        && ad.qr.outgoing.length != 0
-        && ad.navigation.app.state == AppState::ShowQR;
+    let threshold_met =
+        input.sig_count == EXPECTED_THRESHOLD && required == u32::from(EXPECTED_THRESHOLD) && present == required;
+    let ok = threshold_met && ad.qr.outgoing.length != 0 && ad.navigation.app.state == AppState::ShowQR;
     if ok {
-        log!(
-            "KASKOLD_WORKFLOW_TESTS: MULTISIG REVIEW/SIGN THRESHOLD PASS sigs={}",
-            input.sig_count,
-        );
+        log!("KASKOLD_WORKFLOW_TESTS: MULTISIG REVIEW/SIGN THRESHOLD PASS sigs={}", input.sig_count,);
     }
     ok
 }
@@ -320,11 +291,17 @@ fn deterministic_signing_config(ad: &crate::runtime::data::AppData) -> Option<Mu
     config.set_cosigner(1, &second).then_some(())?;
     config.set_cosigner(2, &external).then_some(())?;
     config.sort_cosigners();
-    if !config.resolve_cosigner_index(&first) { return None; }
+    if !config.resolve_cosigner_index(&first) {
+        return None;
+    }
     let mut second_check = config.clone();
-    if !second_check.resolve_cosigner_index(&second) { return None; }
+    if !second_check.resolve_cosigner_index(&second) {
+        return None;
+    }
     let mut external_check = config.clone();
-    if !external_check.resolve_cosigner_index(&external) { return None; }
+    if !external_check.resolve_cosigner_index(&external) {
+        return None;
+    }
     config.chain = 0;
     config.addr_index = 0;
     (config.build_script() != 0).then_some(config)
@@ -361,11 +338,7 @@ fn build_multisig_transaction(
     offline_signer::transaction::kspt::serialize_compact_kspt_vec(&tx).ok()
 }
 
-fn populate_multisig_input(
-    tx: &mut Transaction,
-    config: &MultisigConfig,
-    hint: Ms45Hint,
-) -> Option<()> {
+fn populate_multisig_input(tx: &mut Transaction, config: &MultisigConfig, hint: Ms45Hint) -> Option<()> {
     let input = &mut tx.inputs[0];
     input.previous_outpoint.transaction_id = [0x71; 32];
     input.previous_outpoint.index = 0;

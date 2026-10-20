@@ -1,10 +1,10 @@
 // Capability-specific inputs for SD touch workflows.
 
 use crate::{
-    runtime::interactions::TouchInput,
     hw::{display, touch},
-    services::storage_device as sdcard,
     runtime::data::AppData,
+    runtime::interactions::TouchInput,
+    services::storage_device as sdcard,
 };
 
 pub struct SdTouchContext<'ctx, 'display, 'hal> {

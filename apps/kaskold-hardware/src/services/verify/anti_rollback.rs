@@ -6,11 +6,8 @@
 #[cfg(not(feature = "qemu"))]
 use esp_hal::efuse::{Efuse, SECURE_VERSION};
 
-pub const APP_SECURITY_VERSION: u32 = if cfg!(feature = "production") {
-    crate::release_policy::SECURITY_VERSION
-} else {
-    0
-};
+pub const APP_SECURITY_VERSION: u32 =
+    if cfg!(feature = "production") { crate::release_policy::SECURITY_VERSION } else { 0 };
 const APP_DESC_MAGIC: u32 = 0xABCD_5432;
 const APP_DESC_BYTES: usize = 256;
 const SECURE_VERSION_OFFSET: usize = 4;
@@ -79,12 +76,7 @@ const fn write_u16(output: &mut [u8; APP_DESC_BYTES], offset: usize, value: u16)
     output[offset + 1] = bytes[1];
 }
 
-const fn write_cstr(
-    output: &mut [u8; APP_DESC_BYTES],
-    offset: usize,
-    capacity: usize,
-    text: &str,
-) {
+const fn write_cstr(output: &mut [u8; APP_DESC_BYTES], offset: usize, capacity: usize, text: &str) {
     let bytes = text.as_bytes();
     let mut index = 0usize;
     while index < bytes.len() && index + 1 < capacity {
@@ -115,5 +107,4 @@ fn descriptor_security_version() -> u32 {
 #[used]
 #[unsafe(export_name = "esp_app_desc")]
 #[unsafe(link_section = ".rodata_desc.appdesc")]
-static ESP_APP_DESC_WITH_SECURITY_VERSION: AlignedAppDescriptor =
-    AlignedAppDescriptor(descriptor_bytes());
+static ESP_APP_DESC_WITH_SECURITY_VERSION: AlignedAppDescriptor = AlignedAppDescriptor(descriptor_bytes());

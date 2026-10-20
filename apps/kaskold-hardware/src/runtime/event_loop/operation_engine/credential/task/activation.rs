@@ -1,9 +1,9 @@
+use crate::services::credential_policy::SALT_SIZE;
 use crate::{
     runtime::data::{AppData, OperationKind},
     services::persistent_wallet::{CredentialKind, PersistentWallet},
 };
 use shared_signer::bytes::zeroize_bytes;
-use crate::services::credential_policy::SALT_SIZE;
 
 use super::{SecretBuffer, Step};
 
@@ -31,8 +31,9 @@ impl WalletActivationTask {
         liveness: &mut (impl FnMut() + ?Sized),
     ) -> Step {
         let (slot, salt) = match &self.mode {
-            WalletActivationMode::Setup { slot, salt }
-            | WalletActivationMode::Verify { slot, salt, .. } => (*slot, *salt),
+            WalletActivationMode::Setup { slot, salt } | WalletActivationMode::Verify { slot, salt, .. } => {
+                (*slot, *salt)
+            }
         };
         crate::runtime::presentation::set_progress(ad, 8);
         crate::log!("   Wallet activation KDF foreground BEGIN");
@@ -53,17 +54,13 @@ impl WalletActivationTask {
                 }
             }
         }
-        let result = match persistence.derive_wallet_activation_key(
-            self.secret.as_slice(), &salt, liveness,
-        ) {
+        let result = match persistence.derive_wallet_activation_key(self.secret.as_slice(), &salt, liveness) {
             Err(error) => Err(error),
             Ok(mut key) => {
                 crate::runtime::presentation::set_progress(ad, 82);
                 let result = match self.mode {
                     WalletActivationMode::Setup { .. } => {
-                        match persistence.make_wallet_activation_verifier(
-                            usize::from(slot), self.kind, &salt, &key,
-                        ) {
+                        match persistence.make_wallet_activation_verifier(usize::from(slot), self.kind, &salt, &key) {
                             Ok(verifier) => {
                                 ad.wallet.seeds.pending_wallet_protection = match self.kind {
                                     CredentialKind::Pin => crate::wallet::seed_manager::WalletProtection::Pin,
@@ -77,9 +74,9 @@ impl WalletActivationTask {
                             Err(error) => Err(error),
                         }
                     }
-                    WalletActivationMode::Verify { verifier, .. } => persistence.verify_wallet_activation_key(
-                        usize::from(slot), self.kind, &salt, &verifier, &key,
-                    ),
+                    WalletActivationMode::Verify { verifier, .. } => {
+                        persistence.verify_wallet_activation_key(usize::from(slot), self.kind, &salt, &verifier, &key)
+                    }
                 };
                 zeroize_bytes(&mut key);
                 result

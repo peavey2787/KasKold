@@ -25,7 +25,9 @@ impl ProductionNavigationState {
             #[cfg(feature = "provisioning-ui")]
             owner_firmware_menu: Menu::from_items(crate::runtime::navigation::production::OWNER_FIRMWARE_ITEMS),
             wallet_menu: Menu::from_items(crate::runtime::navigation::production::WALLET_ITEMS),
-            wallet_backup_methods_menu: Menu::from_items(crate::runtime::navigation::production::WALLET_BACKUP_METHODS_ITEMS),
+            wallet_backup_methods_menu: Menu::from_items(
+                crate::runtime::navigation::production::WALLET_BACKUP_METHODS_ITEMS,
+            ),
             wallet_advanced_menu: Menu::from_items(crate::runtime::navigation::production::WALLET_ADVANCED_ITEMS),
             backup_recovery_menu: Menu::from_items(crate::runtime::navigation::production::BACKUP_RECOVERY_ITEMS),
             restore_menu: Menu::from_items(crate::runtime::navigation::production::RESTORE_ITEMS),

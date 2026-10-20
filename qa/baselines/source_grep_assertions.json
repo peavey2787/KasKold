@@ -77,7 +77,7 @@
   "qa/tests/regression/test_verified_model_finalization_boundary.py": 74,
   "qa/tests/regression/test_wallet_activation_security.py": 42,
   "qa/tests/regression/test_wallet_inventory_behavior.py": 14,
-  "qa/tests/regression/test_wallet_network_onboarding_safety.py": 108,
+  "qa/tests/regression/test_wallet_network_onboarding_safety.py": 107,
   "qa/tests/regression/test_wasm_business_boundary.py": 8,
   "qa/tests/regression/test_workflow_camera_ownership.py": 17,
   "qa/tests/regression/test_workflow_e2e_catalog.py": 116,

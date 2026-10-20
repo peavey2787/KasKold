@@ -3,18 +3,23 @@
 
 pub(super) fn serialize_transaction(ad: &mut crate::runtime::data::AppData) -> bool {
     let scratch_copy = if ad.signing.transaction.pskt_parsed.unknowns_count > 0 {
-        let Ok(length) = usize::try_from(ad.signing.transaction.pskt_parsed.json_len) else { return false; };
-        let Some(source) = ad.qr.outgoing.buffer.get(..length) else { return false; };
-        let Ok(mut copy) = crate::services::memory::zeroed_bytes(length) else { return false; };
+        let Ok(length) = usize::try_from(ad.signing.transaction.pskt_parsed.json_len) else {
+            return false;
+        };
+        let Some(source) = ad.qr.outgoing.buffer.get(..length) else {
+            return false;
+        };
+        let Ok(mut copy) = crate::services::memory::zeroed_bytes(length) else {
+            return false;
+        };
         copy.copy_from_slice(source);
         Some(copy)
     } else {
         None
     };
     let scratch_json = scratch_copy.as_deref().unwrap_or(&[]);
-    if let Err(error) = offline_signer::transaction::std_pskt::move_ksp_sigs_to_pskt(
-        &mut ad.signing.transaction.active,
-    ) {
+    if let Err(error) = offline_signer::transaction::std_pskt::move_ksp_sigs_to_pskt(&mut ad.signing.transaction.active)
+    {
         log!("[pskt] signature merge failed: {:?}", error);
         ad.qr.outgoing.length = 0;
         return false;
@@ -26,7 +31,9 @@ pub(super) fn serialize_transaction(ad: &mut crate::runtime::data::AppData) -> b
         ad.signing.transaction.input_format,
     ) {
         Ok(wire) => {
-            if ad.qr.outgoing.ensure_len(wire.len()).is_err() { return false; }
+            if ad.qr.outgoing.ensure_len(wire.len()).is_err() {
+                return false;
+            }
             ad.qr.outgoing.buffer[..wire.len()].copy_from_slice(&wire);
             ad.qr.outgoing.length = wire.len();
             super::signature_status::update_pskt(ad);

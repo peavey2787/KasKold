@@ -15,18 +15,10 @@ use embedded_graphics::prelude::DrawTarget;
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 use super::super::super::{
-    BootDisplay,
-    COLOR_BG,
-    COLOR_DANGER,
-    COLOR_TEXT,
-    components::qr_renderer::QrRenderOptions,
-    Rgb565,
-    draw_lato_hint,
-    draw_lato_title,
-    measure_hint,
-    measure_title};
+    components::qr_renderer::QrRenderOptions, draw_lato_hint, draw_lato_title, measure_hint, measure_title,
+    BootDisplay, Rgb565, COLOR_BG, COLOR_DANGER, COLOR_TEXT,
+};
 
 impl<'a> BootDisplay<'a> {
     /// Draw kpub export screen — shows the kpub string as a QR code
@@ -41,10 +33,7 @@ impl<'a> BootDisplay<'a> {
         draw_lato_hint(&mut self.display, "! PRIVATE KEY !", (320 - tw) / 2, 14, warn_color);
 
         // Show hex as QR code.
-        self.draw_encoded_qr(
-            hex_str,
-            QrRenderOptions { x: 81, y: 20, width: 158, height: 160, quiet_zone: 4 },
-        );
+        self.draw_encoded_qr(hex_str, QrRenderOptions { x: 81, y: 20, width: 158, height: 160, quiet_zone: 4 });
 
         // Show first 32 and last 32 hex chars — centered
         if let Ok(s1) = core::str::from_utf8(&hex_str[..32]) {
@@ -84,5 +73,4 @@ impl<'a> BootDisplay<'a> {
         let hw = measure_hint("Tap to dismiss");
         draw_lato_hint(&mut self.display, "Tap to dismiss", (320 - hw) / 2, 232, warn_color);
     }
-
 }

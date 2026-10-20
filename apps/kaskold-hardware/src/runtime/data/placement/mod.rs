@@ -3,16 +3,15 @@
 use core::ptr::NonNull;
 use static_cell::StaticCell;
 
-use super::{
-    AppData, ExportState, NavigationState, PresentationState, QrState,
-    RuntimeState, SettingsState, SigningState, StegoState, StorageState, WalletState,
-};
 use super::wallet::{AddressState, KeyMaterialState, SeedSession};
-#[cfg(feature = "workflow-tests")]
-use super::WorkflowTestState;
 #[cfg(feature = "provisioning-ui")]
 use super::PopItState;
-
+#[cfg(feature = "workflow-tests")]
+use super::WorkflowTestState;
+use super::{
+    AppData, ExportState, NavigationState, PresentationState, QrState, RuntimeState, SettingsState, SigningState,
+    StegoState, StorageState, WalletState,
+};
 
 pub(crate) struct InitializedAppData {
     ptr: NonNull<AppData>,
@@ -83,10 +82,7 @@ unsafe fn place_storage(target: *mut StorageState) {
 }
 
 #[inline(never)]
-unsafe fn place_signing(
-    target: *mut SigningState,
-    transaction: super::signing::TransactionSigningState,
-) {
+unsafe fn place_signing(target: *mut SigningState, transaction: super::signing::TransactionSigningState) {
     SigningState::initialize_in_place(target, transaction);
 }
 
@@ -124,9 +120,7 @@ impl AppData {
     /// initialization. No whole `AppData` or `QrState` value exists on the ProCpu
     /// stack.
     #[inline(never)]
-    pub(crate) fn try_initialize(
-        cell: &'static StaticCell<Self>,
-    ) -> Result<InitializedAppData, ()> {
+    pub(crate) fn try_initialize(cell: &'static StaticCell<Self>) -> Result<InitializedAppData, ()> {
         // Complete the only fallible state allocation before claiming the one-shot
         // static cell. The returned transaction root is small because its bulk
         // stores are heap-backed.

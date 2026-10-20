@@ -179,6 +179,26 @@ class ToolchainPolicyTests(unittest.TestCase):
             workflow,
         )
 
+    def test_rustfmt_gate_checks_every_crate_with_pinned_stable(self) -> None:
+        from workspace.check_rust_format import format_commands
+
+        stable = load_toolchains()["KASKOLD_STABLE_RUST"]
+        commands = format_commands(ROOT, stable)
+        self.assertTrue(all(command[:3] == ["rustup", "run", stable] for command in commands))
+        self.assertEqual(commands[0][3:], ["cargo", "fmt", "--all", "--", "--check"])
+        excluded = tomllib.loads((ROOT / "Cargo.toml").read_text())["workspace"]["exclude"]
+        manifests = [command[command.index("--manifest-path") + 1] for command in commands if "--manifest-path" in command]
+        self.assertEqual(manifests, [f"{entry}/Cargo.toml" for entry in excluded])
+        path_only = [command for command in commands if command[3] == "rustfmt"]
+        standalone = [command for command in commands[1:] if command not in path_only]
+        self.assertEqual([command for command in commands[1:] if "--all" in command], [])
+        self.assertEqual([command[-2:] for command in standalone], [["--", "--check"]] * len(excluded))
+        self.assertEqual([command.count("--package") for command in standalone], [1] * len(excluded))
+        self.assertEqual(
+            [command[4:] for command in path_only],
+            [["--check", "--edition", "2021", "external/serde-yaml-ng-adapter/src/lib.rs"]],
+        )
+
     def test_platform_ci_supports_manual_rerun(self) -> None:
         for name in ("core.yml", "kaskold-companion-ci.yml", "android.yml", "ios.yml", "rqrr.yml"):
             workflow = (ROOT / f".github/workflows/{name}").read_text()

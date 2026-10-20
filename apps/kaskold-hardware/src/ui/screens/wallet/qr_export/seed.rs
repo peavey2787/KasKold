@@ -14,37 +14,17 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 use super::super::super::{
-    BootDisplay,
-    COLOR_BG,
-    COLOR_DANGER,
-    COLOR_HINT,
-    components::qr_renderer::QrRenderOptions,
-    DrawTarget,
-    Drawable,
-    KASPA_TEAL,
-    Point,
-    Primitive,
-    PrimitiveStyle,
-    Rectangle,
-    Rgb565,
-    Size,
-    Triangle,
-    draw_lato_hint,
-    draw_lato_title,
-    measure_hint,
-    measure_title};
+    components::qr_renderer::QrRenderOptions, draw_lato_hint, draw_lato_title, measure_hint, measure_title,
+    BootDisplay, DrawTarget, Drawable, Point, Primitive, PrimitiveStyle, Rectangle, Rgb565, Size, Triangle, COLOR_BG,
+    COLOR_DANGER, COLOR_HINT, KASPA_TEAL,
+};
 
 impl<'a> BootDisplay<'a> {
     pub fn draw_export_seed_qr_screen(&mut self, data: &[u8], word_count: u8) {
         let mut title: heapless::String<32> = heapless::String::new();
         let grid = if word_count <= 12 { "25x25" } else { "29x29" };
-        core::fmt::Write::write_fmt(
-            &mut title,
-            format_args!("SeedQR {grid} ({word_count}w)"),
-        )
-        .ok();
+        core::fmt::Write::write_fmt(&mut title, format_args!("SeedQR {grid} ({word_count}w)")).ok();
         self.draw_seed_qr_payload(data, title.as_str(), true);
     }
 
@@ -52,11 +32,7 @@ impl<'a> BootDisplay<'a> {
     pub fn draw_export_compact_seedqr_screen(&mut self, data: &[u8], word_count: u8) {
         let size = if word_count == 12 { "21x21" } else { "25x25" };
         let mut title: heapless::String<32> = heapless::String::new();
-        core::fmt::Write::write_fmt(
-            &mut title,
-            format_args!("CompactSeedQR {size} ({word_count}w)"),
-        )
-        .ok();
+        core::fmt::Write::write_fmt(&mut title, format_args!("CompactSeedQR {size} ({word_count}w)")).ok();
         self.draw_seed_qr_payload(data, title.as_str(), false);
     }
 
@@ -64,11 +40,7 @@ impl<'a> BootDisplay<'a> {
     pub fn draw_export_plain_words_qr(&mut self, indices: &[u16; 24], word_count: u8) {
         self.display.clear(COLOR_BG).ok();
         let mut title_buf: heapless::String<32> = heapless::String::new();
-        core::fmt::Write::write_fmt(
-            &mut title_buf,
-            format_args!("Plain Text ({word_count} words)"),
-        )
-        .ok();
+        core::fmt::Write::write_fmt(&mut title_buf, format_args!("Plain Text ({word_count} words)")).ok();
         let tw = measure_hint(title_buf.as_str());
         draw_lato_hint(&mut self.display, &title_buf, (320 - tw) / 2, 14, KASPA_TEAL);
 
@@ -78,11 +50,7 @@ impl<'a> BootDisplay<'a> {
         // Build QR content
         let mut words_buf = [0u8; 256];
         let mut pos = 0usize;
-        for (index, word_index) in indices
-            .iter()
-            .take(usize::from(word_count))
-            .enumerate()
-        {
+        for (index, word_index) in indices.iter().take(usize::from(word_count)).enumerate() {
             let word = offline_signer::derivation::bip39::index_to_word(*word_index);
             let bytes = word.as_bytes();
             if pos + bytes.len() + usize::from(index > 0) > words_buf.len() {
@@ -101,13 +69,7 @@ impl<'a> BootDisplay<'a> {
             QrRenderOptions { x: 56, y: 20, width: 208, height: 210, quiet_zone: 4 },
         ) {
             let ew = measure_title("QR Error — too large");
-            draw_lato_title(
-                &mut self.display,
-                "QR Error — too large",
-                (320 - ew) / 2,
-                120,
-                COLOR_DANGER,
-            );
+            draw_lato_title(&mut self.display, "QR Error — too large", (320 - ew) / 2, 120, COLOR_DANGER);
         }
     }
 
@@ -116,11 +78,8 @@ impl<'a> BootDisplay<'a> {
     pub fn draw_seedqr_grid(&mut self, data: &[u8], pan_x: u8, pan_y: u8, numeric: bool) {
         self.clear_keep_nav();
 
-        let qr_result = if numeric {
-            crate::qr::encoder::encode_numeric(data)
-        } else {
-            crate::qr::encoder::encode(data)
-        };
+        let qr_result =
+            if numeric { crate::qr::encoder::encode_numeric(data) } else { crate::qr::encoder::encode(data) };
         if let Ok(qr) = qr_result {
             let qr_size = qr.size;
             let view_cells: u8 = 7;
@@ -131,15 +90,20 @@ impl<'a> BootDisplay<'a> {
 
             // Title with position info
             let mut pos_buf: heapless::String<32> = heapless::String::new();
-            core::fmt::Write::write_fmt(&mut pos_buf,
-                format_args!("Grid {},{} of {}x{}", pan_x + 1, pan_y + 1, qr_size, qr_size)).ok();
+            core::fmt::Write::write_fmt(
+                &mut pos_buf,
+                format_args!("Grid {},{} of {}x{}", pan_x + 1, pan_y + 1, qr_size, qr_size),
+            )
+            .ok();
             let tw = measure_hint(pos_buf.as_str());
             draw_lato_hint(&mut self.display, &pos_buf, (320 - tw) / 2, 18, KASPA_TEAL);
 
             // Column labels at top
             for c in 0..view_cells {
                 let col = pan_x + c;
-                if col >= qr_size { break; }
+                if col >= qr_size {
+                    break;
+                }
                 let cx = grid_x0 + c as i32 * cell_px + cell_px / 2;
                 let mut lbl: heapless::String<4> = heapless::String::new();
                 core::fmt::Write::write_fmt(&mut lbl, format_args!("{}", col + 1)).ok();
@@ -150,7 +114,9 @@ impl<'a> BootDisplay<'a> {
             // Row labels on left
             for r in 0..view_cells {
                 let row = pan_y + r;
-                if row >= qr_size { break; }
+                if row >= qr_size {
+                    break;
+                }
                 let ry = grid_y0 + r as i32 * cell_px + cell_px / 2 + 4;
                 let letter = if row < 26 { (b'A' + row) as char } else { '?' };
                 let mut lbl: heapless::String<4> = heapless::String::new();
@@ -161,10 +127,14 @@ impl<'a> BootDisplay<'a> {
             // Draw cells
             for r in 0..view_cells {
                 let row = pan_y + r;
-                if row >= qr_size { continue; }
+                if row >= qr_size {
+                    continue;
+                }
                 for c in 0..view_cells {
                     let col = pan_x + c;
-                    if col >= qr_size { continue; }
+                    if col >= qr_size {
+                        continue;
+                    }
 
                     let cx = grid_x0 + c as i32 * cell_px;
                     let cy = grid_y0 + r as i32 * cell_px;
@@ -173,20 +143,20 @@ impl<'a> BootDisplay<'a> {
                     let fill = if is_black { Rgb565::new(0, 0, 0) } else { Rgb565::new(31, 63, 31) };
                     Rectangle::new(Point::new(cx, cy), Size::new(cell_px as u32, cell_px as u32))
                         .into_styled(PrimitiveStyle::with_fill(fill))
-                        .draw(&mut self.display).ok();
+                        .draw(&mut self.display)
+                        .ok();
                     Rectangle::new(Point::new(cx, cy), Size::new(cell_px as u32, cell_px as u32))
                         .into_styled(PrimitiveStyle::with_stroke(Rgb565::new(8, 20, 8), 1))
-                        .draw(&mut self.display).ok();
+                        .draw(&mut self.display)
+                        .ok();
                 }
             }
 
             self.draw_seedqr_navigation(qr_size, pan_x, pan_y, view_cells);
-
         } else {
             let ew = measure_title("QR Error");
             draw_lato_title(&mut self.display, "QR Error", (320 - ew) / 2, 120, COLOR_DANGER);
         }
-
     }
 
     fn draw_seedqr_navigation(&mut self, qr_size: u8, pan_x: u8, pan_y: u8, view_cells: u8) {
@@ -197,47 +167,30 @@ impl<'a> BootDisplay<'a> {
         let ly_bot = 160i32;
 
         let left_color = if pan_x > 0 { KASPA_TEAL } else { teal_dark };
-        Triangle::new(
-            Point::new(lx - 12, ly_top),
-            Point::new(lx + 12, ly_top - 15),
-            Point::new(lx + 12, ly_top + 15),
-        )
-        .into_styled(PrimitiveStyle::with_fill(left_color))
-        .draw(&mut self.display)
-        .ok();
+        Triangle::new(Point::new(lx - 12, ly_top), Point::new(lx + 12, ly_top - 15), Point::new(lx + 12, ly_top + 15))
+            .into_styled(PrimitiveStyle::with_fill(left_color))
+            .draw(&mut self.display)
+            .ok();
 
         let right_color = if pan_x < max_pan { KASPA_TEAL } else { teal_dark };
-        Triangle::new(
-            Point::new(lx + 12, ly_bot),
-            Point::new(lx - 12, ly_bot - 15),
-            Point::new(lx - 12, ly_bot + 15),
-        )
-        .into_styled(PrimitiveStyle::with_fill(right_color))
-        .draw(&mut self.display)
-        .ok();
+        Triangle::new(Point::new(lx + 12, ly_bot), Point::new(lx - 12, ly_bot - 15), Point::new(lx - 12, ly_bot + 15))
+            .into_styled(PrimitiveStyle::with_fill(right_color))
+            .draw(&mut self.display)
+            .ok();
 
         let rx = 302i32;
         let ry_top = 80i32;
         let ry_bot = 160i32;
         let up_color = if pan_y > 0 { KASPA_TEAL } else { teal_dark };
-        Triangle::new(
-            Point::new(rx, ry_top - 12),
-            Point::new(rx - 15, ry_top + 12),
-            Point::new(rx + 15, ry_top + 12),
-        )
-        .into_styled(PrimitiveStyle::with_fill(up_color))
-        .draw(&mut self.display)
-        .ok();
+        Triangle::new(Point::new(rx, ry_top - 12), Point::new(rx - 15, ry_top + 12), Point::new(rx + 15, ry_top + 12))
+            .into_styled(PrimitiveStyle::with_fill(up_color))
+            .draw(&mut self.display)
+            .ok();
 
         let down_color = if pan_y < max_pan { KASPA_TEAL } else { teal_dark };
-        Triangle::new(
-            Point::new(rx, ry_bot + 12),
-            Point::new(rx - 15, ry_bot - 12),
-            Point::new(rx + 15, ry_bot - 12),
-        )
-        .into_styled(PrimitiveStyle::with_fill(down_color))
-        .draw(&mut self.display)
-        .ok();
+        Triangle::new(Point::new(rx, ry_bot + 12), Point::new(rx - 15, ry_bot - 12), Point::new(rx + 15, ry_bot - 12))
+            .into_styled(PrimitiveStyle::with_fill(down_color))
+            .draw(&mut self.display)
+            .ok();
     }
-
 }

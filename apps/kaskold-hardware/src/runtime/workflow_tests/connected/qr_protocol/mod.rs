@@ -1,7 +1,7 @@
 use crate::{
-    runtime::interactions::{TouchInput, tx::TxTouchContext},
     hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
     runtime::data::AppData,
+    runtime::interactions::{tx::TxTouchContext, TouchInput},
 };
 use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
@@ -40,7 +40,9 @@ pub(super) fn exercise(
     sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
-    if !super::root::home_ok(ad) || !super::signing::fixture::install_wallet(ad) { return false; }
+    if !super::root::home_ok(ad) || !super::signing::fixture::install_wallet(ad) {
+        return false;
+    }
     let (_, list, _, _) = crate::runtime::touch_dispatch::touch_zones();
     let mut ctx = QrContext { ad, display, i2c, sd, delay, list };
     log!("KASKOLD_WORKFLOW_TESTS: QR PROTOCOL MATRIX TRANCHE BEGIN");
@@ -65,7 +67,9 @@ pub(super) fn exercise(
 }
 
 fn finish(ctx: &mut QrContext<'_, '_, '_>) -> bool {
-    if !super::root::home_ok(ctx.ad) { return false; }
+    if !super::root::home_ok(ctx.ad) {
+        return false;
+    }
     log!("KASKOLD_WORKFLOW_TESTS: QR CAMERA CAPTURE/DECODE HIL DEFERRED TO PERIPHERAL TRANCHE");
     log!("KASKOLD_WORKFLOW_TESTS: QR PROTOCOL MATRIX TRANCHE PASS");
     true

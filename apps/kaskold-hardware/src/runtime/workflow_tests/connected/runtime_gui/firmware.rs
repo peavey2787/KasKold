@@ -5,7 +5,7 @@ use crate::{
     hw::{camera::CameraStatus, display::BootDisplay, sdcard::SdCardType},
     runtime::{self, data::AppData, input::AppState},
 };
-use esp_hal::{Blocking, delay::Delay, dma::DmaRxBuf, i2c::master::I2c, lcd_cam::cam::Camera};
+use esp_hal::{delay::Delay, dma::DmaRxBuf, i2c::master::I2c, lcd_cam::cam::Camera, Blocking};
 
 pub(super) fn probe_firmware_update_guidance(
     ad: &mut AppData,
@@ -54,10 +54,17 @@ pub(super) fn probe_scan_qr_camera(
     let mut camera_session = runtime::interactions::camera_loop::CameraSessionState::new();
     watchdog_feed();
     runtime::interactions::camera_loop::run_camera_cycle(
-        &mut camera_session, ad, display, delay, i2c, camera, camera_status, camera_dma, watchdog_feed,
+        &mut camera_session,
+        ad,
+        display,
+        delay,
+        i2c,
+        camera,
+        camera_status,
+        camera_dma,
+        watchdog_feed,
     );
     watchdog_feed();
     pass(NAME);
     true
 }
-

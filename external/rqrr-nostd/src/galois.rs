@@ -3,14 +3,19 @@
 // Replaces the g2p proc macro which requires std at build time.
 // Pre-computed exp/log tables for both fields.
 
-use core::ops::{Add, AddAssign, Mul, MulAssign, Div};
+use core::ops::{Add, AddAssign, Div, Mul, MulAssign};
 
 /// Trait for Galois field elements (replaces g2p::GaloisField)
 pub trait GaloisField:
-    Copy + Clone + PartialEq + Eq +
-    Add<Output = Self> + AddAssign +
-    Mul<Output = Self> + MulAssign +
-    Div<Output = Self>
+    Copy
+    + Clone
+    + PartialEq
+    + Eq
+    + Add<Output = Self>
+    + AddAssign
+    + Mul<Output = Self>
+    + MulAssign
+    + Div<Output = Self>
 {
     const ZERO: Self;
     const ONE: Self;
@@ -57,19 +62,25 @@ const GF256_LOG: [u8; 256] = {
 impl Add for GF256 {
     type Output = Self;
     #[inline(always)]
-    fn add(self, rhs: Self) -> Self { GF256(self.0 ^ rhs.0) }
+    fn add(self, rhs: Self) -> Self {
+        GF256(self.0 ^ rhs.0)
+    }
 }
 
 impl AddAssign for GF256 {
     #[inline(always)]
-    fn add_assign(&mut self, rhs: Self) { self.0 ^= rhs.0; }
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 ^= rhs.0;
+    }
 }
 
 impl Mul for GF256 {
     type Output = Self;
     #[inline(always)]
     fn mul(self, rhs: Self) -> Self {
-        if self.0 == 0 || rhs.0 == 0 { return GF256(0); }
+        if self.0 == 0 || rhs.0 == 0 {
+            return GF256(0);
+        }
         let log_sum = GF256_LOG[self.0 as usize] as usize + GF256_LOG[rhs.0 as usize] as usize;
         GF256(GF256_EXP[log_sum])
     }
@@ -77,16 +88,21 @@ impl Mul for GF256 {
 
 impl MulAssign for GF256 {
     #[inline(always)]
-    fn mul_assign(&mut self, rhs: Self) { *self = *self * rhs; }
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = *self * rhs;
+    }
 }
 
 impl Div for GF256 {
     type Output = Self;
     #[inline(always)]
     fn div(self, rhs: Self) -> Self {
-        if self.0 == 0 { return GF256(0); }
+        if self.0 == 0 {
+            return GF256(0);
+        }
         // rhs must not be zero (caller's responsibility — matches g2p behavior)
-        let log_diff = GF256_LOG[self.0 as usize] as usize + 255 - GF256_LOG[rhs.0 as usize] as usize;
+        let log_diff =
+            GF256_LOG[self.0 as usize] as usize + 255 - GF256_LOG[rhs.0 as usize] as usize;
         GF256(GF256_EXP[log_diff])
     }
 }
@@ -98,7 +114,9 @@ impl GaloisField for GF256 {
 
     #[inline]
     fn pow(self, exp: usize) -> Self {
-        if self.0 == 0 { return GF256(0); }
+        if self.0 == 0 {
+            return GF256(0);
+        }
         let log_val = GF256_LOG[self.0 as usize] as usize;
         let log_result = (log_val * exp) % 255;
         GF256(GF256_EXP[log_result])
@@ -142,19 +160,25 @@ const GF16_LOG: [u8; 16] = {
 impl Add for GF16 {
     type Output = Self;
     #[inline(always)]
-    fn add(self, rhs: Self) -> Self { GF16(self.0 ^ rhs.0) }
+    fn add(self, rhs: Self) -> Self {
+        GF16(self.0 ^ rhs.0)
+    }
 }
 
 impl AddAssign for GF16 {
     #[inline(always)]
-    fn add_assign(&mut self, rhs: Self) { self.0 ^= rhs.0; }
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 ^= rhs.0;
+    }
 }
 
 impl Mul for GF16 {
     type Output = Self;
     #[inline(always)]
     fn mul(self, rhs: Self) -> Self {
-        if self.0 == 0 || rhs.0 == 0 { return GF16(0); }
+        if self.0 == 0 || rhs.0 == 0 {
+            return GF16(0);
+        }
         let log_sum = GF16_LOG[self.0 as usize] as usize + GF16_LOG[rhs.0 as usize] as usize;
         GF16(GF16_EXP[log_sum])
     }
@@ -162,14 +186,18 @@ impl Mul for GF16 {
 
 impl MulAssign for GF16 {
     #[inline(always)]
-    fn mul_assign(&mut self, rhs: Self) { *self = *self * rhs; }
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = *self * rhs;
+    }
 }
 
 impl Div for GF16 {
     type Output = Self;
     #[inline(always)]
     fn div(self, rhs: Self) -> Self {
-        if self.0 == 0 { return GF16(0); }
+        if self.0 == 0 {
+            return GF16(0);
+        }
         let log_diff = GF16_LOG[self.0 as usize] as usize + 15 - GF16_LOG[rhs.0 as usize] as usize;
         GF16(GF16_EXP[log_diff])
     }
@@ -182,7 +210,9 @@ impl GaloisField for GF16 {
 
     #[inline]
     fn pow(self, exp: usize) -> Self {
-        if self.0 == 0 { return GF16(0); }
+        if self.0 == 0 {
+            return GF16(0);
+        }
         let log_val = GF16_LOG[self.0 as usize] as usize;
         let log_result = (log_val * exp) % 15;
         GF16(GF16_EXP[log_result])

@@ -2,10 +2,9 @@
 // License: GPL-3.0-or-later.
 
 use super::super::{
-    BootDisplay, COLOR_BG, COLOR_CARD_BORDER, COLOR_TEXT_DIM, CornerRadii, Drawable,
-    KASPA_ACCENT, KASPA_TEAL, Line, Point, Primitive, PrimitiveStyle, Rectangle,
-    RoundedRectangle, Size, draw_lato_hint, draw_lato_title, draw_oswald_header,
-    measure_header, measure_hint, measure_title,
+    draw_lato_hint, draw_lato_title, draw_oswald_header, measure_header, measure_hint, measure_title, BootDisplay,
+    CornerRadii, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size, COLOR_BG,
+    COLOR_CARD_BORDER, COLOR_TEXT_DIM, KASPA_ACCENT, KASPA_TEAL,
 };
 
 impl<'a> BootDisplay<'a> {
@@ -16,7 +15,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, "SIGNATURE", (320 - tw) / 2, 25, KASPA_TEAL);
         Line::new(Point::new(20, 35), Point::new(300, 35))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         // R label + 2 rows of 32 hex chars
         let hex_chars = b"0123456789abcdef";
@@ -56,7 +56,8 @@ impl<'a> BootDisplay<'a> {
         // Separator
         Line::new(Point::new(30, 145), Point::new(290, 145))
             .into_styled(PrimitiveStyle::with_stroke(COLOR_CARD_BORDER, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         // SAVE TO SD button (left half)
         let btn_w: u32 = 130;
@@ -67,30 +68,20 @@ impl<'a> BootDisplay<'a> {
         let save_rect = Rectangle::new(Point::new(btn_x, btn_y), Size::new(btn_w, btn_h));
         RoundedRectangle::new(save_rect, btn_corner)
             .into_styled(PrimitiveStyle::with_fill(KASPA_TEAL))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let sw = measure_title("SAVE SD");
-        draw_lato_title(
-            &mut self.display,
-            "SAVE SD",
-            btn_x + (btn_w as i32 - sw) / 2,
-            btn_y + 26,
-            COLOR_BG,
-        );
+        draw_lato_title(&mut self.display, "SAVE SD", btn_x + (btn_w as i32 - sw) / 2, btn_y + 26, COLOR_BG);
 
         // SHOW QR button (right half) — oracle attestation QR
         let qr_btn_x: i32 = 170;
         let qr_rect = Rectangle::new(Point::new(qr_btn_x, btn_y), Size::new(btn_w, btn_h));
         RoundedRectangle::new(qr_rect, btn_corner)
             .into_styled(PrimitiveStyle::with_fill(KASPA_ACCENT))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let qw = measure_title("SHOW QR");
-        draw_lato_title(
-            &mut self.display,
-            "SHOW QR",
-            qr_btn_x + (btn_w as i32 - qw) / 2,
-            btn_y + 26,
-            COLOR_BG,
-        );
+        draw_lato_title(&mut self.display, "SHOW QR", qr_btn_x + (btn_w as i32 - qw) / 2, btn_y + 26, COLOR_BG);
 
         // Show msg_hash (1 row, truncated)
         let hw = measure_hint("MSG HASH:");

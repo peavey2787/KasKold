@@ -26,7 +26,7 @@
 //   If they match, the signature only adds boot verification —
 //   it doesn't change what the code does.
 
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use std::env;
 use std::fs;
 use std::process;
@@ -104,10 +104,16 @@ fn process_bin(label: &str, path: &str) -> ([u8; 32], usize) {
         }
 
         let load_addr = u32::from_le_bytes([
-            data[offset], data[offset + 1], data[offset + 2], data[offset + 3],
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
         ]);
         let seg_size = u32::from_le_bytes([
-            data[offset + 4], data[offset + 5], data[offset + 6], data[offset + 7],
+            data[offset + 4],
+            data[offset + 5],
+            data[offset + 6],
+            data[offset + 7],
         ]) as usize;
 
         let seg_data_start = offset + SEGMENT_HEADER_SIZE;
@@ -130,6 +136,9 @@ fn process_bin(label: &str, path: &str) -> ([u8; 32], usize) {
         offset = seg_data_start + seg_size;
     }
 
-    eprintln!("      Error: code segment (0x{:08X}) not found", CODE_LOAD_ADDR);
+    eprintln!(
+        "      Error: code segment (0x{:08X}) not found",
+        CODE_LOAD_ADDR
+    );
     process::exit(1);
 }

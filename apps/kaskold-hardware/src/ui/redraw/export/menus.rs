@@ -3,10 +3,9 @@ use crate::runtime::{data::AppData, input::AppState};
 
 pub(super) fn redraw(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     match ad.navigation.app.state {
-        AppState::QrExportMenu => boot_display.draw_qr_export_menu(
-            &ad.navigation.qr_export_menu,
-            ad.wallet.seeds.word_count,
-        ),
+        AppState::QrExportMenu => {
+            boot_display.draw_qr_export_menu(&ad.navigation.qr_export_menu, ad.wallet.seeds.word_count)
+        }
         AppState::XprvExportMenu => {
             boot_display.update_menu_content("XPRV ACCOUNT", &ad.navigation.xprv_export_menu);
         }

@@ -5,16 +5,15 @@
 // This subsystem façade exposes the encoder while focused modules own each stage.
 
 mod bit_writer;
-mod modes;
-mod ecc;
 mod constants;
+mod ecc;
 mod error;
 mod matrix;
+mod modes;
 
-
-pub use modes::byte_mode::encode;
 #[cfg(not(feature = "qemu"))]
 pub use matrix::matrix::QrCode;
+pub use modes::byte_mode::encode;
 #[cfg(not(feature = "qemu"))]
 pub use modes::numeric_mode::encode_numeric;
 

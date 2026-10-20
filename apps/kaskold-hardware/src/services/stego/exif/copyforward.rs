@@ -1,6 +1,8 @@
 //! Copy-forward EXIF builder that preserves the host TIFF block verbatim.
 
-use super::{byte_order, read_u16, read_u32, write_u16, write_u32, EXIF_HEADER, TAG_IMAGE_DESCRIPTION, TAG_USER_COMMENT};
+use super::{
+    byte_order, read_u16, read_u32, write_u16, write_u32, EXIF_HEADER, TAG_IMAGE_DESCRIPTION, TAG_USER_COMMENT,
+};
 
 struct HostLayout<'a> {
     tiff: &'a [u8],
@@ -20,12 +22,7 @@ struct EntryLayout {
     comment_offset: usize,
 }
 
-pub fn build_copyforward(
-    host_app1: &[u8],
-    description: &[u8],
-    user_comment: &[u8],
-    output: &mut [u8],
-) -> usize {
+pub fn build_copyforward(host_app1: &[u8], description: &[u8], user_comment: &[u8], output: &mut [u8]) -> usize {
     let Some(host) = copyforward_host_layout(host_app1) else {
         return 0;
     };
@@ -64,9 +61,8 @@ fn copyforward_host_layout(host_app1: &[u8]) -> Option<HostLayout<'_>> {
     if entries_end.checked_add(4)? > tiff.len() {
         return None;
     }
-    let kept_count = (0..entry_count)
-        .filter(|entry_index| keep_host_entry(tiff, ifd0, *entry_index, little_endian))
-        .count();
+    let kept_count =
+        (0..entry_count).filter(|entry_index| keep_host_entry(tiff, ifd0, *entry_index, little_endian)).count();
     Some(HostLayout { tiff, ifd0, entry_count, entries_end, kept_count, little_endian })
 }
 
@@ -76,11 +72,7 @@ fn keep_host_entry(tiff: &[u8], ifd0: usize, entry_index: usize, little_endian: 
     tag != TAG_IMAGE_DESCRIPTION && tag != TAG_USER_COMMENT
 }
 
-fn aligned_copyforward_position(
-    output: &mut [u8],
-    mut position: usize,
-    tiff_output: usize,
-) -> Option<usize> {
+fn aligned_copyforward_position(output: &mut [u8], mut position: usize, tiff_output: usize) -> Option<usize> {
     if (position - tiff_output) % 2 == 0 {
         return Some(position);
     }
@@ -106,21 +98,10 @@ fn finish_copyforward(
     write_u16(&mut output[position..], layout.total_entries as u16, host.little_endian);
     position += 2;
     position = write_copyforward_entries(host, &layout, description, output, position);
-    output[position..position + 4]
-        .copy_from_slice(&host.tiff[host.entries_end..host.entries_end + 4]);
+    output[position..position + 4].copy_from_slice(&host.tiff[host.entries_end..host.entries_end + 4]);
     position += 4;
-    position = write_copyforward_values(
-        output,
-        position,
-        description,
-        layout.description_length,
-        user_comment,
-    );
-    write_u32(
-        &mut output[tiff_output + 4..],
-        layout.new_ifd0 as u32,
-        host.little_endian,
-    );
+    position = write_copyforward_values(output, position, description, layout.description_length, user_comment);
+    write_u32(&mut output[tiff_output + 4..], layout.new_ifd0 as u32, host.little_endian);
     let app1_length = position - 2;
     if app1_length > u16::MAX as usize {
         return 0;
@@ -162,13 +143,8 @@ fn write_copyforward_entries(
     let mut description_written = false;
     let mut comment_written = false;
     for _ in 0..layout.total_entries {
-        let (host_tag, host_position, next_host_index) = next_kept_host_entry(
-            host.tiff,
-            host.ifd0,
-            host.entry_count,
-            host_index,
-            host.little_endian,
-        );
+        let (host_tag, host_position, next_host_index) =
+            next_kept_host_entry(host.tiff, host.ifd0, host.entry_count, host_index, host.little_endian);
         let description_tag = if description_written { u16::MAX } else { TAG_IMAGE_DESCRIPTION };
         let comment_tag = if comment_written { u16::MAX } else { TAG_USER_COMMENT };
         if description_tag <= host_tag && description_tag <= comment_tag {
@@ -191,8 +167,7 @@ fn write_copyforward_entries(
             );
             comment_written = true;
         } else {
-            output[position..position + 12]
-                .copy_from_slice(&host.tiff[host_position..host_position + 12]);
+            output[position..position + 12].copy_from_slice(&host.tiff[host_position..host_position + 12]);
             host_index = next_host_index;
         }
         position += 12;
@@ -257,14 +232,7 @@ fn write_description_entry(
     }
 }
 
-fn write_entry(
-    entry: &mut [u8],
-    tag: u16,
-    kind: u16,
-    count: u32,
-    value: u32,
-    little_endian: bool,
-) {
+fn write_entry(entry: &mut [u8], tag: u16, kind: u16, count: u32, value: u32, little_endian: bool) {
     write_u16(entry, tag, little_endian);
     write_u16(&mut entry[2..], kind, little_endian);
     write_u32(&mut entry[4..], count, little_endian);

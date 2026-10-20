@@ -7,8 +7,8 @@
 //! The camera loop owns scanner entry rendering and camera lifecycle. Generic
 //! screen redraw code must not manipulate LCD_CAM or camera-session state.
 
-use super::{camera, display, AppData};
 use super::state::CameraSessionState;
+use super::{camera, display, AppData};
 
 pub(super) struct CyclePlatform {
     show_home: bool,
@@ -19,8 +19,7 @@ impl CyclePlatform {
     pub(super) fn new(ad: &AppData) -> Self {
         Self {
             show_home: crate::runtime::navigation::home_shortcut_visible(ad),
-            anti_klepto_reveal: ad.signing.anti_klepto.phase
-                == crate::runtime::data::AntiKleptoPhase::AwaitingReveal,
+            anti_klepto_reveal: ad.signing.anti_klepto.phase == crate::runtime::data::AntiKleptoPhase::AwaitingReveal,
         }
     }
 

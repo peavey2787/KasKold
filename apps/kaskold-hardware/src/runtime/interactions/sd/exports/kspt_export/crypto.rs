@@ -5,10 +5,10 @@
 //! Historical PBKDF2 transport envelopes are intentionally unsupported.
 //! The current magic selects the sole supported parser/KDF.
 
-use super::super::super::{AppData, display};
+use super::super::super::{display, AppData};
 use aes_gcm::{
+    aead::{generic_array::GenericArray, AeadInPlace, KeyInit},
     Aes256Gcm,
-    aead::{AeadInPlace, KeyInit, generic_array::GenericArray},
 };
 use offline_signer::crypto::{
     container_framing::{self, TransportEnvelopeHeader},
@@ -38,7 +38,12 @@ pub(super) fn seal_envelope(
     output: &mut [u8],
 ) -> Result<usize, ()> {
     let required_len = CURRENT_HEADER_LEN.checked_add(data.len()).and_then(|n| n.checked_add(TAG_LEN)).ok_or(())?;
-    if data.is_empty() || data.len() > CURRENT_MAX_DATA_LEN || output.len() < required_len || salt.iter().all(|b| *b == 0) || nonce.iter().all(|b| *b == 0) {
+    if data.is_empty()
+        || data.len() > CURRENT_MAX_DATA_LEN
+        || output.len() < required_len
+        || salt.iter().all(|b| *b == 0)
+        || nonce.iter().all(|b| *b == 0)
+    {
         return Err(());
     }
     output.fill(0);
@@ -52,19 +57,12 @@ pub(super) fn seal_envelope(
     output[nonce_start..CURRENT_HEADER_LEN].copy_from_slice(nonce);
     let (header, body) = output.split_at_mut(CURRENT_HEADER_LEN);
     body[..data.len()].copy_from_slice(data);
-    let mut key = crate::services::memory::password_kdf::derive_key_32(
-        PasswordKdfPurpose::EncryptedTransport,
-        passphrase,
-        salt,
-    )
-    .map_err(|_| ())?;
+    let mut key =
+        crate::services::memory::password_kdf::derive_key_32(PasswordKdfPurpose::EncryptedTransport, passphrase, salt)
+            .map_err(|_| ())?;
     let cipher = Aes256Gcm::new(GenericArray::from_slice(&key));
     let tag = cipher
-        .encrypt_in_place_detached(
-            GenericArray::from_slice(nonce),
-            header,
-            &mut body[..data.len()],
-        )
+        .encrypt_in_place_detached(GenericArray::from_slice(nonce), header, &mut body[..data.len()])
         .map_err(|_| ())?;
     zeroize_bytes(&mut key);
     body[data.len()..data.len() + TAG_LEN].copy_from_slice(&tag);
@@ -77,8 +75,8 @@ pub(super) fn open_envelope(
     passphrase: &[u8],
     plaintext: &mut [u8],
 ) -> Result<usize, DecryptError> {
-    let header = container_framing::parse_transport_header(input, file_len)
-        .map_err(|_| DecryptError::InvalidEnvelope)?;
+    let header =
+        container_framing::parse_transport_header(input, file_len).map_err(|_| DecryptError::InvalidEnvelope)?;
     if plaintext.len() < header.data_len {
         return Err(DecryptError::InvalidEnvelope);
     }
@@ -94,10 +92,13 @@ fn open_current(
     let parameters = header.parameters;
     let mut salt = header.salt;
     let mut key = crate::services::memory::password_kdf::derive_key_32_with_params(
-        PasswordKdfPurpose::EncryptedTransport, passphrase, &salt, parameters,
-    ).map_err(|_| DecryptError::Authentication)?;
-    plaintext[..header.data_len]
-        .copy_from_slice(&input[header.ciphertext_start..header.tag_start]);
+        PasswordKdfPurpose::EncryptedTransport,
+        passphrase,
+        &salt,
+        parameters,
+    )
+    .map_err(|_| DecryptError::Authentication)?;
+    plaintext[..header.data_len].copy_from_slice(&input[header.ciphertext_start..header.tag_start]);
     let cipher = Aes256Gcm::new(GenericArray::from_slice(&key));
     let result = cipher.decrypt_in_place_detached(
         GenericArray::from_slice(&header.nonce),
@@ -122,25 +123,25 @@ pub(super) fn decrypt_envelope(
     plaintext: &mut [u8],
 ) -> Result<usize, DecryptError> {
     boot_display.update_progress_bar(10);
-    let result=open_envelope(&ad.qr.outgoing.buffer,ad.qr.outgoing.length,passphrase,plaintext);
+    let result = open_envelope(&ad.qr.outgoing.buffer, ad.qr.outgoing.length, passphrase, plaintext);
     boot_display.update_progress_bar(80);
-    let data_len=result?;
+    let data_len = result?;
     ad.qr.outgoing.buffer[..data_len].copy_from_slice(&plaintext[..data_len]);
-    ad.qr.outgoing.length=data_len; ad.qr.outgoing.frame=0; ad.qr.outgoing.frame_count=0; ad.qr.presentation.large=false;
-    ad.signing.transaction.signatures_present=0; ad.signing.transaction.signatures_required=0;
-    log!("[SD-KSPT] Decrypted {} bytes",data_len); Ok(data_len)
+    ad.qr.outgoing.length = data_len;
+    ad.qr.outgoing.frame = 0;
+    ad.qr.outgoing.frame_count = 0;
+    ad.qr.presentation.large = false;
+    ad.signing.transaction.signatures_present = 0;
+    ad.signing.transaction.signatures_required = 0;
+    log!("[SD-KSPT] Decrypted {} bytes", data_len);
+    Ok(data_len)
 }
-
 
 #[cfg(test)]
 mod unit_tests;
 
 #[cfg(feature = "workflow-test-auto")]
-pub(crate) fn workflow_seal_envelope(
-    data: &[u8],
-    passphrase: &[u8],
-    output: &mut [u8],
-) -> Result<usize, ()> {
+pub(crate) fn workflow_seal_envelope(data: &[u8], passphrase: &[u8], output: &mut [u8]) -> Result<usize, ()> {
     const SALT: [u8; SALT_SIZE] = [0x41; SALT_SIZE];
     const NONCE: [u8; NONCE_LEN] = [0x52; NONCE_LEN];
     seal_envelope(data, passphrase, &SALT, &NONCE, output)

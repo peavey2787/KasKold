@@ -34,6 +34,5 @@ pub(super) fn encode(data: &[u8], ec_count: usize, ec_out: &mut [u8]) {
         }
     }
 
-    ec_out[..ec_count]
-        .copy_from_slice(&remainder[data.len()..data.len() + ec_count]);
+    ec_out[..ec_count].copy_from_slice(&remainder[data.len()..data.len() + ec_count]);
 }

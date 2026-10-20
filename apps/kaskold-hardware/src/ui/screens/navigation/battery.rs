@@ -15,19 +15,8 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use super::super::{
-    BootDisplay,
-    COLOR_DANGER,
-    COLOR_ORANGE,
-    COLOR_TEXT,
-    Drawable,
-    KASPA_TEAL,
-    Point,
-    Primitive,
-    PrimitiveStyle,
-    Rectangle,
-    Size,
-    draw_lato_hint,
-    measure_hint,
+    draw_lato_hint, measure_hint, BootDisplay, Drawable, Point, Primitive, PrimitiveStyle, Rectangle, Size,
+    COLOR_DANGER, COLOR_ORANGE, COLOR_TEXT, KASPA_TEAL,
 };
 
 impl<'a> BootDisplay<'a> {
@@ -42,11 +31,13 @@ impl<'a> BootDisplay<'a> {
         // Outline — white
         Rectangle::new(Point::new(bx, by), Size::new(bw, bh))
             .into_styled(PrimitiveStyle::with_stroke(COLOR_TEXT, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         // Tip
         Rectangle::new(Point::new(bx + bw as i32, by + 3), Size::new(2, 6))
             .into_styled(PrimitiveStyle::with_fill(COLOR_TEXT))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         // Fill level
         let inner_w = bw - 2;
@@ -62,12 +53,12 @@ impl<'a> BootDisplay<'a> {
         };
         Rectangle::new(Point::new(bx + 1, by + 1), Size::new(fill_w, bh - 2))
             .into_styled(PrimitiveStyle::with_fill(fill_color))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         // Percentage text — white, shifted left
         let mut pct_buf: heapless::String<8> = heapless::String::new();
-        core::fmt::Write::write_fmt(&mut pct_buf,
-            format_args!("{}%", percentage.min(100))).ok();
+        core::fmt::Write::write_fmt(&mut pct_buf, format_args!("{}%", percentage.min(100))).ok();
         let pct_w = measure_hint(pct_buf.as_str());
         let tx = bx - pct_w - 6;
         draw_lato_hint(&mut self.display, &pct_buf, tx, by + 11, COLOR_TEXT);

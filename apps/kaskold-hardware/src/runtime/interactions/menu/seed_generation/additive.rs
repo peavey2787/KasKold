@@ -3,9 +3,8 @@
 use crate::{
     runtime::data::AppData,
     ui::screens::device::persistence::{
-        ADD_DICE_BUTTON_Y, ADD_TOUCH_BUTTON_Y, BUTTON_X, DICE_100_BUTTON_Y,
-        DICE_200_BUTTON_Y, DICE_25_BUTTON_Y, DICE_50_BUTTON_Y, NO_DICE_BUTTON_Y,
-        NO_TOUCH_BUTTON_Y,
+        ADD_DICE_BUTTON_Y, ADD_TOUCH_BUTTON_Y, BUTTON_X, DICE_100_BUTTON_Y, DICE_200_BUTTON_Y, DICE_25_BUTTON_Y,
+        DICE_50_BUTTON_Y, NO_DICE_BUTTON_Y, NO_TOUCH_BUTTON_Y,
     },
     wallet::mnemonic,
 };
@@ -15,7 +14,9 @@ pub(super) fn handle_dice_choice(ad: &mut AppData, x: u16, y: u16, is_back: bool
         restart_generation(ad);
         return true;
     }
-    if !BUTTON_X.contains(&x) { return false; }
+    if !BUTTON_X.contains(&x) {
+        return false;
+    }
     if NO_DICE_BUTTON_Y.contains(&y) {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageSeedTouchChoice));
     } else if ADD_DICE_BUTTON_Y.contains(&y) {
@@ -31,16 +32,22 @@ pub(super) fn handle_dice_count(ad: &mut AppData, x: u16, y: u16, is_back: bool)
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageSeedDiceChoice));
         return true;
     }
-    if !BUTTON_X.contains(&x) { return false; }
+    if !BUTTON_X.contains(&x) {
+        return false;
+    }
     let targets = shared_signer::creation_flow::DICE_ROLL_TARGETS;
-    let target = if DICE_25_BUTTON_Y.contains(&y) { targets[0] }
-        else if DICE_50_BUTTON_Y.contains(&y) { targets[1] }
-        else if DICE_100_BUTTON_Y.contains(&y) { targets[2] }
-        else if DICE_200_BUTTON_Y.contains(&y) { targets[3] }
-        else { return false; };
-    if !ad.wallet.seeds.pending_seed_entropy_valid
-        || !ad.wallet.seeds.dice_collector.configure_target(target)
-    {
+    let target = if DICE_25_BUTTON_Y.contains(&y) {
+        targets[0]
+    } else if DICE_50_BUTTON_Y.contains(&y) {
+        targets[1]
+    } else if DICE_100_BUTTON_Y.contains(&y) {
+        targets[2]
+    } else if DICE_200_BUTTON_Y.contains(&y) {
+        targets[3]
+    } else {
+        return false;
+    };
+    if !ad.wallet.seeds.pending_seed_entropy_valid || !ad.wallet.seeds.dice_collector.configure_target(target) {
         restart_generation(ad);
         return true;
     }
@@ -53,7 +60,9 @@ pub(super) fn handle_touch_choice(ad: &mut AppData, x: u16, y: u16, is_back: boo
         restart_generation(ad);
         return true;
     }
-    if !BUTTON_X.contains(&x) { return false; }
+    if !BUTTON_X.contains(&x) {
+        return false;
+    }
     if NO_TOUCH_BUTTON_Y.contains(&y) {
         if !super::finalize_staged_entropy(ad) {
             restart_generation(ad);
@@ -72,7 +81,9 @@ pub(super) fn handle_touch_choice(ad: &mut AppData, x: u16, y: u16, is_back: boo
 }
 
 pub(crate) fn mix_dice_into_staged(ad: &mut AppData, dice: &mut mnemonic::DiceCollector) -> bool {
-    if !ad.wallet.seeds.pending_seed_entropy_valid || !dice.is_complete() { return false; }
+    if !ad.wallet.seeds.pending_seed_entropy_valid || !dice.is_complete() {
+        return false;
+    }
     let mixed = crate::services::entropy::mix_additive_dice(
         &mut ad.wallet.seeds.pending_seed_entropy,
         &dice.rolls[..dice.count],

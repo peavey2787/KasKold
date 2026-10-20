@@ -4,8 +4,8 @@
 //! receives only a 32-byte stretched credential and mixes it with the
 //! non-exportable device HMAC key. The device secret is never exposed.
 
-use offline_signer::crypto::device_bound_storage::{NONCE_SIZE, StoragePurpose, TAG_SIZE};
 use crate::services::credential_policy::SALT_SIZE;
+use offline_signer::crypto::device_bound_storage::{StoragePurpose, NONCE_SIZE, TAG_SIZE};
 
 use super::BackupError;
 
@@ -42,8 +42,7 @@ impl BackupDevice for crate::services::persistent_wallet::PersistentWallet<'_> {
         aad: &[u8],
         ciphertext: &mut [u8],
     ) -> Result<[u8; TAG_SIZE], BackupError> {
-        self.seal_backup_key(purpose, credential_key, salt, nonce, aad, ciphertext)
-            .map_err(map_persist_error)
+        self.seal_backup_key(purpose, credential_key, salt, nonce, aad, ciphertext).map_err(map_persist_error)
     }
 
     fn open_backup_key(
@@ -56,8 +55,7 @@ impl BackupDevice for crate::services::persistent_wallet::PersistentWallet<'_> {
         ciphertext: &mut [u8],
         tag: &[u8; TAG_SIZE],
     ) -> Result<(), BackupError> {
-        self.open_backup_key(purpose, credential_key, salt, nonce, aad, ciphertext, tag)
-            .map_err(map_persist_error)
+        self.open_backup_key(purpose, credential_key, salt, nonce, aad, ciphertext, tag).map_err(map_persist_error)
     }
 }
 

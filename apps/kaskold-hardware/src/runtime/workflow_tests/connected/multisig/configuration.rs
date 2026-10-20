@@ -2,7 +2,9 @@ use super::MultisigContext;
 use crate::runtime::input::AppState;
 
 pub(super) fn exercise(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
-    if !multisig_kpub_export(ctx) { return false; }
+    if !multisig_kpub_export(ctx) {
+        return false;
+    }
     let first = ctx.list[0];
     if ctx.menu_touch(first.x + first.w / 2, first.y + first.h / 2, false) != Some(true)
         || ctx.ad.navigation.app.state != AppState::MultisigChooseMN
@@ -28,18 +30,34 @@ pub(super) fn exercise(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
 }
 
 fn minimum_boundaries(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
-    if ctx.tx_touch(85, 84, false) != Some(true) || ctx.ad.signing.multisig.threshold != 1 { return false; }
-    if ctx.tx_touch(85, 84, false) != Some(false) || ctx.ad.signing.multisig.threshold != 1 { return false; }
-    if !drive_participant_count(ctx, 1) { return false; }
+    if ctx.tx_touch(85, 84, false) != Some(true) || ctx.ad.signing.multisig.threshold != 1 {
+        return false;
+    }
+    if ctx.tx_touch(85, 84, false) != Some(false) || ctx.ad.signing.multisig.threshold != 1 {
+        return false;
+    }
+    if !drive_participant_count(ctx, 1) {
+        return false;
+    }
     ctx.tx_touch(85, 144, false) == Some(false) && ctx.ad.signing.multisig.participant_count == 1
 }
 
 fn maximum_and_clamp(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
-    if !drive_participant_count(ctx, 5) { return false; }
-    if ctx.tx_touch(235, 144, false) != Some(false) { return false; }
-    if !drive_threshold(ctx, 5) { return false; }
-    if ctx.tx_touch(235, 84, false) != Some(false) { return false; }
-    if ctx.tx_touch(85, 144, false) != Some(true) { return false; }
+    if !drive_participant_count(ctx, 5) {
+        return false;
+    }
+    if ctx.tx_touch(235, 144, false) != Some(false) {
+        return false;
+    }
+    if !drive_threshold(ctx, 5) {
+        return false;
+    }
+    if ctx.tx_touch(235, 84, false) != Some(false) {
+        return false;
+    }
+    if ctx.tx_touch(85, 144, false) != Some(true) {
+        return false;
+    }
     ctx.ad.signing.multisig.participant_count == 4 && ctx.ad.signing.multisig.threshold == 4
 }
 
@@ -53,9 +71,13 @@ fn reset_to_two_of_three(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
 fn drive_participant_count(ctx: &mut MultisigContext<'_, '_, '_>, target: u8) -> bool {
     for _ in 0..5 {
         let current = ctx.ad.signing.multisig.participant_count;
-        if current == target { return true; }
+        if current == target {
+            return true;
+        }
         let (x, expected_direction) = if current < target { (235, 1i8) } else { (85, -1i8) };
-        if ctx.tx_touch(x, 144, false) != Some(true) { return false; }
+        if ctx.tx_touch(x, 144, false) != Some(true) {
+            return false;
+        }
         let next = ctx.ad.signing.multisig.participant_count;
         if (expected_direction > 0 && next <= current) || (expected_direction < 0 && next >= current) {
             return false;
@@ -67,9 +89,13 @@ fn drive_participant_count(ctx: &mut MultisigContext<'_, '_, '_>, target: u8) ->
 fn drive_threshold(ctx: &mut MultisigContext<'_, '_, '_>, target: u8) -> bool {
     for _ in 0..5 {
         let current = ctx.ad.signing.multisig.threshold;
-        if current == target { return true; }
+        if current == target {
+            return true;
+        }
         let (x, expected_direction) = if current < target { (235, 1i8) } else { (85, -1i8) };
-        if ctx.tx_touch(x, 84, false) != Some(true) { return false; }
+        if ctx.tx_touch(x, 84, false) != Some(true) {
+            return false;
+        }
         let next = ctx.ad.signing.multisig.threshold;
         if (expected_direction > 0 && next <= current) || (expected_direction < 0 && next >= current) {
             return false;
@@ -92,8 +118,14 @@ fn multisig_kpub_export(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if ctx.export_touch(160, 120, false) != Some(true) || ctx.ad.navigation.app.state != AppState::ExportKpubPopup { return false; }
-    if ctx.export_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigMenu { return false; }
+    if ctx.export_screen_touch(160, 120, false) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::ExportKpubPopup
+    {
+        return false;
+    }
+    if ctx.export_screen_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigMenu {
+        return false;
+    }
     log!("KASKOLD_WORKFLOW_TESTS: MULTISIG KPUB EXPORT/POPUP/BACK PASS");
     true
 }

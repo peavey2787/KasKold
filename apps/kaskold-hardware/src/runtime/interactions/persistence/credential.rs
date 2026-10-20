@@ -1,22 +1,21 @@
 //! Credential creation and authenticated wallet unlock.
 
+use super::super::TouchInput;
+use crate::services::credential_policy::{confirmation_digest, confirmation_matches, validate};
 use crate::{
     hw::display::BootDisplay,
-    runtime::{data::{AppData, DeviceStorageIntent}, input::AppState},
+    runtime::{
+        data::{AppData, DeviceStorageIntent},
+        input::AppState,
+    },
     services::persistent_wallet::CredentialKind,
     ui::{
-        keyboard::{KeyAction, KeyboardMode, hit_test},
-        screens::device::persistence::{BUTTON_X, PASSWORD_BUTTON_Y, PIN_BUTTON_Y, PinPadAction, pin_pad_action},
+        keyboard::{hit_test, KeyAction, KeyboardMode},
+        screens::device::persistence::{pin_pad_action, PinPadAction, BUTTON_X, PASSWORD_BUTTON_Y, PIN_BUTTON_Y},
     },
 };
-use crate::services::credential_policy::{confirmation_digest, confirmation_matches, validate};
-use super::super::TouchInput;
 
-pub(super) fn handle(
-    input: TouchInput,
-    ad: &mut AppData,
-    display: &mut BootDisplay<'_>,
-) -> Option<bool> {
+pub(super) fn handle(input: TouchInput, ad: &mut AppData, display: &mut BootDisplay<'_>) -> Option<bool> {
     match ad.navigation.app.state {
         AppState::StorageCredentialType => handle_credential_type(input, ad),
         AppState::StoragePinEntry => handle_setup_entry(input, ad, CredentialKind::Pin, false, display),
@@ -54,7 +53,9 @@ fn handle_credential_type(input: TouchInput, ad: &mut AppData) -> Option<bool> {
         crate::runtime::effects::route(ad, route);
         return Some(true);
     }
-    if !BUTTON_X.contains(&input.x) { return None; }
+    if !BUTTON_X.contains(&input.x) {
+        return None;
+    }
     let kind = if PIN_BUTTON_Y.contains(&input.y) {
         CredentialKind::Pin
     } else if PASSWORD_BUTTON_Y.contains(&input.y) {
@@ -97,9 +98,7 @@ fn handle_setup_entry(
             let secret = &ad.wallet.seeds.pp_input.buf[..ad.wallet.seeds.pp_input.len];
             if let Err(error) = validate(kind, secret) {
                 let persist_error = crate::services::persistent_wallet::PersistError::from(error);
-                crate::runtime::presentation::show_recoverable_error(
-                    ad, persist_error.message(), "CRED-VALID-01", 0,
-                );
+                crate::runtime::presentation::show_recoverable_error(ad, persist_error.message(), "CRED-VALID-01", 0);
                 return Some(true);
             }
             let digest = confirmation_digest(kind, secret);
@@ -115,7 +114,11 @@ fn handle_setup_entry(
             {
                 reset_confirmation_for_retry(ad, kind);
                 crate::runtime::presentation::show_recoverable_error_to(
-                    ad, entry_state(kind), "Credentials do not match", "CRED-MATCH-01", 0,
+                    ad,
+                    entry_state(kind),
+                    "Credentials do not match",
+                    "CRED-MATCH-01",
+                    0,
                 );
                 return Some(true);
             }
@@ -123,10 +126,17 @@ fn handle_setup_entry(
             // ordering machine. A failed save returns to a clean first-entry
             // screen rather than the now-empty confirmation screen.
             let queued = crate::runtime::presentation::start_credential_operation(
-                ad, operation_kind(kind, false), entry_state(kind),
+                ad,
+                operation_kind(kind, false),
+                entry_state(kind),
             );
             if !queued {
-                crate::runtime::presentation::show_recoverable_error(ad, "Another operation is active", "UI-BUSY-01", 0);
+                crate::runtime::presentation::show_recoverable_error(
+                    ad,
+                    "Another operation is active",
+                    "UI-BUSY-01",
+                    0,
+                );
             }
             Some(true)
         }
@@ -151,7 +161,9 @@ fn setup_back(ad: &mut AppData, kind: CredentialKind, confirming: bool) -> Optio
 
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) fn workflow_handle_setup_back(input: TouchInput, ad: &mut AppData) -> Option<bool> {
-    if !input.is_back { return None; }
+    if !input.is_back {
+        return None;
+    }
     match ad.navigation.app.state {
         AppState::StoragePinEntry => setup_back(ad, CredentialKind::Pin, false),
         AppState::StoragePinConfirm => setup_back(ad, CredentialKind::Pin, true),
@@ -169,7 +181,9 @@ fn handle_unlock(
 ) -> Option<bool> {
     // Unlock cannot be bypassed with Back/Home. Successful authenticated
     // decryption is the only route to wallet state.
-    if let Some(blocked) = unlock_navigation_guard(input) { return Some(blocked); }
+    if let Some(blocked) = unlock_navigation_guard(input) {
+        return Some(blocked);
+    }
     match edit_secret(input, ad, kind, display) {
         // Unlock owns the complete touch surface, including misses.
         SecretAction::None => Some(false),
@@ -185,10 +199,17 @@ fn handle_unlock(
             // carried separately as an opaque ContinuationRoute and consumed only
             // after authenticated unlock succeeds. Do not mix those route types.
             let queued = crate::runtime::presentation::start_credential_operation(
-                ad, operation_kind(kind, true), unlock_state(kind),
+                ad,
+                operation_kind(kind, true),
+                unlock_state(kind),
             );
             if !queued {
-                crate::runtime::presentation::show_recoverable_error(ad, "Another operation is active", "UI-BUSY-01", 0);
+                crate::runtime::presentation::show_recoverable_error(
+                    ad,
+                    "Another operation is active",
+                    "UI-BUSY-01",
+                    0,
+                );
             }
             Some(true)
         }
@@ -209,7 +230,6 @@ fn operation_kind(kind: CredentialKind, unlock: bool) -> crate::runtime::data::O
         (CredentialKind::Password, true) => crate::runtime::data::OperationKind::UnlockWalletPassword,
     }
 }
-
 
 fn unlock_navigation_guard(input: TouchInput) -> Option<bool> {
     input.is_back.then_some(false)
@@ -234,9 +254,12 @@ pub(crate) fn workflow_unlock_back_guard(state: AppState) -> bool {
         && unlock_navigation_guard(TouchInput::new(20, 20, true)) == Some(false)
 }
 
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum SecretAction { None, Edited, Submitted }
+enum SecretAction {
+    None,
+    Edited,
+    Submitted,
+}
 
 fn edit_secret(
     input: TouchInput,
@@ -256,7 +279,9 @@ fn edit_pin_secret(input: TouchInput, ad: &mut AppData, display: &mut BootDispla
         None => return SecretAction::None,
     };
     let reveal = setup_entry_is_visible(ad.navigation.app.state);
-    if !matches!(action, PinPadAction::Submit) { crate::services::audio::click(); }
+    if !matches!(action, PinPadAction::Submit) {
+        crate::services::audio::click();
+    }
     let pp = &mut ad.wallet.seeds.pp_input;
     match action {
         PinPadAction::Digit(digit) if pp.len < 12 => pp.push_char(digit),
@@ -270,13 +295,11 @@ fn edit_pin_secret(input: TouchInput, ad: &mut AppData, display: &mut BootDispla
     SecretAction::Edited
 }
 
-fn edit_password_secret(
-    input: TouchInput,
-    ad: &mut AppData,
-    display: &mut BootDisplay<'_>,
-) -> SecretAction {
+fn edit_password_secret(input: TouchInput, ad: &mut AppData, display: &mut BootDisplay<'_>) -> SecretAction {
     let action = hit_test(input.x, input.y, KeyboardMode::Full, ad.wallet.seeds.pp_input.page);
-    if !matches!(action, KeyAction::None | KeyAction::Ok) { crate::services::audio::click(); }
+    if !matches!(action, KeyAction::None | KeyAction::Ok) {
+        crate::services::audio::click();
+    }
     let pp = &mut ad.wallet.seeds.pp_input;
     match action {
         KeyAction::Char(character) => pp.push_char(character),

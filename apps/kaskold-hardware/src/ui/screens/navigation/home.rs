@@ -15,28 +15,10 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use super::super::{
-    BootDisplay,
-    COLOR_BG,
-    COLOR_CARD,
-    COLOR_TEXT,
-    CornerRadii,
-    DrawTarget,
-    Drawable,
-    KASPA_TEAL,
-    Line,
-    Point,
-    Primitive,
-    PrimitiveStyle,
-    Rectangle,
-    Rgb565,
-    RoundedRectangle,
-    Size,
-    draw_lato_title,
-    draw_oswald_header,
-    measure_header,
-    measure_title,
+    draw_lato_title, draw_oswald_header, measure_header, measure_title, BootDisplay, CornerRadii, DrawTarget, Drawable,
+    Line, Point, Primitive, PrimitiveStyle, Rectangle, Rgb565, RoundedRectangle, Size, COLOR_BG, COLOR_CARD,
+    COLOR_TEXT, KASPA_TEAL,
 };
-
 
 fn draw_rgb565_with_black_transparency<D: DrawTarget<Color = Rgb565>>(
     display: &mut D,
@@ -52,11 +34,7 @@ fn draw_rgb565_with_black_transparency<D: DrawTarget<Color = Rgb565>>(
         if raw == 0 {
             return None;
         }
-        let color = Rgb565::new(
-            ((raw >> 11) & 0x1f) as u8,
-            ((raw >> 5) & 0x3f) as u8,
-            (raw & 0x1f) as u8,
-        );
+        let color = Rgb565::new(((raw >> 11) & 0x1f) as u8, ((raw >> 5) & 0x3f) as u8, (raw & 0x1f) as u8);
         let x = (index as u32 % width) as i32;
         let y = (index as u32 / width) as i32;
         if y >= height as i32 {
@@ -77,12 +55,12 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, title, (320 - tw) / 2, 30, COLOR_TEXT);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         // Top-left boot-trust indicator: white = signed/software verified,
         // teal = Secure-Boot-V2 eFuse enforced, red X = neither.
         crate::ui::display::draw_security_badge(&mut self.display);
-
 
         // Icon raw data (56x56 RGB565 little-endian).
         // Home-card icons are generated from the source PNG assets with pure-black backgrounds so black pixels render as transparent on the black cards.
@@ -105,10 +83,12 @@ impl<'a> BootDisplay<'a> {
             // Rounded card background
             RoundedRectangle::new(Rectangle::new(Point::new(px, py), Size::new(card_w, card_h)), corner)
                 .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
             RoundedRectangle::new(Rectangle::new(Point::new(px, py), Size::new(card_w, card_h)), corner)
                 .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
 
             // Icon (56x56) centered horizontally in card
             let icon_pos = Point::new(px + 46, py + 2);
@@ -120,7 +100,6 @@ impl<'a> BootDisplay<'a> {
             let lx = px + (card_w as i32 - lw) / 2;
             draw_lato_title(&mut self.display, label, lx, py + 80, COLOR_TEXT);
         }
-
     }
 
     #[cfg(feature = "m5stack")]
@@ -130,7 +109,9 @@ impl<'a> BootDisplay<'a> {
         static ICON_MUTE: &[u8] = include_bytes!("../../../../assets/icon_mute_24.raw");
         static ICON_AUDIO: &[u8] = include_bytes!("../../../../assets/icon_audio_24.raw");
 
-        let Some(zone) = crate::ui::layout::audio_toggle_zone(state) else { return; };
+        let Some(zone) = crate::ui::layout::audio_toggle_zone(state) else {
+            return;
+        };
         // Keep the generous 40x40 touch target, but render a 30x30 control to
         // match the trust/Home navigation icons and stay above separator lines.
         const VISUAL_SIZE: u32 = 30;
@@ -139,13 +120,14 @@ impl<'a> BootDisplay<'a> {
         let rect = Rectangle::new(Point::new(px, py), Size::new(VISUAL_SIZE, VISUAL_SIZE));
         RoundedRectangle::new(rect, CornerRadii::new(Size::new(7, 7)))
             .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(rect, CornerRadii::new(Size::new(7, 7)))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         let raw_icon: ImageRawLE<Rgb565> = ImageRawLE::new(if audio_muted { ICON_MUTE } else { ICON_AUDIO }, 24);
-        Image::new(&raw_icon, Point::new(px + 3, py + 3))
-            .draw(&mut self.display).ok();
+        Image::new(&raw_icon, Point::new(px + 3, py + 3)).draw(&mut self.display).ok();
     }
 }

@@ -39,17 +39,10 @@ pub(super) struct DeviceFlash<'d> {
 
 impl<'d> DeviceFlash<'d> {
     pub fn new(peripheral: FLASH<'d>) -> Self {
-        Self {
-            _flash: peripheral,
-            unlocked: false,
-        }
+        Self { _flash: peripheral, unlocked: false }
     }
 
-    pub fn read<const N: usize>(
-        &mut self,
-        address: u32,
-        out: &mut AlignedBytes<N>,
-    ) -> Result<(), FlashError> {
+    pub fn read<const N: usize>(&mut self, address: u32, out: &mut AlignedBytes<N>) -> Result<(), FlashError> {
         raw_flash::read_into(address, out).map_err(map_io_error)
     }
 
@@ -65,22 +58,14 @@ impl<'d> DeviceFlash<'d> {
     // LTO otherwise tends to merge the caller's 4 KiB wallet record with the
     // second 4 KiB read-back buffer and can exceed the first-party stack gate.
     #[inline(never)]
-    pub fn replace_sector<const N: usize>(
-        &mut self,
-        address: u32,
-        data: &AlignedBytes<N>,
-    ) -> Result<(), FlashError> {
+    pub fn replace_sector<const N: usize>(&mut self, address: u32, data: &AlignedBytes<N>) -> Result<(), FlashError> {
         validate_sector_write::<N>(address)?;
         self.erase_sector(address)?;
         self.write_aligned(address, data)?;
         self.verify(address, data)
     }
 
-    fn write_aligned<const N: usize>(
-        &mut self,
-        address: u32,
-        data: &AlignedBytes<N>,
-    ) -> Result<(), FlashError> {
+    fn write_aligned<const N: usize>(&mut self, address: u32, data: &AlignedBytes<N>) -> Result<(), FlashError> {
         raw_flash::with_other_core_parked(|| {
             self.unlock_once()?;
             raw_flash::write(address, data).map_err(map_io_error)
@@ -88,11 +73,7 @@ impl<'d> DeviceFlash<'d> {
     }
 
     #[inline(never)]
-    fn verify<const N: usize>(
-        &mut self,
-        address: u32,
-        expected: &AlignedBytes<N>,
-    ) -> Result<(), FlashError> {
+    fn verify<const N: usize>(&mut self, address: u32, expected: &AlignedBytes<N>) -> Result<(), FlashError> {
         let mut actual = AlignedBytes::<N>::zeroed();
         self.read(address, &mut actual)?;
         if actual.0 == expected.0 {

@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 use super::super::{BootDisplay, KASPA_ACCENT};
 
 impl<'a> BootDisplay<'a> {
@@ -24,8 +23,15 @@ impl<'a> BootDisplay<'a> {
     }
 
     /// Draw confirm send screen with multisig signature status
-    pub fn draw_confirm_send_multisig(&mut self, amount_str: &str, fee_str: &str, change_str: &str,
-                                       destination: &str, sigs_present: u32, sigs_required: u32) {
+    pub fn draw_confirm_send_multisig(
+        &mut self,
+        amount_str: &str,
+        fee_str: &str,
+        change_str: &str,
+        destination: &str,
+        sigs_present: u32,
+        sigs_required: u32,
+    ) {
         self.draw_send_confirmation_layout("CONFIRM MULTISIG", amount_str, fee_str, change_str, destination);
         let mut sig_buf: heapless::String<32> = heapless::String::new();
         core::fmt::Write::write_fmt(&mut sig_buf, format_args!("Sigs: {sigs_present}/{sigs_required}")).ok();
@@ -38,13 +44,6 @@ impl<'a> BootDisplay<'a> {
     /// "CONFIRM COVENANT?" header so the user knows they are
     /// spending from a covenant address.
     pub fn draw_confirm_send_covenant(&mut self, amount_str: &str, fee_str: &str, change_str: &str, destination: &str) {
-        self.draw_send_confirmation_layout(
-            "CONFIRM COVENANT",
-            amount_str,
-            fee_str,
-            change_str,
-            destination,
-        );
+        self.draw_send_confirmation_layout("CONFIRM COVENANT", amount_str, fee_str, change_str, destination);
     }
-
 }

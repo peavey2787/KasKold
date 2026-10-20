@@ -4,8 +4,8 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     hw::display::BootDisplay,
-    runtime::{data::AppData, input::AppState},
     runtime::interactions::TouchInput,
+    runtime::{data::AppData, input::AppState},
     services::{
         persistent_wallet::{PersistError, PersistentWallet},
         storage_device as sdcard,
@@ -107,8 +107,7 @@ fn normalized_matches(actual: &[u8], expected: &[u8]) -> bool {
     let mut normalized_expected = [0u8; 16];
     let actual_len = normalize_phrase(actual, &mut normalized_actual);
     let expected_len = normalize_phrase(expected, &mut normalized_expected);
-    actual_len == expected_len
-        && normalized_actual[..actual_len] == normalized_expected[..expected_len]
+    actual_len == expected_len && normalized_actual[..actual_len] == normalized_expected[..expected_len]
 }
 
 fn normalize_phrase(input: &[u8], output: &mut [u8; 16]) -> usize {
@@ -143,9 +142,7 @@ fn execute_enroll(
     }
 
     let mut record = [0u8; OWNER_KEY_SIZE];
-    if let Err(error) = sdcard::with_sd_card!(i2c, delay, |card| {
-        read_named(card, &OWNER_KEY_FILE, &mut record)
-    }) {
+    if let Err(error) = sdcard::with_sd_card!(i2c, delay, |card| { read_named(card, &OWNER_KEY_FILE, &mut record) }) {
         ad.pop_it.error = Some(error);
         return Some(true);
     }
@@ -194,20 +191,18 @@ fn execute_install(
         return Some(false);
     }
 
-    let Ok(mut image) = crate::services::memory::psram::PsramAllocation::allocate(OWNER_FW_MAX, 8)
-    else {
+    let Ok(mut image) = crate::services::memory::psram::PsramAllocation::allocate(OWNER_FW_MAX, 8) else {
         ad.pop_it.error = Some("Not enough PSRAM for owner firmware");
         return Some(true);
     };
-    let length = match sdcard::with_sd_card!(i2c, delay, |card| {
-        read_named(card, &OWNER_FW_FILE, image.as_mut_bytes())
-    }) {
-        Ok(length) => length,
-        Err(error) => {
-            ad.pop_it.error = Some(error);
-            return Some(true);
-        }
-    };
+    let length =
+        match sdcard::with_sd_card!(i2c, delay, |card| { read_named(card, &OWNER_FW_FILE, image.as_mut_bytes()) }) {
+            Ok(length) => length,
+            Err(error) => {
+                ad.pop_it.error = Some(error);
+                return Some(true);
+            }
+        };
     if length == 0 || length > OWNER_FW_MAX {
         ad.pop_it.error = Some(PersistError::OwnerFirmwareInvalid.message());
         return Some(true);
@@ -246,11 +241,7 @@ fn execute_install(
     }
 }
 
-fn read_named(
-    card: sdcard::SdCardType,
-    name: &[u8; 11],
-    output: &mut [u8],
-) -> Result<usize, &'static str> {
+fn read_named(card: sdcard::SdCardType, name: &[u8; 11], output: &mut [u8]) -> Result<usize, &'static str> {
     let fat = sdcard::mount_fat32(card)?;
     let (entry, _, _) = sdcard::find_file_in_root(card, &fat, name)?;
     if entry.file_size as usize > output.len() {

@@ -1,4 +1,4 @@
-use super::{FirmwareInfo, VerificationResult, constant_time, embedded_firmware_signature};
+use super::{constant_time, embedded_firmware_signature, FirmwareInfo, VerificationResult};
 
 impl FirmwareInfo {
     pub(super) fn verify_signature(&self) -> VerificationResult {
@@ -12,9 +12,7 @@ impl FirmwareInfo {
             return VerificationResult::InvalidSignature;
         }
 
-        let sig = offline_signer::crypto::schnorr::SchnorrSignature {
-            bytes: embedded_firmware_signature(),
-        };
+        let sig = offline_signer::crypto::schnorr::SchnorrSignature { bytes: embedded_firmware_signature() };
         match offline_signer::crypto::schnorr::schnorr_verify(pubkey, &self.expected_hash, &sig) {
             Ok(()) => VerificationResult::Valid,
             Err(_) => {

@@ -23,7 +23,9 @@ impl ScreenDimTimeout {
         }
     }
 
-    pub const fn code(self) -> u8 { self as u8 }
+    pub const fn code(self) -> u8 {
+        self as u8
+    }
 
     pub const fn next(self) -> Self {
         match self {
@@ -68,4 +70,3 @@ impl ScreenDimTimeout {
         }
     }
 }
-

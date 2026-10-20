@@ -16,34 +16,26 @@
 
 // controllers/menu.rs — Touch handlers for MainMenu and Wallet navigation
 
-use crate::{runtime::interactions::TouchInput, runtime::data::AppData, hw::display, hw::touch};
-use esp_hal::{dma::DmaRxBuf, lcd_cam::cam::Camera as DvpCamera};
+use crate::{hw::display, hw::touch, runtime::data::AppData, runtime::interactions::TouchInput};
 
-pub(crate) mod primary;
-pub(crate) mod seed_tools;
-pub(crate) mod seed_generation;
+mod context;
 mod import_export;
-mod signing;
+pub(crate) mod primary;
 mod qr;
-pub struct MenuTouchContext<'ctx, 'display, 'hal, 'camera> {
-    pub ad: &'ctx mut AppData,
-    pub boot_display: &'ctx mut display::BootDisplay<'display>,
-    pub delay: &'ctx mut esp_hal::delay::Delay,
-    pub liveness: &'ctx mut dyn FnMut(),
-    pub i2c: &'ctx mut esp_hal::i2c::master::I2c<'hal, esp_hal::Blocking>,
-    pub sd_card_type: &'ctx Option<crate::services::storage_device::SdCardType>,
-    pub dvp_camera_opt: &'ctx mut Option<DvpCamera<'camera>>,
-    pub cam_dma_buf_opt: &'ctx mut Option<DmaRxBuf>,
-    pub list_zones: &'ctx [touch::TouchZone; 4],
-    pub page_up_zone: &'ctx touch::TouchZone,
-    pub page_down_zone: &'ctx touch::TouchZone,
-    pub input: TouchInput,
-}
+pub(crate) mod seed_generation;
+pub(crate) mod seed_tools;
+mod signing;
+
+pub use context::MenuTouchContext;
 
 /// Route navigation-only Main/Seeds/Tools states without hardware ownership.
 pub fn handle_navigation_touch(
-    ad: &mut AppData, grid_zones: &[touch::TouchZone; 4], list_zones: &[touch::TouchZone; 4],
-    page_up_zone: &touch::TouchZone, page_down_zone: &touch::TouchZone, input: TouchInput,
+    ad: &mut AppData,
+    grid_zones: &[touch::TouchZone; 4],
+    list_zones: &[touch::TouchZone; 4],
+    page_up_zone: &touch::TouchZone,
+    page_down_zone: &touch::TouchZone,
+    input: TouchInput,
 ) -> Option<bool> {
     primary::handle_navigation_touch(ad, grid_zones, list_zones, page_up_zone, page_down_zone, input)
 }
@@ -56,26 +48,31 @@ pub fn handle_root_touch(ad: &mut AppData, x: u16, y: u16) -> bool {
 /// declined the event.
 #[inline(never)]
 pub fn handle_menu_touch(context: MenuTouchContext<'_, '_, '_, '_>) -> Option<bool> {
-    let MenuTouchContext {
-        ad,
-        boot_display,
-        delay,
-        liveness,
-        i2c,
-        sd_card_type,
-        dvp_camera_opt,
-        cam_dma_buf_opt,
-        list_zones,
-        page_up_zone,
-        page_down_zone,
-        input,
-    } = context;
+    let MenuTouchContext { ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones, .. } = context;
+    let MenuTouchContext { dvp_camera_opt: camera, cam_dma_buf_opt: dma, page_up_zone, page_down_zone, input, .. } =
+        context;
     let TouchInput { x, y, is_back } = input;
-    if let Some(result) = seed_tools::handle(ad, boot_display, delay, liveness, list_zones, page_up_zone, page_down_zone, x, y, is_back) { return Some(result); }
-    if let Some(result) = seed_generation::handle(ad, boot_display, delay, liveness, i2c, sd_card_type, dvp_camera_opt, cam_dma_buf_opt, x, y, is_back) { return Some(result); }
-    if let Some(result) = import_export::handle(ad, boot_display, delay, i2c, list_zones, x, y, is_back) { return Some(result); }
-    if let Some(result) = signing::handle(ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones, x, y, is_back) { return Some(result); }
-    if let Some(result) = qr::handle(ad, x, y, is_back) { return Some(result); }
+    if let Some(result) =
+        seed_tools::handle(ad, boot_display, delay, liveness, list_zones, page_up_zone, page_down_zone, x, y, is_back)
+    {
+        return Some(result);
+    }
+    if let Some(result) =
+        seed_generation::handle(ad, boot_display, delay, liveness, i2c, sd_card_type, camera, dma, x, y, is_back)
+    {
+        return Some(result);
+    }
+    if let Some(result) = import_export::handle(ad, boot_display, delay, i2c, list_zones, x, y, is_back) {
+        return Some(result);
+    }
+    if let Some(result) =
+        signing::handle(ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones, x, y, is_back)
+    {
+        return Some(result);
+    }
+    if let Some(result) = qr::handle(ad, x, y, is_back) {
+        return Some(result);
+    }
     None
 }
 /// Narrow signing-menu fallback for display/progress-owning actions.

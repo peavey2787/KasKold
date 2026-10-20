@@ -37,8 +37,12 @@ macro_rules! prepare_iteration {
 
         if $ad.runtime.display_asleep {
             if $crate::runtime::power_state::handle_wake(
-                $ad, &mut $i2c, &mut $delay, &mut $tracker,
-                &mut $wake_debounce, raw_touch || is_touch,
+                $ad,
+                &mut $i2c,
+                &mut $delay,
+                &mut $tracker,
+                &mut $wake_debounce,
+                raw_touch || is_touch,
             ) {
                 $dim_active = false;
                 $crate::runtime::event_loop::runner::acknowledge(&mut $watchdog_feed);

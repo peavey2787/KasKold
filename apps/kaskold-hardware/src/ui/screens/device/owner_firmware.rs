@@ -1,9 +1,8 @@
 //! Owner-authorized firmware warnings and confirmation screens.
 
 use super::super::{
+    draw_lato_body, draw_lato_hint, draw_oswald_header, measure_body, measure_header, measure_hint, truncate_chars,
     BootDisplay, COLOR_BG, COLOR_DANGER, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_TEAL,
-    draw_lato_body, draw_lato_hint, draw_oswald_header, measure_body, measure_header,
-    measure_hint, truncate_chars,
 };
 use embedded_graphics::draw_target::DrawTarget;
 

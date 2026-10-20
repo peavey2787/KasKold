@@ -1,16 +1,15 @@
-use core::sync::atomic::{AtomicU8, AtomicU16, Ordering};
 use crate::{
-    runtime::interactions::{sd::SdTouchContext, tx::TxTouchContext},
     hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
+    runtime::interactions::{sd::SdTouchContext, tx::TxTouchContext},
     runtime::{data::AppData, input::AppState},
 };
+use core::sync::atomic::{AtomicU16, AtomicU8, Ordering};
 use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
+mod anti_klepto;
 pub(super) mod fixture;
 mod result;
 mod review;
-mod anti_klepto;
-
 
 pub(super) static FAILURE_MASK: AtomicU16 = AtomicU16::new(0);
 static STANDARD_FAILURE_STAGE: AtomicU8 = AtomicU8::new(0);
@@ -27,13 +26,16 @@ struct SigningContext<'ctx, 'display, 'hal> {
 }
 
 impl SigningContext<'_, '_, '_> {
-    fn redraw(&mut self) { super::redraw_step(self.ad, self.display, self.i2c, self.sd); }
-    fn redraw_step(&mut self) { self.redraw(); super::show_step(self.delay); }
+    fn redraw(&mut self) {
+        super::redraw_step(self.ad, self.display, self.i2c, self.sd);
+    }
+    fn redraw_step(&mut self) {
+        self.redraw();
+        super::show_step(self.delay);
+    }
     fn activate_signing_operation(&mut self) -> bool {
         #[cfg(feature = "workflow-runtime-auto")]
-        if crate::runtime::presentation::operation_phase(self.ad)
-            == crate::runtime::data::OperationPhase::Queued
-        {
+        if crate::runtime::presentation::operation_phase(self.ad) == crate::runtime::data::OperationPhase::Queued {
             self.redraw();
         }
         crate::runtime::signing::workflow_activate_signing_operation(self.ad)
@@ -41,23 +43,39 @@ impl SigningContext<'_, '_, '_> {
     fn tx_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
         let input = crate::runtime::touch_dispatch::workflow_touch_input(x, y, is_back)?;
         crate::runtime::interactions::tx::handle_tx_touch(TxTouchContext {
-            ad: &mut *self.ad, boot_display: &mut *self.display, delay: &mut *self.delay,
-            liveness: &mut || {}, i2c: &mut *self.i2c, sd_card_type: self.sd, list_zones: &self.list,
+            ad: &mut *self.ad,
+            boot_display: &mut *self.display,
+            delay: &mut *self.delay,
+            liveness: &mut || {},
+            i2c: &mut *self.i2c,
+            sd_card_type: self.sd,
+            list_zones: &self.list,
             persistent_wallet: None,
             input,
         })
     }
     fn menu_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
         crate::runtime::interactions::menu::handle_navigation_touch(
-            self.ad, &crate::ui::layout::HOME_GRID_ZONES, &self.list, &self.up, &self.down,
+            self.ad,
+            &crate::ui::layout::HOME_GRID_ZONES,
+            &self.list,
+            &self.up,
+            &self.down,
             crate::runtime::touch_dispatch::workflow_touch_input(x, y, is_back)?,
         )
     }
     fn sd_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
         crate::runtime::interactions::sd::handle_sd_touch(SdTouchContext {
-            ad: &mut *self.ad, boot_display: &mut *self.display, delay: &mut *self.delay,
-            liveness: &mut || {}, i2c: &mut *self.i2c, sd_card_type: self.sd, backup_device: &mut self.backup_device,
-            list_zones: &self.list, page_up_zone: &self.up, page_down_zone: &self.down,
+            ad: &mut *self.ad,
+            boot_display: &mut *self.display,
+            delay: &mut *self.delay,
+            liveness: &mut || {},
+            i2c: &mut *self.i2c,
+            sd_card_type: self.sd,
+            backup_device: &mut self.backup_device,
+            list_zones: &self.list,
+            page_up_zone: &self.up,
+            page_down_zone: &self.down,
             input: crate::runtime::touch_dispatch::workflow_touch_input(x, y, is_back)?,
         })
     }
@@ -68,13 +86,17 @@ impl SigningContext<'_, '_, '_> {
     }
 
     fn dismiss_scan_rejection_to_home(&mut self) -> bool {
-        if !self.dismiss_rejected_to(AppState::ScanQR) { return false; }
+        if !self.dismiss_rejected_to(AppState::ScanQR) {
+            return false;
+        }
         crate::runtime::interactions::camera_loop::route_camera_back(self.ad);
         super::root::home_ok(self.ad)
     }
 
     fn dismiss_confirm_rejection_to_home(&mut self) -> bool {
-        if !self.dismiss_rejected_to(AppState::ConfirmTx) { return false; }
+        if !self.dismiss_rejected_to(AppState::ConfirmTx) {
+            return false;
+        }
         self.tx_touch(20, 20, true) == Some(true) && super::root::home_ok(self.ad)
     }
 }
@@ -91,7 +113,17 @@ pub(super) fn exercise(
         return false;
     }
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
-    let mut ctx = SigningContext { ad, display, i2c, sd, delay, list, up, down, backup_device: super::backup::WorkflowBackupDevice };
+    let mut ctx = SigningContext {
+        ad,
+        display,
+        i2c,
+        sd,
+        delay,
+        list,
+        up,
+        down,
+        backup_device: super::backup::WorkflowBackupDevice,
+    };
     log!("KASKOLD_WORKFLOW_TESTS: SIGNING/REVIEW TRANCHE BEGIN");
     let mut summary = super::probe_status::ProbeSummary::new("SIGNING/REVIEW");
 
@@ -119,20 +151,32 @@ pub(super) fn exercise(
     let finish_ok = finish(&mut ctx);
     summary.record("FINISH-HOME", finish_ok);
     let mut failure_mask = 0u16;
-    if !invalid_ok { failure_mask |= 1u16 << 0; }
-    if !review_ok { failure_mask |= 1u16 << 1; }
-    if !compact_ok { failure_mask |= 1u16 << 2; }
-    if !standard_ok { failure_mask |= 1u16 << 3; }
-    if !anti_klepto_ok { failure_mask |= 1u16 << 4; }
-    if !finish_ok { failure_mask |= 1u16 << 5; }
+    if !invalid_ok {
+        failure_mask |= 1u16 << 0;
+    }
+    if !review_ok {
+        failure_mask |= 1u16 << 1;
+    }
+    if !compact_ok {
+        failure_mask |= 1u16 << 2;
+    }
+    if !standard_ok {
+        failure_mask |= 1u16 << 3;
+    }
+    if !anti_klepto_ok {
+        failure_mask |= 1u16 << 4;
+    }
+    if !finish_ok {
+        failure_mask |= 1u16 << 5;
+    }
     FAILURE_MASK.store(failure_mask, Ordering::Relaxed);
     summary.finish(6)
 }
 
-
-
 pub(super) fn replay_standard_failure_detail() {
-    if FAILURE_MASK.load(Ordering::Relaxed) & (1u16 << 3) == 0 { return; }
+    if FAILURE_MASK.load(Ordering::Relaxed) & (1u16 << 3) == 0 {
+        return;
+    }
     const NAMES: [&str; 3] = ["FIXTURE", "PROCESS-REVIEW", "CONFIRM"];
     let stage = STANDARD_FAILURE_STAGE.load(Ordering::Relaxed);
     if let Some(name) = stage.checked_sub(1).and_then(|index| NAMES.get(usize::from(index))) {
@@ -146,9 +190,7 @@ pub(super) fn replay_standard_failure_detail() {
 }
 
 fn prepare_probe(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
-    if !super::reset_tranche_to_home(ctx.ad)
-        || crate::runtime::presentation::operation_kind(ctx.ad).is_some()
-    {
+    if !super::reset_tranche_to_home(ctx.ad) || crate::runtime::presentation::operation_kind(ctx.ad).is_some() {
         log!("KASKOLD_WORKFLOW_TESTS: SIGNING PROBE HOME/CANCEL RESET FAIL");
         return false;
     }
@@ -158,17 +200,19 @@ fn prepare_probe(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
 }
 
 fn begin_scan(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
-    if !super::root::home_ok(ctx.ad) { return false; }
+    if !super::root::home_ok(ctx.ad) {
+        return false;
+    }
     let scan = crate::ui::layout::HOME_GRID_ZONES[1];
     crate::runtime::interactions::menu::handle_connected_root_probe(ctx.ad, scan.x + scan.w / 2, scan.y + scan.h / 2)
         && ctx.ad.navigation.app.state == AppState::ScanQR
 }
 
 fn process(ctx: &mut SigningContext<'_, '_, '_>, wire: &[u8], standard_pskt: bool) -> bool {
-    if !begin_scan(ctx) { return false; }
-    crate::runtime::interactions::camera_loop::workflow_process_transaction_payload(
-        wire, standard_pskt, ctx.ad,
-    );
+    if !begin_scan(ctx) {
+        return false;
+    }
+    crate::runtime::interactions::camera_loop::workflow_process_transaction_payload(wire, standard_pskt, ctx.ad);
     ctx.redraw_step();
     let ok = ctx.ad.navigation.app.state == AppState::ConfirmTx
         && ctx.ad.navigation.app.total_inputs == 2
@@ -189,55 +233,83 @@ fn process(ctx: &mut SigningContext<'_, '_, '_>, wire: &[u8], standard_pskt: boo
 }
 
 fn invalid_compact(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
-    if !begin_scan(ctx) { return false; }
+    if !begin_scan(ctx) {
+        return false;
+    }
     log!("KASKOLD_WORKFLOW_TESTS: SIGN TX INVALID KSPT PROCESS BEGIN");
-    crate::runtime::interactions::camera_loop::workflow_process_transaction_payload(
-        b"KSPT\x01\x00", false, ctx.ad,
-    );
+    crate::runtime::interactions::camera_loop::workflow_process_transaction_payload(b"KSPT\x01\x00", false, ctx.ad);
     log!("KASKOLD_WORKFLOW_TESTS: SIGN TX INVALID KSPT PROCESS RETURNED");
     let rejected = ctx.ad.navigation.app.state == AppState::Rejected;
     log!("KASKOLD_WORKFLOW_TESTS: SIGN TX INVALID KSPT DISMISS BEGIN");
     let home = ctx.dismiss_scan_rejection_to_home();
     log!("KASKOLD_WORKFLOW_TESTS: SIGN TX INVALID KSPT DISMISS RETURNED");
-    if rejected && home { log!("KASKOLD_WORKFLOW_TESTS: SIGN TX INVALID KSPT REJECT PASS"); }
+    if rejected && home {
+        log!("KASKOLD_WORKFLOW_TESTS: SIGN TX INVALID KSPT REJECT PASS");
+    }
     rejected && home
 }
 
 fn compact_review_paths(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
-    let Some(wire) = fixture::wire(ctx.ad, fixture::WireFormat::CompactKspt) else { return false; };
+    let Some(wire) = fixture::wire(ctx.ad, fixture::WireFormat::CompactKspt) else {
+        return false;
+    };
     if !process(ctx, &wire, false)
         || !review::open_review(ctx)
         || !review::inspect_all_inputs(ctx)
         || !review::review_back(ctx)
         || !review::confirm_back(ctx)
-    { return false; }
-    if !process(ctx, &wire, false) || !review::open_review(ctx) || !review::advance_review_to_confirm(ctx) || !review::confirm_back(ctx) { return false; }
-    if !process(ctx, &wire, false) || !review::reject(ctx) { return false; }
+    {
+        return false;
+    }
+    if !process(ctx, &wire, false)
+        || !review::open_review(ctx)
+        || !review::advance_review_to_confirm(ctx)
+        || !review::confirm_back(ctx)
+    {
+        return false;
+    }
+    if !process(ctx, &wire, false) || !review::reject(ctx) {
+        return false;
+    }
     log!("KASKOLD_WORKFLOW_TESTS: SIGN TX REVIEW BACK/CONFIRM-BACK/REJECT PASS");
     true
 }
 
 fn compact_sign(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
-    let Some(wire) = fixture::wire(ctx.ad, fixture::WireFormat::CompactKspt) else { return false; };
-    if !process(ctx, &wire, false) || !review::confirm(ctx) { return false; }
+    let Some(wire) = fixture::wire(ctx.ad, fixture::WireFormat::CompactKspt) else {
+        return false;
+    };
+    if !process(ctx, &wire, false) || !review::confirm(ctx) {
+        return false;
+    }
     ctx.ad.navigation.app.review_authorized = false;
     if !ctx.activate_signing_operation()
         || crate::runtime::signing::workflow_signing_step(ctx.ad)
         || ctx.ad.navigation.app.state != AppState::Rejected
         || !ctx.dismiss_confirm_rejection_to_home()
-    { return false; }
+    {
+        return false;
+    }
     log!("KASKOLD_WORKFLOW_TESTS: SIGN TX REVIEW-AUTHORIZATION REJECT PASS");
-    if !process(ctx, &wire, false) || !review::confirm(ctx) { return false; }
+    if !process(ctx, &wire, false) || !review::confirm(ctx) {
+        return false;
+    }
     result::sign_and_present(ctx, b"KSPT")
 }
 
 fn standard_pskt_sign(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
     STANDARD_FAILURE_STAGE.store(1, Ordering::Relaxed);
-    let Some(wire) = fixture::wire(ctx.ad, fixture::WireFormat::StandardPskt) else { return false; };
+    let Some(wire) = fixture::wire(ctx.ad, fixture::WireFormat::StandardPskt) else {
+        return false;
+    };
     STANDARD_FAILURE_STAGE.store(2, Ordering::Relaxed);
-    if !process(ctx, &wire, true) { return false; }
+    if !process(ctx, &wire, true) {
+        return false;
+    }
     STANDARD_FAILURE_STAGE.store(3, Ordering::Relaxed);
-    if !review::confirm(ctx) { return false; }
+    if !review::confirm(ctx) {
+        return false;
+    }
     STANDARD_FAILURE_STAGE.store(4, Ordering::Relaxed);
     let ok = result::sign_and_present(ctx, b"PSKT");
     if ok {
@@ -248,7 +320,9 @@ fn standard_pskt_sign(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
 }
 
 fn finish(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
-    if !super::root::home_ok(ctx.ad) { return false; }
+    if !super::root::home_ok(ctx.ad) {
+        return false;
+    }
     log!("KASKOLD_WORKFLOW_TESTS: SIGN TX RTC/PERSISTENT POLICY ENFORCEMENT DEFERRED TO SECURITY HIL");
     log!("KASKOLD_WORKFLOW_TESTS: SIGNING/REVIEW TRANCHE PASS");
     true

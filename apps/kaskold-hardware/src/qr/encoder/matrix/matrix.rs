@@ -11,12 +11,7 @@ pub struct QrCode {
 
 impl QrCode {
     pub(super) fn new(version: u8) -> Self {
-        Self {
-            modules: [0u8; BITMAP_BYTES],
-            is_function: [0u8; BITMAP_BYTES],
-            size: 17 + version * 4,
-            version,
-        }
+        Self { modules: [0u8; BITMAP_BYTES], is_function: [0u8; BITMAP_BYTES], size: 17 + version * 4, version }
     }
 
     #[inline]

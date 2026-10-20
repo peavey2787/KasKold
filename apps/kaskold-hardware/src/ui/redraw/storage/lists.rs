@@ -23,11 +23,8 @@ pub(super) fn redraw(ad: &AppData, display: &mut BootDisplay<'_>) -> bool {
             );
         }
         AppState::SdImportMenu => {
-            let title = if ad.navigation.history.peek() == Some(AppState::SeedsMenu) {
-                "RECOVERY"
-            } else {
-                "IMPORT FROM SD"
-            };
+            let title =
+                if ad.navigation.history.peek() == Some(AppState::SeedsMenu) { "RECOVERY" } else { "IMPORT FROM SD" };
             display.update_menu_content(title, &ad.navigation.sd_import_menu);
         }
         _ => return false,
@@ -39,9 +36,15 @@ fn seed_fingerprints(ad: &AppData) -> ([[u8; 4]; 4], u8) {
     let mut fingerprints = [[0u8; 4]; 4];
     let mut count = 0u8;
     for (slot_index, slot) in ad.wallet.seeds.seed_mgr.slots.iter().enumerate() {
-        if count as usize == fingerprints.len() { break; }
-        if !ad.wallet.seeds.seed_mgr.slot_visible(slot_index) { continue; }
-        if slot.is_empty() { continue; }
+        if count as usize == fingerprints.len() {
+            break;
+        }
+        if !ad.wallet.seeds.seed_mgr.slot_visible(slot_index) {
+            continue;
+        }
+        if slot.is_empty() {
+            continue;
+        }
         fingerprints[count as usize] = slot.fingerprint;
         count += 1;
     }

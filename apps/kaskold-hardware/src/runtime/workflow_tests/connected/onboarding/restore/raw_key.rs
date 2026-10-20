@@ -1,4 +1,4 @@
-use crate::{runtime::interactions::TouchInput, runtime::input::AppState, wallet::seed_manager};
+use crate::{runtime::input::AppState, runtime::interactions::TouchInput, wallet::seed_manager};
 
 use super::{begin_restore, RestoreIo, BUTTON_X};
 
@@ -9,19 +9,29 @@ const HEX_BACKSPACE: (u16, u16) = (0, 210);
 const HEX_OK: (u16, u16) = (295, 210);
 
 pub(super) fn restore(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    if !begin_restore(ctx) || ctx.source_touch(3) != Some(true)
-        || ctx.advanced_touch(3) != Some(true) || ctx.base.ad.navigation.app.state != AppState::ImportPrivKey
+    if !begin_restore(ctx)
+        || ctx.source_touch(3) != Some(true)
+        || ctx.advanced_touch(3) != Some(true)
+        || ctx.base.ad.navigation.app.state != AppState::ImportPrivKey
     {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: RESTORE RAW KEY CASE-NORMALIZATION BEGIN");
-    if !case_normalization(ctx) { return false; }
+    if !case_normalization(ctx) {
+        return false;
+    }
     log!("KASKOLD_WORKFLOW_TESTS: RESTORE RAW KEY CASE-NORMALIZATION PASS");
-    if !zero_rejection(ctx) { return false; }
+    if !zero_rejection(ctx) {
+        return false;
+    }
     log!("KASKOLD_WORKFLOW_TESTS: RESTORE RAW KEY ZERO-REJECTION PASS");
-    if !valid_one(ctx) { return false; }
+    if !valid_one(ctx) {
+        return false;
+    }
     log!("KASKOLD_WORKFLOW_TESTS: RESTORE RAW KEY VALID-IMPORT PASS");
-    if !import_ready(ctx) { return false; }
+    if !import_ready(ctx) {
+        return false;
+    }
     if !finalize_back_clears(ctx) || !reimport_valid_one(ctx) {
         return false;
     }
@@ -29,7 +39,9 @@ pub(super) fn restore(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     if crate::runtime::interactions::persistence::workflow_handle_finalize_choice(
         TouchInput::new(BUTTON_X, 142, false),
         ctx.base.ad,
-    ) != Some(true) || !super::super::super::root::home_ok(ctx.base.ad) {
+    ) != Some(true)
+        || !super::super::super::root::home_ok(ctx.base.ad)
+    {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: RESTORE RAW KEY CASE/LENGTH/INVALID/VALID PASS");
@@ -53,9 +65,7 @@ fn zero_rejection(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
             return false;
         }
     }
-    if ctx.base.seed_touch(HEX_ONE.0, HEX_ONE.1, false) != Some(false)
-        || ctx.base.ad.wallet.keys.hex_input_len != 64
-    {
+    if ctx.base.seed_touch(HEX_ONE.0, HEX_ONE.1, false) != Some(false) || ctx.base.ad.wallet.keys.hex_input_len != 64 {
         return false;
     }
     ctx.base.seed_touch(HEX_OK.0, HEX_OK.1, false) == Some(true)

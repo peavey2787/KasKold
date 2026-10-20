@@ -15,7 +15,8 @@ fn sign_with_entropy(ad: &AppData, signing_entropy: &[u8; 32], checkpoint: &mut 
                 return Err(());
             }
         } else {
-            let account = crate::runtime::signing::derive_active_account_key_with_checkpoint(ad, checkpoint).map_err(|_| ())?;
+            let account =
+                crate::runtime::signing::derive_active_account_key_with_checkpoint(ad, checkpoint).map_err(|_| ())?;
             private_key.copy_from_slice(account.private_key_bytes());
         }
         offline_signer::OfflineSigner::new()
@@ -37,5 +38,8 @@ pub(super) fn sign_reviewed_message(ad: &AppData, checkpoint: &mut dyn FnMut()) 
 
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) fn workflow_sign_reviewed_message(ad: &AppData) -> Result<[u8; 64], ()> {
-    { let mut checkpoint = || {}; sign_with_entropy(ad, &[0x6c; 32], &mut checkpoint) }
+    {
+        let mut checkpoint = || {};
+        sign_with_entropy(ad, &[0x6c; 32], &mut checkpoint)
+    }
 }

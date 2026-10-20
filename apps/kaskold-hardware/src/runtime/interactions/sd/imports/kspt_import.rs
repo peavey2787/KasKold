@@ -1,10 +1,9 @@
 //! Import transaction, multisig descriptor, or address payloads from SD.
 
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound, show_success};
 use super::super::{
-    common::context::SdFileListContext, parse_descriptor, run_sd_file_list_context,
-    sdcard, FileListWorkflow,
+    common::context::SdFileListContext, parse_descriptor, run_sd_file_list_context, sdcard, FileListWorkflow,
 };
+use crate::runtime::interactions::feedback::{show_rejection, show_success, ErrorSound};
 use crate::runtime::{
     data::{AppData, EncryptedFileOperation, EncryptedPayloadKind},
     input::AppState,
@@ -56,8 +55,7 @@ fn read_selected_payload(
     let _ = &mut *i2c;
     sdcard::with_sd_card!(i2c, delay, |card| {
         let fat32 = sdcard::mount_fat32(card)?;
-        let (entry, _, _) =
-            sdcard::find_file_in_root(card, &fat32, &ad.storage.browser.selected_file)?;
+        let (entry, _, _) = sdcard::find_file_in_root(card, &fat32, &ad.storage.browser.selected_file)?;
         let mut payload = [0u8; MAX_IMPORT_BYTES];
         let length = sdcard::read_file(card, &fat32, &entry, &mut payload)?;
         Ok((payload, length))
@@ -148,8 +146,10 @@ pub(crate) fn workflow_import_transaction_payload(
 ) {
     if ENCRYPTED_HEADERS.iter().any(|header| payload.starts_with(*header)) {
         stage_encrypted_payload(ad, payload);
-    } else if payload.starts_with(b"multi_hd45(") || payload.starts_with(b"multi_hd(")
-        || payload.starts_with(b"kaspa:") || payload.starts_with(b"kaspatest:")
+    } else if payload.starts_with(b"multi_hd45(")
+        || payload.starts_with(b"multi_hd(")
+        || payload.starts_with(b"kaspa:")
+        || payload.starts_with(b"kaspatest:")
     {
         load_plain_payload(ad, boot_display, delay, &mut || {}, payload);
     } else if payload.starts_with(kaskold_protocol::wire::pskt_envelope::PSKT_MAGIC) {

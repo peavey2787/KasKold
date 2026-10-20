@@ -14,8 +14,8 @@ mod kernel;
 mod menu_reducer;
 mod policy;
 pub(crate) mod production;
-pub(crate) mod ui_graph;
 mod root;
+pub(crate) mod ui_graph;
 
 pub(crate) use event::{continuation, route, ContinuationRoute, ResumeTarget, ReturnScope, UiEvent, UiRoute};
 use kaskold_hardware_core::screen_flow::onboarding;
@@ -62,13 +62,13 @@ use crate::runtime::{data::AppData, input::AppState};
 /// Keep this at the navigation boundary; domain structs store the token rather
 /// than raw `AppState` destinations.
 #[inline]
-pub(crate) const fn continuation_from_state(
-    state: crate::runtime::input::AppState,
-) -> ContinuationRoute {
+pub(crate) const fn continuation_from_state(state: crate::runtime::input::AppState) -> ContinuationRoute {
     ContinuationRoute::new(state)
 }
 
-pub(crate) fn dispatch(ad: &mut AppData, event: UiEvent) -> bool { kernel::dispatch(ad, event) }
+pub(crate) fn dispatch(ad: &mut AppData, event: UiEvent) -> bool {
+    kernel::dispatch(ad, event)
+}
 
 /// Resolve a scoped caller return from navigation-owned bounded history.
 pub(crate) fn return_target(ad: &AppData, scope: ReturnScope) -> Option<AppState> {
@@ -93,10 +93,7 @@ pub(crate) fn onboarding_route(ad: &AppData) -> Option<OnboardingRoute> {
     if !is_onboarding(ad) {
         return None;
     }
-    onboarding::route_for(
-        ad.storage.persistence.device_storage_intent.is_seed_onboarding(),
-        ad.navigation.app.state,
-    )
+    onboarding::route_for(ad.storage.persistence.device_storage_intent.is_seed_onboarding(), ad.navigation.app.state)
 }
 
 /// Whether the event loop should emit its ordinary navigation click after
@@ -140,8 +137,6 @@ pub(crate) fn transition_root(ad: &mut AppData, index: usize) -> Option<AppState
     Some(next)
 }
 
-
-
 /// Validate any state change made by a workflow before it can receive input or
 /// be rendered. This also fences older direct state writes behind one policy.
 pub(crate) fn reconcile(ad: &mut AppData) -> bool {
@@ -156,7 +151,9 @@ pub(crate) fn reconcile(ad: &mut AppData) -> bool {
 /// Central handling for hierarchy/menu Back behavior. Workflow-specific Back
 /// actions remain in their owning reducer when they must mutate domain data.
 pub(crate) fn handle_back(ad: &mut AppData) -> bool {
-    if !reconcile(ad) { return true; }
+    if !reconcile(ad) {
+        return true;
+    }
     if matches!(ad.navigation.app.state, AppState::StorageUnlockPin | AppState::StorageUnlockPassword) {
         if ad.runtime.cancel_pending_wallet_activation() {
             ad.wallet.seeds.pp_input.reset();
@@ -166,15 +163,12 @@ pub(crate) fn handle_back(ad: &mut AppData) -> bool {
         // The latter may be cancelled only back to WALLETS; neither can escape home.
         return true;
     }
-    if ad.navigation.app.state == AppState::SeedList
-        && ad.wallet.seeds.seed_mgr.active_slot().is_none()
-    {
+    if ad.navigation.app.state == AppState::SeedList && ad.wallet.seeds.seed_mgr.active_slot().is_none() {
         return true;
     }
     back::prepare(ad);
     kernel::dispatch(ad, UiEvent::Back)
 }
-
 
 /// Home is a post-onboarding shortcut only. It never appears before the user
 /// has actually reached Home, so first-boot onboarding/credential gates cannot
@@ -206,10 +200,8 @@ fn wallet_resolution_required(ad: &AppData) -> bool {
 
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) fn workflow_home_shortcut_hidden_for_unlock(state: AppState) -> bool {
-    matches!(state, AppState::StorageUnlockPin | AppState::StorageUnlockPassword)
-        && !home_shortcut_allowed(true, state)
+    matches!(state, AppState::StorageUnlockPin | AppState::StorageUnlockPassword) && !home_shortcut_allowed(true, state)
 }
-
 
 /// Enter the Add Wallet create/restore flow through one explicit Seeds-owned
 /// edge. Create continues through the generated-word flow; Restore first opens
@@ -279,12 +271,9 @@ pub(crate) fn home(ad: &mut AppData) {
 }
 
 mod transaction;
-pub(crate) use transaction::{
-    advance_inspection, advance_review, advance_signing, confirm_transaction, start_review,
-};
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) use transaction::reject_active_signing;
-
+pub(crate) use transaction::{advance_inspection, advance_review, advance_signing, confirm_transaction, start_review};
 
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) fn workflow_reject_scanned_transaction(ad: &mut AppData) -> bool {
@@ -303,7 +292,9 @@ pub(crate) fn workflow_reject_scanned_transaction(ad: &mut AppData) -> bool {
 
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) fn workflow_cleanup_onboarding_to_home(ad: &mut AppData) -> bool {
-    if !reconcile(ad) || ad.navigation.owner != NavigationOwner::Onboarding { return false; }
+    if !reconcile(ad) || ad.navigation.owner != NavigationOwner::Onboarding {
+        return false;
+    }
     crate::runtime::interactions::persistence::cancel_seed_onboarding(ad);
     kernel::force_commit(ad, AppState::MainMenu, NavigationOwner::Main, true);
     true
@@ -311,7 +302,9 @@ pub(crate) fn workflow_cleanup_onboarding_to_home(ad: &mut AppData) -> bool {
 
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) fn workflow_reset_to_home(ad: &mut AppData) -> bool {
-    if !reconcile(ad) { return false; }
+    if !reconcile(ad) {
+        return false;
+    }
     if ad.navigation.owner == NavigationOwner::Onboarding
         || ad.storage.persistence.device_storage_intent.is_seed_onboarding()
     {
@@ -333,7 +326,9 @@ pub(crate) fn workflow_reset_to_home(ad: &mut AppData) -> bool {
 /// Complete seed onboarding through a guarded terminal transition. Generic
 /// navigation is intentionally unable to jump from Onboarding to Main.
 pub(crate) fn complete_onboarding(ad: &mut AppData) -> bool {
-    if !reconcile(ad) { return false; }
+    if !reconcile(ad) {
+        return false;
+    }
     let intent = ad.storage.persistence.device_storage_intent;
     let ready = ad.navigation.owner == NavigationOwner::Onboarding
         && intent.is_seed_onboarding()
@@ -349,9 +344,8 @@ pub(crate) fn complete_onboarding(ad: &mut AppData) -> bool {
 }
 
 fn result_screen_is_valid(ad: &AppData, state: AppState) -> bool {
-    if state != AppState::ShowQrPopup { return true; }
-    ad.qr.outgoing.length > 0
-        && ad.qr.outgoing.purpose == crate::runtime::data::OutgoingQrPurpose::SignedTransaction
+    if state != AppState::ShowQrPopup {
+        return true;
+    }
+    ad.qr.outgoing.length > 0 && ad.qr.outgoing.purpose == crate::runtime::data::OutgoingQrPurpose::SignedTransaction
 }
-
-

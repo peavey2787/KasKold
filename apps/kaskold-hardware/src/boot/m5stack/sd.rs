@@ -1,11 +1,8 @@
 //! CoreS3 SD-card probe on the board-owned shared SPI2 bus.
 
-use esp_hal::{Blocking, delay::Delay, i2c::master::I2c};
+use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
-pub(crate) fn initialize(
-    i2c: &mut I2c<'_, Blocking>,
-    delay: &mut Delay,
-) -> Option<crate::hw::sdcard::SdCardType> {
+pub(crate) fn initialize(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) -> Option<crate::hw::sdcard::SdCardType> {
     crate::log!("   BOOT PHASE sd BEGIN");
     crate::log!("   Shared-SPI SD probe...");
     if let Err(error) = crate::hw::sdcard::power_cycle_card(i2c, delay) {

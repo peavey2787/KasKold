@@ -12,13 +12,8 @@ mod portable;
 use kaskold_hardware_core::backup::stego_picture;
 
 pub use exif::{
-    build_copyforward as build_exif_copyforward,
-    build_template as build_exif_template,
-    extract_user_comment,
-    find_app1 as find_exif_app1,
-    format_datetime as format_exif_datetime,
-    jpeg_dimensions,
-    SOFTWARE_TABLE,
+    build_copyforward as build_exif_copyforward, build_template as build_exif_template, extract_user_comment,
+    find_app1 as find_exif_app1, format_datetime as format_exif_datetime, jpeg_dimensions, SOFTWARE_TABLE,
 };
 pub use jpeg::inject_exif;
 pub const STEGO_PAYLOAD_SIZE: usize = payload::PAYLOAD_SIZE;
@@ -34,9 +29,8 @@ pub fn pack_payload(
     device: &mut dyn crate::services::backup::BackupDevice,
     output: &mut [u8],
 ) -> Result<usize, &'static str> {
-    payload::pack(
-        security, carrier, indices, word_count, hint, descriptor, portable_password, device, output,
-    ).map_err(payload::PayloadError::message)
+    payload::pack(security, carrier, indices, word_count, hint, descriptor, portable_password, device, output)
+        .map_err(payload::PayloadError::message)
 }
 
 pub fn unpack_device_bound_payload(
@@ -80,20 +74,11 @@ pub fn capacity_bits(jpeg: &[u8], key: &[u8]) -> Result<u32, &'static str> {
     stego_picture::capacity_bits(jpeg, key).map_err(stego_picture::PictureError::message)
 }
 
-pub fn embed_picture(
-    jpeg: &[u8],
-    payload: &[u8],
-    key: &[u8],
-    output: &mut [u8],
-) -> Result<usize, &'static str> {
+pub fn embed_picture(jpeg: &[u8], payload: &[u8], key: &[u8], output: &mut [u8]) -> Result<usize, &'static str> {
     stego_picture::embed(jpeg, payload, key, output).map_err(stego_picture::PictureError::message)
 }
 
-pub fn extract_picture(
-    jpeg: &[u8],
-    key: &[u8],
-    output: &mut [u8],
-) -> Result<usize, &'static str> {
+pub fn extract_picture(jpeg: &[u8], key: &[u8], output: &mut [u8]) -> Result<usize, &'static str> {
     stego_picture::extract(jpeg, key, output).map_err(stego_picture::PictureError::message)
 }
 
@@ -144,8 +129,5 @@ impl StegoCarrier {
 pub const CARRIERS: [StegoCarrier; 2] = [StegoCarrier::Descriptor, StegoCarrier::Picture];
 
 /// Preset recovery hints for JPEG stego export.
-pub const HINT_PRESETS: [&str; 3] = [
-    "My favorite place I lived?",
-    "Name of my loved one?",
-    "Song I can't stop humming?",
-];
+pub const HINT_PRESETS: [&str; 3] =
+    ["My favorite place I lived?", "Name of my loved one?", "Song I can't stop humming?"];

@@ -1,6 +1,6 @@
 //! CoreS3 IMU/entropy-source initialization phase.
 
-use esp_hal::{Blocking, delay::Delay, i2c::master::I2c};
+use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
 pub(crate) fn initialize(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) {
     crate::log!("   BOOT PHASE entropy BEGIN");

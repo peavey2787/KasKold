@@ -15,7 +15,9 @@ pub fn run_tests() -> (u32, u32) {
         let _ = btn.update(true, 100);
         let _ = btn.update(true, 100);
         let e = btn.update(false, 20);
-        if e == ButtonEvent::ShortPress { passed += 1; }
+        if e == ButtonEvent::ShortPress {
+            passed += 1;
+        }
     }
 
     // Test 2: BOOT long press
@@ -25,7 +27,9 @@ pub fn run_tests() -> (u32, u32) {
         let _ = btn.update(true, 400);
         let _ = btn.update(true, 400);
         let e = btn.update(false, 20);
-        if e == ButtonEvent::LongPress { passed += 1; }
+        if e == ButtonEvent::LongPress {
+            passed += 1;
+        }
     }
 
     // Test 3: PIR short noise rejected
@@ -34,7 +38,9 @@ pub fn run_tests() -> (u32, u32) {
         let _ = btn.update(true, 50);
         let _ = btn.update(true, 50);
         let e = btn.update(false, 20);
-        if e == ButtonEvent::None { passed += 1; }
+        if e == ButtonEvent::None {
+            passed += 1;
+        }
     }
 
     // Test 4: Menu navigation — short=move, long=select
@@ -50,10 +56,12 @@ pub fn run_tests() -> (u32, u32) {
         let r3 = menu.handle(ButtonEvent::ShortPress); // cursor → 0 (wrap)
         let ok3 = r3.is_none() && menu.cursor == 0;
 
-        let r4 = menu.handle(ButtonEvent::LongPress);  // select item 0
+        let r4 = menu.handle(ButtonEvent::LongPress); // select item 0
         let ok4 = r4 == Some(0);
 
-        if ok1 && ok2 && ok3 && ok4 { passed += 1; }
+        if ok1 && ok2 && ok3 && ok4 {
+            passed += 1;
+        }
     }
 
     // Test 5: App flow — main menu → ScanQR, then review → confirm → sign → QR → menu
@@ -63,9 +71,7 @@ pub fn run_tests() -> (u32, u32) {
         // Main menu item 0 is Show Address; move once to item 1 (Scan QR), then select.
         let moved = app.handle_boot(ButtonEvent::ShortPress);
         let action = app.handle_boot(ButtonEvent::LongPress);
-        let ok0 = moved == Action::Redraw
-            && app.state == AppState::ScanQR
-            && action == Action::Redraw;
+        let ok0 = moved == Action::Redraw && app.state == AppState::ScanQR && action == Action::Redraw;
 
         // Go back to main menu, then test review flow
         app.go_main_menu();
@@ -96,7 +102,9 @@ pub fn run_tests() -> (u32, u32) {
         app.handle_boot(ButtonEvent::ShortPress);
         let ok7 = app.state == AppState::MainMenu;
 
-        if ok0 && ok1 && ok2 && ok3 && ok4 && ok5 && ok6 && ok7 { passed += 1; }
+        if ok0 && ok1 && ok2 && ok3 && ok4 && ok5 && ok6 && ok7 {
+            passed += 1;
+        }
     }
 
     (passed, total)

@@ -9,13 +9,9 @@ mod scanner;
 use kaskold_hardware_core::storage::fat32_lfn::LfnAccumulator;
 use scanner::{scan_cluster, ScanControl};
 
-use super::{DirEntry, Fat32Info, SdCardType, read_fat_entry};
+use super::{read_fat_entry, DirEntry, Fat32Info, SdCardType};
 
-pub fn list_root_dir_lfn<F>(
-    card_type: SdCardType,
-    fat32: &Fat32Info,
-    mut callback: F,
-) -> Result<(), &'static str>
+pub fn list_root_dir_lfn<F>(card_type: SdCardType, fat32: &Fat32Info, mut callback: F) -> Result<(), &'static str>
 where
     F: FnMut(&DirEntry, &[u8; 64], usize) -> bool,
 {
@@ -23,9 +19,7 @@ where
     let mut names = LfnAccumulator::new();
 
     loop {
-        if scan_cluster(card_type, fat32, cluster, &mut names, &mut callback)?
-            == ScanControl::Stop
-        {
+        if scan_cluster(card_type, fat32, cluster, &mut names, &mut callback)? == ScanControl::Stop {
             return Ok(());
         }
         let next = read_fat_entry(card_type, fat32, cluster)?;

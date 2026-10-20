@@ -17,11 +17,7 @@ pub fn timing_observation() -> (u32, u32) {
 }
 
 /// Mix a pair of coherent timer observations spanning a real entropy operation.
-pub fn update_timing_pair_checked(
-    hasher: &mut impl Digest,
-    first: (u32, u32),
-    second: (u32, u32),
-) -> bool {
+pub fn update_timing_pair_checked(hasher: &mut impl Digest, first: (u32, u32), second: (u32, u32)) -> bool {
     hasher.update(first.0.to_le_bytes());
     hasher.update(first.1.to_le_bytes());
     hasher.update(second.0.to_le_bytes());
@@ -70,10 +66,7 @@ pub fn update_adc_noise(hasher: &mut impl Digest, samples: usize) {
 
 fn mac_words() -> [u32; 2] {
     let mac = Efuse::read_base_mac_address();
-    [
-        u32::from_le_bytes([mac[0], mac[1], mac[2], mac[3]]),
-        u32::from_le_bytes([mac[4], mac[5], 0, 0]),
-    ]
+    [u32::from_le_bytes([mac[0], mac[1], mac[2], mac[3]]), u32::from_le_bytes([mac[4], mac[5], 0, 0])]
 }
 
 fn unique_id_words() -> [u32; 4] {

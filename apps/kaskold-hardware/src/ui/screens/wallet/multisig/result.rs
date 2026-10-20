@@ -2,27 +2,9 @@
 // License: GPL-3.0-or-later.
 
 use super::{
-    BootDisplay,
-    COLOR_BG,
-    COLOR_CARD,
-    COLOR_TEXT,
-    CornerRadii,
-    Drawable,
-    KASPA_ACCENT,
-    KASPA_TEAL,
-    Line,
-    Point,
-    Primitive,
-    PrimitiveStyle,
-    Rectangle,
-    RoundedRectangle,
-    Size,
-    draw_lato_body,
-    draw_lato_title,
-    draw_oswald_header,
-    measure_body,
-    measure_header,
-    measure_title,
+    draw_lato_body, draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_title, BootDisplay,
+    CornerRadii, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size, COLOR_BG,
+    COLOR_CARD, COLOR_TEXT, KASPA_ACCENT, KASPA_TEAL,
 };
 
 fn format_small(prefix: &str, value: u32) -> heapless::String<12> {
@@ -44,7 +26,7 @@ where
 }
 
 impl<'a> BootDisplay<'a> {
-/// Draw multisig result screen — shows M-of-N label + P2SH address. Tap for QR.
+    /// Draw multisig result screen — shows M-of-N label + P2SH address. Tap for QR.
     pub fn draw_multisig_result(&mut self, label: &str, address: &str, addr_index: u32, sig_chain: Option<(u8, u8)>) {
         self.clear_keep_nav();
 
@@ -52,13 +34,13 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, "MULTISIG WALLET", (320 - tw) / 2, 25, KASPA_TEAL);
         Line::new(Point::new(20, 35), Point::new(300, 35))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         // "2-of-3 multisig · #N" combined label — shows M-of-N context AND
         // the current address index in a single line.
         let mut info: heapless::String<32> = heapless::String::new();
-        core::fmt::Write::write_fmt(&mut info,
-            format_args!("{label} multisig · #{addr_index}")).ok();
+        core::fmt::Write::write_fmt(&mut info, format_args!("{label} multisig · #{addr_index}")).ok();
         let iw = measure_body(info.as_str());
         draw_lato_body(&mut self.display, &info, (320 - iw) / 2, 52, KASPA_ACCENT);
 
@@ -95,10 +77,12 @@ impl<'a> BootDisplay<'a> {
         let btn_l = Rectangle::new(Point::new(10, 210), Size::new(50, 28));
         RoundedRectangle::new(btn_l, btn_corner)
             .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(btn_l, btn_corner)
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let lw = measure_title("<");
         draw_lato_title(&mut self.display, "<", 10 + (50 - lw) / 2, 230, KASPA_TEAL);
 
@@ -115,16 +99,17 @@ impl<'a> BootDisplay<'a> {
         let btn_r = Rectangle::new(Point::new(260, 210), Size::new(50, 28));
         RoundedRectangle::new(btn_r, btn_corner)
             .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(btn_r, btn_corner)
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let rw = measure_title(">");
         draw_lato_title(&mut self.display, ">", 260 + (50 - rw) / 2, 230, KASPA_TEAL);
-
     }
 
-/// Draw multisig wallet descriptor text screen.
+    /// Draw multisig wallet descriptor text screen.
     /// Shows the descriptor in format: multi(M, pubkey1_hex, ..., pubkeyN_hex)
     /// This allows companion wallets to reconstruct the same multisig address.
     pub fn draw_multisig_descriptor(&mut self, n: u8, pubkeys: &[[u8; 32]], label: &str) {
@@ -134,7 +119,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, "DESCRIPTOR", (320 - tw) / 2, 25, KASPA_TEAL);
         Line::new(Point::new(20, 35), Point::new(300, 35))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         // "2-of-3 multisig" label
         let mut info: heapless::String<24> = heapless::String::new();
@@ -170,7 +156,8 @@ impl<'a> BootDisplay<'a> {
         let qr_rect = Rectangle::new(Point::new(10, 195), Size::new(140, 30));
         RoundedRectangle::new(qr_rect, btn_corner)
             .into_styled(PrimitiveStyle::with_fill(KASPA_TEAL))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let qw = measure_title("SHOW QR");
         draw_lato_title(&mut self.display, "SHOW QR", 10 + (140 - qw) / 2, 217, COLOR_BG);
 
@@ -178,12 +165,11 @@ impl<'a> BootDisplay<'a> {
         let sd_rect = Rectangle::new(Point::new(170, 195), Size::new(140, 30));
         RoundedRectangle::new(sd_rect, btn_corner)
             .into_styled(PrimitiveStyle::with_fill(KASPA_TEAL))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         let sw = measure_title("SD CARD");
         draw_lato_title(&mut self.display, "SD CARD", 170 + (140 - sw) / 2, 217, COLOR_BG);
-
     }
-
 }
 
 impl<'a> BootDisplay<'a> {
@@ -202,7 +188,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, title, (320 - tw) / 2, 25, KASPA_TEAL);
         Line::new(Point::new(20, 35), Point::new(300, 35))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         if configs.is_empty() {
             let msg = "No descriptors for this wallet";
@@ -216,19 +203,18 @@ impl<'a> BootDisplay<'a> {
             let rect = Rectangle::new(Point::new(24, y), Size::new(272, 54));
             RoundedRectangle::new(rect, CornerRadii::new(Size::new(8, 8)))
                 .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
             RoundedRectangle::new(rect, CornerRadii::new(Size::new(8, 8)))
                 .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-                .draw(&mut self.display).ok();
+                .draw(&mut self.display)
+                .ok();
             let mut label_buf = [0u8; 16];
             let label_len = config.label(&mut label_buf);
             let label = core::str::from_utf8(&label_buf[..label_len]).unwrap_or("?-of-?");
             draw_lato_title(&mut self.display, label, 42, y + 23, COLOR_TEXT);
             let mut detail: heapless::String<32> = heapless::String::new();
-            core::fmt::Write::write_fmt(
-                &mut detail,
-                format_args!("receive #{}", config.addr_index),
-            ).ok();
+            core::fmt::Write::write_fmt(&mut detail, format_args!("receive #{}", config.addr_index)).ok();
             draw_lato_body(&mut self.display, detail.as_str(), 42, y + 44, KASPA_ACCENT);
         }
     }

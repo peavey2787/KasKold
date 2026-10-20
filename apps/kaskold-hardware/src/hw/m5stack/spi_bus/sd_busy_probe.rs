@@ -3,7 +3,7 @@
 //! This is intentionally separate from the shared SPI owner so diagnostics do
 //! not expand the normal LCD/SD transaction state machine.
 
-use esp_hal::{Blocking, gpio::Output, spi::master::Spi};
+use esp_hal::{gpio::Output, spi::master::Spi, Blocking};
 
 use super::{gpio35, state::complete_sd_transaction};
 
@@ -14,18 +14,14 @@ pub(crate) struct SdBusyProbe<'a> {
 impl SdBusyProbe<'_> {
     /// Sample MISO selected, deselected, then selected again without changing
     /// card power. Card-driven busy should release while CS is high.
-    pub(crate) fn sample(
-        &mut self,
-        spi: &mut Spi<'static, Blocking>,
-    ) -> Result<[u8; 3], &'static str> {
+    pub(crate) fn sample(&mut self, spi: &mut Spi<'static, Blocking>) -> Result<[u8; 3], &'static str> {
         diagnostic_transfer(spi).and_then(|selected_before| {
             flush(spi, "CoreS3 SPI2 busy-probe pre-deselect flush failed").and_then(|_| {
                 self.sd_cs.set_high();
                 diagnostic_transfer(spi).and_then(|deselected| {
                     flush(spi, "CoreS3 SPI2 busy-probe deselected flush failed").and_then(|_| {
                         self.sd_cs.set_low();
-                        diagnostic_transfer(spi)
-                            .map(|reselected| [selected_before, deselected, reselected])
+                        diagnostic_transfer(spi).map(|reselected| [selected_before, deselected, reselected])
                     })
                 })
             })
@@ -37,10 +33,7 @@ pub(super) fn selected_transaction<T>(
     spi: &mut Spi<'static, Blocking>,
     sd_cs: &mut Output<'static>,
     frequency_hz: u32,
-    operation: impl FnOnce(
-        &mut Spi<'static, Blocking>,
-        &mut SdBusyProbe<'_>,
-    ) -> Result<T, &'static str>,
+    operation: impl FnOnce(&mut Spi<'static, Blocking>, &mut SdBusyProbe<'_>) -> Result<T, &'static str>,
 ) -> Result<T, &'static str> {
     gpio35::select_sd_miso();
     log_bus_state(frequency_hz);

@@ -22,11 +22,7 @@ pub(super) fn redraw(ad: &mut AppData, boot_display: &mut display::BootDisplay<'
     redraw_state(ad.navigation.app.state, ad, boot_display)
 }
 
-fn redraw_state(
-    state: AppState,
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) -> bool {
+fn redraw_state(state: AppState, ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     redraw_menu(state, ad, boot_display)
         || redraw_creation(state, ad, boot_display)
         || redraw_output(state, ad, boot_display)
@@ -39,10 +35,7 @@ fn redraw_menu(state: AppState, ad: &mut AppData, boot_display: &mut display::Bo
             boot_display.update_menu_content("MULTISIG", &ad.navigation.multisig_menu);
         }
         AppState::MultisigDescriptorsMenu => {
-            boot_display.update_menu_content(
-                "DESCRIPTORS",
-                &ad.navigation.multisig_descriptors_menu,
-            );
+            boot_display.update_menu_content("DESCRIPTORS", &ad.navigation.multisig_descriptors_menu);
         }
         AppState::MultisigDescriptorList { action } => {
             let visible = visible_descriptors(ad);
@@ -53,9 +46,7 @@ fn redraw_menu(state: AppState, ad: &mut AppData, boot_display: &mut display::Bo
     true
 }
 
-fn visible_descriptors(
-    ad: &AppData,
-) -> alloc::vec::Vec<offline_signer::transaction::model::MultisigConfig> {
+fn visible_descriptors(ad: &AppData) -> alloc::vec::Vec<offline_signer::transaction::model::MultisigConfig> {
     ad.signing
         .multisig
         .descriptor_indices
@@ -68,15 +59,12 @@ fn visible_descriptors(
 
 fn redraw_creation(state: AppState, ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     match state {
-        AppState::MultisigChooseMN => boot_display.draw_multisig_choose_mn(
-            ad.signing.multisig.threshold,
-            ad.signing.multisig.participant_count,
-        ),
-        AppState::MultisigAddKey { key_idx } => boot_display.draw_multisig_add_key(
-            key_idx,
-            ad.signing.multisig.creating.n,
-            can_choose_wallet(ad),
-        ),
+        AppState::MultisigChooseMN => {
+            boot_display.draw_multisig_choose_mn(ad.signing.multisig.threshold, ad.signing.multisig.participant_count)
+        }
+        AppState::MultisigAddKey { key_idx } => {
+            boot_display.draw_multisig_add_key(key_idx, ad.signing.multisig.creating.n, can_choose_wallet(ad))
+        }
         AppState::MultisigPickSeed { key_idx } => boot_display.draw_multisig_pick_seed(
             key_idx,
             ad.signing.multisig.creating.n,
@@ -114,20 +102,18 @@ fn draw_address(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {
     let label_len = ad.signing.multisig.creating.label(&mut label_buf);
     let label = core::str::from_utf8(&label_buf[..label_len]).unwrap_or("?-of-?");
     let mut addr_buf = [0u8; offline_signer::address::MAX_ADDR_LEN];
-    let addr_len = ad
-        .signing
-        .multisig
-        .creating
-        .address(ad.wallet.seeds.seed_mgr.network().kaspa_network(), &mut addr_buf);
+    let addr_len =
+        ad.signing.multisig.creating.address(ad.wallet.seeds.seed_mgr.network().kaspa_network(), &mut addr_buf);
     let addr = core::str::from_utf8(&addr_buf[..addr_len]).unwrap_or("");
     boot_display.draw_multisig_result(
         label,
         addr,
         ad.signing.multisig.creating.addr_index,
-        ad.signing.multisig.creating.v45.then_some((
-            ad.signing.multisig.creating.cosigner_index,
-            ad.signing.multisig.creating.chain,
-        )),
+        ad.signing
+            .multisig
+            .creating
+            .v45
+            .then_some((ad.signing.multisig.creating.cosigner_index, ad.signing.multisig.creating.chain)),
     );
 }
 
@@ -143,27 +129,20 @@ fn draw_address_qr(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {
 
 fn draw_live_address_qr(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {
     let mut addr_buf = [0u8; offline_signer::address::MAX_ADDR_LEN];
-    let addr_len = ad
-        .signing
-        .multisig
-        .creating
-        .address(ad.wallet.seeds.seed_mgr.network().kaspa_network(), &mut addr_buf);
+    let addr_len =
+        ad.signing.multisig.creating.address(ad.wallet.seeds.seed_mgr.network().kaspa_network(), &mut addr_buf);
     boot_display.draw_qr_fullscreen(&addr_buf[..addr_len]);
 }
 
 fn redraw_descriptor(state: AppState, ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     match state {
         AppState::MultisigDescriptor => draw_descriptor(ad, boot_display),
-        AppState::MultisigSaveDescriptorAsk => boot_display.draw_yes_no_ask(
-            "SAVE MULTISIG?",
-            "Save this descriptor",
-            "to device storage?",
-        ),
-        AppState::MultisigSaveAddrAsk => boot_display.draw_yes_no_ask(
-            "SAVE ADDRESS?",
-            "Save the multisig address",
-            "to SD card?",
-        ),
+        AppState::MultisigSaveDescriptorAsk => {
+            boot_display.draw_yes_no_ask("SAVE MULTISIG?", "Save this descriptor", "to device storage?")
+        }
+        AppState::MultisigSaveAddrAsk => {
+            boot_display.draw_yes_no_ask("SAVE ADDRESS?", "Save the multisig address", "to SD card?")
+        }
         _ => return false,
     }
     true

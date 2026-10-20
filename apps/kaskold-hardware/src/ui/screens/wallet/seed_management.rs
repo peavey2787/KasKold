@@ -14,34 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 use super::super::{
-    BootDisplay,
-    COLOR_BG,
-    COLOR_CARD,
-    COLOR_CARD_BORDER,
-    COLOR_DANGER,
-    COLOR_ORANGE,
-    COLOR_TEXT,
-    COLOR_TEXT_DIM,
-    CornerRadii,
-    DrawTarget,
-    Drawable,
-    KASPA_TEAL,
-    Line,
-    Point,
-    Primitive,
-    PrimitiveStyle,
-    Rectangle,
-    Rgb565,
-    RoundedRectangle,
-    Size,
-    draw_lato_body,
-    draw_lato_title,
-    draw_oswald_header,
-    measure_body,
-    measure_header,
-    measure_title,
+    draw_lato_body, draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_title, BootDisplay,
+    CornerRadii, DrawTarget, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle, Rgb565, RoundedRectangle,
+    Size, COLOR_BG, COLOR_CARD, COLOR_CARD_BORDER, COLOR_DANGER, COLOR_ORANGE, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_TEAL,
 };
 
 impl<'a> BootDisplay<'a> {
@@ -62,7 +38,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, "WALLETS", (320 - tw) / 2, 30, COLOR_TEXT);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         self.draw_seed_slot_list(
             seed_mgr,
             scroll,
@@ -90,34 +67,17 @@ impl<'a> BootDisplay<'a> {
 
         let title = "DELETE WALLET?";
         let title_width = measure_header(title);
-        draw_oswald_header(
-            &mut self.display,
-            title,
-            (320 - title_width) / 2,
-            30,
-            COLOR_ORANGE,
-        );
+        draw_oswald_header(&mut self.display, title, (320 - title_width) / 2, 30, COLOR_ORANGE);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(COLOR_DANGER, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         let fingerprint_width = measure_title(fp_str);
-        draw_lato_title(
-            &mut self.display,
-            fp_str,
-            (320 - fingerprint_width) / 2,
-            72,
-            COLOR_TEXT,
-        );
+        draw_lato_title(&mut self.display, fp_str, (320 - fingerprint_width) / 2, 72, COLOR_TEXT);
         let source_label = source.deletion_label();
         let source_width = measure_body(source_label);
-        draw_lato_body(
-            &mut self.display,
-            source_label,
-            (320 - source_width) / 2,
-            94,
-            COLOR_TEXT_DIM,
-        );
+        draw_lato_body(&mut self.display, source_label, (320 - source_width) / 2, 94, COLOR_TEXT_DIM);
 
         for (line, y) in [
             ("This action is irreversible.", 119),
@@ -129,30 +89,14 @@ impl<'a> BootDisplay<'a> {
         }
 
         let cancel = Rectangle::new(Point::new(30, 185), Size::new(120, 40));
-        cancel
-            .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 2))
-            .draw(&mut self.display).ok();
+        cancel.into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 2)).draw(&mut self.display).ok();
         let cancel_width = measure_title("CANCEL");
-        draw_lato_title(
-            &mut self.display,
-            "CANCEL",
-            30 + (120 - cancel_width) / 2,
-            212,
-            KASPA_TEAL,
-        );
+        draw_lato_title(&mut self.display, "CANCEL", 30 + (120 - cancel_width) / 2, 212, KASPA_TEAL);
 
         let delete = Rectangle::new(Point::new(170, 185), Size::new(120, 40));
-        delete
-            .into_styled(PrimitiveStyle::with_fill(COLOR_DANGER))
-            .draw(&mut self.display).ok();
+        delete.into_styled(PrimitiveStyle::with_fill(COLOR_DANGER)).draw(&mut self.display).ok();
         let delete_width = measure_title("DELETE");
-        draw_lato_title(
-            &mut self.display,
-            "DELETE",
-            170 + (120 - delete_width) / 2,
-            212,
-            COLOR_TEXT,
-        );
+        draw_lato_title(&mut self.display, "DELETE", 170 + (120 - delete_width) / 2, 212, COLOR_TEXT);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -168,7 +112,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, "BIP85 CHILD", (320 - tw) / 2, 28, COLOR_TEXT);
         Line::new(Point::new(20, 38), Point::new(300, 38))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         // Word count subtitle centered
         let mut wc_buf: heapless::String<20> = heapless::String::new();
@@ -194,9 +139,13 @@ impl<'a> BootDisplay<'a> {
         // [-] button
         let btn_m = Rectangle::new(Point::new(row_x, row_y), Size::new(btn_sz, btn_h));
         RoundedRectangle::new(btn_m, btn_corner)
-            .into_styled(PrimitiveStyle::with_fill(COLOR_CARD)).draw(&mut self.display).ok();
+            .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(btn_m, btn_corner)
-            .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1)).draw(&mut self.display).ok();
+            .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
+            .draw(&mut self.display)
+            .ok();
         let mw = measure_title("-");
         draw_lato_title(&mut self.display, "-", row_x + (btn_sz as i32 - mw) / 2, row_y + 24, COLOR_TEXT);
 
@@ -211,9 +160,13 @@ impl<'a> BootDisplay<'a> {
         let plus_x = idx_x + 60;
         let btn_p = Rectangle::new(Point::new(plus_x, row_y), Size::new(btn_sz, btn_h));
         RoundedRectangle::new(btn_p, btn_corner)
-            .into_styled(PrimitiveStyle::with_fill(COLOR_CARD)).draw(&mut self.display).ok();
+            .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
+            .draw(&mut self.display)
+            .ok();
         RoundedRectangle::new(btn_p, btn_corner)
-            .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1)).draw(&mut self.display).ok();
+            .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
+            .draw(&mut self.display)
+            .ok();
         let pw = measure_title("+");
         draw_lato_title(&mut self.display, "+", plus_x + (btn_sz as i32 - pw) / 2, row_y + 24, COLOR_TEXT);
 
@@ -224,10 +177,11 @@ impl<'a> BootDisplay<'a> {
         let derive_y = 150i32;
         let derive_rect = Rectangle::new(Point::new(derive_x, derive_y), Size::new(derive_w, derive_h));
         RoundedRectangle::new(derive_rect, btn_corner)
-            .into_styled(PrimitiveStyle::with_fill(KASPA_TEAL)).draw(&mut self.display).ok();
+            .into_styled(PrimitiveStyle::with_fill(KASPA_TEAL))
+            .draw(&mut self.display)
+            .ok();
         let dw = measure_title("DERIVE");
         draw_lato_title(&mut self.display, "DERIVE", derive_x + (derive_w as i32 - dw) / 2, derive_y + 22, COLOR_BG);
-
     }
 
     /// Partial redraw: only the index number between [-] and [+] buttons.
@@ -235,7 +189,8 @@ impl<'a> BootDisplay<'a> {
         // Clear index area: x=135..185, y=98..132
         Rectangle::new(Point::new(135, 98), Size::new(50, 34))
             .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
         // Redraw index value
         let mut idx_buf: heapless::String<4> = heapless::String::new();
         core::fmt::Write::write_fmt(&mut idx_buf, format_args!("{index}")).ok();
@@ -256,5 +211,4 @@ impl<'a> BootDisplay<'a> {
     pub fn draw_bip85_word_screen(&mut self, word_num: u8, total_words: u8, word: &str) {
         self.draw_mnemonic_word("BIP85", word_num, total_words, word);
     }
-
 }

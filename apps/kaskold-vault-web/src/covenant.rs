@@ -109,7 +109,9 @@ pub(crate) const fn mode_label(mode: CovenantMode) -> &'static str {
     }
 }
 
-pub(crate) const fn scheme_label(scheme: shared_signer::covenant_sign::KnownScheme) -> &'static str {
+pub(crate) const fn scheme_label(
+    scheme: shared_signer::covenant_sign::KnownScheme,
+) -> &'static str {
     match scheme {
         shared_signer::covenant_sign::KnownScheme::None => "Opaque",
         shared_signer::covenant_sign::KnownScheme::Sha256Preimage => "SHA256 Preimage",

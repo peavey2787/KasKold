@@ -1,34 +1,44 @@
 //! Event-loop-friendly persistent-wallet unlock transaction.
 
-use offline_signer::{crypto::password_kdf::PasswordKdfPurpose, derivation::hmac::zeroize_buf};
 use crate::services::credential_policy::{CredentialKind, SALT_SIZE};
+use offline_signer::{crypto::password_kdf::PasswordKdfPurpose, derivation::hmac::zeroize_buf};
 
 use crate::{runtime::data::AppData, services::wallet_session};
 
 use super::super::{
-    PersistError, PersistentWallet, StorageMode,
-    crypto::{self, RECORD_SIZE}, flash::AlignedBytes, journal, kdf, sd_backend, security_policy,
+    crypto::{self, RECORD_SIZE},
+    flash::AlignedBytes,
+    journal, kdf, sd_backend, security_policy, PersistError, PersistentWallet, StorageMode,
 };
-
 
 struct SecretKey([u8; 32]);
 
 impl SecretKey {
-    fn new(key: [u8; 32]) -> Self { Self(key) }
-    fn take(&mut self) -> [u8; 32] { core::mem::replace(&mut self.0, [0u8; 32]) }
+    fn new(key: [u8; 32]) -> Self {
+        Self(key)
+    }
+    fn take(&mut self) -> [u8; 32] {
+        core::mem::replace(&mut self.0, [0u8; 32])
+    }
 }
 
 impl core::ops::Deref for SecretKey {
     type Target = [u8; 32];
-    fn deref(&self) -> &Self::Target { &self.0 }
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl core::ops::DerefMut for SecretKey {
-    fn deref_mut(&mut self) -> &mut Self::Target { &mut self.0 }
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
 impl Drop for SecretKey {
-    fn drop(&mut self) { zeroize_buf(&mut self.0); }
+    fn drop(&mut self) {
+        zeroize_buf(&mut self.0);
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -93,11 +103,8 @@ impl PersistentWallet<'_> {
         // and routes short or otherwise malformed guesses to a policy error
         // instead of the ordinary invalid-credential retry surface.
         let _ = secret;
-        let order = if self.mode == Some(StorageMode::SdCard) {
-            [None, None]
-        } else {
-            journal::wallet_order(&mut self.flash)?
-        };
+        let order =
+            if self.mode == Some(StorageMode::SdCard) { [None, None] } else { journal::wallet_order(&mut self.flash)? };
         Ok(AsyncUnlockSession {
             kind,
             phase: AsyncUnlockPhase::Duress,
@@ -135,10 +142,7 @@ impl PersistentWallet<'_> {
         Some(UnlockKdfRequest { kdf: self.credential_kdf, salt: policy.salt })
     }
 
-    fn next_wallet_kdf(
-        &mut self,
-        session: &mut AsyncUnlockSession,
-    ) -> Result<Option<UnlockKdfRequest>, PersistError> {
+    fn next_wallet_kdf(&mut self, session: &mut AsyncUnlockSession) -> Result<Option<UnlockKdfRequest>, PersistError> {
         if self.mode == Some(StorageMode::SdCard) {
             return Ok(self.next_sd_wallet_kdf(session));
         }
@@ -167,13 +171,16 @@ impl PersistentWallet<'_> {
             let mut record = AlignedBytes::<RECORD_SIZE>::zeroed();
             let header = journal::read_wallet(&mut self.flash, address, &mut record)?;
             zeroize_buf(&mut record.0);
-            let Some(header) = header else { continue; };
-            if header.credential_kind != session.kind { continue; }
+            let Some(header) = header else {
+                continue;
+            };
+            if header.credential_kind != session.kind {
+                continue;
+            }
             session.pending = AsyncUnlockPending::Flash { address, header };
             return Ok(Some(UnlockKdfRequest { kdf: header.credential_kdf, salt: header.salt }));
         }
     }
-
 
     pub(crate) fn apply_async_unlock_key(
         &mut self,
@@ -186,12 +193,8 @@ impl PersistentWallet<'_> {
         let key = SecretKey::new(key);
         let pending = core::mem::replace(&mut session.pending, AsyncUnlockPending::None);
         match pending {
-            AsyncUnlockPending::Duress(policy) => {
-                self.apply_duress_key(session, policy, key, ad, i2c, delay)
-            }
-            AsyncUnlockPending::Flash { address, header } => {
-                self.apply_flash_key(session, address, header, key, ad)
-            }
+            AsyncUnlockPending::Duress(policy) => self.apply_duress_key(session, policy, key, ad, i2c, delay),
+            AsyncUnlockPending::Flash { address, header } => self.apply_flash_key(session, address, header, key, ad),
             AsyncUnlockPending::Sd => self.apply_sd_key(session, key, ad, i2c, delay),
             AsyncUnlockPending::None => Err(PersistError::InvalidWallet),
         }
@@ -206,13 +209,10 @@ impl PersistentWallet<'_> {
         i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
         delay: &mut esp_hal::delay::Delay,
     ) -> Result<AsyncUnlockApply, PersistError> {
-        let actual = self.crypto.duress_verifier(
-            policy.key_slot, policy.kind, &policy.salt, &*key,
-        );
+        let actual = self.crypto.duress_verifier(policy.key_slot, policy.kind, &policy.salt, &*key);
         zeroize_buf(&mut *key);
-        let matched = actual
-            .map(|value| shared_signer::bytes::constant_time_eq(&value, &policy.verifier))
-            .unwrap_or(false);
+        let matched =
+            actual.map(|value| shared_signer::bytes::constant_time_eq(&value, &policy.verifier)).unwrap_or(false);
         if !matched {
             return Ok(AsyncUnlockApply::Continue);
         }
@@ -238,7 +238,9 @@ impl PersistentWallet<'_> {
         zeroize_buf(&mut record.0);
         if let Err(error) = result {
             zeroize_buf(&mut *key);
-            if session.first_error.is_none() { session.first_error = Some(error); }
+            if session.first_error.is_none() {
+                session.first_error = Some(error);
+            }
             return Ok(AsyncUnlockApply::Continue);
         }
         self.finish_async_flash_unlock(header, session.kind, key.take(), ad)?;
@@ -312,11 +314,7 @@ impl PersistentWallet<'_> {
         Ok((header, policy))
     }
 
-
-    pub(crate) fn async_unlock_terminal_error(
-        &self,
-        session: &AsyncUnlockSession,
-    ) -> PersistError {
+    pub(crate) fn async_unlock_terminal_error(&self, session: &AsyncUnlockSession) -> PersistError {
         session.first_error.unwrap_or(PersistError::Authentication)
     }
 
@@ -361,11 +359,7 @@ impl PersistentWallet<'_> {
     }
 }
 
-fn complete_apply_error(
-    session: &mut AsyncUnlockSession,
-    error: PersistError,
-) -> AsyncUnlockApply {
+fn complete_apply_error(session: &mut AsyncUnlockSession, error: PersistError) -> AsyncUnlockApply {
     session.phase = AsyncUnlockPhase::Complete;
     AsyncUnlockApply::Complete(Err(error))
 }
-

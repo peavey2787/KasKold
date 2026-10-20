@@ -2,7 +2,8 @@
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
 // License: GPL-3.0
 //! Main-loop tap, swipe, and drag dispatch.
-#[cfg(not(feature = "workflow-test-auto"))] macro_rules! handle_action {
+#[cfg(not(feature = "workflow-test-auto"))]
+macro_rules! handle_action {
     ($action:ident, $ad:ident, $persistent_wallet:ident, $boot_display:ident, $delay:ident, $i2c:ident,
      $sd_card_type:ident, $dvp_camera_opt:ident, $cam_dma_buf_opt:ident,
      $tracker:ident, $runtime_audio:ident, $watchdog_feed:ident, $grid_zones:ident, $list_zones:ident,

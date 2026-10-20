@@ -28,8 +28,12 @@ pub(super) fn finish_result(
     delay: &mut esp_hal::delay::Delay,
     persistence: &mut PersistentWallet<'_>,
 ) {
-    let Some((kind, unlock)) = credential_kind(operation) else { return; };
-    if !crate::runtime::presentation::execution_done(ad, operation, result.is_ok()) { return; }
+    let Some((kind, unlock)) = credential_kind(operation) else {
+        return;
+    };
+    if !crate::runtime::presentation::execution_done(ad, operation, result.is_ok()) {
+        return;
+    }
     if unlock {
         commit_unlock_result(ad, kind, operation, result, display, delay, persistence);
     } else {
@@ -48,17 +52,11 @@ fn commit_save_success(
     delay: &mut esp_hal::delay::Delay,
 ) {
     if ad.wallet.seeds.has_pending_add_wallet() {
-        let committed = crate::runtime::interactions::seed::commit_staged_add_wallet(
-            ad, persistence, display, delay,
-        );
+        let committed = crate::runtime::interactions::seed::commit_staged_add_wallet(ad, persistence, display, delay);
         if committed {
-            let _ = crate::runtime::presentation::credential_result_committed(
-                ad, operation, "success wallet-create",
-            );
+            let _ = crate::runtime::presentation::credential_result_committed(ad, operation, "success wallet-create");
             crate::runtime::presentation::finish_success(ad);
-        } else if crate::runtime::presentation::credential_result_committed(
-            ad, operation, "wallet-create-failed",
-        ) {
+        } else if crate::runtime::presentation::credential_result_committed(ad, operation, "wallet-create-failed") {
             crate::runtime::presentation::clear_operation(ad);
         }
         return;
@@ -79,13 +77,12 @@ fn commit_save_success(
             commit_save_error(ad, kind, operation, PersistError::InvalidWallet);
             return;
         }
-        if let Err(error) =
-            persistence.stage_wallet_activation_record(slot, protection, salt, verifier)
-        {
-            let _ = ad.wallet.seeds.seed_mgr.set_slot_protection(
-                slot,
-                crate::wallet::seed_manager::WalletProtection::DeviceOnly,
-            );
+        if let Err(error) = persistence.stage_wallet_activation_record(slot, protection, salt, verifier) {
+            let _ = ad
+                .wallet
+                .seeds
+                .seed_mgr
+                .set_slot_protection(slot, crate::wallet::seed_manager::WalletProtection::DeviceOnly);
             let _ = persistence.clear_wallet_activation_record(slot);
             commit_save_error(ad, kind, operation, error);
             return;
@@ -98,41 +95,29 @@ fn commit_save_success(
         ad.wallet.seeds.pp_input.reset();
         persistence.refresh_security_mirror(ad);
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(WalletDetails));
-        if crate::runtime::presentation::credential_result_committed(
-            ad,
-            operation,
-            "success wallet-protection-update",
-        ) {
+        if crate::runtime::presentation::credential_result_committed(ad, operation, "success wallet-protection-update")
+        {
             crate::runtime::presentation::finish_success(ad);
         }
         return;
     }
     persistence.refresh_security_mirror(ad);
     if crate::runtime::effects::complete_onboarding(ad) {
-        if !crate::runtime::presentation::credential_result_committed(
-            ad, operation, "success MainMenu",
-        ) { return; }
+        if !crate::runtime::presentation::credential_result_committed(ad, operation, "success MainMenu") {
+            return;
+        }
         crate::runtime::presentation::finish_success(ad);
         return;
     }
-    if crate::runtime::presentation::credential_result_committed(
-        ad, operation, "navigation-recovery",
-    ) {
+    if crate::runtime::presentation::credential_result_committed(ad, operation, "navigation-recovery") {
         crate::runtime::presentation::clear_operation(ad);
     }
 }
 
-fn commit_save_error(
-    ad: &mut AppData,
-    kind: CredentialKind,
-    operation: OperationKind,
-    error: PersistError,
-) {
+fn commit_save_error(ad: &mut AppData, kind: CredentialKind, operation: OperationKind, error: PersistError) {
     prepare_save_retry(ad, kind);
     crate::log!("Persistent wallet save failed: {:?}", error);
-    if crate::runtime::presentation::credential_result_committed(
-        ad, operation, "recoverable-error",
-    ) {
+    if crate::runtime::presentation::credential_result_committed(ad, operation, "recoverable-error") {
         crate::runtime::presentation::fail_recoverable(ad, error.message(), persist_code(error), 0);
     }
 }
@@ -150,17 +135,21 @@ fn commit_unlock_result(
         Ok(()) => commit_unlock_success(ad, operation, persistence),
         // Duress must look exactly like an ordinary wrong credential.
         Err(PersistError::DuressTriggered) => reboot_after_wipe(
-            ad, operation, display, delay,
+            ad,
+            operation,
+            display,
+            delay,
             ("Incorrect credential or damaged wallet", "AUTH-01", "duress-reset"),
         ),
         Err(PersistError::AttemptLimitWiped) => reboot_after_wipe(
-            ad, operation, display, delay,
+            ad,
+            operation,
+            display,
+            delay,
             (PersistError::AttemptLimitWiped.message(), "AUTH-WIPE-01", "attempt-limit-reset"),
         ),
         Err(PersistError::DeviceWipeFailed) => {
-            if crate::runtime::presentation::credential_result_committed(
-                ad, operation, "fatal-error",
-            ) {
+            if crate::runtime::presentation::credential_result_committed(ad, operation, "fatal-error") {
                 crate::runtime::presentation::fail_fatal(ad, "Secure device wipe failed", "SEC-WIPE-01");
             }
         }
@@ -182,11 +171,7 @@ fn reboot_after_wipe(
     esp_hal::system::software_reset()
 }
 
-fn commit_unlock_success(
-    ad: &mut AppData,
-    operation: OperationKind,
-    persistence: &mut PersistentWallet<'_>,
-) {
+fn commit_unlock_success(ad: &mut AppData, operation: OperationKind, persistence: &mut PersistentWallet<'_>) {
     persistence.refresh_security_mirror(ad);
     if let Err(error) = persistence.load_display_preferences(ad) {
         crate::log!("   SETTINGS preference reload after unlock failed: {:?}", error);
@@ -201,9 +186,7 @@ fn commit_unlock_success(
     } else if commit_default_unlock_route(ad, operation) {
         return;
     }
-    if crate::runtime::presentation::credential_result_committed(
-        ad, operation, "navigation-recovery",
-    ) {
+    if crate::runtime::presentation::credential_result_committed(ad, operation, "navigation-recovery") {
         crate::runtime::presentation::clear_operation(ad);
     }
 }
@@ -213,7 +196,9 @@ fn commit_pending_wallet_activation(
     operation: OperationKind,
     persistence: &mut PersistentWallet<'_>,
 ) -> bool {
-    let Some(slot) = ad.runtime.take_pending_wallet_activation() else { return false; };
+    let Some(slot) = ad.runtime.take_pending_wallet_activation() else {
+        return false;
+    };
     reset_unlock_feedback(ad);
     if let Err(error) = crate::services::wallet_session::activate_slot(ad, slot) {
         crate::log!("   authenticated wallet activation failed: {:?}", error);
@@ -226,11 +211,7 @@ fn commit_pending_wallet_activation(
     } else {
         crate::runtime::navigation::route!(SeedsMenu)
     };
-    let marker = if startup_activation {
-        "success startup-wallet-home"
-    } else {
-        "success wallet-switch"
-    };
+    let marker = if startup_activation { "success startup-wallet-home" } else { "success wallet-switch" };
     let _ = crate::runtime::effects::route(ad, route);
     if crate::runtime::presentation::credential_result_committed(ad, operation, marker) {
         crate::runtime::presentation::finish_success(ad);
@@ -238,18 +219,12 @@ fn commit_pending_wallet_activation(
     true
 }
 
-fn commit_reauth_success(
-    ad: &mut AppData,
-    operation: OperationKind,
-    return_to: ContinuationRoute,
-) -> bool {
+fn commit_reauth_success(ad: &mut AppData, operation: OperationKind, return_to: ContinuationRoute) -> bool {
     reset_unlock_feedback(ad);
     if !crate::runtime::effects::authenticated_resume(ad, return_to) {
         return false;
     }
-    if !crate::runtime::presentation::credential_result_committed(
-        ad, operation, "success dim-reauth",
-    ) {
+    if !crate::runtime::presentation::credential_result_committed(ad, operation, "success dim-reauth") {
         return true;
     }
     crate::runtime::presentation::finish_success(ad);
@@ -280,21 +255,14 @@ fn reset_unlock_feedback(ad: &mut AppData) {
     ad.storage.persistence.unlock_retry_after_ms = 0;
 }
 
-fn commit_unlock_error(
-    ad: &mut AppData,
-    kind: CredentialKind,
-    operation: OperationKind,
-    error: PersistError,
-) {
+fn commit_unlock_error(ad: &mut AppData, kind: CredentialKind, operation: OperationKind, error: PersistError) {
     if is_credential_rejection(error) {
         crate::log!("Persistent wallet unlock failed: Authentication");
         let retry_ms = crate::runtime::interactions::persistence::arm_unlock_backoff(ad, kind);
         commit_authentication_retry(ad, kind, operation, retry_ms);
         return;
     }
-    let retry_ms = crate::services::credential_policy::retry_delay_millis(
-        ad.storage.persistence.unlock_failures,
-    );
+    let retry_ms = crate::services::credential_policy::retry_delay_millis(ad.storage.persistence.unlock_failures);
     crate::log!("Persistent wallet unlock failed: {:?}", error);
 
     let result = match kind {
@@ -302,18 +270,11 @@ fn commit_unlock_error(
         CredentialKind::Password => "recoverable-error password",
     };
     if crate::runtime::presentation::credential_result_committed(ad, operation, result) {
-        crate::runtime::presentation::fail_recoverable(
-            ad, error.message(), persist_code(error), retry_ms,
-        );
+        crate::runtime::presentation::fail_recoverable(ad, error.message(), persist_code(error), retry_ms);
     }
 }
 
-fn commit_authentication_retry(
-    ad: &mut AppData,
-    kind: CredentialKind,
-    operation: OperationKind,
-    retry_ms: u32,
-) {
+fn commit_authentication_retry(ad: &mut AppData, kind: CredentialKind, operation: OperationKind, retry_ms: u32) {
     ad.wallet.seeds.pp_input.reset();
     let result = match kind {
         CredentialKind::Pin => "invalid-pin retry",

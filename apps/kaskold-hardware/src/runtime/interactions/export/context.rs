@@ -5,10 +5,10 @@
 //! Narrow capability contexts shared by export workflow handlers.
 
 use crate::{
-    runtime::interactions::TouchInput,
     hw::{display, touch},
-    services::storage_device as sdcard,
     runtime::data::AppData,
+    runtime::interactions::TouchInput,
+    services::storage_device as sdcard,
 };
 
 /// Capabilities supplied by the firmware router to the export façade.
@@ -23,6 +23,37 @@ pub struct ExportTouchContext<'ctx, 'display, 'hal> {
     pub page_up_zone: &'ctx touch::TouchZone,
     pub page_down_zone: &'ctx touch::TouchZone,
     pub input: TouchInput,
+}
+
+impl<'display, 'hal> ExportTouchContext<'_, 'display, 'hal> {
+    /// Reborrow the SD-free capabilities for one export menu handler.
+    pub(super) fn menu(&mut self) -> ExportMenuContext<'_, 'display> {
+        ExportMenuContext {
+            ad: &mut *self.ad,
+            boot_display: &mut *self.boot_display,
+            delay: &mut *self.delay,
+            list_zones: self.list_zones,
+            page_up_zone: self.page_up_zone,
+            page_down_zone: self.page_down_zone,
+            input: self.input,
+        }
+    }
+
+    /// Reborrow the SD-capable capabilities for one export storage handler.
+    pub(super) fn storage(&mut self) -> ExportStorageContext<'_, 'display, 'hal> {
+        ExportStorageContext {
+            ad: &mut *self.ad,
+            boot_display: &mut *self.boot_display,
+            delay: &mut *self.delay,
+            liveness: &mut *self.liveness,
+            i2c: &mut *self.i2c,
+            sd_card_type: self.sd_card_type,
+            list_zones: self.list_zones,
+            page_up_zone: self.page_up_zone,
+            page_down_zone: self.page_down_zone,
+            input: self.input,
+        }
+    }
 }
 
 /// Capabilities for export menus that do not access the SD bus.

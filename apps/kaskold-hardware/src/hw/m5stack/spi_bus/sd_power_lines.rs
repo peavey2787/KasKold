@@ -6,9 +6,7 @@
 
 use core::ptr;
 
-use crate::hw::shared::registers::esp32s3::{
-    GPIO_ENABLE1_W1TS, GPIO_FUNC_OUT_SEL_BASE, GPIO_OUT1_W1TC,
-};
+use crate::hw::shared::registers::esp32s3::{GPIO_ENABLE1_W1TS, GPIO_FUNC_OUT_SEL_BASE, GPIO_OUT1_W1TC};
 
 const GPIO_OUT_W1TS: u32 = 0x6000_4008;
 const GPIO_OUT_W1TC: u32 = 0x6000_400C;

@@ -11,10 +11,7 @@ pub(super) fn redraw(ad: &mut AppData, boot_display: &mut display::BootDisplay<'
 }
 
 fn draw_seed_list(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {
-    boot_display.draw_seed_list_screen(
-        &ad.wallet.seeds.seed_mgr,
-        ad.wallet.seeds.seed_list_scroll,
-    );
+    boot_display.draw_seed_list_screen(&ad.wallet.seeds.seed_mgr, ad.wallet.seeds.seed_list_scroll);
 }
 
 fn draw_delete_confirmation(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {

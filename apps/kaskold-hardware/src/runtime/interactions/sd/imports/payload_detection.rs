@@ -16,11 +16,7 @@ pub(super) fn load_selected_file(
     let _ = &mut *i2c;
     sdcard::with_sd_card!(i2c, delay, |card_type| {
         let fat32 = sdcard::mount_fat32(card_type)?;
-        let (entry, _, _) = sdcard::find_file_in_root(
-            card_type,
-            &fat32,
-            &ad.storage.browser.selected_file,
-        )?;
+        let (entry, _, _) = sdcard::find_file_in_root(card_type, &fat32, &ad.storage.browser.selected_file)?;
         if entry.file_size as usize > 1024 {
             return Err("Import file exceeds probe buffer");
         }

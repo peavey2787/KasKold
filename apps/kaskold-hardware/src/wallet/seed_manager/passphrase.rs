@@ -28,18 +28,13 @@ pub struct PassphraseInput {
 }
 
 impl PassphraseInput {
-        /// Create a new empty passphrase input.
-pub fn new() -> Self {
-        Self {
-            buf: [0; 128],
-            len: 0,
-            cursor: 0,
-            page: 0,
-        }
+    /// Create a new empty passphrase input.
+    pub fn new() -> Self {
+        Self { buf: [0; 128], len: 0, cursor: 0, page: 0 }
     }
 
-        /// Insert a character at cursor position.
-pub fn push_char(&mut self, c: u8) {
+    /// Insert a character at cursor position.
+    pub fn push_char(&mut self, c: u8) {
         if self.len < 128 {
             // Shift everything after cursor right by 1
             let mut i = self.len;
@@ -53,8 +48,8 @@ pub fn push_char(&mut self, c: u8) {
         }
     }
 
-        /// Delete character before cursor (backspace).
-pub fn backspace(&mut self) {
+    /// Delete character before cursor (backspace).
+    pub fn backspace(&mut self) {
         if self.cursor > 0 {
             // Shift everything after cursor left by 1
             let mut i = self.cursor - 1;
@@ -68,22 +63,22 @@ pub fn backspace(&mut self) {
         }
     }
 
-        /// Move cursor left.
-pub fn cursor_left(&mut self) {
+    /// Move cursor left.
+    pub fn cursor_left(&mut self) {
         if self.cursor > 0 {
             self.cursor -= 1;
         }
     }
 
-        /// Move cursor right.
-pub fn cursor_right(&mut self) {
+    /// Move cursor right.
+    pub fn cursor_right(&mut self) {
         if self.cursor < self.len {
             self.cursor += 1;
         }
     }
 
-        /// Clear the passphrase buffer completely.
-pub fn reset(&mut self) {
+    /// Clear the passphrase buffer completely.
+    pub fn reset(&mut self) {
         shared_signer::bytes::zeroize_bytes(&mut self.buf);
         self.len = 0;
         self.cursor = 0;
@@ -91,14 +86,13 @@ pub fn reset(&mut self) {
         core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
     }
 
-        /// Cycle to the next keyboard page (lowercase → uppercase → symbols).
-pub fn next_page(&mut self) {
+    /// Cycle to the next keyboard page (lowercase → uppercase → symbols).
+    pub fn next_page(&mut self) {
         self.page = (self.page + 1) % 4;
     }
 
-        /// Get the current passphrase as a UTF-8 string slice.
-pub fn as_str(&self) -> &str {
+    /// Get the current passphrase as a UTF-8 string slice.
+    pub fn as_str(&self) -> &str {
         core::str::from_utf8(&self.buf[..self.len]).unwrap_or("")
     }
-
 }

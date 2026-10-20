@@ -1,12 +1,12 @@
+use crate::services::credential_policy::SALT_SIZE;
 use crate::{
     runtime::data::{AppData, OperationKind},
     services::persistent_wallet::{CredentialKind, PersistError, PersistentWallet},
 };
-use crate::services::credential_policy::SALT_SIZE;
 
 use super::{
-    credential_kind, next_unlock_request, SaveTask, SecretBuffer, Task, UnlockTask,
-    WalletActivationMode, WalletActivationTask,
+    credential_kind, next_unlock_request, SaveTask, SecretBuffer, Task, UnlockTask, WalletActivationMode,
+    WalletActivationTask,
 };
 
 pub(super) fn begin(
@@ -52,9 +52,7 @@ fn setup_slot(ad: &AppData) -> Result<Option<u8>, PersistError> {
         let slot = ad.wallet.seeds.pending_add_wallet_slot;
         return if slot == u8::MAX { Err(PersistError::InvalidWallet) } else { Ok(Some(slot)) };
     }
-    Ok(ad.runtime
-        .pending_wallet_protection_update()
-        .and_then(|slot| u8::try_from(slot).ok()))
+    Ok(ad.runtime.pending_wallet_protection_update().and_then(|slot| u8::try_from(slot).ok()))
 }
 
 fn wallet_verification_material(
@@ -62,13 +60,16 @@ fn wallet_verification_material(
     kind: CredentialKind,
     persistence: &mut PersistentWallet<'_>,
 ) -> Result<Option<(u8, [u8; SALT_SIZE], [u8; 32])>, PersistError> {
-    let Some(slot) = ad.runtime.pending_wallet_activation() else { return Ok(None); };
-    let protection = ad.wallet.seeds.seed_mgr.slots
-        .get(slot)
-        .ok_or(PersistError::InvalidWallet)?
-        .protection;
-    let Some(expected_kind) = protection.credential_kind() else { return Ok(None); };
-    if expected_kind != kind { return Err(PersistError::Authentication); }
+    let Some(slot) = ad.runtime.pending_wallet_activation() else {
+        return Ok(None);
+    };
+    let protection = ad.wallet.seeds.seed_mgr.slots.get(slot).ok_or(PersistError::InvalidWallet)?.protection;
+    let Some(expected_kind) = protection.credential_kind() else {
+        return Ok(None);
+    };
+    if expected_kind != kind {
+        return Err(PersistError::Authentication);
+    }
     let (salt, verifier) = persistence.wallet_activation_material(slot)?;
     let slot = u8::try_from(slot).map_err(|_| PersistError::InvalidWallet)?;
     Ok(Some((slot, salt, verifier)))

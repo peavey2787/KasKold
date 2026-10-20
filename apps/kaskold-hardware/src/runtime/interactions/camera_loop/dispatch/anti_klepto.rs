@@ -22,7 +22,6 @@ pub(super) fn process(
     reject(ad, "Invalid anti-klepto QR");
 }
 
-
 #[cfg(feature = "workflow-test-auto")]
 pub(super) fn workflow_process(data: &[u8], ad: &mut AppData) {
     if let Ok(request) = shared_signer::anti_klepto::parse_request(data) {
@@ -39,28 +38,21 @@ pub(super) fn workflow_process(data: &[u8], ad: &mut AppData) {
 #[cfg(feature = "workflow-test-auto")]
 fn workflow_process_request(request: shared_signer::anti_klepto::Request<'_>, ad: &mut AppData) {
     ad.signing.anti_klepto.reset();
-    match offline_signer::transaction::kspt::parse_compact_kspt(
-        request.transaction,
-        &mut ad.signing.transaction.active,
-    ) {
+    match offline_signer::transaction::kspt::parse_compact_kspt(request.transaction, &mut ad.signing.transaction.active)
+    {
         Ok(()) => {
-            if offline_signer::transaction::kspt::validate_transaction_for_review(
-                &ad.signing.transaction.active,
-            )
-            .is_err()
+            if offline_signer::transaction::kspt::validate_transaction_for_review(&ad.signing.transaction.active)
+                .is_err()
             {
                 workflow_reject(ad);
                 return;
             }
-            if !ad.wallet.seeds.seed_mgr.network().matches_transaction_network(
-                ad.signing.transaction.active.network,
-            ) {
+            if !ad.wallet.seeds.seed_mgr.network().matches_transaction_network(ad.signing.transaction.active.network) {
                 workflow_reject(ad);
                 return;
             }
-            let initial_counts = offline_signer::transaction::kspt::initial_signature_counts(
-                &ad.signing.transaction.active,
-            );
+            let initial_counts =
+                offline_signer::transaction::kspt::initial_signature_counts(&ad.signing.transaction.active);
             if !ad.signing.anti_klepto.begin(
                 request.session_id,
                 request.host_commitment,
@@ -71,9 +63,8 @@ fn workflow_process_request(request: shared_signer::anti_klepto::Request<'_>, ad
                 return;
             }
             ad.signing.transaction.input_format = shared_signer::TxInputFormat::KsptCompact;
-            let (present, required) = offline_signer::transaction::kspt::signature_status(
-                &ad.signing.transaction.active,
-            );
+            let (present, required) =
+                offline_signer::transaction::kspt::signature_status(&ad.signing.transaction.active);
             ad.signing.transaction.signatures_present = present;
             ad.signing.transaction.signatures_required = required;
             if crate::runtime::signing::verify_transaction_output_ownership(ad).is_err() {
@@ -97,8 +88,8 @@ fn workflow_process_reveal(
     mut host_secret: [u8; 32],
     ad: &mut AppData,
 ) {
-    let result = validate_reveal(session_id, &host_secret, ad)
-        .and_then(|()| finalize_reveal_signature(ad, &host_secret));
+    let result =
+        validate_reveal(session_id, &host_secret, ad).and_then(|()| finalize_reveal_signature(ad, &host_secret));
     shared_signer::bytes::zeroize_bytes(&mut host_secret);
     result
         .and_then(|()| build_final_response(ad))
@@ -126,27 +117,22 @@ fn process_request(
     liveness: &mut (impl FnMut() + ?Sized),
 ) {
     ad.signing.anti_klepto.reset();
-    match offline_signer::transaction::kspt::parse_compact_kspt(
-        request.transaction,
-        &mut ad.signing.transaction.active,
-    ) {
+    match offline_signer::transaction::kspt::parse_compact_kspt(request.transaction, &mut ad.signing.transaction.active)
+    {
         Ok(()) => {
-            if let Err(error) = offline_signer::transaction::kspt::validate_transaction_for_review(
-                &ad.signing.transaction.active,
-            ) {
+            if let Err(error) =
+                offline_signer::transaction::kspt::validate_transaction_for_review(&ad.signing.transaction.active)
+            {
                 log!("   → anti-klepto review validation error: {:?}", error);
                 reject(ad, "Invalid transaction amounts");
                 return;
             }
-            if !ad.wallet.seeds.seed_mgr.network().matches_transaction_network(
-                ad.signing.transaction.active.network,
-            ) {
+            if !ad.wallet.seeds.seed_mgr.network().matches_transaction_network(ad.signing.transaction.active.network) {
                 reject(ad, "Transaction network does not match selected network");
                 return;
             }
-            let initial_counts = offline_signer::transaction::kspt::initial_signature_counts(
-                &ad.signing.transaction.active,
-            );
+            let initial_counts =
+                offline_signer::transaction::kspt::initial_signature_counts(&ad.signing.transaction.active);
             if !ad.signing.anti_klepto.begin(
                 request.session_id,
                 request.host_commitment,
@@ -157,12 +143,13 @@ fn process_request(
                 return;
             }
             ad.signing.transaction.input_format = shared_signer::TxInputFormat::KsptCompact;
-            let (present, required) = offline_signer::transaction::kspt::signature_status(
-                &ad.signing.transaction.active,
-            );
+            let (present, required) =
+                offline_signer::transaction::kspt::signature_status(&ad.signing.transaction.active);
             ad.signing.transaction.signatures_present = present;
             ad.signing.transaction.signatures_required = required;
-            if let Err(message) = crate::runtime::signing::verify_transaction_output_ownership_with_checkpoint(ad, liveness) {
+            if let Err(message) =
+                crate::runtime::signing::verify_transaction_output_ownership_with_checkpoint(ad, liveness)
+            {
                 log!("   → anti-klepto ownership verification error: {}", message);
                 reject_ownership(ad, message);
                 return;
@@ -171,11 +158,13 @@ fn process_request(
             let review_inputs = ad.signing.transaction.active.num_inputs;
             crate::runtime::effects::start_review(ad, review_outputs, review_inputs);
             crate::runtime::effects::redraw(ad);
-            log!("   → anti-klepto request: {} in, {} out, sigs {}/{}",
+            log!(
+                "   → anti-klepto request: {} in, {} out, sigs {}/{}",
                 ad.signing.transaction.active.num_inputs,
                 ad.signing.transaction.active.num_outputs,
                 present,
-                required);
+                required
+            );
         }
         Err(error) => {
             log!("   → anti-klepto KSPT parse error: {:?}", error);
@@ -197,13 +186,10 @@ fn process_reveal(
     let result = result.and_then(|()| finalize_reveal_signature_with_checkpoint(ad, &host_secret, liveness));
     shared_signer::bytes::zeroize_bytes(&mut host_secret);
     let result = result.and_then(|()| authorize_reveal_time(ad, i2c));
-    let result = result.and_then(|final_policy_now| {
-        build_final_response(ad).map(|proof_count| (final_policy_now, proof_count))
-    });
+    let result =
+        result.and_then(|final_policy_now| build_final_response(ad).map(|proof_count| (final_policy_now, proof_count)));
     result
-        .map(|(final_policy_now, proof_count)| {
-            present_final_response(ad, final_policy_now, proof_count)
-        })
+        .map(|(final_policy_now, proof_count)| present_final_response(ad, final_policy_now, proof_count))
         .unwrap_or_else(|message| reject(ad, message));
 }
 
@@ -214,13 +200,9 @@ fn validate_reveal(
 ) -> Result<(), &'static str> {
     let session_matches = (ad.signing.anti_klepto.phase, ad.signing.anti_klepto.session_id)
         == (AntiKleptoPhase::AwaitingReveal, session_id);
-    let secret_matches = shared_signer::anti_klepto::verify_host_secret(
-        &ad.signing.anti_klepto.host_commitment,
-        host_secret,
-    );
-    (session_matches && secret_matches)
-        .then_some(())
-        .ok_or("Anti-klepto reveal mismatch")
+    let secret_matches =
+        shared_signer::anti_klepto::verify_host_secret(&ad.signing.anti_klepto.host_commitment, host_secret);
+    (session_matches && secret_matches).then_some(()).ok_or("Anti-klepto reveal mismatch")
 }
 
 fn authorize_reveal_time(
@@ -237,8 +219,7 @@ fn authorize_reveal_time(
 
 #[cfg(feature = "workflow-test-auto")]
 fn finalize_reveal_signature(ad: &mut AppData, host_secret: &[u8; 32]) -> Result<(), &'static str> {
-    crate::runtime::signing::finalize_anti_klepto(ad, host_secret)
-        .map_err(|_| "Anti-klepto finalization failed")
+    crate::runtime::signing::finalize_anti_klepto(ad, host_secret).map_err(|_| "Anti-klepto finalization failed")
 }
 
 fn finalize_reveal_signature_with_checkpoint(
@@ -250,9 +231,7 @@ fn finalize_reveal_signature_with_checkpoint(
         .map_err(|_| "Anti-klepto finalization failed")
 }
 
-fn response_proofs(
-    ad: &AppData,
-) -> Result<alloc::vec::Vec<shared_signer::anti_klepto::SignatureProof>, &'static str> {
+fn response_proofs(ad: &AppData) -> Result<alloc::vec::Vec<shared_signer::anti_klepto::SignatureProof>, &'static str> {
     offline_signer::transaction::kspt::proof_records(
         &ad.signing.transaction.active,
         &ad.signing.anti_klepto.initial_sig_counts,
@@ -270,23 +249,17 @@ fn encode_final_response(
     proofs: &[shared_signer::anti_klepto::SignatureProof],
     signed_tx: &[u8],
 ) -> Result<usize, &'static str> {
-    let required = signed_tx
-        .len()
-        .saturating_add(proofs.len().saturating_mul(128))
-        .saturating_add(128);
-    ad.qr.outgoing
-        .ensure_len(required)
+    let required = signed_tx.len().saturating_add(proofs.len().saturating_mul(128)).saturating_add(128);
+    ad.qr.outgoing.ensure_len(required).map_err(|_| "Anti-klepto response too large").and_then(|()| {
+        shared_signer::anti_klepto::encode_signed(
+            &ad.signing.anti_klepto.session_id,
+            &ad.signing.anti_klepto.transaction_digest,
+            proofs,
+            signed_tx,
+            &mut ad.qr.outgoing.buffer,
+        )
         .map_err(|_| "Anti-klepto response too large")
-        .and_then(|()| {
-            shared_signer::anti_klepto::encode_signed(
-                &ad.signing.anti_klepto.session_id,
-                &ad.signing.anti_klepto.transaction_digest,
-                proofs,
-                signed_tx,
-                &mut ad.qr.outgoing.buffer,
-            )
-            .map_err(|_| "Anti-klepto response too large")
-        })
+    })
 }
 
 fn build_final_response(ad: &mut AppData) -> Result<usize, &'static str> {
@@ -332,10 +305,7 @@ fn reject_ownership(ad: &mut AppData, message: &'static str) {
     ad.signing.anti_klepto.reset();
     ad.qr.outgoing.length = 0;
     crate::log!("   Anti-klepto request rejected: {}", message);
-    crate::runtime::presentation::show_error_spec_previous(
-        ad,
-        crate::runtime::presentation::TX_OWNERSHIP,
-    );
+    crate::runtime::presentation::show_error_spec_previous(ad, crate::runtime::presentation::TX_OWNERSHIP);
 }
 
 fn reject(ad: &mut AppData, message: &'static str) {

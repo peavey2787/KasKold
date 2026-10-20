@@ -5,10 +5,10 @@
 //! Shared capabilities for steganography file-selection workflows.
 
 use crate::{
-    runtime::interactions::TouchInput,
     hw::{display, touch},
-    services::storage_device as sdcard,
     runtime::data::AppData,
+    runtime::interactions::TouchInput,
+    services::storage_device as sdcard,
 };
 
 /// Capabilities supplied by the firmware router to the stego façade.

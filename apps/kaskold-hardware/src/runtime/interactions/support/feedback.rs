@@ -34,11 +34,7 @@ pub(crate) const fn physical_presentation_enabled() -> bool {
     !cfg!(all(feature = "workflow-test-auto", not(feature = "workflow-runtime-auto")))
 }
 
-pub(crate) fn render_rejection(
-    display: &mut BootDisplay<'_>,
-    message: &str,
-    sound_policy: ErrorSound,
-) {
+pub(crate) fn render_rejection(display: &mut BootDisplay<'_>, message: &str, sound_policy: ErrorSound) {
     if !physical_presentation_enabled() {
         return;
     }

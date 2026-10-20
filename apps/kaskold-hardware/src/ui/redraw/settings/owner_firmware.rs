@@ -7,10 +7,7 @@
 use super::super::display;
 use crate::runtime::{data::AppData, input::AppState};
 
-pub(super) fn redraw(
-    ad: &AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) -> bool {
+pub(super) fn redraw(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     match ad.navigation.app.state {
         AppState::OwnerKeyWarning => boot_display.draw_owner_key_warning(),
         AppState::OwnerInstallWarning => boot_display.draw_owner_install_warning(),

@@ -14,7 +14,6 @@ pub struct StegoState {
     pub import: StegoImportState,
 }
 
-
 pub struct StegoSessionState {
     pub result_ok: bool,
     pub auto_scan: bool,
@@ -58,11 +57,7 @@ pub struct StegoImportState {
 impl StegoState {
     pub(super) fn new() -> Self {
         Self {
-            session: StegoSessionState {
-                result_ok: false,
-                auto_scan: false,
-                portable: PortableCredentialState::new(),
-            },
+            session: StegoSessionState { result_ok: false, auto_scan: false, portable: PortableCredentialState::new() },
             export_flow: StegoExportState {
                 carrier: StegoCarrier::Descriptor,
                 security: StegoSecurity::DeviceBound,
@@ -76,10 +71,7 @@ impl StegoState {
                 jpeg_desc_buf: [0; 256],
                 jpeg_desc_len: 0,
             },
-            hint: StegoHintState {
-                buffer: [0; 64],
-                length: 0,
-            },
+            hint: StegoHintState { buffer: [0; 64], length: 0 },
             import: StegoImportState {
                 descriptor_buf: [0; 96],
                 descriptor_len: 0,
@@ -111,4 +103,3 @@ impl StegoImportState {
         self.descriptor_len = 0;
     }
 }
-

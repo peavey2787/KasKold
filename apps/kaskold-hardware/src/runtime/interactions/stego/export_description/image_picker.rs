@@ -1,7 +1,4 @@
-use crate::{
-    hw::touch::TouchZone,
-    runtime::data::AppData,
-};
+use crate::{hw::touch::TouchZone, runtime::data::AppData};
 
 const PAGE_SIZE: u8 = 4;
 
@@ -41,12 +38,7 @@ fn advance_page(ad: &mut AppData) -> bool {
     true
 }
 
-fn select_visible_image(
-    ad: &mut AppData,
-    list_zones: &[TouchZone; 4],
-    x: u16,
-    y: u16,
-) -> bool {
+fn select_visible_image(ad: &mut AppData, list_zones: &[TouchZone; 4], x: u16, y: u16) -> bool {
     let page_start = (ad.stego.export_flow.jpeg_selected / PAGE_SIZE) * PAGE_SIZE;
     for slot in 0..PAGE_SIZE {
         if !list_zones[slot as usize].contains(x, y) {

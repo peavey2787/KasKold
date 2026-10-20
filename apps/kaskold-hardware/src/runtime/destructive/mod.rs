@@ -8,9 +8,8 @@ use crate::{
     hw::{display::BootDisplay, sound, touch::TouchState},
     runtime::data::AppData,
     ui::display::{
-        COLOR_BG, COLOR_DANGER, COLOR_RED_BTN, COLOR_TEXT, COLOR_TEXT_DIM,
-        draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header,
-        measure_body, measure_header, measure_hint, measure_title,
+        draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_body, measure_header,
+        measure_hint, measure_title, COLOR_BG, COLOR_DANGER, COLOR_RED_BTN, COLOR_TEXT, COLOR_TEXT_DIM,
     },
 };
 use embedded_graphics::{
@@ -19,7 +18,7 @@ use embedded_graphics::{
     prelude::*,
     primitives::{CornerRadii, Line, PrimitiveStyle, Rectangle, RoundedRectangle},
 };
-use esp_hal::{Blocking, i2c::master::I2c, time::Instant};
+use esp_hal::{i2c::master::I2c, time::Instant, Blocking};
 
 const HOLD_MILLIS: u64 = 4_000;
 const PROGRESS_STEPS: u8 = 20;
@@ -124,8 +123,7 @@ fn advance_hold(
         ad.runtime.destructive.started_at_ms = now.max(1);
     }
     let elapsed = now.saturating_sub(ad.runtime.destructive.started_at_ms);
-    let step = ((elapsed.saturating_mul(u64::from(PROGRESS_STEPS))) / HOLD_MILLIS)
-        .min(u64::from(PROGRESS_STEPS)) as u8;
+    let step = ((elapsed.saturating_mul(u64::from(PROGRESS_STEPS))) / HOLD_MILLIS).min(u64::from(PROGRESS_STEPS)) as u8;
     if step != ad.runtime.destructive.progress_step {
         ad.runtime.destructive.progress_step = step;
         draw_progress(display, action, step, PROGRESS_STEPS);
@@ -214,12 +212,7 @@ fn draw_prompt(display: &mut BootDisplay<'_>, action: DestructiveAction) {
     }
 }
 
-fn draw_progress(
-    display: &mut BootDisplay<'_>,
-    action: DestructiveAction,
-    step: u8,
-    total_steps: u8,
-) {
+fn draw_progress(display: &mut BootDisplay<'_>, action: DestructiveAction, step: u8, total_steps: u8) {
     let (left, top, width, height) = match action {
         DestructiveAction::FormatSd => (60, 180, 200u32, 24u32),
         _ => (170, 190, 120u32, 20u32),
@@ -247,13 +240,7 @@ fn draw_hold_button(display: &mut BootDisplay<'_>, label: &str) {
 fn draw_format_warning(display: &mut BootDisplay<'_>) {
     display.display.clear(COLOR_BG).ok();
     let header_width = measure_header("WARNING");
-    draw_oswald_header(
-        &mut display.display,
-        "WARNING",
-        (320 - header_width) / 2,
-        30,
-        COLOR_DANGER,
-    );
+    draw_oswald_header(&mut display.display, "WARNING", (320 - header_width) / 2, 30, COLOR_DANGER);
     Line::new(Point::new(20, 40), Point::new(300, 40))
         .into_styled(PrimitiveStyle::with_stroke(COLOR_DANGER, 1))
         .draw(&mut display.display)
@@ -269,13 +256,7 @@ fn draw_format_warning(display: &mut BootDisplay<'_>) {
     centered_title(display, "HOLD 4s TO FORMAT", 200, COLOR_BG);
     let hint = "Release or Back to cancel";
     let hint_width = measure_hint(hint);
-    draw_lato_hint(
-        &mut display.display,
-        hint,
-        (320 - hint_width) / 2,
-        232,
-        COLOR_TEXT_DIM,
-    );
+    draw_lato_hint(&mut display.display, hint, (320 - hint_width) / 2, 232, COLOR_TEXT_DIM);
     display.draw_back_button();
 }
 
@@ -394,8 +375,8 @@ fn workflow_advance_hold(
         ad.runtime.destructive.started_at_ms = now.max(1);
     }
     let elapsed = now.saturating_sub(ad.runtime.destructive.started_at_ms);
-    ad.runtime.destructive.progress_step = ((elapsed.saturating_mul(u64::from(PROGRESS_STEPS))) / HOLD_MILLIS)
-        .min(u64::from(PROGRESS_STEPS)) as u8;
+    ad.runtime.destructive.progress_step =
+        ((elapsed.saturating_mul(u64::from(PROGRESS_STEPS))) / HOLD_MILLIS).min(u64::from(PROGRESS_STEPS)) as u8;
     if elapsed >= HOLD_MILLIS {
         complete(ad, display, delay, i2c, liveness, action);
     }

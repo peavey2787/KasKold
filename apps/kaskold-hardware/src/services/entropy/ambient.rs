@@ -10,8 +10,14 @@ use sha2::{Digest, Sha256};
 use super::platform;
 
 static STAGE: [AtomicU32; 8] = [
-    AtomicU32::new(0), AtomicU32::new(0), AtomicU32::new(0), AtomicU32::new(0),
-    AtomicU32::new(0), AtomicU32::new(0), AtomicU32::new(0), AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
+    AtomicU32::new(0),
 ];
 static STAGED: AtomicBool = AtomicBool::new(false);
 static LAST_TOUCH: AtomicU32 = AtomicU32::new(u32::MAX);

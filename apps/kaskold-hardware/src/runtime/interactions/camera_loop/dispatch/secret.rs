@@ -2,9 +2,9 @@
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
 // License: GPL-3.0
 
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use super::super::{display, sound, AppData};
 use crate::runtime::input::AppState;
+use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use kaskold_hardware_core::qr::classification::decode_hex;
 use shared_signer::bytes::zeroize_bytes;
 
@@ -20,11 +20,10 @@ pub(super) fn workflow_process(data: &[u8], ad: &mut AppData) {
         return;
     }
 
-    let Ok(mut ciphertext) = crate::services::memory::zeroed_bytes(hex.len() / 2) else { return; };
-    if decode_hex(hex.as_bytes(), &mut ciphertext)
-        .is_err()
-        || ciphertext.len() < 61
-    {
+    let Ok(mut ciphertext) = crate::services::memory::zeroed_bytes(hex.len() / 2) else {
+        return;
+    };
+    if decode_hex(hex.as_bytes(), &mut ciphertext).is_err() || ciphertext.len() < 61 {
         zeroize_bytes(&mut ciphertext);
         crate::runtime::effects::redraw(ad);
         return;
@@ -33,9 +32,7 @@ pub(super) fn workflow_process(data: &[u8], ad: &mut AppData) {
     let mut liveness = || {};
     let decrypt_result = crate::runtime::signing::derive_active_account_key_with_checkpoint(ad, &mut liveness)
         .map_err(|_| "key derivation failed")
-        .and_then(|account_key| {
-            offline_signer::crypto::ecies::decrypt(account_key.private_key_bytes(), &ciphertext)
-        });
+        .and_then(|account_key| offline_signer::crypto::ecies::decrypt(account_key.private_key_bytes(), &ciphertext));
     zeroize_bytes(&mut ciphertext);
 
     if let Ok(mut plaintext) = decrypt_result {
@@ -60,18 +57,16 @@ pub(super) fn process(
     liveness: &mut (impl FnMut() + ?Sized),
 ) {
     let input_len = len.min(data.len());
-    let hex = core::str::from_utf8(&data[..input_len])
-        .unwrap_or("")
-        .trim();
+    let hex = core::str::from_utf8(&data[..input_len]).unwrap_or("").trim();
     if hex.len() < 122 || hex.len() % 2 != 0 {
         reject(ad, boot_display, delay, "Invalid ciphertext hex", 1_500);
         return;
     }
 
-    let Ok(mut ciphertext) = crate::services::memory::zeroed_bytes(hex.len() / 2) else { return; };
-    if decode_hex(hex.as_bytes(), &mut ciphertext).is_err()
-        || ciphertext.len() < 61
-    {
+    let Ok(mut ciphertext) = crate::services::memory::zeroed_bytes(hex.len() / 2) else {
+        return;
+    };
+    if decode_hex(hex.as_bytes(), &mut ciphertext).is_err() || ciphertext.len() < 61 {
         zeroize_bytes(&mut ciphertext);
         reject(ad, boot_display, delay, "Bad hex data", 1_500);
         return;
@@ -79,21 +74,13 @@ pub(super) fn process(
 
     let decrypt_result = crate::runtime::signing::derive_active_account_key_with_checkpoint(ad, liveness)
         .map_err(|_| "key derivation failed")
-        .and_then(|account_key| {
-            offline_signer::crypto::ecies::decrypt(
-                account_key.private_key_bytes(),
-                &ciphertext,
-            )
-        });
+        .and_then(|account_key| offline_signer::crypto::ecies::decrypt(account_key.private_key_bytes(), &ciphertext));
     zeroize_bytes(&mut ciphertext);
 
     match decrypt_result {
         Ok(mut plaintext) => {
-            let copy_len = plaintext
-                .len()
-                .min(ad.signing.commit_reveal.plaintext.len());
-            ad.signing.commit_reveal.plaintext[..copy_len]
-                .copy_from_slice(&plaintext[..copy_len]);
+            let copy_len = plaintext.len().min(ad.signing.commit_reveal.plaintext.len());
+            ad.signing.commit_reveal.plaintext[..copy_len].copy_from_slice(&plaintext[..copy_len]);
             ad.signing.commit_reveal.plaintext_len = copy_len;
             zeroize_bytes(&mut plaintext);
             sound::success();

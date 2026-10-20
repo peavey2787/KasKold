@@ -3,10 +3,7 @@
 use super::{MULTISIG_DESCRIPTOR_BYTES, MULTISIG_DESCRIPTOR_ENTRY_SIZE};
 use offline_signer::transaction::model::{MultisigConfig, MultisigStore, MAX_MULTISIG_KEYS};
 
-pub(super) fn encode_multisig_store(
-    store: &MultisigStore,
-    out: &mut [u8; MULTISIG_DESCRIPTOR_BYTES],
-) {
+pub(super) fn encode_multisig_store(store: &MultisigStore, out: &mut [u8; MULTISIG_DESCRIPTOR_BYTES]) {
     out.fill(0);
     for (slot, config) in store.configs.iter().enumerate() {
         if !encodable(config) {
@@ -20,11 +17,7 @@ fn encodable(config: &MultisigConfig) -> bool {
     config.active && config.v45 && config.n > 0 && usize::from(config.n) <= MAX_MULTISIG_KEYS
 }
 
-fn encode_slot(
-    config: &MultisigConfig,
-    base: usize,
-    out: &mut [u8; MULTISIG_DESCRIPTOR_BYTES],
-) {
+fn encode_slot(config: &MultisigConfig, base: usize, out: &mut [u8; MULTISIG_DESCRIPTOR_BYTES]) {
     out[base] = 1;
     out[base + 1] = config.m;
     out[base + 2] = config.n;
@@ -37,12 +30,7 @@ fn encode_slot(
     }
 }
 
-fn encode_cosigner(
-    config: &MultisigConfig,
-    index: usize,
-    entry: usize,
-    out: &mut [u8; MULTISIG_DESCRIPTOR_BYTES],
-) {
+fn encode_cosigner(config: &MultisigConfig, index: usize, entry: usize, out: &mut [u8; MULTISIG_DESCRIPTOR_BYTES]) {
     out[entry] = config.cosigner_depth[index];
     out[entry + 1..entry + 5].copy_from_slice(&config.cosigner_parent_fp[index]);
     out[entry + 5..entry + 9].copy_from_slice(&config.cosigner_child_num[index]);
@@ -50,9 +38,7 @@ fn encode_cosigner(
     out[entry + 41..entry + 74].copy_from_slice(&config.cosigner_pubkeys[index]);
 }
 
-pub(super) fn decode_multisig_store(
-    input: &[u8; MULTISIG_DESCRIPTOR_BYTES],
-) -> Option<MultisigStore> {
+pub(super) fn decode_multisig_store(input: &[u8; MULTISIG_DESCRIPTOR_BYTES]) -> Option<MultisigStore> {
     let mut store = MultisigStore::new();
     for slot in 0..store.configs.len() {
         let base = slot * MULTISIG_DESCRIPTOR_ENTRY_SIZE;
@@ -63,10 +49,7 @@ pub(super) fn decode_multisig_store(
     Some(store)
 }
 
-fn decode_multisig_slot(
-    input: &[u8; MULTISIG_DESCRIPTOR_BYTES],
-    base: usize,
-) -> Option<Option<MultisigConfig>> {
+fn decode_multisig_slot(input: &[u8; MULTISIG_DESCRIPTOR_BYTES], base: usize) -> Option<Option<MultisigConfig>> {
     if input[base] == 0 {
         return empty_multisig_slot(input, base).then_some(None);
     }
@@ -99,17 +82,10 @@ fn decode_multisig_slot(
 }
 
 fn empty_multisig_slot(input: &[u8; MULTISIG_DESCRIPTOR_BYTES], base: usize) -> bool {
-    input[base + 1..base + MULTISIG_DESCRIPTOR_ENTRY_SIZE]
-        .iter()
-        .all(|byte| *byte == 0)
+    input[base + 1..base + MULTISIG_DESCRIPTOR_ENTRY_SIZE].iter().all(|byte| *byte == 0)
 }
 
-fn multisig_header_valid(
-    input: &[u8; MULTISIG_DESCRIPTOR_BYTES],
-    base: usize,
-    m: u8,
-    n: u8,
-) -> bool {
+fn multisig_header_valid(input: &[u8; MULTISIG_DESCRIPTOR_BYTES], base: usize, m: u8, n: u8) -> bool {
     input[base + 3] == 1
         && n > 0
         && usize::from(n) <= MAX_MULTISIG_KEYS
@@ -152,10 +128,6 @@ fn decode_multisig_kpub_parts(
     parts
 }
 
-fn multisig_tail_clear(
-    input: &[u8; MULTISIG_DESCRIPTOR_BYTES],
-    start: usize,
-    end: usize,
-) -> bool {
+fn multisig_tail_clear(input: &[u8; MULTISIG_DESCRIPTOR_BYTES], start: usize, end: usize) -> bool {
     input[start..end].iter().all(|byte| *byte == 0)
 }

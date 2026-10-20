@@ -14,29 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 use super::super::{
     components::qr_renderer::{QrRenderOptions, QrScreenOptions},
-    BootDisplay, COLOR_DANGER, DISPLAY_H, KASPA_TEAL, draw_lato_title,
-    draw_oswald_header, measure_header, measure_title,
+    draw_lato_title, draw_oswald_header, measure_header, measure_title, BootDisplay, COLOR_DANGER, DISPLAY_H,
+    KASPA_TEAL,
 };
 
 impl<'a> BootDisplay<'a> {
     /// Draw QR code screen
     pub fn draw_qr_screen(&mut self, data: &[u8]) {
-        self.draw_qr_screen_with_options(data, QrScreenOptions {
-            region: QrRenderOptions {
-                x: 38,
-                y: 4,
-                width: 238,
-                height: DISPLAY_H as i32 - 8,
-                quiet_zone: 4,
+        self.draw_qr_screen_with_options(
+            data,
+            QrScreenOptions {
+                region: QrRenderOptions { x: 38, y: 4, width: 238, height: DISPLAY_H as i32 - 8, quiet_zone: 4 },
+                max_payload_bytes: None,
+                stop_sound: false,
+                error_title: "QR Error",
+                too_large_title: "QR Error — too large",
             },
-            max_payload_bytes: None,
-            stop_sound: false,
-            error_title: "QR Error",
-            too_large_title: "QR Error — too large",
-        });
+        );
         // Shared QR chrome restores the same explicit top-left Back control used by production.
     }
 
@@ -44,19 +40,16 @@ impl<'a> BootDisplay<'a> {
     /// below the top rail so Back and the global post-Home Home shortcut remain
     /// visible and cannot be mistaken for QR modules.
     pub fn draw_kpub_qr_screen(&mut self, data: &[u8]) {
-        self.draw_qr_screen_with_options(data, QrScreenOptions {
-            region: QrRenderOptions {
-                x: 0,
-                y: 40,
-                width: 280,
-                height: DISPLAY_H as i32 - 40,
-                quiet_zone: 4,
+        self.draw_qr_screen_with_options(
+            data,
+            QrScreenOptions {
+                region: QrRenderOptions { x: 0, y: 40, width: 280, height: DISPLAY_H as i32 - 40, quiet_zone: 4 },
+                max_payload_bytes: None,
+                stop_sound: false,
+                error_title: "QR Error",
+                too_large_title: "QR Error — too large",
             },
-            max_payload_bytes: None,
-            stop_sound: false,
-            error_title: "QR Error",
-            too_large_title: "QR Error — too large",
-        });
+        );
         self.draw_back_button();
         let title = "COMPANION QR";
         let width = measure_header(title);
@@ -79,16 +72,12 @@ impl<'a> BootDisplay<'a> {
     /// render into this reserved column — they target the same x range
     /// when the layout intent is "info column" rather than "corner badge".
     pub fn draw_qr_screen_left(&mut self, data: &[u8]) {
-        if !self.draw_encoded_qr(data, QrRenderOptions {
-            x: 38,
-            y: 2,
-            width: 202,
-            height: DISPLAY_H as i32 - 4,
-            quiet_zone: 6,
-        }) {
+        if !self.draw_encoded_qr(
+            data,
+            QrRenderOptions { x: 38, y: 2, width: 202, height: DISPLAY_H as i32 - 4, quiet_zone: 6 },
+        ) {
             let width = measure_title("QR Error");
             draw_lato_title(&mut self.display, "QR Error", (320 - width) / 2, 120, COLOR_DANGER);
         }
     }
-
 }

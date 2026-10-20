@@ -15,10 +15,7 @@ pub struct TeeDisplay<D> {
 
 impl<D> TeeDisplay<D> {
     pub fn new(real: D) -> Self {
-        Self {
-            real,
-            shadow_active: false,
-        }
+        Self { real, shadow_active: false }
     }
 
     pub fn enable_shadow(&mut self) {
@@ -110,7 +107,6 @@ where
         }
         self.real.clear(color)
     }
-
 }
 
 impl<D> OriginDimensions for TeeDisplay<D>

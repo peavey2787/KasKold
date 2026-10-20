@@ -15,10 +15,8 @@ pub(super) fn select(ad: &AppData) -> Option<SigningStrategy> {
     }
 
     let has_multisig = (0..ad.signing.transaction.active.num_inputs).any(|index| {
-        let (script_type, _) = offline_signer::transaction::kspt::analyze_input_script(
-            &ad.signing.transaction.active,
-            index,
-        );
+        let (script_type, _) =
+            offline_signer::transaction::kspt::analyze_input_script(&ad.signing.transaction.active, index);
         matches!(
             script_type,
             offline_signer::transaction::model::ScriptType::Multisig

@@ -4,7 +4,7 @@
 //! Seed creation requires at least one healthy BMI270 pre/post-camera window;
 //! later `fill()` calls remain fail-closed on the checked hardware TRNG.
 
-use esp_hal::{Blocking, delay::Delay, i2c::master::I2c};
+use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 use sha2::{Digest, Sha256};
 
 use super::mixer;
@@ -33,7 +33,11 @@ pub(super) fn mix_seed_sample(
     let distinct = crate::hw::imu::axis_distinct(&sample[..count]);
     crate::log!(
         "   [imu] seed window bytes {}/{} distinct X{} Y{} Z{}",
-        count, sample.len(), distinct[0], distinct[1], distinct[2]
+        count,
+        sample.len(),
+        distinct[0],
+        distinct[1],
+        distinct[2]
     );
     if healthy {
         let mut hasher = Sha256::new();

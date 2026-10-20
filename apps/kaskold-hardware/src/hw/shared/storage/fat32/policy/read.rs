@@ -1,5 +1,5 @@
-use super::super::{DirEntry, Fat32Info, SdCardType, fast_read_multi_block, sd_read_block};
-use super::super::policy::{FAT32_SECTOR_BYTES};
+use super::super::policy::FAT32_SECTOR_BYTES;
+use super::super::{fast_read_multi_block, sd_read_block, DirEntry, Fat32Info, SdCardType};
 
 pub(super) fn checked_file_size(entry: &DirEntry, out: &[u8]) -> Result<usize, &'static str> {
     let file_size = entry.file_size as usize;
@@ -27,8 +27,7 @@ pub(super) fn read_file_cluster(
 ) -> Result<(), &'static str> {
     let base_sector = fat32.cluster_to_sector(cluster);
     let sectors_per_cluster = fat32.sectors_per_cluster as u32;
-    let sectors_needed = (remaining.saturating_add(FAT32_SECTOR_BYTES as usize - 1)
-        / FAT32_SECTOR_BYTES as usize)
+    let sectors_needed = (remaining.saturating_add(FAT32_SECTOR_BYTES as usize - 1) / FAT32_SECTOR_BYTES as usize)
         .min(sectors_per_cluster as usize) as u32;
     let transfer_bytes = sectors_needed as usize * FAT32_SECTOR_BYTES as usize;
     if can_read_multi(out.len(), *position, sectors_needed, transfer_bytes) {

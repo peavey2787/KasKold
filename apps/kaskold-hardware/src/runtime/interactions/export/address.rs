@@ -22,7 +22,6 @@ use crate::{hw::display, runtime::data::AppData};
 
 use super::index_keypad::{self, IndexKey};
 
-
 pub(super) fn handle_pure(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> Option<bool> {
     match ad.navigation.app.state {
         AppState::ShowAddress => Some(handle_address_view(ad, x, y, is_back)),
@@ -40,13 +39,18 @@ pub(super) fn handle(
 ) -> Option<bool> {
     let redraw = match ad.navigation.app.state {
         AppState::ShowAddress => handle_address_view(ad, x, y, is_back),
-        AppState::ShowAddressQR => if is_back { crate::runtime::effects::back(ad) } else { false },
+        AppState::ShowAddressQR => {
+            if is_back {
+                crate::runtime::effects::back(ad)
+            } else {
+                false
+            }
+        }
         AppState::AddrIndexPicker => handle_index_picker(ad, boot_display, x, y, is_back),
         _ => return None,
     };
     Some(redraw)
 }
-
 
 fn handle_address_view(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
     if is_back {
@@ -63,14 +67,16 @@ fn handle_address_view(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool 
         return false;
     }
 
-    let is_single_address = matches!(
-        ad.wallet.seeds.active_source,
-        crate::wallet::seed_manager::WalletSource::RawPrivateKey
-    );
+    let is_single_address =
+        matches!(ad.wallet.seeds.active_source, crate::wallet::seed_manager::WalletSource::RawPrivateKey);
     let address_loaded = ad.qr.scan.address_length != 0;
     if !is_single_address && !address_loaded {
-        if address_toolbar_tap(ad, x, y) { return true; }
-        if address_index_tap(ad, x, y) { return true; }
+        if address_toolbar_tap(ad, x, y) {
+            return true;
+        }
+        if address_index_tap(ad, x, y) {
+            return true;
+        }
     }
     if (40..176).contains(&y) {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ShowAddressQR));
@@ -94,8 +100,12 @@ fn address_toolbar_tap(ad: &mut AppData, x: u16, y: u16) -> bool {
 }
 
 fn address_index_tap(ad: &mut AppData, x: u16, y: u16) -> bool {
-    if crate::ui::layout::ADDRESS_PREV_ZONE.contains(x, y) { return step_address_index(ad, -1); }
-    if crate::ui::layout::ADDRESS_NEXT_ZONE.contains(x, y) { return step_address_index(ad, 1); }
+    if crate::ui::layout::ADDRESS_PREV_ZONE.contains(x, y) {
+        return step_address_index(ad, -1);
+    }
+    if crate::ui::layout::ADDRESS_NEXT_ZONE.contains(x, y) {
+        return step_address_index(ad, 1);
+    }
     if crate::ui::layout::ADDRESS_INDEX_ZONE.contains(x, y) {
         ad.wallet.addresses.input_len = 0;
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AddrIndexPicker));
@@ -109,11 +119,7 @@ fn step_address_index(ad: &mut AppData, delta: i32) -> bool {
     if delta < 0 && current == 0 {
         return false;
     }
-    ad.wallet.addresses.current_addr_index = if delta < 0 {
-        current - 1
-    } else {
-        current.saturating_add(1)
-    };
+    ad.wallet.addresses.current_addr_index = if delta < 0 { current - 1 } else { current.saturating_add(1) };
     refresh_extended_pubkey(ad);
     ad.wallet.addresses.partial_redraw = true;
     true
@@ -127,16 +133,14 @@ fn refresh_extended_pubkey(ad: &mut AppData) {
                 &ad.wallet.keys.acct_key_raw,
                 index,
                 &mut ad.wallet.addresses.extra_change_pubkey,
-            ).is_ok() {
+            )
+            .is_ok()
+            {
                 ad.wallet.addresses.extra_change_pubkey_index = index;
             }
         }
     } else if index >= 20 && ad.wallet.addresses.extra_pubkey_index != index {
-        if derive_pubkey_from_acct(
-            &ad.wallet.keys.acct_key_raw,
-            index,
-            &mut ad.wallet.addresses.extra_pubkey,
-        ).is_ok() {
+        if derive_pubkey_from_acct(&ad.wallet.keys.acct_key_raw, index, &mut ad.wallet.addresses.extra_pubkey).is_ok() {
             ad.wallet.addresses.extra_pubkey_index = index;
         }
     }
@@ -212,11 +216,7 @@ fn confirm_index(ad: &mut AppData) -> bool {
 fn parse_index_input(ad: &AppData) -> Option<u16> {
     ad.wallet.addresses.input_buf[..ad.wallet.addresses.input_len as usize]
         .iter()
-        .try_fold(0u16, |value, digit| {
-            value
-                .checked_mul(10)?
-                .checked_add(u16::from(digit.checked_sub(b'0')?))
-        })
+        .try_fold(0u16, |value, digit| value.checked_mul(10)?.checked_add(u16::from(digit.checked_sub(b'0')?)))
 }
 
 fn apply_multisig_index(ad: &mut AppData, value: u16) {

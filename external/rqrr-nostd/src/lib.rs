@@ -7,7 +7,6 @@
 //! Requires `alloc` (Vec, Box, String).
 
 #![no_std]
-
 // This no_std fork intentionally preserves the upstream arithmetic and minimal
 // error surface used by the embedded signer. GF(2^n) addition is XOR, the
 // unit error keeps the Write shim allocation-free, and the explicit modulo/
@@ -35,8 +34,8 @@ pub use self::prepare::PreparedImage;
 
 mod decode;
 mod detect;
-pub(crate) mod geometry;
 pub(crate) mod galois;
+pub(crate) mod geometry;
 mod identify;
 mod prepare;
 mod version_db;

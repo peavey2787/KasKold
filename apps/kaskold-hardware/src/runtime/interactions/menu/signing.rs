@@ -38,28 +38,12 @@ pub(super) fn handle(
     is_back: bool,
 ) -> Option<bool> {
     match ad.navigation.app.state {
-        AppState::SingleSigMenu => Some(single_sig::handle(
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            list_zones,
-            x,
-            y,
-            is_back,
-        )),
-        AppState::MultisigMenu | AppState::MultisigDescriptorsMenu => Some(multisig::handle(
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            i2c,
-            sd_card_type,
-            list_zones,
-            x,
-            y,
-            is_back,
-        )),
+        AppState::SingleSigMenu => {
+            Some(single_sig::handle(ad, boot_display, delay, liveness, list_zones, x, y, is_back))
+        }
+        AppState::MultisigMenu | AppState::MultisigDescriptorsMenu => {
+            Some(multisig::handle(ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones, x, y, is_back))
+        }
         _ => None,
     }
 }

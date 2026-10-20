@@ -4,17 +4,15 @@
 //! boundaries. They reuse production parsers and state transitions while the
 //! later HIL tranche owns actual flash, HMAC, RTC and irreversible eFuse I/O.
 
+use crate::services::credential_policy::{confirmation_digest, confirmation_matches, validate, CredentialKind};
 use crate::{
-    runtime::interactions::TouchInput,
     hw::display::BootDisplay,
-    runtime::{
-        data::{AdvancedAvailability, AppData, DuressActivation, PolicyIntegrity},
-    },
+    runtime::data::{AdvancedAvailability, AppData, DuressActivation, PolicyIntegrity},
+    runtime::interactions::TouchInput,
     services::persistent_wallet::PersistError,
 };
-use shared_signer::bytes::zeroize_bytes;
-use crate::services::credential_policy::{confirmation_digest, confirmation_matches, validate, CredentialKind};
 use kaskold_hardware_core::advanced_policy::SigningPolicy;
+use shared_signer::bytes::zeroize_bytes;
 
 #[cfg(feature = "m5stack")]
 use crate::runtime::data::RtcVerification;
@@ -32,7 +30,9 @@ pub(crate) fn install_saved_wallet_fixture(ad: &mut AppData, kind: CredentialKin
     advanced.policy = SigningPolicy::disabled();
     advanced.policy_integrity = PolicyIntegrity::Valid;
     #[cfg(feature = "m5stack")]
-    { advanced.rtc_verification = RtcVerification::Unverified; }
+    {
+        advanced.rtc_verification = RtcVerification::Unverified;
+    }
     advanced.clear_pending();
 }
 
@@ -43,12 +43,16 @@ pub(crate) fn open_card(
     display: &mut BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
 ) -> Option<bool> {
-    use crate::ui::screens::device::advanced_security::{ADV_CARD_X, DURESS_Y, RTC_Y, SD_STORAGE_Y, TIME_LOCK_Y, WEEKLY_Y};
+    use crate::ui::screens::device::advanced_security::{
+        ADV_CARD_X, DURESS_Y, RTC_Y, SD_STORAGE_Y, TIME_LOCK_Y, WEEKLY_Y,
+    };
     if input.is_back {
         crate::runtime::effects::back(ad);
         return Some(true);
     }
-    if !ADV_CARD_X.contains(&input.x) { return None; }
+    if !ADV_CARD_X.contains(&input.x) {
+        return None;
+    }
     if !ad.storage.persistence.advanced.availability.is_available()
         || !ad.storage.persistence.advanced.policy_integrity.is_valid()
     {
@@ -135,10 +139,7 @@ pub(crate) fn submit_duress(
 fn restart_duress_fixture(ad: &mut AppData) {
     ad.wallet.seeds.pp_input.reset();
     ad.storage.persistence.advanced.clear_pending();
-    crate::runtime::effects::replace(
-        ad,
-        crate::runtime::navigation::route!(AdvancedDuressEntry),
-    );
+    crate::runtime::effects::replace(ad, crate::runtime::navigation::route!(AdvancedDuressEntry));
 }
 
 #[cfg(all(feature = "workflow-test-auto", feature = "m5stack"))]
@@ -166,7 +167,9 @@ pub(crate) fn submit_time_lock(ad: &mut AppData, now_unix: u64) -> Result<(), &'
     let target = parse_utc_yyyymmddhhmm(raw)
         .and_then(|value| value.to_unix_seconds())
         .map_err(|_| "Use valid UTC YYYYMMDDHHMM")?;
-    if target <= now_unix { return Err("Lock date must be in the future"); }
+    if target <= now_unix {
+        return Err("Lock date must be in the future");
+    }
     ad.storage.persistence.advanced.pending_not_before_unix = target;
     ad.wallet.seeds.pp_input.reset();
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedTimeLockConfirm));
@@ -181,7 +184,9 @@ pub(crate) fn confirm_time_lock(
 ) -> Result<(), &'static str> {
     persistence_result.map_err(PersistError::message)?;
     let target = ad.storage.persistence.advanced.pending_not_before_unix;
-    if target <= now_unix { return Err("Invalid security policy"); }
+    if target <= now_unix {
+        return Err("Invalid security policy");
+    }
     let mut policy = ad.storage.persistence.advanced.policy;
     policy.not_before_unix = target;
     policy.rtc_floor_unix = policy.rtc_floor_unix.max(now_unix);

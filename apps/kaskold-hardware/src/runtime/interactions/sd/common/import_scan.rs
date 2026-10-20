@@ -1,8 +1,8 @@
 //! Configurable SD directory scanner used by import workflows.
 
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
-use super::super::{AppData, display};
+use super::super::{display, AppData};
 use crate::runtime::data::TextFileKind;
+use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 
 #[derive(Clone, Copy)]
 pub(crate) struct ImportScanRule {

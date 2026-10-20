@@ -1,15 +1,14 @@
 //! Wallet persistence controller facade.
 
+use super::TouchInput;
 use crate::{
     hw::display::BootDisplay,
     runtime::data::AppData,
     services::persistent_wallet::{CredentialKind, PersistentWallet, StartupDisposition},
 };
-use super::TouchInput;
 
 mod credential;
 mod onboarding;
-
 
 #[inline(never)]
 pub(crate) fn apply_startup_navigation(ad: &mut AppData, disposition: StartupDisposition) {
@@ -21,14 +20,13 @@ pub(crate) fn apply_startup_navigation(ad: &mut AppData, disposition: StartupDis
             } else {
                 let _ = crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MainMenu));
             }
-        },
+        }
         StartupDisposition::UnlockRequired(kind) => enter_storage_unlock(ad, kind),
         StartupDisposition::SdFailure => {
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageSdFailure));
         }
     }
 }
-
 
 /// Enter the mandatory WALLETS resolver through policy-valid Seeds ownership.
 /// This avoids a forbidden Main -> SeedList jump at boot while leaving no
@@ -49,10 +47,7 @@ pub(crate) fn enter_storage_choice(ad: &mut AppData) {
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageModeChoice));
 }
 
-pub(crate) fn enter_seed_source_choice(
-    ad: &mut AppData,
-    intent: crate::runtime::data::DeviceStorageIntent,
-) {
+pub(crate) fn enter_seed_source_choice(ad: &mut AppData, intent: crate::runtime::data::DeviceStorageIntent) {
     ad.wallet.seeds.seed_mgr.zeroize_all();
     crate::services::wallet_session::clear_active_wallet(ad);
     shared_signer::bytes::zeroize_u16(&mut ad.wallet.seeds.mnemonic_indices);
@@ -107,10 +102,8 @@ pub(crate) fn arm_unlock_backoff(ad: &mut AppData, kind: CredentialKind) -> u32 
     let delay = retry_delay_millis(failures);
     ad.storage.persistence.unlock_feedback =
         crate::runtime::data::UnlockFeedback::wrong(kind, unlock_attempts_remaining(failures));
-    ad.storage.persistence.unlock_retry_after_ms = esp_hal::time::Instant::now()
-        .duration_since_epoch()
-        .as_millis()
-        .saturating_add(u64::from(delay));
+    ad.storage.persistence.unlock_retry_after_ms =
+        esp_hal::time::Instant::now().duration_since_epoch().as_millis().saturating_add(u64::from(delay));
     delay
 }
 
@@ -182,7 +175,6 @@ pub(crate) fn workflow_unlock_back_guard(state: crate::runtime::input::AppState)
     credential::workflow_unlock_back_guard(state)
 }
 
-
 /// The durable failure count drives a growing delay and, near the limit, an
 /// attempts-left warning; a clean count disarms both.
 #[cfg(feature = "workflow-test-auto")]
@@ -200,8 +192,7 @@ pub(crate) fn workflow_unlock_backoff_probe(ad: &mut AppData) -> bool {
     let warned = ad.storage.persistence.unlock_feedback == UnlockFeedback::WrongPin { remaining: 1 }
         && ad.storage.persistence.unlock_feedback.pin_title() == "1 TRY LEFT";
     ad.storage.persistence.unlock_failures = 0;
-    let cleared = arm_unlock_backoff(ad, CredentialKind::Pin) == 0
-        && ad.storage.persistence.unlock_retry_after_ms == 0;
+    let cleared = arm_unlock_backoff(ad, CredentialKind::Pin) == 0 && ad.storage.persistence.unlock_retry_after_ms == 0;
     (
         ad.storage.persistence.unlock_failures,
         ad.storage.persistence.unlock_feedback,

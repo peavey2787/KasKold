@@ -254,7 +254,7 @@ fn secure_create_new(path: &Path) -> Result<File, String> {
 
 #[cfg(unix)]
 fn secure_existing_permissions(path: &Path) -> Result<(), String> {
-    use std::os::unix::fs::{PermissionsExt};
+    use std::os::unix::fs::PermissionsExt;
     let permissions = fs::Permissions::from_mode(0o600);
     fs::set_permissions(path, permissions)
         .map_err(|error| format!("cannot restrict funded-E2E wallet secret permissions: {error}"))
@@ -264,4 +264,3 @@ fn secure_existing_permissions(path: &Path) -> Result<(), String> {
 fn secure_existing_permissions(_path: &Path) -> Result<(), String> {
     Ok(())
 }
-

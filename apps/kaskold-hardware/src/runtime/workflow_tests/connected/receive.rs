@@ -36,12 +36,7 @@ impl ReceiveContext<'_, '_, '_> {
     }
 
     fn redraw(&mut self) {
-        super::redraw_step(
-            &mut *self.ad,
-            &mut *self.display,
-            &mut *self.i2c,
-            self.sd,
-        );
+        super::redraw_step(&mut *self.ad, &mut *self.display, &mut *self.i2c, self.sd);
     }
 
     fn show_step(&mut self) {
@@ -57,16 +52,7 @@ pub(super) fn exercise(
     delay: &mut Delay,
 ) -> bool {
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
-    let mut ctx = ReceiveContext {
-        ad,
-        display,
-        i2c,
-        sd,
-        delay,
-        list,
-        up,
-        down,
-    };
+    let mut ctx = ReceiveContext { ad, display, i2c, sd, delay, list, up, down };
     log!("KASKOLD_WORKFLOW_TESTS: RECEIVE CONTROLS BEGIN");
 
     // workflow-runtime-auto deliberately disables the old public-key fixture.
@@ -94,11 +80,7 @@ pub(super) fn exercise(
 fn open_receive(ad: &mut AppData) -> bool {
     crate::runtime::effects::home(ad);
     let zone = crate::ui::layout::HOME_GRID_ZONES[2];
-    crate::runtime::interactions::menu::handle_connected_root_probe(
-        ad,
-        zone.x + zone.w / 2,
-        zone.y + zone.h / 2,
-    )
+    crate::runtime::interactions::menu::handle_connected_root_probe(ad, zone.x + zone.w / 2, zone.y + zone.h / 2)
         && ad.navigation.app.state == AppState::SeedsMenu
         && crate::runtime::navigation::reconcile(ad)
         && crate::runtime::interactions::menu::primary::workflow_wallet_select(ad, 0)
@@ -117,9 +99,7 @@ fn qr_round_trip(ctx: &mut ReceiveContext<'_, '_, '_>) -> bool {
     ctx.redraw();
     ctx.show_step();
     let (back_x, back_y) = crate::ui::layout::zone_center(crate::ui::layout::BACK_ZONE);
-    if !ctx.touch(back_x, back_y)
-        || ctx.ad.navigation.app.state != AppState::ShowAddress
-    {
+    if !ctx.touch(back_x, back_y) || ctx.ad.navigation.app.state != AppState::ShowAddress {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: RECEIVE QR OPEN/CLOSE OK");
@@ -131,10 +111,7 @@ fn chain_toggle(ctx: &mut ReceiveContext<'_, '_, '_>) -> bool {
         return false;
     }
     let (x, y) = crate::ui::layout::zone_center(crate::ui::layout::ADDRESS_CHAIN_ZONE);
-    if !ctx.touch(x, y)
-        || !ctx.ad.wallet.addresses.view_is_change
-        || ctx.ad.wallet.addresses.current_addr_index != 0
-    {
+    if !ctx.touch(x, y) || !ctx.ad.wallet.addresses.view_is_change || ctx.ad.wallet.addresses.current_addr_index != 0 {
         return false;
     }
     if !ctx.touch(x, y) || ctx.ad.wallet.addresses.view_is_change {
@@ -153,14 +130,10 @@ fn index_step_boundaries(ctx: &mut ReceiveContext<'_, '_, '_>) -> bool {
         return false;
     }
     let (next_x, next_y) = crate::ui::layout::zone_center(crate::ui::layout::ADDRESS_NEXT_ZONE);
-    if !ctx.touch(next_x, next_y)
-        || ctx.ad.wallet.addresses.current_addr_index != 1
-    {
+    if !ctx.touch(next_x, next_y) || ctx.ad.wallet.addresses.current_addr_index != 1 {
         return false;
     }
-    if !ctx.touch(prev_x, prev_y)
-        || ctx.ad.wallet.addresses.current_addr_index != 0
-    {
+    if !ctx.touch(prev_x, prev_y) || ctx.ad.wallet.addresses.current_addr_index != 0 {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: RECEIVE INDEX STEP/BOUNDARY OK");
@@ -169,9 +142,7 @@ fn index_step_boundaries(ctx: &mut ReceiveContext<'_, '_, '_>) -> bool {
 
 fn custom_index(ctx: &mut ReceiveContext<'_, '_, '_>) -> bool {
     let (index_x, index_y) = crate::ui::layout::zone_center(crate::ui::layout::ADDRESS_INDEX_ZONE);
-    if !ctx.touch(index_x, index_y)
-        || ctx.ad.navigation.app.state != AppState::AddrIndexPicker
-    {
+    if !ctx.touch(index_x, index_y) || ctx.ad.navigation.app.state != AppState::AddrIndexPicker {
         return false;
     }
     enter_repeated_digit(ctx);

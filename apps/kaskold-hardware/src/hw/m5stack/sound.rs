@@ -11,11 +11,11 @@
 use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
 use esp_hal::{
-    Blocking,
     delay::Delay,
     i2c::master::I2c,
     i2s::master::I2sTx,
     time::{Duration, Instant},
+    Blocking,
 };
 use kaskold_hardware_core::presentation::audio::{
     boot_chime_bytes, fill_stereo_boot_chime_chunk, fill_stereo_square_wave,
@@ -69,7 +69,9 @@ impl RuntimeAudio {
         let initial_frames = self.buffer.len() / BYTES_PER_STEREO_FRAME;
         fill_stereo_boot_chime_chunk(self.buffer, SAMPLE_RATE, 0);
         let words: &[u8] = &self.buffer[..];
-        let Ok(mut transfer) = self.tx.write_dma_circular(&words) else { return false; };
+        let Ok(mut transfer) = self.tx.write_dma_circular(&words) else {
+            return false;
+        };
         stream_boot_chime(&mut transfer, initial_frames)
     }
 
@@ -85,7 +87,9 @@ impl RuntimeAudio {
             return;
         }
         let code = PENDING_CUE.swap(CUE_NONE, Ordering::AcqRel);
-        let Some(player) = player_for(code) else { return; };
+        let Some(player) = player_for(code) else {
+            return;
+        };
         log!("   AUDIO CoreS3 cue {} BEGIN", code);
         let played = player(self);
         log!("   AUDIO CoreS3 cue {} DONE ok={}", code, played);
@@ -102,9 +106,13 @@ impl RuntimeAudio {
 
     fn play_fill(&mut self, fill: impl FnOnce(&mut SoundBuffer) -> usize) -> bool {
         let used = fill(self.buffer).min(self.buffer.len()) & !3usize;
-        if used == 0 { return false; }
+        if used == 0 {
+            return false;
+        }
         let words: &[u8] = &self.buffer[..used];
-        let Ok(transfer) = self.tx.write_dma_circular(&words) else { return false; };
+        let Ok(transfer) = self.tx.write_dma_circular(&words) else {
+            return false;
+        };
         play_bounded_dma(transfer, used)
     }
 }
@@ -116,16 +124,8 @@ fn player_for(code: u8) -> Option<CuePlayer> {
     CUE_PLAYERS.get(index).copied()
 }
 
-const CUE_PLAYERS: [CuePlayer; 8] = [
-    play_click,
-    play_qr_found,
-    play_qr_decoded,
-    play_error,
-    play_success,
-    play_warning,
-    play_task_done,
-    play_tick,
-];
+const CUE_PLAYERS: [CuePlayer; 8] =
+    [play_click, play_qr_found, play_qr_decoded, play_error, play_success, play_warning, play_task_done, play_tick];
 
 fn play_click(audio: &mut RuntimeAudio) -> bool {
     audio.play_pattern(&[(1800, scaled_amplitude(7000), 8)])
@@ -163,10 +163,7 @@ fn play_tick(audio: &mut RuntimeAudio) -> bool {
     audio.play_pattern(&[(2000, scaled_amplitude(5000), 12)])
 }
 
-fn stream_boot_chime(
-    transfer: &mut esp_hal::dma::DmaTransferTxCircular<'_, SoundTx>,
-    initial_frames: usize,
-) -> bool {
+fn stream_boot_chime(transfer: &mut esp_hal::dma::DmaTransferTxCircular<'_, SoundTx>, initial_frames: usize) -> bool {
     let total_bytes = boot_chime_bytes(SAMPLE_RATE);
     let mut consumed_bytes = 0usize;
     let mut source_frame = initial_frames;
@@ -198,15 +195,14 @@ fn playback_duration(used: usize) -> Duration {
     Duration::from_millis(millis.max(1) as u64)
 }
 
-fn play_bounded_dma(
-    transfer: esp_hal::dma::DmaTransferTxCircular<'_, SoundTx>,
-    used: usize,
-) -> bool {
+fn play_bounded_dma(transfer: esp_hal::dma::DmaTransferTxCircular<'_, SoundTx>, used: usize) -> bool {
     let play_for = playback_duration(used);
     let started = Instant::now();
     loop {
         let elapsed = started.elapsed();
-        if elapsed >= play_for { return transfer.stop().is_ok(); }
+        if elapsed >= play_for {
+            return transfer.stop().is_ok();
+        }
         if elapsed >= SOUND_DMA_TIMEOUT {
             let _ = transfer.stop();
             return false;
@@ -281,7 +277,9 @@ fn fill_pattern(buffer: &mut SoundBuffer, tones: &[(u16, i16, u16)]) -> usize {
     for &(frequency, amplitude, duration_ms) in tones {
         let tone_bytes = bytes_for_ms(duration_ms.min(MAX_FEEDBACK_TONE_MS)) & !3usize;
         let end = offset.saturating_add(tone_bytes).min(buffer.len()) & !3usize;
-        if end <= offset { break; }
+        if end <= offset {
+            break;
+        }
         fill_tone_buf(&mut buffer[offset..end], frequency, amplitude);
         offset = end.saturating_add(silence_bytes).min(buffer.len()) & !3usize;
     }
@@ -289,14 +287,18 @@ fn fill_pattern(buffer: &mut SoundBuffer, tones: &[(u16, i16, u16)]) -> usize {
 }
 
 fn request(cue: u8) {
-    if CUES_SUSPENDED.load(Ordering::Acquire) { return; }
+    if CUES_SUSPENDED.load(Ordering::Acquire) {
+        return;
+    }
     PENDING_CUE.store(cue, Ordering::Release);
 }
 
 /// Drop any queued cue before entering a credential KDF interval. The event
 /// loop never starts speaker DMA while a foreground-exclusive credential
 /// operation is active, so submit feedback cannot overlap memory-hard work.
-pub fn discard_pending() { PENDING_CUE.store(CUE_NONE, Ordering::Release); }
+pub fn discard_pending() {
+    PENDING_CUE.store(CUE_NONE, Ordering::Release);
+}
 
 /// Suspend all runtime cues across a foreground-exclusive credential interval.
 /// This is deliberately independent of AppData so the I2S owner never needs to
@@ -318,12 +320,28 @@ pub fn resume_runtime_cues() {
 }
 
 /// UI/domain sound APIs only enqueue cues; they never touch I2S/GPIO/DMA.
-pub fn click() { request(CUE_CLICK); }
-pub fn qr_found() { request(CUE_QR_FOUND); }
-pub fn qr_decoded() { request(CUE_QR_DECODED); }
-pub fn beep_error() { request(CUE_ERROR); }
-pub fn success() { request(CUE_SUCCESS); }
-pub fn warning() { request(CUE_WARNING); }
-pub fn task_done() { request(CUE_TASK_DONE); }
-pub fn start_ticking() { request(CUE_TICK); }
+pub fn click() {
+    request(CUE_CLICK);
+}
+pub fn qr_found() {
+    request(CUE_QR_FOUND);
+}
+pub fn qr_decoded() {
+    request(CUE_QR_DECODED);
+}
+pub fn beep_error() {
+    request(CUE_ERROR);
+}
+pub fn success() {
+    request(CUE_SUCCESS);
+}
+pub fn warning() {
+    request(CUE_WARNING);
+}
+pub fn task_done() {
+    request(CUE_TASK_DONE);
+}
+pub fn start_ticking() {
+    request(CUE_TICK);
+}
 pub fn stop_ticking() {}

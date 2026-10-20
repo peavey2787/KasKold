@@ -7,23 +7,20 @@
 //! it with the non-exportable device HMAC key; the original device is required.
 
 use offline_signer::crypto::{
-    device_bound_storage::{NONCE_SIZE, StoragePurpose, TAG_SIZE},
+    device_bound_storage::{StoragePurpose, NONCE_SIZE, TAG_SIZE},
     password_kdf::{self, PasswordKdfParams, METADATA_SIZE, SALT_SIZE},
 };
 use sha2::{Digest, Sha256};
 use shared_signer::bytes::zeroize_bytes;
 
-use crate::services::{
-    backup::BackupDevice,
-    entropy,
-};
+use crate::services::{backup::BackupDevice, entropy};
 
 use super::{portable, StegoCarrier, StegoSecurity};
 
 mod helpers;
 use helpers::{
-    carrier_code, carrier_from_code, encode_plaintext, finish_decode, map_backup_error,
-    map_portable_error, reset_outputs, security_from_code, validate_inputs,
+    carrier_code, carrier_from_code, encode_plaintext, finish_decode, map_backup_error, map_portable_error,
+    reset_outputs, security_from_code, validate_inputs,
 };
 
 const MAGIC: [u8; 4] = *b"KSJP";
@@ -61,9 +58,7 @@ impl PayloadError {
             Self::InvalidInput => "Invalid stego wallet data",
             Self::InvalidLength => "Invalid stego payload length",
             Self::EntropyUnavailable => "RNG health failed",
-            Self::AuthenticationFailed => {
-                "Wrong password/descriptor/device or damaged backup"
-            }
+            Self::AuthenticationFailed => "Wrong password/descriptor/device or damaged backup",
             Self::DeviceKeyUnavailable => "Device backup key unavailable",
             Self::EncryptionFailed => "Stego encryption failed",
             Self::InvalidPassword => "Use 12+ chars with a letter and number",
@@ -136,11 +131,7 @@ fn pack_with_material(
     }
 
     write_header(security, carrier, salt, nonce, &mut output[..HEADER_SIZE])?;
-    let format = if security == StegoSecurity::Portable {
-        PORTABLE_FORMAT_VERSION
-    } else {
-        DEVICE_FORMAT_VERSION
-    };
+    let format = if security == StegoSecurity::Portable { PORTABLE_FORMAT_VERSION } else { DEVICE_FORMAT_VERSION };
 
     let mut plaintext = [0u8; PLAINTEXT_SIZE];
     encode_plaintext(format, indices, word_count, hint, &mut plaintext);
@@ -148,14 +139,10 @@ fn pack_with_material(
     let aad = build_aad(&output[..HEADER_SIZE], descriptor);
 
     let seal = match security {
-        StegoSecurity::Portable => portable::seal(
-            portable_password,
-            salt,
-            nonce,
-            &aad,
-            &mut output[CIPHERTEXT_OFFSET..TAG_OFFSET],
-        )
-        .map_err(map_portable_error),
+        StegoSecurity::Portable => {
+            portable::seal(portable_password, salt, nonce, &aad, &mut output[CIPHERTEXT_OFFSET..TAG_OFFSET])
+                .map_err(map_portable_error)
+        }
         StegoSecurity::DeviceBound => {
             let mut key = descriptor_credential(descriptor);
             let result = device.seal_backup_key(
@@ -193,12 +180,7 @@ pub fn unpack_device_bound(
     hint: &mut [u8; MAX_HINT_SIZE],
 ) -> Result<(u8, usize), PayloadError> {
     reset_outputs(indices, hint);
-    let envelope = parse_envelope(
-        input,
-        descriptor,
-        StegoSecurity::DeviceBound,
-        carrier,
-    )?;
+    let envelope = parse_envelope(input, descriptor, StegoSecurity::DeviceBound, carrier)?;
     let mut plaintext = envelope.ciphertext;
     let mut key = descriptor_credential(descriptor);
     let result = device.open_backup_key(
@@ -227,25 +209,11 @@ pub fn unpack_portable(
     hint: &mut [u8; MAX_HINT_SIZE],
 ) -> Result<(u8, usize), PayloadError> {
     reset_outputs(indices, hint);
-    let envelope = parse_envelope(
-        input,
-        descriptor,
-        StegoSecurity::Portable,
-        carrier,
-    )?;
-    let parameters = password_kdf::parse_metadata(&envelope.metadata)
-        .map_err(|_| PayloadError::UnsupportedKdf)?;
+    let envelope = parse_envelope(input, descriptor, StegoSecurity::Portable, carrier)?;
+    let parameters = password_kdf::parse_metadata(&envelope.metadata).map_err(|_| PayloadError::UnsupportedKdf)?;
     let mut plaintext = envelope.ciphertext;
-    portable::open(
-        password,
-        parameters,
-        &envelope.salt,
-        &envelope.nonce,
-        &envelope.aad,
-        &mut plaintext,
-        &envelope.tag,
-    )
-    .map_err(map_portable_error)?;
+    portable::open(password, parameters, &envelope.salt, &envelope.nonce, &envelope.aad, &mut plaintext, &envelope.tag)
+        .map_err(map_portable_error)?;
     finish_decode(PORTABLE_FORMAT_VERSION, &mut plaintext, indices, hint)
 }
 
@@ -274,14 +242,7 @@ fn parse_envelope(
     let mut tag = [0u8; TAG_SIZE];
     tag.copy_from_slice(&input[TAG_OFFSET..PAYLOAD_SIZE]);
     let aad = build_aad(&input[..HEADER_SIZE], descriptor);
-    Ok(Envelope {
-        metadata,
-        salt,
-        nonce,
-        ciphertext,
-        tag,
-        aad,
-    })
+    Ok(Envelope { metadata, salt, nonce, ciphertext, tag, aad })
 }
 
 fn validate_envelope_shape(input: &[u8], descriptor: &[u8]) -> Result<(), PayloadError> {
@@ -305,27 +266,20 @@ fn validate_envelope_header(
     if input[7] != 0 || carrier != expected_carrier || security != expected_security {
         return Err(PayloadError::InvalidInput);
     }
-    let expected_version = if security == StegoSecurity::Portable {
-        PORTABLE_FORMAT_VERSION
-    } else {
-        DEVICE_FORMAT_VERSION
-    };
+    let expected_version =
+        if security == StegoSecurity::Portable { PORTABLE_FORMAT_VERSION } else { DEVICE_FORMAT_VERSION };
     if input[4] != expected_version {
         return Err(PayloadError::InvalidInput);
     }
     Ok(security)
 }
 
-fn parse_envelope_metadata(
-    input: &[u8],
-    security: StegoSecurity,
-) -> Result<[u8; METADATA_SIZE], PayloadError> {
+fn parse_envelope_metadata(input: &[u8], security: StegoSecurity) -> Result<[u8; METADATA_SIZE], PayloadError> {
     let mut metadata = [0u8; METADATA_SIZE];
     metadata.copy_from_slice(&input[8..20]);
     match security {
         StegoSecurity::Portable => {
-            password_kdf::parse_metadata(&metadata)
-                .map_err(|_| PayloadError::UnsupportedKdf)?;
+            password_kdf::parse_metadata(&metadata).map_err(|_| PayloadError::UnsupportedKdf)?;
         }
         StegoSecurity::DeviceBound if metadata.iter().any(|byte| *byte != 0) => {
             return Err(PayloadError::InvalidInput);
@@ -335,9 +289,7 @@ fn parse_envelope_metadata(
     Ok(metadata)
 }
 
-fn parse_envelope_material(
-    input: &[u8],
-) -> Result<([u8; SALT_SIZE], [u8; NONCE_SIZE]), PayloadError> {
+fn parse_envelope_material(input: &[u8]) -> Result<([u8; SALT_SIZE], [u8; NONCE_SIZE]), PayloadError> {
     let mut salt = [0u8; SALT_SIZE];
     salt.copy_from_slice(&input[20..36]);
     let mut nonce = [0u8; NONCE_SIZE];
@@ -358,20 +310,12 @@ fn write_header(
 ) -> Result<(), PayloadError> {
     output.fill(0);
     output[..4].copy_from_slice(&MAGIC);
-    output[4] = if security == StegoSecurity::Portable {
-        PORTABLE_FORMAT_VERSION
-    } else {
-        DEVICE_FORMAT_VERSION
-    };
+    output[4] = if security == StegoSecurity::Portable { PORTABLE_FORMAT_VERSION } else { DEVICE_FORMAT_VERSION };
     output[5] = carrier_code(carrier);
-    output[6] = if security == StegoSecurity::Portable {
-        SECURITY_PORTABLE
-    } else {
-        SECURITY_DEVICE
-    };
+    output[6] = if security == StegoSecurity::Portable { SECURITY_PORTABLE } else { SECURITY_DEVICE };
     if security == StegoSecurity::Portable {
-        let metadata = password_kdf::encode_metadata(PasswordKdfParams::current())
-            .map_err(|_| PayloadError::UnsupportedKdf)?;
+        let metadata =
+            password_kdf::encode_metadata(PasswordKdfParams::current()).map_err(|_| PayloadError::UnsupportedKdf)?;
         output[8..20].copy_from_slice(&metadata);
     }
     output[20..36].copy_from_slice(salt);

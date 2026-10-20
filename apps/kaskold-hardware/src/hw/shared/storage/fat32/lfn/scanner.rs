@@ -1,7 +1,5 @@
-use kaskold_hardware_core::storage::fat32_lfn::{
-    DirectoryEntryKind, LfnAccumulator, classify_directory_entry,
-};
-use super::super::{DirEntry, Fat32Info, SdCardType, sd_read_block};
+use super::super::{sd_read_block, DirEntry, Fat32Info, SdCardType};
+use kaskold_hardware_core::storage::fat32_lfn::{classify_directory_entry, DirectoryEntryKind, LfnAccumulator};
 
 const DIRECTORY_ENTRY_BYTES: usize = 32;
 const ENTRIES_PER_SECTOR: usize = 16;
@@ -65,11 +63,7 @@ where
     }
 }
 
-fn process_regular_entry<F>(
-    raw: &[u8],
-    names: &mut LfnAccumulator,
-    callback: &mut F,
-) -> ScanControl
+fn process_regular_entry<F>(raw: &[u8], names: &mut LfnAccumulator, callback: &mut F) -> ScanControl
 where
     F: FnMut(&DirEntry, &[u8; 64], usize) -> bool,
 {

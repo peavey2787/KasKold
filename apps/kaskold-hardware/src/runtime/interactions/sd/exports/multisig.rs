@@ -2,12 +2,8 @@ use super::super::common::context::SdIoContext;
 use crate::runtime::data::TextFileKind;
 // SD controller workflow: multisig.
 use super::super::{
-    EncryptionPayload,
-    EncryptionPromptWorkflow,
+    run_encryption_prompt, run_filename_workflow, EncryptionPayload, EncryptionPromptWorkflow, FilenameWorkflow,
     PromptDestination,
-    FilenameWorkflow,
-    run_encryption_prompt,
-    run_filename_workflow,
 };
 pub(crate) fn handle_sd_ms_addr_filename(ctx: SdIoContext<'_, '_, '_>) -> bool {
     run_filename_workflow(

@@ -1,8 +1,4 @@
-use crate::{
-    hw::display,
-    runtime::data::AppData,
-    wallet::mnemonic,
-};
+use crate::{hw::display, runtime::data::AppData, wallet::mnemonic};
 
 const DICE_X: [u16; 3] = [10, 110, 210];
 const DICE_Y: [u16; 2] = [70, 135];
@@ -33,11 +29,7 @@ pub(super) fn handle(
 
     if (100..=220).contains(&x) && y >= 200 && ad.wallet.seeds.dice_collector.count > 0 {
         ad.wallet.seeds.dice_collector.undo();
-        log!(
-            "   Dice undo ({}/{})",
-            ad.wallet.seeds.dice_collector.count,
-            ad.wallet.seeds.dice_collector.target
-        );
+        log!("   Dice undo ({}/{})", ad.wallet.seeds.dice_collector.count, ad.wallet.seeds.dice_collector.target);
         update_progress(ad, boot_display);
     }
     false
@@ -56,18 +48,9 @@ fn tapped_die(x: u16, y: u16) -> Option<u8> {
     None
 }
 
-fn add_roll(
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    value: u8,
-) -> bool {
+fn add_roll(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, value: u8) -> bool {
     ad.wallet.seeds.dice_collector.add_roll(value);
-    log!(
-        "   Dice: {} ({}/{})",
-        value,
-        ad.wallet.seeds.dice_collector.count,
-        ad.wallet.seeds.dice_collector.target
-    );
+    log!("   Dice: {} ({}/{})", value, ad.wallet.seeds.dice_collector.count, ad.wallet.seeds.dice_collector.target);
 
     if ad.wallet.seeds.dice_collector.is_complete() {
         generate_seed(ad, boot_display);
@@ -80,10 +63,7 @@ fn add_roll(
 
 fn generate_seed(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>) {
     boot_display.draw_saving_screen("Mixing dice entropy...");
-    let mut dice = core::mem::replace(
-        &mut ad.wallet.seeds.dice_collector,
-        mnemonic::DiceCollector::new_12_word(),
-    );
+    let mut dice = core::mem::replace(&mut ad.wallet.seeds.dice_collector, mnemonic::DiceCollector::new_12_word());
     if ad.wallet.seeds.pending_seed_entropy_valid {
         let rolls = dice.count;
         if crate::runtime::interactions::menu::seed_generation::mix_dice_into_staged(ad, &mut dice) {
@@ -104,8 +84,5 @@ fn generate_seed(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>) 
 }
 
 fn update_progress(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {
-    boot_display.update_dice_progress(
-        ad.wallet.seeds.dice_collector.count,
-        ad.wallet.seeds.dice_collector.target,
-    );
+    boot_display.update_dice_progress(ad.wallet.seeds.dice_collector.count, ad.wallet.seeds.dice_collector.target);
 }

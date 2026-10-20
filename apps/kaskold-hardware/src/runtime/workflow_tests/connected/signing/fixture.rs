@@ -1,9 +1,12 @@
-use alloc::vec::Vec;
 use crate::runtime::data::AppData;
+use alloc::vec::Vec;
 use offline_signer::transaction::model::{SigHashType, Transaction};
 
 #[derive(Clone, Copy)]
-pub(in crate::runtime::workflow_tests::connected) enum WireFormat { CompactKspt, StandardPskt }
+pub(in crate::runtime::workflow_tests::connected) enum WireFormat {
+    CompactKspt,
+    StandardPskt,
+}
 
 pub(in crate::runtime::workflow_tests::connected) fn install_wallet(ad: &mut AppData) -> bool {
     crate::services::wallet_session::install_workflow_backup_mnemonic_fixture(ad)
@@ -13,20 +16,21 @@ pub(in crate::runtime::workflow_tests::connected) fn install_wallet(ad: &mut App
 pub(in crate::runtime::workflow_tests::connected) fn wire(ad: &AppData, format: WireFormat) -> Option<Vec<u8>> {
     let tx = transaction(ad)?;
     match format {
-        WireFormat::CompactKspt =>
-            offline_signer::transaction::kspt::serialize_compact_kspt_vec(&tx).ok(),
-        WireFormat::StandardPskt =>
-            offline_signer::transaction::std_pskt::serialize_pskt_vec(
-                &tx,
-                &shared_signer::PsktParsed::empty(),
-                b"",
-                shared_signer::TxInputFormat::PsktSingle,
-            ).ok(),
+        WireFormat::CompactKspt => offline_signer::transaction::kspt::serialize_compact_kspt_vec(&tx).ok(),
+        WireFormat::StandardPskt => offline_signer::transaction::std_pskt::serialize_pskt_vec(
+            &tx,
+            &shared_signer::PsktParsed::empty(),
+            b"",
+            shared_signer::TxInputFormat::PsktSingle,
+        )
+        .ok(),
     }
 }
 
 fn transaction(ad: &AppData) -> Option<Transaction> {
-    if !ad.wallet.addresses.pubkeys_cached { return None; }
+    if !ad.wallet.addresses.pubkeys_cached {
+        return None;
+    }
     let mut tx = Transaction::try_new().ok()?;
     tx.version = 0;
     tx.network = ad.wallet.seeds.seed_mgr.network().kaspa_network();
@@ -41,14 +45,7 @@ fn transaction(ad: &AppData) -> Option<Transaction> {
     Some(tx)
 }
 
-fn configure_input(
-    tx: &mut Transaction,
-    index: usize,
-    pubkey: [u8; 32],
-    txid: [u8; 32],
-    outpoint: u32,
-    amount: u64,
-) {
+fn configure_input(tx: &mut Transaction, index: usize, pubkey: [u8; 32], txid: [u8; 32], outpoint: u32, amount: u64) {
     let input = &mut tx.inputs[index];
     input.previous_outpoint.transaction_id = txid;
     input.previous_outpoint.index = outpoint;
@@ -59,13 +56,7 @@ fn configure_input(
     set_p2pk(&mut input.utxo_entry.script_public_key, pubkey);
 }
 
-fn configure_output(
-    tx: &mut Transaction,
-    index: usize,
-    pubkey: [u8; 32],
-    value: u64,
-    hint: Option<(u8, u32)>,
-) {
+fn configure_output(tx: &mut Transaction, index: usize, pubkey: [u8; 32], value: u64, hint: Option<(u8, u32)>) {
     let output = &mut tx.outputs[index];
     output.value = value;
     set_p2pk(&mut output.script_public_key, pubkey);

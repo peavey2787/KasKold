@@ -2,18 +2,13 @@
 
 use crate::runtime::data::AppData;
 
-pub(crate) fn derive_watch_account(
-    ad: &mut AppData,
-    checkpoint: &mut dyn FnMut(),
-) -> Result<(), &'static str> {
-    let parent_fingerprint = ad.wallet.seeds.seed_mgr.active_slot()
-        .ok_or("No active wallet")?.account_parent_fingerprint;
+pub(crate) fn derive_watch_account(ad: &mut AppData, checkpoint: &mut dyn FnMut()) -> Result<(), &'static str> {
+    let parent_fingerprint =
+        ad.wallet.seeds.seed_mgr.active_slot().ok_or("No active wallet")?.account_parent_fingerprint;
     let account = crate::runtime::signing::derive_active_account_key_with_checkpoint(ad, checkpoint)?;
     let mut encoded = [0u8; offline_signer::derivation::xpub::KPUB_MAX_LEN];
-    let result = offline_signer::derivation::xpub::serialize_account_kpub(
-        &account, parent_fingerprint, &mut encoded,
-    )
-    .map_err(|_| "kpub serialization failed");
+    let result = offline_signer::derivation::xpub::serialize_account_kpub(&account, parent_fingerprint, &mut encoded)
+        .map_err(|_| "kpub serialization failed");
     match result {
         Ok(length) => {
             ad.export.kpub_data[..length].copy_from_slice(&encoded[..length]);

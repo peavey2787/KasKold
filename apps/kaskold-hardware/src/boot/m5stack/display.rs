@@ -1,6 +1,6 @@
 //! CoreS3 display initialization and earliest visible boot-liveness phase.
 
-use esp_hal::{Blocking, delay::Delay, gpio::Output, i2c::master::I2c};
+use esp_hal::{delay::Delay, gpio::Output, i2c::master::I2c, Blocking};
 
 pub(crate) fn initialize<'a>(
     chip_select: Output<'a>,

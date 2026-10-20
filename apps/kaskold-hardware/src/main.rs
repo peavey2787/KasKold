@@ -30,11 +30,6 @@ macro_rules! log {
         }
     }};
 }
-mod feature_policy;
-#[cfg(not(feature = "qemu"))]
-mod diagnostics;
-#[cfg(any(not(feature = "qemu"), feature = "qemu-tests"))]
-mod self_test;
 #[cfg(not(feature = "qemu"))]
 mod boot;
 #[cfg(not(feature = "qemu"))]
@@ -42,15 +37,20 @@ mod controllers;
 #[cfg(not(feature = "qemu"))]
 mod crypto;
 #[cfg(not(feature = "qemu"))]
+mod diagnostics;
+mod feature_policy;
+#[cfg(not(feature = "qemu"))]
 mod hw;
 #[cfg(feature = "qemu")]
 mod qemu;
 #[cfg(any(not(feature = "qemu"), feature = "qemu-tests"))]
 mod qr;
 #[cfg(not(feature = "qemu"))]
-mod runtime;
-#[cfg(not(feature = "qemu"))]
 mod release_policy;
+#[cfg(not(feature = "qemu"))]
+mod runtime;
+#[cfg(any(not(feature = "qemu"), feature = "qemu-tests"))]
+mod self_test;
 #[cfg(not(feature = "qemu"))]
 mod services;
 #[cfg(not(feature = "qemu"))]
@@ -60,6 +60,13 @@ mod ui;
 mod version;
 #[cfg(not(feature = "qemu"))]
 mod wallet;
+#[cfg(all(not(feature = "qemu"), any(not(feature = "hardware-tests"), feature = "m5stack")))]
+use crate::runtime::data::AppData;
+use esp_backtrace as _;
+#[cfg(not(feature = "qemu"))]
+use esp_hal::lcd_cam::cam::Camera as DvpCamera;
+#[cfg(all(feature = "m5stack", any(not(feature = "workflow-test-auto"), feature = "workflow-runtime-auto")))]
+use esp_hal::lcd_cam::{cam::Config as CamConfig, LcdCam};
 use esp_hal::main;
 #[cfg(not(feature = "qemu"))]
 use esp_hal::{
@@ -71,13 +78,6 @@ use esp_hal::{
     spi::Mode as SpiMode,
     time::Rate,
 };
-#[cfg(not(feature = "qemu"))]
-use esp_hal::lcd_cam::cam::Camera as DvpCamera;
-#[cfg(all(feature = "m5stack", any(not(feature = "workflow-test-auto"), feature = "workflow-runtime-auto")))]
-use esp_hal::lcd_cam::{LcdCam, cam::Config as CamConfig};
-use esp_backtrace as _;
-#[cfg(all(not(feature = "qemu"), any(not(feature = "hardware-tests"), feature = "m5stack")))]
-use crate::runtime::data::AppData;
 #[cfg(not(feature = "qemu"))]
 extern crate alloc;
 #[cfg(all(feature = "skip-tests", feature = "silent"))]
@@ -117,21 +117,21 @@ fn firmware_main() -> ! {
     #[cfg(not(feature = "hardware-tests"))]
     let (persistent_hmac, persistent_flash) = (peripherals.HMAC, peripherals.FLASH);
     #[cfg(not(feature = "hardware-tests"))]
-    let mut persistent_wallet = crate::services::persistent_wallet::PersistentWallet::new(
-        persistent_hmac,
-        persistent_flash,
-    );
+    let mut persistent_wallet =
+        crate::services::persistent_wallet::PersistentWallet::new(persistent_hmac, persistent_flash);
 
     crate::services::memory::psram::initialize_or_halt(&peripherals.PSRAM);
     let mut delay = Delay::new();
     diagnostics::maybe_run_sha_bench(&mut delay);
-    #[cfg(feature = "rng-probe")] services::entropy::log_rng_probe("before lockdown");
+    #[cfg(feature = "rng-probe")]
+    services::entropy::log_rng_probe("before lockdown");
 
     // ─── Security: fail closed if radio power-domain lockdown is not verified ───
     boot::security::early_lockdown();
     diagnostics::maybe_finish_rng_probe(&mut delay);
     diagnostics::log_build_profile();
-    #[cfg(feature = "workflow-test-auto")] runtime::workflow_tests::run_boot_gate();
+    #[cfg(feature = "workflow-test-auto")]
+    runtime::workflow_tests::run_boot_gate();
     // ─── Hardware self-tests ───────────────────────────────────
     #[cfg(feature = "hardware-tests")]
     let startup_tests_ok = runtime::unit_tests::boot::run_startup_tests(&mut delay);
@@ -140,8 +140,8 @@ fn firmware_main() -> ! {
     // M5Stack workflow/HIL images initialize the same board resources as interactive firmware.
     #[cfg_attr(feature = "hardware-tests", allow(unused_variables))]
     #[cfg(feature = "m5stack")]
-    let (i2c, mut boot_display, dvp_camera_opt, cam_dma_buf_opt,
-         cam_status, sd_card_type, runtime_audio) = boot::m5stack::initialize!(peripherals, delay);
+    let (i2c, mut boot_display, dvp_camera_opt, cam_dma_buf_opt, cam_status, sd_card_type, runtime_audio) =
+        boot::m5stack::initialize!(peripherals, delay);
     #[cfg(all(feature = "m5stack", not(feature = "hardware-tests")))]
     let mut runtime_audio = runtime_audio;
     #[cfg(all(feature = "m5stack", not(feature = "hardware-tests")))]
@@ -156,9 +156,12 @@ fn firmware_main() -> ! {
             }
         }
     }
-    #[cfg(all(feature = "m5stack", feature = "wdev-capture"))] let mut i2c = i2c;
-    #[cfg(all(feature = "m5stack", not(feature = "hardware-tests")))] runtime::core_s3::show_recovery_notice(&mut boot_display, &mut delay);
-    #[cfg(feature = "wdev-capture")] diagnostics::maybe_run_wdev_capture(&mut i2c, &mut delay);
+    #[cfg(all(feature = "m5stack", feature = "wdev-capture"))]
+    let mut i2c = i2c;
+    #[cfg(all(feature = "m5stack", not(feature = "hardware-tests")))]
+    runtime::core_s3::show_recovery_notice(&mut boot_display, &mut delay);
+    #[cfg(feature = "wdev-capture")]
+    diagnostics::maybe_run_wdev_capture(&mut i2c, &mut delay);
     runtime::signing::run_firmware_verify(&mut boot_display, &mut delay); // Verify firmware integrity
 
     // ─── Security: disable JTAG + USB data after verification ───
@@ -170,14 +173,16 @@ fn firmware_main() -> ! {
     // Boot into main application
     log!("Wallet storage policy initialized at startup");
     log!("─────────────────────────────────────────");
-    #[cfg(all(not(feature = "hardware-tests"), not(feature = "workflow-test-auto")))] let tracker = hw::touch::TouchTracker::new();
+    #[cfg(all(not(feature = "hardware-tests"), not(feature = "workflow-test-auto")))]
+    let tracker = hw::touch::TouchTracker::new();
 
     #[cfg(feature = "hardware-tests")]
     let boot_tests_ok = runtime::unit_tests::boot::run_boot_tests();
     #[cfg(all(not(feature = "hardware-tests"), not(feature = "skip-tests")))]
     boot::application::enforce_boot_known_answer_tests();
 
-    #[cfg(all(not(feature = "hardware-tests"), not(feature = "workflow-test-auto")))] let (grid_zones, list_zones, page_up_zone, page_down_zone) = runtime::touch_dispatch::touch_zones();
+    #[cfg(all(not(feature = "hardware-tests"), not(feature = "workflow-test-auto")))]
+    let (grid_zones, list_zones, page_up_zone, page_down_zone) = runtime::touch_dispatch::touch_zones();
     #[cfg(any(not(feature = "hardware-tests"), feature = "m5stack"))]
     let ad: &mut AppData = runtime::secret_state::initialize();
 
@@ -189,12 +194,25 @@ fn firmware_main() -> ! {
     let signing_tests_ok = runtime::unit_tests::boot::run_signing_pipeline_test(ad);
     #[cfg(all(feature = "m5stack", not(feature = "hardware-tests"), not(feature = "skip-tests")))]
     log!("   Signing pipeline test: host/QA (boot KATs retained)");
-    #[cfg(all(feature = "m5stack", not(feature = "hardware-tests"), any(not(feature = "workflow-test-auto"), feature = "workflow-runtime-auto")))]
+    #[cfg(all(
+        feature = "m5stack",
+        not(feature = "hardware-tests"),
+        any(not(feature = "workflow-test-auto"), feature = "workflow-runtime-auto")
+    ))]
     boot::m5stack::kpub_worker::start!(peripherals);
     // Arm runtime liveness only after bounded boot/KAT/signing work is complete.
-    #[cfg(all(feature = "m5stack", not(feature = "hardware-tests"), any(not(feature = "workflow-test-auto"), feature = "workflow-runtime-auto")))]
+    #[cfg(all(
+        feature = "m5stack",
+        not(feature = "hardware-tests"),
+        any(not(feature = "workflow-test-auto"), feature = "workflow-runtime-auto")
+    ))]
     let runtime_watchdog = runtime::core_s3::watchdog_feed!(peripherals.TIMG0);
-    #[cfg(all(feature = "m5stack", not(feature = "hardware-tests"), feature = "workflow-test-auto", not(feature = "workflow-runtime-auto")))]
+    #[cfg(all(
+        feature = "m5stack",
+        not(feature = "hardware-tests"),
+        feature = "workflow-test-auto",
+        not(feature = "workflow-runtime-auto")
+    ))]
     let runtime_watchdog = || {};
     #[cfg(feature = "hardware-tests")]
     runtime::unit_tests::boot::report_hardware_test_result(
@@ -214,16 +232,17 @@ fn firmware_main() -> ! {
     // loop policy expands from focused runtime modules.
     #[cfg(all(not(feature = "hardware-tests"), feature = "m5stack"))]
     runtime::event_loop::runner::run(
-        ad, persistent_wallet,
+        ad,
+        persistent_wallet,
         boot_display,
         delay,
         i2c,
         sd_card_type,
-        dvp_camera_opt,
-        cam_dma_buf_opt,
-        cam_status,
-        #[cfg(not(feature = "workflow-test-auto"))] tracker,
-        #[cfg(not(feature = "workflow-test-auto"))] runtime_audio,
+        (dvp_camera_opt, cam_dma_buf_opt, cam_status),
+        #[cfg(not(feature = "workflow-test-auto"))]
+        tracker,
+        #[cfg(not(feature = "workflow-test-auto"))]
+        runtime_audio,
         runtime_watchdog,
         #[cfg(not(feature = "workflow-test-auto"))]
         (grid_zones, list_zones, page_up_zone, page_down_zone),

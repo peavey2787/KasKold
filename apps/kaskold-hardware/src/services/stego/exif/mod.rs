@@ -65,10 +65,7 @@ pub fn find_app1(jpeg: &[u8]) -> Option<(usize, usize)> {
         if position + 4 > jpeg.len() {
             break;
         }
-        let segment_length = usize::from(u16::from_be_bytes([
-            jpeg[position + 2],
-            jpeg[position + 3],
-        ]));
+        let segment_length = usize::from(u16::from_be_bytes([jpeg[position + 2], jpeg[position + 3]]));
         let total = segment_length.checked_add(2)?;
         let end = position.checked_add(total)?;
         if segment_length < 2 || end > jpeg.len() {

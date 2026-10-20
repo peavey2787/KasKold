@@ -8,38 +8,45 @@ mod imu;
 mod mixer;
 mod platform;
 mod seed;
-mod trng;
 mod touch;
+mod trng;
 
-pub use collection::{collect, fill};
 #[cfg(all(not(feature = "hardware-tests"), not(feature = "workflow-test-auto")))]
 pub use ambient::stage_touch as stage_ambient_touch;
-pub use imu::initialize as initialize_imu;
-#[cfg(not(feature = "hardware-tests"))]
-pub use touch::{harden_touch_entropy, touch_timestamp};
+pub use collection::{collect, fill};
 pub use health::EntropyError;
 #[cfg(any(test, feature = "verbose-boot"))]
 pub(crate) use health::{inspect, HEALTH_SAMPLE_COUNT};
-pub use mixer::{mix_additive_dice, zeroize};
+pub use imu::initialize as initialize_imu;
 #[cfg(not(feature = "hardware-tests"))]
 pub use mixer::mix_additive_touch;
+pub use mixer::{mix_additive_dice, zeroize};
+#[cfg(not(feature = "hardware-tests"))]
+pub use touch::{harden_touch_entropy, touch_timestamp};
 
 #[cfg(feature = "wdev-capture")]
-pub(crate) fn wdev_capture_prepare() -> Result<(), EntropyError> { trng::enable_hardware_rng() }
+pub(crate) fn wdev_capture_prepare() -> Result<(), EntropyError> {
+    trng::enable_hardware_rng()
+}
 
 #[cfg(feature = "wdev-capture")]
 #[inline]
-pub(crate) fn wdev_capture_sample() -> u32 { trng::sample() }
+pub(crate) fn wdev_capture_sample() -> u32 {
+    trng::sample()
+}
 
 #[cfg(feature = "rng-probe")]
 pub(crate) fn log_rng_probe(label: &str) {
     let (distinct, ones, zero_words, repeats) = trng::probe(256);
     crate::log!(
         "[rng-probe] {}: distinct {}/256 ones {}/8192 zeros {} repeats {}",
-        label, distinct, ones, zero_words, repeats
+        label,
+        distinct,
+        ones,
+        zero_words,
+        repeats
     );
 }
-
 
 #[cfg(feature = "rng-probe")]
 pub(crate) fn finish_rng_probe(delay: &mut esp_hal::delay::Delay) -> ! {

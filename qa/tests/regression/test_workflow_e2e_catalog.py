@@ -2,12 +2,15 @@
 """Regression contracts for the developer-only firmware workflow E2E harness."""
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 import re
 import tomllib
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "qa/checks"))
+from firmware.source_contract_support import flat  # noqa: E402
 FW = ROOT / "apps/kaskold-hardware"
 CATALOG = FW / "src/runtime/workflow_tests/catalog"
 STATE = ROOT / "crates/kaskold-hardware-core/src/screen_flow/state.rs"
@@ -247,9 +250,9 @@ class WorkflowE2ECatalogTests(unittest.TestCase):
         self.assertGreaterEqual(run_all.count("liveness();"), 2)
         self.assertIn("liveness();", group)
         self.assertNotIn("log!(", group)
-        self.assertIn("&mut $watchdog_feed, input", dispatch)
+        self.assertIn("&mut $watchdog_feed, input", flat(dispatch))
         self.assertIn("liveness: &mut dyn FnMut()", navigation_dispatch)
-        self.assertIn("&mut $watchdog_feed, input", touch_routes)
+        self.assertIn("&mut $watchdog_feed, input", flat(touch_routes))
         self.assertIn("30_000", core)
 
     def test_connected_supervisor_fails_fast_on_device_panic(self) -> None:

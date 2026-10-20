@@ -6,24 +6,25 @@
 
 mod advanced_tools;
 mod backup;
+mod menu_context;
+mod multisig;
 mod onboarding;
+mod probe_status;
+mod qr_protocol;
 mod receive;
 mod remaining;
 mod remaining_status;
-mod qr_protocol;
-mod probe_status;
 mod root;
-mod settings;
-mod multisig;
-mod signing;
-mod sd_workflows;
-#[cfg(feature = "m5stack")]
-mod sd_media;
-mod stego;
-mod security_policies;
-mod wallet;
 #[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))]
 mod runtime_gui;
+#[cfg(feature = "m5stack")]
+mod sd_media;
+mod sd_workflows;
+mod security_policies;
+mod settings;
+mod signing;
+mod stego;
+mod wallet;
 
 #[cfg(feature = "workflow-test-auto")]
 const _: () = {
@@ -100,10 +101,7 @@ pub(super) fn run(
     persistent_wallet: &mut crate::services::persistent_wallet::PersistentWallet<'_>,
     watchdog_feed: &mut impl FnMut(),
 ) -> bool {
-    log!(
-        "KASKOLD_WORKFLOW_TESTS: CONNECTED BUILD PACKAGE {}",
-        env!("CARGO_PKG_VERSION"),
-    );
+    log!("KASKOLD_WORKFLOW_TESTS: CONNECTED BUILD PACKAGE {}", env!("CARGO_PKG_VERSION"),);
     #[cfg(feature = "m5stack")]
     log!("KASKOLD_WORKFLOW_TESTS: TOUCH PROBE BEGIN");
     #[cfg(feature = "m5stack")]
@@ -144,7 +142,9 @@ pub(super) fn run(
     log!("KASKOLD_WORKFLOW_RUNTIME: RECEIVE PUBLIC FIXTURE DISABLED; REAL DERIVATION REQUIRED");
 
     #[cfg(feature = "workflow-hil-auto")]
-    if !hil_entropy_probe() { return false; }
+    if !hil_entropy_probe() {
+        return false;
+    }
 
     // Controller E2E is intentionally media-independent.  Keep the real boot
     // probe above for hardware diagnostics, but do not let an inserted, flaky,
@@ -170,8 +170,16 @@ pub(super) fn run(
     // budget as production, without making destructive SD/eFuse changes.
     #[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))]
     if !runtime_gui::exercise(
-        ad, boot_display, i2c, sd_card_type, delay,
-        dvp_camera_opt, cam_dma_buf_opt, cam_status, persistent_wallet, watchdog_feed,
+        ad,
+        boot_display,
+        i2c,
+        sd_card_type,
+        delay,
+        dvp_camera_opt,
+        cam_dma_buf_opt,
+        cam_status,
+        persistent_wallet,
+        watchdog_feed,
     ) {
         return false;
     }
@@ -222,21 +230,11 @@ fn run_all_connected_tranches(
         // cryptography; one global deadline must not expire merely because
         // earlier independent tranches legitimately consumed CPU time.
         log!("KASKOLD_WORKFLOW_TESTS: CONNECTED TRANCHE DEADLINE REFRESH");
-        log!(
-            "KASKOLD_WORKFLOW_TESTS: CONNECTED TRANCHE {}/{} {} BEGIN",
-            index + 1,
-            CONNECTED_TRANCHES.len(),
-            name,
-        );
+        log!("KASKOLD_WORKFLOW_TESTS: CONNECTED TRANCHE {}/{} {} BEGIN", index + 1, CONNECTED_TRANCHES.len(), name,);
         let result = tranche(ad, boot_display, i2c, sd_card_type, delay);
         if result {
             passed += 1;
-            log!(
-                "KASKOLD_WORKFLOW_TESTS: CONNECTED TRANCHE {}/{} {} PASS",
-                index + 1,
-                CONNECTED_TRANCHES.len(),
-                name,
-            );
+            log!("KASKOLD_WORKFLOW_TESTS: CONNECTED TRANCHE {}/{} {} PASS", index + 1, CONNECTED_TRANCHES.len(), name,);
         } else {
             failed += 1;
             failed_tranches[index] = true;
@@ -281,35 +279,49 @@ fn run_all_connected_tranches(
             match index {
                 0 => {
                     probe_status::replay_mask(
-                        "ROOT", &root::FAILURE_MASK, &["RECEIVE", "SCAN", "WALLET-BACKUP", "SETTINGS"],
+                        "ROOT",
+                        &root::FAILURE_MASK,
+                        &["RECEIVE", "SCAN", "WALLET-BACKUP", "SETTINGS"],
                     );
                     if root::FAILURE_MASK.load(core::sync::atomic::Ordering::Relaxed) & (1u16 << 2) != 0 {
                         probe_status::replay_mask(
-                            "ROOT-WALLET-BACKUP", &root::WALLET_BACKUP_FAILURE_MASK, &["WALLET", "BACKUP"],
+                            "ROOT-WALLET-BACKUP",
+                            &root::WALLET_BACKUP_FAILURE_MASK,
+                            &["WALLET", "BACKUP"],
                         );
                         if root::WALLET_BACKUP_FAILURE_MASK.load(core::sync::atomic::Ordering::Relaxed) & 1 != 0 {
                             wallet::replay_failure_detail();
                         }
                     }
-                },
+                }
                 2 => probe_status::replay_mask(
-                    "ONBOARDING", &onboarding::FAILURE_MASK,
+                    "ONBOARDING",
+                    &onboarding::FAILURE_MASK,
                     &["WELCOME", "CREATE-12", "CREATE-24", "CREDENTIAL-ROUTES", "FINISH-SESSION", "RESTORE-IMPORT"],
                 ),
                 3 => {
                     probe_status::replay_mask(
-                        "SIGNING", &signing::FAILURE_MASK,
-                        &["INVALID-KSPT", "COMPACT-REVIEW", "COMPACT-SIGN", "STANDARD-PSKT", "ANTI-KLEPTO", "FINISH-HOME"],
+                        "SIGNING",
+                        &signing::FAILURE_MASK,
+                        &[
+                            "INVALID-KSPT",
+                            "COMPACT-REVIEW",
+                            "COMPACT-SIGN",
+                            "STANDARD-PSKT",
+                            "ANTI-KLEPTO",
+                            "FINISH-HOME",
+                        ],
                     );
                     signing::replay_standard_failure_detail();
-                },
+                }
                 5 => {
                     probe_status::replay_mask(
-                        "SD-WORKFLOWS", &sd_workflows::FAILURE_MASK,
+                        "SD-WORKFLOWS",
+                        &sd_workflows::FAILURE_MASK,
                         &["BROWSER", "IMPORTS", "ENCRYPTED", "FINISH-HOME"],
                     );
                     sd_workflows::replay_import_failure_detail();
-                },
+                }
                 _ => {}
             }
             if index == 6 {
@@ -326,7 +338,6 @@ fn run_all_connected_tranches(
     }
     failed == 0 && passed == attempted
 }
-
 
 fn reset_tranche_to_home(ad: &mut crate::runtime::data::AppData) -> bool {
     let reset = crate::runtime::navigation::workflow_reset_to_home(ad);
@@ -358,7 +369,6 @@ fn configured_start_index() -> usize {
         _ => 0,
     }
 }
-
 
 #[cfg(feature = "workflow-hil-auto")]
 fn hil_entropy_probe() -> bool {

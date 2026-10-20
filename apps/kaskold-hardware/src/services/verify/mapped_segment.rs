@@ -1,35 +1,20 @@
 use super::{
-    DRAM_FLASH_BASE,
-    Digest,
-    embedded_firmware_size,
-    FirmwareInfo,
-    IRAM_FLASH_BASE,
-    Ordering,
-    Sha256,
-    VerificationResult,
-    compiler_fence,
-    constant_time,
-    flow,
+    compiler_fence, constant_time, embedded_firmware_size, flow, Digest, FirmwareInfo, Ordering, Sha256,
+    VerificationResult, DRAM_FLASH_BASE, IRAM_FLASH_BASE,
 };
 // Mapped executable-segment hashing and comparison.
 
 impl FirmwareInfo {
-pub(super) fn do_verify_mapped_code(
-        &self,
-        code_start_iram: u32,
-        max_size: usize,
-    ) -> VerificationResult {
+    pub(super) fn do_verify_mapped_code(&self, code_start_iram: u32, max_size: usize) -> VerificationResult {
         flow::advance(flow::Stage::MapStart);
 
         // ── Convert IRAM address → DRAM ─────────────────────
         //
         // code_start_iram is on instruction bus (0x4201_0020)
         // We need the equivalent address on data bus (0x3C01_0020)
-        let code_start = if (IRAM_FLASH_BASE..(IRAM_FLASH_BASE + 0x0200_0000)).contains(&code_start_iram)
-        {
+        let code_start = if (IRAM_FLASH_BASE..(IRAM_FLASH_BASE + 0x0200_0000)).contains(&code_start_iram) {
             code_start_iram - IRAM_FLASH_BASE + DRAM_FLASH_BASE
-        } else if (DRAM_FLASH_BASE..(DRAM_FLASH_BASE + 0x0200_0000)).contains(&code_start_iram)
-        {
+        } else if (DRAM_FLASH_BASE..(DRAM_FLASH_BASE + 0x0200_0000)).contains(&code_start_iram) {
             // Already a DRAM address, use directly
             code_start_iram
         } else {
@@ -61,9 +46,7 @@ pub(super) fn do_verify_mapped_code(
             let mut offset: usize = 0;
             while offset < scan_limit {
                 let addr = code_start as usize + offset;
-                let word = unsafe {
-                    core::ptr::read_volatile(addr as *const u32)
-                };
+                let word = unsafe { core::ptr::read_volatile(addr as *const u32) };
 
                 if word == 0xFFFF_FFFF {
                     consecutive_ff += 1;
@@ -89,16 +72,17 @@ pub(super) fn do_verify_mapped_code(
         };
 
         // ── Sanity check ────────────────────────────────────────
-        let data: &[u8] = unsafe {
-            core::slice::from_raw_parts(code_start as *const u8, code_size)
-        };
+        let data: &[u8] = unsafe { core::slice::from_raw_parts(code_start as *const u8, code_size) };
 
         // Verify not all zeros
         let mut all_00 = true;
         let check_len = core::cmp::min(256, data.len());
         for i in 0..check_len {
             let val = unsafe { core::ptr::read_volatile(&data[i] as *const u8) };
-            if val != 0x00 { all_00 = false; break; }
+            if val != 0x00 {
+                all_00 = false;
+                break;
+            }
         }
         if all_00 {
             log!("   Segment reads as zeros (DRAM mapping unavailable)");

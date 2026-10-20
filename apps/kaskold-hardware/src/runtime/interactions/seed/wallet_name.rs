@@ -1,8 +1,11 @@
 //! Wallet-name entry for new wallets and Wallet Details edits.
 
-use super::{AppData, display};
-use crate::runtime::interactions::{feedback::{show_rejection, ErrorSound}, keyboard::{handle_passphrase_keyboard, KeyboardAction}};
+use super::{display, AppData};
 use crate::runtime::input::AppState;
+use crate::runtime::interactions::{
+    feedback::{show_rejection, ErrorSound},
+    keyboard::{handle_passphrase_keyboard, KeyboardAction},
+};
 use crate::wallet::seed_manager::WALLET_NAME_MAX;
 
 pub(super) fn handle(
@@ -13,7 +16,9 @@ pub(super) fn handle(
     y: u16,
     is_back: bool,
 ) -> Option<bool> {
-    let AppState::WalletNameEntry { purpose } = ad.navigation.app.state else { return None; };
+    let AppState::WalletNameEntry { purpose } = ad.navigation.app.state else {
+        return None;
+    };
     if is_back {
         handle_back(ad, purpose);
         return Some(true);
@@ -34,7 +39,9 @@ pub(super) fn handle(
 
 fn handle_back(ad: &mut AppData, purpose: u8) {
     ad.wallet.seeds.pp_input.reset();
-    if purpose != 2 { ad.wallet.seeds.clear_pending_wallet_name(); }
+    if purpose != 2 {
+        ad.wallet.seeds.clear_pending_wallet_name();
+    }
     if purpose == 3 {
         if ad.wallet.seeds.pending_add_wallet_has_installed_source() {
             // Raw-key/XPrv sources are already installed in a transient slot.
@@ -94,7 +101,6 @@ fn create_additional_wallet(ad: &mut AppData, name: &[u8]) {
         let _ = crate::runtime::navigation::begin_add_wallet(ad, 0);
     }
 }
-
 
 fn name_imported_wallet(ad: &mut AppData, name: &[u8]) {
     if ad.wallet.seeds.stage_wallet_name(name) {

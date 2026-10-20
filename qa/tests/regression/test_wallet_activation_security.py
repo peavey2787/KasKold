@@ -95,7 +95,8 @@ class WalletActivationSecurityTests(unittest.TestCase):
         manager = read("apps/kaskold-hardware/src/wallet/seed_manager/manager.rs")
         self.assertIn("find_matching_mnemonic", manager)
         self.assertIn("find_matching_mnemonic", seed)
-        duplicate = seed[seed.index("if ad.wallet.seeds.seed_mgr.find_matching_mnemonic"):seed.index("if !commit_current_seed", seed.index("if ad.wallet.seeds.seed_mgr.find_matching_mnemonic"))]
+        duplicate_check = seed.index(".find_matching_mnemonic(")
+        duplicate = seed[duplicate_check:seed.index("if !commit_current_seed", duplicate_check)]
         self.assertNotIn("activate_slot", duplicate)
         self.assertIn("Wallet already exists", duplicate)
 

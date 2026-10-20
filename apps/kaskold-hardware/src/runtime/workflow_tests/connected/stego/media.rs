@@ -1,6 +1,6 @@
-use alloc::vec::Vec;
 use super::StegoContext;
 use crate::services::stego::{self, StegoCarrier, StegoSecurity};
+use alloc::vec::Vec;
 use offline_signer::crypto::{device_bound_storage::NONCE_SIZE, password_kdf::SALT_SIZE};
 
 pub(super) const DESCRIPTOR: &[u8] = b"KasKold E2E carrier";
@@ -62,7 +62,8 @@ fn build_artifacts(ctx: &mut StegoContext<'_, '_, '_>) -> Option<MediaArtifacts>
         &SALT,
         &NONCE,
         &mut device_descriptor_payload,
-    ).ok()?;
+    )
+    .ok()?;
     let mut portable_picture_payload = [0u8; stego::STEGO_PAYLOAD_SIZE];
     stego::pack_for_test(
         StegoSecurity::Portable,
@@ -76,7 +77,8 @@ fn build_artifacts(ctx: &mut StegoContext<'_, '_, '_>) -> Option<MediaArtifacts>
         &SALT,
         &NONCE,
         &mut portable_picture_payload,
-    ).ok()?;
+    )
+    .ok()?;
     let descriptor_jpeg = descriptor_jpeg(&device_descriptor_payload)?;
     let picture_jpeg = picture_jpeg(&portable_picture_payload)?;
     Some(MediaArtifacts {
@@ -93,26 +95,24 @@ fn descriptor_jpeg(payload: &[u8]) -> Option<Vec<u8>> {
     let (width, height) = stego::jpeg_dimensions(NOISE_JPEG)?;
     let mut app1 = alloc::vec![0u8; 65_537];
     let datetime = *b"2026:08:20 20:48:00";
-    let app1_len = stego::build_exif_template(
-        DESCRIPTOR,
-        payload,
-        width,
-        height,
-        b"KasKold E2E",
-        &datetime,
-        &mut app1,
-    );
-    if app1_len == 0 { return None; }
+    let app1_len = stego::build_exif_template(DESCRIPTOR, payload, width, height, b"KasKold E2E", &datetime, &mut app1);
+    if app1_len == 0 {
+        return None;
+    }
     let mut output = alloc::vec![0u8; NOISE_JPEG.len() + app1_len + 16];
     let length = stego::inject_exif(NOISE_JPEG, &app1[..app1_len], &mut output);
-    if length == 0 { return None; }
+    if length == 0 {
+        return None;
+    }
     output.truncate(length);
     Some(output)
 }
 
 fn picture_jpeg(payload: &[u8]) -> Option<Vec<u8>> {
     let required = ((payload.len() + 2) * 8) as u32;
-    if stego::capacity_bits(NOISE_JPEG, DESCRIPTOR).ok()? < required { return None; }
+    if stego::capacity_bits(NOISE_JPEG, DESCRIPTOR).ok()? < required {
+        return None;
+    }
     let mut output = alloc::vec![0u8; NOISE_JPEG.len() * 2 + 4_096];
     let length = stego::embed_picture(NOISE_JPEG, payload, DESCRIPTOR, &mut output).ok()?;
     output.truncate(length);
@@ -125,12 +125,11 @@ fn descriptor_carrier(artifacts: &MediaArtifacts) -> bool {
     {
         return false;
     }
-    let Some((offset, length)) = stego::find_exif_app1(&artifacts.descriptor_jpeg) else { return false; };
+    let Some((offset, length)) = stego::find_exif_app1(&artifacts.descriptor_jpeg) else {
+        return false;
+    };
     let mut extracted = [0u8; stego::STEGO_PAYLOAD_SIZE];
-    let count = stego::extract_user_comment(
-        &artifacts.descriptor_jpeg[offset..offset + length],
-        &mut extracted,
-    );
+    let count = stego::extract_user_comment(&artifacts.descriptor_jpeg[offset..offset + length], &mut extracted);
     count == stego::STEGO_PAYLOAD_SIZE && extracted == artifacts.device_descriptor_payload
 }
 

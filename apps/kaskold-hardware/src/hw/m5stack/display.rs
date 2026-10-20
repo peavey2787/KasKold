@@ -16,17 +16,13 @@ use mipidsi::{
 };
 use static_cell::StaticCell;
 
-use super::spi_bus::{LcdDataCommand, LcdDevice, lcd_device};
+use super::spi_bus::{lcd_device, LcdDataCommand, LcdDevice};
 
 static SPI_BUFFER: StaticCell<[u8; 512]> = StaticCell::new();
 
 type CoreS3Interface<'a> = SpiInterface<'a, LcdDevice<'a>, LcdDataCommand>;
 
-pub type PanelDisplay<'a> = mipidsi::Display<
-    CoreS3Interface<'a>,
-    ILI9342CRgb565,
-    Output<'a>,
->;
+pub type PanelDisplay<'a> = mipidsi::Display<CoreS3Interface<'a>, ILI9342CRgb565, Output<'a>>;
 
 #[cfg(feature = "screenshot")]
 pub type TeeDisplay<'a> = crate::hw::shared::display_support::TeeDisplay<PanelDisplay<'a>>;
@@ -41,14 +37,9 @@ pub struct BootDisplay<'a> {
 }
 
 impl<'a> BootDisplay<'a> {
-    pub fn new(
-        cs_pin: Output<'a>,
-        reset_pin: Output<'a>,
-        delay: &mut Delay,
-    ) -> Result<Self, &'static str> {
+    pub fn new(cs_pin: Output<'a>, reset_pin: Output<'a>, delay: &mut Delay) -> Result<Self, &'static str> {
         let device = lcd_device(cs_pin)?;
-        build_panel(device, reset_pin, delay)
-            .map(|display| Self { display: wrap_panel(display) })
+        build_panel(device, reset_pin, delay).map(|display| Self { display: wrap_panel(display) })
     }
 }
 

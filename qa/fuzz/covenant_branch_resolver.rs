@@ -7,7 +7,8 @@ fuzz_target!(|data: &[u8]| {
     if let Ok(resolved) = resolve_covenant_branches(data) {
         let mut bindings = Vec::with_capacity(resolved.len());
         for position in 0..resolved.len() {
-            let position = u8::try_from(position).expect("resolver result is bounded to u8 positions");
+            let position =
+                u8::try_from(position).expect("resolver result is bounded to u8 positions");
             let binding = resolved
                 .key_at(position)
                 .expect("every reported resolver position must be addressable");

@@ -39,14 +39,14 @@ pub fn authorize_transaction_time(
         return Ok(None);
     }
     let now = crate::services::secure_time::read_utc(i2c).map_err(map_secure_time_error)?;
-    let now_unix = now
-        .to_unix_seconds()
-        .map_err(|_| EnforcementError::ClockInvalid)?;
+    let now_unix = now.to_unix_seconds().map_err(|_| EnforcementError::ClockInvalid)?;
     authorize_at(policy, now_unix).map(Some)
 }
 
 fn authorize_without_clock(policy: SigningPolicy, integrity_ok: bool) -> Result<(), EnforcementError> {
-    if !integrity_ok { return Err(EnforcementError::Integrity); }
+    if !integrity_ok {
+        return Err(EnforcementError::Integrity);
+    }
     policy.validate().map_err(|_| EnforcementError::InvalidPolicy)
 }
 
@@ -68,7 +68,9 @@ pub(crate) fn workflow_authorize_transaction_time(
     now_unix: u64,
 ) -> Result<Option<u64>, EnforcementError> {
     authorize_without_clock(policy, integrity_ok)?;
-    if !policy.has_time_policy() || !policy.requires_clock() { return Ok(None); }
+    if !policy.has_time_policy() || !policy.requires_clock() {
+        return Ok(None);
+    }
     authorize_at(policy, now_unix).map(Some)
 }
 

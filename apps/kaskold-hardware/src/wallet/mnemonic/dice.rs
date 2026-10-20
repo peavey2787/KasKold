@@ -34,24 +34,15 @@ pub struct DiceCollector {
 }
 
 impl DiceCollector {
-        /// Create a dice collector targeting 12-word mnemonic (128 bits).
-pub fn new_12_word() -> Self {
-        Self {
-            rolls: [0; 200],
-            count: 0,
-            target: 99,
-        }
+    /// Create a dice collector targeting 12-word mnemonic (128 bits).
+    pub fn new_12_word() -> Self {
+        Self { rolls: [0; 200], count: 0, target: 99 }
     }
 
-        /// Create a dice collector targeting 24-word mnemonic (256 bits).
-pub fn new_24_word() -> Self {
-        Self {
-            rolls: [0; 200],
-            count: 0,
-            target: 198,
-        }
+    /// Create a dice collector targeting 24-word mnemonic (256 bits).
+    pub fn new_24_word() -> Self {
+        Self { rolls: [0; 200], count: 0, target: 198 }
     }
-
 
     /// Reconfigure this collector for optional additive dice entropy.
     /// Returns false rather than silently clamping an invalid target.
@@ -90,7 +81,7 @@ pub fn new_24_word() -> Self {
     /// Extract entropy by hashing all rolls with SHA256.
     /// Returns 16 bytes (12-word) or 32 bytes (24-word).
     pub fn extract_entropy_16(&self) -> [u8; 16] {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         hasher.update(&self.rolls[..self.count]);
         let hash = hasher.finalize();
@@ -99,9 +90,9 @@ pub fn new_24_word() -> Self {
         entropy
     }
 
-        /// Extract collected dice entropy as a 32-byte array.
-pub fn extract_entropy_32(&self) -> [u8; 32] {
-        use sha2::{Sha256, Digest};
+    /// Extract collected dice entropy as a 32-byte array.
+    pub fn extract_entropy_32(&self) -> [u8; 32] {
+        use sha2::{Digest, Sha256};
 
         // For 32 bytes, use SHA256 of rolls + SHA256 of (rolls reversed)
         // and concatenate the first 16 bytes of each.
@@ -126,9 +117,7 @@ pub fn extract_entropy_32(&self) -> [u8; 32] {
         shared_signer::bytes::zeroize_bytes(&mut self.rolls);
         shared_signer::bytes::volatile_clear(core::slice::from_mut(&mut self.count), 0usize);
     }
-
 }
-
 
 impl Drop for DiceCollector {
     fn drop(&mut self) {

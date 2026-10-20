@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 use super::super::super::BootDisplay;
 
 impl<'a> BootDisplay<'a> {
@@ -27,11 +26,7 @@ impl<'a> BootDisplay<'a> {
         self.draw_destructive_confirmation(
             "DELETE BACKUP?",
             subject,
-            [
-                "This action is irreversible.",
-                "The backup file will be",
-                "permanently deleted from SD.",
-            ],
+            ["This action is irreversible.", "The backup file will be", "permanently deleted from SD."],
         );
     }
 }

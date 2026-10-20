@@ -27,8 +27,7 @@ pub(crate) fn interleave_with_error_correction(
         output[..data_codewords].copy_from_slice(&data[..data_codewords]);
         let mut ec = [0u8; 37];
         reed_solomon::encode(&data[..data_codewords], ec_codewords, &mut ec);
-        output[data_codewords..data_codewords + ec_codewords]
-            .copy_from_slice(&ec[..ec_codewords]);
+        output[data_codewords..data_codewords + ec_codewords].copy_from_slice(&ec[..ec_codewords]);
     } else {
         let first_data_count = data_codewords / 2;
         let second_data_count = data_codewords - first_data_count;
@@ -36,11 +35,7 @@ pub(crate) fn interleave_with_error_correction(
         let mut first_ec = [0u8; 37];
         let mut second_ec = [0u8; 37];
         reed_solomon::encode(&data[..first_data_count], block_ec_count, &mut first_ec);
-        reed_solomon::encode(
-            &data[first_data_count..data_codewords],
-            block_ec_count,
-            &mut second_ec,
-        );
+        reed_solomon::encode(&data[first_data_count..data_codewords], block_ec_count, &mut second_ec);
 
         let mut position = 0usize;
         for index in 0..first_data_count.max(second_data_count) {

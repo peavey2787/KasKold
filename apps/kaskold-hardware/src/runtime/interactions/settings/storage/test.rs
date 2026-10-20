@@ -48,17 +48,8 @@ fn verify_card(card_type: sdcard::SdCardType) -> Result<(usize, u32), &'static s
     Ok((bytes_read, file_count))
 }
 
-fn show_success(
-    boot_display: &mut display::BootDisplay<'_>,
-    bytes: usize,
-    files: u32,
-) {
-    log!(
-        "[SD-TEST] PASS: {}/{} bytes, {} files",
-        bytes,
-        TEST_DATA.len(),
-        files
-    );
+fn show_success(boot_display: &mut display::BootDisplay<'_>, bytes: usize, files: u32) {
+    log!("[SD-TEST] PASS: {}/{} bytes, {} files", bytes, TEST_DATA.len(), files);
     let mut first = [0u8; 40];
     let mut second = [0u8; 40];
     let write_line = format_test_line(&mut first, "Write+Read: ", bytes as u32, " bytes OK");
@@ -67,21 +58,13 @@ fn show_success(
     sound::success();
 }
 
-fn show_failure(
-    boot_display: &mut display::BootDisplay<'_>,
-    error: &'static str,
-) {
+fn show_failure(boot_display: &mut display::BootDisplay<'_>, error: &'static str) {
     log!("[SD-TEST] FAIL: {}", error);
     boot_display.draw_sdcard_test_result(&["SD card test failed:", error], false);
     sound::error();
 }
 
-fn format_test_line<'a>(
-    buffer: &'a mut [u8; 40],
-    prefix: &str,
-    value: u32,
-    suffix: &str,
-) -> &'a str {
+fn format_test_line<'a>(buffer: &'a mut [u8; 40], prefix: &str, value: u32, suffix: &str) -> &'a str {
     let mut position = 0usize;
     for byte in prefix.bytes() {
         if position < buffer.len() {

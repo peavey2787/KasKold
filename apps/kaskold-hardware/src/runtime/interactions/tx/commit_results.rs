@@ -16,9 +16,9 @@
 
 //! Commit-reveal result and decrypted-secret result interactions.
 
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use super::{display, AppData, RedrawFlag};
 use crate::runtime::input::AppState;
+use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use shared_signer::bytes::zeroize_bytes;
 
 pub(super) fn handle(
@@ -101,8 +101,7 @@ fn show_commit_qr(
 }
 
 fn show_plaintext_qr(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>) {
-    let plaintext =
-        &ad.signing.commit_reveal.plaintext[..ad.signing.commit_reveal.plaintext_len];
+    let plaintext = &ad.signing.commit_reveal.plaintext[..ad.signing.commit_reveal.plaintext_len];
     let mut hex = [0u8; 256];
     let hex_len = plaintext.len() * 2;
     for (index, byte) in plaintext.iter().copied().enumerate() {

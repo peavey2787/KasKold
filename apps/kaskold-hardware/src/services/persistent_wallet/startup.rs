@@ -7,11 +7,11 @@ use crate::runtime::data::AppData;
 use offline_signer::derivation::hmac::zeroize_buf;
 
 use super::{
-    PersistError, PersistentWallet, StartupState, StorageMode,
     crypto::{RecordHeader, RECORD_SIZE},
     flash::AlignedBytes,
     journal::{self, SdAnchor},
     security_policy::SecurityPolicy,
+    PersistError, PersistentWallet, StartupState, StorageMode,
 };
 
 impl PersistentWallet<'_> {
@@ -26,7 +26,9 @@ impl PersistentWallet<'_> {
         ad: &mut AppData,
         configured: Option<StorageMode>,
     ) -> Result<StartupState, PersistError> {
-        if configured == Some(StorageMode::SdCard) { return self.initialize_sd(ad); }
+        if configured == Some(StorageMode::SdCard) {
+            return self.initialize_sd(ad);
+        }
         self.initialize_internal(ad, configured)
     }
 
@@ -36,9 +38,7 @@ impl PersistentWallet<'_> {
     }
 
     fn require_device_key(&mut self) -> Result<(), PersistError> {
-        self.crypto.available_key_slot()
-            .map(|_| ())
-            .ok_or(PersistError::DeviceKeyMissing)
+        self.crypto.available_key_slot().map(|_| ()).ok_or(PersistError::DeviceKeyMissing)
     }
 
     fn read_sd_anchor(&mut self, ad: &mut AppData) -> Result<StartupState, PersistError> {
@@ -96,12 +96,11 @@ impl PersistentWallet<'_> {
             .and_then(|()| self.initialize_saved_header(ad, header))
     }
 
-    fn prepare_save_wallet_mode(
-        &mut self,
-        configured: Option<StorageMode>,
-    ) -> Result<(), PersistError> {
+    fn prepare_save_wallet_mode(&mut self, configured: Option<StorageMode>) -> Result<(), PersistError> {
         self.mode = Some(StorageMode::SaveWallet);
-        if configured == Some(StorageMode::SaveWallet) { return Ok(()); }
+        if configured == Some(StorageMode::SaveWallet) {
+            return Ok(());
+        }
         journal::write_mode(&mut self.flash, StorageMode::SaveWallet).map_err(PersistError::from)
     }
 
@@ -118,10 +117,7 @@ impl PersistentWallet<'_> {
         self.initialize_credential_kind(ad, header.credential_kind)
     }
 
-    fn initialize_device_only(
-        &mut self,
-        ad: &mut AppData,
-    ) -> Result<StartupState, PersistError> {
+    fn initialize_device_only(&mut self, ad: &mut AppData) -> Result<StartupState, PersistError> {
         let key = [0u8; 32];
         let order = journal::wallet_order(&mut self.flash)?;
         let mut first_error = None;
@@ -138,7 +134,9 @@ impl PersistentWallet<'_> {
             let restored = self.restore_record_with_key(&record, &key, ad);
             zeroize_buf(&mut record.0);
             if let Err(error) = restored {
-                if first_error.is_none() { first_error = Some(error); }
+                if first_error.is_none() {
+                    first_error = Some(error);
+                }
                 continue;
             }
             self.clear_credential();

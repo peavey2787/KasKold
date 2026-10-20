@@ -1,10 +1,10 @@
+use super::SecurityContext;
 use crate::{
-    runtime::interactions::{TouchInput, tx::TxTouchContext},
     runtime::input::AppState,
+    runtime::interactions::{tx::TxTouchContext, TouchInput},
     services::signing_policy::EnforcementError,
 };
 use kaskold_hardware_core::advanced_policy::{SigningPolicy, SigningWindow};
-use super::SecurityContext;
 
 const NOW_UNIX: u64 = 1_830_499_200; // 2028-01-03 08:00 UTC, Monday.
 
@@ -27,45 +27,59 @@ fn pure_policy_boundaries(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
             != Err(EnforcementError::OutsideWeeklyWindow)
         || crate::services::signing_policy::workflow_authorize_transaction_time(policy, false, allowed)
             != Err(EnforcementError::Integrity)
-    { return false; }
+    {
+        return false;
+    }
     let mut rollback = policy;
     rollback.rtc_floor_unix = allowed;
-    if crate::services::signing_policy::workflow_authorize_transaction_time(
-        rollback, true, allowed - 1,
-    ) != Err(EnforcementError::ClockRollback) { return false; }
+    if crate::services::signing_policy::workflow_authorize_transaction_time(rollback, true, allowed - 1)
+        != Err(EnforcementError::ClockRollback)
+    {
+        return false;
+    }
     let mut invalid = SigningPolicy::disabled();
     invalid.weekly_enabled = true;
     invalid.weekly_count = 1;
     invalid.windows[0] = SigningWindow { weekday: 7, start_minute: 1, end_minute: 2 };
     if crate::services::signing_policy::workflow_authorize_transaction_time(invalid, true, allowed)
         != Err(EnforcementError::InvalidPolicy)
-    { return false; }
+    {
+        return false;
+    }
     log!("KASKOLD_WORKFLOW_TESTS: SECURITY SIGNING POLICY INTEGRITY/ROLLBACK/LOCK/WINDOW BOUNDARIES PASS");
     true
 }
 
 fn signing_deny_allow(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     let policy = ctx.ad.storage.persistence.advanced.policy;
-    if !prepare_confirmed_transaction(ctx) { return false; }
-    let before_counts = offline_signer::transaction::kspt::initial_signature_counts(
-        &ctx.ad.signing.transaction.active,
-    );
-    if crate::runtime::signing::workflow_signing_step_with_policy(
-        ctx.ad, policy, true, NOW_UNIX + 30 * 60,
-    ) || ctx.ad.navigation.app.state != AppState::Rejected { return false; }
-    let after_counts = offline_signer::transaction::kspt::initial_signature_counts(
-        &ctx.ad.signing.transaction.active,
-    );
-    if before_counts != after_counts { return false; }
+    if !prepare_confirmed_transaction(ctx) {
+        return false;
+    }
+    let before_counts = offline_signer::transaction::kspt::initial_signature_counts(&ctx.ad.signing.transaction.active);
+    if crate::runtime::signing::workflow_signing_step_with_policy(ctx.ad, policy, true, NOW_UNIX + 30 * 60)
+        || ctx.ad.navigation.app.state != AppState::Rejected
+    {
+        return false;
+    }
+    let after_counts = offline_signer::transaction::kspt::initial_signature_counts(&ctx.ad.signing.transaction.active);
+    if before_counts != after_counts {
+        return false;
+    }
     crate::runtime::effects::home(ctx.ad);
-    if !prepare_confirmed_transaction(ctx) { return false; }
+    if !prepare_confirmed_transaction(ctx) {
+        return false;
+    }
     let initial = offline_signer::transaction::kspt::initial_signature_counts(&ctx.ad.signing.transaction.active);
-    if !crate::runtime::signing::workflow_signing_step_with_policy(
-        ctx.ad, policy, true, NOW_UNIX + 90 * 60,
-    ) || ctx.ad.navigation.app.state != AppState::ConfirmTx
-        || crate::runtime::presentation::operation_cursor(ctx.ad) != 1 { return false; }
+    if !crate::runtime::signing::workflow_signing_step_with_policy(ctx.ad, policy, true, NOW_UNIX + 90 * 60)
+        || ctx.ad.navigation.app.state != AppState::ConfirmTx
+        || crate::runtime::presentation::operation_cursor(ctx.ad) != 1
+    {
+        return false;
+    }
     let signed = offline_signer::transaction::kspt::initial_signature_counts(&ctx.ad.signing.transaction.active);
-    if initial == signed { return false; }
+    if initial == signed {
+        return false;
+    }
     crate::runtime::effects::home(ctx.ad);
     log!("KASKOLD_WORKFLOW_TESTS: SECURITY SIGNING POLICY ACTUAL SIGN DENY/ALLOW PASS");
     true
@@ -73,23 +87,26 @@ fn signing_deny_allow(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
 
 fn prepare_confirmed_transaction(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     crate::runtime::effects::home(ctx.ad);
-    let Some(wire) = super::super::signing::fixture::wire(
-        ctx.ad,
-        super::super::signing::fixture::WireFormat::CompactKspt,
-    ) else { return false; };
+    let Some(wire) =
+        super::super::signing::fixture::wire(ctx.ad, super::super::signing::fixture::WireFormat::CompactKspt)
+    else {
+        return false;
+    };
     let scan = crate::ui::layout::HOME_GRID_ZONES[1];
     if !crate::runtime::interactions::menu::handle_connected_root_probe(
-        ctx.ad, scan.x + scan.w / 2, scan.y + scan.h / 2,
-    ) { return false; }
-    crate::runtime::interactions::camera_loop::workflow_process_transaction_payload(
-        &wire, false, ctx.ad,
-    );
-    if ctx.ad.navigation.app.state != AppState::ConfirmTx { return false; }
+        ctx.ad,
+        scan.x + scan.w / 2,
+        scan.y + scan.h / 2,
+    ) {
+        return false;
+    }
+    crate::runtime::interactions::camera_loop::workflow_process_transaction_payload(&wire, false, ctx.ad);
+    if ctx.ad.navigation.app.state != AppState::ConfirmTx {
+        return false;
+    }
     tx_touch(ctx, 60, 208) == Some(true)
         && ctx.ad.navigation.app.state == AppState::ConfirmTx
-        && crate::runtime::presentation::operation_active(
-            ctx.ad, crate::runtime::data::OperationKind::SignTransaction,
-        )
+        && crate::runtime::presentation::operation_active(ctx.ad, crate::runtime::data::OperationKind::SignTransaction)
         && crate::runtime::presentation::operation_cursor(ctx.ad) == 0
         && ctx.ad.navigation.app.review_authorized
         && crate::runtime::signing::workflow_activate_signing_operation(ctx.ad)

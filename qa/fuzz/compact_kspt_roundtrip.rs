@@ -43,7 +43,11 @@ fuzz_target!(|data: &[u8]| {
     let encoded_len = serialize_compact_kspt(&tx, &mut encoded);
     // Only transaction versions 0 and 1 exist; any other version must be refused.
     if tx.version > 1 {
-        assert!(encoded_len.is_err(), "unsupported version {} encoded", tx.version);
+        assert!(
+            encoded_len.is_err(),
+            "unsupported version {} encoded",
+            tx.version
+        );
         return;
     }
     let written = encoded_len.expect("bounded transaction encodes");
@@ -54,13 +58,23 @@ fuzz_target!(|data: &[u8]| {
     assert_eq!(parsed.version, tx.version);
     assert_eq!(parsed.num_inputs, 1);
     assert_eq!(parsed.num_outputs, 1);
-    assert_eq!(parsed.inputs[0].previous_outpoint.transaction_id, tx.inputs[0].previous_outpoint.transaction_id);
-    assert_eq!(parsed.inputs[0].previous_outpoint.index, tx.inputs[0].previous_outpoint.index);
-    assert_eq!(parsed.inputs[0].utxo_entry.amount, tx.inputs[0].utxo_entry.amount);
+    assert_eq!(
+        parsed.inputs[0].previous_outpoint.transaction_id,
+        tx.inputs[0].previous_outpoint.transaction_id
+    );
+    assert_eq!(
+        parsed.inputs[0].previous_outpoint.index,
+        tx.inputs[0].previous_outpoint.index
+    );
+    assert_eq!(
+        parsed.inputs[0].utxo_entry.amount,
+        tx.inputs[0].utxo_entry.amount
+    );
     assert_eq!(parsed.outputs[0].value, tx.outputs[0].value);
     assert_eq!(parsed.payload, tx.payload);
 
     let mut canonical = [0u8; 8192];
-    let canonical_len = serialize_compact_kspt(&parsed, &mut canonical).expect("parsed transaction re-encodes");
+    let canonical_len =
+        serialize_compact_kspt(&parsed, &mut canonical).expect("parsed transaction re-encodes");
     assert_eq!(&canonical[..canonical_len], &encoded[..written]);
 });

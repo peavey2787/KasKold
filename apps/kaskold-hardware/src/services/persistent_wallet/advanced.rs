@@ -1,10 +1,10 @@
 //! Immutable advanced security-policy persistence and authenticated journal merging.
 
-use offline_signer::derivation::hmac::zeroize_buf;
 use crate::services::credential_policy;
 use kaskold_hardware_core::advanced_policy::SigningPolicy;
 #[cfg(feature = "m5stack")]
 use kaskold_hardware_core::advanced_policy::{SigningWindow, MAX_WEEKLY_WINDOWS};
+use offline_signer::derivation::hmac::zeroize_buf;
 
 use crate::{
     runtime::data::{AdvancedAvailability, AppData, DuressActivation, PersistenceBackendState, PolicyIntegrity},
@@ -21,8 +21,7 @@ use super::{
 
 impl<'d> PersistentWallet<'d> {
     pub fn advanced_available(&self) -> bool {
-        matches!(self.mode, Some(StorageMode::SaveWallet) | Some(StorageMode::SdCard))
-            && self.credential_key.is_some()
+        matches!(self.mode, Some(StorageMode::SaveWallet) | Some(StorageMode::SdCard)) && self.credential_key.is_some()
     }
 
     pub const fn signing_policy(&self) -> SigningPolicy {
@@ -51,12 +50,8 @@ impl<'d> PersistentWallet<'d> {
         if self.credential_matches_active_wallet(kind, secret, manager)? {
             return Err(PersistError::DuressMatchesUnlockCredential);
         }
-        let key_slot = self
-            .crypto
-            .available_key_slot()
-            .ok_or(PersistError::DeviceKeyMissing)?;
-        self.security_policy.duress =
-            security_policy::create_duress(&mut self.crypto, key_slot, kind, secret)?;
+        let key_slot = self.crypto.available_key_slot().ok_or(PersistError::DeviceKeyMissing)?;
+        self.security_policy.duress = security_policy::create_duress(&mut self.crypto, key_slot, kind, secret)?;
         self.persist_security_redundantly(manager, i2c, delay)
     }
 
@@ -82,15 +77,8 @@ impl<'d> PersistentWallet<'d> {
         kaskold_hardware_core::advanced_policy::UtcDateTime::from_unix_seconds(not_before_unix)
             .map_err(|_| PersistError::InvalidSecurityPolicy)?;
         self.security_policy.signing.not_before_unix = not_before_unix;
-        self.security_policy.signing.rtc_floor_unix = self
-            .security_policy
-            .signing
-            .rtc_floor_unix
-            .max(now_unix);
-        self.security_policy
-            .signing
-            .validate()
-            .map_err(|_| PersistError::InvalidSecurityPolicy)?;
+        self.security_policy.signing.rtc_floor_unix = self.security_policy.signing.rtc_floor_unix.max(now_unix);
+        self.security_policy.signing.validate().map_err(|_| PersistError::InvalidSecurityPolicy)?;
         self.persist_security_redundantly(manager, i2c, delay)
     }
 
@@ -114,15 +102,8 @@ impl<'d> PersistentWallet<'d> {
         self.security_policy.signing.weekly_enabled = true;
         self.security_policy.signing.weekly_count = count;
         self.security_policy.signing.windows = windows;
-        self.security_policy.signing.rtc_floor_unix = self
-            .security_policy
-            .signing
-            .rtc_floor_unix
-            .max(now_unix);
-        self.security_policy
-            .signing
-            .validate()
-            .map_err(|_| PersistError::InvalidSecurityPolicy)?;
+        self.security_policy.signing.rtc_floor_unix = self.security_policy.signing.rtc_floor_unix.max(now_unix);
+        self.security_policy.signing.validate().map_err(|_| PersistError::InvalidSecurityPolicy)?;
         self.persist_security_redundantly(manager, i2c, delay)
     }
 
@@ -153,29 +134,39 @@ impl<'d> PersistentWallet<'d> {
         i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
         delay: &mut esp_hal::delay::Delay,
     ) -> Result<(), PersistError> {
-        if !recovery_words_acknowledged { return Err(PersistError::RecoveryAcknowledgementRequired); }
+        if !recovery_words_acknowledged {
+            return Err(PersistError::RecoveryAcknowledgementRequired);
+        }
         let _ = self.require_advanced_available(manager)?;
-        if self.device_only { return Err(PersistError::SdStorageUnavailable); }
-        if self.mode == Some(StorageMode::SdCard) { return Err(PersistError::AdvancedAlreadyEnabled); }
-        if !self.security_integrity_ok { return Err(PersistError::PolicyIntegrity); }
+        if self.device_only {
+            return Err(PersistError::SdStorageUnavailable);
+        }
+        if self.mode == Some(StorageMode::SdCard) {
+            return Err(PersistError::AdvancedAlreadyEnabled);
+        }
+        if !self.security_integrity_ok {
+            return Err(PersistError::PolicyIntegrity);
+        }
         let kind = self.credential_kind.ok_or(PersistError::CredentialRequired)?;
         let mut key = *self.credential_key.as_ref().ok_or(PersistError::CredentialRequired)?;
         let mut record = AlignedBytes::<RECORD_SIZE>::zeroed();
         self.build_record_into(manager, 1, &mut record)?;
-        let write = super::sd_backend::write_slot(
-            &mut self.crypto, kind, &key, &self.credential_salt, 0, &record, i2c, delay,
-        );
+        let write =
+            super::sd_backend::write_slot(&mut self.crypto, kind, &key, &self.credential_salt, 0, &record, i2c, delay);
         zeroize_buf(&mut key);
         zeroize_buf(&mut record.0);
         write?;
-        journal::write_sd_anchor(&mut self.flash, journal::SdAnchor {
-            credential_kind: kind,
-            salt: self.credential_salt,
-            active_slot: 0,
-            wallet_sequence: 1,
-            duress: self.security_policy.duress,
-            credential_kdf: self.credential_kdf,
-        })?;
+        journal::write_sd_anchor(
+            &mut self.flash,
+            journal::SdAnchor {
+                credential_kind: kind,
+                salt: self.credential_salt,
+                active_slot: 0,
+                wallet_sequence: 1,
+                duress: self.security_policy.duress,
+                credential_kdf: self.credential_kdf,
+            },
+        )?;
         self.mode = Some(StorageMode::SdCard);
         self.sd_active_slot = 0;
         self.sd_wallet_sequence = 1;
@@ -195,19 +186,16 @@ impl<'d> PersistentWallet<'d> {
         liveness: &mut (impl FnMut() + ?Sized),
     ) -> Result<bool, PersistError> {
         if self.mode == Some(StorageMode::SdCard) {
-            let anchor = journal::read_sd_anchor(&mut self.flash)?
-                .ok_or(PersistError::SdStorageCorrupt)?;
-            return Ok(
-                anchor.duress.enabled
-                    && anchor.duress.kind == kind
-                    && security_policy::duress_matches(
-                        &mut self.crypto,
-                        anchor.credential_kdf,
-                        anchor.duress,
-                        secret,
-                        liveness,
-                    ),
-            );
+            let anchor = journal::read_sd_anchor(&mut self.flash)?.ok_or(PersistError::SdStorageCorrupt)?;
+            return Ok(anchor.duress.enabled
+                && anchor.duress.kind == kind
+                && security_policy::duress_matches(
+                    &mut self.crypto,
+                    anchor.credential_kdf,
+                    anchor.duress,
+                    secret,
+                    liveness,
+                ));
         }
         let order = journal::wallet_order(&mut self.flash)?;
         for address in order.into_iter().flatten() {
@@ -217,9 +205,7 @@ impl<'d> PersistentWallet<'d> {
             };
             let decoded = security_policy::decode(&mut self.crypto, header, &record);
             let matched = match decoded {
-                DecodeResult::Valid(policy)
-                    if policy.duress.enabled && policy.duress.kind == kind =>
-                {
+                DecodeResult::Valid(policy) if policy.duress.enabled && policy.duress.kind == kind => {
                     security_policy::duress_matches(
                         &mut self.crypto,
                         header.credential_kdf,
@@ -250,9 +236,7 @@ impl<'d> PersistentWallet<'d> {
             match security_policy::decode(&mut self.crypto, header, &record) {
                 DecodeResult::Absent => {}
                 DecodeResult::Corrupt => integrity_ok = false,
-                DecodeResult::Valid(candidate) => {
-                    merge_security_policy(&mut merged, candidate, &mut integrity_ok)
-                }
+                DecodeResult::Valid(candidate) => merge_security_policy(&mut merged, candidate, &mut integrity_ok),
             }
             zeroize_buf(&mut record.0);
         }
@@ -263,12 +247,7 @@ impl<'d> PersistentWallet<'d> {
     }
 
     pub(super) fn sync_security_mirror(&self, ad: &mut AppData) {
-        let active_kind = ad
-            .wallet
-            .seeds
-            .seed_mgr
-            .active_slot()
-            .and_then(|slot| slot.protection.credential_kind());
+        let active_kind = ad.wallet.seeds.seed_mgr.active_slot().and_then(|slot| slot.protection.credential_kind());
         let saved_wallet = self.advanced_available();
         ad.storage.persistence.advanced.saved_wallet = saved_wallet;
         ad.storage.persistence.advanced.outer_device_only = self.device_only;
@@ -283,23 +262,14 @@ impl<'d> PersistentWallet<'d> {
             PersistenceBackendState::InternalFlash
         };
         ad.storage.persistence.advanced.credential_kind = active_kind;
-        ad.storage.persistence.advanced.duress = if self.security_policy.duress.enabled {
-            DuressActivation::Enabled
-        } else {
-            DuressActivation::Disabled
-        };
+        ad.storage.persistence.advanced.duress =
+            if self.security_policy.duress.enabled { DuressActivation::Enabled } else { DuressActivation::Disabled };
         ad.storage.persistence.advanced.policy = self.security_policy.signing;
-        ad.storage.persistence.advanced.policy_integrity = if self.security_integrity_ok {
-            PolicyIntegrity::Valid
-        } else {
-            PolicyIntegrity::Invalid
-        };
+        ad.storage.persistence.advanced.policy_integrity =
+            if self.security_integrity_ok { PolicyIntegrity::Valid } else { PolicyIntegrity::Invalid };
     }
 
-    fn require_advanced_available(
-        &self,
-        manager: &SeedManager,
-    ) -> Result<CredentialKind, PersistError> {
+    fn require_advanced_available(&self, manager: &SeedManager) -> Result<CredentialKind, PersistError> {
         if !self.advanced_available() {
             return Err(PersistError::AdvancedRequiresSavedWallet);
         }
@@ -361,11 +331,7 @@ impl<'d> PersistentWallet<'d> {
     }
 }
 
-fn merge_security_policy(
-    merged: &mut Option<SecurityPolicy>,
-    candidate: SecurityPolicy,
-    integrity_ok: &mut bool,
-) {
+fn merge_security_policy(merged: &mut Option<SecurityPolicy>, candidate: SecurityPolicy, integrity_ok: &mut bool) {
     let Some(current) = merged.as_mut() else {
         *merged = Some(candidate);
         return;
@@ -381,17 +347,10 @@ fn merge_security_policy(
 
     merge_not_before(current, candidate, integrity_ok);
     merge_weekly(current, candidate, integrity_ok);
-    current.signing.rtc_floor_unix = current
-        .signing
-        .rtc_floor_unix
-        .max(candidate.signing.rtc_floor_unix);
+    current.signing.rtc_floor_unix = current.signing.rtc_floor_unix.max(candidate.signing.rtc_floor_unix);
 }
 
-fn merge_not_before(
-    current: &mut SecurityPolicy,
-    candidate: SecurityPolicy,
-    integrity_ok: &mut bool,
-) {
+fn merge_not_before(current: &mut SecurityPolicy, candidate: SecurityPolicy, integrity_ok: &mut bool) {
     let current_value = current.signing.not_before_unix;
     let candidate_value = candidate.signing.not_before_unix;
     if current_value != 0 && candidate_value != 0 && current_value != candidate_value {
@@ -401,11 +360,7 @@ fn merge_not_before(
     }
 }
 
-fn merge_weekly(
-    current: &mut SecurityPolicy,
-    candidate: SecurityPolicy,
-    integrity_ok: &mut bool,
-) {
+fn merge_weekly(current: &mut SecurityPolicy, candidate: SecurityPolicy, integrity_ok: &mut bool) {
     if current.signing.weekly_enabled && candidate.signing.weekly_enabled {
         if current.signing.weekly_count != candidate.signing.weekly_count
             || current.signing.windows != candidate.signing.windows
@@ -418,4 +373,3 @@ fn merge_weekly(
         current.signing.windows = candidate.signing.windows;
     }
 }
-

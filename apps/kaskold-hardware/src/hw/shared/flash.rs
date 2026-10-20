@@ -8,14 +8,12 @@ use esp_hal::{
     interrupt::Priority,
     ram,
     rom::spiflash::{
-        esp_rom_spiflash_erase_sector, esp_rom_spiflash_read, esp_rom_spiflash_unlock,
-        esp_rom_spiflash_write,
+        esp_rom_spiflash_erase_sector, esp_rom_spiflash_read, esp_rom_spiflash_unlock, esp_rom_spiflash_write,
     },
     sync::RawPriorityLimitedMutex,
 };
 
-static ROM_FLASH_LOCK: RawPriorityLimitedMutex =
-    RawPriorityLimitedMutex::new(Priority::max());
+static ROM_FLASH_LOCK: RawPriorityLimitedMutex = RawPriorityLimitedMutex::new(Priority::max());
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum FlashIoError {
@@ -35,10 +33,7 @@ impl<const N: usize> AlignedBytes<N> {
     }
 }
 
-pub(crate) fn read_into<const N: usize>(
-    address: u32,
-    out: &mut AlignedBytes<N>,
-) -> Result<(), FlashIoError> {
+pub(crate) fn read_into<const N: usize>(address: u32, out: &mut AlignedBytes<N>) -> Result<(), FlashIoError> {
     validate_word_access::<N>(address)?;
     rom_read(address, out.0.as_mut_ptr().cast::<u32>(), N as u32)
 }
@@ -58,10 +53,7 @@ pub(crate) fn erase_sector(sector: u32) -> Result<(), FlashIoError> {
     rom_erase(sector)
 }
 
-pub(crate) fn write<const N: usize>(
-    address: u32,
-    data: &AlignedBytes<N>,
-) -> Result<(), FlashIoError> {
+pub(crate) fn write<const N: usize>(address: u32, data: &AlignedBytes<N>) -> Result<(), FlashIoError> {
     validate_word_access::<N>(address)?;
     rom_write(address, data.0.as_ptr().cast::<u32>(), N as u32)
 }

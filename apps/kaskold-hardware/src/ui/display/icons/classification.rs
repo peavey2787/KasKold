@@ -1,6 +1,6 @@
 use super::{
-    ActionIcon, AudioIcon, CustomIcon, DeviceIcon, DocsIcon, EditorIcon, FinanceIcon, GitIcon,
-    MediaIcon, MenuIcon, MenuIconProfile, OtherIcon, SecurityIcon, TransactionMenuIcon, UsersIcon,
+    ActionIcon, AudioIcon, CustomIcon, DeviceIcon, DocsIcon, EditorIcon, FinanceIcon, GitIcon, MediaIcon, MenuIcon,
+    MenuIconProfile, OtherIcon, SecurityIcon, TransactionMenuIcon, UsersIcon,
 };
 
 const PREFIX_ICONS: &[(&str, MenuIcon)] = &[

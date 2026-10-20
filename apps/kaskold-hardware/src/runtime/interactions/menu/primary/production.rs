@@ -1,9 +1,12 @@
 //! Hardware-free production intent menus.
 
 use crate::{
-    runtime::interactions::menu_selection::{handle_paged_menu_touch, PagedMenuAction},
     hw::touch::TouchZone,
-    runtime::{data::AppData, input::{AppState, Menu}},
+    runtime::interactions::menu_selection::{handle_paged_menu_touch, PagedMenuAction},
+    runtime::{
+        data::AppData,
+        input::{AppState, Menu},
+    },
 };
 
 pub(super) fn handle(
@@ -17,12 +20,20 @@ pub(super) fn handle(
 ) -> Option<bool> {
     match ad.navigation.app.state {
         AppState::SeedsMenu => Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::Wallet)),
-        AppState::WalletBackupMethodsMenu => Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::WalletBackupMethods)),
-        AppState::WalletAdvancedMenu => Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::WalletAdvanced)),
+        AppState::WalletBackupMethodsMenu => {
+            Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::WalletBackupMethods))
+        }
+        AppState::WalletAdvancedMenu => {
+            Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::WalletAdvanced))
+        }
         AppState::AdvancedMenu => Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::Advanced)),
         #[cfg(feature = "provisioning-ui")]
-        AppState::OwnerFirmwareMenu => Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::OwnerFirmware)),
-        AppState::BackupRecoveryMenu => Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::BackupRecovery)),
+        AppState::OwnerFirmwareMenu => {
+            Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::OwnerFirmware))
+        }
+        AppState::BackupRecoveryMenu => {
+            Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::BackupRecovery))
+        }
         #[cfg(feature = "developer-ui")]
         AppState::DeveloperMenu => Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::Developer)),
         #[cfg(feature = "developer-ui")]
@@ -33,20 +44,44 @@ pub(super) fn handle(
 }
 
 #[derive(Clone, Copy)]
-enum MenuKind { Wallet, WalletBackupMethods, WalletAdvanced, Advanced, #[cfg(feature="provisioning-ui")] OwnerFirmware, BackupRecovery, #[cfg(feature="developer-ui")] Developer, #[cfg(feature="developer-ui")] Network }
+enum MenuKind {
+    Wallet,
+    WalletBackupMethods,
+    WalletAdvanced,
+    Advanced,
+    #[cfg(feature = "provisioning-ui")]
+    OwnerFirmware,
+    BackupRecovery,
+    #[cfg(feature = "developer-ui")]
+    Developer,
+    #[cfg(feature = "developer-ui")]
+    Network,
+}
 
 fn handle_menu(
-    ad: &mut AppData, list: &[TouchZone; 4], up: &TouchZone, down: &TouchZone,
-    x: u16, y: u16, is_back: bool, kind: MenuKind,
+    ad: &mut AppData,
+    list: &[TouchZone; 4],
+    up: &TouchZone,
+    down: &TouchZone,
+    x: u16,
+    y: u16,
+    is_back: bool,
+    kind: MenuKind,
 ) -> bool {
-    if is_back { route_back(ad, kind); return true; }
+    if is_back {
+        route_back(ad, kind);
+        return true;
+    }
     let action = {
         let menu = menu_mut(ad, kind);
         handle_paged_menu_touch(menu, list, up, down, x, y)
     };
     match action {
         PagedMenuAction::PageChanged => true,
-        PagedMenuAction::Selected(item) => { route_item(ad, kind, usize::from(item)); true }
+        PagedMenuAction::Selected(item) => {
+            route_item(ad, kind, usize::from(item));
+            true
+        }
         PagedMenuAction::None => false,
     }
 }
@@ -57,12 +92,12 @@ fn menu_mut(ad: &mut AppData, kind: MenuKind) -> &mut Menu {
         MenuKind::WalletBackupMethods => &mut ad.navigation.production.wallet_backup_methods_menu,
         MenuKind::WalletAdvanced => &mut ad.navigation.production.wallet_advanced_menu,
         MenuKind::Advanced => &mut ad.navigation.production.advanced_menu,
-        #[cfg(feature="provisioning-ui")]
+        #[cfg(feature = "provisioning-ui")]
         MenuKind::OwnerFirmware => &mut ad.navigation.production.owner_firmware_menu,
         MenuKind::BackupRecovery => &mut ad.navigation.production.backup_recovery_menu,
-        #[cfg(feature="developer-ui")]
+        #[cfg(feature = "developer-ui")]
         MenuKind::Developer => &mut ad.navigation.production.developer_menu,
-        #[cfg(feature="developer-ui")]
+        #[cfg(feature = "developer-ui")]
         MenuKind::Network => &mut ad.navigation.production.network_menu,
     }
 }
@@ -72,21 +107,15 @@ fn route_back(ad: &mut AppData, kind: MenuKind) {
     match kind {
         MenuKind::Wallet => crate::runtime::effects::home(ad),
         MenuKind::WalletBackupMethods => {
-            let _ = crate::runtime::effects::route(
-                ad,
-                crate::runtime::navigation::route!(SeedsMenu),
-            );
+            let _ = crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedsMenu));
         }
         MenuKind::WalletAdvanced => {
             let _ = crate::runtime::effects::back(ad);
         }
         MenuKind::Advanced => {
-            let _ = crate::runtime::effects::route(
-                ad,
-                crate::runtime::navigation::route!(SettingsMenu),
-            );
+            let _ = crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SettingsMenu));
         }
-        #[cfg(feature="provisioning-ui")]
+        #[cfg(feature = "provisioning-ui")]
         MenuKind::OwnerFirmware => {
             ad.pop_it.error = None;
             let _ = crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedMenu));
@@ -96,17 +125,11 @@ fn route_back(ad: &mut AppData, kind: MenuKind) {
         }
         #[cfg(feature = "developer-ui")]
         MenuKind::Developer => {
-            let _ = crate::runtime::effects::route(
-                ad,
-                crate::runtime::navigation::route!(SettingsMenu),
-            );
+            let _ = crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SettingsMenu));
         }
         #[cfg(feature = "developer-ui")]
         MenuKind::Network => {
-            let _ = crate::runtime::effects::route(
-                ad,
-                crate::runtime::navigation::route!(DeveloperMenu),
-            );
+            let _ = crate::runtime::effects::route(ad, crate::runtime::navigation::route!(DeveloperMenu));
         }
     }
 }
@@ -117,12 +140,12 @@ fn route_item(ad: &mut AppData, kind: MenuKind, item: usize) {
         MenuKind::WalletBackupMethods => route_wallet_backup_methods(ad, item),
         MenuKind::WalletAdvanced => route_wallet_advanced(ad, item),
         MenuKind::Advanced => route_advanced(ad, item),
-        #[cfg(feature="provisioning-ui")]
+        #[cfg(feature = "provisioning-ui")]
         MenuKind::OwnerFirmware => route_owner_firmware(ad, item),
         MenuKind::BackupRecovery => route_backup_recovery(ad, item),
-        #[cfg(feature="developer-ui")]
+        #[cfg(feature = "developer-ui")]
         MenuKind::Developer => route_developer(ad, item),
-        #[cfg(feature="developer-ui")]
+        #[cfg(feature = "developer-ui")]
         MenuKind::Network => route_network(ad, item),
     }
 }
@@ -202,19 +225,36 @@ pub(super) fn workflow_backup_recovery_select(ad: &mut AppData, item: usize) -> 
 }
 
 fn select_graph_item(ad: &mut AppData, item: usize) {
-    let Ok(index) = u8::try_from(item) else { return; };
+    let Ok(index) = u8::try_from(item) else {
+        return;
+    };
     let _ = crate::runtime::effects::menu_select(ad, index);
 }
 
 fn route_wallet(ad: &mut AppData, item: usize) {
     match item {
         0 => select_graph_item(ad, item),
-        1 => { ad.navigation.production.wallet_backup_methods_menu.reset(); select_graph_item(ad, item); }
-        2 => { ad.navigation.sd_import_menu.reset(); select_graph_item(ad, item); }
+        1 => {
+            ad.navigation.production.wallet_backup_methods_menu.reset();
+            select_graph_item(ad, item);
+        }
+        2 => {
+            ad.navigation.sd_import_menu.reset();
+            select_graph_item(ad, item);
+        }
         3 => select_graph_item(ad, item),
-        4 => { ad.wallet.seeds.seed_list_scroll = 0; select_graph_item(ad, item); }
-        5 => { ad.navigation.multisig_menu.reset(); select_graph_item(ad, item); }
-        6 => { ad.navigation.production.wallet_advanced_menu.reset(); select_graph_item(ad, item); }
+        4 => {
+            ad.wallet.seeds.seed_list_scroll = 0;
+            select_graph_item(ad, item);
+        }
+        5 => {
+            ad.navigation.multisig_menu.reset();
+            select_graph_item(ad, item);
+        }
+        6 => {
+            ad.navigation.production.wallet_advanced_menu.reset();
+            select_graph_item(ad, item);
+        }
         _ => {}
     }
 }
@@ -256,8 +296,7 @@ fn route_advanced(ad: &mut AppData, item: usize) {
         }
         if item == 3 && crate::runtime::navigation::production::pop_it_available() {
             ad.pop_it.return_state = crate::runtime::navigation::continuation!(AdvancedMenu);
-            ad.pop_it.owner_authority_enrolled =
-                crate::services::verify::boot_security::owner_authority_enrolled();
+            ad.pop_it.owner_authority_enrolled = crate::services::verify::boot_security::owner_authority_enrolled();
             ad.pop_it.error = None;
             ad.wallet.seeds.pp_input.reset();
         }
@@ -279,18 +318,19 @@ fn route_backup_recovery(ad: &mut AppData, item: usize) {
     select_graph_item(ad, item);
 }
 
-
-#[cfg(feature="developer-ui")]
+#[cfg(feature = "developer-ui")]
 fn route_developer(ad: &mut AppData, item: usize) {
-    let Some(label) = crate::runtime::navigation::production::DEVELOPER_ITEMS.get(item) else { return; };
-    #[cfg(feature="workflow-tests")]
+    let Some(label) = crate::runtime::navigation::production::DEVELOPER_ITEMS.get(item) else {
+        return;
+    };
+    #[cfg(feature = "workflow-tests")]
     if *label == "Workflow Tests" {
         ad.navigation.workflow_tests_return = crate::runtime::navigation::continuation!(DeveloperMenu);
         ad.navigation.workflow_tests_menu.reset();
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(WorkflowTestsMenu));
         return;
     }
-    #[cfg(feature="argon2-bench")]
+    #[cfg(feature = "argon2-bench")]
     if *label == "Argon2 Bench" {
         ad.runtime.request_argon2_benchmark();
         return;
@@ -305,7 +345,7 @@ fn route_developer(ad: &mut AppData, item: usize) {
     }
 }
 
-#[cfg(feature="developer-ui")]
+#[cfg(feature = "developer-ui")]
 fn route_network(ad: &mut AppData, item: usize) {
     use crate::wallet::seed_manager::WalletNetwork;
     let network = match item {
@@ -326,11 +366,18 @@ fn route_network(ad: &mut AppData, item: usize) {
 }
 
 fn handle_wallet_details(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
-    if is_back { crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedsMenu)); return true; }
-    if !(45..=275).contains(&x) { return false; }
+    if is_back {
+        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedsMenu));
+        return true;
+    }
+    if !(45..=275).contains(&x) {
+        return false;
+    }
     if (116..=146).contains(&y) {
         let active = usize::from(ad.wallet.seeds.seed_mgr.active);
-        let Some(slot) = ad.wallet.seeds.seed_mgr.active_slot() else { return false; };
+        let Some(slot) = ad.wallet.seeds.seed_mgr.active_slot() else {
+            return false;
+        };
         if !ad.storage.persistence.advanced.saved_wallet
             || slot.protection != crate::wallet::seed_manager::WalletProtection::DeviceOnly
         {
@@ -348,7 +395,9 @@ fn handle_wallet_details(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> boo
         return true;
     }
     if (154..=184).contains(&y) {
-        let Some(slot) = ad.wallet.seeds.seed_mgr.active_slot() else { return false; };
+        let Some(slot) = ad.wallet.seeds.seed_mgr.active_slot() else {
+            return false;
+        };
         let len = usize::from(slot.name_len).min(crate::wallet::seed_manager::WALLET_NAME_MAX);
         let mut name = [0u8; crate::wallet::seed_manager::WALLET_NAME_MAX];
         name[..len].copy_from_slice(&slot.name[..len]);

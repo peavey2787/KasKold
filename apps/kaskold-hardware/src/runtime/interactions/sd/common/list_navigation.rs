@@ -14,10 +14,7 @@ const DELETE_ZONE_MIN_X: u16 = 228;
 enum FileListAction {
     None,
     PageChanged,
-    Selected {
-        index: usize,
-        delete_requested: bool,
-    },
+    Selected { index: usize, delete_requested: bool },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,7 +33,6 @@ pub(crate) struct FileListWorkflow {
     pub(in crate::runtime::interactions::sd) back_state: ContinuationRoute,
 }
 
-
 /// Run a file-list workflow from the full SD I/O context.
 pub(crate) fn run_sd_file_list_context<'ctx, 'display, 'hal, R>(
     context: SdFileListContext<'ctx, 'display, 'hal>,
@@ -49,17 +45,7 @@ pub(crate) fn run_sd_file_list_context<'ctx, 'display, 'hal, R>(
         &mut esp_hal::i2c::master::I2c<'hal, esp_hal::Blocking>,
     ) -> R,
 ) -> bool {
-    let SdFileListContext {
-        ad,
-        boot_display,
-        delay,
-        liveness,
-        i2c,
-        list_zones,
-        x,
-        y,
-        is_back,
-    } = context;
+    let SdFileListContext { ad, boot_display, delay, liveness, i2c, list_zones, x, y, is_back } = context;
     run_file_list_controller(ad, list_zones, x, y, is_back, workflow, |ad| {
         on_open(ad, boot_display, delay, liveness, i2c);
     })
@@ -71,13 +57,7 @@ pub(crate) fn run_sd_list_context<R>(
     workflow: FileListWorkflow,
     on_open: impl FnOnce(&mut AppData) -> R,
 ) -> bool {
-    let SdListContext {
-        ad,
-        list_zones,
-        x,
-        y,
-        is_back,
-    } = context;
+    let SdListContext { ad, list_zones, x, y, is_back } = context;
     run_file_list_controller(ad, list_zones, x, y, is_back, workflow, on_open)
 }
 
@@ -131,7 +111,6 @@ fn handle_file_list_touch(
     apply_file_list_action(ad, action, current_state)
 }
 
-
 fn resolve_file_list_outcome<R>(
     ad: &mut AppData,
     outcome: FileListControllerOutcome,
@@ -157,13 +136,11 @@ fn apply_file_list_action(
     match action {
         FileListAction::None => FileListControllerOutcome::None,
         FileListAction::PageChanged => FileListControllerOutcome::PageChanged,
-        FileListAction::Selected {
-            index,
-            delete_requested,
-        } => {
+        FileListAction::Selected { index, delete_requested } => {
             ad.storage.browser.selected_file = ad.storage.browser.file_list[index];
             if delete_requested {
-                ad.storage.confirmation.delete_return = crate::runtime::navigation::continuation_from_state(current_state);
+                ad.storage.confirmation.delete_return =
+                    crate::runtime::navigation::continuation_from_state(current_state);
                 crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SdDeleteConfirm));
                 FileListControllerOutcome::DeleteRequested
             } else {
@@ -199,10 +176,7 @@ fn navigate_file_list(
         }
         let index = scroll_offset.saturating_add(slot);
         if index < count {
-            return FileListAction::Selected {
-                index,
-                delete_requested: allow_delete && x > DELETE_ZONE_MIN_X,
-            };
+            return FileListAction::Selected { index, delete_requested: allow_delete && x > DELETE_ZONE_MIN_X };
         }
         break;
     }

@@ -6,11 +6,7 @@ use crate::hw::m5stack::storage::transport::protocol::{
 };
 use crate::hw::m5stack::storage::SdCardType;
 
-pub fn sd_read_block(
-    card_type: SdCardType,
-    block: u32,
-    buffer: &mut [u8; 512],
-) -> Result<(), &'static str> {
+pub fn sd_read_block(card_type: SdCardType, block: u32, buffer: &mut [u8; 512]) -> Result<(), &'static str> {
     let address = block_address(card_type, block)?;
     let slow = legacy_data_speed(card_type);
     match read_block_at(address, slow, buffer) {
@@ -47,11 +43,7 @@ fn retry_read_conservative(
     }
 }
 
-pub(crate) fn sd_write_block(
-    card_type: SdCardType,
-    block: u32,
-    buffer: &[u8; 512],
-) -> Result<(), &'static str> {
+pub(crate) fn sd_write_block(card_type: SdCardType, block: u32, buffer: &[u8; 512]) -> Result<(), &'static str> {
     let address = block_address(card_type, block)?;
     let slow = legacy_data_speed(card_type);
     match write_block_at(address, slow, buffer) {
@@ -60,12 +52,7 @@ pub(crate) fn sd_write_block(
     }
 }
 
-fn recover_write(
-    address: u32,
-    slow: bool,
-    buffer: &[u8; 512],
-    error: &'static str,
-) -> Result<(), &'static str> {
+fn recover_write(address: u32, slow: bool, buffer: &[u8; 512], error: &'static str) -> Result<(), &'static str> {
     if slow || error != "CMD24 failed" {
         return Err(error);
     }

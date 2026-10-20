@@ -7,7 +7,7 @@
 use crate::runtime::data::AppData;
 use crate::services::credential_policy::unlock_attempt_limit_reached;
 
-use super::{PersistError, PersistentWallet, StorageMode, journal, sd_backend};
+use super::{journal, sd_backend, PersistError, PersistentWallet, StorageMode};
 
 impl PersistentWallet<'_> {
     /// Consecutive failed unlock attempts recorded in flash.
@@ -87,8 +87,7 @@ impl PersistentWallet<'_> {
         delay: &mut esp_hal::delay::Delay,
     ) -> bool {
         crate::services::device_wipe::zeroize_volatile(ad);
-        let sd_erased = self.mode != Some(StorageMode::SdCard)
-            || sd_backend::erase_files(i2c, delay).is_ok();
+        let sd_erased = self.mode != Some(StorageMode::SdCard) || sd_backend::erase_files(i2c, delay).is_ok();
         let internal_erased = journal::erase_all_user_data(&mut self.flash).is_ok();
         self.mode = None;
         self.clear_credential();

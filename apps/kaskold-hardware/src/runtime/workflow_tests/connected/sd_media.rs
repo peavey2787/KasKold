@@ -7,7 +7,7 @@
 
 use crate::hw::sdcard::SdCardType;
 #[cfg(feature = "workflow-hil-auto")]
-use esp_hal::{Blocking, delay::Delay, i2c::master::I2c};
+use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
 #[cfg(feature = "workflow-hil-auto")]
 const QA_FILE: &[u8; 11] = b"KSE2ETSTBIN";
@@ -15,11 +15,7 @@ const QA_FILE: &[u8; 11] = b"KSE2ETSTBIN";
 const QA_PAYLOAD: &[u8] = b"KasKold CoreS3 SD E2E v1";
 
 #[cfg(feature = "workflow-hil-auto")]
-pub(super) fn prepare_and_verify(
-    i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
-    delay: &mut Delay,
-) -> bool {
+pub(super) fn prepare_and_verify(i2c: &mut I2c<'_, Blocking>, sd: &Option<SdCardType>, delay: &mut Delay) -> bool {
     log!("KASKOLD_WORKFLOW_TESTS: SD MEDIA PROBE BEGIN");
     prepare_hil_media(i2c, sd, delay)
 }
@@ -41,18 +37,12 @@ fn controller_e2e_media_gate(sd: &Option<SdCardType>) -> bool {
             "KASKOLD_WORKFLOW_TESTS: SD MEDIA UNAVAILABLE - BOOT SD INITIALIZATION RETURNED NONE; SEE BOOT PHASE sd DIAGNOSTICS ABOVE; PHYSICAL MEDIA CHECK SKIPPED IN CONTROLLER E2E"
         ),
     }
-    log!(
-        "KASKOLD_WORKFLOW_TESTS: SD MEDIA PHYSICAL TRANCHE DEFERRED TO workflow-hil WITH A DISPOSABLE QA CARD"
-    );
+    log!("KASKOLD_WORKFLOW_TESTS: SD MEDIA PHYSICAL TRANCHE DEFERRED TO workflow-hil WITH A DISPOSABLE QA CARD");
     true
 }
 
 #[cfg(feature = "workflow-hil-auto")]
-fn prepare_hil_media(
-    i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
-    delay: &mut Delay,
-) -> bool {
+fn prepare_hil_media(i2c: &mut I2c<'_, Blocking>, sd: &Option<SdCardType>, delay: &mut Delay) -> bool {
     let Some(card_type) = *sd else {
         log!("KASKOLD_WORKFLOW_TESTS: SD MEDIA HIL FAIL - BOOT SD INITIALIZATION RETURNED NONE; SEE BOOT PHASE sd DIAGNOSTICS ABOVE");
         return false;
@@ -69,11 +59,7 @@ fn prepare_hil_media(
 }
 
 #[cfg(feature = "workflow-hil-auto")]
-fn prepare_lock_state(
-    card_type: SdCardType,
-    i2c: &mut I2c<'_, Blocking>,
-    delay: &mut Delay,
-) -> bool {
+fn prepare_lock_state(card_type: SdCardType, i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) -> bool {
     match crate::services::storage_device::workflow_force_erase_locked_card(card_type, delay) {
         Ok(true) => format_after_force_erase(i2c, delay),
         Ok(false) => {
@@ -88,10 +74,7 @@ fn prepare_lock_state(
 }
 
 #[cfg(feature = "workflow-hil-auto")]
-fn format_after_force_erase(
-    i2c: &mut I2c<'_, Blocking>,
-    delay: &mut Delay,
-) -> bool {
+fn format_after_force_erase(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) -> bool {
     log!("KASKOLD_WORKFLOW_TESTS: SD MEDIA QA CARD-LOCK FORCE ERASE OK");
     log!("KASKOLD_WORKFLOW_TESTS: SD MEDIA QA FORMAT AFTER LOCK ERASE BEGIN - DESTRUCTIVE");
     if !crate::services::storage_device::workflow_format_fat32(i2c, delay) {
@@ -147,10 +130,7 @@ fn format_missing_fat32(
 }
 
 #[cfg(feature = "workflow-hil-auto")]
-fn verify_round_trip(
-    card_type: SdCardType,
-    fat32: &crate::services::storage_device::Fat32Info,
-) -> bool {
+fn verify_round_trip(card_type: SdCardType, fat32: &crate::services::storage_device::Fat32Info) -> bool {
     log!("KASKOLD_WORKFLOW_TESTS: SD MEDIA READ-WRITE-DELETE BEGIN");
     if crate::services::storage_device::find_file_in_root(card_type, fat32, QA_FILE).is_ok()
         && crate::services::storage_device::delete_file(card_type, fat32, QA_FILE).is_err()
@@ -158,22 +138,12 @@ fn verify_round_trip(
         log!("KASKOLD_WORKFLOW_TESTS: SD MEDIA STALE QA FILE DELETE FAIL");
         return false;
     }
-    let Ok(entry) = crate::services::storage_device::create_file(
-        card_type,
-        fat32,
-        QA_FILE,
-        QA_PAYLOAD,
-    ) else {
+    let Ok(entry) = crate::services::storage_device::create_file(card_type, fat32, QA_FILE, QA_PAYLOAD) else {
         log!("KASKOLD_WORKFLOW_TESTS: SD MEDIA CREATE FAIL");
         return false;
     };
     let mut readback = [0u8; 64];
-    let Ok(length) = crate::services::storage_device::read_file(
-        card_type,
-        fat32,
-        &entry,
-        &mut readback,
-    ) else {
+    let Ok(length) = crate::services::storage_device::read_file(card_type, fat32, &entry, &mut readback) else {
         log!("KASKOLD_WORKFLOW_TESTS: SD MEDIA READ FAIL");
         return false;
     };

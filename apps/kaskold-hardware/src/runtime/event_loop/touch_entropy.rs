@@ -18,7 +18,9 @@ pub fn process_step(
     if ad.navigation.app.state != AppState::TouchEntropy {
         return false;
     }
-    let TouchState::One(point) = touch_state else { return false; };
+    let TouchState::One(point) = touch_state else {
+        return false;
+    };
 
     // Keep navigation chrome out of the entropy transcript. Only points in the
     // visible canvas are recorded and painted.
@@ -32,12 +34,7 @@ pub fn process_step(
         return false;
     }
     let after = ad.wallet.seeds.touch_collector.count();
-    boot_display.draw_touch_entropy_point(
-        point.x,
-        point.y,
-        after,
-        ad.wallet.seeds.touch_collector.target(),
-    );
+    boot_display.draw_touch_entropy_point(point.x, point.y, after, ad.wallet.seeds.touch_collector.target());
     if after < ad.wallet.seeds.touch_collector.target() || after == before {
         return false;
     }
@@ -48,10 +45,7 @@ pub fn process_step(
         return true;
     };
     if ad.wallet.seeds.pending_seed_entropy_valid {
-        crate::services::entropy::mix_additive_touch(
-            &mut ad.wallet.seeds.pending_seed_entropy,
-            &mut touch_digest,
-        );
+        crate::services::entropy::mix_additive_touch(&mut ad.wallet.seeds.pending_seed_entropy, &mut touch_digest);
         if crate::runtime::interactions::menu::seed_generation::finalize_staged_entropy(ad) {
             log!("   Added touch transcript to checked staged entropy");
         } else {
@@ -65,8 +59,7 @@ pub fn process_step(
         Ok(mut pool) => {
             let wc = if ad.wallet.seeds.word_count == 24 { 24 } else { 12 };
             let entropy_len = if wc == 24 { 32 } else { 16 };
-            ad.wallet.seeds.mnemonic_indices =
-                crate::wallet::mnemonic::generate_from_entropy(wc, &pool[..entropy_len]);
+            ad.wallet.seeds.mnemonic_indices = crate::wallet::mnemonic::generate_from_entropy(wc, &pool[..entropy_len]);
             crate::services::entropy::zeroize(&mut pool);
             ad.wallet.seeds.pp_input.reset();
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(PassphraseChoice));
@@ -96,7 +89,10 @@ fn fail(
     );
     if ad.storage.persistence.device_storage_intent.is_seed_onboarding() {
         ad.wallet.seeds.clear_pending_seed_entropy();
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageSeedWordCountChoice { action: 0 }));
+        crate::runtime::effects::route(
+            ad,
+            crate::runtime::navigation::route!(StorageSeedWordCountChoice { action: 0 }),
+        );
     } else {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedToolsMenu));
     }

@@ -15,39 +15,23 @@ use embedded_iconoir::prelude::IconoirNewIcon;
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-
 use super::super::super::{
-    BootDisplay,
-    COLOR_CARD,
-    COLOR_CARD_BORDER,
-    COLOR_RED_BTN,
-    COLOR_TEXT,
-    CornerRadii,
-    Drawable,
-    Image,
-    KASPA_TEAL,
-    Line,
-    Point,
-    Primitive,
-    PrimitiveStyle,
-    Rectangle,
-    Rgb565,
-    RoundedRectangle,
-    Size,
-    Triangle,
-    draw_lato_hint,
-    draw_lato_title,
-    draw_oswald_header,
-    measure_header,
-    size24px};
+    draw_lato_hint, draw_lato_title, draw_oswald_header, measure_header, size24px, BootDisplay, CornerRadii, Drawable,
+    Image, Line, Point, Primitive, PrimitiveStyle, Rectangle, Rgb565, RoundedRectangle, Size, Triangle, COLOR_CARD,
+    COLOR_CARD_BORDER, COLOR_RED_BTN, COLOR_TEXT, KASPA_TEAL,
+};
 
 impl<'a> BootDisplay<'a> {
     /// Draw SD file list for restore — shows up to 8 backup files found on SD
     /// Draw SD file list. If `seed_fps` is provided (up to 4 fingerprints from loaded seeds),
     /// files whose name matches a fingerprint will show the slot label (e.g. "Seed #1").
     pub fn draw_sd_file_list_ex(
-        &mut self, files: &[[u8; 11]], count: u8, scroll: u8,
-        seed_fps: &[[u8; 4]; 4], seed_count: u8,
+        &mut self,
+        files: &[[u8; 11]],
+        count: u8,
+        scroll: u8,
+        seed_fps: &[[u8; 4]; 4],
+        seed_count: u8,
     ) {
         self.clear_keep_nav();
 
@@ -55,7 +39,8 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, "SELECT BACKUP", (320 - tw) / 2, 30, COLOR_TEXT);
         Line::new(Point::new(20, 40), Point::new(300, 40))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display).ok();
+            .draw(&mut self.display)
+            .ok();
 
         let max_visible: u8 = 4;
         let card_h: i32 = 42;
@@ -76,10 +61,12 @@ impl<'a> BootDisplay<'a> {
             if abs < n {
                 RoundedRectangle::new(slot_rect, card_corner)
                     .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-                    .draw(&mut self.display).ok();
+                    .draw(&mut self.display)
+                    .ok();
                 RoundedRectangle::new(slot_rect, card_corner)
                     .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-                    .draw(&mut self.display).ok();
+                    .draw(&mut self.display)
+                    .ok();
 
                 // File icon
                 let icon = size24px::docs::Folder::new(COLOR_TEXT);
@@ -118,18 +105,25 @@ impl<'a> BootDisplay<'a> {
                 let del_corner = CornerRadii::new(Size::new(4, 4));
                 RoundedRectangle::new(del_rect, del_corner)
                     .into_styled(PrimitiveStyle::with_fill(COLOR_RED_BTN))
-                    .draw(&mut self.display).ok();
+                    .draw(&mut self.display)
+                    .ok();
                 use embedded_graphics::image::ImageRawLE;
                 let trash_raw: ImageRawLE<Rgb565> = ImageRawLE::new(
-                    crate::ui::display::icon_data::ICON_TRASH, crate::ui::display::icon_data::ICON_TRASH_W);
-                Image::new(&trash_raw, Point::new(start_x + card_w as i32 - 35, row_y + 9)).draw(&mut self.display).ok();
+                    crate::ui::display::icon_data::ICON_TRASH,
+                    crate::ui::display::icon_data::ICON_TRASH_W,
+                );
+                Image::new(&trash_raw, Point::new(start_x + card_w as i32 - 35, row_y + 9))
+                    .draw(&mut self.display)
+                    .ok();
             } else {
                 RoundedRectangle::new(slot_rect, card_corner)
                     .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))
-                    .draw(&mut self.display).ok();
+                    .draw(&mut self.display)
+                    .ok();
                 RoundedRectangle::new(slot_rect, card_corner)
                     .into_styled(PrimitiveStyle::with_stroke(COLOR_CARD_BORDER, 1))
-                    .draw(&mut self.display).ok();
+                    .draw(&mut self.display)
+                    .ok();
             }
         }
 
@@ -137,15 +131,14 @@ impl<'a> BootDisplay<'a> {
         let arrow_cy = start_y + (max_visible as i32 * (card_h + card_gap) - card_gap) / 2;
         let left_color = if scroll > 0 { KASPA_TEAL } else { teal_dark };
         let right_color = if (scroll + max_visible) < n { KASPA_TEAL } else { teal_dark };
-        Triangle::new(
-            Point::new(5, arrow_cy), Point::new(30, arrow_cy - 17), Point::new(30, arrow_cy + 17),
-        ).into_styled(PrimitiveStyle::with_fill(left_color))
-            .draw(&mut self.display).ok();
-        Triangle::new(
-            Point::new(315, arrow_cy), Point::new(290, arrow_cy - 17), Point::new(290, arrow_cy + 17),
-        ).into_styled(PrimitiveStyle::with_fill(right_color))
-            .draw(&mut self.display).ok();
-
+        Triangle::new(Point::new(5, arrow_cy), Point::new(30, arrow_cy - 17), Point::new(30, arrow_cy + 17))
+            .into_styled(PrimitiveStyle::with_fill(left_color))
+            .draw(&mut self.display)
+            .ok();
+        Triangle::new(Point::new(315, arrow_cy), Point::new(290, arrow_cy - 17), Point::new(290, arrow_cy + 17))
+            .into_styled(PrimitiveStyle::with_fill(right_color))
+            .draw(&mut self.display)
+            .ok();
     }
 }
 

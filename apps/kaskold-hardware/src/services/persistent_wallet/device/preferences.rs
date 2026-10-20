@@ -25,14 +25,14 @@ impl PersistentWallet<'_> {
     /// backend is active. Per-wallet PIN/password protection is independent; a
     /// one-time mnemonic session never exposes or mutates these controls.
     pub const fn persistent_preferences_available(&self) -> bool {
-        matches!(self.mode, Some(StorageMode::SaveWallet) | Some(StorageMode::SdCard))
-            && self.credential_kind.is_some()
+        matches!(self.mode, Some(StorageMode::SaveWallet) | Some(StorageMode::SdCard)) && self.credential_kind.is_some()
     }
 
     pub fn load_display_preferences(&mut self, ad: &mut AppData) -> Result<(), PersistError> {
         let preferences = journal::read_device_preferences(&mut self.flash)?;
         let network = preferences.wallet_network();
-        if ad.wallet.seeds.seed_mgr.network() != network { crate::services::wallet_session::clear_active_wallet(ad);
+        if ad.wallet.seeds.seed_mgr.network() != network {
+            crate::services::wallet_session::clear_active_wallet(ad);
             ad.wallet.seeds.seed_mgr.set_network(network);
             ad.wallet.seeds.seed_list_scroll = 0;
         }
@@ -40,18 +40,18 @@ impl PersistentWallet<'_> {
             ad.settings.use_session_only_defaults();
             return Ok(());
         }
-        ad.settings.apply_persisted_display_preferences(
-            preferences.dim_timeout_code(),
-            preferences.require_pin_after_dim(),
-        );
+        ad.settings
+            .apply_persisted_display_preferences(preferences.dim_timeout_code(), preferences.require_pin_after_dim());
         #[cfg(feature = "m5stack")]
-        { ad.settings.apply_persisted_startup_sound(preferences.startup_sound_enabled()); }
+        {
+            ad.settings.apply_persisted_startup_sound(preferences.startup_sound_enabled());
+        }
         Ok(())
     }
 
     pub fn save_display_preferences(&mut self, ad: &crate::runtime::data::AppData) -> Result<(), PersistError> {
-        let preferences = journal::read_device_preferences(&mut self.flash)?
-            .with_wallet_network(ad.wallet.seeds.seed_mgr.network());
+        let preferences =
+            journal::read_device_preferences(&mut self.flash)?.with_wallet_network(ad.wallet.seeds.seed_mgr.network());
         let preferences = if self.persistent_preferences_available() {
             preferences
                 .with_dim_timeout_code(ad.settings.screen_dim_timeout.code())
@@ -60,9 +60,12 @@ impl PersistentWallet<'_> {
             preferences
         };
         #[cfg(feature = "m5stack")]
-        let preferences = if self.persistent_preferences_available() { preferences.with_startup_sound(ad.settings.startup_sound_enabled()) } else { preferences };
+        let preferences = if self.persistent_preferences_available() {
+            preferences.with_startup_sound(ad.settings.startup_sound_enabled())
+        } else {
+            preferences
+        };
         journal::write_device_preferences(&mut self.flash, preferences)?;
         Ok(())
     }
-
 }

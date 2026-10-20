@@ -10,7 +10,6 @@ mod filename;
 pub(super) mod menu;
 mod scanning;
 
-
 /// Route import/export choices that only mutate navigation/application state.
 pub(super) fn handle_pure(
     ad: &mut AppData,
@@ -21,7 +20,6 @@ pub(super) fn handle_pure(
 ) -> Option<bool> {
     menu::handle_pure(ad, list_zones, x, y, is_back)
 }
-
 
 pub(super) fn handle(
     ad: &mut AppData,
@@ -34,31 +32,9 @@ pub(super) fn handle(
     is_back: bool,
 ) -> Option<bool> {
     match ad.navigation.app.state {
-        AppState::CovBackupName => Some(filename::handle(
-            ad,
-            boot_display,
-            x,
-            y,
-            is_back,
-        )),
-        AppState::ImportExportChoice => Some(menu::handle_choice(
-            ad,
-            boot_display,
-            delay,
-            x,
-            y,
-            is_back,
-        )),
-        AppState::ImportMenu => Some(menu::handle_import_menu(
-            ad,
-            boot_display,
-            delay,
-            i2c,
-            list_zones,
-            x,
-            y,
-            is_back,
-        )),
+        AppState::CovBackupName => Some(filename::handle(ad, boot_display, x, y, is_back)),
+        AppState::ImportExportChoice => Some(menu::handle_choice(ad, boot_display, delay, x, y, is_back)),
+        AppState::ImportMenu => Some(menu::handle_import_menu(ad, boot_display, delay, i2c, list_zones, x, y, is_back)),
         _ => None,
     }
 }

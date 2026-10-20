@@ -30,23 +30,24 @@ class MultisigSigningIsolationTests(unittest.TestCase):
         self.assertIn("ad.navigation.app.review_pages = 1 + num_outputs;", navigation)
 
     def test_xprv_no_sd_probe_uses_explicit_no_card_export_context(self) -> None:
-        context = (CONNECTED / "advanced_tools/mod.rs").read_text(encoding="utf-8")
+        context = (CONNECTED / "menu_context.rs").read_text(encoding="utf-8")
         exports = (CONNECTED / "advanced_tools/exports.rs").read_text(encoding="utf-8")
         self.assertIn("fn export_touch_without_sd", context)
-        helper = context.split("fn export_touch_without_sd", 1)[1].split("pub(super) fn set_text", 1)[0]
-        self.assertIn("let no_sd = None;", helper)
-        self.assertIn("sd_card_type: &no_sd", helper)
+        helper = context.split("fn export_touch_without_sd", 1)[1].split("fn export_menu_touch_with", 1)[0]
+        self.assertIn("self.export_menu_touch_with(&None, ", helper)
+        controller = context.split("fn export_touch_with(", 1)[1]
+        self.assertIn("sd_card_type: sd,", controller)
         no_sd = exports.split("fn xprv_no_sd", 1)[1].split("fn xprv_raw_key_reject", 1)[0]
         self.assertIn("ctx.export_touch_without_sd(", no_sd)
         self.assertNotIn("ctx.export_touch(second.x + second.w / 2", no_sd)
         self.assertIn("ctx.ad.navigation.app.state == AppState::XprvExportMenu", no_sd)
 
     def test_normal_export_path_still_uses_real_sd_context(self) -> None:
-        context = (CONNECTED / "advanced_tools/mod.rs").read_text(encoding="utf-8")
+        context = (CONNECTED / "menu_context.rs").read_text(encoding="utf-8")
         normal = context.split("pub(super) fn export_touch(", 1)[1].split(
             "pub(super) fn export_touch_without_sd", 1
         )[0]
-        self.assertIn("sd_card_type: self.sd", normal)
+        self.assertIn("let sd = self.sd;\n        self.export_menu_touch_with(sd, ", normal)
 
 
 if __name__ == "__main__":

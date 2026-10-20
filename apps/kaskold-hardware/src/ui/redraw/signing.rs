@@ -20,10 +20,7 @@ mod transaction;
 use super::display;
 use crate::runtime::{data::AppData, input::AppState};
 
-pub(super) fn redraw(
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-) -> bool {
+pub(super) fn redraw(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     match ad.navigation.app.state {
         AppState::SignTxGuide => transaction::draw_guide(ad, boot_display),
         AppState::AntiKleptoRevealGuide => boot_display.draw_anti_klepto_reveal_guide(),

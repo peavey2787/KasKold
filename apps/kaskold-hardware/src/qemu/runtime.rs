@@ -8,20 +8,12 @@
 //! replaceable display/touch/power boundary without pretending unsupported
 //! external board peripherals are present.
 
-use super::hw::{
-    display::ConsoleDisplay,
-    power,
-    touch::ScriptedTouch,
-};
+use super::hw::{display::ConsoleDisplay, power, touch::ScriptedTouch};
 use esp_hal::delay::Delay;
 
 const HEARTBEAT_INTERVAL: u32 = 20;
 
-pub(crate) fn run(
-    mut display: ConsoleDisplay,
-    mut touch: ScriptedTouch,
-    mut delay: Delay,
-) -> ! {
+pub(crate) fn run(mut display: ConsoleDisplay, mut touch: ScriptedTouch, mut delay: Delay) -> ! {
     display.show_ready();
     let mut iteration = 0u32;
 

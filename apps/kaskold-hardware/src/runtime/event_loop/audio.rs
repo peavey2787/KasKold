@@ -5,8 +5,7 @@
 
 #[cfg(feature = "m5stack")]
 fn credential_operation_blocks_click(ad: &crate::runtime::data::AppData) -> bool {
-    crate::runtime::presentation::operation_kind(ad)
-        .is_some_and(crate::runtime::data::OperationKind::is_credential)
+    crate::runtime::presentation::operation_kind(ad).is_some_and(crate::runtime::data::OperationKind::is_credential)
         && matches!(
             crate::runtime::presentation::operation_phase(ad),
             crate::runtime::data::OperationPhase::Queued
@@ -19,14 +18,13 @@ fn credential_operation_blocks_click(ad: &crate::runtime::data::AppData) -> bool
 #[cfg(feature = "m5stack")]
 #[inline(never)]
 pub(crate) fn service(audio: &mut Option<crate::hw::sound::RuntimeAudio>) {
-    if let Some(audio) = audio.as_mut() { audio.service_pending(); }
+    if let Some(audio) = audio.as_mut() {
+        audio.service_pending();
+    }
 }
 
 #[cfg(feature = "m5stack")]
-pub(crate) fn click(
-    ad: &crate::runtime::data::AppData,
-    audio: &mut Option<crate::hw::sound::RuntimeAudio>,
-) {
+pub(crate) fn click(ad: &crate::runtime::data::AppData, audio: &mut Option<crate::hw::sound::RuntimeAudio>) {
     // PIN/password submission commits the credential operation before the
     // router asks for click feedback. Drop that click before it can start an
     // I2S DMA transfer; ordinary loop audio servicing remains independent of

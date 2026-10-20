@@ -1,5 +1,5 @@
 """Focused firmware source-contract checks."""
-from source_contract_support import read, require
+from source_contract_support import flat, read, require
 
 def check_storage_facades(errors: list[str]) -> None:
     path = "apps/kaskold-hardware/src/hw/m5stack/storage/mod.rs"
@@ -219,7 +219,7 @@ def check_sd_persistence_security_contract(errors: list[str]) -> None:
     )
     require(
         errors,
-        "if self.mode == Some(StorageMode::SdCard) { return Err(PersistError::AdvancedAlreadyEnabled); }" in persistence,
+        "if self.mode == Some(StorageMode::SdCard) { return Err(PersistError::AdvancedAlreadyEnabled); }" in flat(persistence),
         "SD persistence must remain irreversible through the persistence service API",
     )
 
@@ -431,7 +431,7 @@ def check_sd_persistence_security_contract(errors: list[str]) -> None:
         and 'draw_storage_pin_entry(&ad.wallet.seeds.pp_input, "CONFIRM PIN", true)' in device_redraw
         and "unlock_feedback.pin_title()" in device_redraw
         and "start_credential_operation(" in persistence_controller
-        and "operation_kind(kind, true), unlock_state(kind)" in persistence_controller
+        and "operation_kind(kind, true), unlock_state(kind)" in flat(persistence_controller)
         and "draw_unlock_wait_screen" not in persistence_controller
         and 'draw_wait_screen("Unlocking wallet...")' in read("apps/kaskold-hardware/src/ui/redraw/presentation/mod.rs")
         and "KASKOLD_PIN_FLOW: LOADING RENDERED {}" in read("apps/kaskold-hardware/src/runtime/presentation/mod.rs"),

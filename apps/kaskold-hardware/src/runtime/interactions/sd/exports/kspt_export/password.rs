@@ -2,31 +2,17 @@
 
 use super::super::super::SdIoContext;
 use crate::{
+    runtime::data::EncryptedFileOperation,
     runtime::interactions::{
         feedback::{show_rejection, ErrorSound},
         keyboard::{handle_passphrase_keyboard, KeyboardAction},
     },
-    runtime::data::EncryptedFileOperation,
 };
 
-use super::{
-    load::load_encrypted_payload,
-    navigation::navigate_from_password,
-    save::save_encrypted_payload,
-};
+use super::{load::load_encrypted_payload, navigation::navigate_from_password, save::save_encrypted_payload};
 
 pub(crate) fn handle_sd_kspt_encrypt_pass(ctx: SdIoContext<'_, '_, '_>) -> bool {
-    let SdIoContext {
-        ad,
-        boot_display,
-        delay,
-        liveness,
-        i2c,
-        x,
-        y,
-        is_back,
-        ..
-    } = ctx;
+    let SdIoContext { ad, boot_display, delay, liveness, i2c, x, y, is_back, .. } = ctx;
     let operation = ad.storage.export_file.encrypted_operation;
 
     if is_back {
@@ -44,13 +30,7 @@ pub(crate) fn handle_sd_kspt_encrypt_pass(ctx: SdIoContext<'_, '_, '_>) -> bool 
                     load_encrypted_payload(ad, boot_display, delay, liveness, operation);
                 }
                 EncryptedFileOperation::None => {
-                    show_rejection(
-                        boot_display,
-                        delay,
-                        "No encrypted operation",
-                        2_000,
-                        ErrorSound::Silent,
-                    );
+                    show_rejection(boot_display, delay, "No encrypted operation", 2_000, ErrorSound::Silent);
                     ad.wallet.seeds.pp_input.reset();
                 }
             }

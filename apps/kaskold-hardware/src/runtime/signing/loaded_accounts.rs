@@ -16,10 +16,7 @@ pub(super) struct LoadedSigningAccounts {
 
 impl LoadedSigningAccounts {
     #[inline(never)]
-    pub(super) fn derive_active(
-        seed_manager: &SeedManager,
-        checkpoint: &mut (impl FnMut() + ?Sized),
-    ) -> Self {
+    pub(super) fn derive_active(seed_manager: &SeedManager, checkpoint: &mut (impl FnMut() + ?Sized)) -> Self {
         let mut loaded = Self {
             entries: [([0u8; 65], false); MAX_SIGN_SLOTS],
             ms45_entries: [([0u8; 65], false); MAX_SIGN_SLOTS],
@@ -27,9 +24,7 @@ impl LoadedSigningAccounts {
             active_index: None,
         };
         let active_manager_slot = usize::from(seed_manager.active);
-        if active_manager_slot < seed_manager::MAX_SLOTS
-            && seed_manager.slot_visible(active_manager_slot)
-        {
+        if active_manager_slot < seed_manager::MAX_SLOTS && seed_manager.slot_visible(active_manager_slot) {
             loaded.push_slot(&seed_manager.slots[active_manager_slot], checkpoint);
             if loaded.count == 1 {
                 loaded.active_index = Some(0);
@@ -53,7 +48,9 @@ impl LoadedSigningAccounts {
             let ms45 = offline_signer::derivation::bip32::derive_multisig_account_key(&seed.bytes, 0);
             zeroize_seed(&mut seed.bytes);
             checkpoint();
-            let Ok(account) = account else { return; };
+            let Ok(account) = account else {
+                return;
+            };
             self.entries[self.count] = (account.to_raw(), true);
             if let Ok(ms45) = ms45 {
                 self.ms45_entries[self.count] = (ms45.to_raw(), true);

@@ -1,7 +1,5 @@
-use super::geometry::{
-    BACKUP_BOOT_SECTOR, FSINFO_SECTOR, FormatGeometry, NUM_FATS, RESERVED_SECTORS, ROOT_CLUSTER,
-};
-use super::super::{Fat32Info, SdCardType, sd_read_block, sd_write_block};
+use super::super::{sd_read_block, sd_write_block, Fat32Info, SdCardType};
+use super::geometry::{FormatGeometry, BACKUP_BOOT_SECTOR, FSINFO_SECTOR, NUM_FATS, RESERVED_SECTORS, ROOT_CLUSTER};
 
 pub(super) fn write_reserved_region(
     card_type: SdCardType,
@@ -16,9 +14,7 @@ pub(super) fn write_reserved_region(
     sd_write_block(card_type, u32::from(BACKUP_BOOT_SECTOR + FSINFO_SECTOR), &fsinfo)?;
     let zeros = [0u8; 512];
     for sector in 2..u32::from(RESERVED_SECTORS) {
-        if sector == u32::from(BACKUP_BOOT_SECTOR)
-            || sector == u32::from(BACKUP_BOOT_SECTOR + FSINFO_SECTOR)
-        {
+        if sector == u32::from(BACKUP_BOOT_SECTOR) || sector == u32::from(BACKUP_BOOT_SECTOR + FSINFO_SECTOR) {
             continue;
         }
         sd_write_block(card_type, sector, &zeros)?;
@@ -75,9 +71,13 @@ pub(super) fn verify_format(card_type: SdCardType, geometry: FormatGeometry) -> 
     let fat1 = u32::from(RESERVED_SECTORS);
     sd_read_block(card_type, fat1, &mut sector)?;
     let root = u32::from_le_bytes([sector[8], sector[9], sector[10], sector[11]]) & 0x0FFF_FFFF;
-    if root != 0x0FFF_FFFF { return Err("FAT32 root cluster was not reserved"); }
+    if root != 0x0FFF_FFFF {
+        return Err("FAT32 root cluster was not reserved");
+    }
     sd_read_block(card_type, geometry.data_start, &mut sector)?;
-    if sector.iter().any(|byte| *byte != 0) { return Err("FAT32 root directory was not cleared"); }
+    if sector.iter().any(|byte| *byte != 0) {
+        return Err("FAT32 root directory was not cleared");
+    }
     Ok(())
 }
 

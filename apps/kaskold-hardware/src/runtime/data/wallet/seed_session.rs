@@ -91,14 +91,12 @@ impl SeedSession {
         self.pending_wallet_activation_state = PendingWalletActivationState::Ready;
     }
 
-
     pub fn stage_multisig_wallet_return(&mut self, key_idx: u8) {
         self.pending_multisig_wallet_key = key_idx;
     }
 
     pub fn multisig_wallet_return(&self) -> Option<u8> {
-        (self.pending_multisig_wallet_key != u8::MAX)
-            .then_some(self.pending_multisig_wallet_key)
+        (self.pending_multisig_wallet_key != u8::MAX).then_some(self.pending_multisig_wallet_key)
     }
 
     pub fn clear_multisig_wallet_return(&mut self) {
@@ -110,10 +108,7 @@ impl SeedSession {
     }
 
     pub fn pending_add_wallet_is_restore(&self) -> bool {
-        matches!(
-            self.pending_add_wallet_kind,
-            PendingAddWalletKind::Restored | PendingAddWalletKind::RestoredInstalled
-        )
+        matches!(self.pending_add_wallet_kind, PendingAddWalletKind::Restored | PendingAddWalletKind::RestoredInstalled)
     }
 
     pub fn pending_add_wallet_has_installed_source(&self) -> bool {
@@ -127,11 +122,8 @@ impl SeedSession {
     }
 
     pub fn begin_pending_add_wallet(&mut self, restored: bool) {
-        self.pending_add_wallet_kind = if restored {
-            PendingAddWalletKind::Restored
-        } else {
-            PendingAddWalletKind::Generated
-        };
+        self.pending_add_wallet_kind =
+            if restored { PendingAddWalletKind::Restored } else { PendingAddWalletKind::Generated };
     }
 
     pub fn finish_pending_add_wallet_commit(&mut self) {

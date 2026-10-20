@@ -186,7 +186,7 @@ run_core_ci_gate() {
         printf '  + Core CI log: %s\n' "$log_path"
         printf '  + reuse local rustup %q toolchain when rustc, rustfmt, and clippy are already available\n' "$KASKOLD_STABLE_RUST"
         printf '  + rustup toolchain install %q --profile minimal --component rustfmt --component clippy  # only when missing locally\n' "$KASKOLD_STABLE_RUST"
-        printf '  + rustup run %q cargo fmt --all -- --check\n' "$KASKOLD_STABLE_RUST"
+        printf '  + python3 qa/checks/workspace/check_rust_format.py\n'
         printf '  + rustup run %q cargo clippy --workspace --all-targets --locked -- -D warnings\n' "$KASKOLD_STABLE_RUST"
         printf '  + make test STRICT_LOCKFILES=1\n'
         printf '  + git diff --check\n'
@@ -241,8 +241,7 @@ run_core_ci_gate() {
 
         echo
         echo "===== CORE CI: FORMAT ====="
-        rustup run "$KASKOLD_STABLE_RUST" \
-          cargo fmt --all -- --check
+        python3 qa/checks/workspace/check_rust_format.py
         rc=$?
         if [ "$rc" -ne 0 ]; then
             echo

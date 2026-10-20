@@ -18,21 +18,16 @@ macro_rules! sync {
     ($ad:ident, $persistent_wallet:ident, $boot_display:ident, $delay:ident, $i2c:ident) => {
         if $ad.storage.persistence.pending_rtc_floor_unix != 0 {
             let floor = $ad.storage.persistence.pending_rtc_floor_unix;
-            if let Err(error) = $persistent_wallet.record_rtc_floor(
-                floor,
-                &$ad.wallet.seeds.seed_mgr,
-                &mut $i2c,
-                &mut $delay,
-            ) {
+            if let Err(error) =
+                $persistent_wallet.record_rtc_floor(floor, &$ad.wallet.seeds.seed_mgr, &mut $i2c, &mut $delay)
+            {
                 log!("Advanced signing policy floor save failed: {:?}", error);
                 let initial_counts = $ad.signing.anti_klepto.initial_sig_counts;
                 $crate::runtime::signing::rollback_added_signatures($ad, &initial_counts);
                 $ad.storage.persistence.pending_rtc_floor_unix = 0;
                 $ad.qr.outgoing.length = 0;
                 $ad.signing.anti_klepto.reset();
-                $crate::runtime::presentation::show_error_spec(
-                    $ad, $crate::runtime::presentation::POLICY_SAVE,
-                );
+                $crate::runtime::presentation::show_error_spec($ad, $crate::runtime::presentation::POLICY_SAVE);
                 continue;
             }
             $ad.storage.persistence.pending_rtc_floor_unix = 0;
@@ -40,9 +35,7 @@ macro_rules! sync {
         }
 
         if !$crate::runtime::event_loop::persistence::sync_deferred_for_state($ad.navigation.app.state) {
-            match $persistent_wallet.sync_if_needed(
-                &$ad.wallet.seeds.seed_mgr, &mut $i2c, &mut $delay,
-            ) {
+            match $persistent_wallet.sync_if_needed(&$ad.wallet.seeds.seed_mgr, &mut $i2c, &mut $delay) {
                 Ok(true) => log!("Encrypted wallet state saved"),
                 Ok(false) => {}
                 Err(error) => {
@@ -54,9 +47,7 @@ macro_rules! sync {
                         $persistent_wallet.require_choice(&$ad.wallet.seeds.seed_mgr);
                         $crate::runtime::interactions::persistence::enter_storage_choice($ad);
                     }
-                    $crate::runtime::presentation::show_error_spec(
-                        $ad, $crate::runtime::presentation::STORAGE_SYNC,
-                    );
+                    $crate::runtime::presentation::show_error_spec($ad, $crate::runtime::presentation::STORAGE_SYNC);
                 }
             }
         }

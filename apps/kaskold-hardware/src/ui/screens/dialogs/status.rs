@@ -1,11 +1,10 @@
-use super::super::{
-    BootDisplay, COLOR_HINT, Drawable, KASPA_TEAL, Point, Rgb565, draw_lato_hint,
-    draw_lato_title, measure_hint, measure_title, sound,
-};
 #[cfg(feature = "m5stack")]
 use super::super::{
-    COLOR_BG, COLOR_DANGER, COLOR_TEXT_DIM, draw_lato_body, draw_oswald_header,
-    measure_body, measure_header,
+    draw_lato_body, draw_oswald_header, measure_body, measure_header, COLOR_BG, COLOR_DANGER, COLOR_TEXT_DIM,
+};
+use super::super::{
+    draw_lato_hint, draw_lato_title, measure_hint, measure_title, sound, BootDisplay, Drawable, Point, Rgb565,
+    COLOR_HINT, KASPA_TEAL,
 };
 
 impl<'a> BootDisplay<'a> {
@@ -16,30 +15,16 @@ impl<'a> BootDisplay<'a> {
 
         static LOGO_DATA: &[u8] = include_bytes!("../../../../assets/logo_320x240.raw");
         let raw_image: ImageRawLE<Rgb565> = ImageRawLE::new(LOGO_DATA, 320);
-        Image::new(&raw_image, Point::zero())
-            .draw(&mut self.display)
-            .ok();
+        Image::new(&raw_image, Point::zero()).draw(&mut self.display).ok();
 
         let mut message_text: heapless::String<64> = heapless::String::new();
         core::fmt::Write::write_fmt(&mut message_text, format_args!("!! {message} !!")).ok();
         let title_width = measure_title(message_text.as_str());
-        draw_lato_title(
-            &mut self.display,
-            message_text.as_str(),
-            (320 - title_width) / 2,
-            170,
-            KASPA_TEAL,
-        );
+        draw_lato_title(&mut self.display, message_text.as_str(), (320 - title_width) / 2, 170, KASPA_TEAL);
 
         let hint = "Tap to continue";
         let hint_width = measure_hint(hint);
-        draw_lato_hint(
-            &mut self.display,
-            hint,
-            (320 - hint_width) / 2,
-            222,
-            COLOR_HINT,
-        );
+        draw_lato_hint(&mut self.display, hint, (320 - hint_width) / 2, 222, COLOR_HINT);
     }
     /// Show the previous-reset recovery reason before normal wallet startup.
     #[cfg(feature = "m5stack")]
@@ -55,5 +40,4 @@ impl<'a> BootDisplay<'a> {
         let hint_width = measure_hint(hint);
         draw_lato_hint(&mut self.display, hint, (320 - hint_width) / 2, 215, COLOR_HINT);
     }
-
 }

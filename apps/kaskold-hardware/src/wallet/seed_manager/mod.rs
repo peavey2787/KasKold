@@ -17,6 +17,7 @@
 // Stable seed-management facade. Storage, QR codecs, and passphrase
 // editing remain independently owned.
 
+mod account_key_store;
 mod manager;
 mod matching;
 mod mnemonic_store;

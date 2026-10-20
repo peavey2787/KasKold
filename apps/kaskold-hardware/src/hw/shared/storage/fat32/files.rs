@@ -1,17 +1,8 @@
 mod helpers;
-use helpers::{
-    allocate_file_chain, clusters_for_file, file_entry, replace_existing_file,
-    write_new_file_payload,
-};
 use super::allocation::release_chain;
 use super::directory::{mark_dir_entry_deleted, write_dir_entry_to_root};
-use super::{
-    DirEntry,
-    Fat32Info,
-    SdCardType,
-    find_file_in_root,
-    read_file_progress,
-};
+use super::{find_file_in_root, read_file_progress, DirEntry, Fat32Info, SdCardType};
+use helpers::{allocate_file_chain, clusters_for_file, file_entry, replace_existing_file, write_new_file_payload};
 // KasKold — Air-gapped offline signing device for Kaspa
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
 //
@@ -64,11 +55,7 @@ pub fn create_file_progress(
     Ok(entry)
 }
 
-pub fn delete_file(
-    card_type: SdCardType,
-    fat32: &Fat32Info,
-    name_83: &[u8; 11],
-) -> Result<(), &'static str> {
+pub fn delete_file(card_type: SdCardType, fat32: &Fat32Info, name_83: &[u8; 11]) -> Result<(), &'static str> {
     let (entry, sector, offset) = find_file_in_root(card_type, fat32, name_83)?;
     // Commit deletion first. A power loss after this point may leak clusters,
     // but no live directory entry can point into a chain that is being freed.

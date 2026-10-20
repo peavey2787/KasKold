@@ -1,7 +1,7 @@
 mod boot;
 mod read;
+use super::{sd_read_block, DirEntry, Fat32Info, SdCardType};
 use read::{checked_chain_step, checked_file_size, read_file_cluster};
-use super::{DirEntry, Fat32Info, SdCardType, sd_read_block};
 // KasKold — Air-gapped offline signing device for Kaspa
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
 //
@@ -39,9 +39,7 @@ impl Fat32Info {
         if cluster < 2 {
             return self.data_start_sector;
         }
-        self.data_start_sector.saturating_add(
-            (cluster - 2).saturating_mul(self.sectors_per_cluster as u32),
-        )
+        self.data_start_sector.saturating_add((cluster - 2).saturating_mul(self.sectors_per_cluster as u32))
     }
     pub fn cluster_bytes(&self) -> u32 {
         self.sectors_per_cluster as u32 * FAT32_SECTOR_BYTES
@@ -70,32 +68,20 @@ impl DirEntry {
     }
 
     pub fn matches(&self, name_83: &[u8; 11]) -> bool {
-        self.name
-            .iter()
-            .zip(name_83.iter())
-            .all(|(&left, &right)| left.eq_ignore_ascii_case(&right))
+        self.name.iter().zip(name_83.iter()).all(|(&left, &right)| left.eq_ignore_ascii_case(&right))
     }
 }
 
 pub fn to_83_name(filename: &[u8]) -> [u8; 11] {
     let mut result = [b' '; 11];
-    let dot_pos = filename
-        .iter()
-        .position(|&byte| byte == b'.')
-        .unwrap_or(filename.len());
+    let dot_pos = filename.iter().position(|&byte| byte == b'.').unwrap_or(filename.len());
 
-    for (destination, &source) in result[..8]
-        .iter_mut()
-        .zip(filename[..dot_pos.min(filename.len())].iter().take(8))
-    {
+    for (destination, &source) in result[..8].iter_mut().zip(filename[..dot_pos.min(filename.len())].iter().take(8)) {
         *destination = source.to_ascii_uppercase();
     }
 
     if dot_pos < filename.len() {
-        for (destination, &source) in result[8..]
-            .iter_mut()
-            .zip(filename[dot_pos + 1..].iter().take(3))
-        {
+        for (destination, &source) in result[8..].iter_mut().zip(filename[dot_pos + 1..].iter().take(3)) {
             *destination = source.to_ascii_uppercase();
         }
     }
@@ -103,20 +89,11 @@ pub fn to_83_name(filename: &[u8]) -> [u8; 11] {
     result
 }
 
-pub(super) fn checked_fat_entry_location(
-    fat32: &Fat32Info,
-    cluster: u32,
-) -> Result<(u32, usize), &'static str> {
+pub(super) fn checked_fat_entry_location(fat32: &Fat32Info, cluster: u32) -> Result<(u32, usize), &'static str> {
     let fat_offset = cluster.checked_mul(4).ok_or("FAT offset overflow")?;
-    let sector = fat32
-        .fat_start_sector
-        .checked_add(fat_offset / FAT32_SECTOR_BYTES)
-        .ok_or("FAT sector overflow")?;
+    let sector = fat32.fat_start_sector.checked_add(fat_offset / FAT32_SECTOR_BYTES).ok_or("FAT sector overflow")?;
     let offset = (fat_offset % FAT32_SECTOR_BYTES) as usize;
-    if offset
-        .checked_add(4)
-        .map_or(true, |end| end > FAT32_SECTOR_BYTES as usize)
-    {
+    if offset.checked_add(4).map_or(true, |end| end > FAT32_SECTOR_BYTES as usize) {
         return Err("FAT offset out of range");
     }
     Ok((sector, offset))
@@ -127,12 +104,7 @@ pub fn read_fat_entry(card_type: SdCardType, fat32: &Fat32Info, cluster: u32) ->
 
     let mut buffer = [0u8; 512];
     sd_read_block(card_type, sector, &mut buffer)?;
-    let entry = u32::from_le_bytes([
-        buffer[offset],
-        buffer[offset + 1],
-        buffer[offset + 2],
-        buffer[offset + 3],
-    ]);
+    let entry = u32::from_le_bytes([buffer[offset], buffer[offset + 1], buffer[offset + 2], buffer[offset + 3]]);
     Ok(entry & 0x0FFF_FFFF)
 }
 
@@ -155,21 +127,12 @@ pub fn read_file_progress(
     let mut cluster = entry.first_cluster();
     let mut remaining = file_size;
     let mut position = 0usize;
-    let max_chain = (entry.file_size / cluster_bytes)
-        .saturating_add(2)
-        .min(MAX_FAT_CHAIN_STEPS);
+    let max_chain = (entry.file_size / cluster_bytes).saturating_add(2).min(MAX_FAT_CHAIN_STEPS);
     let mut chain_steps = 0u32;
 
     while remaining > 0 && (2..FAT32_END_OF_CHAIN).contains(&cluster) {
         chain_steps = checked_chain_step(chain_steps, max_chain)?;
-        read_file_cluster(
-            card_type,
-            fat32,
-            cluster,
-            out,
-            &mut position,
-            &mut remaining,
-        )?;
+        read_file_cluster(card_type, fat32, cluster, out, &mut position, &mut remaining)?;
         progress(position, file_size);
         if remaining > 0 {
             cluster = read_fat_entry(card_type, fat32, cluster)?;
@@ -181,7 +144,6 @@ pub fn read_file_progress(
     Ok(position)
 }
 
-
 pub(crate) fn detect_fat32_partition(mbr: &[u8; 512]) -> Result<u32, &'static str> {
     if mbr[510] != 0x55 || mbr[511] != 0xAA {
         return Err("Invalid MBR signature");
@@ -191,17 +153,8 @@ pub(crate) fn detect_fat32_partition(mbr: &[u8; 512]) -> Result<u32, &'static st
         let base = 0x1BE + partition_index * 16;
         let partition_type = mbr[base + 4];
         if partition_type == 0x0B || partition_type == 0x0C {
-            let lba = u32::from_le_bytes([
-                mbr[base + 8],
-                mbr[base + 9],
-                mbr[base + 10],
-                mbr[base + 11],
-            ]);
-            log!(
-                "[MBR] FAT32 partition {} at LBA {}",
-                partition_index,
-                lba
-            );
+            let lba = u32::from_le_bytes([mbr[base + 8], mbr[base + 9], mbr[base + 10], mbr[base + 11]]);
+            log!("[MBR] FAT32 partition {} at LBA {}", partition_index, lba);
             return Ok(lba);
         }
     }

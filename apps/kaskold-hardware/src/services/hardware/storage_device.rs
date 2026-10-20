@@ -4,8 +4,8 @@
 //! storage driver directly. Board selection and shared-bus ownership remain in `hw`.
 
 pub(crate) use crate::hw::sdcard::{
-    Fat32Info, SdCardType, create_file, delete_file, find_file_in_root, format_83_display,
-    format_fat32, list_root_dir, mount_fat32, overwrite_file, read_file, to_83_name, with_sd_card,
+    create_file, delete_file, find_file_in_root, format_83_display, format_fat32, list_root_dir, mount_fat32,
+    overwrite_file, read_file, to_83_name, with_sd_card, Fat32Info, SdCardType,
 };
 
 /// Report whether the currently probed board storage is known to be password-locked.
