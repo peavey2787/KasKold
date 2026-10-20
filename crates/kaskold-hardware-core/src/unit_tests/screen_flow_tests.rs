@@ -310,17 +310,33 @@ fn every_screen_family_has_one_touch_owner() {
 #[cfg(all(feature = "m5stack", feature = "workflow-tests"))]
 #[test]
 fn feature_gated_screens_have_touch_owners() {
+    // Every screen that only a feature build declares, with its owner.
     let owners = [
-        (OwnerFirmwareMenu, HandlerGroup::Menu),
         (PopItPrompt, HandlerGroup::Settings),
+        (PopItExplain, HandlerGroup::Settings),
+        (PopItConfirm, HandlerGroup::Settings),
+        (OwnerFirmwareMenu, HandlerGroup::Menu),
+        (OwnerKeyWarning, HandlerGroup::Settings),
+        (OwnerKeyConfirm, HandlerGroup::Settings),
+        (OwnerInstallWarning, HandlerGroup::Settings),
+        (OwnerInstallConfirm, HandlerGroup::Settings),
         (DeveloperMenu, HandlerGroup::Menu),
+        (NetworkMenu, HandlerGroup::Menu),
         (DiagnosticInfo, HandlerGroup::Settings),
+        (WorkflowTestsMenu, HandlerGroup::WorkflowTests),
         (
             WorkflowTestsCategory { category: 1 },
             HandlerGroup::WorkflowTests,
         ),
+        (WorkflowTestsResult, HandlerGroup::WorkflowTests),
         (AudioSettings, HandlerGroup::Settings),
+        (AdvancedRtcEntry, HandlerGroup::Settings),
+        (AdvancedTimeLockWarning, HandlerGroup::Settings),
+        (AdvancedTimeLockEntry, HandlerGroup::Settings),
+        (AdvancedTimeLockConfirm, HandlerGroup::Settings),
+        (AdvancedWeeklyWarning, HandlerGroup::Settings),
         (AdvancedWeeklyEntry, HandlerGroup::Settings),
+        (AdvancedWeeklyConfirm, HandlerGroup::Settings),
     ];
     for (state, group) in owners {
         assert_eq!(state.handler_group(), group, "{state:?}");

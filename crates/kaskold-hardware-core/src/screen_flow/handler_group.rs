@@ -20,9 +20,12 @@ pub enum HandlerGroup {
 impl AppState {
     /// Map this AppState to its responsible handler module.
     ///
-    /// The match stays exhaustive so a new screen cannot compile without an
-    /// owner; it is kept in its grouped table layout because one variant per
-    /// line would exceed the function-length limit without adding clarity.
+    /// The match is exhaustive over every always-compiled screen: the root
+    /// workspace builds this crate without screen-set features, so a new
+    /// screen cannot compile there without an owner. Screens that exist only
+    /// in feature builds are owned by [`AppState::feature_handler_group`]. The
+    /// grouped table layout is kept because one variant per line would exceed
+    /// the function-length limit without adding clarity.
     #[rustfmt::skip]
     pub fn handler_group(&self) -> HandlerGroup {
         use AppState::*;
@@ -35,10 +38,6 @@ impl AppState {
             | ChooseWordCount { .. } | StorageSeedWordCountChoice { .. } | SeedEntropyUnavailable { .. } | StorageSeedDiceChoice | StorageSeedDiceCountChoice | StorageSeedTouchChoice | ShowQR | Rejected
             | CovBackupName
                 => HandlerGroup::Menu,
-            #[cfg(feature = "developer-ui")]
-            DeveloperMenu | NetworkMenu => HandlerGroup::Menu,
-            #[cfg(feature = "developer-ui")]
-            DiagnosticInfo => HandlerGroup::Settings,
 
             // JPEG steganographic wallet-backup workflow
             StegoModeSelect | StegoSecuritySelect | StegoResult | StegoJpegPick
@@ -77,27 +76,12 @@ impl AppState {
             | ExportPrivKeyIndex
                 => HandlerGroup::Export,
 
-            #[cfg(feature = "workflow-tests")]
-            WorkflowTestsMenu | WorkflowTestsCategory { .. } | WorkflowTestsResult
-                => HandlerGroup::WorkflowTests,
-
             // Settings
             SettingsMenu | DisplaySettings | SdCardSettings | SdCardUnlockPassword | About
             | FactoryResetWarning | FactoryResetConfirm | FirmwareUpdateReady
             | AdvancedFeatures | AdvancedDuressWarning | AdvancedDuressEntry | AdvancedDuressConfirm
             | AdvancedSdStorageWarning
                 => HandlerGroup::Settings,
-            #[cfg(feature = "provisioning-ui")]
-            OwnerFirmwareMenu | PopItPrompt | PopItExplain | PopItConfirm
-            | OwnerKeyWarning | OwnerKeyConfirm | OwnerInstallWarning | OwnerInstallConfirm
-                => provisioning_handler_group(self),
-
-
-            #[cfg(feature = "m5stack")]
-            AdvancedRtcEntry | AdvancedTimeLockWarning | AdvancedTimeLockEntry | AdvancedTimeLockConfirm
-            | AdvancedWeeklyWarning | AdvancedWeeklyEntry | AdvancedWeeklyConfirm
-            | AudioSettings => HandlerGroup::Settings,
-
 
             // Transaction / multisig / camera / message signing
             ScanQR | ReviewTx { .. } | InspectUtxoSummary | InspectUtxo { .. } | ConfirmTx | SignTxGuide | AntiKleptoRevealGuide
@@ -121,16 +105,41 @@ impl AppState {
             | StoragePasswordEntry | StoragePasswordConfirm | StorageUnlockPin | StorageUnlockPassword
             | StorageSdFailure => HandlerGroup::Persistence,
 
-            // Transient signing step; no direct touch handler.
+            #[cfg(any(feature = "developer-ui", feature = "provisioning-ui", feature = "m5stack"))]
+            feature_screen => feature_screen.feature_handler_group(),
         }
     }
-}
 
-#[cfg(feature = "provisioning-ui")]
-fn provisioning_handler_group(state: &AppState) -> HandlerGroup {
-    if matches!(state, AppState::OwnerFirmwareMenu) {
-        HandlerGroup::Menu
-    } else {
-        HandlerGroup::Settings
+    /// Owner of a screen that only developer, provisioning, workflow-test or
+    /// M5Stack builds declare; every such screen is named here. Always-compiled
+    /// screens never reach this table: [`AppState::handler_group`] owns each of
+    /// them before falling through, so the final arm only completes the match.
+    #[cfg(any(
+        feature = "developer-ui",
+        feature = "provisioning-ui",
+        feature = "m5stack"
+    ))]
+    #[rustfmt::skip]
+    fn feature_handler_group(&self) -> HandlerGroup {
+        use AppState::*;
+        match self {
+            #[cfg(feature = "developer-ui")]
+            DeveloperMenu | NetworkMenu => HandlerGroup::Menu,
+            #[cfg(feature = "provisioning-ui")]
+            OwnerFirmwareMenu => HandlerGroup::Menu,
+            #[cfg(feature = "workflow-tests")]
+            WorkflowTestsMenu | WorkflowTestsCategory { .. } | WorkflowTestsResult => HandlerGroup::WorkflowTests,
+            #[cfg(feature = "developer-ui")]
+            DiagnosticInfo => HandlerGroup::Settings,
+            #[cfg(feature = "provisioning-ui")]
+            PopItPrompt | PopItExplain | PopItConfirm
+            | OwnerKeyWarning | OwnerKeyConfirm | OwnerInstallWarning | OwnerInstallConfirm
+                => HandlerGroup::Settings,
+            #[cfg(feature = "m5stack")]
+            AdvancedRtcEntry | AdvancedTimeLockWarning | AdvancedTimeLockEntry | AdvancedTimeLockConfirm
+            | AdvancedWeeklyWarning | AdvancedWeeklyEntry | AdvancedWeeklyConfirm | AudioSettings
+                => HandlerGroup::Settings,
+            _ => HandlerGroup::Settings,
+        }
     }
 }

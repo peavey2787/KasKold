@@ -17,29 +17,40 @@ pub enum OnboardingRoute {
 /// The onboarding sub-flow that owns `state`. Fixed persistence screens are
 /// always onboarding-owned; the rest only while a new seed is being set up.
 pub fn route_for(seed_onboarding: bool, state: AppState) -> Option<OnboardingRoute> {
-    use AppState::*;
-    use OnboardingRoute::*;
-    let fixed = match state {
-        StorageModeChoice
-        | StorageSeedSourceChoice
-        | AdvancedRestoreMenu
-        | RestoreWord12Detected
-        | StorageFinalizeChoice
-        | StorageProtectionChoice
-        | StorageCredentialType
-        | StoragePinEntry
-        | StoragePinConfirm
-        | StoragePasswordEntry
-        | StoragePasswordConfirm
-        | StorageSeedWordCountChoice { .. } => Some(Persistence),
-        _ => None,
-    };
-    if fixed.is_some() {
-        return fixed;
+    if is_fixed_persistence(state) {
+        return Some(OnboardingRoute::Persistence);
     }
     if !seed_onboarding {
         return None;
     }
+    generation_route(state).or_else(|| restore_route(state))
+}
+
+/// Persistence screens owned by onboarding whether or not a seed is being set up.
+fn is_fixed_persistence(state: AppState) -> bool {
+    use AppState::*;
+    matches!(
+        state,
+        StorageModeChoice
+            | StorageSeedSourceChoice
+            | AdvancedRestoreMenu
+            | RestoreWord12Detected
+            | StorageFinalizeChoice
+            | StorageProtectionChoice
+            | StorageCredentialType
+            | StoragePinEntry
+            | StoragePinConfirm
+            | StoragePasswordEntry
+            | StoragePasswordConfirm
+            | StorageSeedWordCountChoice { .. }
+    )
+}
+
+/// Sub-flow of a seed-generation screen: entropy collection, the recovery
+/// words it produced, and their acknowledgement.
+fn generation_route(state: AppState) -> Option<OnboardingRoute> {
+    use AppState::*;
+    use OnboardingRoute::*;
     match state {
         StorageRecoveryAcknowledgement => Some(Persistence),
         SeedEntropyUnavailable { .. }
@@ -48,13 +59,22 @@ pub fn route_for(seed_onboarding: bool, state: AppState) -> Option<OnboardingRou
         | StorageSeedTouchChoice
         | TouchEntropy => Some(Generation),
         DiceRoll => Some(Dice),
+        SeedBackup { .. } => Some(RecoveryWords),
+        _ => None,
+    }
+}
+
+/// Sub-flow of a seed-restore screen: typed entry or an import transport.
+fn restore_route(state: AppState) -> Option<OnboardingRoute> {
+    use AppState::*;
+    use OnboardingRoute::*;
+    match state {
         RestoreWord { .. }
         | ImportWord { .. }
         | PassphraseChoice
         | PassphraseEntry
         | ImportPrivKey
         | WalletNameEntry { purpose: 0 | 3 } => Some(SeedEntry),
-        SeedBackup { .. } => Some(RecoveryWords),
         ScanQR => Some(Scan),
         SdWalletBackupFileList | SdWalletBackupImportPassphrase => Some(Sd),
         StegoImportPick
@@ -109,6 +129,12 @@ fn source_transition_allowed(from: AppState, to: AppState) -> bool {
 }
 
 fn entropy_transition_allowed(from: AppState, to: AppState) -> bool {
+    word_count_transition_allowed(from, to)
+        || dice_transition_allowed(from, to)
+        || touch_transition_allowed(from, to)
+}
+
+fn word_count_transition_allowed(from: AppState, to: AppState) -> bool {
     use AppState::*;
     match from {
         StorageSeedWordCountChoice { action: 0 } => matches!(
@@ -119,14 +145,28 @@ fn entropy_transition_allowed(from: AppState, to: AppState) -> bool {
                     word_count: 12 | 24
                 }
         ),
-        SeedEntropyUnavailable { word_count } => match to {
-            StorageSeedWordCountChoice { action: 0 } | StorageSeedDiceChoice => true,
-            SeedEntropyUnavailable {
-                word_count: retry_count,
-            } => retry_count == word_count,
-            _ => false,
-        },
+        SeedEntropyUnavailable { word_count } => entropy_retry_allowed(word_count, to),
         StorageSeedWordCountChoice { .. } => matches!(to, StorageModeChoice),
+        _ => false,
+    }
+}
+
+/// Exits from the "entropy unavailable" screen: back to the word count, on to
+/// dice, or a retry for the same word count.
+fn entropy_retry_allowed(word_count: u8, to: AppState) -> bool {
+    use AppState::*;
+    match to {
+        StorageSeedWordCountChoice { action: 0 } | StorageSeedDiceChoice => true,
+        SeedEntropyUnavailable {
+            word_count: retry_count,
+        } => retry_count == word_count,
+        _ => false,
+    }
+}
+
+fn dice_transition_allowed(from: AppState, to: AppState) -> bool {
+    use AppState::*;
+    match from {
         StorageSeedDiceChoice => matches!(
             to,
             StorageSeedWordCountChoice { action: 0 }
@@ -140,6 +180,13 @@ fn entropy_transition_allowed(from: AppState, to: AppState) -> bool {
             to,
             StorageSeedDiceCountChoice | StorageSeedTouchChoice | StorageModeChoice
         ),
+        _ => false,
+    }
+}
+
+fn touch_transition_allowed(from: AppState, to: AppState) -> bool {
+    use AppState::*;
+    match from {
         StorageSeedTouchChoice => matches!(
             to,
             StorageSeedWordCountChoice { action: 0 }
@@ -230,6 +277,12 @@ fn passphrase_transition_allowed(from: AppState, to: AppState) -> bool {
 }
 
 fn restore_transport_transition_allowed(from: AppState, to: AppState) -> bool {
+    scan_or_sd_transition_allowed(from, to)
+        || stego_import_transition_allowed(from, to)
+        || stego_unlock_transition_allowed(from, to)
+}
+
+fn scan_or_sd_transition_allowed(from: AppState, to: AppState) -> bool {
     use AppState::*;
     match from {
         ScanQR => matches!(
@@ -240,11 +293,27 @@ fn restore_transport_transition_allowed(from: AppState, to: AppState) -> bool {
             matches!(to, StorageSeedSourceChoice | SdWalletBackupImportPassphrase)
         }
         SdWalletBackupImportPassphrase => matches!(to, SdWalletBackupFileList | PassphraseChoice),
+        _ => false,
+    }
+}
+
+/// Picking the JPEG and its descriptor source.
+fn stego_import_transition_allowed(from: AppState, to: AppState) -> bool {
+    use AppState::*;
+    match from {
         StegoImportPick => matches!(to, AdvancedRestoreMenu | StegoImportDescChoice),
         StegoImportDescChoice => {
             matches!(to, StegoImportPick | StegoImportDescFile | StegoImportPass)
         }
         StegoImportDescFile => matches!(to, StegoImportDescChoice | StegoImportPass),
+        _ => false,
+    }
+}
+
+/// Unlocking the JPEG payload: passphrase, portable password or hint.
+fn stego_unlock_transition_allowed(from: AppState, to: AppState) -> bool {
+    use AppState::*;
+    match from {
         StegoImportPass => matches!(
             to,
             StegoImportDescChoice
@@ -272,15 +341,7 @@ fn restore_transport_transition_allowed(from: AppState, to: AppState) -> bool {
 fn recovery_transition_allowed(from: AppState, to: AppState) -> bool {
     use AppState::*;
     match from {
-        SeedBackup { word_idx: from_idx } => match to {
-            SeedBackup { word_idx: to_idx } => {
-                to_idx == from_idx.saturating_add(1) || from_idx == to_idx.saturating_add(1)
-            }
-            PassphraseChoice => from_idx == 0,
-            StorageModeChoice => from_idx == 0,
-            StorageRecoveryAcknowledgement => true,
-            _ => false,
-        },
+        SeedBackup { word_idx } => seed_backup_transition_allowed(word_idx, to),
         StorageRecoveryAcknowledgement => matches!(
             to,
             SeedBackup { .. }
@@ -300,6 +361,20 @@ fn recovery_transition_allowed(from: AppState, to: AppState) -> bool {
         StorageProtectionChoice => {
             matches!(to, StorageFinalizeChoice | StorageCredentialType | MainMenu)
         }
+        _ => false,
+    }
+}
+
+/// Exits from recovery word `from_idx`: an adjacent word, back out from the
+/// first word, or on to the acknowledgement.
+fn seed_backup_transition_allowed(from_idx: u8, to: AppState) -> bool {
+    use AppState::*;
+    match to {
+        SeedBackup { word_idx: to_idx } => {
+            to_idx == from_idx.saturating_add(1) || from_idx == to_idx.saturating_add(1)
+        }
+        PassphraseChoice | StorageModeChoice => from_idx == 0,
+        StorageRecoveryAcknowledgement => true,
         _ => false,
     }
 }
