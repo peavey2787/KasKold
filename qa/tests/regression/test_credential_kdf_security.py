@@ -121,21 +121,29 @@ class CredentialKdfSecurityTests(unittest.TestCase):
             self.assertNotIn("legacy_pbkdf2", source)
             self.assertNotIn("derive_legacy_32", source)
 
-    def test_current_kdf_profile_is_the_single_strengthened_v1_profile(self) -> None:
-        # Kaspa Portal owns one Argon2id profile (8 MiB, t=3, p=1); there is no
-        # older, weaker profile left to accept.
+    def test_kdf_profiles_are_the_fixed_device_and_host_profiles(self) -> None:
+        # Kaspa Portal owns exactly two Argon2id profiles: v1 (8 MiB, t=3, p=1),
+        # which every embedded signer derives, and the v2 host profile (the same
+        # shape with 64 MiB). Readers accept only an exact profile, so nothing
+        # weaker than v1 is accepted, and the firmware accepts only v1.
         source = read("crates/offline-signer/src/crypto/password_kdf.rs")
         portable = read("crates/hot-wallet/src/portable_backup.rs")
+        firmware = read("apps/kaskold-hardware/src/services/memory/password_kdf.rs")
         for token in (
             "PROFILE_VERSION_1: u8 = 1",
+            "PROFILE_VERSION_2: u8 = 2",
             "V1_MEMORY_KIB: u32 = 8_192",
             "V1_TIME_COST: u32 = 3",
+            "V2_MEMORY_KIB: u32 = 65_536",
             "profile_version: PROFILE_VERSION_1",
+            "profile_version: PROFILE_VERSION_2",
+            "..Self::current()",
+            "self.is_current() | self.is_host()",
+            "if !parameters.is_supported()",
         ):
             self.assertIn(token, source)
-        self.assertNotIn("PROFILE_VERSION_2", source)
-        self.assertNotIn("is_supported", source)
-        self.assertIn("if !parameters.is_current()", source)
+        self.assertIn("if !parameters.is_current() || !parameters.meets_v1_minimum()", firmware)
+        self.assertIn("PasswordKdfParams::host()", portable)
         self.assertIn("derive_key_32_with_params", portable)
         self.assertIn("let parameters = parse_metadata", portable)
 

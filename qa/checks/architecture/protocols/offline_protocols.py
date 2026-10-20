@@ -110,7 +110,7 @@ def _check_password_kdf_policy(root: Path) -> list[str]:
     for token in (
         "Algorithm::Argon2id", "Version::V0x13", "PasswordKdfPurpose",
         "try_reserve_exact", "AllocationFailed", "UnsupportedParameters",
-        "parameters.is_current()", "derive_key_32_with_workspace",
+        "parameters.is_supported()", "derive_key_32_with_workspace",
         "workspace_block_count", "zeroize_workspace", "PasswordKdfBlock",
     ):
         if token not in current:

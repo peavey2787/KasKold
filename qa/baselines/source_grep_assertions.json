@@ -15,7 +15,7 @@
   "qa/tests/regression/test_connected_failure_recovery.py": 8,
   "qa/tests/regression/test_cores3_lite_profile.py": 4,
   "qa/tests/regression/test_credential_kdf_hardware_memory.py": 10,
-  "qa/tests/regression/test_credential_kdf_security.py": 69,
+  "qa/tests/regression/test_credential_kdf_security.py": 68,
   "qa/tests/regression/test_credential_runtime_safety.py": 17,
   "qa/tests/regression/test_credential_secret_lifetime.py": 7,
   "qa/tests/regression/test_critical_crypto_truncation.py": 9,

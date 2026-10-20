@@ -47,7 +47,7 @@ class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
         tests = text("crates/kaskold-protocol/src/unit_tests/pskt_schema.rs")
 
         self.assertIn("pub fn validate_canonical_json", schema)
-        self.assertIn("key_seen_before", schema)
+        self.assertIn("fn reject_duplicate_keys", schema)
         self.assertIn("JsonSyntaxError::DuplicateKey", schema)
         parse = fn_body(host, "parse_strict_json")
         self.assertLess(parse.index("validate_canonical_json"), parse.index("serde_json::from_slice"))
