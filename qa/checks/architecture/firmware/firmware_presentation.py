@@ -6,7 +6,7 @@ from pathlib import Path
 def check(root: Path) -> list[str]:
     errors: list[str] = []
     firmware = root / "apps/kaskold-hardware/src"
-    state = _read(firmware / "runtime/input/state.rs")
+    state = _read(root / "crates/kaskold-hardware-core/src/screen_flow/state.rs")
     graph_states = _read(firmware / "runtime/navigation/ui_graph/states.rs")
     graph_menus = _read(firmware / "runtime/navigation/ui_graph/menus.rs")
     presentation_data = _read(firmware / "runtime/data/presentation/mod.rs")

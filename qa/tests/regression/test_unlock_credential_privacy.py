@@ -32,8 +32,8 @@ class UnlockCredentialPrivacyTests(unittest.TestCase):
         self.assertIn("PersistError::PasswordTooShort", result)
         self.assertIn("PersistError::PasswordNeedsDigit", result)
         self.assertIn("commit_authentication_retry(ad, kind, operation, retry_ms)", result)
-        self.assertIn('Self::WrongPassword => "Invalid password"', state)
-        self.assertIn('Self::WrongPin => "Invalid PIN"', state)
+        self.assertIn('Self::WrongPassword { remaining } => failure_title(remaining, "Invalid password")', state)
+        self.assertIn('Self::WrongPin { remaining } => failure_title(remaining, "Invalid PIN")', state)
 
     def test_creation_still_owns_detailed_password_policy_errors(self):
         interaction = read("apps/kaskold-hardware/src/runtime/interactions/persistence/credential.rs")

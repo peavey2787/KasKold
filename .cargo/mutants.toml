@@ -14,6 +14,7 @@ examine_globs = [
   "crates/online-watcher/src/protocol/**/*.rs",
   "crates/online-watcher/src/contracts/zk/crowdfund.rs",
   "crates/online-watcher/src/transaction_builder/**/*.rs",
+  "crates/shared-signer/src/credential_policy.rs",
 ]
 exclude_globs = [
   "**/unit_tests/**",

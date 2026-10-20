@@ -15,7 +15,7 @@ GRAPH_PARTS = (
     Path("apps/kaskold-hardware/src/runtime/navigation/ui_graph/states.rs"),
     Path("apps/kaskold-hardware/src/runtime/navigation/ui_graph/menus.rs"),
 )
-STATE_FILE = Path("apps/kaskold-hardware/src/runtime/input/state.rs")
+STATE_FILE = Path("crates/kaskold-hardware-core/src/screen_flow/state.rs")
 JSON_OUTPUT = Path("qa/config/workflow/production_ui_graph.json")
 MARKDOWN_OUTPUT = Path("qa/generated/production_ui_map.md")
 EXCLUDED_STATE_CFG = ("developer-ui", "workflow-tests", "qemu")

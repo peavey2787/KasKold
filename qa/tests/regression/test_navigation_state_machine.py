@@ -379,7 +379,7 @@ class NavigationStateMachineTests(unittest.TestCase):
 
     def test_seeds_root_render_is_state_pure_and_seed_controller_owned(self) -> None:
         inventory = read("apps/kaskold-hardware/src/ui/redraw/wallet/inventory.rs")
-        routing = read("apps/kaskold-hardware/src/runtime/input/routing.rs")
+        routing = read("crates/kaskold-hardware-core/src/screen_flow/handler_group.rs")
         seed_facade = read("apps/kaskold-hardware/src/runtime/interactions/seed/seed_list.rs")
         primary = read("apps/kaskold-hardware/src/runtime/interactions/menu/primary.rs")
 
@@ -659,47 +659,31 @@ class NavigationStateMachineTests(unittest.TestCase):
         self.assertIn("complete_onboarding(ad)", persistent_nav)
         self.assertIn("complete_onboarding(ad)", persistence)
 
+    # Which screens onboarding owns and the screen-to-screen matrix itself are
+    # host-tested in kaskold-hardware-core unit_tests/screen_flow_tests.rs; the
+    # two tests below assert the firmware policy consults them with live state.
     def test_sd_recovery_ack_is_owned_by_settings_only_for_sd_enable_intent(self) -> None:
         policy = read("apps/kaskold-hardware/src/runtime/navigation/policy.rs")
-        onboarding = read("apps/kaskold-hardware/src/runtime/navigation/onboarding.rs")
         self.assertIn("DeviceStorageIntent::EnableSd", policy)
         self.assertIn("is_sd_enable_state(state)", policy)
         self.assertIn("return NavigationOwner::Settings", policy)
-        self.assertIn("super::onboarding::owns_state(intent, state)", policy)
-        self.assertIn("intent.is_seed_onboarding()", onboarding)
-        self.assertIn("StorageRecoveryAcknowledgement", onboarding)
+        self.assertEqual(policy.count("onboarding::owns_state(intent.is_seed_onboarding(), state)"), 2)
+        self.assertLess(policy.index("DeviceStorageIntent::EnableSd"), policy.index("onboarding::owns_state("))
 
-    def test_onboarding_uses_explicit_screen_to_screen_transition_matrix(self) -> None:
+    def test_onboarding_owner_moves_are_checked_against_the_core_matrix(self) -> None:
         policy = read("apps/kaskold-hardware/src/runtime/navigation/policy.rs")
-        matrix = read("apps/kaskold-hardware/src/runtime/navigation/onboarding.rs")
-
-        self.assertIn("super::onboarding::transition_allowed(from_state, to_state)", policy)
-        self.assertIn("source_transition_allowed(from, to)", matrix)
-        self.assertIn("entropy_transition_allowed(from, to)", matrix)
-        self.assertIn("seed_entry_transition_allowed(from, to)", matrix)
-        self.assertIn("recovery_transition_allowed(from, to)", matrix)
-        self.assertIn("credential_transition_allowed(from, to)", matrix)
-        self.assertIn("StorageModeChoice => matches!(to, StorageSeedSourceChoice | WalletNameEntry { purpose: 0 })", matrix)
-        self.assertIn("WalletNameEntry { purpose: 0 } => matches!(to, StorageModeChoice | StorageSeedWordCountChoice { action: 0 })", matrix)
-        self.assertIn("RestoreWord { word_idx: 0 }", matrix)
-        self.assertIn("RestoreWord12Detected", matrix)
-        self.assertIn("StorageSeedDiceCountChoice", matrix)
-        self.assertIn("StorageSeedTouchChoice", matrix)
-        self.assertIn("PassphraseChoice", matrix)
-        self.assertIn("StorageRecoveryAcknowledgement", matrix)
-        self.assertIn("StorageFinalizeChoice", matrix)
-        self.assertIn("StorageCredentialType", matrix)
-        self.assertIn("_ => false", matrix)
+        same_owner = policy[policy.index("    if from == to {"):]
+        same_owner = same_owner[:same_owner.index("\n    }")]
+        self.assertIn("from != NavigationOwner::Onboarding", same_owner)
+        self.assertIn("onboarding::transition_allowed(from_state, to_state)", same_owner)
 
     def test_optional_touch_entropy_follows_optional_dice_and_is_additive(self) -> None:
-        state = read("apps/kaskold-hardware/src/runtime/input/state.rs")
         additive = read("apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation/additive.rs")
         mixer = read("apps/kaskold-hardware/src/services/entropy/mixer.rs")
         shared_mixer = read("crates/shared-signer/src/seed_entropy.rs")
         touch = read("apps/kaskold-hardware/src/runtime/event_loop/touch_entropy.rs")
         ui = read("apps/kaskold-hardware/src/ui/screens/device/persistence.rs")
 
-        self.assertIn("StorageSeedTouchChoice", state)
         branch_at = additive.index("if NO_DICE_BUTTON_Y.contains")
         no_dice = additive[branch_at:additive.index("} else if ADD_DICE_BUTTON_Y.contains", branch_at)]
         self.assertIn("StorageSeedTouchChoice", no_dice)
@@ -728,19 +712,12 @@ class NavigationStateMachineTests(unittest.TestCase):
     def test_onboarding_owner_routes_before_generic_screen_family(self) -> None:
         routes = read("apps/kaskold-hardware/src/runtime/event_loop/touch_routes.rs")
         onboarding = read("apps/kaskold-hardware/src/runtime/interactions/onboarding.rs")
-        state_machine = read("apps/kaskold-hardware/src/runtime/navigation/onboarding.rs")
         navigation = read("apps/kaskold-hardware/src/runtime/navigation/mod.rs")
-        routing = read("apps/kaskold-hardware/src/runtime/input/routing.rs")
 
         owner_at = routes.index("runtime::navigation::is_onboarding($ad)")
         generic_at = routes.index("controllers::classify(", owner_at)
         self.assertLess(owner_at, generic_at)
         self.assertIn("handle_onboarding_touch", routes[owner_at:generic_at])
-        self.assertIn("HandlerGroup::Persistence", routing)
-        self.assertIn("pub(crate) enum OnboardingRoute", state_machine)
-        self.assertIn("StorageSeedWordCountChoice { .. }", state_machine)
-        self.assertIn("Some(Generation)", state_machine)
-        self.assertIn("route_for(intent, state).is_some()", state_machine)
         self.assertIn("onboarding_route(ad)", onboarding)
         self.assertIn("OnboardingRoute::Generation", onboarding)
         self.assertIn("runtime::interactions::menu::seed_generation::handle", onboarding)
@@ -752,13 +729,10 @@ class NavigationStateMachineTests(unittest.TestCase):
 
     def test_create_mnemonic_word_count_taps_are_live_and_share_render_geometry(self) -> None:
         generation = read("apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation.rs")
-        state_machine = read("apps/kaskold-hardware/src/runtime/navigation/onboarding.rs")
         wallet = read("apps/kaskold-hardware/src/ui/screens/wallet/mod.rs")
         keyboard = read("apps/kaskold-hardware/src/ui/screens/wallet/keyboard.rs")
         screens = read("apps/kaskold-hardware/src/ui/screens.rs")
 
-        self.assertIn("StorageSeedWordCountChoice { .. }", state_machine)
-        self.assertIn("Some(Generation)", state_machine)
         self.assertIn("crate::ui::screens::word_count_choice_at(x, y)", generation)
         self.assertIn('Onboarding mnemonic length selected: {} words', generation)
         word_count_at = generation.index('let Some(word_count)')

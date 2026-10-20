@@ -9,6 +9,14 @@ publish = false
 [lib]
 path = "src/lib.rs"
 
+[features]
+# Screen-set features mirrored from the firmware so `AppState` declares the
+# same variants the firmware build compiles.
+m5stack = []
+provisioning-ui = []
+developer-ui = []
+workflow-tests = ["developer-ui", "provisioning-ui"]
+
 [dependencies]
 shared-signer = { version = "=2.0.0", path = "../shared-signer" }
 kaskold-protocol = { version = "=2.0.0", path = "../kaskold-protocol", default-features = false }

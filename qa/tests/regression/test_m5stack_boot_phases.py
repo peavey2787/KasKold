@@ -110,8 +110,8 @@ class M5StackBootPhaseTests(unittest.TestCase):
     def test_workflow_auto_gate_runs_before_optional_board_initialization(self) -> None:
         manifest = (ROOT / "apps/kaskold-hardware/Cargo.toml").read_text()
         main = (ROOT / "apps/kaskold-hardware/src/main.rs").read_text()
-        self.assertIn('developer-ui = []', manifest)
-        self.assertIn('workflow-tests = ["developer-ui", "provisioning-ui"]', manifest)
+        self.assertIn('developer-ui = ["kaskold-hardware-core/developer-ui"]', manifest)
+        self.assertIn('workflow-tests = ["developer-ui", "provisioning-ui", "kaskold-hardware-core/workflow-tests"]', manifest)
         self.assertNotIn('workflow-tests = ["verbose-boot"]', manifest)
         gate = main.index("runtime::workflow_tests::run_boot_gate();")
         self.assertLess(gate, main.index("run_startup_tests"))

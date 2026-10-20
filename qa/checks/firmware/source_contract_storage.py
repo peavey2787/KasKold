@@ -260,7 +260,7 @@ def check_sd_persistence_security_contract(errors: list[str]) -> None:
         "runtime SD persistence failures must zeroize volatile secrets and fail closed",
     )
 
-    state = read("apps/kaskold-hardware/src/runtime/input/state.rs")
+    state = read("crates/kaskold-hardware-core/src/screen_flow/state.rs")
     require(
         errors,
         "StorageSeedSourceChoice" in state

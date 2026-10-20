@@ -148,7 +148,7 @@ def check_security_integration_contract(root: Path, errors: list[str]) -> None:
     )
     require(
         'bmi2 = { version = "=0.1.2", optional = true }' in firmware_manifest
-        and 'm5stack = ["esp-println/jtag-serial", "dep:bmi2"]' in firmware_manifest
+        and 'm5stack = ["esp-println/jtag-serial", "dep:bmi2", "kaskold-hardware-core/m5stack"]' in firmware_manifest
         and 'name = "bmi2"' in firmware_lock
         and 'version = "0.1.2"' in firmware_lock
         and '48eb062697fa0234a96acdc8ed34f141e9f2951d34e358ed449f312d7e5b6469' in firmware_lock,

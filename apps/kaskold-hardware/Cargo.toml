@@ -14,7 +14,7 @@ license = "GPL-3.0-only"
 
 [features]
 default = ["m5stack"]
-m5stack = ["esp-println/jtag-serial", "dep:bmi2"]
+m5stack = ["esp-println/jtag-serial", "dep:bmi2", "kaskold-hardware-core/m5stack"]
 # CoreS3 Lite deliberately reuses the CoreS3 hardware adapter. The profile is
 # build-supported but must not be treated as hardware-qualified until HIL passes.
 m5stack-lite = ["m5stack"]
@@ -23,7 +23,7 @@ qemu-tests = ["qemu", "verbose-boot"]
 production = ["silent"]
 # Compile-time gate for the Pop It!/owner-authority UI and request staging.
 # Normal release builds intentionally do not enable this feature.
-provisioning-ui = []
+provisioning-ui = ["kaskold-hardware-core/provisioning-ui"]
 # Special CoreS3 profile that may stage explicit irreversible boot-control requests.
 secure-provisioning-core = ["production", "m5stack", "provisioning-ui"]
 # Vendor + optional owner dual-authority provisioning profile.
@@ -43,8 +43,8 @@ test-psram = []
 # Dedicated opt-in image used by qa/linux/run-all.sh --hardware.
 hardware-tests = ["verbose-boot", "test-psram", "developer-ui", "argon2-bench"]
 # Developer-only on-device workflow E2E menu/hooks. Never production.
-developer-ui = []
-workflow-tests = ["developer-ui", "provisioning-ui"]
+developer-ui = ["kaskold-hardware-core/developer-ui"]
+workflow-tests = ["developer-ui", "provisioning-ui", "kaskold-hardware-core/workflow-tests"]
 # Host-supervised image: auto-runs every workflow contract at boot.
 workflow-test-auto = ["workflow-tests"]
 # CoreS3 connected HIL image: keep auto-run semantics but initialize real optional peripherals.

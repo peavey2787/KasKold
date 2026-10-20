@@ -40,6 +40,7 @@ TEST_COMMANDS = (
     ("transaction_deep", ["node", "--test", "qa/checks/web/web_transaction_deep_paths.test.mjs"]),
     ("transaction_ui_deep", ["node", "--test", "qa/checks/web/web_transaction_ui_deep_paths.test.mjs"]),
     ("wallet_deep", ["node", "--test", "qa/checks/web/web_wallet_deep_paths.test.mjs"]),
+    ("wallet_views", ["node", "--test", "qa/checks/web/web_wallet_views_behaviour.test.mjs"]),
     ("portfolio", ["node", "--test", "qa/checks/web/web_portfolio_paths.test.mjs"]),
     ("covenant_event_deep", ["node", "--test", "qa/checks/web/web_covenant_event_deep_paths.test.mjs"]),
     ("covenant_runtime_deep", ["node", "--test", "qa/checks/web/web_covenant_runtime_deep_paths.test.mjs"]),

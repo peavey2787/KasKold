@@ -158,7 +158,7 @@ class DeviceBoundStorageTests(unittest.TestCase):
             self.assertIn(required, tests)
 
     def test_current_backup_and_touch_seed_states_are_present(self) -> None:
-        state = read("apps/kaskold-hardware/src/runtime/input/state.rs")
+        state = read("crates/kaskold-hardware-core/src/screen_flow/state.rs")
         navigation = read("apps/kaskold-hardware/src/runtime/navigation/ui_graph/menus.rs")
         routing = read("apps/kaskold-hardware/src/runtime/interactions/sd/common/routing.rs")
         for current in (
@@ -215,22 +215,20 @@ class DeviceBoundStorageTests(unittest.TestCase):
         self.assertIn("if !recovery_words_acknowledged", advanced)
 
     def test_device_bound_onboarding_establishes_words_before_ack_and_credential(self) -> None:
-        app_state = read("apps/kaskold-hardware/src/runtime/input/state.rs")
+        app_state = read("crates/kaskold-hardware-core/src/screen_flow/state.rs")
         controller = read_persistence_controller()
         onboarding = read("apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs")
         wallet_name = read("apps/kaskold-hardware/src/runtime/interactions/seed/wallet_name.rs")
         passphrase = read("apps/kaskold-hardware/src/runtime/interactions/seed/passphrase.rs")
         seed_backup = read("apps/kaskold-hardware/src/runtime/interactions/export/seed_backup.rs")
         ui = read("apps/kaskold-hardware/src/ui/screens/device/persistence.rs")
-        matrix = read("apps/kaskold-hardware/src/runtime/navigation/onboarding.rs")
 
-        for state in ("StorageSeedSourceChoice", "StorageSeedDiceChoice", "StorageSeedDiceCountChoice", "StorageSeedTouchChoice", "StorageSeedWordCountChoice { action: u8 }", "WalletNameEntry { purpose: u8 }"):
-            self.assertIn(state, app_state)
+        # The onboarding states and their transition matrix are host-tested in
+        # kaskold-hardware-core unit_tests/screen_flow_tests.rs.
         self.assertNotIn("StorageSeedCreationMethodChoice", app_state)
         self.assertIn("route!(WalletNameEntry { purpose: 0 })", onboarding)
         self.assertIn("route!(StorageSeedSourceChoice)", onboarding)
         self.assertIn("route!(StorageSeedWordCountChoice { action: 0 })", wallet_name)
-        self.assertIn("WalletNameEntry { purpose: 0 } => matches!(to, StorageModeChoice | StorageSeedWordCountChoice { action: 0 })", matrix)
         for label in ('"Create Wallet"', '"Restore Wallet"', '"Save Securely on Device"', '"Use for This Session Only"', '"Hardware + camera are always used."', '"No Dice"', '"Add Dice Rolls"', '"ADD TOUCH"', '"No Touch Entropy"', '"Add Touch Entropy"'):
             self.assertIn(label, ui)
         self.assertNotIn("ad.export.seed_backup_return = AppState::StorageRecoveryAcknowledgement", passphrase)
@@ -355,7 +353,7 @@ class DeviceBoundStorageTests(unittest.TestCase):
 
 
     def test_mnemonic_passphrase_is_explicitly_optional_and_explained(self) -> None:
-        state = read("apps/kaskold-hardware/src/runtime/input/state.rs")
+        state = read("crates/kaskold-hardware-core/src/screen_flow/state.rs")
         controller = read("apps/kaskold-hardware/src/runtime/interactions/seed/passphrase_choice.rs")
         entry = read("apps/kaskold-hardware/src/runtime/interactions/seed/passphrase.rs")
         redraw = read("apps/kaskold-hardware/src/ui/redraw/wallet/input.rs")
@@ -575,9 +573,6 @@ class DeviceBoundStorageTests(unittest.TestCase):
         self.assertEqual(mix_frames_sig.count("delay: &mut Delay"), 1)
 
     def test_camera_entropy_failure_is_recoverable_without_weakening_health_policy(self) -> None:
-        state = read("apps/kaskold-hardware/src/runtime/input/state.rs")
-        routing = read("apps/kaskold-hardware/src/runtime/input/routing.rs")
-        navigation = read("apps/kaskold-hardware/src/runtime/navigation/onboarding.rs")
         generation = read("apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation.rs")
         camera = read("apps/kaskold-hardware/src/services/entropy/camera/mod.rs")
         shared_camera = read("crates/kaskold-hardware-core/src/entropy/frame_noise.rs")
@@ -587,12 +582,8 @@ class DeviceBoundStorageTests(unittest.TestCase):
         dispatch = read("apps/kaskold-hardware/src/runtime/event_loop/dispatch.rs")
         click_policy = read("apps/kaskold-hardware/src/runtime/navigation/mod.rs")
 
-        self.assertIn("SeedEntropyUnavailable { word_count: u8 }", state)
-        self.assertIn("SeedEntropyUnavailable { .. }", routing)
-        self.assertIn("SeedEntropyUnavailable { .. }", navigation)
-        self.assertIn("Some(Generation)", navigation)
-        self.assertIn("StorageSeedDiceChoice | SeedEntropyUnavailable", navigation)
-        self.assertIn("SeedEntropyUnavailable { word_count: retry_count }", navigation)
+        # Ownership, touch routing and same-count retry of SeedEntropyUnavailable
+        # are host-tested in kaskold-hardware-core unit_tests/screen_flow_tests.rs.
 
         self.assertIn("MAX_CAMERA_HEALTH_WINDOWS: u8 = 3", shared_camera)
         self.assertIn("const RETRY_SETTLE_MS: u32 = 150;", camera)

@@ -1,5 +1,6 @@
 //! Device-local signing authorization and seed-entropy invariants.
 
+pub mod boot_fuses;
 pub mod credential;
 
 use crate::entropy::frame_noise::CameraEntropyReport;

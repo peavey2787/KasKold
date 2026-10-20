@@ -35,6 +35,7 @@ test_quality = load_module("security_test_quality", "qa/checks/security/test_qua
 repository_test_quality = load_module(
     "repository_test_quality", "qa/checks/security/repository_test_quality.py"
 )
+source_grep_ratchet = sys.modules["source_grep_ratchet"]
 mutation = load_module("security_mutation", "qa/checks/security/mutation.py")
 mutation_support = sys.modules["mutation_support"]
 mutation_reuse = sys.modules["mutation_reuse"]
@@ -197,6 +198,46 @@ class SecurityHardeningTests(unittest.TestCase):
         self.assertGreaterEqual(report["by_language"]["javascript"], 30)
         self.assertGreaterEqual(report["by_language"]["kotlin"], 4)
         self.assertGreaterEqual(report["by_language"]["swift"], 3)
+
+    def test_source_grep_ratchet_counts_only_tests_that_read_production_code(self) -> None:
+        grep = (
+            'def test_x(self):\n'
+            '    src = read("apps/kaskold-hardware/src/main.rs")\n'
+            '    self.assertIn("a", src)\n'
+            '    self.assertNotIn("b", src)\n'
+        )
+        markup = (
+            'def test_x(self):\n'
+            '    src = read("web/html/open.html")\n'
+            '    self.assertIn("a", src)\n'
+        )
+        self.assertEqual(source_grep_ratchet.file_count(grep), 2)
+        self.assertEqual(source_grep_ratchet.file_count(markup), 0)
+
+    def test_source_grep_ratchet_only_moves_down(self) -> None:
+        baseline = {"qa/tests/a.py": 5, "qa/tests/b.py": 2}
+        self.assertEqual(source_grep_ratchet.compare(dict(baseline), baseline), [])
+        exceeded = "test behaviour instead of grepping production source"
+        self.assertEqual(
+            source_grep_ratchet.compare({"qa/tests/a.py": 6, "qa/tests/b.py": 2}, baseline),
+            [f"qa/tests/a.py: 6 source-text assertions exceed the ratchet (5); {exceeded}"],
+        )
+        self.assertEqual(
+            source_grep_ratchet.compare({**baseline, "qa/tests/c.py": 1}, baseline),
+            [f"qa/tests/c.py: 1 source-text assertions exceed the ratchet (0); {exceeded}"],
+        )
+        self.assertEqual(
+            source_grep_ratchet.compare({"qa/tests/a.py": 3}, baseline),
+            [
+                "qa/tests/a.py: source-text assertions fell to 3 (baseline 5); "
+                "run qa/checks/security/source_grep_ratchet.py --tighten",
+                "qa/tests/b.py: no source-text assertions remain; run --tighten to drop it",
+            ],
+        )
+        self.assertEqual(
+            source_grep_ratchet.tighten({"qa/tests/a.py": 3, "qa/tests/c.py": 4}, baseline),
+            {"qa/tests/a.py": 3},
+        )
 
     def test_repository_test_quality_rejects_python_tautologies(self) -> None:
         node = __import__("ast").parse("def test_bad():\n    assert True\n").body[0]

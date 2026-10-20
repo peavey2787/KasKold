@@ -29,7 +29,6 @@ impl AppState {
     }
 }
 
-
 /// Whether the state requires the live QR/ciphertext/message scanner.
 ///
 /// Kept in the always-compiled input model so presentation and hardware-test

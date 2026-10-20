@@ -10,7 +10,6 @@
 
 mod button;
 mod menu;
-mod routing;
 mod state;
 mod wallet_app;
 
@@ -19,7 +18,7 @@ pub use button::Button;
 #[cfg(any(test, all(feature = "verbose-boot", not(feature = "skip-tests"))))]
 pub use button::ButtonEvent;
 pub use menu::Menu;
-pub use routing::HandlerGroup;
+pub use kaskold_hardware_core::screen_flow::HandlerGroup;
 pub use state::AppState;
 pub(crate) use state::is_scan_state;
 pub(crate) use state::CONFIRM_MENU_ITEMS;

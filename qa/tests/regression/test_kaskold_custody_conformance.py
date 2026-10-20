@@ -243,6 +243,7 @@ class KasKoldCustodyConformanceTests(unittest.TestCase):
             for path in (
                 ROOT / "apps/kaskold-vault-web/src/lib.rs",
                 ROOT / "apps/kaskold-vault-web/src/workflows.rs",
+                ROOT / "apps/kaskold-vault-web/src/backups.rs",
             )
         )
 

@@ -1,15 +1,6 @@
-// KasKold — Air-gapped offline signing device for Kaspa
-// Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
-// License: GPL-3.0
-
 //! Maps application states to their owning touch-controller subsystem.
 
 use super::state::AppState;
-
-// ─── Handler group dispatch ──────────────────────────────────────────
-//
-// Maps each AppState to the handler module responsible for its touch events.
-// Used by main.rs to route taps without listing every variant inline.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 /// Groups AppState variants by their touch handler module.
@@ -28,6 +19,11 @@ pub enum HandlerGroup {
 
 impl AppState {
     /// Map this AppState to its responsible handler module.
+    ///
+    /// The match stays exhaustive so a new screen cannot compile without an
+    /// owner; it is kept in its grouped table layout because one variant per
+    /// line would exceed the function-length limit without adding clarity.
+    #[rustfmt::skip]
     pub fn handler_group(&self) -> HandlerGroup {
         use AppState::*;
         match self {
@@ -138,4 +134,3 @@ fn provisioning_handler_group(state: &AppState) -> HandlerGroup {
         HandlerGroup::Settings
     }
 }
-

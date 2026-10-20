@@ -1,6 +1,7 @@
 //! Navigation ownership and cross-workflow transition policy.
 
 use crate::runtime::{data::DeviceStorageIntent, input::{AppState, HandlerGroup}};
+use kaskold_hardware_core::screen_flow::onboarding;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum NavigationOwner {
@@ -27,12 +28,12 @@ pub(super) fn owner_for_intent(intent: DeviceStorageIntent, state: AppState, cur
     // Export, Storage, or Multisig result screen. Active onboarding still
     // retains QR ownership because its current owner is already Onboarding.
     if is_qr_state(state) {
-        if current == NavigationOwner::Onboarding && super::onboarding::owns_state(intent, state) {
+        if current == NavigationOwner::Onboarding && onboarding::owns_state(intent.is_seed_onboarding(), state) {
             return NavigationOwner::Onboarding;
         }
         return qr_owner(current);
     }
-    if super::onboarding::owns_state(intent, state) {
+    if onboarding::owns_state(intent.is_seed_onboarding(), state) {
         return NavigationOwner::Onboarding;
     }
     if state == AppState::StorageSdFailure && current == NavigationOwner::Settings {
@@ -52,7 +53,7 @@ pub(crate) fn transition_allowed(
     }
     if from == to {
         return from != NavigationOwner::Onboarding
-            || super::onboarding::transition_allowed(from_state, to_state);
+            || onboarding::transition_allowed(from_state, to_state);
     }
     if from_state == AppState::MainMenu
         && matches!(to_state, AppState::StorageModeChoice | AppState::StorageUnlockPin | AppState::StorageUnlockPassword)

@@ -89,7 +89,7 @@ pub enum HotWalletError {
     MultisigInvalid,
     BackupCryptoFailed,
     /// A new backup password fails the shared KasKold password policy.
-    WeakBackupPassword(kaskold_hardware_core::security::credential::CredentialError),
+    WeakBackupPassword(shared_signer::credential_policy::CredentialError),
     RawKeyInvalid,
     UnsupportedForWalletType,
     StandardPskt(offline_signer::transaction::std_pskt::PskError),

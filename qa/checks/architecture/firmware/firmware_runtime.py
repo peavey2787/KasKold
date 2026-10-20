@@ -15,7 +15,6 @@ def runtime_function_lengths(source: str) -> list[tuple[str, int]]:
 INPUT_MODULES = {
     "button.rs",
     "menu.rs",
-    "routing.rs",
     "state.rs",
     "wallet_app.rs",
 }

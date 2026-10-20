@@ -429,6 +429,14 @@
       "commands": [
         "make qa"
       ],
+      "path": "qa/checks/security/source_grep_ratchet.py",
+      "role": "security-check",
+      "step": "preflight.security-assurance"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
       "path": "qa/checks/security/security_control_evidence.py",
       "role": "security-check",
       "step": "preflight.security-assurance"
@@ -706,6 +714,14 @@
         "make qa"
       ],
       "path": "qa/checks/web/web_kpub_manager_deep_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/web_wallet_views_behaviour.test.mjs",
       "role": "test",
       "step": "preflight.crap-check"
     },

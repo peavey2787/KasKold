@@ -115,7 +115,7 @@ def check_boot_self_test_feature_contract(root: Path, errors: list[str]) -> None
         "runtime/unit_tests/boot.rs: HIL signing failures must preserve the underlying KSPT error",
     )
 
-    state = read("apps/kaskold-hardware/src/runtime/input/state.rs")
+    state = read("crates/kaskold-hardware-core/src/screen_flow/state.rs")
     for obsolete in ("ViewSeed", "SignMsgScanQr", "Bip85Deriving"):
         require(
             obsolete not in state,

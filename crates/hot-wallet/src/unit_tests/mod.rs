@@ -522,10 +522,10 @@ fn portable_encrypted_backup_round_trips_and_rejects_wrong_password() {
 
 #[test]
 fn new_portable_backups_need_a_strong_password_and_the_host_kdf_profile() {
-    use kaskold_hardware_core::security::credential::CredentialError;
     use offline_signer::crypto::password_kdf::{
         derive_key_32, encode_metadata, PasswordKdfParams, PasswordKdfPurpose,
     };
+    use shared_signer::credential_policy::CredentialError;
 
     let wallet = restored_wallet();
     for (password, error) in [

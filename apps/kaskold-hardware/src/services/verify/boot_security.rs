@@ -11,58 +11,26 @@ use esp_hal::efuse::{DIS_PAD_JTAG, DIS_USB_JTAG, Efuse, SECURE_BOOT_EN, SPI_BOOT
 #[cfg(all(feature = "provisioning-ui", feature = "m5stack", not(feature = "qemu")))]
 use esp_hal::efuse::{
     KEY_PURPOSE_0, KEY_PURPOSE_1, KEY_PURPOSE_2, KEY_PURPOSE_3, KEY_PURPOSE_4, KEY_PURPOSE_5,
-    SECURE_BOOT_KEY_REVOKE1, SECURE_BOOT_KEY_REVOKE2, WR_DIS,
+    SECURE_BOOT_KEY_REVOKE0, SECURE_BOOT_KEY_REVOKE1, SECURE_BOOT_KEY_REVOKE2, WR_DIS,
 };
-#[cfg(all(
-    feature = "provisioning-ui",
-    feature = "m5stack",
-    not(feature = "qemu"),
-    feature = "secure-owner-only"
-))]
-use esp_hal::efuse::SECURE_BOOT_KEY_REVOKE0;
+use kaskold_hardware_core::security::boot_fuses;
+pub use kaskold_hardware_core::security::boot_fuses::BootSecurityLevel;
+#[cfg(feature = "secure-provisioning-core")]
+pub use kaskold_hardware_core::security::boot_fuses::PopItPreflightError;
 #[cfg(all(feature = "provisioning-ui", feature = "m5stack", not(feature = "production")))]
 use core::sync::atomic::{AtomicBool, Ordering as AtomicOrdering};
 
 #[cfg(all(feature = "provisioning-ui", feature = "m5stack", not(feature = "production")))]
 static DEV_POP_IT_INDICATOR_DEMO: AtomicBool = AtomicBool::new(false);
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum BootSecurityLevel {
-    None,
-    SoftwareVerified,
-    HardwareEnforced,
-}
-
-#[cfg(feature = "secure-provisioning-core")]
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PopItPreflightError {
-    AlreadyEnabled,
-    SecurityVersionInvalid,
-    BuildIdentityMissing,
-}
-
-#[cfg(feature = "secure-provisioning-core")]
-impl PopItPreflightError {
-    pub const fn message(self) -> &'static str {
-        match self {
-            Self::AlreadyEnabled => "Secure Boot v2 is already hardware enabled",
-            Self::SecurityVersionInvalid => "Firmware security version is invalid",
-            Self::BuildIdentityMissing => "Production build identity is missing",
-        }
-    }
-}
-
 pub fn level() -> BootSecurityLevel {
-    if secure_boot_enabled() {
-        BootSecurityLevel::HardwareEnforced
-    } else if crate::services::verify::software_verification_configured() {
-        // Normal UI is reached only after the profile-appropriate signature and
-        // code hash have verified. Development uses a repository-public TEST key;
-        // production uses the private release identity and may later add ROM eFuse enforcement.
-        BootSecurityLevel::SoftwareVerified
-    } else {
-        BootSecurityLevel::None
-    }
+    // Normal UI is reached only after the profile-appropriate signature and
+    // code hash have verified. Development uses a repository-public TEST key;
+    // production uses the private release identity and may later add ROM eFuse enforcement.
+    boot_fuses::boot_security_level(
+        secure_boot_enabled(),
+        crate::services::verify::software_verification_configured(),
+    )
 }
 
 /// Trust icon state. Development may deliberately preview the teal hardware
@@ -94,85 +62,61 @@ pub const fn dev_pop_it_indicator_demo_active() -> bool { false }
 
 #[cfg(feature = "secure-provisioning-core")]
 pub fn pop_it_preflight() -> Result<(), PopItPreflightError> {
-    if secure_boot_enabled() {
-        return Err(PopItPreflightError::AlreadyEnabled);
+    boot_fuses::pop_it_preflight(
+        secure_boot_enabled(),
+        crate::services::verify::anti_rollback::APP_SECURITY_VERSION,
+        crate::services::verify::attestation::build_commit().is_ok(),
+    )
+}
+
+#[cfg(not(feature = "qemu"))]
+fn lock_fuses() -> boot_fuses::LockFuses {
+    boot_fuses::LockFuses {
+        secure_boot_en: Efuse::read_field_le::<u8>(SECURE_BOOT_EN),
+        spi_boot_crypt_cnt: Efuse::read_field_le::<u8>(SPI_BOOT_CRYPT_CNT),
+        dis_pad_jtag: Efuse::read_field_le::<u8>(DIS_PAD_JTAG),
+        dis_usb_jtag: Efuse::read_field_le::<u8>(DIS_USB_JTAG),
     }
-    if crate::services::verify::anti_rollback::APP_SECURITY_VERSION == 0 {
-        return Err(PopItPreflightError::SecurityVersionInvalid);
-    }
-    crate::services::verify::attestation::build_commit()
-        .map_err(|_| PopItPreflightError::BuildIdentityMissing)?;
-    Ok(())
 }
 
 #[cfg(not(feature = "qemu"))]
 pub fn secure_boot_enabled() -> bool {
-    Efuse::read_field_le::<u8>(SECURE_BOOT_EN) != 0
+    lock_fuses().secure_boot_enabled()
 }
 
 #[cfg(feature = "qemu")]
 pub const fn secure_boot_enabled() -> bool { false }
 
-/// Whether the chip is hardware-locked: Secure Boot v2 enforced, Flash
-/// Encryption enabled (odd `SPI_BOOT_CRYPT_CNT`), and both JTAG paths
-/// eFuse-disabled. Production firmware stores wallets only in this state, so
-/// a physically captured unlocked chip never holds a readable wallet record.
+/// Whether the chip is hardware-locked. Production firmware stores wallets only
+/// in this state, so a physically captured unlocked chip never holds a
+/// readable wallet record.
 #[cfg(not(feature = "qemu"))]
 pub fn hardware_protection_active() -> bool {
-    secure_boot_enabled()
-        && Efuse::read_field_le::<u8>(SPI_BOOT_CRYPT_CNT).count_ones() % 2 == 1
-        && Efuse::read_field_le::<u8>(DIS_PAD_JTAG) != 0
-        && Efuse::read_field_le::<u8>(DIS_USB_JTAG) != 0
+    lock_fuses().hardware_protection_active()
 }
 
 #[cfg(feature = "qemu")]
 pub const fn hardware_protection_active() -> bool { false }
 
-/// Whether the device has the owner authority required by this provisioning profile.
-///
-/// Dual-authority builds require a protected, unrevoked owner digest in slot 1
-/// and a closed slot 2. Owner-only builds reproduce the original sole-owner
-/// policy: the owner digest is slot 0, slots 1 and 2 are revoked, and slot 0's
-/// revoke control is write-protected. Key-purpose fields are scanned because
-/// ESP-IDF may allocate the digest to any free physical key block.
+#[cfg(all(feature = "provisioning-ui", feature = "m5stack", not(feature = "qemu")))]
+const AUTHORITY_PROFILE: boot_fuses::AuthorityProfile = if cfg!(feature = "secure-owner-only") {
+    boot_fuses::AuthorityProfile::OwnerOnly
+} else {
+    boot_fuses::AuthorityProfile::DualAuthority
+};
+
+/// Whether the device has the owner authority this provisioning profile requires.
 #[cfg(all(feature = "provisioning-ui", feature = "m5stack", not(feature = "qemu")))]
 pub fn owner_authority_enrolled() -> bool {
-    #[cfg(feature = "secure-owner-only")]
-    {
-        const SECURE_BOOT_DIGEST0_PURPOSE: u8 = 0x09;
-        const OWNER_REVOKE_WR_DIS_MASK: u32 = 1 << 5;
-        let owner_purpose_present = key_purpose_present(SECURE_BOOT_DIGEST0_PURPOSE);
-        let write_disable = Efuse::read_field_le::<u32>(WR_DIS);
-        return owner_purpose_present
-            && Efuse::read_field_le::<u8>(SECURE_BOOT_KEY_REVOKE0) == 0
-            && Efuse::read_field_le::<u8>(SECURE_BOOT_KEY_REVOKE1) != 0
-            && Efuse::read_field_le::<u8>(SECURE_BOOT_KEY_REVOKE2) != 0
-            && (write_disable & OWNER_REVOKE_WR_DIS_MASK) != 0;
+    let read = |field| Efuse::read_field_le::<u8>(field);
+    boot_fuses::AuthorityFuses {
+        key_purposes: [KEY_PURPOSE_0, KEY_PURPOSE_1, KEY_PURPOSE_2, KEY_PURPOSE_3, KEY_PURPOSE_4, KEY_PURPOSE_5]
+            .map(read),
+        key_revoke: [SECURE_BOOT_KEY_REVOKE0, SECURE_BOOT_KEY_REVOKE1, SECURE_BOOT_KEY_REVOKE2].map(read),
+        write_disable: Efuse::read_field_le::<u32>(WR_DIS),
     }
-
-    #[cfg(not(feature = "secure-owner-only"))]
-    {
-        const SECURE_BOOT_DIGEST1_PURPOSE: u8 = 0x0a;
-        const OWNER_REVOKE_WR_DIS_MASK: u32 = 1 << 6;
-        let owner_purpose_present = key_purpose_present(SECURE_BOOT_DIGEST1_PURPOSE);
-        let write_disable = Efuse::read_field_le::<u32>(WR_DIS);
-        owner_purpose_present
-            && Efuse::read_field_le::<u8>(SECURE_BOOT_KEY_REVOKE1) == 0
-            && (write_disable & OWNER_REVOKE_WR_DIS_MASK) != 0
-            && Efuse::read_field_le::<u8>(SECURE_BOOT_KEY_REVOKE2) != 0
-    }
-}
-
-#[cfg(all(feature = "provisioning-ui", feature = "m5stack", not(feature = "qemu")))]
-fn key_purpose_present(purpose: u8) -> bool {
-    Efuse::read_field_le::<u8>(KEY_PURPOSE_0) == purpose
-        || Efuse::read_field_le::<u8>(KEY_PURPOSE_1) == purpose
-        || Efuse::read_field_le::<u8>(KEY_PURPOSE_2) == purpose
-        || Efuse::read_field_le::<u8>(KEY_PURPOSE_3) == purpose
-        || Efuse::read_field_le::<u8>(KEY_PURPOSE_4) == purpose
-        || Efuse::read_field_le::<u8>(KEY_PURPOSE_5) == purpose
+    .owner_authority_enrolled(AUTHORITY_PROFILE)
 }
 
 #[cfg(all(feature = "provisioning-ui", not(all(feature = "m5stack", not(feature = "qemu")))))]
 pub const fn owner_authority_enrolled() -> bool { false }
-

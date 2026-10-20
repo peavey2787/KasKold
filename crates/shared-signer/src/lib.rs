@@ -5,6 +5,7 @@ extern crate std;
 
 pub mod covenant_backup;
 pub mod creation_flow;
+pub mod credential_policy;
 pub mod pairing;
 pub mod seed_entropy;
 

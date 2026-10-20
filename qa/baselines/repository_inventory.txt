@@ -253,7 +253,6 @@ D	apps/kaskold-hardware/src/runtime/event_loop/runner
 D	apps/kaskold-hardware/src/runtime/event_loop/runner/deferred
 D	apps/kaskold-hardware/src/runtime/event_loop/runner/deferred/kpub
 D	apps/kaskold-hardware/src/runtime/input
-D	apps/kaskold-hardware/src/runtime/input/state
 D	apps/kaskold-hardware/src/runtime/interactions
 D	apps/kaskold-hardware/src/runtime/interactions/camera_loop
 D	apps/kaskold-hardware/src/runtime/interactions/camera_loop/dispatch
@@ -465,6 +464,8 @@ D	crates/kaskold-hardware-core/src/presentation
 D	crates/kaskold-hardware-core/src/qr
 D	crates/kaskold-hardware-core/src/runtime
 D	crates/kaskold-hardware-core/src/runtime/worker
+D	crates/kaskold-hardware-core/src/screen_flow
+D	crates/kaskold-hardware-core/src/screen_flow/state
 D	crates/kaskold-hardware-core/src/security
 D	crates/kaskold-hardware-core/src/storage
 D	crates/kaskold-hardware-core/src/storage/fat32_metadata
@@ -609,7 +610,6 @@ D	crates/online-watcher/src/wasm_api/contracts/zk/commit_reveal/unit_tests
 D	crates/online-watcher/src/wasm_api/contracts/zk/crowdfund
 D	crates/online-watcher/src/wasm_api/contracts/zk/crowdfund/campaign
 D	crates/online-watcher/src/wasm_api/contracts/zk/crowdfund/campaign/unit_tests
-D	crates/online-watcher/src/wasm_api/contracts/zk/crowdfund/sweep
 D	crates/online-watcher/src/wasm_api/contracts/zk/merkle
 D	crates/online-watcher/src/wasm_api/contracts/zk/merkle/unit_tests
 D	crates/online-watcher/src/wasm_api/contracts/zk/unit_tests
@@ -1545,9 +1545,7 @@ F	apps/kaskold-hardware/src/runtime/event_loop/touch_routes.rs
 F	apps/kaskold-hardware/src/runtime/input.rs
 F	apps/kaskold-hardware/src/runtime/input/button.rs
 F	apps/kaskold-hardware/src/runtime/input/menu.rs
-F	apps/kaskold-hardware/src/runtime/input/routing.rs
 F	apps/kaskold-hardware/src/runtime/input/state.rs
-F	apps/kaskold-hardware/src/runtime/input/state/predicates.rs
 F	apps/kaskold-hardware/src/runtime/input/wallet_app.rs
 F	apps/kaskold-hardware/src/runtime/interactions/camera_loop.rs
 F	apps/kaskold-hardware/src/runtime/interactions/camera_loop/cycle.rs
@@ -1748,7 +1746,6 @@ F	apps/kaskold-hardware/src/runtime/navigation/menu_reducer.rs
 F	apps/kaskold-hardware/src/runtime/navigation/menu_reducer/catalog.rs
 F	apps/kaskold-hardware/src/runtime/navigation/menu_reducer/routes.rs
 F	apps/kaskold-hardware/src/runtime/navigation/mod.rs
-F	apps/kaskold-hardware/src/runtime/navigation/onboarding.rs
 F	apps/kaskold-hardware/src/runtime/navigation/policy.rs
 F	apps/kaskold-hardware/src/runtime/navigation/production.rs
 F	apps/kaskold-hardware/src/runtime/navigation/root.rs
@@ -2154,6 +2151,7 @@ F	apps/kaskold-vault-web/Cargo.lock
 F	apps/kaskold-vault-web/Cargo.toml
 F	apps/kaskold-vault-web/build.ps1
 F	apps/kaskold-vault-web/build.sh
+F	apps/kaskold-vault-web/src/backups.rs
 F	apps/kaskold-vault-web/src/covenant.rs
 F	apps/kaskold-vault-web/src/lib.rs
 F	apps/kaskold-vault-web/src/onboarding.rs
@@ -2261,7 +2259,13 @@ F	crates/kaskold-hardware-core/src/qr/mod.rs
 F	crates/kaskold-hardware-core/src/runtime/mod.rs
 F	crates/kaskold-hardware-core/src/runtime/worker/mailbox.rs
 F	crates/kaskold-hardware-core/src/runtime/worker/mod.rs
+F	crates/kaskold-hardware-core/src/screen_flow/handler_group.rs
+F	crates/kaskold-hardware-core/src/screen_flow/mod.rs
+F	crates/kaskold-hardware-core/src/screen_flow/onboarding.rs
+F	crates/kaskold-hardware-core/src/screen_flow/state.rs
+F	crates/kaskold-hardware-core/src/screen_flow/state/predicates.rs
 F	crates/kaskold-hardware-core/src/security.rs
+F	crates/kaskold-hardware-core/src/security/boot_fuses.rs
 F	crates/kaskold-hardware-core/src/security/credential.rs
 F	crates/kaskold-hardware-core/src/storage/card.rs
 F	crates/kaskold-hardware-core/src/storage/fat32_lfn.rs
@@ -2275,6 +2279,7 @@ F	crates/kaskold-hardware-core/src/storage/routing.rs
 F	crates/kaskold-hardware-core/src/time/bm8563.rs
 F	crates/kaskold-hardware-core/src/time/mod.rs
 F	crates/kaskold-hardware-core/src/unit_tests/advanced_policy_tests.rs
+F	crates/kaskold-hardware-core/src/unit_tests/boot_fuses_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/credential_policy_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/entropy_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/external_input_hardening_tests.rs
@@ -2304,6 +2309,7 @@ F	crates/kaskold-hardware-core/src/unit_tests/firmware_storage_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/firmware_touch_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/mailbox_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/mod.rs
+F	crates/kaskold-hardware-core/src/unit_tests/screen_flow_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/security_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/stego_picture_tests.rs
 F	crates/kaskold-hardware-core/src/update/attestation.rs
@@ -2388,8 +2394,8 @@ F	crates/online-watcher/src/contracts/oracle/mod.rs
 F	crates/online-watcher/src/contracts/seq_commit/mod.rs
 F	crates/online-watcher/src/contracts/seq_commit/proof.rs
 F	crates/online-watcher/src/contracts/shipping_escrow/construction.rs
-F	crates/online-watcher/src/contracts/shipping_escrow/terms.rs
 F	crates/online-watcher/src/contracts/shipping_escrow/mod.rs
+F	crates/online-watcher/src/contracts/shipping_escrow/terms.rs
 F	crates/online-watcher/src/contracts/unit_tests/construction.rs
 F	crates/online-watcher/src/contracts/unit_tests/function_coverage.rs
 F	crates/online-watcher/src/contracts/unit_tests/merkle.rs
@@ -2589,6 +2595,7 @@ F	crates/online-watcher/src/wasm_api/wallet/watcher.rs
 F	crates/shared-signer/Cargo.toml
 F	crates/shared-signer/src/covenant_backup.rs
 F	crates/shared-signer/src/creation_flow.rs
+F	crates/shared-signer/src/credential_policy.rs
 F	crates/shared-signer/src/lib.rs
 F	crates/shared-signer/src/pairing/mod.rs
 F	crates/shared-signer/src/seed_entropy.rs
@@ -2601,6 +2608,7 @@ F	crates/shared-signer/src/stego_picture/mod.rs
 F	crates/shared-signer/src/stego_picture/permutation.rs
 F	crates/shared-signer/src/stego_picture/unit_tests/mod.rs
 F	crates/shared-signer/src/unit_tests/creation_flow_tests.rs
+F	crates/shared-signer/src/unit_tests/credential_policy_tests.rs
 F	crates/shared-signer/src/unit_tests/external_input_hardening_tests.rs
 F	crates/shared-signer/src/unit_tests/mod.rs
 F	crates/shared-signer/src/unit_tests/pairing_tests.rs
@@ -2693,6 +2701,7 @@ F	external/serde-yaml-ng-adapter/src/lib.rs
 F	qa/Cargo.lock
 F	qa/Cargo.toml
 F	qa/baselines/repository_inventory.txt
+F	qa/baselines/source_grep_assertions.json
 F	qa/baselines/workflow/production_surface_baseline.json
 F	qa/benches/protocol_throughput.rs
 F	qa/checks/__init__.py
@@ -2841,6 +2850,7 @@ F	qa/checks/security/review/unsafe_sites.json
 F	qa/checks/security/security_control_evidence.py
 F	qa/checks/security/security_control_scans.py
 F	qa/checks/security/security_invariants.py
+F	qa/checks/security/source_grep_ratchet.py
 F	qa/checks/security/test_quality.py
 F	qa/checks/security/watcher_only_apps.py
 F	qa/checks/toolchains.py
@@ -2898,6 +2908,7 @@ F	qa/checks/web/web_transaction_success_paths.test.mjs
 F	qa/checks/web/web_transaction_ui_deep_paths.test.mjs
 F	qa/checks/web/web_wallet_deep_paths.test.mjs
 F	qa/checks/web/web_wallet_success_paths.test.mjs
+F	qa/checks/web/web_wallet_views_behaviour.test.mjs
 F	qa/checks/workspace/__init__.py
 F	qa/checks/workspace/check_lockfile.py
 F	qa/checks/workspace/check_qa_orchestration.py

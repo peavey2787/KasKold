@@ -18,7 +18,7 @@ import production_ui_graph as ui_graph  # noqa: E402
 MANIFEST = Path("qa/config/workflow/production_e2e_manifest.json")
 SCENARIOS = Path("qa/config/workflow/production_e2e_scenarios.json")
 OUTPUT = Path("qa/config/workflow/production_runtime_qualification.json")
-ROUTING = Path("apps/kaskold-hardware/src/runtime/input/routing.rs")
+ROUTING = Path("crates/kaskold-hardware-core/src/screen_flow/handler_group.rs")
 REDRAW_ROOT = Path("apps/kaskold-hardware/src/ui/redraw")
 REDRAW_DISPATCH = Path("apps/kaskold-hardware/src/ui/redraw.rs")
 RUNTIME_EVIDENCE = Path("apps/kaskold-hardware/src/ui/runtime_evidence.rs")

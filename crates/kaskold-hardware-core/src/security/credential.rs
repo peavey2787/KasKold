@@ -1,87 +1,20 @@
-//! Device-facing PIN/password acceptance, confirmation, and retry policy.
+//! Device-facing credential confirmation, retry, and wipe policy.
 //!
-//! Encrypted-container metadata such as the persisted credential discriminator
-//! and salt width lives in `offline-signer::crypto::credential`; this module
-//! deliberately owns only physical-device policy around those credentials.
+//! Which PINs and passwords are acceptable is shared with the software vault
+//! in `shared-signer::credential_policy` and re-exported here. Encrypted-container
+//! metadata such as the persisted credential discriminator and salt width lives
+//! in `offline-signer::crypto::credential`.
 
 use sha2::{Digest, Sha256};
+pub use shared_signer::credential_policy::{
+    validate, validate_entered_password, CredentialError, CredentialPolicyKind,
+};
 
-pub const MIN_PIN_DIGITS: usize = 6;
-pub const MAX_PIN_DIGITS: usize = 12;
-/// Minimum length of a newly chosen password.
-pub const MIN_PASSWORD_CHARS: usize = 12;
-pub const MAX_PASSWORD_CHARS: usize = 128;
 pub const RETRY_BASE_MILLIS: u32 = 1_000;
 pub const RETRY_MAX_MILLIS: u32 = 60_000;
 /// Consecutive failed unlock attempts, counted durably across reboots, after
 /// which the device erases every saved wallet instead of accepting more guesses.
 pub const MAX_UNLOCK_FAILURES: u8 = 10;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum CredentialPolicyKind {
-    Pin = 1,
-    Password = 2,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum CredentialError {
-    PinTooShort,
-    PinTooLong,
-    PinNotNumeric,
-    PasswordTooShort,
-    PasswordTooLong,
-    PasswordNeedsLetter,
-    PasswordNeedsDigit,
-}
-
-pub fn validate(kind: CredentialPolicyKind, secret: &[u8]) -> Result<(), CredentialError> {
-    match kind {
-        CredentialPolicyKind::Pin => validate_pin(secret),
-        CredentialPolicyKind::Password => validate_password(secret),
-    }
-}
-
-fn validate_pin(secret: &[u8]) -> Result<(), CredentialError> {
-    if !secret.iter().all(|byte| byte.is_ascii_digit()) {
-        return Err(CredentialError::PinNotNumeric);
-    }
-    if secret.len() < MIN_PIN_DIGITS {
-        return Err(CredentialError::PinTooShort);
-    }
-    if secret.len() > MAX_PIN_DIGITS {
-        return Err(CredentialError::PinTooLong);
-    }
-    Ok(())
-}
-
-fn validate_password(secret: &[u8]) -> Result<(), CredentialError> {
-    if secret.len() < MIN_PASSWORD_CHARS {
-        return Err(CredentialError::PasswordTooShort);
-    }
-    if secret.len() > MAX_PASSWORD_CHARS {
-        return Err(CredentialError::PasswordTooLong);
-    }
-    if !secret.iter().any(|byte| byte.is_ascii_alphabetic()) {
-        return Err(CredentialError::PasswordNeedsLetter);
-    }
-    if !secret.iter().any(|byte| byte.is_ascii_digit()) {
-        return Err(CredentialError::PasswordNeedsDigit);
-    }
-    Ok(())
-}
-
-/// A password typed to open existing ciphertext. Backups sealed before the
-/// current minimum must stay openable, so only the KDF's length bounds apply;
-/// the authenticated decryption decides whether the password is right.
-pub fn validate_entered_password(secret: &[u8]) -> Result<(), CredentialError> {
-    if secret.is_empty() {
-        return Err(CredentialError::PasswordTooShort);
-    }
-    if secret.len() > MAX_PASSWORD_CHARS {
-        return Err(CredentialError::PasswordTooLong);
-    }
-    Ok(())
-}
 
 /// Online-guess backoff for the durable failure count. The delay is a
 /// non-blocking "retry not before" deadline, so it never holds the watchdog.

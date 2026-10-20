@@ -104,7 +104,7 @@ def _check_firmware_core_ownership(root: Path) -> list[str]:
     core = root / "crates/kaskold-hardware-core/src"
     expected_groups = {
         "backup", "camera", "entropy", "input", "power", "presentation",
-        "qr", "runtime", "security", "storage", "time", "update",
+        "qr", "runtime", "screen_flow", "security", "storage", "time", "update",
     }
     actual_groups = {
         path.name for path in core.iterdir()
@@ -113,7 +113,7 @@ def _check_firmware_core_ownership(root: Path) -> list[str]:
     if actual_groups != expected_groups:
         errors.append(
             "kaskold-hardware-core must group device decisions by backup, camera, entropy, "
-            "input, power, presentation, qr, runtime, security, storage, time, and update"
+            "input, power, presentation, qr, runtime, screen_flow, security, storage, time, and update"
         )
     for group in sorted(core.iterdir()):
         if not group.is_dir() or group.name == "unit_tests":

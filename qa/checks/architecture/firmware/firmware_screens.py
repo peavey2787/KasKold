@@ -117,7 +117,7 @@ def _check_redraw_state_coverage(root: Path, redraw_source: str) -> list[str]:
         r"(?:crate::runtime::input::)?AppState::([A-Za-z0-9_]+)",
         redraw_source,
     ))
-    state_source = (root / "apps/kaskold-hardware/src/runtime/input/state.rs").read_text(
+    state_source = (root / "crates/kaskold-hardware-core/src/screen_flow/state.rs").read_text(
         errors="ignore"
     )
     state_match = re.search(r"(?ms)pub enum AppState\s*\{(?P<body>.*?)^\}", state_source)

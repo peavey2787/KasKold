@@ -45,7 +45,7 @@ BASELINE_MENU_ITEM_MIGRATIONS = {
 }
 SCENARIOS = Path("qa/config/workflow/production_e2e_scenarios.json")
 MANIFEST = Path("qa/config/workflow/production_e2e_manifest.json")
-STATE_FILE = Path("apps/kaskold-hardware/src/runtime/input/state.rs")
+STATE_FILE = Path("crates/kaskold-hardware-core/src/screen_flow/state.rs")
 NAV_FILE = Path("apps/kaskold-hardware/src/runtime/navigation/production.rs")
 UI_GRAPH_FILE = ui_graph.GRAPH_FILE
 NAV_DATA_FILE = Path("apps/kaskold-hardware/src/runtime/data/navigation.rs")

@@ -27,7 +27,7 @@ def check_hardware_test_contract(errors: list[str]) -> None:
     # source contract focused on firmware-side feature and lockdown invariants.
 
 def check_advanced_security_feature_gates(errors: list[str]) -> None:
-    state = read("apps/kaskold-hardware/src/runtime/input/state.rs")
+    state = read("crates/kaskold-hardware-core/src/screen_flow/state.rs")
     for variant in (
         "AdvancedRtcEntry",
         "AdvancedTimeLockWarning",

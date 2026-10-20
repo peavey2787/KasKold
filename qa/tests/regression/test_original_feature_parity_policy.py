@@ -21,7 +21,7 @@ def read(relative: str) -> str:
 class OriginalFeatureParityPolicyTests(unittest.TestCase):
     def test_touch_seed_generation_is_a_live_hardened_feature(self) -> None:
         navigation = read("apps/kaskold-hardware/src/runtime/navigation/ui_graph/menus.rs")
-        state = read("apps/kaskold-hardware/src/runtime/input/state.rs")
+        state = read("crates/kaskold-hardware-core/src/screen_flow/state.rs")
         menu = read("apps/kaskold-hardware/src/runtime/navigation/menu_reducer/routes.rs")
         generation = read("apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation.rs")
         collector = read("apps/kaskold-hardware/src/wallet/mnemonic/touch.rs")
@@ -53,7 +53,7 @@ class OriginalFeatureParityPolicyTests(unittest.TestCase):
 
     def test_seed_and_xprv_sd_backup_is_live_and_device_bound(self) -> None:
         navigation = read("apps/kaskold-hardware/src/runtime/navigation/ui_graph/menus.rs")
-        state = read("apps/kaskold-hardware/src/runtime/input/state.rs")
+        state = read("crates/kaskold-hardware-core/src/screen_flow/state.rs")
         container = read("apps/kaskold-hardware/src/services/backup/container.rs")
         framing = read("crates/offline-signer/src/crypto/container_framing.rs")
         container_contract = container + "\n" + framing

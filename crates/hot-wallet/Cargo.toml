@@ -8,7 +8,6 @@ description = "KasKold software-wallet custody and signing backend"
 [dependencies]
 aes-gcm = { version = "0.10.3", default-features = false, features = ["aes"] }
 offline-signer = { version = "=2.0.0", path = "../offline-signer" }
-kaskold-hardware-core = { version = "=2.0.0", path = "../kaskold-hardware-core" }
 kaskold-protocol = { version = "=2.0.0", path = "../kaskold-protocol", features = ["host"] }
 shared-signer = { version = "=2.0.0", path = "../shared-signer" }
 sha2 = { version = "0.10.9", default-features = false }

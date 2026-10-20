@@ -1,4 +1,5 @@
 mod creation_flow_tests;
+mod credential_policy_tests;
 mod external_input_hardening_tests;
 mod pairing_tests;
 mod seed_entropy_tests;

@@ -7,11 +7,11 @@
 //! the recovery material. New backups use the 64 MiB host Argon2id profile;
 //! backups sealed under the embedded v1 profile still restore.
 
-use kaskold_hardware_core::security::credential::{validate, CredentialPolicyKind};
 use offline_signer::crypto::password_kdf::{
     derive_key_32_with_params, encode_metadata, parse_metadata, PasswordKdfParams,
     PasswordKdfPurpose, METADATA_SIZE, SALT_SIZE,
 };
+use shared_signer::credential_policy::{validate, CredentialPolicyKind};
 use zeroize::Zeroize;
 
 use crate::entropy::fill_random;

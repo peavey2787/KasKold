@@ -149,11 +149,15 @@ def _check_licensing_boundaries(root: Path) -> list[str]:
             errors.append("QR payload module must state its GPL-3.0-only license")
 
     credential_meta = root / "crates/offline-signer/src/crypto/credential.rs"
+    credential_acceptance = root / "crates/shared-signer/src/credential_policy.rs"
     credential_policy = root / "crates/kaskold-hardware-core/src/security/credential.rs"
     if not credential_meta.is_file() or "pub enum CredentialKind" not in credential_meta.read_text(errors="ignore"):
         errors.append("encrypted-storage credential metadata must live in offline-signer")
-    if not credential_policy.is_file() or "pub fn validate" not in credential_policy.read_text(errors="ignore"):
-        errors.append("PIN/password acceptance and retry policy must live in kaskold-hardware-core")
+    if not credential_acceptance.is_file() or "pub fn validate" not in credential_acceptance.read_text(errors="ignore"):
+        errors.append("PIN/password acceptance shared by device and vault must live in shared-signer")
+    device_policy = credential_policy.read_text(errors="ignore") if credential_policy.is_file() else ""
+    if "pub fn retry_delay_millis" not in device_policy or "pub use shared_signer::credential_policy::" not in device_policy:
+        errors.append("device retry policy must live in kaskold-hardware-core over the shared acceptance policy")
 
     contributing = (root / "CONTRIBUTING.md").read_text(errors="ignore")
     for marker in ("shared-signer", "kaskold-protocol", "kaskold-sdk", "GPL-3.0-only", "UPSTREAM_ATTRIBUTION.md"):

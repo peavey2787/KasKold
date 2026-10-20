@@ -135,7 +135,7 @@ class M5StackProductionSecurityRound(unittest.TestCase):
         makefile = self.read("Makefile")
         tasks = self.read("scripts/common/lib/make_tasks.py")
         policy = self.read("apps/kaskold-hardware/src/feature_policy.rs")
-        self.assertIn('provisioning-ui = []', cargo)
+        self.assertIn('provisioning-ui = ["kaskold-hardware-core/provisioning-ui"]', cargo)
         self.assertIn('secure-provisioning-core = ["production", "m5stack", "provisioning-ui"]', cargo)
         self.assertIn('secure-provisioning = ["secure-provisioning-core"]', cargo)
         self.assertIn('secure-owner-only = ["secure-provisioning-core"]', cargo)

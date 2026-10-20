@@ -9,6 +9,7 @@ use serde::Serialize;
 use vault_runtime::{ScanResult, VaultReview, VaultRuntime};
 use wasm_bindgen::prelude::*;
 
+mod backups;
 mod covenant;
 mod onboarding;
 mod private_swap;
@@ -17,6 +18,7 @@ mod qr;
 mod security;
 mod workflows;
 
+pub use backups::*;
 pub use covenant::*;
 pub use onboarding::*;
 pub use private_swap::*;

@@ -12,13 +12,13 @@ mod back;
 mod event;
 mod kernel;
 mod menu_reducer;
-mod onboarding;
 mod policy;
 pub(crate) mod production;
 pub(crate) mod ui_graph;
 mod root;
 
 pub(crate) use event::{continuation, route, ContinuationRoute, ResumeTarget, ReturnScope, UiEvent, UiRoute};
+use kaskold_hardware_core::screen_flow::onboarding;
 pub(crate) use onboarding::OnboardingRoute;
 pub(crate) use policy::NavigationOwner;
 pub(crate) use root::main_menu_target_at;
@@ -39,7 +39,7 @@ pub(crate) fn workflow_input_route_valid(
     owner: NavigationOwner,
 ) -> bool {
     if owner == NavigationOwner::Onboarding {
-        return onboarding::route_for(intent, state).is_some();
+        return onboarding::owns_state(intent.is_seed_onboarding(), state);
     }
     let _ = state.handler_group();
     true
@@ -94,7 +94,7 @@ pub(crate) fn onboarding_route(ad: &AppData) -> Option<OnboardingRoute> {
         return None;
     }
     onboarding::route_for(
-        ad.storage.persistence.device_storage_intent,
+        ad.storage.persistence.device_storage_intent.is_seed_onboarding(),
         ad.navigation.app.state,
     )
 }

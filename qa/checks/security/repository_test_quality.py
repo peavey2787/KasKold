@@ -14,6 +14,7 @@ SECURITY_DIR = Path(__file__).resolve().parent
 if str(SECURITY_DIR) not in sys.path:
     sys.path.insert(0, str(SECURITY_DIR))
 from test_quality import ASSERTION, FUNCTION, extract_tests, trivial_assertions
+import source_grep_ratchet
 
 ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_OUTPUT = ROOT / "target/qa/security/repository-test-quality.json"
@@ -525,6 +526,8 @@ def audit() -> tuple[list[str], dict[str, Any]]:
         found, found_errors = runner()
         records.extend(found)
         errors.extend(found_errors)
+    ratchet_errors, source_grep_assertions = source_grep_ratchet.check()
+    errors.extend(ratchet_errors)
     by_language: dict[str, int] = {}
     for record in records:
         language = str(record["language"])
@@ -547,6 +550,7 @@ def audit() -> tuple[list[str], dict[str, Any]]:
             "tautological/constant-only passes across Rust, Python, JavaScript, Kotlin, and Swift."
         ),
         "tests_scanned": len(records),
+        "source_grep_assertions": source_grep_assertions,
         "by_language": dict(sorted(by_language.items())),
         "conditional_skips": conditional_skips,
         "delegated_assertion_tests": delegated,

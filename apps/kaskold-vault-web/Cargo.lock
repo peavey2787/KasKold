@@ -384,7 +384,6 @@ version = "2.0.0"
 dependencies = [
  "aes-gcm",
  "getrandom",
- "kaskold-hardware-core",
  "kaskold-protocol",
  "offline-signer",
  "sha2",
@@ -430,15 +429,6 @@ dependencies = [
  "elliptic-curve",
  "sha2",
  "signature",
-]
-
-[[package]]
-name = "kaskold-hardware-core"
-version = "2.0.0"
-dependencies = [
- "kaskold-protocol",
- "sha2",
- "shared-signer",
 ]
 
 [[package]]

@@ -72,9 +72,8 @@ def check_firmware_warning_contract(root: Path, errors: list[str]) -> None:
         "hardware-test builds must not compile the production event-loop facade",
     )
     require(
-        'mod routing;' in input_facade
-        and '#[cfg(not(feature = "hardware-tests"))]\nmod routing;' not in input_facade
-        and 'pub use routing::HandlerGroup;' in input_facade,
+        'pub use kaskold_hardware_core::screen_flow::HandlerGroup;' in input_facade
+        and '#[cfg(not(feature = "hardware-tests"))]\npub use kaskold_hardware_core::screen_flow::HandlerGroup;' not in input_facade,
         "hardware-test builds compile controllers/navigation and therefore require HandlerGroup routing",
     )
     require(

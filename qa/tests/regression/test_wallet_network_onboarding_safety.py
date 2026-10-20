@@ -209,7 +209,7 @@ class WalletNetworkOnboardingSafetyTests(unittest.TestCase):
         onboarding = read("apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs")
         passphrase = read("apps/kaskold-hardware/src/runtime/interactions/seed/passphrase.rs")
         naming = read("apps/kaskold-hardware/src/runtime/interactions/seed/wallet_name.rs")
-        policy = read("apps/kaskold-hardware/src/runtime/navigation/onboarding.rs")
+        policy = read("crates/kaskold-hardware-core/src/screen_flow/onboarding.rs")
         nav_policy = read("apps/kaskold-hardware/src/runtime/navigation/policy.rs")
         self.assertIn("route!(PassphraseChoice)", restore)
         self.assertIn("route!(PassphraseChoice)", onboarding)
