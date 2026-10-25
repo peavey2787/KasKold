@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setValue,
-  ADDRESS, PK, PK2, PSKB, wallet, assertWatchOnlyStorage,
-} from './web_runtime_deep_harness.mjs';
+  ADDRESS, PK, PK2, PSKB, wallet, assertWatchOnlyStorage, rendered } from './web_runtime_deep_harness.mjs';
 
 await setupDeepHarness();
 try {
@@ -32,7 +31,7 @@ try {
   const saved=state.walletSession.current(); state.walletSession.clear(); send.handleStealthMeta(); assert.equal(state.walletSession.hasWallet(),false);
   state.walletSession.replace(saved);
   wasm.stealth_meta_from_kpub=()=>JSON.stringify({meta_address:META}); wasm.stealth_announcement_address=()=>ADDRESS; wasm.generate_qr_svg_text=()=>'<svg>meta</svg>';
-  send.handleStealthMeta(); assert.equal(element('stealth-meta-hex').textContent,META); assert.match(element('stealth-meta-qr').innerHTML,/svg/); assert.equal(element('stealth-announce-addr').textContent,ADDRESS);
+  send.handleStealthMeta(); assert.equal(element('stealth-meta-hex').textContent,META); assert.match(rendered(element('stealth-meta-qr')),/svg/); assert.equal(element('stealth-announce-addr').textContent,ADDRESS);
   wasm.generate_qr_svg_text=()=>{throw new Error('QR unavailable');}; send.handleStealthMeta(); assert.equal(element('stealth-meta-qr').textContent,META);
   wasm.stealth_meta_from_kpub=()=>{throw new Error('metadata invalid');}; send.handleStealthMeta();
 

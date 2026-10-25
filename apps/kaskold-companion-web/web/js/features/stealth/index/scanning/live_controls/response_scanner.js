@@ -1,4 +1,4 @@
-import { setSafeMarkup } from '../../../../../core/security/safe_html.js';
+import { el, setContent } from '../../../../../core/ui/elements.js';
 import { scannerState } from '../../../../../app/state/index.js';
 import { byId } from '../../../../../core/dom.js';
 import { toast } from '../../../../../core/ui/toast.js';
@@ -28,7 +28,8 @@ function collectFragment(raw) {
     if (!fragments.received.has(frameIndex)) {
         fragments.received.add(frameIndex);
         fragments.buffers[frameIndex] = raw.slice(3, 3 + fragmentLength);
-        setSafeMarkup(byId('stealth-scan-status'), `<strong>Receiving response ${fragments.received.size}/${totalFrames}.</strong> Keep the camera on the device QR.`);
+        setContent(byId('stealth-scan-status'),
+            el('strong', {}, `Receiving response ${fragments.received.size}/${totalFrames}.`), ' Keep the camera on the device QR.');
     }
     if (fragments.received.size < totalFrames) return null;
     if (fragments.buffers.some(buffer => !buffer)) return null;

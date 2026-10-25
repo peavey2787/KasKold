@@ -11,6 +11,7 @@ import { installScanWorkflows } from './vault_scan_workflows.js';
 import { downloadBytes, downloadText, requireMatchingPasswords } from './vault_bytes.js';
 import { createRecoveryWordPager } from './workflows/vault_recovery_words.js';
 import { installFrameHexInput } from './workflows/vault_frame_hex_input.js';
+import { showQrSvg } from './ui/qr.js';
 let runtime = null;
 function api(name) {
   if (!runtime) throw new Error('Vault runtime is not loaded.');
@@ -167,7 +168,7 @@ function renderHome(push = true) {
 function renderConnect() {
   const { kpub } = parse(api('kaskold_vault_export_kpub')());
   $('home-kpub').textContent = kpub;
-  $('kpub-qr').innerHTML = api('kaskold_vault_kpub_qr_svg')();
+  showQrSvg($('kpub-qr'), api('kaskold_vault_kpub_qr_svg')(), 'kpub QR');
   show('connect');
 }
 function renderWalletDetails() {
@@ -192,14 +193,14 @@ function renderSeedQr(kind) {
   const entry = calls[kind];
   if (!entry) throw new Error('Unknown SeedQR backup type.');
   $('seedqr-title').textContent = entry[0];
-  $('seedqr-output').innerHTML = api(entry[1])();
+  showQrSvg($('seedqr-output'), api(entry[1])(), entry[0]);
   show('seedqr');
 }
 function renderSecretText(title, warning, value, svg = '') {
   $('secret-text-title').textContent = title;
   $('secret-text-warning').textContent = warning;
   $('secret-text-value').textContent = value;
-  $('secret-text-qr').innerHTML = svg;
+  showQrSvg($('secret-text-qr'), svg, title);
   $('secret-text-qr').classList.toggle('hidden', !svg);
   show('secret-text');
 }

@@ -1,21 +1,8 @@
-import { navigationState } from '../../../app/state/index.js';
-import { showScreen } from '../../../app/navigation.js';
 import { byId } from '../../../core/dom.js';
-import { setSafeMarkup } from '../../../core/security/safe_html.js';
-import { generate_qr_svg_text } from '../../../wasm/api.js';
-import { hideQrFrameHexDisplay, pauseQrCycle } from '../../transactions/send/review.js';
+import { showStaticPayloadQr } from '../../qr_display/static_payload.js';
 
 export function showPrivateSwapProtocolQr(payload, title, info) {
-    pauseQrCycle();
-    hideQrFrameHexDisplay();
-    setSafeMarkup(byId('qr-container'), generate_qr_svg_text(payload));
-    byId('qr-frame-info').textContent = info || '';
-    byId('qr-display-title').textContent = title;
-    ['btn-scan-next-sig', 'btn-copy-kspt', 'btn-qr-scan-signed']
-        .forEach(id => byId(id)?.style.setProperty('display', 'none'));
-    byId('qr-tx-info')?.style.setProperty('display', 'none');
-    navigationState._broadcastReturnScreen = 'covenant';
-    showScreen('qr-display');
+    showStaticPayloadQr(payload, title, info || '');
 }
 
 export function showPrivateSwapJsonQr(value, title, info) {

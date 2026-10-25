@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { setupHarness, teardownHarness, moduleUrl, element } from './web_recovery_test_harness.mjs';
+import { setupHarness, teardownHarness, moduleUrl, element, rendered } from './web_recovery_test_harness.mjs';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
@@ -111,7 +111,7 @@ try {
   ];
   assert.deepEqual(orderedUtxoEntries(undated, 'daa-asc').map(entry => entry.utxo.tx_id), ['dd'.repeat(32), 'ee'.repeat(32)]);
   renderUtxoSelector(element('send-utxo-list'), [undated[0]], [], { limit: 8, sort: 'daa-asc' }, () => {});
-  assert.match(element('send-utxo-list').innerHTML, /DAA —/);
+  assert.match(rendered(element('send-utxo-list')), /DAA —/);
   await sendForm.openSendScreen();
   assert.equal(element('input-fee').value, '6000');
   assert.equal(element('input-fee-display').value, '0.00006');
@@ -250,7 +250,7 @@ try {
   oracleState._oracleMbRollActive = true;
   broadcast.showBroadcastError('input already spent'); assert.equal(element('broadcast-result-msg').textContent, 'Someone rolled it first');
   qrMode = 'progress'; assert.equal(broadcast.handleSignedScan(new Uint8Array([1,2,3]), { stopCamera: false }), false);
-  assert.match(element('scanner-status').innerHTML, /2 \/ 3 frames/);
+  assert.match(rendered(element('scanner-status')), /2 \/ 3 frames/);
   qrMode = 'complete'; assert.equal(broadcast.handleSignedScan(new Uint8Array([1,2,3]), { stopCamera: false }), true);
   assert.equal(transactionState._psktReviewHex, '50534b42');
   element('input-signed-hex').value = '50534b42'; await broadcast.handleBroadcastHex();

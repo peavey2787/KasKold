@@ -1,4 +1,5 @@
 import { navigationState, networkState, walletSession } from '../../../app/state/index.js';
+import { qrImage } from '../../../core/qr/svg_image.js';
 import { hideLoading, navigateBack, showLoading, showScreen } from '../../../app/navigation.js';
 import { byId } from '../../../core/dom.js';
 import { renderBrowserConnectivity } from '../../../core/ui/connectivity_status.js';
@@ -125,11 +126,7 @@ export function showCurrentKpub() {
     }
     byId('view-kpub-text').textContent = kpub;
     const qr = byId('view-kpub-qr');
-    const image = document.createElement('img');
-    image.className = 'qr-svg-image';
-    image.alt = 'kpub QR code';
-    image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(generate_qr_svg_text(kpub))}`;
-    qr.replaceChildren(image);
+    qr.replaceChildren(qrImage(generate_qr_svg_text(kpub), 'kpub QR code'));
     showScreen('view-kpub');
     return true;
 }

@@ -24,7 +24,7 @@ function element(id = '') {
         parentElement: { classList: { toggle() {} }, querySelectorAll() { return []; } },
         addEventListener(type, listener) { if (!listeners.has(type)) listeners.set(type, []); listeners.get(type).push(listener); },
         async dispatch(type, event = {}) { for (const listener of listeners.get(type) || []) await listener({ target: this, preventDefault() {}, stopPropagation() {}, ...event }); }, querySelectorAll() { return []; }, querySelector() { return null; },
-        appendChild() {}, replaceChildren() {}, insertBefore() {}, remove() {},
+        append() {}, appendChild() {}, replaceChildren() {}, insertBefore() {}, remove() {},
         getContext() { return { clearRect() {}, fillRect() {}, drawImage() {}, putImageData() {}, getImageData() { return { data: new Uint8ClampedArray(4), width: 1, height: 1 }; } }; },
         closest() { return null; }, setAttribute() {}, getAttribute() { return null; }, focus() {}, click() {},
     };
@@ -55,6 +55,7 @@ try {
     globalThis.document = {
         getElementById(id) { if (!elements.has(id)) elements.set(id, element(id)); return elements.get(id); },
         querySelector() { return element(); }, querySelectorAll() { return []; }, createElement() { return element(); },
+        createTextNode(text) { return { nodeType: 3, textContent: String(text) }; },
         addEventListener(type, listener) { if (type === 'click') clickListeners.push(listener); }, body: element('body'),
     };
     globalThis.localStorage = storage(); globalThis.sessionStorage = storage();

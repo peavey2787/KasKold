@@ -1,4 +1,4 @@
-import { setSafeMarkup } from '../../../../../../core/security/safe_html.js';
+import { setContent, span } from '../../../../../../core/ui/elements.js';
 import { covenantState, covenantWatcherState } from '../../../../../../app/state/index.js';
 import { exactUnsigned } from '../../../../../../core/exact.js';
 import { formatDaaDuration } from '../../../../../../core/format.js';
@@ -22,8 +22,12 @@ function governedThreadState(utxos) {
 function externalFundsNote(sompi, disposition) {
     const exact = exactUnsigned(sompi ?? 0n, 'external amount');
     return exact > 0n
-        ? ` <span class="u-text-warning">(+${sompiToKasFixed(exact, 2)} KAS external, ${disposition})</span>`
-        : '';
+        ? [' ', span('u-text-warning', `(+${sompiToKasFixed(exact, 2)} KAS external, ${disposition})`)]
+        : null;
+}
+
+function readyLabel(canDrain, governedKas, maxStr) {
+    return span('u-text-teal', canDrain ? `\u2705 Ready to drain all ${governedKas} KAS` : `\u2705 Ready to withdraw${maxStr}`);
 }
 
 function withdrawalLimitLabel(maxSompi, canDrain) {
@@ -46,18 +50,16 @@ export async function pollGlobalSpendingLimit(state) {
 
     st.style.color = '';
     if (threadSompi === 0n) {
-        setSafeMarkup(st, '\uD83D\uDC41 0 KAS | Not funded' + extNote);
+        setContent(st, '\uD83D\uDC41 0 KAS | Not funded', extNote);
     } else if (matureSompi > 0n) {
-        setSafeMarkup(st, canDrain
-            ? `<span class="u-text-teal">\u2705 Ready to drain all ${governedKas} KAS</span>${extNote}`
-            : `<span class="u-text-teal">\u2705 Ready to withdraw${maxStr}</span>${extNote}`);
+        setContent(st, readyLabel(canDrain, governedKas, maxStr), extNote);
     } else if (cooldown > 0n && currentDaa > 0n) {
         const remaining = threadDaa + cooldown - currentDaa;
-        setSafeMarkup(st, remaining <= 0n
-            ? `<span class="u-text-teal">\u2705 Ready to withdraw${maxStr}</span>${extNote}`
-            : `\uD83D\uDC41 ~${formatDaaDuration(remaining)} until next withdraw${maxStr}${extNote}`);
+        setContent(st, remaining <= 0n
+            ? readyLabel(false, governedKas, maxStr)
+            : `\uD83D\uDC41 ~${formatDaaDuration(remaining)} until next withdraw${maxStr}`, extNote);
     } else {
-        setSafeMarkup(st, `\uD83D\uDC41 ${governedKas} KAS | Watching...${maxStr}${extNote}`);
+        setContent(st, `\uD83D\uDC41 ${governedKas} KAS | Watching...${maxStr}`, extNote);
     }
     return false;
 }
@@ -78,8 +80,8 @@ export async function pollGlobalAllowance(state) {
 
     if (total === 0n && covenantWatcherState._covWatcherLastBalance !== null && covenantWatcherState._covWatcherLastBalance > 0n) {
         const spender = covenantWatcherState._covWatcherSpendPath || 'unknown';
-        if (spender === 'heir') st.innerHTML = '<span class="u-text-teal">\u2705 Beneficiary withdrew.</span>';
-        else if (spender === 'owner') st.innerHTML = '<span class="u-text-warning">\u26a0 Owner reclaimed all funds.</span>';
+        if (spender === 'heir') setContent(st, span('u-text-teal', '\u2705 Beneficiary withdrew.'));
+        else if (spender === 'owner') setContent(st, span('u-text-warning', '\u26a0 Owner reclaimed all funds.'));
         else st.textContent = '\uD83D\uDC41 Funds spent (0 KAS)';
         covWatcherStop();
         if (st) st.style.display = '';
@@ -88,22 +90,18 @@ export async function pollGlobalAllowance(state) {
 
     st.style.color = '';
     if (threadSompi === 0n) {
-        setSafeMarkup(st, '\uD83D\uDC41 0 KAS | Not funded' + extNote);
+        setContent(st, '\uD83D\uDC41 0 KAS | Not funded', extNote);
     } else if (iAmOwner) {
-        setSafeMarkup(st, `\uD83D\uDC41 ${governedKas} KAS | Owner can reclaim anytime${extNote}`);
+        setContent(st, `\uD83D\uDC41 ${governedKas} KAS | Owner can reclaim anytime`, extNote);
     } else if (startDaa > 0n && currentDaa > 0n && currentDaa < startDaa) {
-        setSafeMarkup(st, `\uD83D\uDC41 ${governedKas} KAS | Locked, ~${formatDaaDuration(startDaa - currentDaa)} until start${extNote}`);
+        setContent(st, `\uD83D\uDC41 ${governedKas} KAS | Locked, ~${formatDaaDuration(startDaa - currentDaa)} until start`, extNote);
     } else if (cooldown > 0n && currentDaa > 0n) {
         const remaining = threadDaa + cooldown - currentDaa;
-        if (remaining <= 0n) {
-            setSafeMarkup(st, canDrain
-                ? `<span class="u-text-teal">\u2705 Ready to drain all ${governedKas} KAS</span>${extNote}`
-                : `<span class="u-text-teal">\u2705 Ready to withdraw${maxStr}</span>${extNote}`);
-        } else {
-            setSafeMarkup(st, `\uD83D\uDC41 ~${formatDaaDuration(remaining)} until next withdraw${maxStr}${extNote}`);
-        }
+        setContent(st, remaining <= 0n
+            ? readyLabel(canDrain, governedKas, maxStr)
+            : `\uD83D\uDC41 ~${formatDaaDuration(remaining)} until next withdraw${maxStr}`, extNote);
     } else {
-        setSafeMarkup(st, `\uD83D\uDC41 ${governedKas} KAS | Watching...${maxStr}${extNote}`);
+        setContent(st, `\uD83D\uDC41 ${governedKas} KAS | Watching...${maxStr}`, extNote);
     }
     return false;
 }

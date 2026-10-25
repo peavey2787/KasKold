@@ -1,4 +1,4 @@
-import { covenantState, navigationState, walletSession } from '../../../app/state/index.js';
+import { covenantState, walletSession } from '../../../app/state/index.js';
 import { showScreen } from '../../../app/navigation.js';
 import { byId } from '../../../core/dom.js';
 import { bytesToHex } from '../../../core/bytes.js';
@@ -13,11 +13,10 @@ import {
     covenantScriptFingerprint, covenantSignatureResponseHex, createCovenantSigningChallenge, parseCovenantResponse,
 } from '../../covenants/signing/protocol.js';
 import { startScanner, stopScanner } from '../../stealth/index/camera.js';
-import { hideQrFrameHexDisplay, pauseQrCycle } from '../../transactions/send/review.js';
+import { showStaticPayloadQr } from '../../qr_display/static_payload.js';
 import {
     create_covenant_oracle_v1_claim,
     create_covenant_pskb_with_payload,
-    generate_qr_svg_text,
     verify_oracle_v1_attestation, verify_covenant_anti_klepto,
 } from '../../../wasm/api.js';
 import { oracleV1MessageCommitment, parseOracleV1Attestation, verifyOracleV1Attestation } from './attestation.js';
@@ -43,15 +42,7 @@ function setAttestation(parsed, statement) {
 }
 
 function showProtocolQr(payloadHex, title, info, returnScreen = 'covenant') {
-    pauseQrCycle();
-    hideQrFrameHexDisplay();
-    byId('qr-container').innerHTML = generate_qr_svg_text(payloadHex);
-    byId('qr-frame-info').textContent = info;
-    byId('qr-display-title').textContent = title;
-    ['btn-scan-next-sig', 'btn-copy-kspt', 'btn-qr-scan-signed'].forEach(id => byId(id)?.style.setProperty('display', 'none'));
-    byId('qr-tx-info')?.style.setProperty('display', 'none');
-    navigationState._broadcastReturnScreen = returnScreen;
-    showScreen('qr-display');
+    showStaticPayloadQr(payloadHex, title, info, returnScreen);
 }
 
 export function showOracleV1KeyRequest() {

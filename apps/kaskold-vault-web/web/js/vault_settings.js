@@ -39,9 +39,10 @@ export function installSettings({ $, api, show, status, lockVault, openPortableB
     node.onclick = handler;
   };
 
-  const detail = (title, html, setup) => {
+  // Static detail pages live as <template> elements in index.html.
+  const detail = (title, templateId, setup) => {
     $('settings-detail-title').textContent = title;
-    $('settings-detail-body').innerHTML = html;
+    $('settings-detail-body').replaceChildren($(templateId).content.cloneNode(true));
     show('settings-detail');
     setup?.();
   };
@@ -80,13 +81,7 @@ export function installSettings({ $, api, show, status, lockVault, openPortableB
     catch (error) { status(String(error), true); }
   });
 
-  bindClick('settings-storage', () => detail('Storage', `
-    <p class="muted">Web Vault can save only authenticated password-encrypted KHV3 ciphertext in browser storage. Unlocked private material and credentials are never persisted. Portable encrypted backups use the same Rust custody/KDF boundary.</p>
-    <div class="stack"><button id="setting-storage-backup" class="primary">Encrypted Backup</button><button id="setting-storage-delete" class="danger">Delete Saved Browser Wallets</button></div>
-    <div id="setting-storage-delete-confirmation" class="stack hidden">
-      <p class="warning">This permanently erases every saved wallet ciphertext from this browser. Wallets without a separate recovery backup cannot be restored.</p>
-      <div class="row"><button id="setting-storage-delete-cancel">Cancel</button><button id="setting-storage-delete-confirm" class="danger">Erase All Saved Wallets</button></div>
-    </div>`, () => {
+  bindClick('settings-storage', () => detail('Storage', 'settings-detail-storage', () => {
       const confirmation = $('setting-storage-delete-confirmation');
       $('setting-storage-backup').onclick = openPortableBackup;
       $('setting-storage-delete').onclick = () => confirmation.classList.remove('hidden');
@@ -100,17 +95,9 @@ export function installSettings({ $, api, show, status, lockVault, openPortableB
       };
     }));
 
-  const showFirmwareUpdate = () => detail('Firmware Update', `
-    <p><strong>READY TO UPDATE</strong></p>
-    <p>1. Connect the M5 signer to the computer over USB-C.</p>
-    <p>2. From the KasKold repository run <code>make flash BOARD=m5stack</code>.</p>
-    <p>3. Keep USB connected until flashing completes.</p>
-    <p class="muted">The signer verifies the installed firmware after reboot. This Web Vault remains network-isolated and never flashes hardware from the browser.</p>`);
+  const showFirmwareUpdate = () => detail('Firmware Update', 'settings-detail-firmware');
 
-  bindClick('settings-about', () => detail('About', `
-    <p><strong>KasKold Vault</strong></p>
-    <p class="muted">Network-free signing shell. Private-key derivation, backup cryptography, transaction review/signing, message signing, multisig construction, and recovery execute in the shared Rust Vault runtime. Companion remains watch-only.</p>
-    <p class="muted">Web removable-storage workflows use user-selected local files; portable encrypted backups use the shared KasKold Argon2id policy and authenticated KHV3 wallet seal.</p>`));
+  bindClick('settings-about', () => detail('About', 'settings-detail-about'));
 
   return { showFirmwareUpdate };
 }

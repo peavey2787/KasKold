@@ -1,10 +1,6 @@
-import { covenantState, navigationState } from '../../../app/state/index.js';
-import { showScreen } from '../../../app/navigation.js';
-import { setSafeMarkup } from '../../../core/security/safe_html.js';
+import { covenantState } from '../../../app/state/index.js';
 import { toast } from '../../../core/ui/toast.js';
-import { byId } from '../../../core/dom.js';
-import { generate_qr_svg_text } from '../../../wasm/api.js';
-import { hideQrFrameHexDisplay, pauseQrCycle } from '../../transactions/send/review.js';
+import { showStaticPayloadQr } from '../../qr_display/static_payload.js';
 import { addContribution, campaignFromResult, contributionFromResult, normalizeCampaign, validateContribution } from './model.js';
 import { persistContributions } from './persistence.js';
 import { renderContributionList } from './sweep.js';
@@ -13,7 +9,7 @@ export function shareCrowdfundCampaign() {
     const result = organizerResult();
     if (!result) return;
     const campaign = campaignFromResult(result);
-    showQr(JSON.stringify({
+    showStaticPayloadQr(JSON.stringify({
         ...campaign,
         goal: campaign.goal.toString(),
         daa: campaign.daa.toString(),
@@ -30,7 +26,7 @@ export function shareCrowdfundContribution() {
         campaign_id: result.campaign_id,
         contribution,
     };
-    showQr(JSON.stringify(payload), 'Crowdfunding Contribution Invite');
+    showStaticPayloadQr(JSON.stringify(payload), 'Crowdfunding Contribution Invite');
 }
 
 export function importCrowdfundContribution(raw) {
@@ -55,24 +51,6 @@ export function parseCrowdfundCampaign(raw) {
 function decodeJson(raw) {
     const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
     return JSON.parse(new TextDecoder().decode(bytes));
-}
-
-function showQr(payload, title) {
-    pauseQrCycle();
-    hideQrFrameHexDisplay();
-    const container = byId('qr-container');
-    setSafeMarkup(container, generate_qr_svg_text(payload));
-    const info = byId('qr-frame-info');
-    if (info) info.replaceChildren();
-    byId('qr-display-title').textContent = title;
-    ['btn-scan-next-sig', 'btn-copy-kspt', 'btn-qr-scan-signed'].forEach(id => {
-        const button = byId(id);
-        if (button) button.style.display = 'none';
-    });
-    const txInfo = byId('qr-tx-info');
-    if (txInfo) txInfo.style.display = 'none';
-    navigationState._broadcastReturnScreen = 'covenant';
-    showScreen('qr-display');
 }
 
 function organizerResult() {

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { setupHarness, teardownHarness, moduleUrl, element } from './web_recovery_test_harness.mjs';
+import { setupHarness, teardownHarness, moduleUrl, element, rendered } from './web_recovery_test_harness.mjs';
 const ADDRESS='kaspa:stealth-funded', R='11'.repeat(32), PUB='22'.repeat(32), TWEAK='33'.repeat(32);
 await setupHarness();
 try {
@@ -23,10 +23,10 @@ try {
  let first=true; globalThis.fetch=async url=>{const u=String(url); if(u.includes('virtual-chain-blue-score')) throw new Error('primary unavailable'); if(u.includes('/info/blockdag')) return {ok:true,async json(){return {sink:'bb'.repeat(32)};}}; if(u.includes('/blocks/')) return {ok:true,async text(){return '{"blueScore":10}';}}; if(u.includes('/transactions/search')) return {ok:true,status:200,headers:{get(){return null;}},async json(){return [];}}; throw new Error('unexpected '+u);};
  assert.deepEqual(await catchup.stealthRestCatchUp('https://runtime-api'),[]);
  // QR request uses all loaded R values and animates frames.
- const requestQr=await import(moduleUrl('features/stealth/index/scanning/live_controls/request_qr.js')); stealthState.stealthAnnouncementsR=[R,'44'.repeat(32)]; stealthState._stealthBatchStart=0; stealthState._stealthCatchupRunning=false; requestQr.showStealthScanQr(); assert.match(element('stealth-scan-status').innerHTML,/Scanning R 1–2 of 2/); assert.ok(stealthState._stealthQrTimer);
+ const requestQr=await import(moduleUrl('features/stealth/index/scanning/live_controls/request_qr.js')); stealthState.stealthAnnouncementsR=[R,'44'.repeat(32)]; stealthState._stealthBatchStart=0; stealthState._stealthCatchupRunning=false; requestQr.showStealthScanQr(); assert.match(rendered(element('stealth-scan-status')),/Scanning R 1–2 of 2/); assert.ok(stealthState._stealthQrTimer);
  // Device result response: two results, one duplicate/zero rejected, funded result rendered and batch advances.
  const raw=new Uint8Array(5+64); raw.set([0x53,0x54,0x4c,0x52,1]); raw.set(Buffer.from(PUB,'hex'),5); raw.set(Buffer.from(TWEAK,'hex'),37);
- const results=await import(moduleUrl('features/stealth/index/scanning/live_controls/results.js')); await results.processStealthResult(raw); assert.equal(stealthState._stealthResults.length,1); assert.equal(stealthState._stealthResults[0].pubkey,PUB); assert.match(element('stealth-found-list').innerHTML,/Payment 1/);
+ const results=await import(moduleUrl('features/stealth/index/scanning/live_controls/results.js')); await results.processStealthResult(raw); assert.equal(stealthState._stealthResults.length,1); assert.equal(stealthState._stealthResults[0].pubkey,PUB); assert.match(rendered(element('stealth-found-list')),/Payment 1/);
  // Duplicate result does not create a second record.
  await results.processStealthResult(raw); assert.equal(stealthState._stealthResults.length,1);
  // Manual R section and lifecycle controls cover UI state transitions.

@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 import {
   setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setValue, setFetchHook,
   ADDRESS, BENEFICIARY, EXTERNAL, PK, PK2, PK3, PSKB, TXID, COV_ID,
-  covenantResult, assertWatchOnlyStorage,
-} from './web_runtime_deep_harness.mjs';
+  covenantResult, assertWatchOnlyStorage, rendered } from './web_runtime_deep_harness.mjs';
 
 await setupDeepHarness();
 try {
@@ -69,10 +68,10 @@ try {
     cltv1_deadline:'1200', cltv2_deadline:'1400', seller_addr:BENEFICIARY, deliverer_addr:EXTERNAL, buyer_addr:ADDRESS,
   };
   covenantState.lastCovenantResult=ship; setValue('cov-ship-addr',''); setValue('cov-ship-script','');
-  wasm.fetch_utxos_for_address_js=()=> '[]'; await shipment.shipPanelRefresh(); assert.match(element('cov-ship-state').innerHTML,/Not funded/);
-  wasm.fetch_utxos_for_address_js=()=>JSON.stringify([{tx_id:TXID,index:0,amount:'250000000'}]); await shipment.shipPanelRefresh(); assert.match(element('cov-ship-state').innerHTML,/State 0/); assert.equal(element('cov-ship-s0-actions').style.display,'');
-  wasm.fetch_utxos_for_address_js=()=>JSON.stringify([{tx_id:TXID,index:0,amount:'150000000'}]); await shipment.shipPanelRefresh(); assert.match(element('cov-ship-state').innerHTML,/State 1/); assert.equal(element('cov-ship-s1-actions').style.display,'');
-  wasm.fetch_utxos_for_address_js=()=>JSON.stringify([{tx_id:TXID,index:0,amount:'123'}]); await shipment.shipPanelRefresh(); assert.match(element('cov-ship-state').innerHTML,/matches neither/);
+  wasm.fetch_utxos_for_address_js=()=> '[]'; await shipment.shipPanelRefresh(); assert.match(rendered(element('cov-ship-state')),/Not funded/);
+  wasm.fetch_utxos_for_address_js=()=>JSON.stringify([{tx_id:TXID,index:0,amount:'250000000'}]); await shipment.shipPanelRefresh(); assert.match(rendered(element('cov-ship-state')),/State 0/); assert.equal(element('cov-ship-s0-actions').style.display,'');
+  wasm.fetch_utxos_for_address_js=()=>JSON.stringify([{tx_id:TXID,index:0,amount:'150000000'}]); await shipment.shipPanelRefresh(); assert.match(rendered(element('cov-ship-state')),/State 1/); assert.equal(element('cov-ship-s1-actions').style.display,'');
+  wasm.fetch_utxos_for_address_js=()=>JSON.stringify([{tx_id:TXID,index:0,amount:'123'}]); await shipment.shipPanelRefresh(); assert.match(rendered(element('cov-ship-state')),/matches neither/);
   wasm.fetch_utxos_for_address_js=()=>{throw new Error('ship state offline');}; await shipment.shipPanelRefresh(); assert.match(element('cov-ship-state').textContent,/Error loading state/);
   covenantState.lastCovenantResult=null; setValue('cov-ship-addr',''); setValue('cov-ship-script',''); await shipment.shipPanelRefresh(); assert.match(element('cov-ship-state').textContent,/Enter covenant/);
 
@@ -102,8 +101,8 @@ try {
   covenantState.lastCovenantResult={...covenantResult('dms'),inactivity_daa:'500'};
   await savings.pollDms({total:0n,kas:'0',st,currentDaa:1000n,utxos:[]}); assert.match(st.textContent,/Not funded/);
   await savings.pollDms({total:100n,kas:'0.000001',st,currentDaa:1000n,utxos:[{block_daa_score:'900'}]}); assert.match(st.textContent,/until heir can claim/);
-  await savings.pollDms({total:100n,kas:'0.000001',st,currentDaa:1500n,utxos:[{block_daa_score:'900'}]}); assert.match(st.innerHTML,/ending|passed/);
-  await savings.pollDms({total:100n,kas:'0.000001',st,currentDaa:1800n,utxos:[{block_daa_score:'900'}]}); assert.match(st.innerHTML,/passed/);
+  await savings.pollDms({total:100n,kas:'0.000001',st,currentDaa:1500n,utxos:[{block_daa_score:'900'}]}); assert.match(rendered(st),/ending|passed/);
+  await savings.pollDms({total:100n,kas:'0.000001',st,currentDaa:1800n,utxos:[{block_daa_score:'900'}]}); assert.match(rendered(st),/passed/);
   covenantWatcherState._covWatcherLastBalance=10n; covenantWatcherState._covWatcherSpendPath='owner'; assert.equal(await savings.pollDms({total:0n,kas:'0',st,currentDaa:0n,utxos:[]}),true);
   covenantWatcherState._covWatcherLastBalance=10n; covenantWatcherState._covWatcherSpendPath='heir'; assert.equal(await savings.pollDms({total:0n,kas:'0',st,currentDaa:0n,utxos:[]}),true);
   covenantWatcherState._covWatcherLastBalance=10n; covenantWatcherState._covWatcherSpendPath='unknown'; assert.equal(await savings.pollDms({total:0n,kas:'0',st,currentDaa:0n,utxos:[]}),true);
@@ -112,27 +111,27 @@ try {
   covenantState.lastCovenantResult={...covenantResult('savings'),threshold_sompi:'100',deadline_daa:'2000'};
   await savings.pollAdditive({total:0n,kas:'0',st,currentDaa:1000n}); assert.match(st.textContent,/Not funded/);
   await savings.pollAdditive({total:50n,kas:'0.0000005',st,currentDaa:1000n}); assert.match(st.textContent,/50%/);
-  await savings.pollAdditive({total:100n,kas:'0.000001',st,currentDaa:1000n}); assert.match(st.innerHTML,/Goal reached/);
-  await savings.pollAdditive({total:50n,kas:'0.0000005',st,currentDaa:2500n}); assert.match(st.innerHTML,/Deadline passed/);
-  covenantState.lastCovenantResult={...covenantResult('savings'),threshold_sompi:'0',deadline_daa:'0'}; await savings.pollAdditive({total:1n,kas:'0.00000001',st,currentDaa:0n}); assert.match(st.innerHTML,/0.00000001/);
+  await savings.pollAdditive({total:100n,kas:'0.000001',st,currentDaa:1000n}); assert.match(rendered(st),/Goal reached/);
+  await savings.pollAdditive({total:50n,kas:'0.0000005',st,currentDaa:2500n}); assert.match(rendered(st),/Deadline passed/);
+  covenantState.lastCovenantResult={...covenantResult('savings'),threshold_sompi:'0',deadline_daa:'0'}; await savings.pollAdditive({total:1n,kas:'0.00000001',st,currentDaa:0n}); assert.match(rendered(st),/0.00000001/);
   covenantWatcherState._covWatcherLastBalance=5n; assert.equal(await savings.pollAdditive({total:0n,kas:'0',st,currentDaa:0n}),true);
 
   // Timed savings delegates the shared timing policy; exercise spent, unlocked, unlocking and locked states.
   covenantWatcherState._covWatcherLastBalance=null; covenantState.lastCovenantResult={...covenantResult('timelocked-savings'),locktime_daa:'1200'};
-  await savings.pollTimelockedSavings({total:100n,kas:'0.000001',st,locktime:1200n,currentDaa:1600n,utxos:[]}); assert.match(st.innerHTML,/Unlocked/);
-  await savings.pollTimelockedSavings({total:100n,kas:'0.000001',st,locktime:1200n,currentDaa:1200n,utxos:[]}); assert.match(st.innerHTML,/Unlocking/);
+  await savings.pollTimelockedSavings({total:100n,kas:'0.000001',st,locktime:1200n,currentDaa:1600n,utxos:[]}); assert.match(rendered(st),/Unlocked/);
+  await savings.pollTimelockedSavings({total:100n,kas:'0.000001',st,locktime:1200n,currentDaa:1200n,utxos:[]}); assert.match(rendered(st),/Unlocking/);
   await savings.pollTimelockedSavings({total:100n,kas:'0.000001',st,locktime:1200n,currentDaa:1000n,utxos:[]}); assert.match(st.textContent,/Locked/);
 
   const thread=[{tx_id:TXID,index:0,amount:'100000000',block_daa_score:'900',covenant_id:COV_ID},{tx_id:'bb'.repeat(32),index:1,amount:'50000000',block_daa_score:'901'}];
   covenantState.lastCovenantResult={...covenantResult('global-spending-limit'),covenant_id_hex:COV_ID,cooldown_daa:'100',max_withdraw_sompi:'100000000'};
-  await limits.pollGlobalSpendingLimit({st,currentDaa:800n,utxos:[]}); assert.match(st.innerHTML,/Not funded/);
-  await limits.pollGlobalSpendingLimit({st,currentDaa:950n,utxos:thread}); assert.match(st.innerHTML,/until next withdraw|Ready/);
-  await limits.pollGlobalSpendingLimit({st,currentDaa:1200n,utxos:thread}); assert.match(st.innerHTML,/Ready/);
+  await limits.pollGlobalSpendingLimit({st,currentDaa:800n,utxos:[]}); assert.match(rendered(st),/Not funded/);
+  await limits.pollGlobalSpendingLimit({st,currentDaa:950n,utxos:thread}); assert.match(rendered(st),/until next withdraw|Ready/);
+  await limits.pollGlobalSpendingLimit({st,currentDaa:1200n,utxos:thread}); assert.match(rendered(st),/Ready/);
   covenantState.lastCovenantResult={...covenantResult('global-allowance'),covenant_id_hex:COV_ID,role:'beneficiary',start_daa:'1100',cooldown_daa:'100',max_withdraw_sompi:'100000000'}; covenantWatcherState._covWatcherLastBalance=null;
-  await limits.pollGlobalAllowance({total:100000000n,st,currentDaa:1000n,utxos:thread}); assert.match(st.innerHTML,/Locked/);
-  await limits.pollGlobalAllowance({total:100000000n,st,currentDaa:1050n,utxos:thread}); assert.match(st.innerHTML,/Locked|until/);
-  await limits.pollGlobalAllowance({total:100000000n,st,currentDaa:1200n,utxos:thread}); assert.match(st.innerHTML,/Ready/);
-  covenantState.lastCovenantResult.role='owner'; await limits.pollGlobalAllowance({total:100000000n,st,currentDaa:1200n,utxos:thread}); assert.match(st.innerHTML,/Owner can reclaim/);
+  await limits.pollGlobalAllowance({total:100000000n,st,currentDaa:1000n,utxos:thread}); assert.match(rendered(st),/Locked/);
+  await limits.pollGlobalAllowance({total:100000000n,st,currentDaa:1050n,utxos:thread}); assert.match(rendered(st),/Locked|until/);
+  await limits.pollGlobalAllowance({total:100000000n,st,currentDaa:1200n,utxos:thread}); assert.match(rendered(st),/Ready/);
+  covenantState.lastCovenantResult.role='owner'; await limits.pollGlobalAllowance({total:100000000n,st,currentDaa:1200n,utxos:thread}); assert.match(rendered(st),/Owner can reclaim/);
   covenantWatcherState._covWatcherLastBalance=1n; covenantWatcherState._covWatcherSpendPath='heir'; assert.equal(await limits.pollGlobalAllowance({total:0n,st,currentDaa:1200n,utxos:[]}),true);
 
   // Global-limit/allowance watcher edge states: absent metadata, external UTXOs,
@@ -140,22 +139,22 @@ try {
   const externalOnly=[{tx_id:'ef'.repeat(32),index:3,amount:'25000000'}];
   covenantWatcherState._covWatcherLastBalance=null;
   covenantState.lastCovenantResult={...covenantResult('global-spending-limit'),covenant_id_hex:COV_ID,cooldown_daa:'0',max_withdraw_sompi:'0'};
-  await limits.pollGlobalSpendingLimit({st,currentDaa:0n,utxos:externalOnly}); assert.match(st.innerHTML,/external|Not funded/i);
-  await limits.pollGlobalSpendingLimit({st,currentDaa:0n,utxos:[{tx_id:TXID,index:0,amount:'200000000',covenant_id:COV_ID}]}); assert.match(st.innerHTML,/Watching|Ready/i);
+  await limits.pollGlobalSpendingLimit({st,currentDaa:0n,utxos:externalOnly}); assert.match(rendered(st),/external|Not funded/i);
+  await limits.pollGlobalSpendingLimit({st,currentDaa:0n,utxos:[{tx_id:TXID,index:0,amount:'200000000',covenant_id:COV_ID}]}); assert.match(rendered(st),/Watching|Ready/i);
   covenantState.lastCovenantResult={...covenantResult('global-spending-limit'),covenant_id_hex:COV_ID,cooldown_daa:'100',max_withdraw_sompi:'50000000'};
-  await limits.pollGlobalSpendingLimit({st,currentDaa:1200n,utxos:thread}); assert.match(st.innerHTML,/Ready to withdraw/);
+  await limits.pollGlobalSpendingLimit({st,currentDaa:1200n,utxos:thread}); assert.match(rendered(st),/Ready to withdraw/);
 
   covenantState.lastCovenantResult={...covenantResult('global-allowance'),covenant_id_hex:COV_ID,role:'beneficiary',start_daa:'0',cooldown_daa:undefined,min_sequence:'0',max_withdraw_sompi:'0'};
   covenantWatcherState._covWatcherLastBalance=null;
-  await limits.pollGlobalAllowance({total:100000000n,st,currentDaa:0n,utxos:thread}); assert.match(st.innerHTML,/Watching/);
+  await limits.pollGlobalAllowance({total:100000000n,st,currentDaa:0n,utxos:thread}); assert.match(rendered(st),/Watching/);
   covenantState.lastCovenantResult.min_sequence='100'; covenantState.lastCovenantResult.max_withdraw_sompi='50000000';
-  await limits.pollGlobalAllowance({total:100000000n,st,currentDaa:1200n,utxos:thread}); assert.match(st.innerHTML,/Ready to withdraw/);
+  await limits.pollGlobalAllowance({total:100000000n,st,currentDaa:1200n,utxos:thread}); assert.match(rendered(st),/Ready to withdraw/);
   covenantWatcherState._covWatcherLastBalance=1n; covenantWatcherState._covWatcherSpendPath='owner';
-  assert.equal(await limits.pollGlobalAllowance({total:0n,st,currentDaa:1200n,utxos:[]}),true); assert.match(st.innerHTML,/Owner reclaimed/);
+  assert.equal(await limits.pollGlobalAllowance({total:0n,st,currentDaa:1200n,utxos:[]}),true); assert.match(rendered(st),/Owner reclaimed/);
   covenantWatcherState._covWatcherLastBalance=1n; covenantWatcherState._covWatcherSpendPath='mystery';
   assert.equal(await limits.pollGlobalAllowance({total:0n,st,currentDaa:1200n,utxos:[]}),true); assert.match(st.textContent,/Funds spent/);
   covenantWatcherState._covWatcherLastBalance=null;
-  await limits.pollGlobalAllowance({total:1n,st,currentDaa:0n,utxos:externalOnly}); assert.match(st.innerHTML,/external|Not funded/i);
+  await limits.pollGlobalAllowance({total:1n,st,currentDaa:0n,utxos:externalOnly}); assert.match(rendered(st),/external|Not funded/i);
 
   // Oracle-v1 watcher: saved beacon, spent/not-funded, malformed network
   // beacons, identity/commitment failures, and a valid on-chain attestation.
@@ -167,12 +166,12 @@ try {
   covenantState.lastCovenantResult=oracleResult; covenantState.activeCovenants=[{...oracleResult}];
   wasm.verify_oracle_v1_attestation=()=>true;
   covenantWatcherState._covWatcherLastBalance=10n;
-  assert.equal(await oraclePoller.pollOracleV1({total:0n,kas:'0',st,locktime:1200n,currentDaa:1300n,utxos:[]}),true); assert.match(st.innerHTML,/spent/i);
+  assert.equal(await oraclePoller.pollOracleV1({total:0n,kas:'0',st,locktime:1200n,currentDaa:1300n,utxos:[]}),true); assert.match(rendered(st),/spent/i);
   covenantWatcherState._covWatcherLastBalance=null;
   assert.equal(await oraclePoller.pollOracleV1({total:0n,kas:'0',st,locktime:1200n,currentDaa:1000n,utxos:[]}),false); assert.match(st.textContent,/Not funded/);
 
   oracleResult.oracle_attestation_signature=oracleSig; oracleResult.oracle_attestation_commitment=oracleCommit;
-  await oraclePoller.pollOracleV1({total:1n,kas:'0.00000001',st,locktime:1200n,currentDaa:1300n,utxos:[]}); assert.match(st.innerHTML,/Oracle attested|refund available/i);
+  await oraclePoller.pollOracleV1({total:1n,kas:'0.00000001',st,locktime:1200n,currentDaa:1300n,utxos:[]}); assert.match(rendered(st),/Oracle attested|refund available/i);
   delete oracleResult.oracle_attestation_signature; delete oracleResult.oracle_attestation_commitment;
 
   const beaconPayload=(text=oracleStatement,commit=oracleCommit,sig=oracleSig)=>'4f525631'+sig+commit+Buffer.from(text,'utf8').toString('hex');
@@ -185,7 +184,7 @@ try {
   networkPayload=beaconPayload('different statement'); await pollTx('13'.repeat(32)); assert.match(st.textContent,/Waiting/);
   networkPayload=beaconPayload(oracleStatement,'55'.repeat(32)); await pollTx('14'.repeat(32)); assert.match(st.textContent,/Waiting/);
   wasm.verify_oracle_v1_attestation=()=>false; networkPayload=beaconPayload(); await pollTx('15'.repeat(32)); assert.match(st.textContent,/Waiting/);
-  wasm.verify_oracle_v1_attestation=()=>true; networkPayload=beaconPayload(); await pollTx('16'.repeat(32)); assert.match(st.innerHTML,/Oracle attested/); assert.equal(oracleResult.oracle_attestation_txid,'16'.repeat(32));
+  wasm.verify_oracle_v1_attestation=()=>true; networkPayload=beaconPayload(); await pollTx('16'.repeat(32)); assert.match(rendered(st),/Oracle attested/); assert.equal(oracleResult.oracle_attestation_txid,'16'.repeat(32));
 
   assert.equal(navigationState._broadcastReturnScreen,'covenant');
   assertWatchOnlyStorage();

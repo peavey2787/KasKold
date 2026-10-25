@@ -8,7 +8,6 @@ const { state } = await setupDeepHarness();
 try {
   const covenantReturn = await import(moduleUrl('features/covenants/scanning/return.js'));
   const imageFile = await import(moduleUrl('core/qr/image_file.js'));
-  const safeHtml = await import(moduleUrl('core/security/safe_html.js'));
   const exact = await import(moduleUrl('core/exact.js'));
   const amounts = await import(moduleUrl('core/amounts.js'));
   const bytes = await import(moduleUrl('core/bytes.js'));
@@ -69,12 +68,6 @@ try {
   else globalThis.createImageBitmap = originalCreateImageBitmap;
   if (originalJsQr === undefined) delete globalThis.jsQR;
   else globalThis.jsQR = originalJsQr;
-
-  // Minimal-DOM sanitizer fallback must preserve requested markup as literal text.
-  const target = new FakeElement('div');
-  safeHtml.setSafeMarkup(target, '<img src=x onerror=alert(1)>');
-  assert.match(target.innerHTML, /&lt;img/);
-  assert.doesNotMatch(target.innerHTML, /<img/i);
 
   // Exact-integer utility boundaries that are part of transaction/runtime input handling.
   assert.equal(exact.nonNegativeDifference(1n, 2n), 0n);

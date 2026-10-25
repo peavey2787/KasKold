@@ -59,17 +59,8 @@ class WebBuildPipelineTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout)
 
 
-    def test_safe_html_checker_normalizes_windows_paths_and_utf8(self) -> None:
+    def test_html_sink_checker_passes_under_an_ascii_locale(self) -> None:
         checker = ROOT / "qa/checks/web/check_safe_html.py"
-        source = checker.read_text(encoding="utf-8")
-        self.assertIn("replace('\\\\', '/')", source)
-        self.assertIn("read_text(encoding='utf-8', errors='replace')", source)
-
-        # Reproduce the Windows path form that previously bypassed the QR allowlist.
-        windows_rel = r"features\transactions\send\review.js"
-        normalized = windows_rel.replace("\\", "/")
-        self.assertEqual(normalized, "features/transactions/send/review.js")
-
         env = os.environ.copy()
         env.update({
             "PYTHONUTF8": "0",

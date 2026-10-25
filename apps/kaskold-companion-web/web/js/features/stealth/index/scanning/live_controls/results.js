@@ -1,4 +1,4 @@
-import { setSafeMarkup } from '../../../../../core/security/safe_html.js';
+import { el, setContent, span } from '../../../../../core/ui/elements.js';
 import { networkState, stealthState, walletSession } from '../../../../../app/state/index.js';
 import { showScreen } from '../../../../../app/navigation.js';
 import { bytesToHex } from '../../../../../core/bytes.js';
@@ -44,24 +44,41 @@ async function findFundedResults() {
     return funded;
 }
 
+const STEALTH_FEE_LEVELS = [
+    { level: 'low', label: 'Low', amount: '2,500' },
+    { level: 'normal', label: 'Normal', amount: '5,000', active: true },
+    { level: 'priority', label: 'Priority', amount: '10,000' },
+];
+
+function feeCard({ level, label, amount, active }) {
+    return el('button', { className: `fee-card${active ? ' fee-card-active' : ''}`, id: `btn-spf-${level}` },
+        el('div', { className: 'fee-card-label' }, label),
+        el('div', { className: 'fee-card-amount', id: `spf-${level}-amount` }, amount),
+        el('div', { className: 'fee-card-time', id: `spf-${level}-time` }));
+}
+
+function paymentCard(result, index) {
+    const spend = el('button', { className: 'btn btn-primary stealth-spend-btn stealth-spend-btn-wide' }, 'Spend This Payment');
+    spend.addEventListener('click', () => handleStealthSpend(result.pubkey, result.tweak));
+    return el('div', { className: 'stealth-payment-card' },
+        el('div', { className: 'stealth-payment-title' },
+            span('u-text-accent-teal', `Payment ${index + 1}`), ' · ',
+            span('u-text-accent-teal', `${sompiToKasFixed(result.total, 2)} KAS`)),
+        el('div', { className: 'stealth-payment-address' }, result.address),
+        spend);
+}
+
 function renderFundedResults(funded) {
     const list = byId('stealth-found-list');
     if (funded.length === 0) {
-        list.innerHTML = 'No funded payments for this wallet.';
+        list.textContent = 'No funded payments for this wallet.';
         return;
     }
-    let html = '<label class="input-label">Fee</label><div class="fee-cards">'
-        + '<button class="fee-card" id="btn-spf-low"><div class="fee-card-label">Low</div><div class="fee-card-amount" id="spf-low-amount">2,500</div><div class="fee-card-time" id="spf-low-time"></div></button>'
-        + '<button class="fee-card fee-card-active" id="btn-spf-normal"><div class="fee-card-label">Normal</div><div class="fee-card-amount" id="spf-normal-amount">5,000</div><div class="fee-card-time" id="spf-normal-time"></div></button>'
-        + '<button class="fee-card" id="btn-spf-priority"><div class="fee-card-label">Priority</div><div class="fee-card-amount" id="spf-priority-amount">10,000</div><div class="fee-card-time" id="spf-priority-time"></div></button>'
-        + '</div><input type="number" id="input-spf-fee" class="input-text " value="5000" step="1" min="1">';
-    funded.forEach((result, index) => {
-        html += `<div class="stealth-payment-card"><div class="stealth-payment-title"><span class="u-text-accent-teal">Payment ${index + 1}</span> · <span class="u-text-accent-teal">${sompiToKasFixed(result.total, 2)} KAS</span></div><div class="stealth-payment-address">${result.address}</div><button class="btn btn-primary stealth-spend-btn stealth-spend-btn-wide" data-pubkey="${result.pubkey}" data-tweak="${result.tweak}">Spend This Payment</button></div>`;
-    });
-    setSafeMarkup(list, html);
-    list.querySelectorAll('.stealth-spend-btn').forEach(button => {
-        button.addEventListener('click', () => handleStealthSpend(button.dataset.pubkey, button.dataset.tweak));
-    });
+    setContent(list,
+        el('label', { className: 'input-label' }, 'Fee'),
+        el('div', { className: 'fee-cards' }, STEALTH_FEE_LEVELS.map(feeCard)),
+        el('input', { className: 'input-text', id: 'input-spf-fee', attrs: { type: 'number', value: '5000', step: '1', min: '1' } }),
+        funded.map(paymentCard));
     ['low', 'normal', 'priority'].forEach(level => {
         const button = byId(`btn-spf-${level}`);
         if (button) button.onclick = () => stealthFeeSetLevel('spf', 'spend', level);
@@ -75,18 +92,18 @@ export async function processStealthResult(raw) {
     clearStealthQrTimer();
     showScreen('stealth');
     stealthShowPanel('scan');
-    byId('stealth-found-list').innerHTML = 'Checking balances...';
+    byId('stealth-found-list').textContent = 'Checking balances...';
     byId('stealth-scan-results').classList.remove('hidden');
     try {
         renderFundedResults(await findFundedResults());
     } catch (_) {
-        byId('stealth-found-list').innerHTML = 'Node unavailable, cannot check balances.';
+        byId('stealth-found-list').textContent = 'Node unavailable, cannot check balances.';
     }
 
     stealthState._stealthBatchStart = (stealthState._stealthBatchStart || 0) + count;
     const remaining = stealthState.stealthAnnouncementsR.length - stealthState._stealthBatchStart;
     if (remaining > 0) {
-        setSafeMarkup(byId('stealth-scan-status'), `<strong>${remaining} more R to check.</strong> Tap "Show Scan QR" for the next batch.`);
+        setContent(byId('stealth-scan-status'), el('strong', {}, `${remaining} more R to check.`), ' Tap "Show Scan QR" for the next batch.');
     }
     toast(`Scanned ${count} result(s)${remaining > 0 ? `, ${remaining} R left` : ''}`, 'ok', 2000);
 }

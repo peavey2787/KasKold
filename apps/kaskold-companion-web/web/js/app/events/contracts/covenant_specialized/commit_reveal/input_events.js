@@ -1,4 +1,3 @@
-import { setSafeMarkup } from '../../../../../core/security/safe_html.js';
 import { commitRevealState } from '../../../../state/index.js';
 import { showScreen } from '../../../../navigation.js';
 import { toast } from '../../../../../core/ui/toast.js';
@@ -9,6 +8,8 @@ import { startScanner, stopScanner } from '../../../../../features/stealth/index
 import { generate_qr_svg_text } from '../../../../../wasm/api.js';
 import { bytesToHex } from '../../../../../core/bytes.js';
 import { byId } from '../../../../../core/dom.js';
+import { qrImage } from '../../../../../core/qr/svg_image.js';
+import { el } from '../../../../../core/ui/elements.js';
 
 function bindDateInvalidation() {
     const pairs = [
@@ -32,9 +33,11 @@ function showCiphertextQr() {
         const overlay = document.createElement('div');
         overlay.id = 'cr-ct-overlay';
         overlay.classList.add('commit-reveal-decrypt-overlay');
-        setSafeMarkup(overlay, '<p class="commit-reveal-decrypt-title">Scan on KasKold: Decrypt Secret</p>' +
-            '<div class="commit-reveal-decrypt-qr">' + generate_qr_svg_text(bytesToHex(bytes)) + '</div>' +
-            '<p class="" id="cr-ct-close">Tap here to close</p>');
+        overlay.replaceChildren(
+            el('p', { className: 'commit-reveal-decrypt-title' }, 'Scan on KasKold: Decrypt Secret'),
+            el('div', { className: 'commit-reveal-decrypt-qr' },
+                qrImage(generate_qr_svg_text(bytesToHex(bytes)), 'Commit-reveal ciphertext QR')),
+            el('p', { id: 'cr-ct-close' }, 'Tap here to close'));
         document.body.appendChild(overlay);
         setTimeout(() => {
             const close = byId('cr-ct-close');

@@ -1,10 +1,11 @@
-import { setSafeMarkup } from '../../../../../core/security/safe_html.js';
 import { stealthState } from '../../../../../app/state/index.js';
 import { bytesToHex, hexToBytes } from '../../../../../core/bytes.js';
 import { byId } from '../../../../../core/dom.js';
 import { toast } from '../../../../../core/ui/toast.js';
 import { generate_qr_frames } from '../../../../../wasm/api.js';
 import { clearStealthQrTimer } from './lifecycle.js';
+import { qrImage, showQrSvg } from '../../../../../core/qr/svg_image.js';
+import { el, setContent } from '../../../../../core/ui/elements.js';
 
 function buildScanRequest(start, count) {
     const payload = new Uint8Array(5 + count * 32);
@@ -17,12 +18,14 @@ function buildScanRequest(start, count) {
 
 function renderQrFrames(frames, qrBox) {
     if (frames.length <= 1) {
-        qrBox.innerHTML = frames[0].svg;
+        showQrSvg(qrBox, frames[0].svg, 'Stealth scan request QR');
         return;
     }
     let frameIndex = 0;
     const render = () => {
-        qrBox.innerHTML = `${frames[frameIndex].svg}<div class="stealth-scan-frame">Frame ${frameIndex + 1}/${frames.length}</div>`;
+        setContent(qrBox,
+            qrImage(frames[frameIndex].svg, `Stealth scan request QR frame ${frameIndex + 1}`),
+            el('div', { className: 'stealth-scan-frame' }, `Frame ${frameIndex + 1}/${frames.length}`));
     };
     render();
     stealthState._stealthQrTimer = setInterval(() => {
@@ -60,10 +63,10 @@ export function showStealthScanQr() {
         byId('stealth-scan-panel').insertBefore(qrBox, byId('btn-stealth-scan-result-qr'));
         renderQrFrames(frames, qrBox);
 
-        const range = `<strong>Scanning R ${start + 1}–${start + count} of ${stealthState.stealthAnnouncementsR.length}.</strong> `;
-        setSafeMarkup(byId('stealth-scan-status'), frames.length <= 1
-            ? `${range}Point the device camera at this QR, then scan the response back.`
-            : `${range}Hold the device camera on this animated QR (${frames.length} frames) until all are captured, then scan the response back.`);
+        const range = el('strong', {}, `Scanning R ${start + 1}–${start + count} of ${stealthState.stealthAnnouncementsR.length}.`);
+        setContent(byId('stealth-scan-status'), range, frames.length <= 1
+            ? ' Point the device camera at this QR, then scan the response back.'
+            : ` Hold the device camera on this animated QR (${frames.length} frames) until all are captured, then scan the response back.`);
         byId('btn-stealth-scan-result-qr').classList.remove('hidden');
     } catch (error) {
         toast(`QR generation failed: ${error}`, 'error', 3000);

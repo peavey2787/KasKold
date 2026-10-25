@@ -2,6 +2,7 @@ import { networkState, walletSession } from '../../../app/state/index.js';
 import { showScreen } from '../../../app/navigation.js';
 import { getNextReceiveIndex } from '../../wallet/core.js';
 import { extend_addresses, generate_qr_frames } from '../../../wasm/api.js';
+import { showQrSvg } from '../../../core/qr/svg_image.js';
 // KasKold Companion Web — features/transactions/send/receive
 import { utf8ToHex } from '../../../core/bytes.js';
 import { byId } from '../../../core/dom.js';
@@ -55,9 +56,9 @@ function renderAddress(chain, index) {
     if (!address) throw new Error('Could not derive the requested address');
     try {
         const frames = JSON.parse(generate_qr_frames(utf8ToHex(address)));
-        byId('receive-qr').innerHTML = frames[0].svg;
+        showQrSvg(byId('receive-qr'), frames[0].svg, 'Receive address QR');
     } catch (_) {
-        byId('receive-qr').innerHTML = '';
+        byId('receive-qr').replaceChildren();
     }
     renderReceiveAddress(address);
     byId('receive-chain').value = chain;

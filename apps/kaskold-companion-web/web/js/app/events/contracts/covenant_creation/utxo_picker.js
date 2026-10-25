@@ -1,4 +1,4 @@
-import { setSafeMarkup } from '../../../../core/security/safe_html.js';
+import { el, setContent } from '../../../../core/ui/elements.js';
 import { covenantState } from '../../../state/index.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
 import { toast } from '../../../../core/ui/toast.js';
@@ -15,7 +15,7 @@ export async function openUtxoPicker(defaultDest, beneClaim = null) {
         covenantState._pickerBeneClaim = beneClaim || null; // beneficiary timeout claim vs owner sweep
         const covAddr = covenantState.lastCovenantResult.address;
         const listEl = byId('cov-consol-list');
-        listEl.innerHTML = '<div class="covenant-utxo-loading">Loading UTXOs...</div>';
+        setContent(listEl, el('div', { className: 'covenant-utxo-loading' }, 'Loading UTXOs...'));
         byId('cov-consol-dest').value = defaultDest || covAddr;
         // Additive piggy break: this is a withdrawal (sweep to your address), not a
         // consolidation. Default-select all, and explain that deselecting lets you
@@ -36,21 +36,27 @@ export async function openUtxoPicker(defaultDest, beneClaim = null) {
             const utxosJson = await fetch_utxos_for_address_js(covAddr, wsUrl);
             const utxos = JSON.parse(utxosJson);
             if (utxos.length < 1) { toast('No UTXOs at covenant address', 'error'); covShowPanel('result'); return; }
-            listEl.innerHTML = '';
+            listEl.replaceChildren();
             sortUtxosLargestFirst(utxos);
             utxos.forEach((u, i) => {
                 const kas = sompiToKasFixed(u.amount, 4);
                 const txShort = u.tx_id.substring(0, 8) + '...' + u.tx_id.substring(u.tx_id.length - 6);
                 const row = document.createElement('label');
                 row.classList.add('covenant-utxo-option');
-                setSafeMarkup(row, '<input class="covenant-utxo-checkbox" type="checkbox" checked data-utxo-idx="' + i + '">' +
-                    '<div class="u-grow"><div class="covenant-utxo-amount">' + kas + ' KAS</div>' +
-                    '<div class="covenant-utxo-outpoint">' + txShort + ':' + u.index + '</div></div>');
+                row.append(
+                    el('input', { className: 'covenant-utxo-checkbox', attrs: { type: 'checkbox' }, checked: true, dataset: { utxoIdx: i } }),
+                    el('div', { className: 'u-grow' },
+                        el('div', { className: 'covenant-utxo-amount' }, `${kas} KAS`),
+                        el('div', { className: 'covenant-utxo-outpoint' }, `${txShort}:${u.index}`)));
                 listEl.appendChild(row);
             });
             listEl.dataset.utxos = exactJsonStringify(utxos);
             updateConsolSummary();
-            listEl.addEventListener('change', () => updateConsolSummary());
+            if (!listEl.dataset.summaryBound) {
+                // Reopening the picker must not stack another summary listener.
+                listEl.dataset.summaryBound = 'true';
+                listEl.addEventListener('change', () => updateConsolSummary());
+            }
         } catch (e) {
             toast('Error loading UTXOs: ' + e, 'error');
             covShowPanel('result');

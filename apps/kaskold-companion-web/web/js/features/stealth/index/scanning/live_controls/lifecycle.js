@@ -38,7 +38,7 @@ export function stopStealthScan() {
     const status = byId('stealth-scan-status');
     if (status) status.textContent = '';
     const found = byId('stealth-found-list');
-    if (found) found.innerHTML = '';
+    if (found) found.replaceChildren();
     byId('stealth-scan-results')?.classList.add('hidden');
     const rList = byId('stealth-r-list');
     if (rList) rList.textContent = '';

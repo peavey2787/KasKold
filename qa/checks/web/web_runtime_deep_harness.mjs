@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { setupHarness, teardownHarness, moduleUrl, element, setFetchHook, setConfirmResult, intervals } from './web_recovery_test_harness.mjs';
+import { setupHarness, teardownHarness, moduleUrl, element, setFetchHook, setConfirmResult, intervals, rendered } from './web_recovery_test_harness.mjs';
 
 export const ADDRESS = 'kaspa:runtime-owner';
 export const CHANGE = 'kaspa:runtime-change';
@@ -196,4 +196,4 @@ export function assertWatchOnlyStorage() {
   const text = `${localStorage.getItem('companion_private_swap_v2') ?? ''}${sessionStorage.getItem('companion_private_swap_v2') ?? ''}`;
   assert.doesNotMatch(text, /(?:mnemonic|xprv|private[_-]?key|secret[_-]?key|mySecretKey|_swap_secret_key)/i);
 }
-export { element, moduleUrl, setFetchHook, setConfirmResult, intervals };
+export { element, moduleUrl, setFetchHook, setConfirmResult, intervals, rendered };

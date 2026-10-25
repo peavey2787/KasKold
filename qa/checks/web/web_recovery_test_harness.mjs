@@ -159,6 +159,15 @@ function createStorage() {
     };
 }
 
+/** Everything a user would see in a fake node: markup text, text, children and image sources. */
+export function rendered(node) {
+    if (node == null) return '';
+    const parts = [node._innerHTML || '', node.textContent || ''];
+    if (node.src) parts.push(decodeURIComponent(String(node.src)));
+    for (const child of node.children || []) parts.push(rendered(child));
+    return parts.join('');
+}
+
 export function findById(rootNode, id) {
     if (rootNode.id === id) return rootNode;
     for (const child of rootNode.children || []) {

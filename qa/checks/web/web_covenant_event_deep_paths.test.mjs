@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setValue, tick,
-  ADDRESS, PK, PK2, PK3, covenantResult, utxos, assertWatchOnlyStorage,
-} from './web_runtime_deep_harness.mjs';
+  ADDRESS, PK, PK2, PK3, covenantResult, utxos, assertWatchOnlyStorage, rendered } from './web_runtime_deep_harness.mjs';
 
 const { state } = await setupDeepHarness();
 const encode = obj => new TextEncoder().encode(typeof obj === 'string' ? obj : JSON.stringify(obj));
@@ -27,7 +26,7 @@ try {
       start_date_iso: '2026-08-14',
     };
     element('btn-cov-res-share-cov').onclick();
-    assert.match(element('qr-container').innerHTML, /<svg>/);
+    assert.match(rendered(element('qr-container')), /<svg>/);
   }
 
   // Current covenant invite loading accepts only the generic current schema.

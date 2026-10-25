@@ -1,4 +1,5 @@
 import { decodeHexPayloadIfMagic, downloadBytes, hasMagic, hexToBytes } from './vault_bytes.js';
+import { showQrSvg } from './ui/qr.js';
 
 export function installCovenantWorkflows(ctx) {
   const { $, api, parse, show, status, openScanner, stopCamera, renderHome } = ctx;
@@ -36,7 +37,7 @@ export function installCovenantWorkflows(ctx) {
     $('covenant-result-note').textContent = response.awaitingReveal
       ? 'Nonce commitment created. Scan the matching host reveal to finalize the anti-klepto signature.'
       : 'Return this authenticated response to the requesting host.';
-    $('covenant-result-qr').innerHTML = response.svg;
+    showQrSvg($('covenant-result-qr'), response.svg, 'Covenant response QR');
     $('covenant-result-hex').textContent = response.payloadHex;
     $('covenant-scan-reveal').classList.toggle('hidden', !response.awaitingReveal);
     show('covenant-result');

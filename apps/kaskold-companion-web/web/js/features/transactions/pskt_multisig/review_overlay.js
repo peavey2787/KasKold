@@ -1,4 +1,13 @@
-import { setSafeMarkup } from '../../../core/security/safe_html.js';
+import { el } from '../../../core/ui/elements.js';
+
+const STEP_CLASS = 'mbpv-step u-display-flex-direction-column-align-center-gap-7px';
+const NUMBER_CLASS = 'mbpv-num u-width-30px-height-30px-rounded-50pct-border-2px-solid-2a4a40';
+
+function provingStep(number, label, active) {
+  return el('div', { className: `${STEP_CLASS}${active ? ' active' : ''}`, dataset: { step: number } },
+    el('div', { className: NUMBER_CLASS }, String(number)), label);
+}
+
 export function showOracleProvingScreen(priceRaw) {
   hideOracleProvingScreen();
   const price = Number(priceRaw) / 1e8;
@@ -8,23 +17,18 @@ export function showOracleProvingScreen(priceRaw) {
   const overlay = document.createElement('div');
   overlay.id = 'mb-prove';
   overlay.classList.add('price-proof-overlay');
-  setSafeMarkup(overlay, `
-    <div class="price-proof-panel">
-      <div class="price-proof-animation">
-        <div class="price-proof-ring"></div>
-        <div class="price-proof-ring-delayed"></div>
-        <div class="price-proof-spinner"></div>
-        <div class="price-proof-bolt">⚡</div>
-      </div>
-      <div class="price-proof-title">Proving your price</div>
-      ${priceText ? `<div class="price-proof-value">${priceText}</div>` : ''}
-      <div class="price-proof-description">Generating a zero-knowledge proof on a GPU, then broadcasting through your node. This usually takes a minute or two. Keep this tab open.</div>
-      <div class="" id="mb-prove-timer">0:00 elapsed</div>
-      <div class="price-proof-metrics">
-        <div class="mbpv-step active u-display-flex-direction-column-align-center-gap-7px" data-step="1"><div class="mbpv-num u-width-30px-height-30px-rounded-50pct-border-2px-solid-2a4a40">1</div>Prove</div>
-        <div class="mbpv-step u-display-flex-direction-column-align-center-gap-7px" data-step="2"><div class="mbpv-num u-width-30px-height-30px-rounded-50pct-border-2px-solid-2a4a40">2</div>Broadcast</div>
-      </div>
-    </div>`);
+  overlay.append(el('div', { className: 'price-proof-panel' },
+    el('div', { className: 'price-proof-animation' },
+      el('div', { className: 'price-proof-ring' }),
+      el('div', { className: 'price-proof-ring-delayed' }),
+      el('div', { className: 'price-proof-spinner' }),
+      el('div', { className: 'price-proof-bolt' }, '⚡')),
+    el('div', { className: 'price-proof-title' }, 'Proving your price'),
+    priceText ? el('div', { className: 'price-proof-value' }, priceText) : null,
+    el('div', { className: 'price-proof-description' },
+      'Generating a zero-knowledge proof on a GPU, then broadcasting through your node. This usually takes a minute or two. Keep this tab open.'),
+    el('div', { id: 'mb-prove-timer' }, '0:00 elapsed'),
+    el('div', { className: 'price-proof-metrics' }, provingStep(1, 'Prove', true), provingStep(2, 'Broadcast', false))));
   document.body.appendChild(overlay);
   const startedAt = Date.now();
   overlay._timer = setInterval(() => {

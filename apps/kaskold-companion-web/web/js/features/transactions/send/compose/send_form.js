@@ -133,7 +133,7 @@ async function openSendScreenWithOptions({ selectedUtxoIds = null, revealCoinCon
     // Only reset _broadcastReturnScreen if not pre-set by covenant deposit
     if (navigationState._broadcastReturnScreen !== 'covenant') navigationState._broadcastReturnScreen = null;
     const utxoList = byId('send-utxo-list');
-    utxoList.innerHTML = '';
+    utxoList.replaceChildren();
     byId('send-utxo-advanced').classList.add('hidden');
     byId('btn-toggle-utxos').textContent = 'Select UTXOs manually ▸';
     const maxInputs = signerMaxInputs();

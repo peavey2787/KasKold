@@ -1,15 +1,9 @@
-import { setSafeMarkup } from '../../../core/security/safe_html.js';
+import { el, setContent } from '../../../core/ui/elements.js';
 import { toast } from '../../../core/ui/toast.js';
 import { sompiToKasFixed } from '../../../core/amounts.js';
 import { utxoId } from './utxo_selection.js';
 
 const SORT_MODES = new Set(['amount-desc', 'amount-asc', 'daa-desc', 'daa-asc']);
-
-function escapeHtml(value) {
-    return String(value).replace(/[&<>"']/g, character => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-    })[character]);
-}
 
 export function normalizeUtxoSortMode(value) {
     if (value === 'desc') return 'amount-desc';
@@ -40,21 +34,17 @@ export function orderedUtxoEntries(utxos, mode) {
 
 function renderRow(entry, selected) {
     const { utxo, index } = entry;
-    const kas = sompiToKasFixed(utxo.amount);
-    const daa = utxo.block_daa_score ?? '—';
     const address = utxo.address || utxo.source_address || '';
-    const safeId = escapeHtml(utxoId(utxo));
-    const safeTxId = escapeHtml(utxo.tx_id);
-    const safeDaa = escapeHtml(daa);
-    const safeAddress = escapeHtml(address);
-    return `<div class="utxo-item" data-idx="${index}" data-id="${safeId}">
-        <span class="utxo-check">${selected ? '☑' : '☐'}</span>
-        <div class="u-grow">
-            <div class="utxo-amount u-text-13px">${kas} KAS</div>
-            <div class="utxo-detail">${safeTxId}:${utxo.index}</div>
-            <div class="utxo-detail">DAA ${safeDaa}${address ? ` · ${safeAddress}` : ''}</div>
-        </div>
-    </div>`;
+    return el('div', { className: 'utxo-item', dataset: { idx: index, id: utxoId(utxo) } },
+        el('span', { className: 'utxo-check' }, selected ? '☑' : '☐'),
+        el('div', { className: 'u-grow' },
+            el('div', { className: 'utxo-amount u-text-13px' }, `${sompiToKasFixed(utxo.amount)} KAS`),
+            el('div', { className: 'utxo-detail' }, `${utxo.tx_id}:${utxo.index}`),
+            el('div', { className: 'utxo-detail' }, `DAA ${utxo.block_daa_score ?? '—'}${address ? ` · ${address}` : ''}`)));
+}
+
+function heading(text, extraClass = '') {
+    return el('div', { className: `utxo-detail${extraClass}` }, el('strong', {}, text));
 }
 
 export function renderUtxoSelector(list, utxos, selectedIds, options, onChange) {
@@ -65,12 +55,13 @@ export function renderUtxoSelector(list, utxos, selectedIds, options, onChange) 
     const chosen = entries.filter(entry => selected.has(utxoId(entry.utxo)));
     const available = entries.filter(entry => !selected.has(utxoId(entry.utxo)));
 
-    setSafeMarkup(list, [
-        '<div class="utxo-detail"><strong>SELECTED UTXOs</strong></div>',
-        ...(chosen.length ? chosen.map(entry => renderRow(entry, true)) : ['<div class="utxo-detail">None selected — automatic selection will be used</div>']),
-        '<div class="utxo-detail utxo-section-heading"><strong>AVAILABLE UTXOs</strong></div>',
-        ...available.map(entry => renderRow(entry, false)),
-    ].join(''));
+    setContent(list,
+        heading('SELECTED UTXOs'),
+        chosen.length
+            ? chosen.map(entry => renderRow(entry, true))
+            : el('div', { className: 'utxo-detail' }, 'None selected — automatic selection will be used'),
+        heading('AVAILABLE UTXOs', ' utxo-section-heading'),
+        available.map(entry => renderRow(entry, false)));
 
     list.querySelectorAll('.utxo-item').forEach(item => {
         item.onclick = () => {

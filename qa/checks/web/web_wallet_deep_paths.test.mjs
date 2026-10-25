@@ -2,8 +2,7 @@ import assert from 'node:assert/strict';
 import {
   setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setFetchHook,
   ADDRESS, CHANGE, EXTERNAL, PK, TXID, TXID2, PSKB, wallet, utxos, psktSummary,
-  assertWatchOnlyStorage,
-} from './web_runtime_deep_harness.mjs';
+  assertWatchOnlyStorage, rendered } from './web_runtime_deep_harness.mjs';
 
 const { state, response } = await setupDeepHarness();
 try {
@@ -51,17 +50,22 @@ try {
   state.walletState.historyEntries=Array.from({length:110},(_,i)=>({type:'in',amount:1n,tx_id:String(i),index:0,time:i}));
   state.networkState.utxoSnapshot=[]; consolidation.trackUtxoChangesAndUsed([]); assert.equal(state.walletState.historyEntries.length,100);
 
-  // Address list rendering covers funded/used/plain rows; custom query nodes
-  // exercise copy, verify QR, and explorer branches without parsing HTML.
+  // Address list rendering covers funded/used/plain rows, and the built rows
+  // carry their own copy, verify-QR and explorer handlers.
   state.walletState.fundedReceiveIndices=[0]; state.walletState.usedReceiveIndices=new Set([1]);
   state.walletState.fundedChangeIndices=[0]; state.walletState.usedChangeIndices=new Set([1]);
-  const oldQsa=document.querySelectorAll.bind(document);
-  const copyIcon=element('copy-icon-runtime'); const addrVal=element('addr-val-runtime'); addrVal.textContent=ADDRESS;
-  const row=element('addr-row-runtime'); row.dataset.addr='1-r'; row.querySelector=sel=>sel==='.copy-icon'?copyIcon:sel==='.addr-val'?addrVal:null;
-  const explorer=element('explorer-runtime');
-  document.querySelectorAll=sel=>sel==='.addr-item'?[row]:sel==='.addr-explore'?[explorer]:oldQsa(sel);
-  views.showAddresses(); assert.match(element('address-list').innerHTML,/funded/); assert.match(element('address-list').innerHTML,/used/);
-  assert.doesNotThrow(()=>copyIcon.onclick({stopPropagation(){}})); assert.equal(copyIcon.textContent,'⧉');
+  views.showAddresses(); assert.match(rendered(element('address-list')),/funded/); assert.match(rendered(element('address-list')),/used/);
+  const rows=element('address-list').children.filter(node=>node.classList.contains('addr-item'));
+  const row=rows.find(node=>node.dataset.addr==='1-r');
+  assert.ok(row.classList.contains('addr-used'),'used receive row is dimmed');
+  const childWith=(node,className)=>node.children.find(child=>child.classList?.contains(className));
+  const copyIcon=childWith(row,'copy-icon'); const explorer=childWith(row,'addr-explore');
+  let stopped=0;
+  const copiedAddresses=[]; const oldWrite=navigator.clipboard.writeText; navigator.clipboard.writeText=value=>{copiedAddresses.push(value); return Promise.resolve();};
+  copyIcon.onclick({stopPropagation(){stopped++;}}); assert.equal(stopped,1);
+  assert.deepEqual(copiedAddresses,[state.walletSession.current().receive_addresses[1]]); navigator.clipboard.writeText=oldWrite;
+  explorer.onclick({stopPropagation(){stopped++;}}); assert.equal(stopped,2);
+  assert.match(explorer.href||explorer.getAttribute('href')||'',/^https:/);
   wasm.generate_qr_frames=()=>JSON.stringify([{svg:'<svg>address</svg>'}]); row.onclick();
   assert.match(element('verify-path').textContent,/\/0\/1/);
   assert.equal(element('verify-qr').children.length,1);
@@ -69,7 +73,6 @@ try {
   assert.match(element('verify-qr').children[0].src,/^data:image\/svg\+xml;charset=utf-8,/);
   assert.match(decodeURIComponent(element('verify-qr').children[0].src),/<svg>address<\/svg>/);
   wasm.generate_qr_frames=()=>{throw new Error('qr fail');}; row.onclick(); assert.equal(element('verify-qr').children.length,0);
-  document.querySelectorAll=oldQsa;
 
   // Manual coin control uses an independent REST enumeration before wRPC.
   // Preserve all distinct outpoints across receive/change addresses, dedupe an
@@ -89,7 +92,7 @@ try {
   const complete=await coinControl.fetchRestCoinControlUtxos();
   assert.equal(complete.source,'REST'); assert.equal(complete.scannedAddresses,6); assert.equal(complete.utxos.length,3);
   assert.deepEqual(complete.utxos.map(u=>u.amount),['250000000','150000000','100000000']);
-  await views.showUtxos(); assert.match(element('utxo-summary').textContent,/3 current UTXOs .* REST/); assert.match(element('utxo-list').innerHTML,/2\.50000000 KAS/);
+  await views.showUtxos(); assert.match(element('utxo-summary').textContent,/3 current UTXOs .* REST/); assert.match(rendered(element('utxo-list')),/2\.50000000 KAS/);
   setFetchHook(async()=>response({json:[restEntry(ADDRESS,TXID,0,'250000000'),restEntry(ADDRESS,TXID,0,'250000001')]}));
   await assert.rejects(()=>coinControl.fetchRestCoinControlUtxos(),/conflicting data/);
 
@@ -98,16 +101,15 @@ try {
 
   // UTXO screen: empty, populated with selectable rows (including the
   // signer capability ceiling), and fetch failure.
-  wasm.fetch_utxos_complete=()=> '[]'; await views.showUtxos(); assert.match(element('utxo-list').innerHTML,/No UTXOs/);
-  const itemNodes=Array.from({length:33},(_,i)=>{const n=element('utxo-item-'+i); n.dataset.utxoIdx=String(i); const chk=element('chk-'+i); n.querySelector=()=>chk; return n;});
-  document.querySelectorAll=sel=>sel==='.utxo-selectable'?itemNodes:[];
+  wasm.fetch_utxos_complete=()=> '[]'; await views.showUtxos(); assert.match(rendered(element('utxo-list')),/No UTXOs/);
   const many=Array.from({length:33},(_,i)=>({...utxos[i%2],tx_id:(i.toString(16).padStart(2,'0')).repeat(32),index:i,amount:String(100000000+i)}));
   wasm.fetch_utxos_complete=()=>JSON.stringify(many); await views.showUtxos(); assert.match(element('utxo-summary').textContent,/33 current UTXOs/);
+  const itemNodes=element('utxo-list').children; assert.equal(itemNodes.length,33);
   for(let i=0;i<32;i++) itemNodes[i].onclick(); assert.equal(state.transactionState.consolidateSelection.size,32);
   itemNodes[32].onclick(); assert.match(element('toast').textContent,/at most 32 selected inputs/);
   itemNodes[0].onclick(); assert.equal(state.transactionState.consolidateSelection.size,31);
+  assert.equal(itemNodes[0].children[0].textContent,'☐'); assert.equal(itemNodes[1].children[0].textContent,'☑');
   wasm.fetch_utxos_complete=()=>{throw new Error('utxo offline');}; await views.showUtxos(); assert.match(element('toast').textContent,/Failed to fetch UTXOs/i);
-  document.querySelectorAll=oldQsa;
 
   // Default and custom history services: default positive counts; custom
   // /full path; custom transaction-list fallback; unavailable API.

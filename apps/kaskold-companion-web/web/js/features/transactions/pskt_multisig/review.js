@@ -1,4 +1,4 @@
-import { setSafeMarkup } from '../../../core/security/safe_html.js';
+import { el, span } from '../../../core/ui/elements.js';
 import { covenantState, networkState, oracleState, transactionState, walletSession } from '../../../app/state/index.js';
 import { showScreen } from '../../../app/navigation.js';
 import { toast } from '../../../core/ui/toast.js';
@@ -11,7 +11,7 @@ import { byId } from '../../../core/dom.js';
 import { createPsktReviewActions } from './review_actions.js';
 import { releasePendingStandardChange, standardChangeReservationMatchesSummary } from '../../wallet/core.js';
 
-import { emphasizeAddress, shortenHex } from '../../../core/format.js';
+import { addressHighlightParts, shortenHex } from '../../../core/format.js';
 
 export const {
     openRelayModal,
@@ -173,57 +173,8 @@ export function openPsktReview(wireHex, requestedContext = null) {
         }
     }
 
-    // Inputs list
-    const inputsEl = byId('pskt-inputs');
-    inputsEl.innerHTML = '';
-    summary.inputs.forEach((inp, i) => {
-        const row = document.createElement('div');
-        row.className = 'pskt-row';
-        let sigLabel;
-        if (inp.multisig_m !== null && inp.multisig_m !== undefined) {
-            const ok = inp.sigs_present >= inp.multisig_m;
-            sigLabel = `<span class="pskt-sig-badge${ok ? ' ok' : ''}">${inp.sigs_present}/${inp.multisig_m}-of-${inp.multisig_n}</span>`;
-        } else {
-            const ok = inp.sigs_present >= 1;
-            sigLabel = `<span class="pskt-sig-badge${ok ? ' ok' : ''}">${inp.sigs_present} sig${inp.sigs_present === 1 ? '' : 's'}</span>`;
-        }
-        setSafeMarkup(row, `
-            <div class="pskt-row-head">
-                <span class="pskt-idx">#${i}</span>
-                <span class="pskt-kind">${inp.script_kind.toUpperCase()}</span>
-                ${sigLabel}
-            </div>
-            <div class="pskt-row-body">
-                <div class="pskt-label">Amount</div>
-                <div class="pskt-value">${sompiToKasString(inp.amount_sompi)} KAS</div>
-                <div class="pskt-label">Prev TX</div>
-                <div class="pskt-value pskt-mono">${shortenHex(inp.prev_tx_id)}:${inp.prev_index}</div>
-            </div>
-        `);
-        inputsEl.appendChild(row);
-    });
-
-    // Outputs list
-    const outputsEl = byId('pskt-outputs');
-    outputsEl.innerHTML = '';
-    summary.outputs.forEach((out, i) => {
-        const row = document.createElement('div');
-        row.className = 'pskt-row';
-        const ownership = classifyWalletOutput(out, reviewContext);
-        setSafeMarkup(row, `
-            <div class="pskt-row-head">
-                <span class="pskt-idx">#${i}</span>
-                <span class="pskt-kind">${ownership} · ${out.script_kind.toUpperCase()}</span>
-            </div>
-            <div class="pskt-row-body">
-                <div class="pskt-label">Amount</div>
-                <div class="pskt-value">${sompiToKasString(out.amount_sompi)} KAS</div>
-                <div class="pskt-label">To</div>
-                <div class="pskt-value pskt-mono">${out.address ? emphasizeAddress(out.address) : '(unrecognized script)'}</div>
-            </div>
-        `);
-        outputsEl.appendChild(row);
-    });
+    byId('pskt-inputs').replaceChildren(...summary.inputs.map(inputRow));
+    byId('pskt-outputs').replaceChildren(...summary.outputs.map((out, index) => outputRow(out, index, reviewContext)));
 
     // Present one clear next action. An unsigned ordinary PSKB needs to be sent
     // to a signer; a partially signed multisig envelope needs to be relayed to
@@ -256,3 +207,43 @@ export function openPsktReview(wireHex, requestedContext = null) {
     return summary;
 }
 /// PSKB (any wallet) or compact KSPT v1 (KasKold devices only).
+
+function signatureBadge(input) {
+    const multisig = input.multisig_m !== null && input.multisig_m !== undefined;
+    const ok = input.sigs_present >= (multisig ? input.multisig_m : 1);
+    const label = multisig
+        ? `${input.sigs_present}/${input.multisig_m}-of-${input.multisig_n}`
+        : `${input.sigs_present} sig${input.sigs_present === 1 ? '' : 's'}`;
+    return span(`pskt-sig-badge${ok ? ' ok' : ''}`, label);
+}
+
+function reviewRow(index, kind, badge, details) {
+    return el('div', { className: 'pskt-row' },
+        el('div', { className: 'pskt-row-head' }, span('pskt-idx', `#${index}`), span('pskt-kind', kind), badge),
+        el('div', { className: 'pskt-row-body' }, details.flatMap(([label, value, mono]) => [
+            el('div', { className: 'pskt-label' }, label),
+            el('div', { className: mono ? 'pskt-value pskt-mono' : 'pskt-value' }, value),
+        ])));
+}
+
+function inputRow(input, index) {
+    return reviewRow(index, input.script_kind.toUpperCase(), signatureBadge(input), [
+        ['Amount', `${sompiToKasString(input.amount_sompi)} KAS`],
+        ['Prev TX', `${shortenHex(input.prev_tx_id)}:${input.prev_index}`, true],
+    ]);
+}
+
+function highlightedAddress(address) {
+    if (!address) return '(unrecognized script)';
+    const parts = addressHighlightParts(address);
+    if ('plain' in parts) return parts.plain;
+    return [parts.prefix, span('addr-hl', parts.head), parts.middle, span('addr-hl', parts.tail)];
+}
+
+function outputRow(output, index, reviewContext) {
+    const ownership = classifyWalletOutput(output, reviewContext);
+    return reviewRow(index, `${ownership} · ${output.script_kind.toUpperCase()}`, null, [
+        ['Amount', `${sompiToKasString(output.amount_sompi)} KAS`],
+        ['To', highlightedAddress(output.address), true],
+    ]);
+}

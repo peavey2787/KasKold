@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import {
-  setupHarness, teardownHarness, moduleUrl, element, setFetchHook, setConfirmResult, state,
-} from './web_recovery_test_harness.mjs';
+  setupHarness, teardownHarness, moduleUrl, element, setFetchHook, setConfirmResult, state, rendered } from './web_recovery_test_harness.mjs';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
@@ -162,11 +161,11 @@ try {
   walletState.fundedReceiveIndices = [0]; walletState.fundedChangeIndices = [];
   walletState.usedReceiveIndices = new Set([1]); walletState.usedChangeIndices = new Set([1]);
   showAddresses();
-  assert.match(element('address-list').innerHTML, /funded/);
-  assert.match(element('address-list').innerHTML, /used/);
+  assert.match(rendered(element('address-list')), /funded/);
+  assert.match(rendered(element('address-list')), /used/);
   await showUtxos();
   assert.match(element('utxo-summary').textContent, /2 current UTXOs/);
-  assert.match(element('utxo-list').innerHTML, /2\.50000000 KAS/);
+  assert.match(rendered(element('utxo-list')), /2\.50000000 KAS/);
 
   // Archival transaction history covers outgoing/incoming classification and rendering.
   walletState.historyEntries = [];

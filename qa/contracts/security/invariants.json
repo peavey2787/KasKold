@@ -577,23 +577,36 @@
     },
     {
       "id": "untrusted-browser-rendering-is-literal",
-      "description": "Dynamic browser markup is centralized through the audited sanitizer; direct dynamic innerHTML and inline onclick markup are forbidden outside QR/SVG rendering.",
+      "description": "Browser UI is built as DOM nodes whose text is always assigned as text; no authored Companion or Vault module hands a string to the HTML parser, and generated QR SVG is shown only as an inert image.",
       "evidence": [
         {
-          "path": "apps/kaskold-companion-web/web/js/core/security/safe_html.js",
+          "path": "apps/kaskold-companion-web/web/js/core/ui/elements.js",
           "contains": [
-            "setSafeMarkup",
-            "document.createTextNode(node.outerHTML",
-            "name.startsWith('on')",
-            "name === 'style'"
+            "document.createTextNode(String(child))",
+            "Unsupported element attribute",
+            "url.protocol === 'https:' || url.protocol === 'http:'"
+          ]
+        },
+        {
+          "path": "apps/kaskold-companion-web/web/js/core/qr/svg_image.js",
+          "contains": [
+            "data:image/svg+xml",
+            "QR encoder returned no SVG"
           ]
         },
         {
           "path": "qa/checks/web/check_safe_html.py",
           "contains": [
-            "dynamic_inner_html_errors",
-            "QR_DIRECT_ALLOW",
-            "hostile_markup_contract_errors"
+            "HTML_SINKS",
+            "insertAdjacentHTML",
+            "would pass vacuously"
+          ]
+        },
+        {
+          "path": "qa/checks/web/real_dom/dom_builder.dom.mjs",
+          "contains": [
+            "renders hostile strings as literal text",
+            "SVG scripts stay inert inside an image"
           ]
         }
       ]

@@ -1,3 +1,4 @@
+import { showQrSvg } from './ui/qr.js';
 import { downloadBytes, hexToBytes } from './vault_bytes.js';
 
 function indexValue(node, label) {
@@ -68,7 +69,7 @@ export function installAdvancedWorkflows({ $, api, parse, show, status, openScan
       const result = parse(api('kaskold_vault_sign_message')(reviewedMessage));
       $('sign-message-signature').textContent = result.signatureHex;
       $('sign-message-digest').textContent = result.digestHex;
-      $('sign-message-qr').innerHTML = result.svg;
+      showQrSvg($('sign-message-qr'), result.svg, 'Signed message QR');
       signedMessagePayload = hexToBytes(result.payloadHex, 'signed-message payload');
       $('sign-message-value').value = '';
       reviewedMessage = '';
@@ -100,7 +101,7 @@ export function installAdvancedWorkflows({ $, api, parse, show, status, openScan
       const result = parse(api('kaskold_vault_commit_secret')(reviewedSecret));
       $('commit-secret-hash').textContent = result.commitmentHex;
       $('commit-secret-payload').textContent = result.payloadHex;
-      $('commit-secret-qr').innerHTML = result.svg;
+      showQrSvg($('commit-secret-qr'), result.svg, 'Committed secret QR');
       $('commit-secret-value').value = '';
       $('commit-secret-preview-value').textContent = '';
       reviewedSecret = '';
@@ -113,7 +114,7 @@ export function installAdvancedWorkflows({ $, api, parse, show, status, openScan
   function showDecrypted(payloadHex) {
     const result = parse(api('kaskold_vault_decrypt_secret')(payloadHex));
     $('decrypt-secret-result').textContent = result.value;
-    $('decrypt-secret-result-qr').innerHTML = api('kaskold_vault_payload_qr_svg')(new TextEncoder().encode(result.value));
+    showQrSvg($('decrypt-secret-result-qr'), api('kaskold_vault_payload_qr_svg')(new TextEncoder().encode(result.value)), 'Decrypted secret QR');
     $('decrypt-secret-payload').value = '';
     show('decrypt-secret-result');
     status('Secret decrypted and commitment verified.');

@@ -1,4 +1,3 @@
-import { setSafeMarkup } from '../../../core/security/safe_html.js';
 import { covenantState, networkState, scannerState, transactionState, walletSession } from '../../../app/state/index.js';
 import { showScreen } from '../../../app/navigation.js';
 import { toast } from '../../../core/ui/toast.js';
@@ -6,7 +5,13 @@ import { sompiToKasString } from '../../../core/amounts.js';
 import { generate_qr_frames, script_public_key_address } from '../../../wasm/api.js';
 // KasKold Companion Web — features/transactions/send/review
 import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
-import { byId } from '../../../core/dom.js';
+import { bindClick, byId } from '../../../core/dom.js';
+import { showQrSvg } from '../../../core/qr/svg_image.js';
+import { el, setContent } from '../../../core/ui/elements.js';
+
+const QR_FRAME_INTERVAL_MS = 1600;
+const PLAY_ICON = '\u25B6';
+const PAUSE_ICON = '\u23F8';
 
 
 // ─── TX info under QR display for verification ───
@@ -232,71 +237,68 @@ export function displayKsptQr(ksptHex, title, options = {}) {
         transactionState._currentKsptHex = ksptHex;
 
         if (frames.length === 1) {
-            byId('qr-container').innerHTML = frames[0].svg;
-            byId('qr-frame-info').innerHTML = '';
+            showQrSvg(byId('qr-container'), frames[0].svg, 'Signing request QR');
+            byId('qr-frame-info').replaceChildren();
         } else {
-            let dots = '<div class="frame-dots">';
-            for (let i = 0; i < frames.length; i++) {
-                dots += `<span class="frame-dot${i === 0 ? ' active' : ''}" id="fdot-${i}"></span>`;
-            }
-            dots += '</div>';
-            dots += '<div class="frame-controls">';
-            dots += '<button class="btn-frame" id="btn-frame-prev">\u23EA</button>';
-            dots += '<button class="btn-frame" id="btn-frame-pause" title="Pause/Play">\u23F8</button>';
-            dots += '<button class="btn-frame" id="btn-frame-next">\u23E9</button>';
-            dots += '</div>';
-            setSafeMarkup(byId('qr-frame-info'), dots);
+            setContent(byId('qr-frame-info'), frameControls(frames.length));
             renderQrFrame(0);
-            scannerState.qrCycleTimer = setInterval(() => {
-                scannerState.qrFrameIdx = (scannerState.qrFrameIdx + 1) % scannerState.qrFrames.length;
-                renderQrFrame(scannerState.qrFrameIdx);
-            }, 1600);
-            byId('btn-frame-prev').onclick = () => {
-                scannerState.qrFrameIdx = (scannerState.qrFrameIdx - 1 + scannerState.qrFrames.length) % scannerState.qrFrames.length;
-                renderQrFrame(scannerState.qrFrameIdx);
-                // Reset timer so manual nav isn't immediately overridden
-                if (scannerState.qrCycleTimer) {
-                    clearInterval(scannerState.qrCycleTimer);
-                    scannerState.qrCycleTimer = setInterval(() => {
-                        scannerState.qrFrameIdx = (scannerState.qrFrameIdx + 1) % scannerState.qrFrames.length;
-                        renderQrFrame(scannerState.qrFrameIdx);
-                    }, 1600);
-                }
-            };
-            byId('btn-frame-next').onclick = () => {
-                scannerState.qrFrameIdx = (scannerState.qrFrameIdx + 1) % scannerState.qrFrames.length;
-                renderQrFrame(scannerState.qrFrameIdx);
-                // Reset timer so manual nav isn't immediately overridden
-                if (scannerState.qrCycleTimer) {
-                    clearInterval(scannerState.qrCycleTimer);
-                    scannerState.qrCycleTimer = setInterval(() => {
-                        scannerState.qrFrameIdx = (scannerState.qrFrameIdx + 1) % scannerState.qrFrames.length;
-                        renderQrFrame(scannerState.qrFrameIdx);
-                    }, 1600);
-                }
-            };
-            byId('btn-frame-pause').onclick = () => {
-                if (scannerState.qrCycleTimer) {
-                    clearInterval(scannerState.qrCycleTimer);
-                    scannerState.qrCycleTimer = null;
-                    byId('btn-frame-pause').textContent = '\u25B6';
-                } else {
-                    scannerState.qrCycleTimer = setInterval(() => {
-                        scannerState.qrFrameIdx = (scannerState.qrFrameIdx + 1) % scannerState.qrFrames.length;
-                        renderQrFrame(scannerState.qrFrameIdx);
-                    }, 1600);
-                    byId('btn-frame-pause').textContent = '\u23F8';
-                }
-            };
+            startQrCycle();
+            bindClick('btn-frame-prev', () => { stepQrFrame(-1); restartRunningQrCycle(); });
+            bindClick('btn-frame-next', () => { stepQrFrame(1); restartRunningQrCycle(); });
+            bindClick('btn-frame-pause', toggleQrCycle);
         }
         showScreen('qr-display');
     } catch (e) {
         toast('QR generation failed: ' + e, 'error', 5000);
     }
 }
+function frameControls(count) {
+    const dots = Array.from({ length: count }, (_, index) =>
+        el('span', { className: `frame-dot${index === 0 ? ' active' : ''}`, id: `fdot-${index}` }));
+    const button = (id, icon, title) => el('button', { className: 'btn-frame', id, attrs: { title } }, icon);
+    return [
+        el('div', { className: 'frame-dots' }, dots),
+        el('div', { className: 'frame-controls' },
+            button('btn-frame-prev', '\u23EA', 'Previous frame'),
+            button('btn-frame-pause', PAUSE_ICON, 'Pause/Play'),
+            button('btn-frame-next', '\u23E9', 'Next frame')),
+    ];
+}
+
+function stepQrFrame(delta) {
+    const count = scannerState.qrFrames?.length || 0;
+    if (!count) return;
+    scannerState.qrFrameIdx = (scannerState.qrFrameIdx + delta + count) % count;
+    renderQrFrame(scannerState.qrFrameIdx);
+}
+
+function startQrCycle() {
+    scannerState.qrCycleTimer = setInterval(() => stepQrFrame(1), QR_FRAME_INTERVAL_MS);
+}
+
+// Manual navigation restarts a running cycle so the next automatic step
+// does not immediately override the frame the user picked.
+function restartRunningQrCycle() {
+    if (!scannerState.qrCycleTimer) return;
+    clearInterval(scannerState.qrCycleTimer);
+    startQrCycle();
+}
+
+function toggleQrCycle() {
+    const pauseButton = byId('btn-frame-pause');
+    if (scannerState.qrCycleTimer) {
+        clearInterval(scannerState.qrCycleTimer);
+        scannerState.qrCycleTimer = null;
+        pauseButton.textContent = PLAY_ICON;
+    } else {
+        startQrCycle();
+        pauseButton.textContent = PAUSE_ICON;
+    }
+}
+
 function renderQrFrame(idx) {
     if (!scannerState.qrFrames || idx >= scannerState.qrFrames.length) return;
-    byId('qr-container').innerHTML = scannerState.qrFrames[idx].svg;
+    showQrSvg(byId('qr-container'), scannerState.qrFrames[idx].svg, `Signing request QR frame ${idx + 1}`);
     updateQrFrameHex(idx);
     for (let i = 0; i < scannerState.qrFrames.length; i++) {
         const dot = document.getElementById(`fdot-${i}`);
@@ -317,17 +319,14 @@ export function stopQrCycle() {
 export function pauseQrCycle() {
     if (scannerState.qrCycleTimer) { clearInterval(scannerState.qrCycleTimer); scannerState.qrCycleTimer = null; }
     const pauseButton = byId('btn-frame-pause');
-    if (pauseButton) pauseButton.textContent = '\u25B6';
+    if (pauseButton) pauseButton.textContent = PLAY_ICON;
 }
 // Idempotent: safe to call when already running.
 export function resumeQrCycleIfPossible() {
     if (!scannerState.qrFrames || scannerState.qrFrames.length <= 1) return;
     if (scannerState.qrCycleTimer) return;
-    scannerState.qrCycleTimer = setInterval(() => {
-        scannerState.qrFrameIdx = (scannerState.qrFrameIdx + 1) % scannerState.qrFrames.length;
-        renderQrFrame(scannerState.qrFrameIdx);
-    }, 1600);
+    startQrCycle();
     // Re-sync pause-button icon to the running state.
     const pb = byId('btn-frame-pause');
-    if (pb) pb.textContent = '\u23F8';
+    if (pb) pb.textContent = PAUSE_ICON;
 }

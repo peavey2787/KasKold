@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setValue, setFetchHook,
-  ADDRESS, PK, PK2, PK3, COV_ID, wallet, utxos,
-} from './web_runtime_deep_harness.mjs';
+  ADDRESS, PK, PK2, PK3, COV_ID, wallet, utxos, rendered } from './web_runtime_deep_harness.mjs';
 import { FakeElement } from './web_recovery_test_harness.mjs';
 
 const { state, response, originalGet } = await setupDeepHarness();
@@ -125,8 +124,8 @@ try {
   // Timed watcher rendering covers every maturity state plus a detected spend.
   const st=new FakeElement('div'); const labels={spent:s=>`spent-${s}`,onSpent:()=>{labels.called=true},availableClass:'ok',available:k=>`available-${k}`,unlockingClass:'warn',unlocking:k=>`unlocking-${k}`,locked:(k,t)=>`locked-${k}-${t}`,watching:k=>`watching-${k}`};
   state.covenantWatcherState._covWatcherLastBalance=null; assert.equal(await timed.pollTimedBalance({total:0n,kas:'0',st,locktime:0n,currentDaa:0n},labels),false);
-  assert.equal(await timed.pollTimedBalance({total:1n,kas:'1',st,locktime:1000n,currentDaa:1400n},labels),false); assert.match(st.innerHTML,/available/);
-  assert.equal(await timed.pollTimedBalance({total:1n,kas:'1',st,locktime:1000n,currentDaa:1100n},labels),false); assert.match(st.innerHTML,/unlocking/);
+  assert.equal(await timed.pollTimedBalance({total:1n,kas:'1',st,locktime:1000n,currentDaa:1400n},labels),false); assert.match(rendered(st),/available/);
+  assert.equal(await timed.pollTimedBalance({total:1n,kas:'1',st,locktime:1000n,currentDaa:1100n},labels),false); assert.match(rendered(st),/unlocking/);
   assert.equal(await timed.pollTimedBalance({total:1n,kas:'1',st,locktime:1000n,currentDaa:900n},labels),false); assert.match(st.textContent,/locked/);
   assert.equal(await timed.pollTimedBalance({total:1n,kas:'1',st,locktime:0n,currentDaa:0n},labels),false); assert.match(st.textContent,/watching/);
   state.covenantWatcherState._covWatcherLastBalance=1n; state.covenantWatcherState._covWatcherSpendPath='owner'; assert.equal(await timed.pollTimedBalance({total:0n,kas:'0',st,locktime:0n,currentDaa:0n},labels),true); assert.equal(labels.called,true);
@@ -136,15 +135,15 @@ try {
   const thread={tx_id:'aa'.repeat(32),index:0,amount:'100',block_daa_score:'100',covenant_id:COV_ID};
   const external={tx_id:'bb'.repeat(32),index:1,amount:'50',block_daa_score:'100'};
   state.covenantState.lastCovenantResult={type:'global-spending-limit',covenant_id_hex:COV_ID,cooldown_daa:'10',max_withdraw_sompi:'100'};
-  await limitPollers.pollGlobalSpendingLimit({st,currentDaa:200n,utxos:[thread]}); assert.match(st.innerHTML,/drain all/);
-  await limitPollers.pollGlobalSpendingLimit({st,currentDaa:105n,utxos:[thread,external]}); assert.match(st.innerHTML,/until next withdraw/);
-  state.covenantState.lastCovenantResult={type:'global-spending-limit',covenant_id_hex:COV_ID}; await limitPollers.pollGlobalSpendingLimit({st,currentDaa:0n,utxos:[]}); assert.match(st.innerHTML || st.textContent,/Not funded/);
+  await limitPollers.pollGlobalSpendingLimit({st,currentDaa:200n,utxos:[thread]}); assert.match(rendered(st),/drain all/);
+  await limitPollers.pollGlobalSpendingLimit({st,currentDaa:105n,utxos:[thread,external]}); assert.match(rendered(st),/until next withdraw/);
+  state.covenantState.lastCovenantResult={type:'global-spending-limit',covenant_id_hex:COV_ID}; await limitPollers.pollGlobalSpendingLimit({st,currentDaa:0n,utxos:[]}); assert.match(rendered(st),/Not funded/);
   state.covenantState.lastCovenantResult={type:'global-allowance',role:'beneficiary',covenant_id_hex:COV_ID,start_daa:'300',cooldown_daa:'10',max_withdraw_sompi:'100'};
-  state.covenantWatcherState._covWatcherLastBalance=null; await limitPollers.pollGlobalAllowance({total:100n,st,currentDaa:200n,utxos:[thread,external]}); assert.match(st.innerHTML,/until start/);
-  state.covenantState.lastCovenantResult.start_daa='0'; await limitPollers.pollGlobalAllowance({total:100n,st,currentDaa:105n,utxos:[thread]}); assert.match(st.innerHTML,/until next withdraw/);
-  await limitPollers.pollGlobalAllowance({total:100n,st,currentDaa:200n,utxos:[thread]}); assert.match(st.innerHTML,/drain all/);
-  state.covenantState.lastCovenantResult.role='owner'; await limitPollers.pollGlobalAllowance({total:100n,st,currentDaa:200n,utxos:[thread]}); assert.match(st.innerHTML,/Owner can reclaim/);
-  state.covenantState.lastCovenantResult={type:'global-allowance',role:'beneficiary',covenant_id_hex:COV_ID}; await limitPollers.pollGlobalAllowance({total:100n,st,currentDaa:0n,utxos:[thread]}); assert.match(st.innerHTML,/Watching/);
+  state.covenantWatcherState._covWatcherLastBalance=null; await limitPollers.pollGlobalAllowance({total:100n,st,currentDaa:200n,utxos:[thread,external]}); assert.match(rendered(st),/until start/);
+  state.covenantState.lastCovenantResult.start_daa='0'; await limitPollers.pollGlobalAllowance({total:100n,st,currentDaa:105n,utxos:[thread]}); assert.match(rendered(st),/until next withdraw/);
+  await limitPollers.pollGlobalAllowance({total:100n,st,currentDaa:200n,utxos:[thread]}); assert.match(rendered(st),/drain all/);
+  state.covenantState.lastCovenantResult.role='owner'; await limitPollers.pollGlobalAllowance({total:100n,st,currentDaa:200n,utxos:[thread]}); assert.match(rendered(st),/Owner can reclaim/);
+  state.covenantState.lastCovenantResult={type:'global-allowance',role:'beneficiary',covenant_id_hex:COV_ID}; await limitPollers.pollGlobalAllowance({total:100n,st,currentDaa:0n,utxos:[thread]}); assert.match(rendered(st),/Watching/);
 
   // Exact fee arithmetic covers scientific notation, negative exponent,
   // zero-rate normalization, floor selection and markup-denominator rejection.
@@ -319,11 +318,11 @@ try {
   assert.equal(await escrowController.pollEscrow({ total:1n, kas:1, st:escrowStatus, utxos:[] }), false);
   state.covenantState.lastCovenantResult._escrowResolved = true;
   escrowRender.renderEscrowEmpty(escrowStatus);
-  assert.match(escrowStatus.innerHTML, /Escrow resolved/);
+  assert.match(rendered(escrowStatus), /Escrow resolved/);
   state.covenantState.lastCovenantResult._escrowDisputed = true;
   state.covenantState.lastCovenantResult._escrowDisputeRole = null;
   escrowRender.renderEscrowFunded(escrowStatus, 1);
-  assert.match(escrowStatus.innerHTML, /party/);
+  assert.match(rendered(escrowStatus), /party/);
   setFetchHook(async () => response({ json:{ payload:'455343440002' } }));
   assert.equal(await escrowFetch.fetchEscrowDispute('seller'), 'seller');
   setFetchHook(async () => response({ status:500, json:{} }));

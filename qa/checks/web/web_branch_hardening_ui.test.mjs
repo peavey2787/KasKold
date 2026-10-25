@@ -23,7 +23,6 @@ try {
   const network = await import(moduleUrl('core/network.js'));
   const antiResponse = await import(moduleUrl('features/transactions/anti_klepto/response.js'));
   const planner = await import(moduleUrl('features/transactions/send/compose/planners/index.js'));
-  const safeHtml = await import(moduleUrl('core/security/safe_html.js'));
   const kpubRepoMod = await import(moduleUrl('features/wallet/kpub_manager/repository.js'));
   const crowdfundModel = await import(moduleUrl('features/covenants/crowdfund/model.js'));
   const crowdfundCampaign = await import(moduleUrl('features/covenants/crowdfund/campaign.js'));
@@ -205,8 +204,6 @@ try {
   const oldClone=globalThis.structuredClone; globalThis.structuredClone=undefined; assert.equal(repo.get('ok').name,'Good'); globalThis.structuredClone=oldClone;
   const failing={getItem:()=>null,setItem:()=>{throw new Error('quota')}}; const failRepo=kpubRepoMod.createKpubRepository(failing,()=> 'id'); assert.throws(()=>failRepo.save({name:'x',kpub:'kpub:x',network:'mainnet'}),/could not save/i);
 
-  // Safe-markup fallback is the security behavior for non-browser/minimal DOMs.
-  const target=new FakeElement('div'); safeHtml.setSafeMarkup(target,'<img src=x onerror=1>&"\''); assert.match(target.innerHTML,/&lt;img/); assert.equal(safeHtml.escapeMarkupAsLiteral(null),''); safeHtml.setSafeMarkup(null,'x');
 
   console.log('PASS: UI/result/settings/network branch hardening paths');
 } finally {

@@ -1,69 +1,61 @@
 #!/usr/bin/env python3
+"""Forbid HTML-parsing DOM sinks in the Companion and Vault browser code.
+
+Dynamic UI is built with `core/ui/elements.js` (Companion) and DOM APIs, and
+generated QR codes are shown as images (`core/qr/svg_image.js`). No authored
+module may hand a string to the HTML parser, so values from a node, an invite
+or a scanned QR can never become markup.
+"""
 from __future__ import annotations
+
 import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-JS_ROOT = ROOT / 'apps/kaskold-companion-web/web/js'
-HELPER = JS_ROOT / 'core/security/safe_html.js'
+JS_ROOTS = (
+    ROOT / 'apps/kaskold-companion-web/web/js',
+    ROOT / 'apps/kaskold-vault-web/web/js',
+)
+HTML_SINKS = re.compile(
+    r'\.(?:innerHTML|outerHTML)\s*[+]?=|\.insertAdjacentHTML\s*\(|document\.write(?:ln)?\s*\('
+    r'|createContextualFragment\s*\(|new\s+DOMParser\s*\(|\.setHTMLUnsafe\s*\('
+)
+INLINE_HANDLER = re.compile(r'''\son[a-z]+\s*=\s*['"]''')
 
-def _portable_rel(path: Path) -> str:
-    # Normalize Windows backslashes before comparing against repository-relative
-    # allowlist entries, which are intentionally stored in POSIX form.
-    return str(path.relative_to(JS_ROOT)).replace('\\', '/')
 
-QR_DIRECT_ALLOW = {
-    'app/events/contracts/covenant_creation/invite_sharing.js',
-    'features/transactions/send/review.js',
-    'features/transactions/send/receive.js',
-    'features/covenants/recovery/export/qr_presenter.js',
-    'features/oracle/v1/controller.js',
-    'features/stealth/index/send.js',
-    'features/stealth/index/scanning/live_controls/request_qr.js',
-}
+def portable_relative(path: Path) -> str:
+    """Repository-relative POSIX path, independent of the host's separator."""
+    return str(path.relative_to(ROOT)).replace('\\', '/')
 
-def dynamic_inner_html_errors() -> list[str]:
-    errors=[]
-    for path in JS_ROOT.rglob('*.js'):
-        if path == HELPER: continue
-        text=path.read_text(encoding='utf-8', errors='replace')
-        rel=_portable_rel(path)
-        for match in re.finditer(r'\.innerHTML\s*=\s*', text):
-            end=text.find(';',match.end())
-            if end < 0: end=text.find('\n',match.end())
-            rhs=text[match.end():end].strip()
-            if rhs in ("''", '""'): continue
-            static=bool(re.fullmatch(r"(['\"]).*\1", rhs, re.S)) and '${' not in rhs and "' +" not in rhs and '" +' not in rhs
-            qr=rel in QR_DIRECT_ALLOW and any(token in rhs for token in ('generate_qr_svg_text','.svg','frames[0].svg','scannerState.qrFrames','svg'))
-            if not (static or qr):
-                line=text.count('\n',0,match.start())+1
-                errors.append(f'{rel}:{line}: dynamic innerHTML must use setSafeMarkup/textContent/DOM nodes')
+
+def authored_modules() -> list[Path]:
+    return sorted(path for root in JS_ROOTS for path in root.rglob('*.js'))
+
+
+def sink_errors(path: Path) -> list[str]:
+    text = path.read_text(encoding='utf-8', errors='replace')
+    errors = []
+    for match in HTML_SINKS.finditer(text):
+        line = text.count('\n', 0, match.start()) + 1
+        errors.append(f'{portable_relative(path)}:{line}: HTML-parsing sink {match.group(0).strip()!r}; build nodes instead')
+    for match in INLINE_HANDLER.finditer(text):
+        line = text.count('\n', 0, match.start()) + 1
+        errors.append(f'{portable_relative(path)}:{line}: inline event-handler markup')
     return errors
 
-def hostile_markup_contract_errors() -> list[str]:
-    source = HELPER.read_text(encoding="utf-8", errors="replace")
-    errors: list[str] = []
-    for forbidden in ("IMG", "STYLE", "B", "SCRIPT"):
-        if f"'{forbidden}'" in source.split("const ALLOWED_TAGS", 1)[1].split(";", 1)[0]:
-            errors.append(f"{forbidden} must not be an allowed dynamic markup element")
-    for token in ("name.startsWith('on')", "name === 'style'", "document.createTextNode(node.outerHTML"):
-        if token not in source:
-            errors.append(f"safe_html.js is missing hostile-markup defense {token!r}")
-    hostile = ("<img src=x onerror=...>", "<style>...</style>", "<b>fake balance</b>")
-    # These exact regression payloads are intentionally pinned so future
-    # sanitizer changes cannot quietly broaden the allowlist around them.
-    if hostile != ("<img src=x onerror=...>", "<style>...</style>", "<b>fake balance</b>"):
-        errors.append("hostile markup vectors changed unexpectedly")
-    return errors
 
 def main() -> int:
-    errors=dynamic_inner_html_errors()
-    if 'onclick=' in '\n'.join(p.read_text(encoding='utf-8', errors='replace') for p in JS_ROOT.rglob('*.js')):
-        errors.append('inline onclick= remains in runtime JavaScript')
-    errors.extend(hostile_markup_contract_errors())
+    modules = authored_modules()
+    errors = [error for path in modules for error in sink_errors(path)]
+    if not modules:
+        errors.append('no browser modules found; the sink scan would pass vacuously')
     if errors:
-        for error in errors: print('ERROR:',error)
+        for error in errors:
+            print('ERROR:', error)
         return 1
-    print('PASS: dynamic HTML is centralized; hostile img/style/b markup remains literal text')
+    print(f'PASS: {len(modules)} browser modules build DOM nodes without HTML-parsing sinks')
     return 0
-if __name__ == '__main__': raise SystemExit(main())
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

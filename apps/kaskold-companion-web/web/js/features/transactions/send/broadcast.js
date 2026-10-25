@@ -1,4 +1,4 @@
-import { setSafeMarkup } from '../../../core/security/safe_html.js';
+import { renderScanProgress } from '../../../core/ui/scan_progress.js';
 import { bytesToHex, hexFrameBatchToBytes } from '../../../core/bytes.js';
 import { covenantState, networkState, oracleState, transactionState } from '../../../app/state/index.js';
 import { BROADCAST_ENABLED } from '../../../core/config/runtime.js';
@@ -242,17 +242,7 @@ export function handleSignedScan(data, options = {}) {
             }
             return true;
         } else {
-            const prog = JSON.parse(decoder_progress());
-            if (prog.total > 0) {
-                let dots = '';
-                for (let i = 0; i < prog.total; i++) {
-                    dots += `<span class="scanner-progress-dot${prog.bits[i] ? ' scanner-progress-dot-active' : ''}"></span>`;
-                }
-                const progressTarget = byId(options.progressTargetId || 'scanner-status');
-                if (progressTarget) {
-                    setSafeMarkup(progressTarget, dots + `<div class="u-mt-6px-text-12px">${prog.count} / ${prog.total} frames</div>`);
-                }
-            }
+            renderScanProgress(byId(options.progressTargetId || 'scanner-status'), JSON.parse(decoder_progress()));
             return false;
         }
     } catch (e) {

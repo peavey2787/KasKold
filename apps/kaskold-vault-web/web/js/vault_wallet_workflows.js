@@ -1,5 +1,6 @@
 import { downloadBytes, nonNegativeInteger, readFile, requireMatchingPasswords } from './vault_bytes.js';
 import { normalizeRecoveryPhraseInput } from './workflows/vault_recovery_words.js';
+import { showQrSvg } from './ui/qr.js';
 
 export function installWalletWorkflows(ctx) {
   const { $, api, parse, show, status, renderSecretText, renderReview, renderHome, openScanner, stopCamera, openWalletPicker, applyStagedRestoreName = () => {} } = ctx;
@@ -29,7 +30,7 @@ export function installWalletWorkflows(ctx) {
       const chain = $('receive-chain').value === '1';
       const result = parse(api('kaskold_vault_receive_address')($('receive-network').value, chain, index));
       $('receive-address').textContent = result.address;
-      $('receive-qr').innerHTML = result.svg;
+      showQrSvg($('receive-qr'), result.svg, 'Receive address QR');
       show('receive');
     } catch (error) { status(String(error), true); }
   }
@@ -54,7 +55,7 @@ export function installWalletWorkflows(ctx) {
     const address = $('receive-address').textContent.trim();
     if (!address) return status('No receive address is available.', true);
     $('receive-qr-address').textContent = address;
-    $('receive-qr-full').innerHTML = api('kaskold_vault_payload_qr_svg')(new TextEncoder().encode(address));
+    showQrSvg($('receive-qr-full'), api('kaskold_vault_payload_qr_svg')(new TextEncoder().encode(address)), 'Receive address QR');
     show('receive-qr');
   };
 
@@ -170,7 +171,7 @@ export function installWalletWorkflows(ctx) {
     latestPublicImport = { title, ...result };
     $('import-public-title').textContent = title;
     $('import-public-value').textContent = result.value;
-    $('import-public-qr').innerHTML = result.svg;
+    showQrSvg($('import-public-qr'), result.svg, 'Public import QR');
     show('import-public');
   };
 

@@ -7,7 +7,7 @@
   "qa/tests/regression/test_bip340_known_answer_policy.py": 6,
   "qa/tests/regression/test_branch_coverage_90_contract.py": 49,
   "qa/tests/regression/test_coin_control_and_hil_policy.py": 12,
-  "qa/tests/regression/test_companion_connection_and_qr_import_policy.py": 80,
+  "qa/tests/regression/test_companion_connection_and_qr_import_policy.py": 76,
   "qa/tests/regression/test_companion_multisig_discovery_state.py": 15,
   "qa/tests/regression/test_companion_send_signing_security.py": 76,
   "qa/tests/regression/test_complete_utxo_scan.py": 22,

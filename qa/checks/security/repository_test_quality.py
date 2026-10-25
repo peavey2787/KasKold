@@ -96,7 +96,10 @@ def audit_rust() -> tuple[list[dict[str, Any]], list[str]]:
     files: set[Path] = set()
     for root in RUST_ROOTS:
         if root.is_dir():
-            files.update(root.rglob("*.rs"))
+            # Build output (cargo-mutants copies, generated sources) is not
+            # authored test code and would make the census depend on what the
+            # machine happened to build before the audit ran.
+            files.update(path for path in root.rglob("*.rs") if "target" not in path.relative_to(ROOT).parts)
     for path in sorted(files):
         text = path.read_text(errors="replace")
         functions = _rust_functions(text)

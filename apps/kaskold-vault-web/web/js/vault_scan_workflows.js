@@ -1,4 +1,5 @@
 import {
+import { showQrSvg } from './ui/qr.js';
   bytesToText, decodeHexPayloadIfMagic, downloadBytes, hasMagic, hexToBytes,
 } from './vault_bytes.js';
 
@@ -35,7 +36,7 @@ export function installScanWorkflows(ctx) {
     responseFilename = filename;
     $('scan-response-title').textContent = title;
     $('scan-response-note').textContent = note;
-    $('scan-response-qr').innerHTML = result.svg;
+    showQrSvg($('scan-response-qr'), result.svg, title);
     $('scan-response-hex').textContent = result.payloadHex;
     stopCamera();
     show('scan-response');
@@ -48,7 +49,7 @@ export function installScanWorkflows(ctx) {
       : 'kaskold-covenant-backup.cov';
     $('scan-response-title').textContent = 'Covenant Backup';
     $('scan-response-note').textContent = 'The shared M5 covenant-backup format was validated. Save the canonical raw payload to local removable storage or another offline location.';
-    $('scan-response-qr').innerHTML = result.svg;
+    showQrSvg($('scan-response-qr'), result.svg, 'Covenant backup QR');
     $('scan-response-hex').textContent = result.value;
     stopCamera();
     show('scan-response');

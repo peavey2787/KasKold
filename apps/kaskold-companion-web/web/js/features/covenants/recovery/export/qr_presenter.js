@@ -1,3 +1,4 @@
+import { qrImage } from '../../../../core/qr/svg_image.js';
 import { generate_qr_frames, generate_qr_svg_text } from '../../../../wasm/api.js';
 
 export function presentExportQr(area, payload, onError) {
@@ -52,7 +53,7 @@ function qrCard(svg, caption) {
     wrapper.className = 'cov-export-qr-card';
     const image = document.createElement('div');
     image.className = 'cov-export-qr-image';
-    image.innerHTML = svg;
+    image.append(qrImage(svg, caption));
     const label = document.createElement('div');
     label.className = 'cov-export-qr-caption';
     label.textContent = caption;

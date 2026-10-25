@@ -120,7 +120,6 @@ D	apps/kaskold-companion-web/web/js/core/config
 D	apps/kaskold-companion-web/web/js/core/forms
 D	apps/kaskold-companion-web/web/js/core/node
 D	apps/kaskold-companion-web/web/js/core/qr
-D	apps/kaskold-companion-web/web/js/core/security
 D	apps/kaskold-companion-web/web/js/core/state
 D	apps/kaskold-companion-web/web/js/core/ui
 D	apps/kaskold-companion-web/web/js/features
@@ -167,6 +166,7 @@ D	apps/kaskold-companion-web/web/js/features/oracle/model_b/controller/polling
 D	apps/kaskold-companion-web/web/js/features/oracle/model_b/controller/proving
 D	apps/kaskold-companion-web/web/js/features/oracle/v1
 D	apps/kaskold-companion-web/web/js/features/portfolio
+D	apps/kaskold-companion-web/web/js/features/qr_display
 D	apps/kaskold-companion-web/web/js/features/settings
 D	apps/kaskold-companion-web/web/js/features/stealth
 D	apps/kaskold-companion-web/web/js/features/stealth/index
@@ -426,6 +426,7 @@ D	apps/kaskold-vault-web/web/css
 D	apps/kaskold-vault-web/web/img
 D	apps/kaskold-vault-web/web/img/hardware
 D	apps/kaskold-vault-web/web/js
+D	apps/kaskold-vault-web/web/js/ui
 D	apps/kaskold-vault-web/web/js/workflows
 D	apps/kaskold-vault-web/web/lib
 D	branding
@@ -697,6 +698,7 @@ D	qa/checks/release/readiness
 D	qa/checks/security
 D	qa/checks/security/review
 D	qa/checks/web
+D	qa/checks/web/real_dom
 D	qa/checks/workspace
 D	qa/config
 D	qa/config/workflow
@@ -1030,12 +1032,14 @@ F	apps/kaskold-companion-web/web/js/core/node/daa.js
 F	apps/kaskold-companion-web/web/js/core/node/future_daa.js
 F	apps/kaskold-companion-web/web/js/core/node/resolver.js
 F	apps/kaskold-companion-web/web/js/core/qr/image_file.js
+F	apps/kaskold-companion-web/web/js/core/qr/svg_image.js
 F	apps/kaskold-companion-web/web/js/core/script_pushes.js
-F	apps/kaskold-companion-web/web/js/core/security/safe_html.js
 F	apps/kaskold-companion-web/web/js/core/state/session.js
 F	apps/kaskold-companion-web/web/js/core/time.js
 F	apps/kaskold-companion-web/web/js/core/ui/connectivity_status.js
+F	apps/kaskold-companion-web/web/js/core/ui/elements.js
 F	apps/kaskold-companion-web/web/js/core/ui/navigation_controls.js
+F	apps/kaskold-companion-web/web/js/core/ui/scan_progress.js
 F	apps/kaskold-companion-web/web/js/core/ui/screen_dom.js
 F	apps/kaskold-companion-web/web/js/core/ui/toast.js
 F	apps/kaskold-companion-web/web/js/core/utxo.js
@@ -1200,6 +1204,7 @@ F	apps/kaskold-companion-web/web/js/features/portfolio/pricing.js
 F	apps/kaskold-companion-web/web/js/features/portfolio/render.js
 F	apps/kaskold-companion-web/web/js/features/portfolio/repository.js
 F	apps/kaskold-companion-web/web/js/features/portfolio/wallet_history.js
+F	apps/kaskold-companion-web/web/js/features/qr_display/static_payload.js
 F	apps/kaskold-companion-web/web/js/features/settings/screen.js
 F	apps/kaskold-companion-web/web/js/features/stealth/index.js
 F	apps/kaskold-companion-web/web/js/features/stealth/index/camera.js
@@ -2177,6 +2182,8 @@ F	apps/kaskold-vault-web/web/img/hardware/icon_settings.png
 F	apps/kaskold-vault-web/web/img/hardware/icon_wallet_56.png
 F	apps/kaskold-vault-web/web/img/kaskold-wordmark.png
 F	apps/kaskold-vault-web/web/index.html
+F	apps/kaskold-vault-web/web/js/ui/amounts.js
+F	apps/kaskold-vault-web/web/js/ui/qr.js
 F	apps/kaskold-vault-web/web/js/vault_advanced_workflows.js
 F	apps/kaskold-vault-web/web/js/vault_bytes.js
 F	apps/kaskold-vault-web/web/js/vault_covenant_workflows.js
@@ -2879,9 +2886,12 @@ F	qa/checks/web/check_web_runtime.mjs
 F	qa/checks/web/covenant_sign_protocol.test.mjs
 F	qa/checks/web/network_routing.test.mjs
 F	qa/checks/web/portal_wasm_fakes.mjs
+F	qa/checks/web/real_dom/dom_builder.dom.mjs
+F	qa/checks/web/real_dom/harness.mjs
+F	qa/checks/web/real_dom/run_real_dom_tests.py
+F	qa/checks/web/real_dom/static_qr.dom.mjs
 F	qa/checks/web/run_web_recovery_coverage.py
 F	qa/checks/web/run_web_runtime_coverage.py
-F	qa/checks/web/safe_html_hostile.test.mjs
 F	qa/checks/web/typescript_toolchain.py
 F	qa/checks/web/vault_saved_wallets.test.mjs
 F	qa/checks/web/web_branch_completion.test.mjs

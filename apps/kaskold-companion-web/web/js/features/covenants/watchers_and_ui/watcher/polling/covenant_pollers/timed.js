@@ -1,4 +1,4 @@
-import { setSafeMarkup } from '../../../../../../core/security/safe_html.js';
+import { setContent, span } from '../../../../../../core/ui/elements.js';
 import { covenantWatcherState } from '../../../../../../app/state/index.js';
 import { formatDaaDuration } from '../../../../../../core/format.js';
 
@@ -6,7 +6,7 @@ export async function pollTimedBalance(state, labels) {
     const { total, kas, st, locktime, currentDaa } = state;
     if (total === 0n && covenantWatcherState._covWatcherLastBalance !== null && covenantWatcherState._covWatcherLastBalance > 0n) {
         const spender = covenantWatcherState._covWatcherSpendPath || 'unknown';
-        setSafeMarkup(st, '<span class="u-text-teal">✅ ' + labels.spent(spender) + '</span>');
+        setContent(st, span('u-text-teal', '✅ ' + labels.spent(spender)));
         if (labels.onSpent) labels.onSpent();
         if (st) st.style.display = '';
         return true;
@@ -15,9 +15,9 @@ export async function pollTimedBalance(state, labels) {
         st.textContent = '👁 0 KAS | Not funded';
         st.style.color = '';
     } else if (locktime > 0n && currentDaa > 0n && currentDaa >= locktime + 300n) {
-        setSafeMarkup(st, '<span class="' + labels.availableClass + '">' + labels.available(kas) + '</span>');
+        setContent(st, span(labels.availableClass, labels.available(kas)));
     } else if (locktime > 0n && currentDaa > 0n && currentDaa >= locktime) {
-        setSafeMarkup(st, '<span class="' + labels.unlockingClass + '">' + labels.unlocking(kas) + '</span>');
+        setContent(st, span(labels.unlockingClass, labels.unlocking(kas)));
     } else if (locktime > 0n && currentDaa > 0n) {
         st.textContent = labels.locked(kas, formatDaaDuration(locktime - currentDaa));
         st.style.color = '';

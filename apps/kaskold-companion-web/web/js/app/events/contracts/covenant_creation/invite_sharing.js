@@ -1,29 +1,11 @@
-import { setSafeMarkup } from '../../../../core/security/safe_html.js';
-import { covenantState, navigationState } from '../../../state/index.js';
-import { showScreen } from '../../../navigation.js';
+import { covenantState } from '../../../state/index.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { hideQrFrameHexDisplay, pauseQrCycle } from '../../../../features/transactions/send/review.js';
-import { generate_qr_svg_text } from '../../../../wasm/api.js';
+import { showStaticPayloadQr } from '../../../../features/qr_display/static_payload.js';
+import { el } from '../../../../core/ui/elements.js';
 // Focused covenant invite sharing event registration.
 
 import { byId } from '../../../../core/dom.js';
 import { exactDecimalString } from '../../../../core/exact.js';
-function showInviteQr(payload, title, details = '') {
-    pauseQrCycle();
-    hideQrFrameHexDisplay();
-    byId('qr-container').innerHTML = generate_qr_svg_text(payload);
-    setSafeMarkup(byId('qr-frame-info'), details);
-    byId('qr-display-title').textContent = title;
-    ['btn-scan-next-sig', 'btn-copy-kspt', 'btn-qr-scan-signed'].forEach(id => {
-        const button = byId(id);
-        if (button) button.style.display = 'none';
-    });
-    const transactionInfo = byId('qr-tx-info');
-    if (transactionInfo) transactionInfo.style.display = 'none';
-    navigationState._broadcastReturnScreen = 'covenant';
-    showScreen('qr-display');
-}
-
 function buildCovenantInvite(result) {
     const type = result.type || '';
     const invite = {
@@ -71,13 +53,14 @@ function registerCovenantInviteShare() {
         try {
             if (result.type === 'additive') {
                 const address = result.address || '';
-                const details = '<div class="covenant-invite-details">' +
-                    'Piggy Bank Address<br><span class="u-text-10px-break-all">' + address + '</span>' +
-                    '<br><span class="u-text-10px-text-text-muted">Anyone can send KAS to this address</span></div>';
-                showInviteQr(address, 'Share Piggy Bank Address', details);
+                const details = el('div', { className: 'covenant-invite-details' },
+                    'Piggy Bank Address', el('br'),
+                    el('span', { className: 'u-text-10px-break-all' }, address), el('br'),
+                    el('span', { className: 'u-text-10px-text-text-muted' }, 'Anyone can send KAS to this address'));
+                showStaticPayloadQr(address, 'Share Piggy Bank Address', details);
                 return;
             }
-            showInviteQr(JSON.stringify(buildCovenantInvite(result)), 'Covenant Invite QR');
+            showStaticPayloadQr(JSON.stringify(buildCovenantInvite(result)), 'Covenant Invite QR');
         } catch (error) {
             toast('QR generation failed: ' + error, 'error');
         }

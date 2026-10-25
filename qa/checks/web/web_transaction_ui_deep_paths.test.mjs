@@ -2,8 +2,7 @@ import assert from 'node:assert/strict';
 import {
   setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setValue, tick,
   ADDRESS, CHANGE, BENEFICIARY, EXTERNAL, PK, PK2, PK3, TXID, PSKB, KSPT, COV_ID,
-  wallet, utxos, covenantResult, assertWatchOnlyStorage,
-} from './web_runtime_deep_harness.mjs';
+  wallet, utxos, covenantResult, assertWatchOnlyStorage, rendered } from './web_runtime_deep_harness.mjs';
 
 function treeText(node) {
   return [node?.textContent || '', ...(node?.children || []).map(treeText)].join(' ');
@@ -38,7 +37,7 @@ try {
   review.displayKsptQr(KSPT); await tick();
   const txInfoText = treeText(element('qr-tx-info'));
   assert.match(txInfoText,/TX Verification/); assert.match(txInfoText,/OWN/); assert.match(txInfoText,/CHANGE/); assert.match(txInfoText,/COVENANT/); assert.match(txInfoText,/\(unknown\)/);
-  assert.match(element('qr-container').innerHTML,/single/); assert.equal(element('btn-scan-next-sig').style.display,'none');
+  assert.match(rendered(element('qr-container')),/single/); assert.equal(element('btn-scan-next-sig').style.display,'none');
   assert.equal(element('qr-frame-hex').classList.contains('hidden'),true);
   assert.equal(element('btn-toggle-qr-frame-hex').classList.contains('hidden'),false);
   review.toggleQrFrameHex(); assert.equal(element('qr-frame-hex').textContent,'aa11'); assert.equal(element('qr-frame-hex').classList.contains('hidden'),false);

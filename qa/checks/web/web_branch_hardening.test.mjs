@@ -340,7 +340,7 @@ try {
   assert.equal(format.formatSeconds(null),''); assert.equal(format.formatSeconds(0.5),'< 1s'); assert.equal(format.formatSeconds(30),'30s'); assert.equal(format.formatSeconds(120),'2min'); assert.equal(format.formatSeconds(7200),'2h');
   const txNow=Date.now(); assert.equal(format.formatTransactionTime(txNow-1000),'just now'); assert.match(format.formatTransactionTime(txNow-120000),/m ago/); assert.match(format.formatTransactionTime(txNow-7200000),/h ago/); assert.match(format.formatTransactionTime(txNow-172800000),/d ago/); assert.match(format.formatTransactionTime(txNow-700000000),/,/);
   assert.equal(format.shortenHex('abcd',3),'abcd'); assert.equal(format.shortenHex('abcdefghijklmnop',3),'abc…nop');
-  assert.equal(format.emphasizeAddress('<bad&>'),'&lt;bad&amp;&gt;'); assert.match(format.emphasizeAddress('kaspa:abcdefghijklmno'),/addr-hl/);
+  assert.deepEqual(format.addressHighlightParts('<bad&>'),{plain:'<bad&>'}); assert.deepEqual(format.addressHighlightParts('kaspa:abcdefghijklmnopqrstuv'),{prefix:'kaspa:',head:'abcdefgh',middle:'ijklmn',tail:'opqrstuv'}); assert.deepEqual(format.addressHighlightParts('kaspa:abc'),{prefix:'kaspa:',head:'abc',middle:'',tail:''});
   assert.match(format.formatStartDate({start_daa:'1100'},'1000'),/^~/); assert.equal(format.formatStartDate({start_daa:'0'},'1000'),'DAA 0');
 
   // Wallet-session scrubbing covers strings, numbers, booleans, bigint, cycles,

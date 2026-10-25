@@ -2,7 +2,7 @@ import { covenantState, covenantWatcherState, networkState } from '../../../../.
 import { hexToBytes } from '../../../../../../core/bytes.js';
 import { kaspaRestApiBase } from '../../../../../../core/config/network.js';
 import { formatDaaDuration } from '../../../../../../core/format.js';
-import { setSafeMarkup } from '../../../../../../core/security/safe_html.js';
+import { el, setContent, span } from '../../../../../../core/ui/elements.js';
 import { verify_oracle_v1_attestation } from '../../../../../../wasm/api.js';
 import { oracleV1MessageCommitment } from '../../../../../oracle/v1/attestation.js';
 import { covSaveActive } from '../../../../recovery/active.js';
@@ -79,7 +79,7 @@ export async function pollOracleV1(state) {
     const result = covenantState.lastCovenantResult;
     if (total === 0n && covenantWatcherState._covWatcherLastBalance !== null
         && covenantWatcherState._covWatcherLastBalance > 0n) {
-        setSafeMarkup(st, '<span class="u-text-teal">✅ Oracle covenant spent.</span>');
+        setContent(st, span('u-text-teal', '✅ Oracle covenant spent.'));
         st.style.display = '';
         return true;
     }
@@ -107,7 +107,7 @@ export async function pollOracleV1(state) {
         ? (currentDaa >= locktime ? 'Owner refund available now' : `Owner refund in ~${formatDaaDuration(locktime - currentDaa)}`)
         : 'Owner refund timer active';
     if (attested) {
-        setSafeMarkup(st, `<span class="u-text-teal">✅ ${kas} KAS | Oracle attested | Beneficiary claim available</span><br>${refund}`);
+        setContent(st, span('u-text-teal', `✅ ${kas} KAS | Oracle attested | Beneficiary claim available`), el('br'), refund);
     } else {
         st.textContent = `👁 ${kas} KAS | Waiting for oracle attestation | ${refund}`;
         st.style.color = '';

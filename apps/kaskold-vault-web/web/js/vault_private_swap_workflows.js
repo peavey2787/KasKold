@@ -1,4 +1,5 @@
 import { decodeHexPayloadIfMagic, downloadBytes, hasMagic, hexToBytes } from './vault_bytes.js';
+import { showQrSvg } from './ui/qr.js';
 
 export function installPrivateSwapWorkflows(ctx) {
   const { $, api, parse, show, status, openScanner, stopCamera, renderHome } = ctx;
@@ -23,7 +24,7 @@ export function installPrivateSwapWorkflows(ctx) {
     $('private-swap-result-note').textContent = response.awaitingReveal
       ? 'Return this nonce point to the host, then scan the reveal from the same committed session.'
       : 'Return this protocol response to the Private Swap host.';
-    $('private-swap-result-qr').innerHTML = response.svg;
+    showQrSvg($('private-swap-result-qr'), response.svg, 'Private Swap response QR');
     $('private-swap-result-hex').textContent = response.payloadHex;
     $('private-swap-scan-reveal').classList.toggle('hidden', !response.awaitingReveal);
     show('private-swap-result');

@@ -1,4 +1,4 @@
-import { setSafeMarkup } from '../../../../../../core/security/safe_html.js';
+import { setContent, span } from '../../../../../../core/ui/elements.js';
 import { covenantState, covenantWatcherState } from '../../../../../../app/state/index.js';
 import { exactUnsigned } from '../../../../../../core/exact.js';
 import { formatDaaDuration } from '../../../../../../core/format.js';
@@ -25,13 +25,13 @@ export async function pollDms(state) {
     if (total === 0n && covenantWatcherState._covWatcherLastBalance !== null && covenantWatcherState._covWatcherLastBalance > 0n) {
         const spender = covenantWatcherState._covWatcherSpendPath || 'unknown';
         if (spender === 'heir') {
-            st.innerHTML = '<span class="u-text-warning">\u26a0 Heir claimed the funds.</span>';
+            setContent(st, span('u-text-warning', '\u26a0 Heir claimed the funds.'));
             covWatcherStop();
             if (st) st.style.display = '';
             return true;
         }
         if (spender === 'owner') {
-            st.innerHTML = '<span class="u-text-text-muted">\u23f3 Owner spent. Checking...</span>';
+            setContent(st, span('u-text-text-muted', '\u23f3 Owner spent. Checking...'));
             return true;
         }
         st.textContent = '\uD83D\uDC41 Funds spent (0 KAS)';
@@ -49,9 +49,9 @@ export async function pollDms(state) {
         }
         const remaining = newestDaa + inactivity - currentDaa;
         if (remaining <= -300n) {
-            setSafeMarkup(st, `<span class="u-text-warning">\u26a0 Inactivity period passed. Heir can claim. ${kas} KAS</span>`);
+            setContent(st, span('u-text-warning', `\u26a0 Inactivity period passed. Heir can claim. ${kas} KAS`));
         } else if (remaining <= 0n) {
-            setSafeMarkup(st, `<span class="u-text-warning">\u23f3 Inactivity period ending... Heir claim available shortly. ${kas} KAS</span>`);
+            setContent(st, span('u-text-warning', `\u23f3 Inactivity period ending... Heir claim available shortly. ${kas} KAS`));
         } else {
             st.textContent = `\uD83D\uDC41 ${kas} KAS | ~${formatDaaDuration(remaining)} until heir can claim`;
             st.style.color = '';
@@ -70,7 +70,7 @@ export async function pollAdditive(state) {
     const deadlineDaa = exactUnsigned(result.deadline_daa ?? 0n, 'deadline DAA');
 
     if (total === 0n && covenantWatcherState._covWatcherLastBalance !== null && covenantWatcherState._covWatcherLastBalance > 0n) {
-        st.innerHTML = '<span class="u-text-teal">\u2705 Piggy bank broken! Funds withdrawn.</span>';
+        setContent(st, span('u-text-teal', '\u2705 Piggy bank broken! Funds withdrawn.'));
         covWatcherStop();
         if (st) st.style.display = '';
         return true;
@@ -101,7 +101,7 @@ export async function pollAdditive(state) {
     const canBreakTime = deadlineDaa > 0n && currentDaa > 0n && currentDaa >= deadlineDaa;
     const noConditions = threshold === 0n && deadlineDaa === 0n;
     if (canBreakGoal || canBreakTime || noConditions) {
-        setSafeMarkup(st, `<span class="u-text-teal">\uD83D\uDC41 ${statusParts.join(' | ')}</span>`);
+        setContent(st, span('u-text-teal', `\uD83D\uDC41 ${statusParts.join(' | ')}`));
     } else {
         st.textContent = `\uD83D\uDC41 ${statusParts.join(' | ')}`;
         st.style.color = '';

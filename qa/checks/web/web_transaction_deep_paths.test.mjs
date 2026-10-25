@@ -2,8 +2,7 @@ import assert from 'node:assert/strict';
 import {
   setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setValue, tick,
   ADDRESS, CHANGE, EXTERNAL, PK, PK2, SIG, TXID, PSKB, KSPT, COV_ID,
-  wallet, utxos, psktSummary, covenantResult, assertWatchOnlyStorage,
-} from './web_runtime_deep_harness.mjs';
+  wallet, utxos, psktSummary, covenantResult, assertWatchOnlyStorage, rendered } from './web_runtime_deep_harness.mjs';
 
 const { state } = await setupDeepHarness();
 try {
@@ -19,7 +18,7 @@ try {
   wasm.decode_qr_frame = () => '';
   wasm.decoder_progress = () => JSON.stringify({ total:3, count:2, bits:[true,false,true] });
   multisig.handleDescriptorScan(new Uint8Array([1,2,3]));
-  assert.match(element('scanner-status').innerHTML, /2 \/ 3 frames/);
+  assert.match(rendered(element('scanner-status')), /2 \/ 3 frames/);
   wasm.decode_qr_frame = () => Buffer.from('not-a-descriptor').toString('hex');
   multisig.handleDescriptorScan(new Uint8Array([4]));
   assert.match(element('toast').textContent, /valid descriptor/i);
@@ -109,7 +108,7 @@ try {
   review.openPsktReview(PSKB, {kind:'multisig-send',destinationAddress:EXTERNAL});
   assert.equal(element('pskt-send-total').textContent, '1');
   assert.equal(element('pskt-change-total').textContent, '1.495783');
-  assert.match(element('pskt-outputs').children[1].innerHTML, /MULTISIG CHANGE/);
+  assert.match(rendered(element('pskt-outputs').children[1]), /MULTISIG CHANGE/);
   multisigReview.finalize_ready = true;
   multisigReview.inputs[0].sigs_present = 2;
   review.openPsktReview(PSKB);
@@ -140,7 +139,7 @@ try {
   // merge failure, unrecognized and unsigned KSPT states, and node failure.
   let qr=''; wasm.decode_qr_frame=()=>qr; wasm.decoder_progress=()=>JSON.stringify({total:3,count:1,bits:[true,false,false]});
   assert.equal(broadcast.handleSignedScan(new Uint8Array([1]),{stopCamera:false}),false);
-  assert.match(element('scanner-status').innerHTML,/1 \/ 3 frames/);
+  assert.match(rendered(element('scanner-status')),/1 \/ 3 frames/);
   wasm.decode_qr_frame=()=>{throw new Error('bad qr');};
   assert.equal(broadcast.handleSignedScan(new Uint8Array([1]),{stopCamera:false,showDecodeErrors:true}),null);
   qr=PSKB; wasm.decode_qr_frame=()=>qr; wasm.pskt_detect=()=> 'pskb';

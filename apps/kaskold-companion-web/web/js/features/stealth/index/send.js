@@ -7,6 +7,7 @@ import { toast } from '../../../core/ui/toast.js';
 import { openPsktReview } from '../../transactions/pskt_multisig/review.js';
 import { detectWalletNetwork } from '../../../core/network.js';
 import { generate_qr_svg_text, get_fee_estimate, stealth_announcement_address, stealth_create_payment_lane, stealth_generate_payment, stealth_meta_from_kpub } from '../../../wasm/api.js';
+import { showQrSvg } from '../../../core/qr/svg_image.js';
 // KasKold Companion Web — features/stealth/index/send
 import { byId } from '../../../core/dom.js';
 
@@ -102,9 +103,9 @@ export function handleStealthMeta() {
         // not the hex-decoded/framed binary form, so the meta scanner decodes it
         // directly via TextDecoder and matches /^[0-9a-fA-F]{128}$/.
         const qrContainer = byId('stealth-meta-qr');
-        qrContainer.innerHTML = '';
+        qrContainer.replaceChildren();
         try {
-            qrContainer.innerHTML = generate_qr_svg_text(result.meta_address);
+            showQrSvg(qrContainer, generate_qr_svg_text(result.meta_address), 'Stealth meta-address QR');
         } catch (e) {
             qrContainer.textContent = result.meta_address;
         }

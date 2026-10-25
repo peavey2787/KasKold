@@ -1,3 +1,5 @@
+import { showQrSvg } from './ui/qr.js';
+import { formatKas, formatSompi } from './ui/amounts.js';
 function transactionScanError(error) {
   const message = String(error?.message || error || 'Transaction QR could not be accepted.');
   if (message.includes('Custody(InvalidToolInput)')) {
@@ -5,22 +7,6 @@ function transactionScanError(error) {
   }
   return error instanceof Error ? error : new Error(message);
 }
-
-function groupInteger(value) {
-  return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
-function formatSompi(value) {
-  return groupInteger(BigInt(String(value || '0')).toString());
-}
-
-function formatKas(value) {
-  const sompi = BigInt(String(value || '0'));
-  const whole = sompi / 100_000_000n;
-  const fraction = (sompi % 100_000_000n).toString().padStart(8, '0');
-  return `${groupInteger(whole.toString())}.${fraction}`;
-}
-
 
 function setBalancedAddress(element, value) {
   const text = String(value || '');
@@ -264,7 +250,7 @@ export function installTransactionWorkflows({ $, api, parse, show, status, openS
   function renderFrame() {
     if (!frames.length) return;
     const frame = frames[frameIndex];
-    $('response-qr').innerHTML = frame.svg;
+    showQrSvg($('response-qr'), frame.svg, 'Signed response QR');
     $('response-frame-label').textContent = `Frame ${frameIndex + 1}/${frames.length}`;
     $('response-hex').textContent = frame.payloadHex;
     const single = frames.length <= 1;

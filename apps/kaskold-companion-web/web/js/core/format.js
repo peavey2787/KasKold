@@ -90,14 +90,24 @@ export function shortenHex(hex, edgeLength = 10) {
     return hex.slice(0, edgeLength) + '\u2026' + hex.slice(-edgeLength);
 }
 
-export function emphasizeAddress(address) {
-    const escapeHtml = value => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    if (!/^[a-z0-9:]+$/i.test(address)) return escapeHtml(address);
-    const colon = address.indexOf(':') + 1;
-    const firstEnd = Math.min(colon + 8, address.length);
-    const lastStart = Math.max(address.length - 8, firstEnd);
-    return address.slice(0, colon)
-        + '<span class="addr-hl">' + address.slice(colon, firstEnd) + '</span>'
-        + address.slice(firstEnd, lastStart)
-        + '<span class="addr-hl">' + address.slice(lastStart) + '</span>';
+/**
+ * Split an address into the parts a reviewer compares: the prefix, the first
+ * and last eight characters (to highlight) and the middle. Anything that is not
+ * a plain bech32-style address is returned whole, unhighlighted.
+ *
+ * @param {string} address
+ * @returns {{prefix: string, head: string, middle: string, tail: string} | {plain: string}}
+ */
+export function addressHighlightParts(address) {
+    const text = String(address ?? '');
+    if (!/^[a-z0-9:]+$/i.test(text)) return { plain: text };
+    const colon = text.indexOf(':') + 1;
+    const firstEnd = Math.min(colon + 8, text.length);
+    const lastStart = Math.max(text.length - 8, firstEnd);
+    return {
+        prefix: text.slice(0, colon),
+        head: text.slice(colon, firstEnd),
+        middle: text.slice(firstEnd, lastStart),
+        tail: text.slice(lastStart),
+    };
 }

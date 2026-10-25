@@ -56,18 +56,9 @@ try {
   assert.deepEqual(copied, [fresh]);
 
   // Verify Address: the QR is an <img> of the SVG, never injected markup.
-  const items = wallet.receive_addresses.map((address, index) => {
-    const item = document.createElement('div');
-    item.dataset.addr = `${index}-r`;
-    const value = document.createElement('span');
-    value.className = 'addr-val';
-    value.textContent = address;
-    item.appendChild(value);
-    return item;
-  });
-  const querySelectorAll = document.querySelectorAll;
-  document.querySelectorAll = selector => (selector === '.addr-item' ? items : querySelectorAll(selector));
   tools.showAddresses();
+  const items = element('address-list').children.filter(row => row.classList.contains('addr-item') && row.dataset.addr.endsWith('-r'));
+  assert.equal(items.length, wallet.receive_addresses.length);
   items[1].onclick();
   assert.equal(element('verify-address').textContent, wallet.receive_addresses[1]);
   assert.equal(element('verify-path').textContent, "m/44'/111111'/0'/0/1");
@@ -84,7 +75,6 @@ try {
   items[0].onclick();
   assert.equal(qr.children.length, 0, 'an empty QR frame renders nothing');
   stubs.generate_qr_frames = frames;
-  document.querySelectorAll = querySelectorAll;
 
   // Copy on Verify copies the shown address and stays on the Verify screen.
   events.bindSettingsAndWalletEvents();

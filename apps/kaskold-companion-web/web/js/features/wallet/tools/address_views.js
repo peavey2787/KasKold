@@ -1,4 +1,3 @@
-import { setSafeMarkup } from '../../../core/security/safe_html.js';
 import { navigationState, networkState, transactionState, walletSession, walletState } from '../../../app/state/index.js';
 import { hideLoading, showLoading, showScreen } from '../../../app/navigation.js';
 import { toast } from '../../../core/ui/toast.js';
@@ -9,74 +8,56 @@ import { fetchCoinControlUtxos } from '../core/coin_control_utxos.js';
 
 import { utf8ToHex } from '../../../core/bytes.js';
 import { byId } from '../../../core/dom.js';
+import { qrImage } from '../../../core/qr/svg_image.js';
+import { el, setContent, span } from '../../../core/ui/elements.js';
 import { sompiToKasFixed } from '../../../core/amounts.js';
 import { normalizeUtxos, sortUtxosLargestFirst } from '../../../core/utxo.js';
 import { signerMaxInputs } from '../../transactions/shared/signer_limits.js';
 
 navigationState.addressesReturnScreen = 'dashboard';
+
+function copyAddressHandler(address, icon) {
+    return event => {
+        event.stopPropagation();
+        navigator.clipboard.writeText(address);
+        icon.textContent = '✓';
+        setTimeout(() => { icon.textContent = '⧉'; }, 800);
+        toast('Address copied', 'ok', 1000);
+    };
+}
+
+function addressRow(address, index, isChange, observed) {
+    const funded = observed.funded.has(index);
+    const used = !funded && Boolean(observed.used?.has(index));
+    const explore = el('a', {
+        className: 'addr-explore',
+        attrs: { href: explorerAddressUrl(networkState.network, address), target: '_blank', rel: 'noopener', title: 'View in explorer' },
+    }, '↗');
+    explore.onclick = event => event.stopPropagation();
+    const copyIcon = span('copy-icon', '⧉');
+    copyIcon.onclick = copyAddressHandler(address, copyIcon);
+    const row = el('div', { className: `addr-item${funded || used ? ' addr-used' : ''}`, dataset: { addr: `${index}-${isChange ? 'c' : 'r'}` } },
+        span('addr-idx', String(index)),
+        span('addr-val', address),
+        funded ? span('addr-badge', 'funded') : null,
+        used ? span('addr-badge used', 'used') : null,
+        explore,
+        copyIcon);
+    row.onclick = () => showVerify(address, index, isChange);
+    return row;
+}
+
 export function showAddresses() {
     if (!walletSession.hasWallet()) return;
     navigationState.addressesReturnScreen = (navigationState.currentScreenName && navigationState.currentScreenName !== 'addresses') ? navigationState.currentScreenName : 'dashboard';
     const wallet = walletSession.current();
-    const rcvFunded = new Set(walletState.fundedReceiveIndices);
-    const chgFunded = new Set(walletState.fundedChangeIndices);
-    let html = '<div class="addr-section-title">Receive (m/44\'/111111\'/0\'/0)</div>';
-    wallet.receive_addresses.forEach((addr, i) => {
-        const funded = rcvFunded.has(i);
-        const used = !funded && walletState.usedReceiveIndices.has(i);
-        const dimmed = funded || used;
-        html += `<div class="addr-item${dimmed ? ' addr-used' : ''}" data-addr="${i}-r">
-            <span class="addr-idx">${i}</span>
-            <span class="addr-val">${addr}</span>
-            ${funded ? '<span class="addr-badge">funded</span>' : ''}
-            ${used ? '<span class="addr-badge used">used</span>' : ''}
-            <a class="addr-explore" href="${explorerAddressUrl(networkState.network, addr)}" target="_blank" rel="noopener" title="View in explorer">↗</a>
-            <span class="copy-icon">⧉</span>
-        </div>`;
-    });
-    html += '<div class="addr-section-title">Change (m/44\'/111111\'/0\'/1)</div>';
-    wallet.change_addresses.forEach((addr, i) => {
-        const funded = chgFunded.has(i);
-        const used = !funded && walletState.usedChangeIndices.has(i);
-        const dimmed = funded || used;
-        html += `<div class="addr-item${dimmed ? ' addr-used' : ''}" data-addr="${i}-c">
-            <span class="addr-idx">${i}</span>
-            <span class="addr-val">${addr}</span>
-            ${funded ? '<span class="addr-badge">funded</span>' : ''}
-            ${used ? '<span class="addr-badge used">used</span>' : ''}
-            <a class="addr-explore" href="${explorerAddressUrl(networkState.network, addr)}" target="_blank" rel="noopener" title="View in explorer">↗</a>
-            <span class="copy-icon">⧉</span>
-        </div>`;
-    });
-    setSafeMarkup(byId('address-list'), html);
-
-    // Prevent explorer link click from triggering the row's onclick
-    document.querySelectorAll('.addr-explore').forEach(link => {
-        link.onclick = (e) => e.stopPropagation();
-    });
-
-    document.querySelectorAll('.addr-item').forEach(item => {
-        const da = item.dataset.addr;
-        const isChange = da.endsWith('-c');
-        const idx = parseInt(da);
-
-        const copyIcon = item.querySelector('.copy-icon');
-        if (copyIcon) {
-            copyIcon.onclick = (e) => {
-                e.stopPropagation();
-                const addr = item.querySelector('.addr-val').textContent.trim();
-                navigator.clipboard.writeText(addr);
-                copyIcon.textContent = '✓';
-                setTimeout(() => { copyIcon.textContent = '⧉'; }, 800);
-                toast('Address copied', 'ok', 1000);
-            };
-        }
-
-        item.onclick = () => {
-            const addr = item.querySelector('.addr-val').textContent.trim();
-            showVerify(addr, idx, isChange);
-        };
-    });
+    const receive = { funded: new Set(walletState.fundedReceiveIndices), used: walletState.usedReceiveIndices };
+    const change = { funded: new Set(walletState.fundedChangeIndices), used: walletState.usedChangeIndices };
+    setContent(byId('address-list'),
+        el('div', { className: 'addr-section-title' }, "Receive (m/44'/111111'/0'/0)"),
+        wallet.receive_addresses.map((address, index) => addressRow(address, index, false, receive)),
+        el('div', { className: 'addr-section-title' }, "Change (m/44'/111111'/0'/1)"),
+        wallet.change_addresses.map((address, index) => addressRow(address, index, true, change)));
     showScreen('addresses');
 }
 
@@ -92,11 +73,7 @@ function showVerify(addr, index, isChange) {
         const frames = JSON.parse(generate_qr_frames(utf8ToHex(addr)));
         const svg = String(frames[0]?.svg || '');
         if (!svg) throw new Error('Address QR frame is empty');
-        const image = document.createElement('img');
-        image.className = 'qr-svg-image';
-        image.alt = 'Address QR code';
-        image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-        qr.replaceChildren(image);
+        qr.replaceChildren(qrImage(svg, 'Address QR code'));
     } catch (_) {
         qr.replaceChildren();
     }
@@ -107,6 +84,32 @@ function showVerify(addr, index, isChange) {
         link.href = explorerAddressUrl(networkState.network, addr);
     }
     showScreen('verify');
+}
+
+function toggleUtxoSelection(index, row, check, utxoCount) {
+    const selection = transactionState.consolidateSelection;
+    if (selection.has(index)) {
+        selection.delete(index);
+    } else if (selection.size < signerMaxInputs()) {
+        selection.add(index);
+    } else {
+        toast(`KasKold supports at most ${signerMaxInputs()} selected inputs`, 'info', 1800);
+        return;
+    }
+    check.textContent = selection.has(index) ? '☑' : '☐';
+    row.style.borderColor = selection.has(index) ? 'var(--teal)' : '';
+    updateConsolidateButtons(utxoCount);
+}
+
+function selectableUtxoRow(utxo, index, utxoCount) {
+    const check = el('div', { className: 'utxo-check' }, transactionState.consolidateSelection.has(index) ? '☑' : '☐');
+    const row = el('div', { className: 'utxo-item utxo-selectable', dataset: { utxoIdx: index } },
+        check,
+        el('div', { className: 'utxo-info' },
+            el('div', { className: 'utxo-amount' }, `${sompiToKasFixed(utxo.amount)} KAS`),
+            el('div', { className: 'utxo-detail' }, `${utxo.tx_id.slice(0, 16)}…:${utxo.index}`)));
+    row.onclick = () => toggleUtxoSelection(index, row, check, utxoCount);
+    return row;
 }
 
 export async function showUtxos() {
@@ -124,44 +127,13 @@ export async function showUtxos() {
         byId('utxo-summary').textContent = `${utxos.length} current UTXO${utxos.length !== 1 ? 's' : ''} · ${sompiToKasFixed(totalSompi)} KAS · ${coinControl.scannedAddresses} addresses scanned · ${coinControl.source}`;
 
         if (utxos.length === 0) {
-            byId('utxo-list').innerHTML = '<div class="u-align-text-center-text-text-muted-padding-20px">No UTXOs found</div>';
+            setContent(byId('utxo-list'), el('div', { className: 'u-align-text-center-text-text-muted-padding-20px' }, 'No UTXOs found'));
             byId('btn-consolidate').style.display = 'none';
             byId('btn-consolidate-selected').style.display = 'none';
             byId('btn-send-selected-utxos').style.display = 'none';
         } else {
             sortUtxosLargestFirst(utxos);
-            let html = '';
-            utxos.forEach((u, i) => {
-                const kas = sompiToKasFixed(u.amount);
-                html += `<div class="utxo-item utxo-selectable" data-utxo-idx="${i}">
-                    <div class="utxo-check">${transactionState.consolidateSelection.has(i) ? '☑' : '☐'}</div>
-                    <div class="utxo-info">
-                        <div class="utxo-amount">${kas} KAS</div>
-                        <div class="utxo-detail">${u.tx_id.slice(0, 16)}…:${u.index}</div>
-                    </div>
-                </div>`;
-            });
-            setSafeMarkup(byId('utxo-list'), html);
-
-            // Tap to toggle selection
-            document.querySelectorAll('.utxo-selectable').forEach(item => {
-                item.onclick = () => {
-                    const idx = parseInt(item.dataset.utxoIdx);
-                    if (transactionState.consolidateSelection.has(idx)) {
-                        transactionState.consolidateSelection.delete(idx);
-                    } else if (transactionState.consolidateSelection.size < signerMaxInputs()) {
-                        transactionState.consolidateSelection.add(idx);
-                    } else {
-                        toast(`KasKold supports at most ${signerMaxInputs()} selected inputs`, 'info', 1800);
-                        return;
-                    }
-                    // Update checkbox visual
-                    const chk = item.querySelector('.utxo-check');
-                    chk.textContent = transactionState.consolidateSelection.has(idx) ? '☑' : '☐';
-                    item.style.borderColor = transactionState.consolidateSelection.has(idx) ? 'var(--teal)' : '';
-                    updateConsolidateButtons(utxos.length);
-                };
-            });
+            setContent(byId('utxo-list'), utxos.map((utxo, index) => selectableUtxoRow(utxo, index, utxos.length)));
 
             updateConsolidateButtons(utxos.length);
         }

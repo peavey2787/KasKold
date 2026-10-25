@@ -567,9 +567,9 @@
         "make test",
         "make qa"
       ],
-      "path": "qa/checks/web/safe_html_hostile.test.mjs",
+      "path": "qa/checks/web/real_dom/run_real_dom_tests.py",
       "role": "test",
-      "step": "integration.kaskold-companion-web-generated"
+      "step": "integration.kaskold-companion-web-browser"
     },
     {
       "commands": [

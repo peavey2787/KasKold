@@ -1,5 +1,6 @@
 import { downloadBytes, nonNegativeInteger } from '../vault_bytes.js';
 import {
+import { showQrSvg } from '../ui/qr.js';
   deleteMultisigDescriptor,
   listMultisigDescriptors,
   saveMultisigDescriptor,
@@ -31,9 +32,9 @@ export function installMultisigWorkflows(ctx) {
     latestMultisigResult = result;
     latestMultisigMetadata = metadata;
     $('multisig-result-address').textContent = result.address;
-    $('multisig-result-address-qr').innerHTML = result.addressSvg;
+    showQrSvg($('multisig-result-address-qr'), result.addressSvg, 'Multisig address QR');
     $('multisig-result-descriptor').textContent = result.descriptor;
-    $('multisig-result-descriptor-qr').innerHTML = result.descriptorSvg;
+    showQrSvg($('multisig-result-descriptor-qr'), result.descriptorSvg, 'Multisig descriptor QR');
     $('multisig-descriptor-save-prompt').classList.toggle('hidden', !askToSave);
     show('multisig-result');
   }
@@ -117,7 +118,7 @@ export function installMultisigWorkflows(ctx) {
     try {
       const result = parse(api('kaskold_vault_multisig_kpub')());
       $('multisig-kpub').textContent = result.kpub;
-      $('multisig-kpub-qr').innerHTML = result.svg;
+      showQrSvg($('multisig-kpub-qr'), result.svg, 'Multisig kpub QR');
       $('multisig-kpub-panel').classList.remove('hidden');
     } catch (error) { status(String(error), true); }
   };

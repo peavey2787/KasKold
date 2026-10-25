@@ -117,14 +117,6 @@ class CompanionConnectionAndQrImportPolicyTests(unittest.TestCase):
         self.assertIn('hideLoading();', kpub_import)
         self.assertNotIn('await refreshBalance();', kpub_import)
 
-    def test_view_kpub_renders_generated_qr_as_image_not_literal_svg(self) -> None:
-        source = KPUB_MANAGER.read_text()
-        css = (ROOT / "apps/kaskold-companion-web/web/css/app/components/qr_and_address.css").read_text()
-        self.assertIn("image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(generate_qr_svg_text(kpub))}`", source)
-        self.assertIn("qr.replaceChildren(image)", source)
-        self.assertNotIn("setSafeMarkup(byId('view-kpub-qr')", source)
-        self.assertIn(".qr-container .qr-svg-image", css)
-
     def test_broadcast_actions_have_explicit_vertical_spacing(self) -> None:
         html = BROADCAST_HTML.read_text()
         css = (ROOT / "apps/kaskold-companion-web/web/css/app/screens/system.css").read_text()

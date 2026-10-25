@@ -1,5 +1,5 @@
 import { descriptorSummary } from './descriptor_summary.js';
-import { setSafeMarkup } from '../../../core/security/safe_html.js';
+import { renderScanProgress } from '../../../core/ui/scan_progress.js';
 import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
 import { networkState, transactionState } from '../../../app/state/index.js';
 import { KNS_LOOKUP } from '../../../core/config/services.js';
@@ -40,14 +40,7 @@ export function handleDescriptorScan(data) {
                 toast('Not a valid descriptor', 'error');
             }
         } else {
-            const prog = JSON.parse(decoder_progress());
-            if (prog.total > 0) {
-                let dots = '';
-                for (let i = 0; i < prog.total; i++) {
-                    dots += `<span class="scanner-progress-dot${prog.bits[i] ? ' scanner-progress-dot-active' : ''}"></span>`;
-                }
-                setSafeMarkup(byId('scanner-status'), dots + '<div class="u-mt-6px-text-12px">' + prog.count + ' / ' + prog.total + ' frames</div>');
-            }
+            renderScanProgress(byId('scanner-status'), JSON.parse(decoder_progress()));
         }
     } catch (e) {
         console.error('Descriptor decode error:', e);

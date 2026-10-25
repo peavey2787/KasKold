@@ -1,4 +1,4 @@
-import { setSafeMarkup } from '../../../../core/security/safe_html.js';
+import { el, setContent, span } from '../../../../core/ui/elements.js';
 import { covenantState, navigationState, networkState } from '../../../../app/state/index.js';
 import { hideLoading, showLoading } from '../../../../app/navigation.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
@@ -55,20 +55,20 @@ export async function shipPanelRefresh() {
         const utxos = JSON.parse(await fetch_utxos_for_address_js(covAddr, wsUrl));
         const fmt = (s) => sompiToKasString(s);
         if (!utxos.length) {
-            if (stateEl) setSafeMarkup(stateEl, '<span class="u-text-text-dim">Not funded. Fund with ' + fmt(P.total) + ' KAS (product + fee) to start.</span>');
+            setContent(stateEl, span('u-text-text-dim', `Not funded. Fund with ${fmt(P.total)} KAS (product + fee) to start.`));
             return;
         }
         const amt = BigInt(utxos[0].amount);
         if (amt === P.total) {
             if (s0) s0.style.display = '';
-            if (stateEl) setSafeMarkup(stateEl, '<span class="u-text-teal">State 0: funded (' + fmt(P.total) + ' KAS), awaiting pickup.</span><br>'
-                + '<span class="u-text-11px-text-text-dim">Pickup releases ' + fmt(P.total - P.rem) + ' KAS to seller, continues at ' + fmt(P.rem) + ' KAS.</span>');
+            setContent(stateEl, span('u-text-teal', `State 0: funded (${fmt(P.total)} KAS), awaiting pickup.`), el('br'),
+                span('u-text-11px-text-text-dim', `Pickup releases ${fmt(P.total - P.rem)} KAS to seller, continues at ${fmt(P.rem)} KAS.`));
         } else if (amt === P.rem) {
             if (s1) s1.style.display = '';
-            if (stateEl) setSafeMarkup(stateEl, '<span class="u-text-teal">State 1: in transit (' + fmt(P.rem) + ' KAS), awaiting delivery.</span><br>'
-                + '<span class="u-text-11px-text-text-dim">Delivery pays deliverer ' + fmt(P.fee) + ' KAS, the rest to seller.</span>');
+            setContent(stateEl, span('u-text-teal', `State 1: in transit (${fmt(P.rem)} KAS), awaiting delivery.`), el('br'),
+                span('u-text-11px-text-text-dim', `Delivery pays deliverer ${fmt(P.fee)} KAS, the rest to seller.`));
         } else {
-            if (stateEl) setSafeMarkup(stateEl, '<span class="u-text-text-dim">UTXO ' + fmt(amt) + ' KAS matches neither state 0 (' + fmt(P.total) + ') nor state 1 (' + fmt(P.rem) + ').</span>');
+            setContent(stateEl, span('u-text-text-dim', `UTXO ${fmt(amt)} KAS matches neither state 0 (${fmt(P.total)}) nor state 1 (${fmt(P.rem)}).`));
         }
     } catch (e) { if (stateEl) stateEl.textContent = 'Error loading state: ' + e; }
 }

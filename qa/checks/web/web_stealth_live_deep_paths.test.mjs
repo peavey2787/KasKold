@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setFetchHook,
-  PK, PK2, PK3, assertWatchOnlyStorage,
-} from './web_runtime_deep_harness.mjs';
+  PK, PK2, PK3, assertWatchOnlyStorage, rendered } from './web_runtime_deep_harness.mjs';
 
 const { state, response, originalGet } = await setupDeepHarness();
 try {
@@ -82,7 +81,7 @@ try {
   // rendering, timer setup, and QR generation failure.
   state.stealthState._stealthCatchupRunning=true; requestQr.showStealthScanQr(); assert.match(scanStatus.textContent,/still running/i);
   state.stealthState._stealthCatchupRunning=false; state.stealthState.stealthAnnouncementsR=[]; requestQr.showStealthScanQr(); assert.match(element('toast').textContent,/No R values/i);
-  state.stealthState.stealthAnnouncementsR=[PK,PK2]; state.stealthState._stealthBatchStart=99; stubs.generate_qr_frames=()=>JSON.stringify([{svg:'<svg>one</svg>'}]); requestQr.showStealthScanQr(); assert.equal(state.stealthState._stealthBatchStart,0); assert.match(element('stealth-scan-status').innerHTML,/Scanning R 1–2/);
+  state.stealthState.stealthAnnouncementsR=[PK,PK2]; state.stealthState._stealthBatchStart=99; stubs.generate_qr_frames=()=>JSON.stringify([{svg:'<svg>one</svg>'}]); requestQr.showStealthScanQr(); assert.equal(state.stealthState._stealthBatchStart,0); assert.match(rendered(element('stealth-scan-status')),/Scanning R 1–2/);
   stubs.generate_qr_frames=()=>JSON.stringify([{svg:'<svg>1</svg>'},{svg:'<svg>2</svg>'}]); requestQr.showStealthScanQr(); assert.ok(state.stealthState._stealthQrTimer); clearInterval(state.stealthState._stealthQrTimer); state.stealthState._stealthQrTimer=null;
   stubs.generate_qr_frames=()=>{throw new Error('qr runtime fail')}; requestQr.showStealthScanQr(); assert.match(element('toast').textContent,/QR generation failed/i);
 

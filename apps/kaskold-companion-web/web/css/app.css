@@ -636,6 +636,14 @@ h2 {
     transition: opacity 0.1s ease;
 }
 
+/* Generated QR codes are shown as images (see js/core/qr/svg_image.js). */
+.qr-svg-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+}
+
 .qr-container svg,
 .qr-container .qr-svg-image {
     width: 260px;
