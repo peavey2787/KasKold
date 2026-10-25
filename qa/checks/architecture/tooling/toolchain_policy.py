@@ -13,6 +13,10 @@ from toolchains import load_toolchains  # noqa: E402
 from security.fuzz_targets import registered_targets, validate_targets  # noqa: E402
 
 
+# Fuzz coverage only ratchets upward: removing a target needs a reviewed change here.
+MINIMUM_FUZZ_TARGETS = 14
+
+
 def _consumer_requirements() -> dict[str, tuple[str, ...]]:
     return {
         "Makefile": ("include qa/config/toolchains.env",),
@@ -199,8 +203,10 @@ def _check_security_registry(root: Path) -> list[str]:
         errors.append(f"authoritative fuzz registry is invalid: {error}")
         targets = ()
     errors.extend(validate_targets())
-    if len(targets) != 13:
-        errors.append(f"authoritative fuzz registry must contain 13 targets, got {len(targets)}")
+    if len(targets) < MINIMUM_FUZZ_TARGETS:
+        errors.append(
+            f"authoritative fuzz registry must keep at least {MINIMUM_FUZZ_TARGETS} targets, got {len(targets)}"
+        )
     return errors
 
 

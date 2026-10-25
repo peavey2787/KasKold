@@ -15,6 +15,7 @@ shared-signer = { path = "../../crates/shared-signer" }
 kaskold-hardware-core = { path = "../../crates/kaskold-hardware-core" }
 kaskold-protocol = { path = "../../crates/kaskold-protocol", features = ["host", "companion-compat"] }
 offline-signer = { path = "../../crates/offline-signer" }
+rqrr = { path = "../../external/rqrr-nostd" }
 
 [[bin]]
 name = "unwrap_qr_payload"
@@ -106,6 +107,13 @@ bench = false
 [[bin]]
 name = "pskt_parser_differential"
 path = "pskt_parser_differential.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "rqrr_camera_frame"
+path = "rqrr_camera_frame.rs"
 test = false
 doc = false
 bench = false

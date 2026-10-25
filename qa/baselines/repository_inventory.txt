@@ -665,6 +665,7 @@ D	external/rqrr-nostd
 D	external/rqrr-nostd/src
 D	external/rqrr-nostd/src/identify
 D	external/rqrr-nostd/src/unit_tests
+D	external/rqrr-nostd/src/unit_tests/fixtures
 D	external/serde-yaml-ng-adapter
 D	external/serde-yaml-ng-adapter/src
 D	qa
@@ -716,6 +717,7 @@ D	qa/fuzz/seeds/firmware_protocol_parsing
 D	qa/fuzz/seeds/pskt_parser_differential
 D	qa/fuzz/seeds/public_host_parsers
 D	qa/fuzz/seeds/qr_frame_roundtrip
+D	qa/fuzz/seeds/rqrr_camera_frame
 D	qa/fuzz/seeds/std_pskt_parser
 D	qa/fuzz/seeds/stego_picture_parser
 D	qa/fuzz/seeds/unwrap_qr_payload
@@ -2700,7 +2702,12 @@ F	external/rqrr-nostd/src/identify/match_capstones.rs
 F	external/rqrr-nostd/src/identify/mod.rs
 F	external/rqrr-nostd/src/lib.rs
 F	external/rqrr-nostd/src/prepare.rs
+F	external/rqrr-nostd/src/unit_tests/fixtures/capstone_ring_overflow.pgm
+F	external/rqrr-nostd/src/unit_tests/fixtures/grid_seed_overflow.pgm
+F	external/rqrr-nostd/src/unit_tests/fixtures/perspective_overflow.pgm
+F	external/rqrr-nostd/src/unit_tests/fixtures/timing_ring_overflow.pgm
 F	external/rqrr-nostd/src/unit_tests/geometry_tests.rs
+F	external/rqrr-nostd/src/unit_tests/hostile_image_tests.rs
 F	external/rqrr-nostd/src/version_db.rs
 F	external/serde-yaml-ng-adapter/Cargo.toml
 F	external/serde-yaml-ng-adapter/src/lib.rs
@@ -2944,6 +2951,7 @@ F	qa/fuzz/firmware_protocol_parsing.rs
 F	qa/fuzz/pskt_parser_differential.rs
 F	qa/fuzz/public_host_parsers.rs
 F	qa/fuzz/qr_frame_roundtrip.rs
+F	qa/fuzz/rqrr_camera_frame.rs
 F	qa/fuzz/seeds/account_key_canonical/high-bits
 F	qa/fuzz/seeds/account_key_canonical/incrementing
 F	qa/fuzz/seeds/account_key_canonical/zeros
@@ -2980,6 +2988,10 @@ F	qa/fuzz/seeds/public_host_parsers/truncated-json
 F	qa/fuzz/seeds/qr_frame_roundtrip/max-pattern
 F	qa/fuzz/seeds/qr_frame_roundtrip/single-byte
 F	qa/fuzz/seeds/qr_frame_roundtrip/structured
+F	qa/fuzz/seeds/rqrr_camera_frame/capstone_ring_overflow
+F	qa/fuzz/seeds/rqrr_camera_frame/grid_seed_overflow
+F	qa/fuzz/seeds/rqrr_camera_frame/perspective_overflow
+F	qa/fuzz/seeds/rqrr_camera_frame/timing_ring_overflow
 F	qa/fuzz/seeds/std_pskt_parser/empty
 F	qa/fuzz/seeds/std_pskt_parser/pskb-magic
 F	qa/fuzz/seeds/std_pskt_parser/pskt-magic

@@ -10,6 +10,7 @@
     {"name":"compact-kspt-roundtrip","target":"compact_kspt_roundtrip","token":"serialize_compact_kspt"},
     {"name":"standard-pskt","target":"std_pskt_parser","token":"parse_pskt"},
     {"name":"bip32-derivation","target":"bip32_derivation","token":"bip32"},
+    {"name":"camera-qr-image","target":"rqrr_camera_frame","token":"rqrr::PreparedImage"},
     {"name":"stego-jpeg-carrier","target":"stego_picture_parser","token":"stego_picture"},
     {"name":"anti-klepto-wire","target":"firmware_external_inputs","token":"anti_klepto::parse_request"},
     {"name":"covenant-sign-wire","target":"firmware_external_inputs","token":"covenant_sign::parse_request"},

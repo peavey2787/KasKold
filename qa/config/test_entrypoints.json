@@ -988,6 +988,14 @@
       "commands": [
         "make qa"
       ],
+      "path": "qa/fuzz/rqrr_camera_frame.rs",
+      "role": "fuzz-target",
+      "step": "fuzz.repository-security-targets"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
       "path": "qa/fuzz/stego_picture_parser.rs",
       "role": "fuzz-target",
       "step": "fuzz.repository-security-targets"

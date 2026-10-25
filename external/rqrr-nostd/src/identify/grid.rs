@@ -63,7 +63,7 @@ impl SkewedGridLocation {
         /* Check the timing pattern. This doesn't require a perspective
          * transform.
          */
-        let grid_size = measure_timing_pattern(img, &group);
+        let grid_size = measure_timing_pattern(img, &group)?;
 
         /* Make an estimate based for the alignment pattern based on extending
          * lines from capstones A and C.
@@ -187,7 +187,7 @@ fn rotate_capstone(cap: &mut CapStone, h0: &Point, hd: &Point) {
 // * which is nearest the centre of the code. Using these points, we do
 // * a horizontal and a vertical timing scan.
 // */
-fn measure_timing_pattern<S>(img: &PreparedImage<S>, caps: &CapStoneGroup) -> usize
+fn measure_timing_pattern<S>(img: &PreparedImage<S>, caps: &CapStoneGroup) -> Option<usize>
 where
     S: ImageBuffer,
 {
@@ -202,11 +202,14 @@ where
 
     let scan = cmp::max(hscan, vscan);
 
-    /* Choose the nearest allowable grid size */
-    assert!(scan >= 1);
+    /* Choose the nearest allowable grid size. A scan without a single
+     * transition is not a timing pattern: reject the candidate. */
+    if scan == 0 {
+        return None;
+    }
     let size = scan + 13;
     let ver = ((size as f64 - 15.0) as usize) / 4;
-    ver * 4 + 17
+    Some(ver * 4 + 17)
 }
 
 fn timing_scan<S>(img: &PreparedImage<S>, p0: &Point, p1: &Point) -> usize
@@ -244,18 +247,24 @@ where
     let a = c0.c.map(u, v + 1.0);
     let (u, v) = c2.c.unmap(&align_seed);
     let c = c2.c.map(u + 1.0, v);
-    let size_estimate = ((a.x - align_seed.x) * -(c.y - align_seed.y)
-        + (a.y - align_seed.y) * (c.x - align_seed.x))
-        .unsigned_abs() as usize;
+    // Coordinates are bounded by MAX_COORDINATE, so these products fit in
+    // i64 trivially; the estimate is then capped at the frame area so the
+    // spiral search below stays bounded on 32-bit targets.
+    let size_estimate = ((i64::from(a.x) - i64::from(align_seed.x))
+        * -(i64::from(c.y) - i64::from(align_seed.y))
+        + (i64::from(a.y) - i64::from(align_seed.y)) * (i64::from(c.x) - i64::from(align_seed.x)))
+    .unsigned_abs();
+    let frame_area = (img.width() as u64).saturating_mul(img.height() as u64);
+    let size_estimate = usize::try_from(size_estimate.min(frame_area)).unwrap_or(usize::MAX);
 
     /* Spiral outwards from the estimate point until we find something
      * roughly the right size. Don't look too far from the estimate
      * point.
      */
     let mut dir = 0;
-    let mut step_size = 1;
+    let mut step_size: usize = 1;
 
-    while step_size * step_size < size_estimate * 100 {
+    while step_size.saturating_mul(step_size) < size_estimate.saturating_mul(100) {
         const DX_MAP: [i32; 4] = [1, 0, -1, 0];
         const DY_MAP: [i32; 4] = [0, -1, 0, 1];
         for _pass in 0..step_size {
@@ -271,7 +280,7 @@ where
                 };
 
                 // Matches expected size of alignment pattern
-                if count >= size_estimate / 2 && count <= size_estimate * 2 {
+                if count >= size_estimate / 2 && count <= size_estimate.saturating_mul(2) {
                     return Some(align_seed);
                 }
             }

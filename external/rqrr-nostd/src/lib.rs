@@ -242,3 +242,7 @@ impl fmt::Display for DeQRError {
         write!(f, "{msg}")
     }
 }
+
+#[cfg(test)]
+#[path = "unit_tests/hostile_image_tests.rs"]
+mod hostile_image_tests;

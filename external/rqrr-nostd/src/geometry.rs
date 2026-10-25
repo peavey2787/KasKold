@@ -1,5 +1,32 @@
 use crate::identify::Point;
 
+/// Largest magnitude a mapped or intersected coordinate may take.
+///
+/// Camera frames are far smaller than this, so a point beyond it is outside
+/// every image and is only ever skipped or clamped by pixel lookups. Keeping
+/// coordinates within 2^13 also keeps the i32 products formed from point
+/// differences (at most 2^14 squared, summed twice) below `i32::MAX`, so hostile
+/// perspective transforms cannot overflow downstream arithmetic.
+pub const MAX_COORDINATE: i32 = 1 << 13;
+
+/// Round half away from zero and clamp into `±MAX_COORDINATE`.
+///
+/// A non-finite value (from a degenerate perspective) maps to the positive
+/// bound, which lies outside any frame, instead of aborting the decoder.
+pub fn clamp_coordinate(value: f64) -> i32 {
+    if !value.is_finite() {
+        return MAX_COORDINATE;
+    }
+    let bound = f64::from(MAX_COORDINATE);
+    let rounded = if value >= 0.0 {
+        value + 0.5
+    } else {
+        value - 0.5
+    };
+    // The clamp bounds the value, so the truncating cast is exact and lossless.
+    rounded.clamp(-bound, bound) as i32
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub struct Perspective(pub [f64; 8]);
 
@@ -49,25 +76,9 @@ impl Perspective {
         let x = (self.0[0] * u + self.0[1] * v + self.0[2]) / den;
         let y = (self.0[3] * u + self.0[4] * v + self.0[5]) / den;
 
-        // no_std round: add 0.5 and truncate (works for positive and negative)
-        let x = if x >= 0.0 {
-            (x + 0.5) as i64 as f64
-        } else {
-            (x - 0.5) as i64 as f64
-        };
-        let y = if y >= 0.0 {
-            (y + 0.5) as i64 as f64
-        } else {
-            (y - 0.5) as i64 as f64
-        };
-
-        assert!(x <= i32::MAX as f64);
-        assert!(x >= i32::MIN as f64);
-        assert!(y <= i32::MAX as f64);
-        assert!(y >= i32::MIN as f64);
         Point {
-            x: x as i32,
-            y: y as i32,
+            x: clamp_coordinate(x),
+            y: clamp_coordinate(y),
         }
     }
 
@@ -110,15 +121,23 @@ pub fn line_intersect(p0: &Point, p1: &Point, q0: &Point, q1: &Point) -> Option<
      *       [ d -b] [e]   [rx]
      * 1/det [-c  a] [f] = [ry]
      */
-    let det = a * d - b * c;
+    let det = i64::from(a) * i64::from(d) - i64::from(b) * i64::from(c);
     if det == 0 {
-        None
-    } else {
-        Some(Point {
-            x: (d * e - b * f) / det,
-            y: (-c * e + a * f) / det,
-        })
+        return None;
     }
+    let (a, b, c, d, e, f) = (
+        i64::from(a),
+        i64::from(b),
+        i64::from(c),
+        i64::from(d),
+        i64::from(e),
+        i64::from(f),
+    );
+    let bound = i64::from(MAX_COORDINATE);
+    Some(Point {
+        x: ((d * e - b * f) / det).clamp(-bound, bound) as i32,
+        y: ((-c * e + a * f) / det).clamp(-bound, bound) as i32,
+    })
 }
 
 #[derive(Debug, Clone)]
