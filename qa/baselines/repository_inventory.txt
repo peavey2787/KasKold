@@ -2821,6 +2821,7 @@ F	qa/checks/firmware/wallet_recovery_contract.py
 F	qa/checks/integration/browser_real_node_case.mjs
 F	qa/checks/integration/funded_testnet_e2e.py
 F	qa/checks/integration/funded_testnet_e2e_case.mjs
+F	qa/checks/integration/headless_chromium.py
 F	qa/checks/integration/real_node_browser.py
 F	qa/checks/ios/check_ios_architecture.py
 F	qa/checks/ios/run_mutation_tests.py
@@ -3090,6 +3091,7 @@ F	qa/tests/regression/test_funded_wasm_sdk_boundary.py
 F	qa/tests/regression/test_hardware_home_and_multisig_descriptors.py
 F	qa/tests/regression/test_hardware_reboot_detection.py
 F	qa/tests/regression/test_hardware_transport_recovery.py
+F	qa/tests/regression/test_headless_chromium.py
 F	qa/tests/regression/test_hil_and_fuzz_evidence.py
 F	qa/tests/regression/test_hil_release_matrix.py
 F	qa/tests/regression/test_hot_wallet_custody_boundary.py
