@@ -94,6 +94,13 @@ class LoopbackHttpServer(http.server.ThreadingHTTPServer):
     request_queue_size = 128
     daemon_threads = True
 
+    def handle_error(self, request, client_address) -> None:
+        # Chromium drops idle keep-alive sockets when it exits; that is a
+        # normal disconnect, not a server fault worth a traceback.
+        if isinstance(sys.exc_info()[1], ConnectionError):
+            return
+        super().handle_error(request, client_address)
+
 
 class LoopbackRequestHandler(http.server.SimpleHTTPRequestHandler):
     """Quiet repository file server for one QA browser page.

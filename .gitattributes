@@ -10,3 +10,6 @@ apps/kaskold-companion-web/web/lib/** linguist-vendored
 *.ps1 text eol=crlf
 *.cmd text eol=crlf
 *.pdf binary
+
+# Hashed into the signed firmware manifest; bytes must not vary by checkout.
+apps/kaskold-hardware/partitions/*.csv text eol=lf

@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+import contextlib
 import errno
 import http.client
 import importlib.util
@@ -294,6 +295,27 @@ class LoopbackServerTests(unittest.TestCase):
             with ThreadPoolExecutor(max_workers=96) as pool:
                 statuses = list(pool.map(lambda _index: fetch(port), range(96)))
         self.assertEqual(statuses, [200] * 96)
+
+    def handled_error_output(self, error):
+        harness = load_harness()
+        server = harness.LoopbackHttpServer(("127.0.0.1", 0), harness.LoopbackRequestHandler)
+        stderr = io.StringIO()
+        try:
+            try:
+                raise error
+            except Exception:
+                with contextlib.redirect_stderr(stderr):
+                    server.handle_error(None, ("127.0.0.1", 1))
+        finally:
+            server.server_close()
+        return stderr.getvalue()
+
+    def test_browser_disconnects_are_not_reported_as_server_faults(self):
+        for error in (ConnectionResetError(10054, "reset"), ConnectionAbortedError(), BrokenPipeError()):
+            self.assertEqual(self.handled_error_output(error), "")
+
+    def test_other_handler_errors_still_print_a_traceback(self):
+        self.assertIn("ValueError: handler bug", self.handled_error_output(ValueError("handler bug")))
 
 
 if __name__ == "__main__":
