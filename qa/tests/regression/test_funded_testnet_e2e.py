@@ -7,7 +7,6 @@ from portal_source import kaskold_source  # noqa: E402
 from pathlib import Path
 import importlib.util
 import os
-import tempfile
 import unittest
 import urllib.request
 from unittest import mock
@@ -22,6 +21,14 @@ def load_runner():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+class FakeProcess:
+    pid = 4242
+    returncode = None
+
+    def poll(self):
+        return self.returncode
 
 
 class FundedTestnetE2EContractTests(unittest.TestCase):
@@ -80,7 +87,7 @@ class FundedTestnetE2EContractTests(unittest.TestCase):
 
     def test_funded_http_server_uses_browser_safe_module_mime_and_ignores_favicon(self):
         runner = load_runner()
-        with runner.http_server() as port:
+        with runner.serve(runner.FundedHandler) as port:
             with urllib.request.urlopen(
                 f"http://127.0.0.1:{port}/qa/checks/integration/funded_testnet_e2e_case.mjs"
             ) as response:
@@ -298,104 +305,51 @@ class FundedTestnetE2EContractTests(unittest.TestCase):
         with mock.patch.object(runner, "timed_interactive_input", return_value="2"):
             self.assertEqual(runner.select_network(), ("testnet-12", "Testnet-12"))
 
-    def test_windows_funded_browser_discovery_finds_edge_without_path_entry(self):
-        runner = load_runner()
-        with tempfile.TemporaryDirectory() as temporary:
-            program_files = Path(temporary) / "Program Files"
-            edge = program_files / "Microsoft/Edge/Application/msedge.exe"
-            edge.parent.mkdir(parents=True)
-            edge.write_bytes(b"MZ")
-            with mock.patch.object(runner.shutil, "which", return_value=None):
-                found = runner.browser_executable(
-                    platform_name="nt",
-                    environ={"PROGRAMFILES": str(program_files)},
-                )
-            self.assertEqual(found, str(edge))
-
     def test_chromium_timeout_is_controlled_and_phase_specific(self):
         runner = load_runner()
-
-        class FakeProcess:
-            def __init__(self):
-                self.pid = 4242
-                self.returncode = None
-
-            def poll(self):
-                return self.returncode
-
-            def terminate(self):
-                self.returncode = 0
-
-            def wait(self, timeout=None):
-                self.returncode = 0
-                return 0
-
-            def kill(self):
-                self.returncode = -9
-
         with mock.patch.object(runner, "browser_executable", return_value="/usr/bin/chromium"), mock.patch.object(
-            runner.subprocess, "Popen", return_value=FakeProcess()
-        ) as popen, mock.patch.object(runner.subprocess, "run"), mock.patch.object(
-            runner, "wait_for_chromium_debugger"
-        ), mock.patch.object(
-            runner, "open_chromium_target"
-        ), mock.patch.object(runner.time, "monotonic", side_effect=[0.0, 61.0]):
+            runner, "launch_chromium", return_value=FakeProcess()
+        ), mock.patch.object(runner, "open_chromium_target"), mock.patch.object(
+            runner, "stop_chromium"
+        ) as stop, mock.patch.object(runner.time, "monotonic", side_effect=[0.0, 61.0]):
             with self.assertRaises(runner.BrowserPhaseError) as raised:
                 runner.chromium_result(12345, {"phase": "status", "network": "testnet-12"}, timeout=60)
-        command = popen.call_args.args[0]
-        self.assertFalse(any(argument.startswith("--virtual-time-budget=") for argument in command))
-        self.assertFalse(any(argument.startswith("--timeout=") for argument in command))
-        self.assertNotIn("--dump-dom", command)
-        self.assertTrue(any(argument.startswith("--user-data-dir=") for argument in command))
         message = str(raised.exception)
         self.assertIn("phase 'status' timed out after 60 wall-clock seconds", message)
         self.assertIn("/usr/bin/chromium", message)
         self.assertTrue(raised.exception.retryable)
+        stop.assert_called_once()
         self.assertGreaterEqual(runner.STATUS_TIMEOUT_SECONDS, 90)
         self.assertGreaterEqual(runner.RPC_PHASE_TIMEOUT_SECONDS, 180)
 
-    def test_devtools_target_creation_is_loopback_put_with_encoded_url(self):
+    def test_browser_start_failure_is_a_retryable_status_phase_error(self):
         runner = load_runner()
+        failure = runner.ChromiumError("Chromium exited before DevTools became ready (exit 21)")
+        with mock.patch.object(runner, "browser_executable", return_value="/usr/bin/chromium"), mock.patch.object(
+            runner, "launch_chromium", side_effect=failure
+        ), mock.patch.object(runner, "stop_chromium") as stop:
+            with self.assertRaises(runner.BrowserPhaseError) as raised:
+                runner.chromium_result(12345, {"phase": "status", "network": "testnet-10"}, timeout=10)
+        self.assertIn("phase 'status' could not start its Chromium test tab", str(raised.exception))
+        self.assertIn("exit 21", str(raised.exception))
+        self.assertTrue(raised.exception.retryable)
+        stop.assert_not_called()
 
-        class FakeResponse:
-            status = 200
-
-            def __enter__(self):
-                return self
-
-            def __exit__(self, *_args):
-                return False
-
-            def read(self):
-                return b'{"id":"target-1"}'
-
-        with mock.patch.object(runner.urllib.request, "urlopen", return_value=FakeResponse()) as urlopen:
-            runner.open_chromium_target(9222, "http://127.0.0.1:12345/__qa_funded_e2e__")
-        request = urlopen.call_args.args[0]
-        self.assertEqual(request.get_method(), "PUT")
-        self.assertTrue(request.full_url.startswith("http://127.0.0.1:9222/json/new?"))
-        self.assertIn("http%3A%2F%2F127.0.0.1%3A12345%2F__qa_funded_e2e__", request.full_url)
+    def test_tab_open_failure_stops_the_launched_browser(self):
+        runner = load_runner()
+        process = FakeProcess()
+        with mock.patch.object(runner, "browser_executable", return_value="/usr/bin/chromium"), mock.patch.object(
+            runner, "launch_chromium", return_value=process
+        ), mock.patch.object(
+            runner, "open_chromium_target", side_effect=OSError("connection refused")
+        ), mock.patch.object(runner, "stop_chromium") as stop:
+            with self.assertRaises(runner.BrowserPhaseError) as raised:
+                runner.chromium_result(12345, {"phase": "send", "network": "testnet-10"}, timeout=10)
+        self.assertFalse(raised.exception.retryable)
+        stop.assert_called_once_with(process)
 
     def test_browser_result_callback_drives_completion_without_dom_capture(self):
         runner = load_runner()
-
-        class FakeProcess:
-            def __init__(self):
-                self.pid = 4242
-                self.returncode = None
-
-            def poll(self):
-                return self.returncode
-
-            def terminate(self):
-                self.returncode = 0
-
-            def wait(self, timeout=None):
-                self.returncode = 0
-                return 0
-
-            def kill(self):
-                self.returncode = -9
 
         def launch(*_args, **_kwargs):
             runner.FundedHandler.result_payload = {
@@ -406,34 +360,18 @@ class FundedTestnetE2EContractTests(unittest.TestCase):
             return FakeProcess()
 
         with mock.patch.object(runner, "browser_executable", return_value="/usr/bin/chromium"), mock.patch.object(
-            runner.subprocess, "Popen", side_effect=launch
-        ) as popen, mock.patch.object(runner.subprocess, "run"), mock.patch.object(
-            runner, "wait_for_chromium_debugger"
-        ), mock.patch.object(
-            runner, "open_chromium_target"
-        ) as open_target:
+            runner, "launch_chromium", side_effect=launch
+        ), mock.patch.object(runner, "open_chromium_target") as open_target, mock.patch.object(
+            runner, "stop_chromium"
+        ):
             status, detail = runner.chromium_result(12345, {"phase": "address", "network": "testnet-10"}, timeout=10)
         self.assertEqual(status, "pass")
         self.assertEqual(detail["funding_address"], "kaspatest:qexample")
-        command = popen.call_args.args[0]
-        self.assertNotIn("--dump-dom", command)
-        self.assertFalse(any(argument.startswith("--timeout=") for argument in command))
-        self.assertFalse(any(argument.startswith("--virtual-time-budget=") for argument in command))
-        self.assertTrue(any(argument.startswith("--remote-debugging-port=") for argument in command))
         open_target.assert_called_once()
         self.assertEqual(open_target.call_args.args[1], "http://127.0.0.1:12345/__qa_funded_e2e__")
 
-    def test_real_network_browser_uses_wall_clock_result_callback(self):
-        runner = RUNNER_PATH.read_text(encoding="utf-8")
+    def test_real_network_browser_reports_through_the_result_callback(self):
         browser = (ROOT / "qa/checks/integration/funded_testnet_e2e_case.mjs").read_text()
-        self.assertNotIn('f"--virtual-time-budget=', runner)
-        self.assertNotIn('f"--timeout=', runner)
-        self.assertNotIn('"--dump-dom"', runner)
-        self.assertIn("subprocess.Popen", runner)
-        self.assertIn("--remote-debugging-address=127.0.0.1", runner)
-        self.assertIn("open_chromium_target", runner)
-        self.assertIn("result_event.wait", runner)
-        self.assertIn("/__qa_funded_result__", runner)
         self.assertIn("fetch('/__qa_funded_result__'", browser)
         self.assertIn("await run();", browser)
         self.assertIn("Python", browser)

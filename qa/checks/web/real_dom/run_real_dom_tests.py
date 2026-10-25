@@ -10,8 +10,6 @@ and executes `*.dom.mjs` suites inside headless Chromium.
 from __future__ import annotations
 
 import argparse
-import contextlib
-import http.server
 import json
 from pathlib import Path
 import re
@@ -30,14 +28,16 @@ PAGE_PATH = "/__qa_real_dom__"
 MAX_RESULT_BYTES = 1024 * 1024
 
 sys.path.insert(0, str(ROOT / "qa/checks/integration"))
-from real_node_browser import (  # noqa: E402
-    RealNodeBrowserError,
+from headless_chromium import (  # noqa: E402
+    ChromiumError,
+    LoopbackRequestHandler,
     browser_executable,
     browser_log_tail,
     cleanup_chromium_profile,
     free_port,
     launch_chromium,
     open_chromium_target,
+    serve,
     stop_chromium,
 )
 
@@ -88,78 +88,43 @@ try {{
 </script></body></html>""".encode()
 
 
-class Handler(http.server.SimpleHTTPRequestHandler):
+class Handler(LoopbackRequestHandler):
     result_event = threading.Event()
     result: dict[str, object] | None = None
     suites: list[str] = []
     package = ""
 
-    def log_message(self, _format: str, *_args: object) -> None:
-        pass
-
-    def guess_type(self, path: str) -> str:
-        if Path(urllib.parse.urlsplit(path).path).suffix in {".js", ".mjs"}:
-            return "text/javascript"
-        return super().guess_type(path)
-
-    def _send(self, body: bytes, content_type: str) -> None:
-        self.send_response(200)
-        self.send_header("Content-Type", content_type)
-        self.send_header("Cache-Control", "no-store")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-
     def do_GET(self) -> None:  # noqa: N802 - stdlib handler API
         path = urllib.parse.urlsplit(self.path).path
         if path == PAGE_PATH:
-            self._send(page(type(self).suites), "text/html; charset=utf-8")
+            self.send_body(page(type(self).suites), "text/html; charset=utf-8")
         elif path == PACKAGE_PATH:
-            self._send(type(self).package.encode(), "text/javascript")
-        elif path == "/favicon.ico":
-            self.send_response(204)
-            self.end_headers()
+            self.send_body(type(self).package.encode(), "text/javascript")
         else:
             super().do_GET()
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib handler API
-        length = int(self.headers.get("Content-Length", "0") or 0)
-        if self.path != RESULT_PATH or not 0 < length <= MAX_RESULT_BYTES:
-            self.send_error(400)
+        if self.path != RESULT_PATH:
+            self.send_error(404)
             return
-        type(self).result = json.loads(self.rfile.read(length))
-        self.send_response(204)
-        self.end_headers()
+        result = self.read_result(frozenset({"pass", "fail"}), MAX_RESULT_BYTES)
+        if result is None:
+            return
+        type(self).result = result
+        self.send_no_content()
         type(self).result_event.set()
-
-
-@contextlib.contextmanager
-def serve() -> int:
-    port = free_port()
-    server = http.server.ThreadingHTTPServer(
-        ("127.0.0.1", port),
-        lambda *args, **kwargs: Handler(*args, directory=str(ROOT), **kwargs),
-    )
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        yield port
-    finally:
-        server.shutdown()
-        thread.join(timeout=5)
-        server.server_close()
 
 
 def run(selected: list[str], timeout: int) -> dict[str, object]:
     Handler.suites = suite_paths(selected)
     if not Handler.suites:
-        raise RealNodeBrowserError("no real-DOM suites found")
+        raise ChromiumError("no real-DOM suites found")
     Handler.package = fake_package(wasm_export_names(API.read_text(encoding="utf-8")))
     Handler.result = None
     Handler.result_event.clear()
     profile = Path(tempfile.mkdtemp(prefix="kaskold-real-dom-"))
     try:
-        with serve() as port, tempfile.TemporaryFile(mode="w+", encoding="utf-8") as log:
+        with serve(Handler) as port, tempfile.TemporaryFile(mode="w+", encoding="utf-8") as log:
             debug_port = free_port()
             process = launch_chromium(browser_executable(), debug_port, profile, log)
             try:
@@ -167,7 +132,7 @@ def run(selected: list[str], timeout: int) -> dict[str, object]:
                 deadline = time.monotonic() + timeout
                 while not Handler.result_event.wait(timeout=0.25):
                     if time.monotonic() > deadline or process.poll() is not None:
-                        raise RealNodeBrowserError(
+                        raise ChromiumError(
                             "real-DOM suites returned no result\n" + browser_log_tail(log)
                         )
             finally:
@@ -175,7 +140,7 @@ def run(selected: list[str], timeout: int) -> dict[str, object]:
     finally:
         cleanup_chromium_profile(profile)
     if Handler.result is None:
-        raise RealNodeBrowserError("real-DOM suites returned no result")
+        raise ChromiumError("real-DOM suites returned no result")
     return Handler.result
 
 
@@ -186,7 +151,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         result = run(args.suites, args.timeout)
-    except (OSError, RealNodeBrowserError) as error:
+    except (OSError, ChromiumError) as error:
         print(f"ERROR: {error}")
         return 1
     results = result.get("detail", {}).get("results", [])

@@ -3,15 +3,10 @@
 
 from __future__ import annotations
 
-import contextlib
-from collections.abc import Mapping
-import http.server
 import json
 import os
 from pathlib import Path
 import re
-import shutil
-import socket
 import stat
 import subprocess
 import sys
@@ -20,9 +15,22 @@ import threading
 import time
 import urllib.error
 import urllib.parse
-import urllib.request
 
-ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from headless_chromium import (  # noqa: E402
+    ROOT,
+    ChromiumError,
+    LoopbackRequestHandler,
+    browser_executable,
+    browser_log_tail,
+    cleanup_chromium_profile,
+    free_port,
+    launch_chromium,
+    open_chromium_target,
+    serve,
+    stop_chromium,
+)
+
 SITE = ROOT / "target/kaskold-companion-web/site"
 PKG_JS = SITE / "pkg/companion_web.js"
 PKG_WASM = SITE / "pkg/companion_web_bg.wasm"
@@ -232,76 +240,6 @@ def require_real_wasm() -> None:
         raise SystemExit("ERROR: Companion WASM package is implausibly small; fixture/stub builds are forbidden here")
 
 
-def windows_browser_candidates(environ: Mapping[str, str] | None = None) -> list[Path]:
-    env = os.environ if environ is None else environ
-    roots = [
-        Path(value)
-        for variable in ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA")
-        if (value := env.get(variable))
-    ]
-    relative_candidates = (
-        Path("Microsoft/Edge/Application/msedge.exe"),
-        Path("Google/Chrome/Application/chrome.exe"),
-        Path("Chromium/Application/chrome.exe"),
-    )
-    return [root / relative for root in roots for relative in relative_candidates]
-
-
-def browser_executable(*, platform_name: str | None = None, environ: Mapping[str, str] | None = None) -> str:
-    for name in (
-        "chromium", "chromium-browser", "google-chrome", "google-chrome-stable",
-        "chrome", "chrome.exe", "msedge", "msedge.exe",
-    ):
-        value = shutil.which(name)
-        if value:
-            return value
-    if (os.name if platform_name is None else platform_name) == "nt":
-        for candidate in windows_browser_candidates(environ):
-            if candidate.is_file():
-                return str(candidate)
-    raise SystemExit(
-        "ERROR: required Chromium-family browser not found "
-        "(Chromium, Google Chrome, or Microsoft Edge)"
-    )
-
-
-def stop_browser(process: subprocess.Popen[str]) -> None:
-    if os.name == "nt" and process.poll() is None:
-        # Chromium is a process tree on Windows. Kill the tree so renderer and
-        # profile-writer children cannot leak into the next funded-E2E phase.
-        subprocess.run(
-            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
-        )
-    elif process.poll() is None:
-        process.terminate()
-    if process.poll() is None:
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            process.wait(timeout=5)
-
-
-def cleanup_browser_profile(profile_dir: Path, *, attempts: int = 10, delay_seconds: float = 0.05) -> None:
-    last_error: OSError | None = None
-    for attempt in range(attempts):
-        try:
-            shutil.rmtree(profile_dir)
-            return
-        except FileNotFoundError:
-            return
-        except OSError as error:
-            last_error = error
-            if attempt + 1 < attempts:
-                time.sleep(delay_seconds)
-    if profile_dir.exists():
-        print(
-            f"WARNING: could not fully remove temporary funded-E2E browser profile {profile_dir}: {last_error}",
-            file=sys.stderr,
-        )
-
-
 def ensure_state_directory() -> None:
     STATE_ROOT.mkdir(parents=True, exist_ok=True)
     if os.name == "posix":
@@ -399,91 +337,30 @@ def sign_kspt(secret_path: Path, kspt_hex: str) -> str:
     return signed
 
 
-def free_port() -> int:
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        return int(sock.getsockname()[1])
-
-
-class FundedHandler(http.server.SimpleHTTPRequestHandler):
-    _deterministic_mime_types = {
-        ".js": "text/javascript",
-        ".mjs": "text/javascript",
-        ".wasm": "application/wasm",
-        ".json": "application/json",
-    }
-
-    def guess_type(self, path: str) -> str:
-        """Use browser-safe MIME types independent of the Windows registry."""
-        suffix = Path(urllib.parse.urlsplit(path).path).suffix.lower()
-        content_type = self._deterministic_mime_types.get(suffix)
-        if content_type is not None:
-            return content_type
-        return super().guess_type(path)
-
+class FundedHandler(LoopbackRequestHandler):
     config: dict[str, object] = {}
     result_event = threading.Event()
     result_payload: dict[str, object] | None = None
     max_result_bytes = 8 * 1024 * 1024
 
-    def log_message(self, _format: str, *_args: object) -> None:
-        pass
-
     def do_POST(self) -> None:  # noqa: N802 - stdlib handler API
         if not self.path.startswith("/__qa_funded_result__"):
             self.send_error(404)
             return
-        try:
-            length = int(self.headers.get("Content-Length", "0"))
-        except ValueError:
-            self.send_error(400, "invalid Content-Length")
+        result = self.read_result(frozenset({"pass", "pending", "fail"}), type(self).max_result_bytes)
+        if result is None:
             return
-        if length <= 0 or length > type(self).max_result_bytes:
-            self.send_error(413, "invalid funded-E2E result size")
-            return
-        try:
-            payload = json.loads(self.rfile.read(length))
-        except (UnicodeDecodeError, json.JSONDecodeError):
-            self.send_error(400, "invalid funded-E2E result JSON")
-            return
-        if not isinstance(payload, dict) or payload.get("status") not in {"pass", "pending", "fail"}:
-            self.send_error(400, "invalid funded-E2E result payload")
-            return
-        detail = payload.get("detail")
-        if not isinstance(detail, dict):
-            self.send_error(400, "invalid funded-E2E result detail")
-            return
-        type(self).result_payload = {"status": payload["status"], "detail": detail}
-        self.send_response(204)
-        self.send_header("Cache-Control", "no-store")
-        self.end_headers()
+        type(self).result_payload = result
+        self.send_no_content()
         type(self).result_event.set()
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib handler API
-        if urllib.parse.urlsplit(self.path).path == "/favicon.ico":
-            self.send_response(204)
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
-            return
         if self.path.startswith("/__qa_funded_config__"):
-            body = json.dumps(type(self).config, separators=(",", ":")).encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
-        if self.path.startswith("/__qa_funded_e2e__"):
-            body = funded_browser_document()
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-            return
-        super().do_GET()
+            self.send_body(json.dumps(type(self).config, separators=(",", ":")).encode(), "application/json")
+        elif self.path.startswith("/__qa_funded_e2e__"):
+            self.send_body(funded_browser_document(), "text/html; charset=utf-8")
+        else:
+            super().do_GET()
 
 
 def funded_browser_document() -> bytes:
@@ -499,59 +376,29 @@ def funded_browser_document() -> bytes:
     return (prefix + module_source + suffix).encode("utf-8")
 
 
-@contextlib.contextmanager
-def http_server():
-    port = free_port()
-    handler = lambda *args, **kwargs: FundedHandler(*args, directory=str(ROOT), **kwargs)
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", port), handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
+def start_phase_browser(
+    chromium: str,
+    debug_port: int,
+    profile_dir: Path,
+    browser_log,
+    port: int,
+    phase: str,
+) -> subprocess.Popen[str]:
+    """Launch Chromium and open the funded-E2E tab, or fail the phase retryably."""
+    process: subprocess.Popen[str] | None = None
     try:
-        yield port
-    finally:
-        server.shutdown()
-        thread.join(timeout=5)
-        server.server_close()
-
-
-
-def wait_for_chromium_debugger(debug_port: int, process: subprocess.Popen[str], timeout: float = 10.0) -> None:
-    endpoint = f"http://127.0.0.1:{debug_port}/json/version"
-    deadline = time.monotonic() + timeout
-    last_error: Exception | None = None
-    while time.monotonic() < deadline:
-        returncode = process.poll()
-        if returncode is not None:
-            raise RuntimeError(f"Chromium exited before DevTools became ready (exit {returncode})")
-        try:
-            with urllib.request.urlopen(endpoint, timeout=0.25) as response:
-                if response.status == 200:
-                    return
-        except (OSError, TimeoutError, urllib.error.URLError) as error:
-            last_error = error
-        time.sleep(0.05)
-    suffix = f": {last_error}" if last_error else ""
-    raise TimeoutError(f"Chromium DevTools did not become ready within {timeout:.0f}s{suffix}")
-
-
-def open_chromium_target(debug_port: int, target_url: str) -> None:
-    encoded = urllib.parse.quote(target_url, safe="")
-    request = urllib.request.Request(
-        f"http://127.0.0.1:{debug_port}/json/new?{encoded}",
-        method="PUT",
-    )
-    with urllib.request.urlopen(request, timeout=2.0) as response:
-        if response.status != 200:
-            raise RuntimeError(f"Chromium DevTools target creation failed: HTTP {response.status}")
-        payload = json.load(response)
-    if not isinstance(payload, dict) or not payload.get("id"):
-        raise RuntimeError("Chromium DevTools target creation returned no target id")
-
-
-def browser_log_tail(browser_log, limit: int = 5000) -> str:
-    browser_log.flush()
-    browser_log.seek(0)
-    return browser_log.read()[-limit:]
+        process = launch_chromium(chromium, debug_port, profile_dir, browser_log)
+        open_chromium_target(debug_port, f"http://127.0.0.1:{port}/__qa_funded_e2e__")
+        return process
+    except (OSError, ChromiumError, urllib.error.URLError) as error:
+        if process is not None:
+            stop_chromium(process)
+        output = browser_log_tail(browser_log)
+        suffix = f"\n{output}" if output else ""
+        raise BrowserPhaseError(
+            f"funded-wallet browser phase '{phase}' could not start its Chromium test tab: {error}{suffix}",
+            retryable=phase == "status",
+        ) from None
 
 
 def chromium_result(
@@ -573,41 +420,8 @@ def chromium_result(
     # QA server. No DOM-capture or virtual-time flag participates in completion.
     try:
         with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as browser_log:
-            command = [
-                chromium,
-                "--headless=new",
-                "--no-sandbox",
-                "--disable-gpu",
-                "--disable-dev-shm-usage",
-                "--no-first-run",
-                "--no-default-browser-check",
-                "--remote-debugging-address=127.0.0.1",
-                f"--remote-debugging-port={debug_port}",
-                f"--user-data-dir={profile_dir}",
-                "about:blank",
-            ]
-            process = subprocess.Popen(
-                command,
-                cwd=ROOT,
-                stdout=browser_log,
-                stderr=subprocess.STDOUT,
-                text=True,
-            )
+            process = start_phase_browser(chromium, debug_port, profile_dir, browser_log, port, phase)
             try:
-                try:
-                    wait_for_chromium_debugger(debug_port, process)
-                    open_chromium_target(
-                        debug_port,
-                        f"http://127.0.0.1:{port}/__qa_funded_e2e__",
-                    )
-                except (OSError, RuntimeError, TimeoutError, urllib.error.URLError) as error:
-                    output = browser_log_tail(browser_log)
-                    suffix = f"\n{output}" if output else ""
-                    raise BrowserPhaseError(
-                        f"funded-wallet browser phase '{phase}' could not start its Chromium test tab: {error}{suffix}",
-                        retryable=phase == "status",
-                    ) from None
-
                 deadline = time.monotonic() + timeout
                 while True:
                     remaining = deadline - time.monotonic()
@@ -651,9 +465,9 @@ def chromium_result(
                     )
                 return status, detail
             finally:
-                stop_browser(process)
+                stop_chromium(process)
     finally:
-        cleanup_browser_profile(profile_dir)
+        cleanup_chromium_profile(profile_dir)
 
 
 def status_with_retries(port: int, network: str, kpub: str) -> dict[str, object]:
@@ -838,7 +652,7 @@ def main() -> int:
     ensure_tools_lock_current()
     secret_path, kpub, created = ensure_wallet(network)
 
-    with http_server() as port:
+    with serve(FundedHandler) as port:
         _local_status, local_wallet = chromium_result(
             port,
             {"phase": "address", "network": network, "kpub": kpub},

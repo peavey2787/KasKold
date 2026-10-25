@@ -2262,6 +2262,14 @@
       "path": "qa/windows/runner/run_all.py",
       "role": "runner",
       "step": "catalog"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/tests/regression/test_headless_chromium.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
     }
   ],
   "schema_version": 1
