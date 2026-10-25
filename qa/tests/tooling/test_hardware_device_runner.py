@@ -7,10 +7,12 @@ import importlib.util
 import io
 import os
 from pathlib import Path
+import queue
 import shutil
 import subprocess
 import tempfile
 import sys
+import threading
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from unittest import mock
@@ -69,6 +71,42 @@ def simulated_flash_and_monitor(*args: object, **kwargs: object) -> int:
 
     with mock.patch.object(HARDWARE_RUNNER.subprocess, "Popen", side_effect=portable_popen):
         return HARDWARE_RUNNER.flash_and_monitor(*args, **kwargs)
+
+
+class SupervisorClosesAfterLine(io.StringIO):
+    """The supervisor reaches its verdict and closes the pipe right after a line."""
+
+    def readline(self, size: int = -1) -> str:
+        line = super().readline(size)
+        self.close()
+        return line
+
+
+class BrokenOpenPipe(io.StringIO):
+    def readline(self, size: int = -1) -> str:
+        raise OSError("serial pipe failed while still open")
+
+
+def run_reader_thread(stream: io.StringIO) -> tuple[list[str | None], list[BaseException]]:
+    lines: queue.Queue[str | None] = queue.Queue()
+    raised: list[BaseException] = []
+    with mock.patch.object(threading, "excepthook", lambda hook: raised.append(hook.exc_value)):
+        thread = threading.Thread(target=HARDWARE_RUNNER.reader, args=(stream, lines))
+        thread.start()
+        thread.join(timeout=5)
+    return [lines.get_nowait() for _ in range(lines.qsize())], raised
+
+
+class MonitorReaderTests(unittest.TestCase):
+    def test_reader_ends_quietly_when_the_supervisor_closes_the_stream(self) -> None:
+        items, raised = run_reader_thread(SupervisorClosesAfterLine("KASKOLD_HARDWARE_TESTS: PASS\nlate\n"))
+        self.assertEqual(raised, [])
+        self.assertEqual(items, ["KASKOLD_HARDWARE_TESTS: PASS\n", None])
+
+    def test_reader_still_raises_errors_from_an_open_stream(self) -> None:
+        items, raised = run_reader_thread(BrokenOpenPipe())
+        self.assertEqual([type(error) for error in raised], [OSError])
+        self.assertEqual(items, [])
 
 
 class HardwareDeviceRunnerTests(unittest.TestCase):
