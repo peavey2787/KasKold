@@ -23,7 +23,11 @@ __pycache__/
 **/*.ipr
 **/*.iws
 /apps/kaskold-companion-android/local.properties
-/apps/kaskold-companion-android/.kotlin/
+/apps/kaskold-*-android/.kotlin/
+/apps/kaskold-*-android/.gradle/
+/apps/kaskold-*-android/build/
+/apps/kaskold-*-android/app/build/
+/apps/kaskold-vault-android/app/.cxx/
 
 # OS/editor leftovers
 .DS_Store

@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from architecture.core.common import is_generated_tree
+from architecture.core.inventory.repository_inventory import _excluded as excluded_from_inventory
+
 
 def check_web_pkg_policy(root: Path) -> list[str]:
     """Keep target/ canonical while permitting an ignored local web/pkg mirror."""
@@ -16,18 +19,13 @@ def check_web_pkg_policy(root: Path) -> list[str]:
     if "sync_local_web_package(site)" not in builder:
         errors.append("Canonical Companion runtime builder must mirror fresh bindings into local web/pkg")
 
-    inventory = (root / "qa/checks/architecture/core/inventory/repository_inventory.py").read_text(errors="ignore")
-    common = (root / "qa/checks/architecture/core/common.py").read_text(errors="ignore")
-    generated_prefixes = (
-        ('Path("apps/kaskold-companion-web/web/pkg")', "Companion"),
-        ('Path("apps/kaskold-vault-web/web/pkg")', "Vault"),
-    )
-    for generated_prefix, product in generated_prefixes:
-        if generated_prefix not in inventory:
+    for product, directory in (("Companion", "kaskold-companion-web"), ("Vault", "kaskold-vault-web")):
+        binding = Path(f"apps/{directory}/web/pkg/runtime.js")
+        if not excluded_from_inventory(binding):
             errors.append(
                 f"Generated local {product} web/pkg must be excluded from repository inventory/source archives"
             )
-        if generated_prefix not in common:
+        if not is_generated_tree(root / binding, root):
             errors.append(
                 f"Generated local {product} web/pkg must be excluded from authored source-quality scans"
             )

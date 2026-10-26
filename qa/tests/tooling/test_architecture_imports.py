@@ -103,6 +103,16 @@ class GeneratedTreeExclusionTests(unittest.TestCase):
         self.assertTrue(
             is_generated_tree(root / "apps/kaskold-companion-android/.kotlin/sessions/generated.js", root)
         )
+        for gradle_output in (
+            "apps/kaskold-companion-android/.gradle/9.5.0/checksums/checksums.lock",
+            "apps/kaskold-vault-android/.gradle/file-system.probe",
+            "apps/kaskold-vault-android/app/.cxx/Debug/build.ninja",
+            "apps/kaskold-vault-android/app/build/outputs/logs/manifest-merger-debug-report.txt",
+        ):
+            self.assertTrue(is_generated_tree(root / gradle_output, root), gradle_output)
+        self.assertFalse(
+            is_generated_tree(root / "apps/kaskold-vault-android/app/src/main/AndroidManifest.xml", root)
+        )
 
 
 

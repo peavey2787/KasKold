@@ -11,6 +11,8 @@ from collections.abc import Callable
 import os
 from pathlib import Path
 
+from architecture.core.common import GENERATED_PREFIXES
+
 INVENTORY_RELATIVE = Path("qa/baselines/repository_inventory.txt")
 EXCLUDED_TOP_LEVEL = {".claude", ".git", "release", "target"}
 
@@ -33,14 +35,6 @@ def _generated_top_level(name: str) -> bool:
             return True
     return False
 EXCLUDED_ANYWHERE = {"__pycache__", ".pytest_cache", ".build", ".swiftpm", "node_modules", "target"}
-EXCLUDED_PREFIXES = (
-    Path("apps/kaskold-companion-web/web/pkg"),
-    Path("apps/kaskold-vault-web/web/pkg"),
-    Path("apps/kaskold-companion-android/.gradle"),
-    Path("apps/kaskold-companion-android/.kotlin"),
-    Path("apps/kaskold-companion-android/build"),
-    Path("apps/kaskold-companion-android/app/build"),
-)
 EXCLUDED_FILES = {Path("qa/fuzz/Cargo.lock")}
 
 Decision = Callable[[str, str], int]
@@ -68,7 +62,7 @@ def _excluded(relative: Path) -> bool:
         return True
     if relative in EXCLUDED_FILES:
         return True
-    return any(relative == prefix or prefix in relative.parents for prefix in EXCLUDED_PREFIXES)
+    return any(relative == prefix or prefix in relative.parents for prefix in GENERATED_PREFIXES)
 
 
 def _forbidden_local_paths(root: Path) -> tuple[Path, ...]:

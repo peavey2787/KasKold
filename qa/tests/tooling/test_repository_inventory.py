@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -6,6 +7,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "qa/checks"))
 
+from architecture.core.common import GENERATED_PREFIXES  # noqa: E402
 from architecture.core.inventory import repository_inventory  # noqa: E402
 
 
@@ -148,18 +150,24 @@ class RepositoryInventoryTests(unittest.TestCase):
             ],
         )
 
-    def test_local_development_state_is_git_ignored(self) -> None:
-        ignore = (ROOT / ".gitignore").read_text().splitlines()
-        for entry in (
-            "**/.idea/",
-            "**/.vscode/",
-            "**/*.iml",
-            "**/*.ipr",
-            "**/*.iws",
-            "/apps/kaskold-companion-android/local.properties",
-            "/apps/kaskold-companion-android/.kotlin/",
-        ):
-            self.assertIn(entry, ignore)
+    def test_local_development_and_build_state_is_git_ignored(self) -> None:
+        paths = [
+            "apps/any/.idea/workspace.xml",
+            "apps/any/.vscode/settings.json",
+            "apps/any/module.iml",
+            "apps/any/project.ipr",
+            "apps/any/workspace.iws",
+            "apps/kaskold-companion-android/local.properties",
+            *(f"{prefix.as_posix()}/output.bin" for prefix in GENERATED_PREFIXES),
+        ]
+        completed = subprocess.run(
+            ["git", "check-ignore", "--no-index", "--", *paths],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(sorted(completed.stdout.split()), sorted(paths), completed.stderr)
 
     def test_generated_trees_are_not_snapshotted(self) -> None:
         temporary, root = self._root()
