@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [2.0.0] - Unreleased
+- Vault photo backups (format v2) derive the JPEG permutation key with Argon2id and embed the backup with no length prefix, so a photo no longer reveals cheaply that it carries a wallet. v1 photos still restore, read-only, for this release.
+- Covenant invites are verified against their redeem scripts: every term and the wallet's role come from the script, and an invite whose address, network, script or Oracle statement disagree is refused. Escrow shipments pay the script-proven seller and buyer addresses.
 - Fixed Companion Advanced → Addresses → Verify Address so QR codes render normally instead of exposing escaped SVG markup, long addresses remain contained and readable, and Copy Address stays on the verification screen with copy feedback.
 - Simplified Vault transaction review to the hardware-style essentials (total amount, total fee, verified destination address(es), and change), defaulted amounts to comma-grouped 8-decimal KAS with a KAS/SOMPI toggle, removed the signed-QR mode-choice step, added Back/Pause/Forward response controls with click-to-copy QR Frame Hex, changed signed-response saving to QR PNG images, and added per-frame hex ingestion to Companion signed-QR scanning.
 - Vault footer now reads `Secure signer · No network access`, and Companion Send KAS formats Available balances like the dashboard (grouped with two KAS decimal places).

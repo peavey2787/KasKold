@@ -76,6 +76,8 @@ pub fn capacity_bits(jpeg: &[u8], key: &[u8]) -> Result<u32, PictureError> {
     Ok(capacity)
 }
 
+/// Embed `payload` behind a two-byte length prefix, for payloads whose length
+/// the reader cannot know in advance.
 pub fn embed(
     jpeg: &[u8],
     payload: &[u8],
@@ -85,12 +87,40 @@ pub fn embed(
     if payload.is_empty() || payload.len() > u16::MAX as usize {
         return Err(PictureError::NoCapacity);
     }
+    let mut stream = try_vec_capacity(LENGTH_PREFIX_BYTES + payload.len())?;
+    stream.extend_from_slice(&(payload.len() as u16).to_be_bytes());
+    stream.extend_from_slice(payload);
+    let embedded = embed_stream(jpeg, &stream, key, output);
+    crate::bytes::zeroize_bytes(&mut stream);
+    embedded
+}
+
+/// Embed exactly `payload` with no length or marker, for formats whose
+/// length the reader already knows; see [`extract_exact`].
+pub fn embed_exact(
+    jpeg: &[u8],
+    payload: &[u8],
+    key: &[u8],
+    output: &mut [u8],
+) -> Result<usize, PictureError> {
+    if payload.is_empty() {
+        return Err(PictureError::NoCapacity);
+    }
+    embed_stream(jpeg, payload, key, output)
+}
+
+fn embed_stream(
+    jpeg: &[u8],
+    stream: &[u8],
+    key: &[u8],
+    output: &mut [u8],
+) -> Result<usize, PictureError> {
     let frame = frame::parse(jpeg)?;
     let positions = frame.positions();
     let permutation = PositionPermutation::new(positions, key).ok_or(PictureError::Malformed)?;
     let rank_window = positions.min(RANK_WINDOW);
     let (mut coefficients, present) = collect_window(jpeg, &frame, &permutation, rank_window)?;
-    let changed = embed_payload_bits(payload, rank_window, &present, &mut coefficients)?;
+    let changed = embed_payload_bits(stream, rank_window, &present, &mut coefficients)?;
     write_embedded_jpeg(
         jpeg,
         output,
@@ -119,15 +149,12 @@ fn collect_window(
 }
 
 fn embed_payload_bits(
-    payload: &[u8],
+    stream: &[u8],
     rank_window: u32,
     present: &[u8],
     coefficients: &mut [i16],
 ) -> Result<Vec<u8>, PictureError> {
-    let required_bits = LENGTH_PREFIX_BYTES
-        .checked_add(payload.len())
-        .and_then(|n| n.checked_mul(8))
-        .ok_or(PictureError::Malformed)?;
+    let required_bits = stream.len().checked_mul(8).ok_or(PictureError::Malformed)?;
     let mut changed = try_zeroed_vec(bitmap_len(rank_window)?, 0u8)?;
     let mut payload_bit = 0usize;
     for rank in 0..rank_window {
@@ -135,7 +162,7 @@ fn embed_payload_bits(
             break;
         }
         if consume_embedding_rank(
-            payload,
+            stream,
             present,
             coefficients,
             &mut changed,
@@ -152,7 +179,7 @@ fn embed_payload_bits(
 }
 
 fn consume_embedding_rank(
-    payload: &[u8],
+    stream: &[u8],
     present: &[u8],
     coefficients: &mut [i16],
     changed: &mut [u8],
@@ -168,7 +195,7 @@ fn consume_embedding_rank(
     if value == 0 {
         return false;
     }
-    let Ok(byte) = framed_byte(payload, payload_bit / 8) else {
+    let Some(&byte) = stream.get(payload_bit / 8) else {
         return false;
     };
     let desired = (byte >> (7 - payload_bit % 8)) & 1;
@@ -279,13 +306,29 @@ fn copy_tail(
     Ok(total)
 }
 
+/// Extract a payload written by [`embed`]; returns its length.
 pub fn extract(jpeg: &[u8], key: &[u8], output: &mut [u8]) -> Result<usize, PictureError> {
+    decode_payload_bits(&carried_bits(jpeg, key)?, output)
+}
+
+/// Fill `output` with the first `output.len()` bytes carried under `key`, as
+/// written by [`embed_exact`]. Any key reads some bytes; the payload format
+/// must authenticate them.
+pub fn extract_exact(jpeg: &[u8], key: &[u8], output: &mut [u8]) -> Result<(), PictureError> {
+    let bits = carried_bits(jpeg, key)?;
+    if output.is_empty() || output.len().checked_mul(8).ok_or(PictureError::Malformed)? > bits.len()
+    {
+        return Err(PictureError::Malformed);
+    }
+    write_payload_bytes(&bits, 0, output)
+}
+
+fn carried_bits(jpeg: &[u8], key: &[u8]) -> Result<Vec<u8>, PictureError> {
     let frame = frame::parse(jpeg)?;
     let positions = frame.positions();
     let permutation = PositionPermutation::new(positions, key).ok_or(PictureError::Malformed)?;
     let rank_window = positions.min(RANK_WINDOW);
-    let bits = collect_payload_bits(jpeg, &frame, &permutation, rank_window)?;
-    decode_payload_bits(&bits, output)
+    collect_payload_bits(jpeg, &frame, &permutation, rank_window)
 }
 
 fn collect_payload_bits(
@@ -345,7 +388,7 @@ fn decode_payload_bits(bits: &[u8], output: &mut [u8]) -> Result<usize, PictureE
     if output.len() < length {
         return Err(PictureError::BufferTooSmall);
     }
-    write_payload_bytes(bits, &mut output[..length])?;
+    write_payload_bytes(bits, LENGTH_PREFIX_BYTES, &mut output[..length])?;
     Ok(length)
 }
 
@@ -353,27 +396,12 @@ fn decoded_payload_length(bits: &[u8]) -> Result<usize, PictureError> {
     Ok((usize::from(byte_at(bits, 0)?) << 8) | usize::from(byte_at(bits, 1)?))
 }
 
-fn write_payload_bytes(bits: &[u8], output: &mut [u8]) -> Result<(), PictureError> {
+fn write_payload_bytes(bits: &[u8], offset: usize, output: &mut [u8]) -> Result<(), PictureError> {
     for (index, byte) in output.iter_mut().enumerate() {
-        let framed_index = LENGTH_PREFIX_BYTES
-            .checked_add(index)
-            .ok_or(PictureError::Malformed)?;
+        let framed_index = offset.checked_add(index).ok_or(PictureError::Malformed)?;
         *byte = byte_at(bits, framed_index)?;
     }
     Ok(())
-}
-
-fn framed_byte(payload: &[u8], byte_index: usize) -> Result<u8, PictureError> {
-    match byte_index {
-        0 => Ok((payload.len() >> 8) as u8),
-        1 => Ok(payload.len() as u8),
-        _ => {
-            let index = byte_index
-                .checked_sub(LENGTH_PREFIX_BYTES)
-                .ok_or(PictureError::Malformed)?;
-            payload.get(index).copied().ok_or(PictureError::Malformed)
-        }
-    }
 }
 
 fn byte_at(bits: &[u8], byte_index: usize) -> Result<u8, PictureError> {

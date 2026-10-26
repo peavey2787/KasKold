@@ -1764,3 +1764,60 @@ fn stego_backup_round_trips_through_a_jpeg_carrier() {
         Some("BackupCryptoFailed")
     );
 }
+
+#[test]
+fn stego_v2_photos_carry_no_length_and_open_only_under_the_argon2id_key() {
+    const NOISE_JPEG: &[u8] = include_bytes!(
+        "../../../../apps/kaskold-hardware/src/runtime/workflow_tests/fixtures/stego_noise.jpg"
+    );
+    use crate::portable_backup::PORTABLE_BACKUP_LEN;
+    use crate::stego_backup::{v1_permutation_key, v2_permutation_key};
+    let password = "CorrectHorse9";
+    let carrier = restored_wallet()
+        .stego_backup(NOISE_JPEG, password)
+        .expect("stego embeds");
+
+    // The Argon2id key reads the sealed backup itself from the first carried bit.
+    let v2_key = v2_permutation_key(password).expect("v2 key");
+    let mut payload = std::vec![0u8; PORTABLE_BACKUP_LEN];
+    shared_signer::stego_picture::extract_exact(&carrier, &v2_key[..], &mut payload)
+        .expect("v2 payload");
+    assert_eq!(&payload[..4], b"KWP1");
+    assert!(HotWallet::restore_portable_backup(&payload, password).is_ok());
+
+    // The cheap v1 key sees no backup, and nothing announces a length.
+    let v1_key = v1_permutation_key(password);
+    let mut v1_view = std::vec![0u8; PORTABLE_BACKUP_LEN];
+    shared_signer::stego_picture::extract_exact(&carrier, &v1_key[..], &mut v1_view)
+        .expect("any key reads bits");
+    assert_ne!(v1_view, payload);
+    let announced = u16::from_be_bytes([payload[0], payload[1]]) as usize;
+    assert_ne!(announced, PORTABLE_BACKUP_LEN);
+}
+
+#[test]
+fn stego_v1_photos_still_restore_read_only() {
+    const NOISE_JPEG: &[u8] = include_bytes!(
+        "../../../../apps/kaskold-hardware/src/runtime/workflow_tests/fixtures/stego_noise.jpg"
+    );
+    let password = "CorrectHorse9";
+    let wallet = restored_wallet();
+    let backup = wallet.portable_backup(password).expect("portable backup");
+    let key = crate::stego_backup::v1_permutation_key(password);
+    let mut encoded = std::vec![0u8; NOISE_JPEG.len() * 2 + 4_096];
+    let length = shared_signer::stego_picture::embed(NOISE_JPEG, &backup, &key[..], &mut encoded)
+        .expect("v1 embeds");
+    let restored =
+        HotWallet::restore_stego_backup(&encoded[..length], password).expect("v1 photo restores");
+    assert_eq!(
+        restored.export_kpub().unwrap(),
+        wallet.export_kpub().unwrap()
+    );
+    assert!(HotWallet::restore_stego_backup(&encoded[..length], "WrongHorse9").is_err());
+
+    // A v1 photo whose prefix names another length is refused.
+    let short = &backup[..backup.len() - 1];
+    let length = shared_signer::stego_picture::embed(NOISE_JPEG, short, &key[..], &mut encoded)
+        .expect("short v1 embeds");
+    assert!(HotWallet::restore_stego_backup(&encoded[..length], password).is_err());
+}

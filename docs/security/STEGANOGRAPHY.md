@@ -76,6 +76,24 @@ and optional recovery hint. Parsing is exact, the recovered mnemonic checksum
 and type are revalidated, canonical padding is required, and authentication
 failure clears recovery outputs.
 
+## Software Vault photo backup
+
+Browser and mobile Vaults hide their Argon2id portable wallet backup in a JPEG
+with the same DCT-coefficient carrier. Format v2 is what new photos use:
+
+- The coefficient permutation key is Argon2id (64 MiB host profile) of the
+  password with a fixed domain salt, so testing a guess against a photo costs
+  a full derivation. A per-image salt would have to be stored in the photo and
+  would mark it, so the salt is constant; the embedded backup still seals the
+  wallet under its own random salt.
+- The fixed-length backup is embedded with no length prefix or marker. Any key
+  reads some bits; only the backup's authenticated seal says whether they are a
+  wallet.
+
+v1 photos (BLAKE2b permutation key, length-prefixed) still restore but are
+never written, and stop restoring in the release after 2.0.0. Hardware photo
+backups keep their length-prefixed carrier.
+
 ## Password KDF policy
 
 All KasKold-owned password formats use the central versioned Argon2id KDF

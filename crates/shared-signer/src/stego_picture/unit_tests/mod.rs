@@ -1,5 +1,5 @@
 use super::{
-    byte_at, capacity_bits, decode_payload_bits, embed, embed_payload_bits, framed_byte,
+    byte_at, capacity_bits, decode_payload_bits, embed, embed_payload_bits,
     payload_bits_from_window, PictureError,
 };
 use super::{codec, frame, huffman, permutation::PositionPermutation};
@@ -68,6 +68,47 @@ fn picture_fixture_round_trip_exercises_real_frame_huffman_and_codec_paths() {
 }
 
 #[test]
+fn exact_payloads_carry_no_length_and_need_their_length_to_read() {
+    let payload: std::vec::Vec<u8> = (0..96u8).map(|byte| byte.wrapping_mul(37)).collect();
+    let mut encoded = std::vec![0u8; NOISE_JPEG.len() * 2 + 4096];
+    let encoded_len = super::embed_exact(NOISE_JPEG, &payload, KEY, &mut encoded).expect("embed");
+    let encoded = &encoded[..encoded_len];
+    let mut decoded = std::vec![0u8; payload.len()];
+    assert_eq!(super::extract_exact(encoded, KEY, &mut decoded), Ok(()));
+    assert_eq!(decoded, payload);
+
+    // The first carried bytes are the payload itself, not a length prefix.
+    let mut head = [0u8; 2];
+    assert_eq!(super::extract_exact(encoded, KEY, &mut head), Ok(()));
+    assert_eq!(head, [payload[0], payload[1]]);
+    let mut wrong = std::vec![0u8; payload.len()];
+    assert_eq!(
+        super::extract_exact(encoded, b"wrong key", &mut wrong),
+        Ok(())
+    );
+    assert_ne!(wrong, payload);
+
+    let mut output = std::vec![0u8; NOISE_JPEG.len() * 2 + 4096];
+    assert_eq!(
+        super::embed_exact(NOISE_JPEG, &[], KEY, &mut output),
+        Err(PictureError::NoCapacity)
+    );
+    assert_eq!(
+        super::extract_exact(encoded, KEY, &mut []),
+        Err(PictureError::Malformed)
+    );
+    let mut oversized = std::vec![0u8; 40_000];
+    assert_eq!(
+        super::extract_exact(encoded, KEY, &mut oversized),
+        Err(PictureError::Malformed)
+    );
+    assert_eq!(
+        super::extract_exact(b"not a jpeg", KEY, &mut decoded),
+        Err(PictureError::Malformed)
+    );
+}
+
+#[test]
 fn picture_embedding_rejects_empty_oversized_low_capacity_and_short_output() {
     let mut output = std::vec![0u8; NOISE_JPEG.len() * 2 + 4_096];
     assert_eq!(
@@ -95,10 +136,11 @@ fn picture_embedding_rejects_empty_oversized_low_capacity_and_short_output() {
 #[test]
 fn payload_bit_helpers_cover_change_no_change_absent_zero_and_decode_boundaries() {
     let payload = [0xa5u8, 0x5a, 0xff];
+    let stream = [0, 3, 0xa5, 0x5a, 0xff];
     let rank_window = 64u32;
     let present = [0xffu8; 8];
     let mut coefficients = [2i16; 64];
-    let changed = embed_payload_bits(&payload, rank_window, &present, &mut coefficients)
+    let changed = embed_payload_bits(&stream, rank_window, &present, &mut coefficients)
         .expect("controlled embedding");
     assert!(changed.iter().any(|byte| *byte != 0));
     let bits =
@@ -122,10 +164,6 @@ fn payload_bit_helpers_cover_change_no_change_absent_zero_and_decode_boundaries(
         Err(PictureError::BufferTooSmall)
     );
 
-    assert_eq!(framed_byte(&payload, 0), Ok(0));
-    assert_eq!(framed_byte(&payload, 1), Ok(3));
-    assert_eq!(framed_byte(&payload, 2), Ok(0xa5));
-    assert_eq!(framed_byte(&payload, 5), Err(PictureError::Malformed));
     assert_eq!(byte_at(&[1, 0, 1], 0), Err(PictureError::Malformed));
 
     let mut coefficients = [2i16; 4];
