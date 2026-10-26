@@ -5,8 +5,11 @@
 /// Raw-binary QR payload header.
 pub const PAYLOAD_V1_RAW: u8 = 0x01;
 
-/// Maximum payload size supported by the QR encoder's V40 byte-mode ceiling.
-pub const MAX_RAW_LEN: usize = 2_953;
+/// Byte-mode capacity of a version-40 QR code at error correction level L.
+pub const QR_V40_BYTE_CAPACITY: usize = 2_953;
+
+/// Largest body whose framed form, header byte included, still fits one QR.
+pub const MAX_RAW_LEN: usize = QR_V40_BYTE_CAPACITY - 1;
 
 /// Return the raw body of a framed binary QR payload.
 ///
