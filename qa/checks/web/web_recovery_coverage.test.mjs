@@ -643,3 +643,42 @@ test('invite, owner backup, scan controller, chain scanner, and rebuild orchestr
     await scanner.recoverCovenants();
     assert.equal(decryptCalls, 0);
 });
+
+test('covenant roles and invite hints come only from script-proven keys', async () => {
+    const { inferCovenantRole: role } = await import(moduleUrl('features/covenants/recovery/import/role.js'));
+    const inviteModule = await import(moduleUrl('features/covenants/recovery/import/invite.js'));
+    const { buildCovenantInvite } = await import(moduleUrl('features/covenants/recovery/export/beneficiary_payload.js'));
+    const PK = '11'.repeat(32);
+    const PK2 = '22'.repeat(32);
+    state.walletSession.replace({ kpub: 'kpub-test', receive_addresses: [], change_addresses: [] });
+    assert.equal(role({ type: 'dms', owner_pubkey_hex: PK }), 'owner');
+    assert.equal(role({ type: 'dms', owner_pubkey_hex: PK2 }), 'beneficiary');
+    assert.equal(role({ type: 'timelocked-savings', wallet1_pubkey_hex: PK2, wallet2_pubkey_hex: PK }), 'beneficiary');
+    assert.equal(role({ type: 'payjoin', owner_pubkey_hex: PK }), 'owner');
+    assert.equal(role({ type: 'additive' }), 'owner');
+    assert.equal(role({ type: 'global-spending-limit' }), 'owner');
+    assert.equal(role({ type: 'escrow', alice_pk: PK }), 'owner');
+    assert.equal(role({ type: 'escrow', alice_pk: PK2, arbiter_pk: PK }), 'arbiter');
+    assert.equal(role({ type: 'escrow', alice_pk: PK2, bob_pk: PK }), 'beneficiary');
+    assert.equal(role({ type: 'oracle-v1', beneficiary_pubkey_hex: PK }), 'beneficiary');
+    assert.equal(role({ type: 'oracle-v1', owner_pubkey_hex: PK }), 'owner');
+    assert.equal(role({ type: 'oracle-v1', owner_pubkey_hex: PK2 }), 'observer');
+    state.walletSession.clear();
+    assert.equal(role({ type: 'dms', owner_pubkey_hex: PK }), 'beneficiary');
+
+    // Calendar hints attach only to the covenant types whose timelocks they label.
+    const wasmStubs = globalThis.__COMPANION_WASM_STUBS__;
+    const priorTerms = wasmStubs.covenant_script_terms;
+    wasmStubs.covenant_script_terms = (type, script, address) => JSON.stringify({ type, address, redeem_script_hex: script, owner_pubkey_hex: PK2 });
+    const imported = address => state.covenantState.activeCovenants.find(entry => entry.address === address);
+    const hex = invite => Buffer.from('COVI' + JSON.stringify({ v: 1, t: 'cov-invite', ...invite })).toString('hex');
+    inviteModule.importCovenantInvite(hex({ ct: 'global-allowance', addr: 'kaspa:hint-allowance', rs: '51', sdi: 'start', ldi: 'ignored' }));
+    assert.equal(imported('kaspa:hint-allowance').start_date_iso, 'start');
+    assert.equal(imported('kaspa:hint-allowance').locktime_date_iso, undefined);
+    inviteModule.importCovenantInvite(hex({ ct: 'dms', addr: 'kaspa:hint-dms', rs: '52', sdi: 'ignored' }));
+    assert.equal(imported('kaspa:hint-dms').start_date_iso, undefined);
+    wasmStubs.covenant_script_terms = priorTerms;
+
+    assert.deepEqual(buildCovenantInvite({}), { v: 1, t: 'cov-invite', ct: '', addr: '', rs: '' });
+    assert.deepEqual(buildCovenantInvite({ type: 'dms', address: 'a', redeem_script_hex: '51', start_date_iso: 'x' }), { v: 1, t: 'cov-invite', ct: 'dms', addr: 'a', rs: '51' });
+});

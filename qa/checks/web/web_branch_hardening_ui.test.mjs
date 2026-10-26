@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {
   setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setValue, setFetchHook,
-  ADDRESS, PK, PK2, PK3, wallet, utxos,
+  ADDRESS, PK, PK3, wallet, utxos,
 } from './web_runtime_deep_harness.mjs';
 import { FakeElement } from './web_recovery_test_harness.mjs';
 
@@ -18,7 +18,6 @@ try {
   const settings = await import(moduleUrl('features/settings/screen.js'));
   const piggy = await import(moduleUrl('app/events/contracts/covenant_creation/result_actions/piggy.js'));
   const scriptTerms = await import(moduleUrl('features/covenants/model/script_terms.js'));
-  const covenantRole = await import(moduleUrl('features/covenants/recovery/import/role.js'));
   const payloadState = await import(moduleUrl('features/covenants/payload_and_swaps/state.js'));
   const connectivity = await import(moduleUrl('core/ui/connectivity_status.js'));
   const network = await import(moduleUrl('core/network.js'));
@@ -145,22 +144,6 @@ try {
   termStubs.covenant_script_terms = () => { throw new Error('Redeem script is not a dms covenant'); };
   assert.throws(() => scriptTerms.applyScriptTerms({ type:'dms', address:ADDRESS, redeem_script_hex:'53' }), /not a dms covenant/);
   termStubs.covenant_script_terms = priorTerms;
-
-  // Roles come only from keys the script proved; PK is this wallet.
-  state.walletSession.replace(structuredClone(wallet));
-  const role = entry => covenantRole.inferCovenantRole(entry);
-  assert.equal(role({ type:'dms', owner_pubkey_hex:PK }), 'owner');
-  assert.equal(role({ type:'dms', owner_pubkey_hex:PK2 }), 'beneficiary');
-  assert.equal(role({ type:'timelocked-savings', wallet1_pubkey_hex:PK2, wallet2_pubkey_hex:PK }), 'beneficiary');
-  assert.equal(role({ type:'payjoin', owner_pubkey_hex:PK }), 'owner');
-  assert.equal(role({ type:'additive' }), 'owner');
-  assert.equal(role({ type:'global-spending-limit' }), 'owner');
-  assert.equal(role({ type:'escrow', alice_pk:PK }), 'owner');
-  assert.equal(role({ type:'escrow', alice_pk:PK2, arbiter_pk:PK }), 'arbiter');
-  assert.equal(role({ type:'escrow', alice_pk:PK2, bob_pk:PK }), 'beneficiary');
-  assert.equal(role({ type:'oracle-v1', beneficiary_pubkey_hex:PK }), 'beneficiary');
-  assert.equal(role({ type:'oracle-v1', owner_pubkey_hex:PK }), 'owner');
-  assert.equal(role({ type:'oracle-v1', owner_pubkey_hex:PK2 }), 'observer');
 
   // Fee state and owner address cover all fee tiers, absent estimates, invalid
   // input count and wallet/no-wallet accessors.
