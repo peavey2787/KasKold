@@ -3,7 +3,8 @@
 //! A panic or CPU exception can strike while wallet keys, seeds or signing
 //! state are live. Halting would leave them in RAM for as long as the device
 //! stays powered, so every fault wipes the volatile secret surfaces through
-//! the same coordinator duress uses, then resets the chip.
+//! the same coordinator duress uses, then resets the chip. esp-hal turns CPU
+//! exceptions into panics, so this one handler covers both.
 
 use core::panic::PanicInfo;
 
@@ -13,17 +14,6 @@ fn panic(info: &PanicInfo) -> ! {
         Some(location) => crate::log!("KASKOLD_PANIC at {}:{}", location.file(), location.line()),
         None => crate::log!("KASKOLD_PANIC"),
     }
-    wipe_and_reset()
-}
-
-/// esp-backtrace's exception handler reports the exception, then halts here.
-#[no_mangle]
-fn custom_halt() -> ! {
-    crate::log!("KASKOLD_PANIC after CPU exception");
-    wipe_and_reset()
-}
-
-fn wipe_and_reset() -> ! {
     wipe_secret_state();
     esp_hal::system::software_reset()
 }

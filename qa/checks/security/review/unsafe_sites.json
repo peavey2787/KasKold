@@ -837,7 +837,7 @@
       "line": 44,
       "source": "unsafe { root.as_mut() }",
       "fingerprint": "607d57d9cac5adfe8a497b9bf2714742de220e91417e0c274b0d44af00b230c2",
-      "rationale": "Reviewed fault-path handoff: FAULT_ROOT is null or the 'static StaticCell root stored once by initialize. AtomicPtr::swap hands it out at most once, and only the panic handler or esp-backtrace exception halt calls take_for_fault; neither returns to the code holding the root, so the abandoned &mut is never used again. A fault during the wipe sees null and resets.",
+      "rationale": "Reviewed fault-path handoff: FAULT_ROOT is null or the 'static StaticCell root stored once by initialize. AtomicPtr::swap hands it out at most once, and only the panic handler (which esp-hal also routes CPU exceptions into) calls take_for_fault; it never returns to the code holding the root, so the abandoned &mut is never used again. A fault during the wipe sees null and resets.",
       "reviewed": true
     }
   ]

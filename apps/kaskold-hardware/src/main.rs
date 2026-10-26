@@ -63,7 +63,6 @@ mod version;
 mod wallet;
 #[cfg(all(not(feature = "qemu"), any(not(feature = "hardware-tests"), feature = "m5stack")))]
 use crate::runtime::data::AppData;
-use esp_backtrace as _;
 #[cfg(not(feature = "qemu"))]
 use esp_hal::lcd_cam::cam::Camera as DvpCamera;
 #[cfg(all(feature = "m5stack", any(not(feature = "workflow-test-auto"), feature = "workflow-runtime-auto")))]
