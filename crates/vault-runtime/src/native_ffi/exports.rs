@@ -1,4 +1,12 @@
 //! Stable C ABI exported by the native Vault runtime.
+//!
+//! # Safety contract
+//!
+//! Every `unsafe` export requires that `handle` is null or a live handle
+//! returned by [`kaskold_vault_new`] that no other call is using, and that
+//! each pointer/length pair is null with length 0 or names a buffer of that
+//! many bytes, readable for inputs and writable for outputs, for the
+//! duration of the call.
 
 use super::{copy_out, with_handle_mut, with_input_bytes, with_input_text, NativeVault, ERROR};
 
@@ -7,8 +15,11 @@ pub extern "C" fn kaskold_vault_new() -> *mut NativeVault {
     Box::into_raw(Box::new(NativeVault::new()))
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_destroy(handle: *mut NativeVault) {
+pub unsafe extern "C" fn kaskold_vault_destroy(handle: *mut NativeVault) {
     if handle.is_null() {
         return;
     }
@@ -17,13 +28,19 @@ pub extern "C" fn kaskold_vault_destroy(handle: *mut NativeVault) {
     unsafe { drop(Box::from_raw(handle)) };
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_create(handle: *mut NativeVault, words: u32) -> i32 {
+pub unsafe extern "C" fn kaskold_vault_create(handle: *mut NativeVault, words: u32) -> i32 {
     with_handle_mut(handle, |vault| vault.create(words)).unwrap_or(ERROR)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_restore(
+pub unsafe extern "C" fn kaskold_vault_restore(
     handle: *mut NativeVault,
     phrase: *const u8,
     phrase_len: usize,
@@ -42,21 +59,30 @@ pub extern "C" fn kaskold_vault_restore(
     .unwrap_or(ERROR)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_lock(handle: *mut NativeVault) {
+pub unsafe extern "C" fn kaskold_vault_lock(handle: *mut NativeVault) {
     let _ = with_handle_mut(handle, |vault| {
         vault.clear_results();
         vault.runtime.lock_wallet();
     });
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_export_public_account(handle: *mut NativeVault) -> i32 {
+pub unsafe extern "C" fn kaskold_vault_export_public_account(handle: *mut NativeVault) -> i32 {
     with_handle_mut(handle, NativeVault::export_public_account).unwrap_or(ERROR)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_seal(
+pub unsafe extern "C" fn kaskold_vault_seal(
     handle: *mut NativeVault,
     key: *const u8,
     key_len: usize,
@@ -68,8 +94,11 @@ pub extern "C" fn kaskold_vault_seal(
     .unwrap_or(ERROR)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_unlock_sealed(
+pub unsafe extern "C" fn kaskold_vault_unlock_sealed(
     handle: *mut NativeVault,
     sealed: *const u8,
     sealed_len: usize,
@@ -86,36 +115,54 @@ pub extern "C" fn kaskold_vault_unlock_sealed(
     .unwrap_or(ERROR)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_backup_words(handle: *mut NativeVault) -> i32 {
+pub unsafe extern "C" fn kaskold_vault_backup_words(handle: *mut NativeVault) -> i32 {
     with_handle_mut(handle, NativeVault::backup_words).unwrap_or(ERROR)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_backup_seedqr(handle: *mut NativeVault, compact: u8) -> i32 {
+pub unsafe extern "C" fn kaskold_vault_backup_seedqr(handle: *mut NativeVault, compact: u8) -> i32 {
     with_handle_mut(handle, |vault| vault.backup_seedqr(compact != 0)).unwrap_or(ERROR)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_backup_xprv(handle: *mut NativeVault) -> i32 {
+pub unsafe extern "C" fn kaskold_vault_backup_xprv(handle: *mut NativeVault) -> i32 {
     with_handle_mut(handle, NativeVault::backup_xprv).unwrap_or(ERROR)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_export_receive_key(
+pub unsafe extern "C" fn kaskold_vault_export_receive_key(
     handle: *mut NativeVault,
     address_index: u32,
 ) -> i32 {
     with_handle_mut(handle, |vault| vault.export_receive_key(address_index)).unwrap_or(ERROR)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_begin_scan(handle: *mut NativeVault) -> i32 {
+pub unsafe extern "C" fn kaskold_vault_begin_scan(handle: *mut NativeVault) -> i32 {
     with_handle_mut(handle, NativeVault::begin_scan).unwrap_or(ERROR)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_accept_frame(
+pub unsafe extern "C" fn kaskold_vault_accept_frame(
     handle: *mut NativeVault,
     frame: *const u8,
     frame_len: usize,
@@ -127,34 +174,49 @@ pub extern "C" fn kaskold_vault_accept_frame(
     .unwrap_or(ERROR)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_review(handle: *mut NativeVault) -> i32 {
+pub unsafe extern "C" fn kaskold_vault_review(handle: *mut NativeVault) -> i32 {
     with_handle_mut(handle, NativeVault::review).unwrap_or(ERROR)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_approve(handle: *mut NativeVault, now_unix: u64) -> i32 {
+pub unsafe extern "C" fn kaskold_vault_approve(handle: *mut NativeVault, now_unix: u64) -> i32 {
     with_handle_mut(handle, |vault| vault.approve(now_unix)).unwrap_or(ERROR)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_reject(handle: *mut NativeVault) {
+pub unsafe extern "C" fn kaskold_vault_reject(handle: *mut NativeVault) {
     let _ = with_handle_mut(handle, |vault| {
         vault.clear_results();
         vault.runtime.reject();
     });
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_response_count(handle: *mut NativeVault) -> usize {
+pub unsafe extern "C" fn kaskold_vault_response_count(handle: *mut NativeVault) -> usize {
     with_handle_mut(handle, |vault| {
         vault.runtime.signed_response_frames().map_or(0, <[_]>::len)
     })
     .unwrap_or(0)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_response_frame_copy(
+pub unsafe extern "C" fn kaskold_vault_response_frame_copy(
     handle: *mut NativeVault,
     index: usize,
     output: *mut u8,
@@ -171,8 +233,11 @@ pub extern "C" fn kaskold_vault_response_frame_copy(
     .unwrap_or(-1)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_last_text_copy(
+pub unsafe extern "C" fn kaskold_vault_last_text_copy(
     handle: *mut NativeVault,
     output: *mut u8,
     capacity: usize,
@@ -180,8 +245,11 @@ pub extern "C" fn kaskold_vault_last_text_copy(
     with_handle_mut(handle, |vault| copy_out(&vault.last_text, output, capacity)).unwrap_or(-1)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_last_bytes_copy(
+pub unsafe extern "C" fn kaskold_vault_last_bytes_copy(
     handle: *mut NativeVault,
     output: *mut u8,
     capacity: usize,
@@ -192,8 +260,11 @@ pub extern "C" fn kaskold_vault_last_bytes_copy(
     .unwrap_or(-1)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_last_error_copy(
+pub unsafe extern "C" fn kaskold_vault_last_error_copy(
     handle: *mut NativeVault,
     output: *mut u8,
     capacity: usize,
@@ -204,8 +275,11 @@ pub extern "C" fn kaskold_vault_last_error_copy(
     .unwrap_or(-1)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_workflow_text(
+pub unsafe extern "C" fn kaskold_vault_workflow_text(
     handle: *mut NativeVault,
     operation: *const u8,
     operation_len: usize,
@@ -224,8 +298,11 @@ pub extern "C" fn kaskold_vault_workflow_text(
     .unwrap_or(ERROR)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_workflow_bytes(
+pub unsafe extern "C" fn kaskold_vault_workflow_bytes(
     handle: *mut NativeVault,
     operation: *const u8,
     operation_len: usize,
@@ -249,8 +326,11 @@ pub extern "C" fn kaskold_vault_workflow_bytes(
     .unwrap_or(ERROR)
 }
 
+/// # Safety
+///
+/// See the [module safety contract](self).
 #[no_mangle]
-pub extern "C" fn kaskold_vault_workflow_text_with_bytes(
+pub unsafe extern "C" fn kaskold_vault_workflow_text_with_bytes(
     handle: *mut NativeVault,
     operation: *const u8,
     operation_len: usize,

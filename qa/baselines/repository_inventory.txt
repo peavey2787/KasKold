@@ -2643,6 +2643,7 @@ F	crates/vault-runtime/src/native_ffi.rs
 F	crates/vault-runtime/src/native_ffi/exports.rs
 F	crates/vault-runtime/src/native_ffi/workflows.rs
 F	crates/vault-runtime/src/native_ffi/workflows/bytes.rs
+F	crates/vault-runtime/src/native_ffi/workflows/secret_json.rs
 F	crates/vault-runtime/src/native_ffi/workflows/text_ops.rs
 F	crates/vault-runtime/src/private_swap.rs
 F	crates/vault-runtime/src/signing_policy.rs

@@ -8,39 +8,27 @@ use crate::native_ffi::{
     kaskold_vault_workflow_text, kaskold_vault_workflow_text_with_bytes, NativeVault,
 };
 
+use super::{copy_ffi_result, ResultCopier};
+
 const OK: i32 = 0;
 const ERROR: i32 = -1;
 const MNEMONIC: &str =
     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
-fn copy(
-    handle: *mut NativeVault,
-    copier: extern "C" fn(*mut NativeVault, *mut u8, usize) -> isize,
-) -> String {
-    let needed = copier(handle, core::ptr::null_mut(), 0);
-    let mut output = vec![0u8; usize::try_from(-needed).expect("required capacity")];
-    // One byte short of the required capacity still reports the full size.
-    if !output.is_empty() {
-        assert_eq!(
-            copier(handle, output.as_mut_ptr(), output.len() - 1),
-            needed
-        );
-    }
-    assert_eq!(
-        copier(handle, output.as_mut_ptr(), output.len()),
-        isize::try_from(output.len()).expect("length")
-    );
-    String::from_utf8(output).expect("UTF-8 result")
+fn copy(handle: *mut NativeVault, copier: ResultCopier) -> String {
+    String::from_utf8(copy_ffi_result(handle, copier)).expect("UTF-8 result")
 }
 
 fn text(handle: *mut NativeVault, operation: &str, input: &str) -> serde_json::Value {
-    let status = kaskold_vault_workflow_text(
-        handle,
-        operation.as_ptr(),
-        operation.len(),
-        input.as_ptr(),
-        input.len(),
-    );
+    let status = unsafe {
+        kaskold_vault_workflow_text(
+            handle,
+            operation.as_ptr(),
+            operation.len(),
+            input.as_ptr(),
+            input.len(),
+        )
+    };
     assert_eq!(
         status,
         OK,
@@ -51,27 +39,31 @@ fn text(handle: *mut NativeVault, operation: &str, input: &str) -> serde_json::V
 }
 
 fn text_error(handle: *mut NativeVault, operation: &str, input: &str) -> String {
-    let status = kaskold_vault_workflow_text(
-        handle,
-        operation.as_ptr(),
-        operation.len(),
-        input.as_ptr(),
-        input.len(),
-    );
+    let status = unsafe {
+        kaskold_vault_workflow_text(
+            handle,
+            operation.as_ptr(),
+            operation.len(),
+            input.as_ptr(),
+            input.len(),
+        )
+    };
     assert_eq!(status, ERROR, "{operation} must fail");
     copy(handle, kaskold_vault_last_error_copy)
 }
 
 fn bytes_error(handle: *mut NativeVault, operation: &str, input: &str, data: &[u8]) -> String {
-    let status = kaskold_vault_workflow_bytes(
-        handle,
-        operation.as_ptr(),
-        operation.len(),
-        input.as_ptr(),
-        input.len(),
-        data.as_ptr(),
-        data.len(),
-    );
+    let status = unsafe {
+        kaskold_vault_workflow_bytes(
+            handle,
+            operation.as_ptr(),
+            operation.len(),
+            input.as_ptr(),
+            input.len(),
+            data.as_ptr(),
+            data.len(),
+        )
+    };
     assert_eq!(status, ERROR, "{operation} must fail");
     copy(handle, kaskold_vault_last_error_copy)
 }
@@ -146,7 +138,7 @@ fn inventory_workflows_return_the_wallet_state_they_changed() {
         text_error(handle, "delete_wallet", r#"{"index":99}"#),
         r#""InvalidWalletIndex""#
     );
-    kaskold_vault_destroy(handle);
+    unsafe { kaskold_vault_destroy(handle) };
 }
 
 #[test]
@@ -209,7 +201,7 @@ fn key_workflows_return_normalized_keys_and_multisig_material() {
         ),
         r#""Custody(InvalidToolInput)""#
     );
-    kaskold_vault_destroy(handle);
+    unsafe { kaskold_vault_destroy(handle) };
 }
 
 #[test]
@@ -258,7 +250,7 @@ fn tool_workflows_return_derived_signed_and_decrypted_values() {
         text(handle, "clear_signing_policy", "{}"),
         serde_json::json!({})
     );
-    kaskold_vault_destroy(handle);
+    unsafe { kaskold_vault_destroy(handle) };
 }
 
 #[test]
@@ -283,13 +275,13 @@ fn byte_workflows_report_their_own_failures() {
             "{operation}"
         );
     }
-    kaskold_vault_destroy(handle);
+    unsafe { kaskold_vault_destroy(handle) };
 }
 
 #[test]
 fn text_with_bytes_entry_point_returns_the_byte_workflow_status() {
     let handle = restored();
-    let call = |operation: &str, input: &str, data: &[u8]| {
+    let call = |operation: &str, input: &str, data: &[u8]| unsafe {
         kaskold_vault_workflow_text_with_bytes(
             handle,
             operation.as_ptr(),
@@ -305,14 +297,14 @@ fn text_with_bytes_entry_point_returns_the_byte_workflow_status() {
         call("portable_backup", r#"{"password":"CorrectHorse9"}"#, b""),
         OK
     );
-    kaskold_vault_destroy(handle);
+    unsafe { kaskold_vault_destroy(handle) };
 }
 
 #[test]
 fn create_accepts_both_word_counts_and_lock_forgets_the_wallet() {
     let handle = kaskold_vault_new();
     for words in [12u32, 24] {
-        assert_eq!(kaskold_vault_create(handle, words), OK);
+        assert_eq!(unsafe { kaskold_vault_create(handle, words) }, OK);
         let created: serde_json::Value =
             serde_json::from_str(&copy(handle, kaskold_vault_last_text_copy)).expect("JSON");
         assert_eq!(
@@ -324,7 +316,7 @@ fn create_accepts_both_word_counts_and_lock_forgets_the_wallet() {
             words as usize
         );
     }
-    assert_eq!(kaskold_vault_create(handle, 18), ERROR);
+    assert_eq!(unsafe { kaskold_vault_create(handle, 18) }, ERROR);
     assert_eq!(
         copy(handle, kaskold_vault_last_error_copy),
         "wallet word count must be 12 or 24"
@@ -332,18 +324,23 @@ fn create_accepts_both_word_counts_and_lock_forgets_the_wallet() {
 
     let phrase = MNEMONIC.as_bytes();
     assert_eq!(
-        kaskold_vault_restore(handle, phrase.as_ptr(), phrase.len(), core::ptr::null(), 0),
+        unsafe {
+            kaskold_vault_restore(handle, phrase.as_ptr(), phrase.len(), core::ptr::null(), 0)
+        },
         OK
     );
-    assert_eq!(kaskold_vault_export_public_account(handle), OK);
-    kaskold_vault_lock(handle);
+    assert_eq!(unsafe { kaskold_vault_export_public_account(handle) }, OK);
+    unsafe { kaskold_vault_lock(handle) };
     // Locking clears the last result and the unlocked wallet.
     assert_eq!(
-        kaskold_vault_last_text_copy(handle, core::ptr::null_mut(), 0),
+        unsafe { kaskold_vault_last_text_copy(handle, core::ptr::null_mut(), 0) },
         0
     );
-    assert_eq!(kaskold_vault_export_public_account(handle), ERROR);
-    kaskold_vault_destroy(handle);
+    assert_eq!(
+        unsafe { kaskold_vault_export_public_account(handle) },
+        ERROR
+    );
+    unsafe { kaskold_vault_destroy(handle) };
 }
 
 #[test]
@@ -351,18 +348,27 @@ fn copy_entry_points_fail_closed_without_a_handle_or_a_signing_session() {
     use crate::native_ffi::{kaskold_vault_last_bytes_copy, kaskold_vault_response_frame_copy};
 
     let null = core::ptr::null_mut();
-    assert_eq!(kaskold_vault_last_text_copy(null, null.cast(), 0), -1);
-    assert_eq!(kaskold_vault_last_bytes_copy(null, null.cast(), 0), -1);
-    assert_eq!(kaskold_vault_last_error_copy(null, null.cast(), 0), -1);
     assert_eq!(
-        kaskold_vault_response_frame_copy(null, 0, null.cast(), 0),
+        unsafe { kaskold_vault_last_text_copy(null, null.cast(), 0) },
+        -1
+    );
+    assert_eq!(
+        unsafe { kaskold_vault_last_bytes_copy(null, null.cast(), 0) },
+        -1
+    );
+    assert_eq!(
+        unsafe { kaskold_vault_last_error_copy(null, null.cast(), 0) },
+        -1
+    );
+    assert_eq!(
+        unsafe { kaskold_vault_response_frame_copy(null, 0, null.cast(), 0) },
         -1
     );
 
     let handle = restored();
     assert_eq!(
-        kaskold_vault_response_frame_copy(handle, 0, core::ptr::null_mut(), 0),
+        unsafe { kaskold_vault_response_frame_copy(handle, 0, core::ptr::null_mut(), 0) },
         -1
     );
-    kaskold_vault_destroy(handle);
+    unsafe { kaskold_vault_destroy(handle) };
 }

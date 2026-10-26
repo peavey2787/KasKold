@@ -5,8 +5,11 @@
 //! `VaultRuntime`; this module only translates JSON/byte FFI inputs to those
 //! strongly owned operations and serializes presentation-safe results.
 
+use zeroize::Zeroizing;
+
 use super::{NativeVault, OK};
 use crate::{MultisigResult, WalletKind, WalletSummary};
+use secret_json::SecretJson;
 
 impl NativeVault {
     pub(super) fn workflow_text(&mut self, operation: &str, input_json: &str) -> i32 {
@@ -193,6 +196,7 @@ impl NativeVault {
 }
 
 pub(crate) mod bytes;
+pub(crate) mod secret_json;
 mod text_ops;
 
 enum NativeWorkflowResult {
@@ -200,12 +204,14 @@ enum NativeWorkflowResult {
     Bytes(Vec<u8>),
 }
 
-pub(crate) fn parse_input(input_json: &str) -> Result<serde_json::Value, String> {
+pub(crate) fn parse_input(input_json: &str) -> Result<Zeroizing<SecretJson>, String> {
     if input_json.trim().is_empty() {
-        return Ok(serde_json::json!({}));
+        return Ok(Zeroizing::new(SecretJson(serde_json::json!({}))));
     }
-    let value: serde_json::Value = serde_json::from_str(input_json)
-        .map_err(|_| "native Vault workflow input must be valid JSON".to_owned())?;
+    let value = Zeroizing::new(SecretJson(
+        serde_json::from_str(input_json)
+            .map_err(|_| "native Vault workflow input must be valid JSON".to_owned())?,
+    ));
     if !value.is_object() {
         return Err("native Vault workflow input must be a JSON object".to_owned());
     }

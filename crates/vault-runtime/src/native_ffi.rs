@@ -285,7 +285,10 @@ impl NativeVault {
     }
 }
 
-fn with_handle_mut<R>(
+/// # Safety
+///
+/// `handle` is null or a live, unaliased handle from `kaskold_vault_new`.
+unsafe fn with_handle_mut<R>(
     handle: *mut NativeVault,
     operation: impl for<'a> FnOnce(&'a mut NativeVault) -> R,
 ) -> Option<R> {
@@ -298,7 +301,10 @@ fn with_handle_mut<R>(
     Some(operation(unsafe { &mut *handle }))
 }
 
-fn with_input_bytes<R>(
+/// # Safety
+///
+/// `data` is null with `len == 0` or readable for `len` bytes during the call.
+unsafe fn with_input_bytes<R>(
     data: *const u8,
     len: usize,
     operation: impl for<'a> FnOnce(&'a [u8]) -> R,
@@ -317,7 +323,10 @@ fn with_input_bytes<R>(
     Some(operation(bytes))
 }
 
-fn with_input_text<R>(
+/// # Safety
+///
+/// As [`with_input_bytes`].
+unsafe fn with_input_text<R>(
     data: *const u8,
     len: usize,
     operation: impl for<'a> FnOnce(&'a str) -> R,
@@ -325,7 +334,10 @@ fn with_input_text<R>(
     with_input_bytes(data, len, |bytes| str::from_utf8(bytes).ok().map(operation)).flatten()
 }
 
-fn copy_out(data: &[u8], output: *mut u8, capacity: usize) -> isize {
+/// # Safety
+///
+/// `output` is null or writable for `capacity` bytes during the call.
+unsafe fn copy_out(data: &[u8], output: *mut u8, capacity: usize) -> isize {
     if output.is_null() || capacity < data.len() {
         return -(isize::try_from(data.len()).unwrap_or(isize::MAX));
     }

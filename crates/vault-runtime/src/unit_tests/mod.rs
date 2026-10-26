@@ -63,6 +63,29 @@ fn owned_compact_kspt(payload_len: usize) -> Vec<u8> {
     serialize_compact_kspt_vec(&transaction).expect("compact KSPT fixture serializes")
 }
 
+/// A `kaskold_vault_*_copy` export.
+pub(super) type ResultCopier =
+    unsafe extern "C" fn(*mut crate::native_ffi::NativeVault, *mut u8, usize) -> isize;
+
+/// Copy one FFI result out, checking the size-query and short-buffer contract.
+pub(super) fn copy_ffi_result(
+    handle: *mut crate::native_ffi::NativeVault,
+    copier: ResultCopier,
+) -> Vec<u8> {
+    // SAFETY: `handle` is live for the test, and every buffer passed below is
+    // null with capacity 0 or an owned vector of the stated capacity.
+    let needed = unsafe { copier(handle, core::ptr::null_mut(), 0) };
+    let mut output = vec![0u8; usize::try_from(-needed).expect("required capacity")];
+    if !output.is_empty() {
+        // One byte short of the required capacity still reports the full size.
+        let short = unsafe { copier(handle, output.as_mut_ptr(), output.len() - 1) };
+        assert_eq!(short, needed);
+    }
+    let written = unsafe { copier(handle, output.as_mut_ptr(), output.len()) };
+    assert_eq!(written, isize::try_from(output.len()).expect("length"));
+    output
+}
+
 pub(super) fn owned_qr_frames() -> Vec<QrFrame> {
     // The 1-in/1-out compact KSPT already exceeds single-frame QR capacity.
     // Keep the transaction payload empty so generic Vault payment review remains valid.
