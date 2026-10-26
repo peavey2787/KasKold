@@ -27,14 +27,31 @@ fn verify(covenant_type: &str, document: &Value, statement: &str) -> Result<Valu
     .map(|terms| serde_json::from_str(&terms).expect("terms JSON"))
 }
 
-fn assert_terms(covenant_type: &str, document: &Value, statement: &str, expected: Value) {
+/// Every way the verified terms differ from `expected` and from the record.
+fn term_mismatches(
+    covenant_type: &str,
+    document: &Value,
+    statement: &str,
+    expected: Value,
+) -> Vec<String> {
     let terms = verify(covenant_type, document, statement).expect("genuine invite verifies");
-    for (name, value) in expected.as_object().expect("expected terms") {
-        assert_eq!(&terms[name], value, "{covenant_type} {name}");
-    }
-    assert_eq!(terms["type"], covenant_type);
-    assert_eq!(terms["address"], document["address"]);
-    assert_eq!(terms["redeem_script_hex"], document["redeem_script_hex"]);
+    let mut wanted = expected.as_object().expect("expected terms").clone();
+    wanted.insert("type".into(), json!(covenant_type));
+    wanted.insert("address".into(), document["address"].clone());
+    wanted.insert(
+        "redeem_script_hex".into(),
+        document["redeem_script_hex"].clone(),
+    );
+    wanted
+        .iter()
+        .filter(|(name, value)| &terms[name.as_str()] != *value)
+        .map(|(name, value)| {
+            format!(
+                "{covenant_type} {name}: {} != {value}",
+                terms[name.as_str()]
+            )
+        })
+        .collect()
 }
 
 fn oracle_document() -> Value {
@@ -53,71 +70,89 @@ fn oracle_document() -> Value {
 #[test]
 fn genuine_invites_return_the_terms_their_scripts_were_built_with() {
     let dms = built(construction::dms::build_json(OWNER, OTHER, 900, NETWORK));
-    assert_terms(
-        "dms",
-        &dms,
-        "",
-        json!({"owner_pubkey_hex": OWNER, "heir_pubkey_hex": OTHER, "inactivity_daa": "900"}),
+    assert_eq!(
+        term_mismatches(
+            "dms",
+            &dms,
+            "",
+            json!({"owner_pubkey_hex": OWNER, "heir_pubkey_hex": OTHER, "inactivity_daa": "900"}),
+        ),
+        Vec::<String>::new()
     );
 
     let savings = built(construction::savings::build_json(
         OWNER, OTHER, 1234, NETWORK,
     ));
-    assert_terms(
-        "timelocked-savings",
-        &savings,
-        "",
-        json!({"wallet1_pubkey_hex": OWNER, "wallet2_pubkey_hex": OTHER, "locktime_daa": "1234"}),
+    assert_eq!(
+        term_mismatches(
+            "timelocked-savings",
+            &savings,
+            "",
+            json!({"wallet1_pubkey_hex": OWNER, "wallet2_pubkey_hex": OTHER, "locktime_daa": "1234"}),
+        ),
+        Vec::<String>::new()
     );
 
     let piggy = built(construction::additive::build_json(OWNER, 5000, 77, NETWORK));
-    assert_terms(
-        "additive",
-        &piggy,
-        "",
-        json!({"owner_pubkey_hex": OWNER, "threshold_sompi": "5000", "deadline_daa": "77"}),
+    assert_eq!(
+        term_mismatches(
+            "additive",
+            &piggy,
+            "",
+            json!({"owner_pubkey_hex": OWNER, "threshold_sompi": "5000", "deadline_daa": "77"}),
+        ),
+        Vec::<String>::new()
     );
 
     let allowance = built(construction::allowance::build_global_json(
         OWNER, OTHER, 300, 20, 40, NETWORK,
     ));
-    assert_terms(
-        "global-allowance",
-        &allowance,
-        "",
-        json!({
-            "owner_pubkey_hex": OWNER,
-            "beneficiary_pubkey_hex": OTHER,
-            "max_withdraw_sompi": "300",
-            "cooldown_daa": "20",
-            "start_daa": "40",
-        }),
+    assert_eq!(
+        term_mismatches(
+            "global-allowance",
+            &allowance,
+            "",
+            json!({
+                "owner_pubkey_hex": OWNER,
+                "beneficiary_pubkey_hex": OTHER,
+                "max_withdraw_sompi": "300",
+                "cooldown_daa": "20",
+                "start_daa": "40",
+            }),
+        ),
+        Vec::<String>::new()
     );
 
     let limit = built(construction::spending_limit::build_global_json(
         OWNER, 450, 30, NETWORK,
     ));
-    assert_terms(
-        "global-spending-limit",
-        &limit,
-        "",
-        json!({"owner_pubkey_hex": OWNER, "max_withdraw_sompi": "450", "cooldown_daa": "30"}),
+    assert_eq!(
+        term_mismatches(
+            "global-spending-limit",
+            &limit,
+            "",
+            json!({"owner_pubkey_hex": OWNER, "max_withdraw_sompi": "450", "cooldown_daa": "30"}),
+        ),
+        Vec::<String>::new()
     );
 
     let payjoin = built(construction::payjoin::build_json(
         OWNER, OTHER, 66, 2, 3, NETWORK,
     ));
-    assert_terms(
-        "payjoin",
-        &payjoin,
-        "",
-        json!({
-            "owner_pubkey_hex": OWNER,
-            "beneficiary_pubkey_hex": OTHER,
-            "locktime_daa": "66",
-            "min_inputs": "2",
-            "min_outputs": "3",
-        }),
+    assert_eq!(
+        term_mismatches(
+            "payjoin",
+            &payjoin,
+            "",
+            json!({
+                "owner_pubkey_hex": OWNER,
+                "beneficiary_pubkey_hex": OTHER,
+                "locktime_daa": "66",
+                "min_inputs": "2",
+                "min_outputs": "3",
+            }),
+        ),
+        Vec::<String>::new()
     );
 }
 
@@ -129,18 +164,21 @@ fn escrow_invites_resolve_destinations_to_addresses() {
     let escrow = built(construction::escrow::build_json(
         OWNER, OTHER, THIRD, &p2pk, p2sh, NETWORK, [0x61; 8],
     ));
-    assert_terms(
-        "escrow",
-        &escrow,
-        "",
-        json!({
-            "alice_pk": OWNER,
-            "bob_pk": OTHER,
-            "arbiter_pk": THIRD,
-            "alice_address": p2pk,
-            "bob_address": p2sh,
-            "salt": "6161616161616161",
-        }),
+    assert_eq!(
+        term_mismatches(
+            "escrow",
+            &escrow,
+            "",
+            json!({
+                "alice_pk": OWNER,
+                "bob_pk": OTHER,
+                "arbiter_pk": THIRD,
+                "alice_address": p2pk,
+                "bob_address": p2sh,
+                "salt": "6161616161616161",
+            }),
+        ),
+        Vec::<String>::new()
     );
 }
 
@@ -148,19 +186,22 @@ fn escrow_invites_resolve_destinations_to_addresses() {
 fn oracle_invites_carry_only_the_statement_the_script_commits_to() {
     let oracle = oracle_document();
     let statement = field(&oracle, "attestation_statement");
-    assert_terms(
-        "oracle-v1",
-        &oracle,
-        statement,
-        json!({
-            "owner_pubkey_hex": OWNER,
-            "beneficiary_pubkey_hex": OTHER,
-            "oracle_pubkey_hex": THIRD,
-            "message_commitment_hex": oracle["message_commitment_hex"],
-            "locktime_daa": "700",
-            "salt": "5a".repeat(16),
-            "attestation_statement": statement,
-        }),
+    assert_eq!(
+        term_mismatches(
+            "oracle-v1",
+            &oracle,
+            statement,
+            json!({
+                "owner_pubkey_hex": OWNER,
+                "beneficiary_pubkey_hex": OTHER,
+                "oracle_pubkey_hex": THIRD,
+                "message_commitment_hex": oracle["message_commitment_hex"],
+                "locktime_daa": "700",
+                "salt": "5a".repeat(16),
+                "attestation_statement": statement,
+            }),
+        ),
+        Vec::<String>::new()
     );
 
     let forged = statement.replace("delivery", "request");

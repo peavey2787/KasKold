@@ -138,7 +138,7 @@ class CredentialKdfSecurityTests(unittest.TestCase):
             "profile_version: PROFILE_VERSION_1",
             "profile_version: PROFILE_VERSION_2",
             "..Self::current()",
-            "self.is_current() | self.is_host()",
+            "PROFILE_VERSION_2 => self.is_host()",
             "if !parameters.is_supported()",
         ):
             self.assertIn(token, source)

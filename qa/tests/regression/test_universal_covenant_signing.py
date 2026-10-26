@@ -152,7 +152,7 @@ class UniversalCovenantSigningTests(unittest.TestCase):
         self.assertIn("scanOracleV1BindingResponse", oracle)
         self.assertIn("covenantScriptFingerprint", oracle)
         self.assertIn("oracle_covenant_binding_token_hex", oracle)
-        self.assertIn("invite.obt", invite_share)
+        self.assertIn("buildCovenantInvite(result)", invite_share)
         self.assertIn("invite.obt", invite_import)
         self.assertIn("invite.obt", beneficiary)
         self.assertIn("oracle_covenant_binding_token_hex", repository)
