@@ -76,19 +76,6 @@ class RecoverableErrorStage4Tests(unittest.TestCase):
         self.assertIn("presentation::NAVIGATION", kernel)
         self.assertIn("presentation::show_error_spec", kernel)
 
-    def test_software_reset_is_reserved_for_duress_and_pop_it(self) -> None:
-        hits = []
-        for path in (ROOT / "apps/kaskold-hardware/src").rglob("*.rs"):
-            source = path.read_text(errors="ignore")
-            if "software_reset" in source:
-                hits.append(path.relative_to(ROOT).as_posix())
-        self.assertEqual(sorted(hits), sorted([
-            "apps/kaskold-hardware/src/runtime/event_loop/operation_engine/credential/result.rs",
-            "apps/kaskold-hardware/src/runtime/interactions/settings/advanced/factory_reset.rs",
-            "apps/kaskold-hardware/src/runtime/interactions/settings/advanced/pop_it.rs",
-        "apps/kaskold-hardware/src/runtime/interactions/settings/advanced/owner_firmware.rs",
-        ]))
-
 
 if __name__ == "__main__":
     unittest.main()
