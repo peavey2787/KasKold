@@ -82,6 +82,10 @@ impl HuffmanTable {
             *value_index = end;
             let count_i32 = i32::try_from(count).map_err(|_| PictureError::Malformed)?;
             *code = code.checked_add(count_i32).ok_or(PictureError::Malformed)?;
+            // Kraft: codes of this length must fit in `length` bits.
+            if *code > 1 << length {
+                return Err(PictureError::Malformed);
+            }
             self.maximum_code[length] = *code - 1;
         }
         *code = code.checked_mul(2).ok_or(PictureError::Malformed)?;

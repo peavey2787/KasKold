@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [2.0.0] - Unreleased
 - Vault photo backups (format v2) derive the JPEG permutation key with Argon2id and embed the backup with no length prefix, so a photo no longer reveals cheaply that it carries a wallet. v1 photos still restore, read-only, for this release.
 - Vault hides seed words and keys from capture: Android blocks screenshots, recordings and the recents preview; iOS covers the Vault while the screen is recorded or mirrored and in the app switcher.
+- Photo backups are read back before they are returned, so a carrier that would not restore is never saved, and JPEGs whose Huffman tables break the Kraft inequality are refused.
 - Raw binary QR payloads are capped at 2952 bytes so the framed form, header included, always fits one version-40 QR code.
 - Hardware faults fail closed: a firmware panic or CPU exception wipes the live wallet secrets, then resets the device instead of halting with keys in RAM.
 - Fixed a QR decoder panic found by fuzzing: a camera frame whose finder-pattern corners collapse after rotation is now rejected instead of crashing the scanner.

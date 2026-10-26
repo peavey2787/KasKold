@@ -121,7 +121,7 @@ fn embed_stream(
     let rank_window = positions.min(RANK_WINDOW);
     let (mut coefficients, present) = collect_window(jpeg, &frame, &permutation, rank_window)?;
     let changed = embed_payload_bits(stream, rank_window, &present, &mut coefficients)?;
-    write_embedded_jpeg(
+    let length = write_embedded_jpeg(
         jpeg,
         output,
         &frame,
@@ -129,7 +129,27 @@ fn embed_stream(
         rank_window,
         &coefficients,
         &changed,
-    )
+    )?;
+    if let Err(error) = verify_embedded(&output[..length], stream, key) {
+        crate::bytes::zeroize_bytes(&mut output[..length]);
+        return Err(error);
+    }
+    Ok(length)
+}
+
+/// Read `stream` back out of a freshly written carrier, so a photo that would
+/// not restore is never handed to the user.
+fn verify_embedded(carrier: &[u8], stream: &[u8], key: &[u8]) -> Result<(), PictureError> {
+    let mut readback = try_zeroed_vec(stream.len(), 0u8)?;
+    let verified = extract_exact(carrier, key, &mut readback).and_then(|()| {
+        if readback == stream {
+            Ok(())
+        } else {
+            Err(PictureError::Unencodable)
+        }
+    });
+    crate::bytes::zeroize_bytes(&mut readback);
+    verified
 }
 
 fn collect_window(

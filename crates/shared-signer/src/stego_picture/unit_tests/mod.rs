@@ -1,6 +1,6 @@
 use super::{
-    byte_at, capacity_bits, decode_payload_bits, embed, embed_payload_bits,
-    payload_bits_from_window, PictureError,
+    byte_at, capacity_bits, decode_payload_bits, embed, embed_exact, embed_payload_bits,
+    payload_bits_from_window, verify_embedded, PictureError,
 };
 use super::{codec, frame, huffman, permutation::PositionPermutation};
 
@@ -273,6 +273,22 @@ fn huffman_bit_io_and_permutation_cover_canonical_boundaries() {
     assert_eq!(table.encoded(0x22), Ok((1, 1)));
     assert_eq!(table.encoded(0x33), Err(PictureError::Unencodable));
 
+    // Oversubscribed lengths break the Kraft inequality and are refused.
+    let mut oversubscribed = huffman::HuffmanTable::empty();
+    let mut three_one_bit = [0u8; 16];
+    three_one_bit[0] = 3;
+    assert_eq!(
+        oversubscribed.rebuild(&three_one_bit, &[1, 2, 3]),
+        Err(PictureError::Malformed)
+    );
+    let mut full_then_more = [0u8; 16];
+    full_then_more[0] = 2;
+    full_then_more[1] = 1;
+    assert_eq!(
+        oversubscribed.rebuild(&full_then_more, &[1, 2, 3]),
+        Err(PictureError::Malformed)
+    );
+
     let mut mismatch = huffman::HuffmanTable::empty();
     let mut one = [0u8; 16];
     one[0] = 2;
@@ -536,4 +552,21 @@ fn huffman_segment_parser_and_rebuild_cover_multi_table_and_trailing_boundaries(
     assert_eq!(multi_length.encoded(1), Ok((0, 1)));
     assert_eq!(multi_length.encoded(2), Ok((2, 2)));
     assert_eq!(multi_length.encoded(3), Ok((3, 2)));
+}
+
+#[test]
+fn embedded_carriers_are_read_back_before_they_are_returned() {
+    let stream = [0x5a, 0xc3, 0x0f];
+    let mut output = std::vec![0u8; NOISE_JPEG.len() * 2 + 4_096];
+    let length = embed_exact(NOISE_JPEG, &stream, KEY, &mut output).expect("embeds");
+    let carrier = &output[..length];
+    assert_eq!(verify_embedded(carrier, &stream, KEY), Ok(()));
+    assert_eq!(
+        verify_embedded(carrier, &[0x5a, 0xc3, 0xf0], KEY),
+        Err(PictureError::Unencodable)
+    );
+    assert_eq!(
+        verify_embedded(carrier, &stream, b"another key"),
+        Err(PictureError::Unencodable)
+    );
 }
