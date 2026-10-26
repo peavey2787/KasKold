@@ -25,10 +25,11 @@ class AndroidVaultIsolationTests(unittest.TestCase):
         blob = (VAULT / "app/src/main/java/com/kaskold/vault/security/VaultBlobStore.kt").read_text()
         wrapping = (VAULT / "app/src/main/java/com/kaskold/vault/security/VaultWrappingKeyStore.kt").read_text()
         self.assertIn("CURRENT_SEALED_WALLET_LENGTH = 216", blob)
-        self.assertIn("LEGACY_SEALED_WALLET_LENGTH = 96", blob)
         self.assertIn("INVENTORY_MAGIC", blob)
         self.assertIn("isInventory(sealedWallet) || isCurrent(sealedWallet)", blob)
-        self.assertIn("isInventory(sealedWallet) || isCurrent(sealedWallet) || isV2(sealedWallet) || isLegacy(sealedWallet)", blob)
+        # KHV1/KHV2 sealed wallets were retired; only KVI1 inventories and KHV3 load.
+        for retired in ("LEGACY_SEALED_WALLET_LENGTH", "isLegacy(", "isV2("):
+            self.assertNotIn(retired, blob)
         self.assertIn("invalid sealed Vault wallet container", blob)
         for forbidden in ("mnemonic:", "seed:", "xprv:"):
             self.assertNotIn(forbidden, blob.lower())

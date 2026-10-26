@@ -56,3 +56,5 @@ jobs:
           rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios --toolchain "$KASKOLD_STABLE_RUST"
       - name: iOS tests
         run: make ios-test
+      - name: iOS repository contracts
+        run: python3 qa/checks/workspace/run_repository_python_qa.py --scope ios

@@ -340,4 +340,6 @@ fn copy_out(data: &[u8], output: *mut u8, capacity: usize) -> isize {
 mod exports;
 pub(crate) mod workflows;
 
-pub use exports::*;
+// The C ABI symbols are emitted by `#[no_mangle]`; only unit tests call them by path.
+#[cfg(test)]
+pub(crate) use exports::*;

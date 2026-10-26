@@ -117,3 +117,7 @@ jobs:
             "ndk;${KASKOLD_ANDROID_NDK}"
       - name: Android tests
         run: make android-test
+      - name: Android repository contracts
+        run: |
+          python3 qa/checks/workspace/run_repository_python_qa.py --scope android
+          python3 qa/checks/android/check_android_architecture.py
