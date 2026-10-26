@@ -18,6 +18,9 @@ from architecture.core.common import (  # noqa: E402
     relative_posix,
     rust_use_paths,
 )
+from architecture.core.symbol_quality import (  # noqa: E402
+    _unused_internal_symbol_warnings,
+)
 from architecture.firmware.firmware_state import (  # noqa: E402
     _check_wallet_domain_boundary,
 )
@@ -26,6 +29,24 @@ from architecture.firmware.guards.source_integrity import (  # noqa: E402
 )
 from architecture.firmware.subsystems import firmware_boot  # noqa: E402
 from architecture.tooling import workspace_delivery  # noqa: E402
+
+
+class UnusedSymbolTests(unittest.TestCase):
+    def test_link_exported_hooks_count_as_referenced(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "fault.rs"
+            source.write_text(
+                "#[no_mangle]\nfn linker_hook() -> ! { loop {} }\n"
+                "#[panic_handler]\nfn panic_hook(_: &PanicInfo) -> ! { loop {} }\n"
+                "fn orphan_helper() {}\n",
+                encoding="utf-8",
+            )
+            warnings = _unused_internal_symbol_warnings(root, [source])
+        self.assertEqual(
+            warnings,
+            ["ARCH-W009 possible unused internal Rust symbol: fault.rs:5::orphan_helper"],
+        )
 
 
 class RustUsePathTests(unittest.TestCase):

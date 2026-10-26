@@ -17,6 +17,9 @@ BEGIN_MARKER = b"KASKOLD_QEMU_TESTS_BEGIN"
 UART_MARKER = b"KASKOLD_QEMU_UART_PROBE"
 PASS_MARKER = b"KASKOLD_QEMU_TESTS_PASS"
 FAIL_MARKER = b"KASKOLD_QEMU_TESTS_FAIL"
+# The firmware fault handler wipes and resets; a rebooted guest could pass on a
+# later boot, so any panic fails the run.
+PANIC_MARKER = b"KASKOLD_PANIC"
 BOARD_MARKER = b"Board: ESP32-S3 QEMU"
 REQUIRED_MARKERS = (BOARD_MARKER, BEGIN_MARKER, UART_MARKER)
 
@@ -137,7 +140,7 @@ def launch(args: argparse.Namespace) -> int:
                     observed.extend(chunk)
                     if len(observed) > 65536:
                         del observed[:-32768]
-                    for marker in (*REQUIRED_MARKERS, PASS_MARKER, FAIL_MARKER):
+                    for marker in (*REQUIRED_MARKERS, PASS_MARKER, FAIL_MARKER, PANIC_MARKER):
                         if marker in observed:
                             seen.add(marker)
                 elif event == "error":
@@ -154,6 +157,11 @@ def launch(args: argparse.Namespace) -> int:
                     event, payload = output_queue.get_nowait()
                 except queue.Empty:
                     event, payload = "idle", None
+
+            if PANIC_MARKER in seen:
+                print("\nERROR: guest firmware panicked and reset.", file=sys.stderr)
+                stop_process(process)
+                return 1
 
             if FAIL_MARKER in seen:
                 print("\nERROR: guest QEMU hardware tests failed.", file=sys.stderr)

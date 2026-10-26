@@ -38,6 +38,7 @@ mod controllers;
 mod crypto;
 #[cfg(not(feature = "qemu"))]
 mod diagnostics;
+mod fault;
 mod feature_policy;
 #[cfg(not(feature = "qemu"))]
 mod hw;

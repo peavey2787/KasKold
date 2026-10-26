@@ -43,6 +43,12 @@ def _is_cfg_test_definition(source: str, start: int) -> bool:
     return re.search(r"#\s*\[\s*cfg\s*\(\s*test\s*\)\s*\]\s*$", prefix) is not None
 
 
+def _is_link_exported_definition(source: str, start: int) -> bool:
+    """Items the linker resolves by name, such as hooks other crates call."""
+    prefix = source[max(0, start - 160):start]
+    return re.search(r"#\s*\[\s*(?:no_mangle|panic_handler)\s*\]\s*$", prefix) is not None
+
+
 def _unused_internal_symbol_warnings(root: Path, paths: list[Path]) -> list[str]:
     rust_paths = [path for path in paths if path.suffix == ".rs"]
     combined_parts = [path.read_text(errors="ignore") for path in rust_paths]
@@ -58,6 +64,8 @@ def _unused_internal_symbol_warnings(root: Path, paths: list[Path]) -> list[str]
         source = path.read_text(errors="ignore")
         for match in INTERNAL_SYMBOL_RE.finditer(source):
             if _is_cfg_test_definition(source, match.start()):
+                continue
+            if _is_link_exported_definition(source, match.start()):
                 continue
             name = match.group("name")
             if name.startswith("_") or name in INTERNAL_SYMBOL_EXEMPTIONS:

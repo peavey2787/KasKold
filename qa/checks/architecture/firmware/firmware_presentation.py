@@ -192,13 +192,15 @@ def _check_error_and_reset_boundaries(root: Path, firmware: Path, presentation: 
         if "software_reset" in _read(path)
     )
     allowed = sorted([
+        # Panics and CPU exceptions wipe volatile secrets, then reset.
+        "fault.rs",
         "runtime/event_loop/operation_engine/credential/result.rs",
         "runtime/interactions/settings/advanced/factory_reset.rs",
         "runtime/interactions/settings/advanced/pop_it.rs",
         "runtime/interactions/settings/advanced/owner_firmware.rs",
     ])
     if reset_paths != allowed:
-        errors.append(f"software reset is not limited to explicit duress/factory-reset/Pop It paths: {reset_paths}")
+        errors.append(f"software reset is not limited to explicit duress/factory-reset/Pop It/fault paths: {reset_paths}")
     return errors
 
 

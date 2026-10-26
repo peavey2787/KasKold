@@ -76,6 +76,19 @@ class QemuRunnerTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 1)
         self.assertIn("guest QEMU hardware tests failed", completed.stderr)
 
+    def test_guest_panic_fails_host_even_if_a_later_boot_passes(self) -> None:
+        completed = self.run_guest(
+            "Board: ESP32-S3 QEMU\n"
+            "KASKOLD_QEMU_TESTS_BEGIN\n"
+            "KASKOLD_PANIC at src/qemu/tests.rs:42\n"
+            "Board: ESP32-S3 QEMU\n"
+            "KASKOLD_QEMU_TESTS_BEGIN\n"
+            "KASKOLD_QEMU_UART_PROBE\n"
+            "KASKOLD_QEMU_TESTS_PASS"
+        )
+        self.assertEqual(completed.returncode, 1)
+        self.assertIn("guest firmware panicked and reset", completed.stderr)
+
     def test_pass_without_uart_probe_is_rejected(self) -> None:
         completed = self.run_guest(
             "Board: ESP32-S3 QEMU\n"
