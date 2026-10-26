@@ -1,4 +1,4 @@
-import { ensureEscrowParams } from '../../../watchers_and_ui/ui/metadata.js';
+import { applyScriptTerms } from '../../../model/script_terms.js';
 import { readU64 } from '../payload_reader.js';
 import { baseRecoveredRecord, readStoredScript } from './common.js';
 import { readOptionalDate } from '../optional_date.js';
@@ -23,6 +23,6 @@ export function rebuildTimelockedSavings(type, params, ownerPk) {
 export function rebuildEscrow(type, params) {
     const { redeemScriptHex } = readStoredScript(params);
     const record = baseRecoveredRecord(type, redeemScriptHex);
-    ensureEscrowParams(record);
+    applyScriptTerms(record);
     return record;
 }

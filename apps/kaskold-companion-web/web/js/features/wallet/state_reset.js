@@ -95,8 +95,6 @@ function clearTransientStateObjects() {
     commitRevealState._crDecryptCtBytes = undefined;
     commitRevealState._crRevealPartA = undefined;
     commitRevealState._crRevealPartB = undefined;
-    covenantRecoveryState._covLoadedFromInvite = undefined;
-    covenantRecoveryState._covLoadedInactivityDaa = undefined;
     covenantRecoveryState._covLoadedLdi = undefined;
     covenantState._covPayloadHex = undefined;
     covenantState._lastKnownDaa = undefined;

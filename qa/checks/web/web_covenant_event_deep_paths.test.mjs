@@ -43,8 +43,6 @@ try {
     t: 'cov-invite', ct: 'global-allowance', addr: ADDRESS, rs: '51', d: '1400', id: '100', ldi: '2026-08-14',
   }));
   await tick();
-  assert.equal(state.covenantRecoveryState._covLoadedFromInvite, true);
-  assert.equal(state.covenantRecoveryState._covLoadedInactivityDaa, '100');
   assert.equal(state.covenantRecoveryState._covLoadedLdi, '2026-08-14');
   assert.equal(element('cov-load-type').value, 'global-allowance');
   element('btn-cov-load-scan').onclick();
@@ -55,8 +53,8 @@ try {
   await fileInput.onchange({target: {files: [{async arrayBuffer() { throw new Error('file corrupt'); }}], value: 'x'}});
   assert.match(element('toast').textContent, /File import failed/i);
 
-  // Load submission still covers script-number extraction and invited-role
-  // restoration for supported covenant families.
+  // Load submission takes every term and the role from the verified script;
+  // the invite only contributes its calendar hint.
   const submission = await import(moduleUrl('app/events/contracts/covenant_loading/submission.js'));
   submission.bindLoadSubmissionAction();
   setValue('cov-load-addr', '');
@@ -67,15 +65,23 @@ try {
   setValue('cov-load-script', '');
   element('btn-cov-load-submit').onclick();
   assert.match(element('toast').textContent, /redeem script/i);
-  state.covenantRecoveryState._covLoadedFromInvite = true;
-  state.covenantRecoveryState._covLoadedInactivityDaa = '100';
+  const termStubs = globalThis.__COMPANION_WASM_STUBS__;
+  const priorTerms = termStubs.covenant_script_terms;
+  termStubs.covenant_script_terms = (type, script, address) => JSON.stringify({
+    type, address, redeem_script_hex: script, owner_pubkey_hex: '33'.repeat(32), beneficiary_pubkey_hex: '11'.repeat(32), start_daa: '80',
+  });
   state.covenantRecoveryState._covLoadedLdi = '2026-08-14';
   setValue('cov-load-type', 'global-allowance');
   setValue('cov-load-script', '0150b0');
   element('btn-cov-load-submit').onclick();
   assert.equal(state.covenantState.lastCovenantResult.loaded, true);
-  assert.equal(String(state.covenantState.lastCovenantResult.locktime_daa), '80');
+  assert.equal(state.covenantState.lastCovenantResult.start_daa, 80n);
   assert.equal(state.covenantState.lastCovenantResult.role, 'beneficiary');
+  assert.equal(state.covenantState.lastCovenantResult.locktime_date_iso, '2026-08-14');
+  termStubs.covenant_script_terms = () => { throw new Error('Covenant address does not match its redeem script'); };
+  element('btn-cov-load-submit').onclick();
+  assert.match(element('toast').textContent, /Covenant rejected: Covenant address does not match/);
+  termStubs.covenant_script_terms = priorTerms;
 
   assertWatchOnlyStorage();
   console.log('PASS: current covenant invite/load event workflows');

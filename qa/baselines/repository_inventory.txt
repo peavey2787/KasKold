@@ -1033,7 +1033,6 @@ F	apps/kaskold-companion-web/web/js/core/node/future_daa.js
 F	apps/kaskold-companion-web/web/js/core/node/resolver.js
 F	apps/kaskold-companion-web/web/js/core/qr/image_file.js
 F	apps/kaskold-companion-web/web/js/core/qr/svg_image.js
-F	apps/kaskold-companion-web/web/js/core/script_pushes.js
 F	apps/kaskold-companion-web/web/js/core/state/session.js
 F	apps/kaskold-companion-web/web/js/core/time.js
 F	apps/kaskold-companion-web/web/js/core/ui/connectivity_status.js
@@ -1069,6 +1068,7 @@ F	apps/kaskold-companion-web/web/js/features/covenants/generation/fund.js
 F	apps/kaskold-companion-web/web/js/features/covenants/generation/panels/router.js
 F	apps/kaskold-companion-web/web/js/features/covenants/generation/ui_and_keys.js
 F	apps/kaskold-companion-web/web/js/features/covenants/model/exact_fields.js
+F	apps/kaskold-companion-web/web/js/features/covenants/model/script_terms.js
 F	apps/kaskold-companion-web/web/js/features/covenants/payload_and_swaps.js
 F	apps/kaskold-companion-web/web/js/features/covenants/payload_and_swaps/params.js
 F	apps/kaskold-companion-web/web/js/features/covenants/payload_and_swaps/params/advanced.js
@@ -1101,8 +1101,8 @@ F	apps/kaskold-companion-web/web/js/features/covenants/recovery/import/controlle
 F	apps/kaskold-companion-web/web/js/features/covenants/recovery/import/formats.js
 F	apps/kaskold-companion-web/web/js/features/covenants/recovery/import/frames.js
 F	apps/kaskold-companion-web/web/js/features/covenants/recovery/import/invite.js
-F	apps/kaskold-companion-web/web/js/features/covenants/recovery/import/invite_normalization.js
 F	apps/kaskold-companion-web/web/js/features/covenants/recovery/import/owner_backup.js
+F	apps/kaskold-companion-web/web/js/features/covenants/recovery/import/role.js
 F	apps/kaskold-companion-web/web/js/features/covenants/recovery/scanner.js
 F	apps/kaskold-companion-web/web/js/features/covenants/recovery/scanner/extended.js
 F	apps/kaskold-companion-web/web/js/features/covenants/recovery/scanner/extended/commit_reveal.js
@@ -1157,7 +1157,6 @@ F	apps/kaskold-companion-web/web/js/features/covenants/watchers_and_ui/ui/result
 F	apps/kaskold-companion-web/web/js/features/covenants/watchers_and_ui/ui/result_buttons/primary_core/index.js
 F	apps/kaskold-companion-web/web/js/features/covenants/watchers_and_ui/ui/result_buttons/primary_core/oracle_v1.js
 F	apps/kaskold-companion-web/web/js/features/covenants/watchers_and_ui/ui/result_buttons/primary_core/timed.js
-F	apps/kaskold-companion-web/web/js/features/covenants/watchers_and_ui/ui/script_metadata.js
 F	apps/kaskold-companion-web/web/js/features/covenants/watchers_and_ui/watcher.js
 F	apps/kaskold-companion-web/web/js/features/covenants/watchers_and_ui/watcher/polling.js
 F	apps/kaskold-companion-web/web/js/features/covenants/watchers_and_ui/watcher/polling/covenant_pollers.js
@@ -2400,6 +2399,7 @@ F	crates/online-watcher/src/contracts/covenant/construction/savings.rs
 F	crates/online-watcher/src/contracts/covenant/construction/spending_limit.rs
 F	crates/online-watcher/src/contracts/covenant/mod.rs
 F	crates/online-watcher/src/contracts/covenant/oracle_v1.rs
+F	crates/online-watcher/src/contracts/covenant/script_terms.rs
 F	crates/online-watcher/src/contracts/crowdfund/mod.rs
 F	crates/online-watcher/src/contracts/merkle/application.rs
 F	crates/online-watcher/src/contracts/merkle/mod.rs
@@ -2415,6 +2415,7 @@ F	crates/online-watcher/src/contracts/unit_tests/construction.rs
 F	crates/online-watcher/src/contracts/unit_tests/function_coverage.rs
 F	crates/online-watcher/src/contracts/unit_tests/merkle.rs
 F	crates/online-watcher/src/contracts/unit_tests/mod.rs
+F	crates/online-watcher/src/contracts/unit_tests/script_terms.rs
 F	crates/online-watcher/src/contracts/vault/mod.rs
 F	crates/online-watcher/src/contracts/zk/crowdfund.rs
 F	crates/online-watcher/src/contracts/zk/mod.rs
@@ -2539,6 +2540,7 @@ F	crates/online-watcher/src/wasm_api/contracts/covenant/global_thread/planning.r
 F	crates/online-watcher/src/wasm_api/contracts/covenant/global_thread/unit_tests/mod.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/global_thread/unit_tests/native_boundary.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/logging.rs
+F	crates/online-watcher/src/wasm_api/contracts/covenant/script_terms.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/spend_path.rs
 F	crates/online-watcher/src/wasm_api/contracts/covenant/unit_tests/mod.rs
 F	crates/online-watcher/src/wasm_api/contracts/mod.rs

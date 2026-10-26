@@ -1,11 +1,11 @@
+import { applyScriptTerms } from '../model/script_terms.js';
 import { covenantState, covenantWatcherState, oracleState } from '../../../app/state/index.js';
 import { toast } from '../../../core/ui/toast.js';
 import { covShowPanel } from '../generation/ui_and_keys.js';
-import { covRenderMetaLine, ensureAllowanceParams } from '../watchers_and_ui/ui/metadata.js';
+import { covRenderMetaLine } from '../watchers_and_ui/ui/metadata.js';
 import { covUpdateResultButtons } from '../watchers_and_ui/ui/result_buttons.js';
 import { covWatcherStart, covWatcherStop } from '../watchers_and_ui/watcher/polling/lifecycle.js';
 import { isWatchedCovenantType } from '../watchers_and_ui/watcher/types.js';
-
 import { byId } from '../../../core/dom.js';
 
 export function covReturnAfterBroadcast() {
@@ -24,7 +24,7 @@ export function covReturnAfterBroadcast() {
         // landed here right after broadcast). Mirrors what the
         // active-list click handler does when loading a covenant.
         const c = covenantState.lastCovenantResult;
-        ensureAllowanceParams(c);
+        applyScriptTerms(c);
         if (byId('cov-result-addr')) byId('cov-result-addr').textContent = c.address || '';
         if (byId('cov-result-script')) byId('cov-result-script').textContent = c.redeem_script_hex || '';
         if (byId('cov-result-txid') && broadcastTxid && broadcastTxid.length === 64) {

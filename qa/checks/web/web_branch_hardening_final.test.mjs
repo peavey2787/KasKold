@@ -7,7 +7,6 @@ import { FakeElement } from './web_recovery_test_harness.mjs';
 const { state, response, originalGet } = await setupDeepHarness();
 try {
   const stubs = globalThis.__COMPANION_WASM_STUBS__;
-  const scriptPushes = await import(moduleUrl('core/script_pushes.js'));
   const beneficiaryExport = await import(moduleUrl('features/covenants/recovery/export/beneficiary_payload.js'));
   const payloadState = await import(moduleUrl('features/covenants/payload_and_swaps/state.js'));
   const assets = await import(moduleUrl('features/assets/render.js'));
@@ -43,24 +42,17 @@ try {
   const escrowRender = await import(moduleUrl('features/covenants/watchers_and_ui/watcher/polling/covenant_pollers/conditional/escrow/render.js'));
   const escrowState = await import(moduleUrl('features/covenants/watchers_and_ui/watcher/polling/covenant_pollers/conditional/escrow/state.js'));
 
-  // Script traversal: stop sentinel, OP_0, small ints, direct pushes,
-  // PUSHDATA1, malformed/truncated payloads and ordinary opcodes.
-  const seen=[];
-  scriptPushes.walkScriptPushes(Uint8Array.from([0x00,0x51,0x02,0x34,0x12,0x4c,0x01,0x07,0x61]), x=>{seen.push(x);});
-  assert.equal(seen.at(-1).lastInteger,7n);
-  let calls=0; scriptPushes.walkScriptPushes(Uint8Array.from([0x51,0x52]),()=>{calls++; return false;}); assert.equal(calls,1);
-  assert.doesNotThrow(()=>scriptPushes.walkScriptPushes(Uint8Array.from([0x4c]),()=>{}));
-  assert.doesNotThrow(()=>scriptPushes.walkScriptPushes(Uint8Array.from([0x03,1]),()=>{}));
-
-  // Portable beneficiary records must serialize sparse public data without
-  // carrying values from a prior covenant.
-  const sparse = beneficiaryExport.buildBeneficiaryExport({});
-  const sparseInvite = JSON.parse(new TextDecoder().decode(sparse.bytes.slice(4)));
-  assert.deepEqual({ct:sparseInvite.ct,addr:sparseInvite.addr,rs:sparseInvite.rs,d:sparseInvite.d},{ct:'',addr:'',rs:'',d:'0'});
-  const allowance = beneficiaryExport.buildBeneficiaryExport({type:'global-allowance',address:ADDRESS,redeem_script_hex:'51',locktime_daa:'1',max_withdraw_sompi:'2',cooldown_daa:'3',start_daa:'4',start_date_iso:'2099-01-01'});
-  assert.equal(JSON.parse(new TextDecoder().decode(allowance.bytes.slice(4))).mw,'2');
-  const oracle = beneficiaryExport.buildBeneficiaryExport({type:'oracle-v1',oracle_pubkey_hex:PK,oracle_covenant_key_id_hex:PK2,oracle_covenant_binding_token_hex:PK3,beneficiary_pubkey_hex:PK2,owner_pubkey_hex:PK,attestation_statement:'release',message_commitment_hex:PK3,locktime_date_iso:'2099-01-01',wallet1_pubkey_hex:PK,wallet2_pubkey_hex:PK2});
-  assert.equal(JSON.parse(new TextDecoder().decode(oracle.bytes.slice(4))).oas,'release');
+  // Invites carry only the script, the address and what no script proves;
+  // every term is re-read from the script on import.
+  const decodeExport = record => JSON.parse(new TextDecoder().decode(beneficiaryExport.buildBeneficiaryExport(record).bytes.slice(4)));
+  assert.deepEqual(decodeExport({}), {v:1,t:'cov-invite',ct:'',addr:'',rs:''});
+  assert.deepEqual(
+    decodeExport({type:'global-allowance',address:ADDRESS,redeem_script_hex:'51',locktime_daa:'1',max_withdraw_sompi:'2',cooldown_daa:'3',start_daa:'4',start_date_iso:'2099-01-01',wallet1_pubkey_hex:PK}),
+    {v:1,t:'cov-invite',ct:'global-allowance',addr:ADDRESS,rs:'51',sdi:'2099-01-01'});
+  const oracleRecord = {type:'oracle-v1',address:ADDRESS,redeem_script_hex:'52',oracle_pubkey_hex:PK,oracle_covenant_key_id_hex:PK2,oracle_covenant_binding_token_hex:PK3,beneficiary_pubkey_hex:PK2,owner_pubkey_hex:PK,attestation_statement:'release',message_commitment_hex:PK3,locktime_date_iso:'2099-01-01'};
+  assert.deepEqual(decodeExport(oracleRecord),
+    {v:1,t:'cov-invite',ct:'oracle-v1',addr:ADDRESS,rs:'52',ldi:'2099-01-01',okid:PK2,obt:PK3,oas:'release'});
+  assert.throws(() => decodeExport({...oracleRecord, oracle_covenant_binding_token_hex:''}), /Bind the Oracle covenant key/);
 
   // Fee fallbacks are consensus-facing arithmetic inputs: a node estimate of
   // zero must use the documented minimum rate for every fee tier.
@@ -96,10 +88,11 @@ try {
   const type=element('cov-load-type'); type.previousElementSibling=new FakeElement('span'); element('btn-cov-load-existing').onclick();
   type.previousElementSibling=new FakeElement('label'); type.previousElementSibling.classList.add('input-label'); element('btn-cov-load-existing').onclick(); assert.equal(type.previousElementSibling.style.display,'');
 
-  // Invite sharing covers sparse defaults and allowance cooldown precedence.
+  // The share button emits the same invite as the backup export: script,
+  // address and calendar hints only.
   let invitePayload=''; stubs.generate_qr_svg_text=value=>{invitePayload=String(value); return '<svg></svg>';}; inviteSharing.registerInviteSharingActions();
-  state.covenantState.lastCovenantResult={}; element('btn-cov-res-share-cov').onclick(); let parsed=JSON.parse(invitePayload); assert.deepEqual([parsed.ct,parsed.addr,parsed.rs,parsed.d],['','','','0']);
-  state.covenantState.lastCovenantResult={type:'global-allowance',address:ADDRESS,redeem_script_hex:'51',locktime_daa:'0',min_sequence:'8'}; element('btn-cov-res-share-cov').onclick(); parsed=JSON.parse(invitePayload); assert.equal(parsed.cd,'8');
+  state.covenantState.lastCovenantResult={}; element('btn-cov-res-share-cov').onclick(); assert.deepEqual(JSON.parse(invitePayload),{v:1,t:'cov-invite',ct:'',addr:'',rs:''});
+  state.covenantState.lastCovenantResult={type:'global-allowance',address:ADDRESS,redeem_script_hex:'51',locktime_daa:'0',min_sequence:'8'}; element('btn-cov-res-share-cov').onclick(); assert.equal(JSON.parse(invitePayload).cd,undefined);
   state.covenantState.lastCovenantResult={type:'timelocked-savings',address:ADDRESS,redeem_script_hex:'51',locktime_daa:'9',locktime_date_iso:'2099-01-01'}; element('btn-cov-res-share-cov').onclick(); assert.equal(JSON.parse(invitePayload).ldi,'2099-01-01');
 
   // Merkle builder refuses incomplete/malformed policy input and accepts a
@@ -111,15 +104,31 @@ try {
   setValue('cov-mw-locktime','1200'); const built=await merkleBuilder.buildMerkleWhitelist(PK); assert.ok(built?.resultJson);
   assert.equal(await merkleBuilder.buildMerkleWhitelist(''),undefined);
 
-  // Manual covenant load parser accepts every canonical script-number opcode
-  // form it supports and contains malformed hex instead of leaking stale locktime.
+  // Manual covenant load: a known family shows only the terms its script
+  // proves and the role those keys give this wallet; a script the verifier
+  // refuses leaves the previous covenant loaded; other types keep the input.
   loadSubmission.bindLoadSubmissionAction();
-  state.covenantRecoveryState._covLoadedFromInvite=false;
-  for (const [script,expected] of [['00b0',0n],['51b0',1n],['0134b0',52n],['4c00b0',0n],['zz',null]]) {
-    setValue('cov-load-addr',ADDRESS); setValue('cov-load-type','dms'); setValue('cov-load-script',script); element('btn-cov-load-submit').onclick();
-    assert.equal(state.covenantState.lastCovenantResult.locktime_daa,expected);
-  }
-  state.covenantRecoveryState._covLoadedFromInvite=true; setValue('cov-load-script','51b0'); element('btn-cov-load-submit').onclick(); assert.equal(state.covenantState.lastCovenantResult.role,'beneficiary');
+  const realTerms = stubs.covenant_script_terms;
+  const loadAs = (type, script) => {
+    setValue('cov-load-addr',ADDRESS); setValue('cov-load-type',type); setValue('cov-load-script',script);
+    element('btn-cov-load-submit').onclick();
+    return state.covenantState.lastCovenantResult;
+  };
+  stubs.covenant_script_terms = (type, script, address, network) => JSON.stringify({
+    type, address, redeem_script_hex: script, network, owner_pubkey_hex: PK2, heir_pubkey_hex: PK, inactivity_daa: '144',
+  });
+  state.covenantRecoveryState._covLoadedLdi = '2030-01-01';
+  const heir = loadAs('dms','51b0');
+  assert.equal(heir.inactivity_daa, 144n);
+  assert.equal(heir.network, state.networkState.network);
+  assert.equal(heir.role, 'beneficiary');
+  assert.equal(heir.locktime_date_iso, '2030-01-01');
+  assert.equal(state.covenantRecoveryState._covLoadedLdi, null);
+  stubs.covenant_script_terms = () => { throw new Error('Covenant address does not match its redeem script'); };
+  assert.equal(loadAs('dms','52b0'), heir);
+  const other = loadAs('commit-reveal','53');
+  assert.deepEqual([other.type, other.redeem_script_hex, other.role], ['commit-reveal','53',undefined]);
+  stubs.covenant_script_terms = realTerms;
 
   // Timed watcher rendering covers every maturity state plus a detected spend.
   const st=new FakeElement('div'); const labels={spent:s=>`spent-${s}`,onSpent:()=>{labels.called=true},availableClass:'ok',available:k=>`available-${k}`,unlockingClass:'warn',unlocking:k=>`unlocking-${k}`,locked:(k,t)=>`locked-${k}-${t}`,watching:k=>`watching-${k}`};

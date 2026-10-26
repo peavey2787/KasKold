@@ -1,10 +1,10 @@
+import { applyScriptTerms } from '../../../../model/script_terms.js';
 import { setContent, span } from '../../../../../../core/ui/elements.js';
 import { covenantState, covenantWatcherState } from '../../../../../../app/state/index.js';
 import { exactUnsigned } from '../../../../../../core/exact.js';
 import { formatDaaDuration } from '../../../../../../core/format.js';
 import { sompiToKasFixed, sompiToKasString } from '../../../../../../core/amounts.js';
 import { pickThread } from '../../../../spending/standard/thread_and_claims.js';
-import { ensureAllowanceParams } from '../../../ui/metadata.js';
 import { covWatcherStop } from '../lifecycle.js';
 
 function governedThreadState(utxos) {
@@ -37,7 +37,7 @@ function withdrawalLimitLabel(maxSompi, canDrain) {
 
 export async function pollGlobalSpendingLimit(state) {
     const { st, currentDaa, utxos } = state;
-    ensureAllowanceParams(covenantState.lastCovenantResult);
+    applyScriptTerms(covenantState.lastCovenantResult);
     const cooldown = exactUnsigned(covenantState.lastCovenantResult.cooldown_daa ?? 0n, 'cooldown DAA');
     const maxSompi = exactUnsigned(covenantState.lastCovenantResult.max_withdraw_sompi ?? 0n, 'withdrawal limit');
     const { picked, threadSompi, threadDaa } = governedThreadState(utxos);
@@ -66,7 +66,7 @@ export async function pollGlobalSpendingLimit(state) {
 
 export async function pollGlobalAllowance(state) {
     const { total, st, currentDaa, utxos } = state;
-    ensureAllowanceParams(covenantState.lastCovenantResult);
+    applyScriptTerms(covenantState.lastCovenantResult);
     const result = covenantState.lastCovenantResult;
     const iAmOwner = result.role !== 'beneficiary';
     const cooldown = exactUnsigned(result.cooldown_daa ?? result.min_sequence ?? 0n, 'cooldown DAA');

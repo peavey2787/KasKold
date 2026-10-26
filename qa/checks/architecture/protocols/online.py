@@ -253,9 +253,10 @@ def _check_wasm_exports(root: Path) -> list[str]:
     # Complete batched UTXO enumeration supports manual Companion coin control;
     # kspt_signature_status replaces the JavaScript KSPT parser with Portal's;
     # spend-path, reveal, shipment-terms and script-address readers replace
-    # their JavaScript script parsers.
-    expected_count = 131
-    expected_digest = "4029fb507438f7de6ba0f1f425485cf8ab2bea115464728dbc37f2ed803e65ec"
+    # their JavaScript script parsers; covenant_script_terms verifies invite
+    # and loaded-covenant terms against the redeem script.
+    expected_count = 132
+    expected_digest = "b12b983d7e280a9ea1c2731f8e92dca701ee4dc17e181c43b51d81ff6110d1bb"
     export_digest = hashlib.sha256("\n".join(sorted(wasm_exports)).encode()).hexdigest()
     if (
         len(wasm_exports) != expected_count

@@ -27,8 +27,6 @@ export function bindInviteLoadingActions() {
 
                     showScreen('covenant');
                     covShowPanel('load');
-                    covenantRecoveryState._covLoadedFromInvite = true;
-                    if (invite.id) covenantRecoveryState._covLoadedInactivityDaa = invite.id;
                     if (invite.ldi) covenantRecoveryState._covLoadedLdi = invite.ldi;
                     toast('Invite scanned. Tap Load Covenant.', 'ok', 2000);
                 } catch (e) {

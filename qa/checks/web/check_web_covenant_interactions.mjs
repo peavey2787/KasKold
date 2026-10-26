@@ -211,8 +211,6 @@ try {
             claim_code:'runtime-claim',
         };
         appState.covenantState.lastCovenantResult = scenarioResult;
-        appState.covenantRecoveryState._covLoadedFromInvite = scenario.role !== 'owner';
-        appState.covenantRecoveryState._covLoadedInactivityDaa = '100';
         appState.covenantRecoveryState._covLoadedLdi = '800';
         const ownerPanel = elements.get('cov-owner-panel'); if (ownerPanel) ownerPanel.dataset.covOwnerType = scenario.owner;
         const benePanel = elements.get('cov-beneficiary-panel'); if (benePanel) benePanel.dataset.covBeneType = scenario.bene;

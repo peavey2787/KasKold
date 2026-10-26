@@ -17,7 +17,8 @@ try {
   const escrowButtons = await import(moduleUrl('features/covenants/watchers_and_ui/ui/result_buttons/primary_core/escrow.js'));
   const settings = await import(moduleUrl('features/settings/screen.js'));
   const piggy = await import(moduleUrl('app/events/contracts/covenant_creation/result_actions/piggy.js'));
-  const metadata = await import(moduleUrl('features/covenants/watchers_and_ui/ui/script_metadata.js'));
+  const scriptTerms = await import(moduleUrl('features/covenants/model/script_terms.js'));
+  const covenantRole = await import(moduleUrl('features/covenants/recovery/import/role.js'));
   const payloadState = await import(moduleUrl('features/covenants/payload_and_swaps/state.js'));
   const connectivity = await import(moduleUrl('core/ui/connectivity_status.js'));
   const network = await import(moduleUrl('core/network.js'));
@@ -124,13 +125,42 @@ try {
   globalThis.__COMPANION_WASM_STUBS__.get_virtual_daa_score=()=>{throw new Error('daa unavailable')}; state.networkState.utxoSnapshot=[]; state.covenantState._lastKnownDaa=0n; assert.match((await piggyBreakStatus(10n,1n)).text,/unknown/); globalThis.__COMPANION_WASM_STUBS__.get_virtual_daa_score=()=> '1000';
   const banner=piggyStatusBanner({color:'red',text:'blocked'}); assert.equal(banner.textContent,'blocked'); assert.equal(piggyStatusBanner({color:'green',text:'ready'}),banner);
 
-  // Metadata parsers: malformed input, partial escrow signatures and valid
-  // allowance/piggy script opcodes all remain fail-closed and deterministic.
-  assert.deepEqual(metadata.parseAllowanceScript('zz'),{max_withdraw_sompi:0n,cooldown_daa:0n,start_daa:0n});
-  assert.equal(metadata.parseEscrowScript('').alice_pk,'');
-  const escrowPrefix='08'+'aa'.repeat(8)+'75'+'6320'+PK;
-  assert.equal(metadata.parseEscrowScript(escrowPrefix).arbiter_pk,'');
-  assert.deepEqual(metadata.parsePiggyScript('zz'),{threshold_sompi:0n,deadline_daa:0n});
+  // Script terms: the WASM verifier's terms replace whatever a record
+  // claimed; types without a script reader pass through untouched; a refused
+  // script throws instead of leaving forged terms in place.
+  const termStubs = globalThis.__COMPANION_WASM_STUBS__;
+  const priorTerms = termStubs.covenant_script_terms;
+  const calls = [];
+  termStubs.covenant_script_terms = (...args) => { calls.push(args); return JSON.stringify({ heir_pubkey_hex: PK, inactivity_daa: '9' }); };
+  const forged = { type:'dms', address:ADDRESS, redeem_script_hex:'51', heir_pubkey_hex:'ff'.repeat(32), inactivity_daa:1n };
+  assert.equal(scriptTerms.applyScriptTerms(forged), forged);
+  assert.deepEqual([forged.heir_pubkey_hex, forged.inactivity_daa], [PK, 9n]);
+  assert.deepEqual(calls.at(-1), ['dms','51',ADDRESS,state.networkState.network,'']);
+  scriptTerms.verifiedCovenantTerms({ type:'oracle-v1', address:ADDRESS, redeem_script_hex:'52', attestation_statement:'stmt' });
+  assert.equal(calls.at(-1)[4], 'stmt');
+  const merkle = { type:'merkle-whitelist', inactivity_daa:1n };
+  assert.equal(scriptTerms.applyScriptTerms(merkle), merkle);
+  assert.equal(scriptTerms.applyScriptTerms(null), null);
+  assert.equal(calls.length, 2);
+  termStubs.covenant_script_terms = () => { throw new Error('Redeem script is not a dms covenant'); };
+  assert.throws(() => scriptTerms.applyScriptTerms({ type:'dms', address:ADDRESS, redeem_script_hex:'53' }), /not a dms covenant/);
+  termStubs.covenant_script_terms = priorTerms;
+
+  // Roles come only from keys the script proved; PK is this wallet.
+  state.walletSession.replace(structuredClone(wallet));
+  const role = entry => covenantRole.inferCovenantRole(entry);
+  assert.equal(role({ type:'dms', owner_pubkey_hex:PK }), 'owner');
+  assert.equal(role({ type:'dms', owner_pubkey_hex:PK2 }), 'beneficiary');
+  assert.equal(role({ type:'timelocked-savings', wallet1_pubkey_hex:PK2, wallet2_pubkey_hex:PK }), 'beneficiary');
+  assert.equal(role({ type:'payjoin', owner_pubkey_hex:PK }), 'owner');
+  assert.equal(role({ type:'additive' }), 'owner');
+  assert.equal(role({ type:'global-spending-limit' }), 'owner');
+  assert.equal(role({ type:'escrow', alice_pk:PK }), 'owner');
+  assert.equal(role({ type:'escrow', alice_pk:PK2, arbiter_pk:PK }), 'arbiter');
+  assert.equal(role({ type:'escrow', alice_pk:PK2, bob_pk:PK }), 'beneficiary');
+  assert.equal(role({ type:'oracle-v1', beneficiary_pubkey_hex:PK }), 'beneficiary');
+  assert.equal(role({ type:'oracle-v1', owner_pubkey_hex:PK }), 'owner');
+  assert.equal(role({ type:'oracle-v1', owner_pubkey_hex:PK2 }), 'observer');
 
   // Fee state and owner address cover all fee tiers, absent estimates, invalid
   // input count and wallet/no-wallet accessors.

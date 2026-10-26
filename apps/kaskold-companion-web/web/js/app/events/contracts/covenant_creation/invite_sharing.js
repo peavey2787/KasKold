@@ -5,44 +5,7 @@ import { el } from '../../../../core/ui/elements.js';
 // Focused covenant invite sharing event registration.
 
 import { byId } from '../../../../core/dom.js';
-import { exactDecimalString } from '../../../../core/exact.js';
-function buildCovenantInvite(result) {
-    const type = result.type || '';
-    const invite = {
-        v: 1,
-        t: 'cov-invite',
-        ct: type,
-        addr: result.address || '',
-        rs: result.redeem_script_hex || '',
-        d: exactDecimalString(result.locktime_daa ?? 0n, 'locktime DAA'),
-    };
-    if (type === 'dms' && result.inactivity_daa) invite.id = exactDecimalString(result.inactivity_daa, 'inactivity DAA');
-    if (type === 'timelocked-savings') {
-        if (result.wallet1_pubkey_hex) invite.w1 = result.wallet1_pubkey_hex;
-        if (result.wallet2_pubkey_hex) invite.w2 = result.wallet2_pubkey_hex;
-        if (result.locktime_date_iso) invite.ldi = result.locktime_date_iso;
-    }
-    if (type === 'global-allowance') {
-        if (result.max_withdraw_sompi) invite.mw = exactDecimalString(result.max_withdraw_sompi, 'withdrawal limit');
-        invite.cd = exactDecimalString(result.cooldown_daa ?? result.min_sequence ?? 0n, 'cooldown DAA');
-        if (result.start_daa) invite.sd = exactDecimalString(result.start_daa, 'start DAA');
-        if (result.start_date_iso) invite.sdi = result.start_date_iso;
-    }
-    if (type === 'oracle-v1') {
-        if (!/^[0-9a-f]{64}$/.test(result.oracle_covenant_binding_token_hex || '')) {
-            throw new Error('Bind the Oracle covenant key before sharing this covenant');
-        }
-        if (result.oracle_pubkey_hex) invite.opk = result.oracle_pubkey_hex;
-        if (result.oracle_covenant_key_id_hex) invite.okid = result.oracle_covenant_key_id_hex;
-        invite.obt = result.oracle_covenant_binding_token_hex;
-        if (result.beneficiary_pubkey_hex) invite.bpk = result.beneficiary_pubkey_hex;
-        if (result.owner_pubkey_hex) invite.own = result.owner_pubkey_hex;
-        if (result.locktime_date_iso) invite.ldi = result.locktime_date_iso;
-        if (result.attestation_statement) invite.oas = result.attestation_statement;
-        if (result.message_commitment_hex) invite.omc = result.message_commitment_hex;
-    }
-    return invite;
-}
+import { buildCovenantInvite } from '../../../../features/covenants/recovery/export/beneficiary_payload.js';
 
 function registerCovenantInviteShare() {
     const button = byId('btn-cov-res-share-cov');

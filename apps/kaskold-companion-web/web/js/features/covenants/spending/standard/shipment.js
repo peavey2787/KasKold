@@ -1,12 +1,12 @@
+import { applyScriptTerms } from '../../model/script_terms.js';
 import { el, setContent, span } from '../../../../core/ui/elements.js';
 import { covenantState, navigationState, networkState } from '../../../../app/state/index.js';
 import { hideLoading, showLoading } from '../../../../app/navigation.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
 import { toast } from '../../../../core/ui/toast.js';
 import { getCovFee } from '../../payload_and_swaps/state.js';
-import { ensureEscrowParams } from '../../watchers_and_ui/ui/metadata.js';
 import { openPsktReview } from '../../../transactions/pskt_multisig/review.js';
-import { address_script_public_key, encode_p2pk_address, fetch_utxos_for_address_js, pskb_encode_document, ship_escrow_terms } from '../../../../wasm/api.js';
+import { address_script_public_key, fetch_utxos_for_address_js, pskb_encode_document, ship_escrow_terms } from '../../../../wasm/api.js';
 // KasKold Companion Web — features/covenants/spending/standard/shipment
 import { byId } from '../../../../core/dom.js';
 import { exactJsonStringify, exactUnsigned } from '../../../../core/exact.js';
@@ -163,22 +163,17 @@ export async function handleEscrowSpend(branch) {
     const redeemHex = covenantState.lastCovenantResult.redeem_script_hex;
     if (!covAddr || !redeemHex) { toast('Missing covenant data', 'error'); return; }
 
-    // Parse script to get destination addresses
-    ensureEscrowParams(covenantState.lastCovenantResult);
-    const alicePk = covenantState.lastCovenantResult.alice_spk_hex || covenantState.lastCovenantResult.alice_pk;
-    const bobPk = covenantState.lastCovenantResult.bob_spk_hex || covenantState.lastCovenantResult.bob_pk;
-    if (!alicePk || !bobPk) { toast('Could not parse escrow destinations from script', 'error'); return; }
-
-    // Determine destination based on branch
-    let destAddr;
-    const isDispute = (branch === 'buyer-dispute' || branch === 'seller-dispute');
-    if (isDispute) {
-        destAddr = covAddr; // send back to same escrow address
-    } else if (branch === 'buyer-release' || branch === 'arbiter-award-seller') {
-        destAddr = encode_p2pk_address(bobPk, networkState.network); // funds go to seller
-    } else {
-        destAddr = encode_p2pk_address(alicePk, networkState.network); // funds go to buyer
+    // Payout destinations are the addresses the script itself pays to.
+    let terms;
+    try {
+        terms = applyScriptTerms(covenantState.lastCovenantResult);
+    } catch (e) {
+        toast('Escrow script rejected: ' + (e.message || e), 'error');
+        return;
     }
+    const isDispute = (branch === 'buyer-dispute' || branch === 'seller-dispute');
+    const toSeller = branch === 'buyer-release' || branch === 'arbiter-award-seller';
+    const destAddr = isDispute ? covAddr : (toSeller ? terms.bob_address : terms.alice_address);
 
     showLoading('Building escrow ' + branch + ' TX...');
     try {

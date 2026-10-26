@@ -1,21 +1,24 @@
 import { covenantState } from '../../../../app/state/index.js';
 import { byId } from '../../../../core/dom.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { covShowPanel, walletMatchesPk } from '../../generation/ui_and_keys.js';
-import {
-    covRenderMetaLine,
-    ensureAllowanceParams,
-    ensureEscrowParams,
-    ensurePiggyParams,
-} from '../../watchers_and_ui/ui/metadata.js';
+import { covShowPanel } from '../../generation/ui_and_keys.js';
+import { covRenderMetaLine } from '../../watchers_and_ui/ui/metadata.js';
 import { covUpdateResultButtons } from '../../watchers_and_ui/ui/result_buttons.js';
 import { ACTIVE_METADATA_FIELDS, copyDefinedFields, saveActiveRecords } from './repository.js';
 import { stringifyCovenantJson } from '../../model/exact_fields.js';
+import { SCRIPT_TERM_TYPES, applyScriptTerms } from '../../model/script_terms.js';
+import { inferCovenantRole } from '../import/role.js';
 import { restorePrivateSwapState } from '../../private_swap/state.js';
 
 export function openActiveCovenant(covenant) {
-    covenantState.lastCovenantResult = restoreActiveResult(covenant);
-    hydrateCovenantParameters(covenant);
+    let result;
+    try {
+        result = applyScriptTerms(restoreActiveResult(covenant));
+    } catch (error) {
+        toast('Covenant rejected: ' + (error.message || error), 'error');
+        return;
+    }
+    covenantState.lastCovenantResult = result;
     detectStoredRole(covenant);
     persistLastResult();
     showResultPanel(covenant);
@@ -34,51 +37,13 @@ function restoreActiveResult(covenant) {
     return result;
 }
 
-function hydrateCovenantParameters(covenant) {
-    ensureAllowanceParams(covenantState.lastCovenantResult);
-    ensureAllowanceParams(covenant);
-    ensurePiggyParams(covenantState.lastCovenantResult);
-    ensurePiggyParams(covenant);
-    if (covenant.type === 'oracle-v1') {
-        return matchingRole([
-            ['beneficiary', covenantState.lastCovenantResult.beneficiary_pubkey_hex],
-            ['owner', covenantState.lastCovenantResult.owner_pubkey_hex],
-        ]);
-    }
-    if (covenant.type === 'escrow') {
-        ensureEscrowParams(covenantState.lastCovenantResult);
-        ensureEscrowParams(covenant);
-    }
-}
-
+// The role follows the keys the script proves, so a stored role is refreshed.
 function detectStoredRole(covenant) {
-    const role = roleForCovenant(covenant);
-    if (!role) return;
+    if (!SCRIPT_TERM_TYPES.has(covenant.type)) return;
+    const role = inferCovenantRole(covenantState.lastCovenantResult);
     covenantState.lastCovenantResult.role = role;
     covenant.role = role;
     saveActiveRecords();
-}
-
-function roleForCovenant(covenant) {
-    if (covenant.type === 'oracle-v1') {
-        return matchingRole([
-            ['beneficiary', covenantState.lastCovenantResult.beneficiary_pubkey_hex],
-            ['owner', covenantState.lastCovenantResult.owner_pubkey_hex],
-        ]);
-    }
-    if (covenant.type === 'escrow') {
-        return matchingRole([
-            ['owner', covenantState.lastCovenantResult.alice_pk],
-            ['beneficiary', covenantState.lastCovenantResult.bob_pk],
-            ['arbiter', covenantState.lastCovenantResult.arbiter_pk],
-        ]);
-    }
-    return null;
-}
-
-function matchingRole(candidates) {
-    const match = candidates.find(([, publicKey]) => publicKey && walletMatchesPk(publicKey));
-    return match ? match[0] : null;
 }
 
 function persistLastResult() {
@@ -101,7 +66,7 @@ function showResultPanel(covenant) {
     covUpdateResultButtons(covenant.type);
     byId('cov-result-addr').textContent = covenant.address;
     byId('cov-result-script').textContent = covenant.redeem_script_hex;
-    covRenderMetaLine(covenant);
+    covRenderMetaLine(covenantState.lastCovenantResult);
     const balance = byId('cov-result-balance');
     balance.textContent = 'Loading...';
     balance.style.display = '';

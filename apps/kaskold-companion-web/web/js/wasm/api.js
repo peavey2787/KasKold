@@ -67,6 +67,7 @@ const GENERATED_WASM_EXPORTS = Object.freeze([
     'create_covenant_timelocked_savings_claim',
     'covenant_timelocked_escrow',
     'covenant_dms',
+    'covenant_script_terms',
     'covenant_private_swap',
     'private_swap_key_request',
     'private_swap_bind_request',
@@ -230,6 +231,7 @@ export function covenant_timelocked_savings(...args) { return invoke('covenant_t
 export function create_covenant_timelocked_savings_claim(...args) { return invoke('create_covenant_timelocked_savings_claim', args); }
 export function covenant_timelocked_escrow(...args) { return invoke('covenant_timelocked_escrow', args); }
 export function covenant_dms(...args) { return invoke('covenant_dms', args); }
+export function covenant_script_terms(...args) { return invoke('covenant_script_terms', args); }
 export function covenant_private_swap(...args) { return invoke('covenant_private_swap', args); }
 export function private_swap_key_request(...args) { return invoke('private_swap_key_request', args); }
 export function private_swap_bind_request(...args) { return invoke('private_swap_bind_request', args); }

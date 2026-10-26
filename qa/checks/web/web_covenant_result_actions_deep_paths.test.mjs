@@ -113,14 +113,22 @@ try {
 
   // Sparse/corrupt recovery records exercise the display fallbacks without
   // reusing stale covenant data. Long malformed escrow scripts are contained
-  // by the auto-fill parser and still leave the manual destination path usable.
+  // by the script verifier and still leave the manual destination path usable.
   state.covenantState.lastCovenantResult={type:'unknown'};
   element('btn-cov-owner-spend').onclick(); assert.equal(element('cov-owner-addr').value,''); assert.equal(element('cov-owner-script').value,'');
   element('btn-cov-borrower-spend').onclick(); assert.equal(element('cov-borrower-addr').value,'');
   element('btn-cov-beneficiary-spend').onclick(); assert.equal(element('cov-bene-addr').value,'');
   element('btn-cov-timeout-refund').onclick(); assert.equal(element('cov-timeout-addr').value,''); assert.equal(element('cov-timeout-script').value,'');
+  // Escrow claims default to the buyer address the verified script pays to;
+  // a refused script reports the rejection and fills nothing.
+  const priorTerms=stubs.covenant_script_terms;
   state.covenantState.lastCovenantResult={type:'escrow',address:ADDRESS,redeem_script_hex:'ff'.repeat(120)};
-  element('btn-cov-beneficiary-spend').onclick(); assert.equal(element('cov-bene-addr').value,ADDRESS);
+  stubs.covenant_script_terms=()=>JSON.stringify({alice_address:'kaspa:buyer'});
+  element('btn-cov-beneficiary-spend').onclick(); assert.equal(element('cov-bene-addr').value,ADDRESS); assert.equal(element('cov-bene-dest').value,'kaspa:buyer');
+  element('cov-bene-dest').value='';
+  stubs.covenant_script_terms=()=>{throw new Error('Redeem script is not a escrow covenant');};
+  element('btn-cov-beneficiary-spend').onclick(); assert.equal(element('cov-bene-dest').value,''); assert.match(element('toast').textContent,/Escrow script rejected/);
+  stubs.covenant_script_terms=priorTerms;
 
   // DMS picker tolerates node lookup failure and absent/zero DAA metadata by
   // falling back to the picker; a zero inactivity policy likewise has no CSV gate.
@@ -152,9 +160,9 @@ try {
   let invitePayload=''; stubs.generate_qr_svg_text=value=>{invitePayload=String(value);return '<svg></svg>';};
   state.covenantState.lastCovenantResult=null; element('btn-cov-res-share-cov').onclick();
   state.covenantState.lastCovenantResult={type:'additive',address:''}; element('btn-cov-res-share-cov').onclick(); assert.equal(invitePayload,'');
-  state.covenantState.lastCovenantResult={type:'dms',address:ADDRESS,redeem_script_hex:'51',locktime_daa:'0',inactivity_daa:'500'}; element('btn-cov-res-share-cov').onclick(); assert.equal(JSON.parse(invitePayload).id,'500');
-  state.covenantState.lastCovenantResult={type:'timelocked-savings',address:ADDRESS,redeem_script_hex:'51',locktime_daa:'1200',wallet1_pubkey_hex:PK,wallet2_pubkey_hex:PK2,locktime_date_iso:'2099-01-01'}; element('btn-cov-res-share-cov').onclick(); assert.equal(JSON.parse(invitePayload).w2,PK2);
-  state.covenantState.lastCovenantResult={type:'global-allowance',address:ADDRESS,redeem_script_hex:'51',locktime_daa:'0',max_withdraw_sompi:'100',min_sequence:'50',start_daa:'10',start_date_iso:'2099-01-01'}; element('btn-cov-res-share-cov').onclick(); assert.equal(JSON.parse(invitePayload).cd,'50');
+  state.covenantState.lastCovenantResult={type:'dms',address:ADDRESS,redeem_script_hex:'51',locktime_daa:'0',inactivity_daa:'500'}; element('btn-cov-res-share-cov').onclick(); assert.deepEqual(JSON.parse(invitePayload),{v:1,t:'cov-invite',ct:'dms',addr:ADDRESS,rs:'51'});
+  state.covenantState.lastCovenantResult={type:'timelocked-savings',address:ADDRESS,redeem_script_hex:'51',locktime_daa:'1200',wallet1_pubkey_hex:PK,wallet2_pubkey_hex:PK2,locktime_date_iso:'2099-01-01'}; element('btn-cov-res-share-cov').onclick(); assert.deepEqual(JSON.parse(invitePayload),{v:1,t:'cov-invite',ct:'timelocked-savings',addr:ADDRESS,rs:'51',ldi:'2099-01-01'});
+  state.covenantState.lastCovenantResult={type:'global-allowance',address:ADDRESS,redeem_script_hex:'51',locktime_daa:'0',max_withdraw_sompi:'100',min_sequence:'50',start_daa:'10',start_date_iso:'2099-01-01'}; element('btn-cov-res-share-cov').onclick(); assert.deepEqual(JSON.parse(invitePayload),{v:1,t:'cov-invite',ct:'global-allowance',addr:ADDRESS,rs:'51',sdi:'2099-01-01'});
   state.covenantState.lastCovenantResult={type:'oracle-v1',address:ADDRESS,redeem_script_hex:'51',locktime_daa:'0'}; element('btn-cov-res-share-cov').onclick(); assert.match(element('toast').textContent,/Bind the Oracle covenant key/);
   state.covenantState.lastCovenantResult={type:'oracle-v1',address:ADDRESS,redeem_script_hex:'51',locktime_daa:'0',oracle_covenant_binding_token_hex:'ab'.repeat(32),oracle_pubkey_hex:PK2,oracle_covenant_key_id_hex:PK3,beneficiary_pubkey_hex:PK2,owner_pubkey_hex:PK,attestation_statement:'release',message_commitment_hex:PK3}; element('btn-cov-res-share-cov').onclick(); assert.equal(JSON.parse(invitePayload).obt,'ab'.repeat(32));
 

@@ -1,4 +1,4 @@
-import { covenantState, networkState } from '../../../state/index.js';
+import { covenantState } from '../../../state/index.js';
 import { fetchCurrentDaa } from '../../../../core/node/daa.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
 import { toast } from '../../../../core/ui/toast.js';
@@ -6,8 +6,8 @@ import { covShowPanel } from '../../../../features/covenants/generation/ui_and_k
 import { ownerReceiveAddr } from '../../../../features/covenants/payload_and_swaps/state.js';
 import { covScanAddress } from '../../../../features/covenants/scanning_and_swap.js';
 import { handleCovBeneficiarySpend, handleCovTimeoutRefund } from '../../../../features/covenants/spending/standard/thread_and_claims.js';
-import { parseEscrowScript } from '../../../../features/covenants/watchers_and_ui/ui/script_metadata.js';
-import { encode_p2pk_address, fetch_utxos_for_address_js } from '../../../../wasm/api.js';
+import { applyScriptTerms } from '../../../../features/covenants/model/script_terms.js';
+import { fetch_utxos_for_address_js } from '../../../../wasm/api.js';
 // KasKold Companion Web — app/events/contracts/covenant_creation/sharing_and_claims
 import { byId } from '../../../../core/dom.js';
 import { bindDurationInputs } from '../../../../core/forms/duration.js';
@@ -55,19 +55,13 @@ function registerSpendPanelActions() {
             if (covenantState.lastCovenantResult.locktime_daa) {
                 byId('cov-bene-locktime').value = covenantState.lastCovenantResult.locktime_daa;
             }
-            // For escrow: auto-fill destination from parsed script.
-            try {
-                const rs = covenantState.lastCovenantResult.redeem_script_hex || '';
-                if (rs.length > 200) {
-                    const parsed = parseEscrowScript(rs);
-                    // Bob (seller) claiming: destination is alice's address
-                    if (parsed.alice_spk_hex) {
-                        const aliceAddr = encode_p2pk_address(parsed.alice_spk_hex, networkState.network);
-                        byId('cov-bene-dest').value = aliceAddr;
-                    }
+            // Escrow: the seller claims to the buyer address the script pays to.
+            if (covenantState.lastCovenantResult.type === 'escrow') {
+                try {
+                    byId('cov-bene-dest').value = applyScriptTerms(covenantState.lastCovenantResult).alice_address;
+                } catch (e) {
+                    toast('Escrow script rejected: ' + (e.message || e), 'error');
                 }
-            } catch (e) {
-                console.log('[Companion] Could not auto-fill escrow destination:', e);
             }
         }
     };

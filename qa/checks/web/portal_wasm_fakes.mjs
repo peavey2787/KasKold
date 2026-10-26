@@ -9,7 +9,16 @@ function hrp(network) {
     return name.startsWith('testnet') ? 'kaspatest' : NETWORK_HRPS[name];
 }
 
+const SCRIPT_TERM_TYPES = new Set([
+    'dms', 'timelocked-savings', 'additive', 'escrow',
+    'global-allowance', 'global-spending-limit', 'payjoin', 'oracle-v1',
+]);
+
 export const PORTAL_WASM_FAKES = Object.freeze({
+    covenant_script_terms: (type, redeemScriptHex, address) => {
+        if (!SCRIPT_TERM_TYPES.has(type)) throw new Error(`Unsupported covenant type: ${JSON.stringify(type)}`);
+        return JSON.stringify({ type, address, redeem_script_hex: redeemScriptHex });
+    },
     network_address_prefix: network => (hrp(network) ? `${hrp(network)}:` : ''),
     address_network: (address, selected = 'mainnet') => {
         const prefix = String(address ?? '').split(':')[0];

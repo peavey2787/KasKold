@@ -289,32 +289,4 @@ assert.equal(readOptionalDate(`0a00${recoveryDateHex}`, 0), recoveryDate,
 assert.equal(readOptionalDate('', 0), '',
     'recovery records without an optional date must remain valid');
 
-const inviteNormalizationSource = await read(
-    'features/covenants/recovery/import/invite_normalization.js',
-);
-const inviteNormalizationModule = inviteNormalizationSource.replace(
-    /import \{[\s\S]*?\} from '\.\.\/\.\.\/watchers_and_ui\/ui\/metadata\.js';/,
-    `const ensureAllowanceParams = entry => { entry.allowanceNormalized = true; };
-     const ensureEscrowParams = entry => { entry.escrowNormalized = true; };
-     const ensurePiggyParams = entry => { entry.piggyNormalized = true; };`,
-);
-const inviteNormalizationUrl = `data:text/javascript;base64,${Buffer.from(inviteNormalizationModule).toString('base64')}`;
-const { normalizeRecoveredInvite } = await import(inviteNormalizationUrl);
-assert.deepEqual(
-    normalizeRecoveredInvite(
-        { type: 'timelocked-savings' },
-        { ldi: '2024-01-01', w1: '11'.repeat(32), w2: '22'.repeat(32) },
-    ),
-    {
-        type: 'timelocked-savings',
-        locktime_date_iso: '2024-01-01',
-        wallet1_pubkey_hex: '11'.repeat(32),
-        wallet2_pubkey_hex: '22'.repeat(32),
-    },
-    'historical savings invites must normalize into the current record shape',
-);
-const allowanceRecord = normalizeRecoveredInvite({ type: 'global-allowance' }, {});
-assert.equal(allowanceRecord.allowanceNormalized, true,
-    'historical allowance records must pass through current metadata normalization');
-
 console.log('PASS: browser critical transaction, PayJoin, covenant-import, and current recovery paths');

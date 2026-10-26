@@ -10,12 +10,11 @@ import {
 before(setupHarness);
 after(teardownHarness);
 
-test('recovery formats, frame assembly, payload readers, and invite normalization', async () => {
+test('recovery formats, frame assembly, and payload readers', async () => {
     const formats = await import(moduleUrl('features/covenants/recovery/import/formats.js'));
     const frames = await import(moduleUrl('features/covenants/recovery/import/frames.js'));
     const payload = await import(moduleUrl('features/covenants/recovery/scanner/payload_reader.js'));
     const optionalDate = await import(moduleUrl('features/covenants/recovery/scanner/optional_date.js'));
-    const normalize = await import(moduleUrl('features/covenants/recovery/import/invite_normalization.js'));
 
     const covb = Uint8Array.from(Buffer.from('COVBpayload'));
     const coviHex = Buffer.from('COVIinvite').toString('hex');
@@ -64,14 +63,6 @@ test('recovery formats, frame assembly, payload readers, and invite normalizatio
     assert.equal(optionalDate.readOptionalDate(vstr('2026-08-05'), 0), '2026-08-05');
     assert.equal(optionalDate.readOptionalDate('', 0), '');
     assert.equal(optionalDate.readOptionalDate('ffff', 0), '');
-    const savings = normalize.normalizeRecoveredInvite({ type: 'timelocked-savings' }, { ldi: 'date', w1: 'a', w2: 'b' });
-    assert.equal(savings.locktime_date_iso, 'date');
-    assert.equal(savings.wallet1_pubkey_hex, 'a');
-    assert.equal(savings.wallet2_pubkey_hex, 'b');
-    assert.equal(normalize.normalizeRecoveredInvite({ type: 'payjoin' }, { ldi: 'date' }).locktime_date_iso, 'date');
-    normalize.normalizeRecoveredInvite({ type: 'global-allowance' }, {});
-    normalize.normalizeRecoveredInvite({ type: 'additive' }, {});
-    normalize.normalizeRecoveredInvite({ type: 'escrow' }, {});
 });
 
 
@@ -211,41 +202,50 @@ test('active covenant repository, rendering, balances, watcher, and opening', as
     opening.openActiveCovenant(state.covenantState.activeCovenants[0]);
     assert.equal(state.covenantState.lastCovenantResult.type, 'dms');
     assert.equal(element('cov-result-addr').textContent, 'kaspa:open');
-    function escrowRedeem(alicePk, bobPk, arbiterPk) {
-        const saltPrefix = '08' + 'ab'.repeat(8) + '75';
-        const stateCheck = 'ad00c324000020';
-        return saltPrefix
-            + '6320' + alicePk + stateCheck + '66'.repeat(32) + 'ac8851'
-            + '676320' + bobPk + stateCheck + '77'.repeat(32)
-            + 'ac8851676320' + arbiterPk + '686868';
-    }
+    // Opening a stored covenant re-reads its terms from the script, so the
+    // role follows the proven keys even when the stored record claims others.
+    const wasm = globalThis.__COMPANION_WASM_STUBS__;
+    const priorTerms = wasm.covenant_script_terms;
+    const provenTerms = new Map();
+    wasm.covenant_script_terms = (type, script, address) => {
+        if (!provenTerms.has(address)) throw new Error('Covenant address does not match its redeem script');
+        return JSON.stringify({ type, address, redeem_script_hex: script, ...provenTerms.get(address) });
+    };
     const escrowCases = [
         ['owner', '11'.repeat(32), '33'.repeat(32), '44'.repeat(32)],
         ['beneficiary', '33'.repeat(32), '11'.repeat(32), '44'.repeat(32)],
         ['arbiter', '33'.repeat(32), '44'.repeat(32), '11'.repeat(32)],
-        [null, '33'.repeat(32), '44'.repeat(32), '55'.repeat(32)],
+        ['beneficiary', '33'.repeat(32), '44'.repeat(32), '55'.repeat(32)],
     ];
-    for (const [expectedRole, alicePk, bobPk, arbiterPk] of escrowCases) {
-        const escrow = {
-            type: 'escrow', label: 'Escrow', address: `kaspa:escrow-${expectedRole ?? 'observer'}`,
-            redeem_script_hex: escrowRedeem(alicePk, bobPk, arbiterPk),
-        };
+    for (const [index, [expectedRole, alicePk, bobPk, arbiterPk]] of escrowCases.entries()) {
+        const address = `kaspa:escrow-${index}`;
+        provenTerms.set(address, { alice_pk: alicePk, bob_pk: bobPk, arbiter_pk: arbiterPk });
+        const escrow = { type: 'escrow', label: 'Escrow', address, redeem_script_hex: '54', alice_pk: '11'.repeat(32) };
         opening.openActiveCovenant(escrow);
-        assert.equal(state.covenantState.lastCovenantResult.role ?? null, expectedRole);
+        assert.equal(state.covenantState.lastCovenantResult.role, expectedRole);
+        assert.equal(escrow.role, expectedRole);
+        assert.equal(state.covenantState.lastCovenantResult.alice_pk, alicePk);
     }
     const oracleRoles = [
         ['beneficiary', '11'.repeat(32), '33'.repeat(32)],
         ['owner', '33'.repeat(32), '11'.repeat(32)],
-        [null, '33'.repeat(32), '44'.repeat(32)],
+        ['observer', '33'.repeat(32), '44'.repeat(32)],
     ];
     for (const [expectedRole, beneficiaryPk, ownerPk] of oracleRoles) {
+        const address = `kaspa:oracle-${expectedRole}`;
+        provenTerms.set(address, { beneficiary_pubkey_hex: beneficiaryPk, owner_pubkey_hex: ownerPk });
         const oracleCovenant = {
-            type: 'oracle-v1', label: 'Oracle', address: `kaspa:oracle-${expectedRole ?? 'observer'}`,
-            redeem_script_hex: '51', beneficiary_pubkey_hex: beneficiaryPk, owner_pubkey_hex: ownerPk,
+            type: 'oracle-v1', label: 'Oracle', address, redeem_script_hex: '51',
+            beneficiary_pubkey_hex: '11'.repeat(32), owner_pubkey_hex: '11'.repeat(32),
         };
         opening.openActiveCovenant(oracleCovenant);
-        assert.equal(state.covenantState.lastCovenantResult.role ?? null, expectedRole);
+        assert.equal(state.covenantState.lastCovenantResult.role, expectedRole);
     }
+    const previous = state.covenantState.lastCovenantResult;
+    opening.openActiveCovenant({ type: 'dms', label: 'DMS', address: 'kaspa:forged', redeem_script_hex: '51' });
+    assert.equal(state.covenantState.lastCovenantResult, previous);
+    assert.match(element('toast').textContent, /Covenant rejected: Covenant address does not match/);
+    wasm.covenant_script_terms = priorTerms;
 
     active.covSaveActive();
     active.covLoadActive();
@@ -275,14 +275,24 @@ test('beneficiary and owner export payloads, QR presentation, modal, and downloa
     });
     assert.equal(Buffer.from(invite.bytes.slice(0, 4)).toString(), 'COVI');
     assert.equal(invite.extension, '.cov');
-    beneficiary.buildBeneficiaryExport({ type: 'dms', address: 'a', redeem_script_hex: 'b', inactivity_daa: 10 });
-    beneficiary.buildBeneficiaryExport({
+    const decoded = built => JSON.parse(Buffer.from(built.bytes.slice(4)).toString());
+    assert.deepEqual(decoded(invite), {
+        v: 1, t: 'cov-invite', ct: 'global-allowance', addr: 'kaspa:beneficiary', rs: '51', ldi: 'later', sdi: '2026-08-05',
+    });
+    assert.deepEqual(decoded(beneficiary.buildBeneficiaryExport({ type: 'dms', address: 'a', redeem_script_hex: 'b', inactivity_daa: 10 })),
+        { v: 1, t: 'cov-invite', ct: 'dms', addr: 'a', rs: 'b' });
+    const oracleRecord = {
         type: 'oracle-v1', address: '', redeem_script_hex: '',
-        oracle_pubkey_hex: '01', oracle_covenant_key_id_hex: '02',
-        oracle_covenant_binding_token_hex: '03', beneficiary_pubkey_hex: '04',
+        oracle_pubkey_hex: '01', oracle_covenant_key_id_hex: '02'.repeat(32),
+        oracle_covenant_binding_token_hex: '03'.repeat(32), beneficiary_pubkey_hex: '04',
         owner_pubkey_hex: '05', attestation_statement: 'statement',
         message_commitment_hex: '06',
+    };
+    assert.deepEqual(decoded(beneficiary.buildBeneficiaryExport(oracleRecord)), {
+        v: 1, t: 'cov-invite', ct: 'oracle-v1', addr: '', rs: '', okid: '02'.repeat(32), obt: '03'.repeat(32), oas: 'statement',
     });
+    assert.throws(() => beneficiary.buildBeneficiaryExport({ ...oracleRecord, oracle_covenant_binding_token_hex: '03' }),
+        /Bind the Oracle covenant key/);
     beneficiary.buildBeneficiaryExport({});
 
     const originalCrypto = globalThis.crypto;
@@ -506,30 +516,58 @@ test('invite, owner backup, scan controller, chain scanner, and rebuild orchestr
     function inviteHex(value) {
         return Buffer.from('COVI').toString('hex') + Buffer.from(JSON.stringify(value)).toString('hex');
     }
+    // Invite import keeps only what the verifier proves from the script; the
+    // invite's own term claims are ignored and a refused invite adds nothing.
+    const wasmStubs = globalThis.__COMPANION_WASM_STUBS__;
+    const priorTerms = wasmStubs.covenant_script_terms;
+    const proven = new Map([
+        ['kaspa:invite', { wallet1_pubkey_hex: '33'.repeat(32), wallet2_pubkey_hex: '11'.repeat(32), locktime_daa: '10' }],
+        ['kaspa:oracle-beneficiary', { beneficiary_pubkey_hex: '11'.repeat(32), owner_pubkey_hex: '22'.repeat(32), attestation_statement: 'proven' }],
+        ['kaspa:oracle-owner', { beneficiary_pubkey_hex: '22'.repeat(32), owner_pubkey_hex: '11'.repeat(32) }],
+        ['kaspa:oracle-observer', { beneficiary_pubkey_hex: '22'.repeat(32), owner_pubkey_hex: '33'.repeat(32) }],
+        ['kaspa:bad-oracle', {}],
+        ['kaspa:bad-oracle-token', {}],
+    ]);
+    const verifierCalls = [];
+    wasmStubs.covenant_script_terms = (type, script, address, network, statement) => {
+        verifierCalls.push([type, script, address, network, statement]);
+        if (!['timelocked-savings', 'oracle-v1'].includes(type)) throw new Error(`Unsupported covenant type: ${JSON.stringify(type)}`);
+        if (!proven.has(address)) throw new Error('Covenant address does not match its redeem script');
+        return JSON.stringify({ type, address, redeem_script_hex: script, ...proven.get(address) });
+    };
     state.covenantState.activeCovenants = [];
     const savingsInvite = inviteHex({
-        v: 1, t: 'cov-invite', ct: 'timelocked-savings', addr: 'kaspa:invite', rs: '51', d: 10,
+        v: 1, t: 'cov-invite', ct: 'timelocked-savings', addr: 'kaspa:invite', rs: '51', d: 99,
         w1: '11'.repeat(32), w2: '22'.repeat(32), ldi: 'date',
     });
     assert.equal(inviteModule.importCovenantInvite(savingsInvite), true);
-    assert.equal(state.covenantState.activeCovenants[0].role, 'beneficiary');
-    assert.equal(state.covenantState.activeCovenants[0].locktime_date_iso, 'date');
+    const savings = state.covenantState.activeCovenants[0];
+    assert.equal(savings.role, 'beneficiary');
+    assert.equal(savings.locktime_date_iso, 'date');
+    assert.equal(savings.locktime_daa, 10n);
+    assert.equal(savings.wallet1_pubkey_hex, undefined, 'script terms are re-derived on open, never persisted');
+    assert.deepEqual(verifierCalls.at(-1), ['timelocked-savings', '51', 'kaspa:invite', state.networkState.network, '']);
     assert.equal(inviteModule.importCovenantInvite(savingsInvite), false);
     assert.throws(() => inviteModule.importCovenantInvite(inviteHex({ t: 'bad' })), /Invalid invite format/);
-    inviteModule.importCovenantInvite(inviteHex({ t: 'cov-invite', addr: 'kaspa:unknown-invite', rs: '50' }));
-    assert.equal(state.covenantState.activeCovenants.find(x => x.address === 'kaspa:unknown-invite').type, 'unknown');
-    inviteModule.importCovenantInvite(inviteHex({ t: 'cov-invite', ct: 'additive', addr: 'kaspa:add', rs: '52', id: 5, name: 'n', goal: '2' }));
-    inviteModule.importCovenantInvite(inviteHex({ t: 'cov-invite', ct: 'global-allowance', addr: 'kaspa:allow', rs: '53', mw: 1, cd: 2, sd: 3, sdi: 'date' }));
-    inviteModule.importCovenantInvite(inviteHex({ t: 'cov-invite', ct: 'escrow', addr: 'kaspa:escrow-invite', rs: '54' }));
+    const before = state.covenantState.activeCovenants.length;
+    assert.throws(() => inviteModule.importCovenantInvite(inviteHex({ t: 'cov-invite', addr: 'kaspa:unknown-invite', rs: '50' })), /Unsupported covenant type/);
+    assert.throws(() => inviteModule.importCovenantInvite(inviteHex({ t: 'cov-invite', ct: 'treasury', addr: 'kaspa:treasury', rs: '50' })), /Unsupported covenant type/);
+    assert.throws(() => inviteModule.importCovenantInvite(inviteHex({ t: 'cov-invite', ct: 'timelocked-savings', addr: 'kaspa:forged', rs: '51' })), /does not match its redeem script/);
+    assert.equal(state.covenantState.activeCovenants.length, before);
     const oracleBinding = { okid: 'aa'.repeat(32), obt: 'bb'.repeat(32) };
-    inviteModule.importCovenantInvite(inviteHex({ t: 'cov-invite', ct: 'oracle-v1', addr: 'kaspa:oracle-beneficiary', rs: '55', bpk: '11'.repeat(32), own: '22'.repeat(32), opk: '33'.repeat(32), oas: 'price >= 10', omc: 'cc'.repeat(32), ...oracleBinding }));
-    assert.equal(state.covenantState.activeCovenants.find(x => x.address === 'kaspa:oracle-beneficiary').role, 'beneficiary');
-    inviteModule.importCovenantInvite(inviteHex({ t: 'cov-invite', ct: 'oracle-v1', addr: 'kaspa:oracle-owner', rs: '56', bpk: '22'.repeat(32), own: '11'.repeat(32), ...oracleBinding }));
+    inviteModule.importCovenantInvite(inviteHex({ t: 'cov-invite', ct: 'oracle-v1', addr: 'kaspa:oracle-beneficiary', rs: '55', bpk: '22'.repeat(32), own: '11'.repeat(32), oas: 'price >= 10', ...oracleBinding }));
+    const oracleEntry = state.covenantState.activeCovenants.find(x => x.address === 'kaspa:oracle-beneficiary');
+    assert.equal(oracleEntry.role, 'beneficiary');
+    assert.equal(oracleEntry.attestation_statement, 'proven');
+    assert.equal(oracleEntry.oracle_covenant_binding_token_hex, 'bb'.repeat(32));
+    assert.equal(verifierCalls.at(-1)[4], 'price >= 10');
+    inviteModule.importCovenantInvite(inviteHex({ t: 'cov-invite', ct: 'oracle-v1', addr: 'kaspa:oracle-owner', rs: '56', ...oracleBinding }));
     assert.equal(state.covenantState.activeCovenants.find(x => x.address === 'kaspa:oracle-owner').role, 'owner');
-    inviteModule.importCovenantInvite(inviteHex({ t: 'cov-invite', ct: 'oracle-v1', addr: 'kaspa:oracle-observer', rs: '57', bpk: '22'.repeat(32), own: '33'.repeat(32), ...oracleBinding }));
+    inviteModule.importCovenantInvite(inviteHex({ t: 'cov-invite', ct: 'oracle-v1', addr: 'kaspa:oracle-observer', rs: '57', bpk: '11'.repeat(32), ...oracleBinding }));
     assert.equal(state.covenantState.activeCovenants.find(x => x.address === 'kaspa:oracle-observer').role, 'observer');
     assert.throws(() => inviteModule.importCovenantInvite(inviteHex({ t: 'cov-invite', ct: 'oracle-v1', addr: 'kaspa:bad-oracle', rs: '58' })), /binding record/);
     assert.throws(() => inviteModule.importCovenantInvite(inviteHex({ t: 'cov-invite', ct: 'oracle-v1', addr: 'kaspa:bad-oracle-token', rs: '58', okid: 'aa'.repeat(32), obt: 'bad' })), /binding record/);
+    wasmStubs.covenant_script_terms = priorTerms;
 
     globalThis.__COMPANION_WASM_STUBS__.parse_covenant_payload = () => JSON.stringify({ covenant_type_name: 'additive', params_hex: storedScript('51', le64(1) + le64(2)) });
     const originalDecryptKey = globalThis.__COMPANION_WASM_STUBS__.derive_covenant_payload_key;

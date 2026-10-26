@@ -1,8 +1,8 @@
 import { byId } from '../../../../../../core/dom.js';
 
 const SHAREABLE_TYPES = new Set([
-    'additive', 'dms', 'timelocked-savings', 'escrow', 'timelocked-escrow',
-    'global-allowance', 'treasury', 'payjoin', 'oracle-v1',
+    'additive', 'dms', 'timelocked-savings', 'escrow',
+    'global-allowance', 'payjoin', 'oracle-v1',
 ]);
 
 export function configureInviteSharing({ type, covRole, isBeneficiary }) {

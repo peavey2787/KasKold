@@ -70,7 +70,7 @@ def _check_module_layout(root: Path) -> tuple[list[str], list[str], str]:
         "app/state/features/oracle_state.js",
         "app/state/features/stealth_state.js",
         "app/events/index.js",
-        "core/script_pushes.js",
+        "features/covenants/model/script_terms.js",
         "wasm/api.js",
     }
     actual_web_js_modules = {
@@ -155,21 +155,17 @@ def _check_module_layout(root: Path) -> tuple[list[str], list[str], str]:
             errors.append(f"direct WASM package import outside wasm/api.js: {path.relative_to(ROOT)}")
     if "create_oracle_mb_heartbeat_roll" in all_web_js_source:
         errors.append("obsolete standalone Oracle heartbeat-roll browser surface must not return")
-    script_walker = web_js_root / "core/script_pushes.js"
-    script_walker_source = script_walker.read_text(errors="ignore") if script_walker.exists() else ""
-    for required in ("walkScriptPushes", "opcode === 0x4c"):
-        if required not in script_walker_source:
-            errors.append(f"shared JavaScript script walker missing behavior: {required}")
-    script_parser_paths = (
-        web_js_root / "features/wallet/core.js",
-        web_js_root / "features/covenants/watchers_and_ui/ui/script_metadata.js",
-    )
-    script_parser_source = "\n".join(path.read_text(errors="ignore") for path in script_parser_paths)
-    for required_call in ("walkScriptPushes(",):
-        if required_call not in script_parser_source:
-            errors.append(f"browser script parsers bypass shared walker: {required_call}")
-    if "let lastPush" in script_parser_source or "op >= 0x01 && op <= 0x4b" in script_parser_source:
-        errors.append("duplicated browser script-push walker must not return")
+    # Covenant terms are read from redeem scripts in WASM only; the browser
+    # must not grow its own script parser again.
+    script_terms_source = (
+        web_js_root / "features/covenants/model/script_terms.js"
+    ).read_text(errors="ignore") if web_js_root.exists() else ""
+    if "covenant_script_terms(" not in script_terms_source:
+        errors.append("covenant script terms must come from the WASM covenant_script_terms export")
+    for forbidden in ("walkScriptPushes", "parseEscrowScript", "parseAllowanceScript", "parsePiggyScript",
+                      "let lastPush", "op >= 0x01 && op <= 0x4b"):
+        if forbidden in all_web_js_source:
+            errors.append(f"browser covenant script parser must not return: {forbidden}")
     broadcast_source = (
         web_js_root / "features/transactions/send/broadcast.js"
     ).read_text(errors="ignore")
@@ -296,7 +292,7 @@ def _check_recovery_compatibility_exception(root: Path) -> list[str]:
         errors.append("current recovery regression test is missing")
     else:
         test_source = regression_test.read_text(errors="ignore")
-        for symbol in ("readOptionalDate", "normalizeRecoveredInvite"):
+        for symbol in ("readOptionalDate",):
             if symbol not in test_source:
                 errors.append(f"current recovery regression lacks coverage for: {symbol}")
     return errors

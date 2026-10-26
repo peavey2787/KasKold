@@ -1,12 +1,12 @@
+import { applyScriptTerms } from '../../../../../../model/script_terms.js';
 import { covenantState, covenantWatcherState } from '../../../../../../../../app/state/index.js';
-import { ensureEscrowParams } from '../../../../../ui/metadata.js';
 import { fetchEscrowDispute } from './fetch.js';
 import { renderEscrowEmpty, renderEscrowFunded, renderEscrowResolved } from './render.js';
 import { beginEscrowCycle, resolveEscrowCycle, saveEscrowDispute, shouldCheckDispute } from './state.js';
 
 export async function pollEscrow(state) {
     const { total, kas, st: status, utxos } = state;
-    ensureEscrowParams(covenantState.lastCovenantResult);
+    applyScriptTerms(covenantState.lastCovenantResult);
 
     if (total === 0n && covenantWatcherState._covWatcherLastBalance !== null && covenantWatcherState._covWatcherLastBalance > 0n) {
         resolveEscrowCycle();

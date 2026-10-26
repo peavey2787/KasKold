@@ -9,12 +9,14 @@ use crate::wasm_api::JsValue;
 mod fees;
 mod global_thread;
 mod logging;
+mod script_terms;
 mod spend_path;
 
 mod families;
 
 pub use families::*;
 pub use fees::*;
+pub use script_terms::*;
 pub use spend_path::*;
 
 #[cfg(test)]
