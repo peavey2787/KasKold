@@ -56,9 +56,9 @@ impl SkewedGridLocation {
         /* Rotate each capstone so that corner 0 is top-left with respect
          * to the grid.
          */
-        rotate_capstone(&mut group.0, &h0, &hd);
-        rotate_capstone(&mut group.1, &h0, &hd);
-        rotate_capstone(&mut group.2, &h0, &hd);
+        rotate_capstone(&mut group.0, &h0, &hd)?;
+        rotate_capstone(&mut group.1, &h0, &hd)?;
+        rotate_capstone(&mut group.2, &h0, &hd)?;
 
         /* Check the timing pattern. This doesn't require a perspective
          * transform.
@@ -164,7 +164,9 @@ where
     Some(jiggle_perspective(img, initial, grid_size))
 }
 
-fn rotate_capstone(cap: &mut CapStone, h0: &Point, hd: &Point) {
+/// Rotate a capstone so corner 0 faces the grid origin. A camera frame can
+/// yield corners that only degenerate once rotated, so that frame is rejected.
+fn rotate_capstone(cap: &mut CapStone, h0: &Point, hd: &Point) -> Option<()> {
     let (best_idx, _) = cap
         .corners
         .iter()
@@ -174,8 +176,8 @@ fn rotate_capstone(cap: &mut CapStone, h0: &Point, hd: &Point) {
 
     /* Rotate the capstone */
     cap.corners.rotate_left(best_idx);
-    cap.c = geometry::Perspective::create(&cap.corners, 7.0, 7.0)
-        .expect("rotated perspective can't fail");
+    cap.c = geometry::Perspective::create(&cap.corners, 7.0, 7.0)?;
+    Some(())
 }
 
 //* Try the measure the timing pattern for a given QR code. This does
@@ -486,3 +488,7 @@ where
         - fitness_ring(img, perspective, x + 3, y + 3, 2)
         + fitness_ring(img, perspective, x + 3, y + 3, 3)
 }
+
+#[cfg(test)]
+#[path = "../unit_tests/grid_tests.rs"]
+mod unit_tests;

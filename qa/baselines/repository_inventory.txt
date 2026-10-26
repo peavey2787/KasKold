@@ -2717,6 +2717,7 @@ F	external/rqrr-nostd/src/unit_tests/fixtures/grid_seed_overflow.pgm
 F	external/rqrr-nostd/src/unit_tests/fixtures/perspective_overflow.pgm
 F	external/rqrr-nostd/src/unit_tests/fixtures/timing_ring_overflow.pgm
 F	external/rqrr-nostd/src/unit_tests/geometry_tests.rs
+F	external/rqrr-nostd/src/unit_tests/grid_tests.rs
 F	external/rqrr-nostd/src/unit_tests/hostile_image_tests.rs
 F	external/rqrr-nostd/src/version_db.rs
 F	external/serde-yaml-ng-adapter/Cargo.toml
