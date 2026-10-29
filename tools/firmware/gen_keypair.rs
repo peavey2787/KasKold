@@ -29,7 +29,10 @@
 // WARNING: Losing the private key means you can NEVER sign firmware updates again.
 //          Back it up to multiple secure offline locations.
 
-use k256::{elliptic_curve::sec1::ToEncodedPoint, SecretKey};
+use k256::{
+    elliptic_curve::{sec1::ToSec1Point, Generate},
+    SecretKey,
+};
 use std::fs;
 use std::io::Write;
 use std::path::Path;
@@ -55,13 +58,13 @@ fn main() {
     }
 
     // Generate random private key
-    let sk = SecretKey::random(&mut rand_core::OsRng);
+    let sk = SecretKey::try_generate().expect("operating-system RNG");
     let sk_bytes = sk.to_bytes();
 
     // Derive public key (x-only, 32 bytes, BIP340-style)
     let pk_point = sk.public_key().to_projective();
     let pk_affine = k256::AffinePoint::from(pk_point);
-    let encoded = pk_affine.to_encoded_point(true); // compressed: 02/03 || x
+    let encoded = pk_affine.to_sec1_point(true); // compressed: 02/03 || x
     let pk_x_bytes: [u8; 32] = {
         let mut buf = [0u8; 32];
         buf.copy_from_slice(&encoded.as_bytes()[1..33]);

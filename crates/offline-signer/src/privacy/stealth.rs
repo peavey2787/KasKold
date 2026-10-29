@@ -6,8 +6,8 @@
 
 use alloc::vec::Vec;
 
-use k256::elliptic_curve::{ops::Reduce, sec1::ToEncodedPoint, ScalarPrimitive};
-use k256::{Scalar, U256};
+use k256::elliptic_curve::{ops::Reduce, sec1::ToSec1Point, ScalarValue};
+use k256::{FieldBytes, Scalar};
 use sha2::{Digest, Sha256};
 
 use crate::derivation::bip32::{self, ExtendedPrivKey};
@@ -115,9 +115,8 @@ struct StealthKeys {
 fn derive_keys(account_key: &ExtendedPrivKey) -> Result<StealthKeys, StealthError> {
     let scan_branch = bip32::derive_child(account_key, 2).map_err(|_| StealthError::Derivation)?;
     let scan_key = bip32::derive_child(&scan_branch, 0).map_err(|_| StealthError::Derivation)?;
-    let scan_primitive =
-        ScalarPrimitive::<k256::Secp256k1>::from_slice(scan_key.private_key_bytes())
-            .map_err(|_| StealthError::Derivation)?;
+    let scan_primitive = ScalarValue::<k256::Secp256k1>::from_slice(scan_key.private_key_bytes())
+        .map_err(|_| StealthError::Derivation)?;
     Ok(StealthKeys {
         scan_scalar: k256::Scalar::from(scan_primitive),
         spend_public_key: account_key
@@ -130,7 +129,7 @@ fn scan_candidate(candidate: &[u8], keys: &StealthKeys) -> Option<([u8; 32], [u8
     let ephemeral = parse_xonly_public_key(candidate)?;
     let shared = (ephemeral.to_projective() * keys.scan_scalar)
         .to_affine()
-        .to_encoded_point(true);
+        .to_sec1_point(true);
     let mut hasher = Sha256::new();
     hasher.update(b"KasStealth");
     hasher.update(&shared.as_bytes()[1..33]);
@@ -141,7 +140,7 @@ fn scan_candidate(candidate: &[u8], keys: &StealthKeys) -> Option<([u8; 32], [u8
     let one_time = (spend.to_projective()
         + k256::ProjectivePoint::GENERATOR * k256::Scalar::from(tweak_primitive))
     .to_affine()
-    .to_encoded_point(true);
+    .to_sec1_point(true);
     let mut public_key = [0u8; 32];
     public_key.copy_from_slice(&one_time.as_bytes()[1..33]);
     Some((public_key, tweak_hash))
@@ -157,11 +156,11 @@ fn parse_xonly_public_key(value: &[u8]) -> Option<k256::PublicKey> {
     k256::PublicKey::from_sec1_bytes(&compressed).ok()
 }
 
-fn scalar_primitive(value: &[u8; 32]) -> Option<ScalarPrimitive<k256::Secp256k1>> {
-    let scalar = <Scalar as Reduce<U256>>::reduce_bytes(&(*value).into());
+fn scalar_primitive(value: &[u8; 32]) -> Option<ScalarValue<k256::Secp256k1>> {
+    let scalar = <Scalar as Reduce<FieldBytes>>::reduce(&(*value).into());
     let reduced = scalar.to_bytes();
     if reduced.iter().all(|byte| *byte == 0) {
         return None;
     }
-    ScalarPrimitive::<k256::Secp256k1>::from_slice(&reduced).ok()
+    ScalarValue::<k256::Secp256k1>::from_slice(&reduced).ok()
 }

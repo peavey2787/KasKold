@@ -34,15 +34,10 @@ fn rgb565_to_u32(hi: u8, lo: u8) -> u32 {
 /// Parse a hex row (640 hex chars = 320 pixels) into pixel buffer
 fn parse_hex_row(hex_line: &str, row_pixels: &mut [u32; W]) {
     let hex = hex_line.trim().as_bytes();
-    let pixel_count = (hex.len() / 4).min(W);
-    for i in 0..pixel_count {
-        let o = i * 4;
-        if o + 4 > hex.len() {
-            break;
-        }
-        let hi = hex_byte(hex[o], hex[o + 1]);
-        let lo = hex_byte(hex[o + 2], hex[o + 3]);
-        row_pixels[i] = rgb565_to_u32(hi, lo);
+    for (pixel, digits) in row_pixels.iter_mut().zip(hex.as_chunks::<4>().0) {
+        let hi = hex_byte(digits[0], digits[1]);
+        let lo = hex_byte(digits[2], digits[3]);
+        *pixel = rgb565_to_u32(hi, lo);
     }
 }
 
@@ -135,7 +130,7 @@ fn main() {
                         framebuf[offset..offset + W].copy_from_slice(&row_pixels);
                         row_idx += 1;
                         // Partial update every 60 rows for progressive feel
-                        if row_idx % 60 == 0 {
+                        if row_idx.is_multiple_of(60) {
                             window.update_with_buffer(&framebuf, W, H).ok();
                         }
                     }

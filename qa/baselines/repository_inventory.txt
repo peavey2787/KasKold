@@ -2860,6 +2860,7 @@ F	qa/checks/release/readiness/software_assurance.py
 F	qa/checks/release/release_readiness.py
 F	qa/checks/security/branch_ratchets.py
 F	qa/checks/security/complete_hardening.py
+F	qa/checks/security/dependency_advisories.py
 F	qa/checks/security/fuzz_results.py
 F	qa/checks/security/fuzz_targets.py
 F	qa/checks/security/irreversible_action_policy.py

@@ -10,6 +10,7 @@ qa	coverage	repository	preflight.crap-check	Fresh pinned-nightly branch coverage
 qa	preflight	repository	preflight.core-ci	Pinned stable format Clippy strict make-test and git-diff Core CI gate with retained log
 test	preflight	repository	preflight.cargo-resolution	Resolve and transactionally repair every locked Cargo workspace
 test	preflight	repository	preflight.repository-lockfiles	Validate every independent Cargo lock graph
+test	preflight	repository	preflight.dependency-advisories	Deny every RustSec advisory in every committed lockfile
 test	preflight	kaskold-companion-web	preflight.companion-build	Build generated Companion assets and the real WebAssembly package
 test	preflight	kaskold-vault-web	preflight.vault-web-build	Build the network-isolated Vault Web signer and real WebAssembly package
 test	unit	shared-signer	unit.shared-signer	Rust unit and documentation tests

@@ -44,6 +44,10 @@ run_step() {
             require_command python3 || return
             run_in_directory "$ROOT_DIR" python3 qa/checks/workspace/check_lockfile.py
             ;;
+        preflight.dependency-advisories)
+            require_command python3 || return
+            run_in_directory "$ROOT_DIR" python3 qa/checks/security/dependency_advisories.py
+            ;;
         preflight.crap-check)
             require_command bash || return
             run_in_directory "$ROOT_DIR" bash qa/linux/run-pinned-branch-coverage.sh

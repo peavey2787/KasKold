@@ -1,10 +1,10 @@
-use k256::elliptic_curve::sec1::ToEncodedPoint;
+use k256::elliptic_curve::sec1::ToSec1Point;
 
 use super::*;
 
 fn xonly(secret: [u8; 32]) -> [u8; 32] {
     let public = k256::SecretKey::from_slice(&secret).unwrap().public_key();
-    let encoded = public.to_encoded_point(true);
+    let encoded = public.to_sec1_point(true);
     let mut x = [0u8; 32];
     x.copy_from_slice(&encoded.as_bytes()[1..]);
     x

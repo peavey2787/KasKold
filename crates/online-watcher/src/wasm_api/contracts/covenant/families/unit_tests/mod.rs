@@ -14,8 +14,8 @@ fn address(byte: u8, prefix: &str) -> String {
 }
 
 fn key(byte: u8) -> String {
-    let signing =
-        k256::schnorr::SigningKey::from_bytes(&[byte; 32]).expect("deterministic test signing key");
+    let signing = k256::schnorr::SigningKey::from_bytes((&[byte; 32]).into())
+        .expect("deterministic test signing key");
     hex::encode(signing.verifying_key().to_bytes())
 }
 

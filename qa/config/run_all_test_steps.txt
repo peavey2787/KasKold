@@ -2,6 +2,7 @@
 # Generated from the contiguous `test` block of qa/config/run_all_steps.tsv; keep these in sync.
 preflight.cargo-resolution
 preflight.repository-lockfiles
+preflight.dependency-advisories
 preflight.companion-build
 preflight.vault-web-build
 unit.shared-signer

@@ -241,7 +241,7 @@ fn check_docker() {
 
     match cmd_first_line("docker", &["--version"]) {
         Some(v) => {
-            ok(&format!("{v}"));
+            ok(&v);
 
             // Check if Docker daemon is running
             let (running, _) = run_cmd("docker", &["info"]);

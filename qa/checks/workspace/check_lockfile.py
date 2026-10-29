@@ -157,13 +157,15 @@ def validate_reachability(label: str, packages: list[dict]) -> list[str]:
 
 
 BASE_SIGNER_FEATURE_SCOPE = {
-    ("k256", "0.13.4"): {"cfg-if", "ecdsa", "elliptic-curve", "sha2", "signature"},
-    ("ecdsa", "0.16.9"): {"der", "digest", "elliptic-curve", "rfc6979", "signature"},
-    ("elliptic-curve", "0.13.8"): {
-        "base16ct", "crypto-bigint", "digest", "ff", "generic-array", "group",
-        "rand_core", "sec1", "subtle", "zeroize",
+    ("k256", "0.14.0"): {
+        "cpubits", "ecdsa", "elliptic-curve", "primeorder", "sha2", "signature", "wnaf",
     },
-    ("sec1", "0.7.3"): {"base16ct", "der", "generic-array", "subtle", "zeroize"},
+    ("ecdsa", "0.17.0"): {"der", "digest", "elliptic-curve", "rfc6979", "signature", "zeroize"},
+    ("elliptic-curve", "0.14.3"): {
+        "base16ct", "crypto-bigint", "crypto-common", "digest", "ff", "group",
+        "hybrid-array", "rand_core", "sec1", "subtle", "zeroize",
+    },
+    ("sec1", "0.8.1"): {"base16ct", "ctutils", "der", "hybrid-array", "subtle", "zeroize"},
     ("zeroize", "1.8.2"): {"zeroize_derive"},
 }
 

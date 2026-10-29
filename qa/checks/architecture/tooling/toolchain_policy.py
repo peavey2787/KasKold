@@ -97,6 +97,10 @@ def _consumer_requirements() -> dict[str, tuple[str, ...]]:
         ".github/workflows/fuzz.yml": (
             "FUZZ_SECONDS=300", "scripts/linux/quality/security-fuzz.sh",
         ),
+        "qa/checks/security/dependency_advisories.py": (
+            "load_toolchains", "KASKOLD_CARGO_AUDIT_VERSION",
+        ),
+        ".github/workflows/core.yml": ("KASKOLD_CARGO_AUDIT_VERSION",),
     }
 
 
@@ -120,6 +124,7 @@ def _pin_consumers() -> dict[str, tuple[str, ...]]:
             "KASKOLD_ANDROID_CMDLINE_TOOLS", "KASKOLD_ANDROID_CMDLINE_TOOLS_WINDOWS_SHA256",
         ),
         "scripts/linux/lib/qemu-common.sh": ("KASKOLD_ESP_IDF_VERSION",),
+        "qa/checks/security/dependency_advisories.py": ("KASKOLD_CARGO_AUDIT_VERSION",),
         "scripts/linux/lib/qemu-rust.sh": ("KASKOLD_ESPUP_VERSION", "KASKOLD_ESP_RUST", "KASKOLD_ESPFLASH_VERSION"),
         "Dockerfile.base": ("KASKOLD_REPRO_HOST_RUST", "KASKOLD_ESPFLASH_VERSION"),
         "scripts/linux/build/reproducible/toolchains.py": (

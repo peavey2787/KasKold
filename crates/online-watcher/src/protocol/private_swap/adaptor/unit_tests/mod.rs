@@ -1,4 +1,4 @@
-use k256::elliptic_curve::sec1::ToEncodedPoint;
+use k256::elliptic_curve::sec1::ToSec1Point;
 
 use super::super::adaptor::{
     complete_presignature, extract_secret, verify_bip340, verify_host_nonce_relation,
@@ -46,7 +46,7 @@ fn fixture() -> Fixture {
     let public = k256::SecretKey::from_slice(&private_key)
         .expect("secret")
         .public_key();
-    let encoded = public.to_encoded_point(true);
+    let encoded = public.to_sec1_point(true);
     let mut public_x = [0u8; 32];
     public_x.copy_from_slice(&encoded.as_bytes()[1..]);
     Fixture {
@@ -101,7 +101,7 @@ fn negated_presignature_host_relation_and_completion_are_bip340_valid() {
     let public = k256::SecretKey::from_slice(&private_key)
         .expect("secret")
         .public_key();
-    let encoded = public.to_encoded_point(true);
+    let encoded = public.to_sec1_point(true);
     let mut public_x = [0u8; 32];
     public_x.copy_from_slice(&encoded.as_bytes()[1..]);
 

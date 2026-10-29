@@ -15,7 +15,7 @@ pub fn sign_bip340_hash(
     message: &[u8; 32],
 ) -> Result<[u8; 64], offline_signer::crypto::schnorr::SchnorrError> {
     let signature = offline_signer::crypto::schnorr::schnorr_sign(private_key, message)?;
-    let signing_key = k256::schnorr::SigningKey::from_bytes(private_key)
+    let signing_key = k256::schnorr::SigningKey::from_bytes(private_key.into())
         .map_err(|_| offline_signer::crypto::schnorr::SchnorrError::InvalidPrivateKey)?;
     let public_key: [u8; 32] = signing_key.verifying_key().to_bytes().into();
     offline_signer::crypto::schnorr::schnorr_verify(&public_key, message, &signature)?;

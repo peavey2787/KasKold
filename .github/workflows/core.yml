@@ -28,7 +28,14 @@ jobs:
         run: python3 qa/checks/workspace/check_rust_format.py
       - name: Host Clippy
         shell: bash
-        run: rustup run "$KASKOLD_STABLE_RUST" cargo clippy --workspace --all-targets --locked -- -D warnings
+        run: |
+          rustup run "$KASKOLD_STABLE_RUST" cargo clippy --workspace --all-targets --locked -- -D warnings
+          rustup run "$KASKOLD_STABLE_RUST" cargo clippy --manifest-path qa/Cargo.toml --all-targets --locked -- -D warnings
+          rustup run "$KASKOLD_STABLE_RUST" cargo clippy --manifest-path tools/Cargo.toml --all-targets --locked -- -D warnings
+          rustup run "$KASKOLD_STABLE_RUST" cargo clippy --manifest-path apps/kaskold-vault-web/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Install pinned cargo-audit (make test denies every advisory)
+        shell: bash
+        run: rustup run "$KASKOLD_STABLE_RUST" cargo install cargo-audit --version "$KASKOLD_CARGO_AUDIT_VERSION" --locked
       - name: Install pinned ESP Rust toolchain
         uses: esp-rs/xtensa-toolchain@v1.7.0
         with:

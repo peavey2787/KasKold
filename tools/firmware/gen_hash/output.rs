@@ -52,7 +52,7 @@ pub(super) fn hash_code_segment(
     hasher.update(segment_data);
     let hash = hasher.finalize();
 
-    let hash_bytes: [u8; 32] = hash.clone().into();
+    let hash_bytes: [u8; 32] = hash.into();
     let hash_hex: String = hash.iter().map(|b| format!("{:02x}", b)).collect();
     let hash_short: String = hash.iter().take(8).map(|b| format!("{:02x}", b)).collect();
 

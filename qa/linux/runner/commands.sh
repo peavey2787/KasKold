@@ -171,6 +171,9 @@ core_ci_toolchain_ready() {
 }
 
 
+# Standalone Cargo workspaces outside the root workspace, linted like it.
+SIDE_CLIPPY_MANIFESTS=(qa/Cargo.toml tools/Cargo.toml apps/kaskold-vault-web/Cargo.toml)
+
 run_core_ci_gate() {
     require_command rustup || return
     require_command cargo || return
@@ -188,6 +191,9 @@ run_core_ci_gate() {
         printf '  + rustup toolchain install %q --profile minimal --component rustfmt --component clippy  # only when missing locally\n' "$KASKOLD_STABLE_RUST"
         printf '  + python3 qa/checks/workspace/check_rust_format.py\n'
         printf '  + rustup run %q cargo clippy --workspace --all-targets --locked -- -D warnings\n' "$KASKOLD_STABLE_RUST"
+        for manifest in "${SIDE_CLIPPY_MANIFESTS[@]}"; do
+            printf '  + rustup run %q cargo clippy --manifest-path %s --all-targets --locked -- -D warnings\n' "$KASKOLD_STABLE_RUST" "$manifest"
+        done
         printf '  + make test STRICT_LOCKFILES=1\n'
         printf '  + git diff --check\n'
         return 0
@@ -254,6 +260,12 @@ run_core_ci_gate() {
         rustup run "$KASKOLD_STABLE_RUST" \
           cargo clippy --workspace --all-targets --locked -- -D warnings
         rc=$?
+        for manifest in "${SIDE_CLIPPY_MANIFESTS[@]}"; do
+            [ "$rc" -ne 0 ] && break
+            rustup run "$KASKOLD_STABLE_RUST" \
+              cargo clippy --manifest-path "$manifest" --all-targets --locked -- -D warnings
+            rc=$?
+        done
         if [ "$rc" -ne 0 ]; then
             echo
             echo "FAILED: CORE CLIPPY (exit $rc)"

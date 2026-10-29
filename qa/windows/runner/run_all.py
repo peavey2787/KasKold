@@ -416,6 +416,9 @@ def run_core_ci(ns: argparse.Namespace) -> None:
         ["rustup", "toolchain", "install", stable, "--profile", "minimal", "--component", "rustfmt", "--component", "clippy"],
         [PYTHON, "qa/checks/workspace/check_rust_format.py"],
         ["rustup", "run", stable, "cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"],
+        ["rustup", "run", stable, "cargo", "clippy", "--manifest-path", "qa/Cargo.toml", "--all-targets", "--locked", "--", "-D", "warnings"],
+        ["rustup", "run", stable, "cargo", "clippy", "--manifest-path", "tools/Cargo.toml", "--all-targets", "--locked", "--", "-D", "warnings"],
+        ["rustup", "run", stable, "cargo", "clippy", "--manifest-path", "apps/kaskold-vault-web/Cargo.toml", "--all-targets", "--locked", "--", "-D", "warnings"],
         ["make", "test", "STRICT_LOCKFILES=1"],
         ["git", "diff", "--check"],
     ]
@@ -563,6 +566,7 @@ def run_step(step_id: str, ns: argparse.Namespace) -> None:
         run([py,"scripts/common/lib/make_tasks.py","entrypoint","kaskold-vault-web-build"],dry=ns.dry_run)
     elif step_id=="preflight.firmware-source-contracts": run([py,"qa/checks/firmware/check_firmware_source_contracts.py"],dry=ns.dry_run)
     elif step_id=="preflight.repository-lockfiles": run([py,"qa/checks/workspace/check_lockfile.py"],dry=ns.dry_run)
+    elif step_id=="preflight.dependency-advisories": run([py,"qa/checks/security/dependency_advisories.py"],dry=ns.dry_run)
     elif step_id=="preflight.crap-check": run([PYTHON,"scripts/common/lib/make_tasks.py","entrypoint","pinned-branch-coverage"],dry=ns.dry_run)
     elif step_id=="preflight.core-ci": run_core_ci(ns)
     elif step_id=="preflight.security-assurance":

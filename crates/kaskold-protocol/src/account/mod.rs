@@ -126,8 +126,8 @@ fn canonical_account_text(
 }
 
 fn account_fingerprint(xpub: &derivation::ExtPubKey) -> Result<String, String> {
-    use k256::elliptic_curve::sec1::ToEncodedPoint;
-    let point = xpub.key.to_encoded_point(true);
+    use k256::elliptic_curve::sec1::ToSec1Point;
+    let point = xpub.key.to_sec1_point(true);
     let compressed: [u8; 33] = point
         .as_bytes()
         .try_into()

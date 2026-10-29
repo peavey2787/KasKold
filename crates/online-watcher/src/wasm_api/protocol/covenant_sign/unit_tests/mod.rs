@@ -1,4 +1,4 @@
-use k256::elliptic_curve::sec1::ToEncodedPoint;
+use k256::elliptic_curve::sec1::ToSec1Point;
 
 use super::*;
 
@@ -6,7 +6,7 @@ use super::*;
 fn covenant_anti_klepto_host_verifier_covers_decoding_signature_and_nonce_relation() {
     let secret = [3u8; 32];
     let public = k256::SecretKey::from_slice(&secret).unwrap().public_key();
-    let encoded = public.to_encoded_point(true);
+    let encoded = public.to_sec1_point(true);
     let public_x = &encoded.as_bytes()[1..];
     let commitment = [4u8; 32];
     let signature =

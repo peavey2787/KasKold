@@ -17,7 +17,7 @@ fn test_secret(seed: u8) -> [u8; 32] {
 }
 
 fn test_xonly(seed: u8) -> [u8; 32] {
-    let signing = k256::schnorr::SigningKey::from_bytes(&test_secret(seed))
+    let signing = k256::schnorr::SigningKey::from_bytes((&test_secret(seed)).into())
         .expect("deterministic test signing key");
     let bytes = signing.verifying_key().to_bytes();
     let mut out = [0u8; 32];

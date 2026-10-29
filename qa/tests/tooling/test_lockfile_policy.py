@@ -104,7 +104,7 @@ class LockfilePolicyTests(unittest.TestCase):
         k256 = next(package for package in packages if package["name"] == "k256")
         k256["dependencies"] = [*k256["dependencies"], "once_cell"]
         errors = validate_feature_scope(ROOT / "tools/Cargo.lock", packages)
-        self.assertTrue(any("feature-scope drift for k256 0.13.4" in error for error in errors))
+        self.assertTrue(any("feature-scope drift for k256 0.14.0" in error for error in errors))
 
     def test_rejects_qa_sdk_target_dependency_drift(self) -> None:
         import tomllib
@@ -130,8 +130,7 @@ class LockfilePolicyTests(unittest.TestCase):
         dependency_names = {value.split()[0] for value in online.get("dependencies", [])}
         self.assertIn("shared-signer", dependency_names)
         self.assertTrue(dependency_names <= {
-            "ark-bn254", "ark-groth16", "ark-relations", "ark-serialize",
-            "ark-snark", "ark-std", "blake2b_simd", "blake3", "getrandom",
+            "blake2b_simd", "blake3", "getrandom",
             "hex", "hmac", "js-sys", "k256", "kaskold-protocol", "kaspa-portal", "offline-signer",
             "qrcode",
             "serde", "serde_json", "sha2", "shared-signer", "wasm-bindgen",

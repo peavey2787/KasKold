@@ -136,11 +136,11 @@ pub(crate) mod test_support {
 
     /// Deterministic, curve-valid x-only public key (`seed·G`) for host fixtures.
     pub(crate) fn xonly_key(seed: u8) -> String {
-        use k256::elliptic_curve::sec1::ToEncodedPoint;
+        use k256::elliptic_curve::sec1::ToSec1Point;
 
         let point = (k256::ProjectivePoint::GENERATOR * k256::Scalar::from(u64::from(seed.max(1))))
             .to_affine()
-            .to_encoded_point(true);
+            .to_sec1_point(true);
         hex::encode(&point.as_bytes()[1..])
     }
 }

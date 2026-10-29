@@ -60,7 +60,7 @@ pub fn process_esp_image(
             load_addr,
             seg_size,
             seg_size,
-            if load_addr >= IRAM_FLASH_BASE && load_addr < IRAM_FLASH_END {
+            if (IRAM_FLASH_BASE..IRAM_FLASH_END).contains(&load_addr) {
                 " ← CODE (IRAM)"
             } else {
                 ""
@@ -68,7 +68,7 @@ pub fn process_esp_image(
         );
 
         // Find the code segment (mapped on instruction bus)
-        if load_addr >= IRAM_FLASH_BASE && load_addr < IRAM_FLASH_END {
+        if (IRAM_FLASH_BASE..IRAM_FLASH_END).contains(&load_addr) {
             if code_segment.is_some() {
                 eprintln!("  ERROR: Multiple flash-mapped code segments are ambiguous");
                 std::process::exit(1);
@@ -154,14 +154,14 @@ pub fn process_elf(data: &[u8], signing_key: Option<&str>, signing_identity: Sig
                 p_vaddr,
                 p_filesz,
                 p_filesz,
-                if p_vaddr >= IRAM_FLASH_BASE && p_vaddr < IRAM_FLASH_END {
+                if (IRAM_FLASH_BASE..IRAM_FLASH_END).contains(&p_vaddr) {
                     " ← CODE"
                 } else {
                     ""
                 }
             );
 
-            if p_vaddr >= IRAM_FLASH_BASE && p_vaddr < IRAM_FLASH_END {
+            if (IRAM_FLASH_BASE..IRAM_FLASH_END).contains(&p_vaddr) {
                 if code_segment.is_some() {
                     eprintln!("  ERROR: Multiple flash-mapped ELF LOAD segments are ambiguous");
                     std::process::exit(1);
