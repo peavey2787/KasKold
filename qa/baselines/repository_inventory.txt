@@ -1020,6 +1020,8 @@ F	apps/kaskold-companion-web/web/js/core/bytes.js
 F	apps/kaskold-companion-web/web/js/core/config/network.js
 F	apps/kaskold-companion-web/web/js/core/config/runtime.js
 F	apps/kaskold-companion-web/web/js/core/config/services.js
+F	apps/kaskold-companion-web/web/js/core/diagnostics/console_gate.js
+F	apps/kaskold-companion-web/web/js/core/diagnostics/install_console_gate.js
 F	apps/kaskold-companion-web/web/js/core/dom.js
 F	apps/kaskold-companion-web/web/js/core/exact.js
 F	apps/kaskold-companion-web/web/js/core/explorer.js
@@ -2187,6 +2189,7 @@ F	apps/kaskold-vault-web/web/js/ui/qr.js
 F	apps/kaskold-vault-web/web/js/vault_advanced_workflows.js
 F	apps/kaskold-vault-web/web/js/vault_bytes.js
 F	apps/kaskold-vault-web/web/js/vault_covenant_workflows.js
+F	apps/kaskold-vault-web/web/js/vault_frame_guard.js
 F	apps/kaskold-vault-web/web/js/vault_legacy_workflows.js
 F	apps/kaskold-vault-web/web/js/vault_main.js
 F	apps/kaskold-vault-web/web/js/vault_onboarding.js
@@ -2893,10 +2896,12 @@ F	qa/checks/web/check_web_runtime.mjs
 F	qa/checks/web/covenant_sign_protocol.test.mjs
 F	qa/checks/web/network_routing.test.mjs
 F	qa/checks/web/portal_wasm_fakes.mjs
+F	qa/checks/web/real_dom/console_gate.dom.mjs
 F	qa/checks/web/real_dom/dom_builder.dom.mjs
 F	qa/checks/web/real_dom/harness.mjs
 F	qa/checks/web/real_dom/run_real_dom_tests.py
 F	qa/checks/web/real_dom/static_qr.dom.mjs
+F	qa/checks/web/real_dom/vault_frame_guard.dom.mjs
 F	qa/checks/web/run_web_recovery_coverage.py
 F	qa/checks/web/run_web_runtime_coverage.py
 F	qa/checks/web/typescript_toolchain.py
@@ -3191,6 +3196,7 @@ F	qa/tests/tooling/test_security_hardening.py
 F	qa/tests/tooling/test_serial_access.py
 F	qa/tests/tooling/test_toolchain_policy.py
 F	qa/tests/tooling/test_typescript_toolchain.py
+F	qa/tests/tooling/test_vendored_jsqr.py
 F	qa/tests/tooling/test_web_build_pipeline.py
 F	qa/windows/release/generate_software_assurance.ps1
 F	qa/windows/run-all.ps1

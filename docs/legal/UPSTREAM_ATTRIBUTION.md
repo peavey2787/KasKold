@@ -43,3 +43,7 @@ identifiers are compatibility artifacts, not current product branding.
 Branding changes must never be used as a reason to change wire bytes or
 cryptographic domain-separation strings without a separately reviewed protocol
 migration.
+
+## Vendored web libraries
+
+`apps/kaskold-companion-web/web/lib/jsQR.js` and `apps/kaskold-vault-web/web/lib/vault_jsQR.js` are the unmodified `dist/jsQR.js` of the npm package `jsqr@1.4.0` (Apache-2.0). `qa/tests/tooling/test_vendored_jsqr.py` pins its SHA-256.

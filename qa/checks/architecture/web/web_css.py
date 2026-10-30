@@ -134,13 +134,9 @@ def _check_css_composition(root: Path) -> tuple[list[str], str]:
         if line_count > 600:
             errors.append(f"web CSS module exceeds SRP size limit: {relative} ({line_count} lines)")
 
-    local_imports = [
-        value
-        for value in re.findall(r"@import\s+(?:url\()?['\"]([^'\"]+)", source)
-        if not value.startswith("https://fonts.googleapis.com/")
-    ]
-    if local_imports:
-        errors.append(f"generated app.css must not use runtime local imports: {local_imports}")
+    runtime_imports = re.findall(r"@import\s+(?:url\()?['\"]([^'\"]+)", source)
+    if runtime_imports:
+        errors.append(f"generated app.css must not use runtime imports: {runtime_imports}")
     return errors, source
 
 

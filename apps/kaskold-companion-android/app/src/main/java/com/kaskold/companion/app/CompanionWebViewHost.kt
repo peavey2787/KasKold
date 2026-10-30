@@ -240,10 +240,12 @@ internal class CompanionWebViewHost(
 
     private fun createChromeClient(): WebChromeClient = object : WebChromeClient() {
         override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
-            Log.d(
-                WEBVIEW_TAG,
-                "${consoleMessage.messageLevel()}: ${consoleMessage.message()} (${consoleMessage.sourceId()}:${consoleMessage.lineNumber()})",
-            )
+            if (BuildConfig.DEBUG) {
+                Log.d(
+                    WEBVIEW_TAG,
+                    "${consoleMessage.messageLevel()}: ${consoleMessage.message()} (${consoleMessage.sourceId()}:${consoleMessage.lineNumber()})",
+                )
+            }
             return true
         }
 
