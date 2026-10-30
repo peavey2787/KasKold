@@ -6,7 +6,7 @@ import { KNS_LOOKUP } from '../../../core/config/services.js';
 import { hideLoading, showLoading, showScreen } from '../../../app/navigation.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';
 import { toast } from '../../../core/ui/toast.js';
-import { getCovFee } from '../../covenants/payload_and_swaps/state.js';
+import { getCovFee } from '../../covenants/payload/state.js';
 import { stopScanner } from '../../stealth/index/camera.js';
 import { openPsktReview } from './review.js';
 import { create_multisig_pskb, create_multisig_pskb_selected, create_multisig_pskb_multi_js, scan_multisig_branch_js, decode_qr_frame, decoder_progress, fetch_utxos_for_address_js } from '../../../wasm/api.js';

@@ -78,7 +78,7 @@ def main() -> int:
         errors.append('the welcome Manage Wallets button must open centralized wallet management')
 
     app_css_root = ROOT / 'apps/kaskold-companion-web/web/css/app'
-    header_css = (app_css_root / 'layout/header_and_menu.css').read_text(encoding="utf-8")
+    header_css = (app_css_root / 'layout/header.css').read_text(encoding="utf-8")
     buttons_css = (app_css_root / 'components/buttons.css').read_text(encoding="utf-8")
     system_css = (app_css_root / 'screens/system.css').read_text(encoding="utf-8")
     tokens_css = (app_css_root / 'foundation/tokens.css').read_text(encoding="utf-8")
@@ -145,7 +145,7 @@ def main() -> int:
     if "logo.onclick = () => navigateHome();" not in shell_controls or 'navigateHome();' not in shell_controls:
         errors.append('Companion header logo must route through the shared navigateHome action')
 
-    settings_events = (JS_ROOT / 'app/events/wallet/settings_and_wallet.js').read_text(encoding="utf-8")
+    settings_events = (JS_ROOT / 'app/events/wallet/wallet_settings.js').read_text(encoding="utf-8")
     header = (HTML_ROOT / 'document/open.html').read_text(encoding='utf-8')
     if 'id="gear-menu"' in header or 'class="gear-tab' in header:
         errors.append('retired settings submenu remains; the cog must open Node Connection directly')

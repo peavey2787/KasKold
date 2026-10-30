@@ -18,7 +18,7 @@ SCANNER_HTML = WEB / "html/screens/system/scanner.html"
 DASHBOARD_HTML = WEB / "html/screens/system/dashboard.html"
 MULTISIG_HTML = WEB / "html/screens/wallet/multisig.html"
 SYSTEM_CSS = WEB / "css/app/screens/system.css"
-HEADER_CSS = WEB / "css/app/layout/header_and_menu.css"
+HEADER_CSS = WEB / "css/app/layout/header.css"
 
 
 def css_rule(source: str, selector: str) -> str:
@@ -65,8 +65,8 @@ class KpubManagementMarkupTests(unittest.TestCase):
         self.assertNotIn('.gear-tab', source)
 
     def test_address_and_compact_list_styles(self) -> None:
-        address = (WEB / "css/app/components/qr_and_address.css").read_text()
-        lists = (WEB / "css/app/screens/history_and_assets.css").read_text()
+        address = (WEB / "css/app/components/qr_address.css").read_text()
+        lists = (WEB / "css/app/screens/history_assets.css").read_text()
         line = css_rule(address, '.address-line')
         self.assertIn("white-space: nowrap", line)
         self.assertIn("text-align: center", line)

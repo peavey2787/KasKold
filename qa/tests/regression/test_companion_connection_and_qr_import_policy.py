@@ -17,7 +17,7 @@ BROADCAST_HTML = ROOT / "apps/kaskold-companion-web/web/html/screens/transaction
 BROWSER_WEBSOCKET = kaskold_source("crates/online-watcher/src/infrastructure/browser_websocket.rs")
 BIP32 = ROOT / "crates/online-watcher/src/account/bip32.rs"
 DOM = WEB_JS / "core/dom.js"
-SETTINGS_EVENTS = WEB_JS / "app/events/wallet/settings_and_wallet.js"
+SETTINGS_EVENTS = WEB_JS / "app/events/wallet/wallet_settings.js"
 NAVIGATION = WEB_JS / "app/navigation.js"
 KPUB_IMPORT = WEB_JS / "features/wallet/core/kpub_import.js"
 KPUB_MANAGER = WEB_JS / "features/wallet/kpub_manager/controller.js"
@@ -77,7 +77,7 @@ class CompanionConnectionAndQrImportPolicyTests(unittest.TestCase):
         navigation = (WEB_JS / "app/navigation.js").read_text()
         connectivity = (WEB_JS / "core/ui/connectivity_status.js").read_text()
         header = (ROOT / "apps/kaskold-companion-web/web/html/document/open.html").read_text()
-        header_css = (ROOT / "apps/kaskold-companion-web/web/css/app/layout/header_and_menu.css").read_text()
+        header_css = (ROOT / "apps/kaskold-companion-web/web/css/app/layout/header.css").read_text()
         multisig = (ROOT / "apps/kaskold-companion-web/web/html/screens/wallet/multisig.html").read_text()
 
         self.assertNotIn("<br>", stealth_html[stealth_html.index('stealth-menu-help'):stealth_html.index('</p>', stealth_html.index('stealth-menu-help'))])

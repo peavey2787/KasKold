@@ -7,7 +7,7 @@ import {
 const { state } = await setupDeepHarness();
 try {
   const stubs = globalThis.__COMPANION_WASM_STUBS__;
-  const spendPath = await import(moduleUrl('features/covenants/watchers_and_ui/watcher/subscription/message.js'));
+  const spendPath = await import(moduleUrl('features/covenants/watch/watcher/subscription/message.js'));
   const address = await import(moduleUrl('core/address.js'));
   const { timeAgo } = await import(moduleUrl('core/time.js'));
   const outpoints = await import(moduleUrl('features/covenants/blockchain/outpoint_parser.js'));
@@ -22,7 +22,7 @@ try {
   const commitReveal = await import(moduleUrl('features/covenants/generation/builders/advanced/commit_reveal.js'));
   const oracleV1Builder = await import(moduleUrl('features/covenants/generation/builders/advanced/oracle_v1.js'));
   const kpubImport = await import(moduleUrl('features/wallet/core/kpub_import.js'));
-  const covenantKeys = await import(moduleUrl('features/covenants/generation/ui_and_keys.js'));
+  const covenantKeys = await import(moduleUrl('features/covenants/generation/panel_keys.js'));
   const format = await import(moduleUrl('core/format.js'));
   const walletSessionMod = await import(moduleUrl('app/state/core/wallet_session.js'));
 

@@ -1,8 +1,8 @@
 import { networkState, walletSession } from '../../../app/state/index.js';
 import { kaspaRestApiBase } from '../../../core/config/network.js';
 import { toast } from '../../../core/ui/toast.js';
-import { getAccountPubkeyHex } from '../generation/ui_and_keys.js';
-import { decryptCovenantPayload } from '../payload_and_swaps/payload.js';
+import { getAccountPubkeyHex } from '../generation/panel_keys.js';
+import { decryptCovenantPayload } from '../payload/payload.js';
 import { covRenderActive, covSaveActive } from './active.js';
 // KasKold Companion Web — features/covenants/recovery/scanner
 import { rebuildCovenant } from './scanner/rebuild.js';

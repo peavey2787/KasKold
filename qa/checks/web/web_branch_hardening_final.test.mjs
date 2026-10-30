@@ -8,15 +8,15 @@ const { state, response, originalGet } = await setupDeepHarness();
 try {
   const stubs = globalThis.__COMPANION_WASM_STUBS__;
   const beneficiaryExport = await import(moduleUrl('features/covenants/recovery/export/beneficiary_payload.js'));
-  const payloadState = await import(moduleUrl('features/covenants/payload_and_swaps/state.js'));
+  const payloadState = await import(moduleUrl('features/covenants/payload/state.js'));
   const assets = await import(moduleUrl('features/assets/render.js'));
   const balance = await import(moduleUrl('app/events/contracts/covenant_creation/result_actions/balance.js'));
   const recoveryEvents = await import(moduleUrl('app/events/contracts/covenant_recovery.js'));
   const inviteSharing = await import(moduleUrl('app/events/contracts/covenant_creation/invite_sharing.js'));
   const merkleBuilder = await import(moduleUrl('features/covenants/generation/builders/advanced/merkle_whitelist.js'));
   const loadSubmission = await import(moduleUrl('app/events/contracts/covenant_loading/submission.js'));
-  const timed = await import(moduleUrl('features/covenants/watchers_and_ui/watcher/polling/covenant_pollers/timed.js'));
-  const limitPollers = await import(moduleUrl('features/covenants/watchers_and_ui/watcher/polling/covenant_pollers/limits.js'));
+  const timed = await import(moduleUrl('features/covenants/watch/watcher/polling/covenant_pollers/timed.js'));
+  const limitPollers = await import(moduleUrl('features/covenants/watch/watcher/polling/covenant_pollers/limits.js'));
   const feeMath = await import(moduleUrl('core/fee_math.js'));
   const privateState = await import(moduleUrl('features/covenants/private_swap/state.js'));
   const shell = await import(moduleUrl('app/shell_controls.js'));
@@ -27,20 +27,20 @@ try {
   const limitBuilders = await import(moduleUrl('features/covenants/generation/builders/limits.js'));
   const pubkeyScanning = await import(moduleUrl('features/covenants/scanning/pubkeys.js'));
   const assetScreen = await import(moduleUrl('features/assets/index.js'));
-  const paramIndex = await import(moduleUrl('features/covenants/payload_and_swaps/params/index.js'));
+  const paramIndex = await import(moduleUrl('features/covenants/payload/params/index.js'));
   const fileDownload = await import(moduleUrl('features/covenants/recovery/export/file_download.js'));
   const crRendering = await import(moduleUrl('app/events/contracts/covenant_specialized/commit_reveal/rendering.js'));
-  const payloadCrypto = await import(moduleUrl('features/covenants/payload_and_swaps/payload.js'));
+  const payloadCrypto = await import(moduleUrl('features/covenants/payload/payload.js'));
   const oracleAttestation = await import(moduleUrl('features/oracle/v1/attestation.js'));
   const covenantSignProtocol = await import(moduleUrl('features/covenants/signing/protocol.js'));
   const recoveryImport = await import(moduleUrl('features/covenants/recovery/import/controller.js'));
   const signerLimits = await import(moduleUrl('features/transactions/shared/signer_limits.js'));
   const kpubImage = await import(moduleUrl('features/wallet/core/kpub_image_import.js'));
   const signedImage = await import(moduleUrl('features/transactions/send/signed_qr_image_import.js'));
-  const escrowController = await import(moduleUrl('features/covenants/watchers_and_ui/watcher/polling/covenant_pollers/conditional/escrow/controller.js'));
-  const escrowFetch = await import(moduleUrl('features/covenants/watchers_and_ui/watcher/polling/covenant_pollers/conditional/escrow/fetch.js'));
-  const escrowRender = await import(moduleUrl('features/covenants/watchers_and_ui/watcher/polling/covenant_pollers/conditional/escrow/render.js'));
-  const escrowState = await import(moduleUrl('features/covenants/watchers_and_ui/watcher/polling/covenant_pollers/conditional/escrow/state.js'));
+  const escrowController = await import(moduleUrl('features/covenants/watch/watcher/polling/covenant_pollers/conditional/escrow/controller.js'));
+  const escrowFetch = await import(moduleUrl('features/covenants/watch/watcher/polling/covenant_pollers/conditional/escrow/fetch.js'));
+  const escrowRender = await import(moduleUrl('features/covenants/watch/watcher/polling/covenant_pollers/conditional/escrow/render.js'));
+  const escrowState = await import(moduleUrl('features/covenants/watch/watcher/polling/covenant_pollers/conditional/escrow/state.js'));
 
   // Invites carry only the script, the address and what no script proves;
   // every term is re-read from the script on import.

@@ -1,14 +1,14 @@
 // Stable covenant_creation event composition.
-import { registerNavigationAndSweep } from './covenant_creation/navigation_and_sweep.js';
-import { registerSharingAndClaims } from './covenant_creation/sharing_and_claims.js';
+import { registerCreationNavigation } from './covenant_creation/creation_navigation.js';
+import { registerClaimSharing } from './covenant_creation/claim_sharing.js';
 import { registerCreationOptions } from './covenant_creation/creation_options.js';
 import { registerResultActions } from './covenant_creation/result_actions.js';
-import { registerWithdrawalAndConsolidation } from './covenant_creation/withdrawal_and_consolidation.js';
+import { registerWithdrawal } from './covenant_creation/withdrawal.js';
 
 export function bindCovenantCreationEvents() {
-    registerNavigationAndSweep();
-    registerSharingAndClaims();
+    registerCreationNavigation();
+    registerClaimSharing();
     registerCreationOptions();
     registerResultActions();
-    registerWithdrawalAndConsolidation();
+    registerWithdrawal();
 }

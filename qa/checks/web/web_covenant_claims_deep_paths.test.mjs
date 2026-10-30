@@ -6,9 +6,9 @@ import {
 
 const { state } = await setupDeepHarness();
 try {
-  const owner = await import(moduleUrl('features/covenants/spending/standard/thread_and_claims/owner.js'));
-  const participants = await import(moduleUrl('features/covenants/spending/standard/thread_and_claims/participants.js'));
-  const specialized = await import(moduleUrl('features/covenants/spending/standard/thread_and_claims/specialized.js'));
+  const owner = await import(moduleUrl('features/covenants/spending/standard/spend_paths/owner.js'));
+  const participants = await import(moduleUrl('features/covenants/spending/standard/spend_paths/participants.js'));
+  const specialized = await import(moduleUrl('features/covenants/spending/standard/spend_paths/specialized.js'));
   const stubs = globalThis.__COMPANION_WASM_STUBS__;
   const baseUtxo = { tx_id:TXID,index:0,amount:'250000000',block_daa_score:'900',covenant_id:COV_ID,script_public_key:'000051' };
   let daa = '2000';

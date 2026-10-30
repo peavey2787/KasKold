@@ -571,7 +571,7 @@ test('invite, owner backup, scan controller, chain scanner, and rebuild orchestr
 
     globalThis.__COMPANION_WASM_STUBS__.parse_covenant_payload = () => JSON.stringify({ covenant_type_name: 'additive', params_hex: storedScript('51', le64(1) + le64(2)) });
     const originalDecryptKey = globalThis.__COMPANION_WASM_STUBS__.derive_covenant_payload_key;
-    const payloadModule = await import(moduleUrl('features/covenants/payload_and_swaps/payload.js'));
+    const payloadModule = await import(moduleUrl('features/covenants/payload/payload.js'));
     const originalDecrypt = payloadModule.decryptCovenantPayload;
     void originalDecrypt;
     const ownerHex = Buffer.from('COVB').toString('hex') + '00'.repeat(20);

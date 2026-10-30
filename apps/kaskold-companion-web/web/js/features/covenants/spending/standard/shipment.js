@@ -4,7 +4,7 @@ import { covenantState, navigationState, networkState } from '../../../../app/st
 import { hideLoading, showLoading } from '../../../../app/navigation.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { getCovFee } from '../../payload_and_swaps/state.js';
+import { getCovFee } from '../../payload/state.js';
 import { openPsktReview } from '../../../transactions/pskt_multisig/review.js';
 import { address_script_public_key, fetch_utxos_for_address_js, pskb_encode_document, ship_escrow_terms } from '../../../../wasm/api.js';
 // KasKold Companion Web — features/covenants/spending/standard/shipment

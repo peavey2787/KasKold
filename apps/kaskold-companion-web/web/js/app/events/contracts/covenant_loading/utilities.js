@@ -2,7 +2,7 @@ import { is_kaspa_address } from '../../../../wasm/api.js';
 import { covenantState } from '../../../state/index.js';
 import { showScreen } from '../../../navigation.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { covShowPanel } from '../../../../features/covenants/generation/ui_and_keys.js';
+import { covShowPanel } from '../../../../features/covenants/generation/panel_keys.js';
 import { handleCovCheckBalance } from '../../../../features/covenants/spending/advanced.js';
 import { startScanner, stopScanner } from '../../../../features/stealth/index/camera.js';
 import { byId } from '../../../../core/dom.js';

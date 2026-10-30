@@ -38,10 +38,10 @@ try {
 
   const oracle = await import(moduleUrl('features/oracle/v1/controller.js'));
   const protocol = await import(moduleUrl('features/covenants/signing/protocol.js'));
-  const resultButtons = await import(moduleUrl('features/covenants/watchers_and_ui/ui/result_buttons.js'));
+  const resultButtons = await import(moduleUrl('features/covenants/watch/ui/result_buttons.js'));
   const fund = await import(moduleUrl('features/covenants/generation/fund.js'));
   const beneficiary = await import(moduleUrl('features/covenants/recovery/export/beneficiary_payload.js'));
-  const params = await import(moduleUrl('features/covenants/payload_and_swaps/params.js'));
+  const params = await import(moduleUrl('features/covenants/payload/params.js'));
   const oracleRecovery = await import(moduleUrl('features/covenants/recovery/scanner/primary/oracle.js'));
   const inviteImport = await import(moduleUrl('features/covenants/recovery/import/invite.js'));
   const activeRepo = await import(moduleUrl('features/covenants/recovery/active/repository.js'));

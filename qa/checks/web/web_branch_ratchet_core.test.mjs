@@ -19,13 +19,13 @@ try {
   const resolver = await import(moduleUrl('core/node/resolver.js'));
   const returnRouting = await import(moduleUrl('app/events/transactions/return_routing.js'));
   const crowdfundPersistence = await import(moduleUrl('features/covenants/crowdfund/persistence.js'));
-  const advancedParams = await import(moduleUrl('features/covenants/payload_and_swaps/params/advanced.js'));
+  const advancedParams = await import(moduleUrl('features/covenants/payload/params/advanced.js'));
   const sendMax = await import(moduleUrl('features/transactions/send/compose/send_max.js'));
-  const covenantSelection = await import(moduleUrl('app/events/contracts/covenant_creation/withdrawal_and_consolidation/selection.js'));
-  const covenantPollers = await import(moduleUrl('features/covenants/watchers_and_ui/watcher/polling/covenant_pollers.js'));
+  const covenantSelection = await import(moduleUrl('app/events/contracts/covenant_creation/withdrawal/selection.js'));
+  const covenantPollers = await import(moduleUrl('features/covenants/watch/watcher/polling/covenant_pollers.js'));
   const commitRevealFetch = await import(moduleUrl('app/events/contracts/covenant_specialized/commit_reveal/transaction_fetch.js'));
-  const watcherLifecycle = await import(moduleUrl('features/covenants/watchers_and_ui/watcher/polling/lifecycle.js'));
-  const threadClaims = await import(moduleUrl('features/covenants/spending/standard/thread_and_claims/thread.js'));
+  const watcherLifecycle = await import(moduleUrl('features/covenants/watch/watcher/polling/lifecycle.js'));
+  const threadClaims = await import(moduleUrl('features/covenants/spending/standard/spend_paths/thread.js'));
   const portfolioCalculations = await import(moduleUrl('features/portfolio/calculations.js'));
   const oraclePollingRender = await import(moduleUrl('features/oracle/model_b/controller/polling/render.js'));
 

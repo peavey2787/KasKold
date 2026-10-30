@@ -2074,6 +2074,14 @@
       "commands": [
         "make qa"
       ],
+      "path": "qa/tests/tooling/test_vendored_jsqr.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
       "path": "qa/tests/tooling/test_master_launcher.py",
       "role": "test",
       "step": "unit.repository-python-qa"

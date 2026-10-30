@@ -1,8 +1,8 @@
 import { commitRevealState } from '../../../../state/index.js';
 import { showScreen } from '../../../../navigation.js';
 import { toast } from '../../../../../core/ui/toast.js';
-import { covShowPanel } from '../../../../../features/covenants/generation/ui_and_keys.js';
-import { covScanAddress } from '../../../../../features/covenants/scanning_and_swap.js';
+import { covShowPanel } from '../../../../../features/covenants/generation/panel_keys.js';
+import { covScanAddress } from '../../../../../features/covenants/scanning.js';
 import { handleCovCrReveal } from '../../../../../features/covenants/spending/advanced.js';
 import { startScanner, stopScanner } from '../../../../../features/stealth/index/camera.js';
 import { generate_qr_svg_text } from '../../../../../wasm/api.js';

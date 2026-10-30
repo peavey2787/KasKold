@@ -1,5 +1,5 @@
 import { byId } from '../../../core/dom.js';
-import { covShowPanel } from '../../../features/covenants/generation/ui_and_keys.js';
+import { covShowPanel } from '../../../features/covenants/generation/panel_keys.js';
 import { handleCovbScan } from '../../../features/covenants/recovery/import.js';
 import { recoverCovenants } from '../../../features/covenants/recovery/scanner.js';
 import { startScanner } from '../../../features/stealth/index/camera.js';

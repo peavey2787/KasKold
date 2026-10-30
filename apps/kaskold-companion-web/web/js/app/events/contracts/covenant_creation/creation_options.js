@@ -1,6 +1,6 @@
 import { handleCovGenerate } from '../../../../features/covenants/generation/create.js';
 import { handleCovFund } from '../../../../features/covenants/generation/fund.js';
-import { covScanAddress } from '../../../../features/covenants/scanning_and_swap.js';
+import { covScanAddress } from '../../../../features/covenants/scanning.js';
 // KasKold Companion Web — app/events/contracts/covenant_creation/creation_options
 import { byId } from '../../../../core/dom.js';
 import { bindDurationInputs } from '../../../../core/forms/duration.js';

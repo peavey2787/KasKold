@@ -93,7 +93,7 @@ EXPECTED_FRAGMENTS = (
     "screens/covenant/proofs/commit_reveal_spend.html",
     "screens/covenant/proofs/commit_reveal_verify.html",
     "screens/covenant/proofs/merkle_whitelist.html",
-    "screens/covenant/proofs/rollup_and_balance.html",
+    "screens/covenant/proofs/rollup_balance.html",
     "screens/covenant/recovery/load_existing.html",
     "screens/privacy/stealth.html",
     "screens/transactions/broadcast.html",

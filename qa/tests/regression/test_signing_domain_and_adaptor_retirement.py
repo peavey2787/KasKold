@@ -34,7 +34,7 @@ class SigningBoundary(unittest.TestCase):
             'crates/online-watcher/src/wasm_api/privacy/adaptor',
             'apps/kaskold-companion-web/web/js/app/events/contracts/adaptor_swap.js',
             'apps/kaskold-companion-web/web/js/app/state/covenants/adaptor_state.js',
-            'apps/kaskold-companion-web/web/js/features/covenants/payload_and_swaps/adaptor_policy.js',
+            'apps/kaskold-companion-web/web/js/features/covenants/payload/adaptor_policy.js',
             'apps/kaskold-companion-web/web/js/features/covenants/recovery/scanner/historical_payload.js',
             'apps/kaskold-companion-web/web/html/screens/covenant/create/adaptor_swap.html',
         )

@@ -1,6 +1,6 @@
-import { covShowPanel, covTypeChanged } from '../../../../features/covenants/generation/ui_and_keys.js';
-import { covScanAddress, covScanPubkey } from '../../../../features/covenants/scanning_and_swap.js';
-import { handleCovBorrowerSpend, handleCovPayjoinClaim } from '../../../../features/covenants/spending/standard/thread_and_claims.js';
+import { covShowPanel, covTypeChanged } from '../../../../features/covenants/generation/panel_keys.js';
+import { covScanAddress, covScanPubkey } from '../../../../features/covenants/scanning.js';
+import { handleCovBorrowerSpend, handleCovPayjoinClaim } from '../../../../features/covenants/spending/standard/spend_paths.js';
 import { byId } from '../../../../core/dom.js';
 export function bindCovenantScansAndClaims(_context) {
     byId('btn-cov-borrower-create').onclick = () => handleCovBorrowerSpend();

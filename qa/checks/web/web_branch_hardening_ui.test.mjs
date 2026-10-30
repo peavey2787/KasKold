@@ -7,18 +7,18 @@ import { FakeElement } from './web_recovery_test_harness.mjs';
 
 const { state, response } = await setupDeepHarness();
 try {
-  const notifications = await import(moduleUrl('features/covenants/watchers_and_ui/watcher/subscription/notifications.js'));
-  const merkleButtons = await import(moduleUrl('features/covenants/watchers_and_ui/ui/result_buttons/primary_advanced/merkle.js'));
-  const payjoinButtons = await import(moduleUrl('features/covenants/watchers_and_ui/ui/result_buttons/primary_advanced/payjoin.js'));
-  const commitButtons = await import(moduleUrl('features/covenants/watchers_and_ui/ui/result_buttons/primary_advanced/commit_reveal.js'));
-  const commitVerify = await import(moduleUrl('features/covenants/watchers_and_ui/ui/result_buttons/auxiliary/commit_reveal.js'));
-  const additiveButtons = await import(moduleUrl('features/covenants/watchers_and_ui/ui/result_buttons/primary_core/additive.js'));
-  const shipmentButtons = await import(moduleUrl('features/covenants/watchers_and_ui/ui/result_buttons/primary_advanced/shipment.js'));
-  const escrowButtons = await import(moduleUrl('features/covenants/watchers_and_ui/ui/result_buttons/primary_core/escrow.js'));
+  const notifications = await import(moduleUrl('features/covenants/watch/watcher/subscription/notifications.js'));
+  const merkleButtons = await import(moduleUrl('features/covenants/watch/ui/result_buttons/primary_advanced/merkle.js'));
+  const payjoinButtons = await import(moduleUrl('features/covenants/watch/ui/result_buttons/primary_advanced/payjoin.js'));
+  const commitButtons = await import(moduleUrl('features/covenants/watch/ui/result_buttons/primary_advanced/commit_reveal.js'));
+  const commitVerify = await import(moduleUrl('features/covenants/watch/ui/result_buttons/auxiliary/commit_reveal.js'));
+  const additiveButtons = await import(moduleUrl('features/covenants/watch/ui/result_buttons/primary_core/additive.js'));
+  const shipmentButtons = await import(moduleUrl('features/covenants/watch/ui/result_buttons/primary_advanced/shipment.js'));
+  const escrowButtons = await import(moduleUrl('features/covenants/watch/ui/result_buttons/primary_core/escrow.js'));
   const settings = await import(moduleUrl('features/settings/screen.js'));
   const piggy = await import(moduleUrl('app/events/contracts/covenant_creation/result_actions/piggy.js'));
   const scriptTerms = await import(moduleUrl('features/covenants/model/script_terms.js'));
-  const payloadState = await import(moduleUrl('features/covenants/payload_and_swaps/state.js'));
+  const payloadState = await import(moduleUrl('features/covenants/payload/state.js'));
   const connectivity = await import(moduleUrl('core/ui/connectivity_status.js'));
   const network = await import(moduleUrl('core/network.js'));
   const antiResponse = await import(moduleUrl('features/transactions/anti_klepto/response.js'));

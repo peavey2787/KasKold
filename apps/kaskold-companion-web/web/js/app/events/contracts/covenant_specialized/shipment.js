@@ -1,5 +1,5 @@
-import { covShowPanel } from '../../../../features/covenants/generation/ui_and_keys.js';
-import { covScanAddress, covScanPubkey } from '../../../../features/covenants/scanning_and_swap.js';
+import { covShowPanel } from '../../../../features/covenants/generation/panel_keys.js';
+import { covScanAddress, covScanPubkey } from '../../../../features/covenants/scanning.js';
 import { handleShipEscrowSpend } from '../../../../features/covenants/spending/standard/shipment.js';
 import { byId } from '../../../../core/dom.js';
 

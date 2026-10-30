@@ -25,13 +25,13 @@ def check_scoped_context(web_js_root: Path) -> list[str]:
 def check_shared_browser_infrastructure(web_js_root: Path) -> list[str]:
     errors: list[str] = []
     subscription_source = (
-        web_js_root / "features/covenants/watchers_and_ui/watcher/subscription_and_time.js"
+        web_js_root / "features/covenants/watch/watcher/subscription.js"
     ).read_text(errors="ignore")
     if "createBlockAddedSubscription" not in subscription_source:
         errors.append("generic covenant watcher must use the shared BlockAdded subscription")
 
     message_source = (
-        web_js_root / "features/covenants/watchers_and_ui/watcher/subscription/message.js"
+        web_js_root / "features/covenants/watch/watcher/subscription/message.js"
     ).read_text(errors="ignore")
     for forbidden in ("findSignatureForOutpoint", "isBlockAddedNotification", "readU32Le"):
         if forbidden in message_source:
@@ -65,9 +65,9 @@ def check_shared_browser_infrastructure(web_js_root: Path) -> list[str]:
         web_js_root / "app/events/contracts/adaptor_swap.js",
         web_js_root / "app/events/contracts/adaptor_swap",
         web_js_root / "app/state/covenants/adaptor_state.js",
-        web_js_root / "features/covenants/payload_and_swaps/adaptor_policy.js",
-        web_js_root / "features/covenants/payload_and_swaps/adaptor_watcher.js",
-        web_js_root / "features/covenants/payload_and_swaps/adaptor_watcher",
+        web_js_root / "features/covenants/payload/adaptor_policy.js",
+        web_js_root / "features/covenants/payload/adaptor_watcher.js",
+        web_js_root / "features/covenants/payload/adaptor_watcher",
     ):
         if retired_raw_signature_path.exists():
             errors.append(
@@ -131,7 +131,7 @@ def check_shared_browser_infrastructure(web_js_root: Path) -> list[str]:
         "auxiliary/commit_reveal.js",
         "auxiliary/invite.js",
     }
-    result_root = web_js_root / "features/covenants/watchers_and_ui/ui/result_buttons"
+    result_root = web_js_root / "features/covenants/watch/ui/result_buttons"
     actual_result_modules = {
         path.relative_to(result_root).as_posix()
         for path in result_root.rglob("*.js")

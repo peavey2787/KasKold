@@ -1,8 +1,8 @@
 import { covenantState } from '../../../state/index.js';
 import { hideLoading, showLoading } from '../../../navigation.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { covShowPanel } from '../../../../features/covenants/generation/ui_and_keys.js';
-import { covScanAddress, covScanAddressAppend } from '../../../../features/covenants/scanning_and_swap.js';
+import { covShowPanel } from '../../../../features/covenants/generation/panel_keys.js';
+import { covScanAddress, covScanAddressAppend } from '../../../../features/covenants/scanning.js';
 import { handleCovMwSpend, mwMaxSompi } from '../../../../features/covenants/spending/advanced.js';
 import { byId } from '../../../../core/dom.js';
 import { sompiToKasString } from '../../../../core/amounts.js';

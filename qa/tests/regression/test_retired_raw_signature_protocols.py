@@ -17,7 +17,7 @@ class RetiredRawSignatureProtocolTests(unittest.TestCase):
         "crates/online-watcher/src/contracts/zk/rng.rs",
         "crates/online-watcher/src/contracts/covenant/script/oracle.rs",
         "crates/online-watcher/src/wasm_api/contracts/covenant/families/oracle.rs",
-        "apps/kaskold-companion-web/web/js/features/covenants/payload_and_swaps/crowdfund_watcher.js",
+        "apps/kaskold-companion-web/web/js/features/covenants/payload/crowdfund_watcher.js",
         "apps/kaskold-companion-web/web/js/features/covenants/recovery/scanner/extended/crowdfund.js",
         "apps/kaskold-companion-web/web/html/screens/covenant/create/form/advanced/oracle.html",
         "apps/kaskold-companion-web/web/html/screens/covenant/oracle",

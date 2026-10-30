@@ -94,8 +94,8 @@ try {
   wasm.fetch_utxos_for_address_js=()=>JSON.stringify([{tx_id:TXID,index:0,amount:'1',block_daa_score:'1'}]); await shipment.handleEscrowSpend('buyer-release');
 
   // Watcher pollers: spent/not-funded/mature/locked/watching branches.
-  const savings = await import(moduleUrl('features/covenants/watchers_and_ui/watcher/polling/covenant_pollers/savings.js'));
-  const limits = await import(moduleUrl('features/covenants/watchers_and_ui/watcher/polling/covenant_pollers/limits.js'));
+  const savings = await import(moduleUrl('features/covenants/watch/watcher/polling/covenant_pollers/savings.js'));
+  const limits = await import(moduleUrl('features/covenants/watch/watcher/polling/covenant_pollers/limits.js'));
   const st=element('runtime-poller-status');
   covenantWatcherState._covWatcherLastBalance=null; covenantWatcherState._covWatcherSpendPath='unknown';
   covenantState.lastCovenantResult={...covenantResult('dms'),inactivity_daa:'500'};
@@ -158,7 +158,7 @@ try {
 
   // Oracle-v1 watcher: saved beacon, spent/not-funded, malformed network
   // beacons, identity/commitment failures, and a valid on-chain attestation.
-  const oraclePoller=await import(moduleUrl('features/covenants/watchers_and_ui/watcher/polling/covenant_pollers/oracle_v1.js'));
+  const oraclePoller=await import(moduleUrl('features/covenants/watch/watcher/polling/covenant_pollers/oracle_v1.js'));
   const oracleStatement='KasKold oracle watcher branch coverage';
   const oracleCommit=createHash('sha256').update(Buffer.from(oracleStatement,'utf8')).digest('hex');
   const oracleSig='44'.repeat(64); const oraclePk=PK2;

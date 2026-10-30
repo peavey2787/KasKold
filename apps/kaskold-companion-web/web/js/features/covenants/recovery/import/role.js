@@ -1,4 +1,4 @@
-import { walletMatchesPk } from '../../generation/ui_and_keys.js';
+import { walletMatchesPk } from '../../generation/panel_keys.js';
 
 // The key that makes this wallet the owner of a two-party covenant.
 const OWNER_KEY = Object.freeze({

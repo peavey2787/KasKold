@@ -21,7 +21,7 @@ import { stopOracleMbCountdown } from '../oracle/model_b/controller/proving/coun
 import { covActiveWatcherStop } from '../covenants/recovery/active.js';
 import { stopCrowdfundWatcher } from '../covenants/crowdfund/sweep.js';
 import { stopPrivateSwapWatcher } from '../covenants/private_swap/watcher.js';
-import { covWatcherStop } from '../covenants/watchers_and_ui/watcher/polling/lifecycle.js';
+import { covWatcherStop } from '../covenants/watch/watcher/polling/lifecycle.js';
 import { stopStealthScan } from '../stealth/index/scanning/live_controls/lifecycle.js';
 import { hideOracleProvingScreen } from '../transactions/pskt_multisig/review_overlay.js';
 import { clearAntiKleptoSession } from '../transactions/anti_klepto/session.js';

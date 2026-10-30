@@ -222,9 +222,9 @@ def _check_browser_contracts(root: Path, all_web_js_source: str) -> list[str]:
     expected_event_binders = {
         "bindCoreEvents", "bindOracleEvents", "bindStealthEvents",
         "bindCovenantCreationEvents", "bindCovenantActionsEvents",
-        "bindCovenantSpecializedEvents", "bindTaggedVaultAndRecoveryEvents",
+        "bindCovenantSpecializedEvents", "bindVaultRecoveryEvents",
         "bindCovenantLoadingEvents", "bindTransactionsEvents",
-        "bindSettingsAndWalletEvents", "bindPortfolioEvents",
+        "bindWalletSettingsEvents", "bindPortfolioEvents",
     }
     event_root = web_js_root / "app/events"
     expected_event_groups = {"system", "wallet", "transactions", "contracts"}
@@ -246,14 +246,14 @@ def _check_browser_contracts(root: Path, all_web_js_source: str) -> list[str]:
     required_event_modules = {
         "index.js",
         "system/core.js",
-        "wallet/settings_and_wallet.js",
+        "wallet/wallet_settings.js",
         "transactions/transactions.js",
         "transactions/stealth.js",
         "contracts/oracle.js",
         "contracts/covenant_creation.js",
         "contracts/covenant_actions.js",
         "contracts/covenant_specialized.js",
-        "contracts/tagged_vault_and_recovery.js",
+        "contracts/vault_recovery_events.js",
         "contracts/covenant_loading.js",
     }
     actual_event_modules = {

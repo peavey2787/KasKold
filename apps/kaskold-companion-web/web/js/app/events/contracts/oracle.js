@@ -1,7 +1,7 @@
 import { walletSession } from '../../state/index.js';
 import { oracleMbAskForNew, oracleMbSetFee } from '../../../features/oracle/model_b/controller.js';
 import { navigateBack, showScreen } from '../../navigation.js';
-import { covShowPanel } from '../../../features/covenants/generation/ui_and_keys.js';
+import { covShowPanel } from '../../../features/covenants/generation/panel_keys.js';
 import { covScanAddress } from '../../../features/covenants/scanning/pubkeys.js';
 import {
     buildOracleV1Claim, openOracleV1Attest, publishOracleV1Beacon,

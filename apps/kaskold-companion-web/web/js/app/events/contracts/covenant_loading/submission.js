@@ -1,11 +1,11 @@
 import { covenantRecoveryState, covenantState } from '../../../state/index.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { covShowPanel } from '../../../../features/covenants/generation/ui_and_keys.js';
+import { covShowPanel } from '../../../../features/covenants/generation/panel_keys.js';
 import { covAddActive } from '../../../../features/covenants/recovery/active.js';
 import { inferCovenantRole } from '../../../../features/covenants/recovery/import/role.js';
 import { SCRIPT_TERM_TYPES, verifiedCovenantTerms } from '../../../../features/covenants/model/script_terms.js';
-import { covRenderMetaLine } from '../../../../features/covenants/watchers_and_ui/ui/metadata.js';
-import { covUpdateResultButtons } from '../../../../features/covenants/watchers_and_ui/ui/result_buttons.js';
+import { covRenderMetaLine } from '../../../../features/covenants/watch/ui/metadata.js';
+import { covUpdateResultButtons } from '../../../../features/covenants/watch/ui/result_buttons.js';
 import { byId } from '../../../../core/dom.js';
 
 // A loaded covenant of a known family shows only what its script proves;

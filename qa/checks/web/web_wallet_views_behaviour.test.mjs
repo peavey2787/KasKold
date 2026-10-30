@@ -24,7 +24,7 @@ try {
   const receive = await import(moduleUrl('features/transactions/send/receive.js'));
   const tools = await import(moduleUrl('features/wallet/tools.js'));
   const assets = await import(moduleUrl('features/assets/render.js'));
-  const events = await import(moduleUrl('app/events/wallet/settings_and_wallet.js'));
+  const events = await import(moduleUrl('app/events/wallet/wallet_settings.js'));
   const kpub = await import(moduleUrl('features/wallet/kpub_manager/index.js'));
   const stubs = globalThis.__COMPANION_WASM_STUBS__;
 
@@ -77,7 +77,7 @@ try {
   stubs.generate_qr_frames = frames;
 
   // Copy on Verify copies the shown address and stays on the Verify screen.
-  events.bindSettingsAndWalletEvents();
+  events.bindWalletSettingsEvents();
   items[1].onclick();
   const screenBeforeCopy = state.navigationState.currentScreenName;
   copied.length = 0;

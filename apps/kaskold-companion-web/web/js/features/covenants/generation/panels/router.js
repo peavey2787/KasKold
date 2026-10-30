@@ -3,7 +3,7 @@ import { oracleMbAmbientStop, oracleMbCardOpen } from '../../../oracle/model_b/c
 import { covActiveWatcherStart, covActiveWatcherStop, covFetchBalances } from '../../recovery/active.js';
 import { renderPrivateSwap } from '../../private_swap/controller.js';
 import { shipPanelRefresh } from '../../spending/standard/shipment.js';
-import { covWatcherStart, covWatcherStop } from '../../watchers_and_ui/watcher/polling/lifecycle.js';
+import { covWatcherStart, covWatcherStop } from '../../watch/watcher/polling/lifecycle.js';
 
 const PANEL_IDS = {
     menu: 'cov-menu',

@@ -3,11 +3,11 @@ import { showScreen } from '../../../app/navigation.js';
 import { byId } from '../../../core/dom.js';
 import { bytesToHex } from '../../../core/bytes.js';
 import { toast } from '../../../core/ui/toast.js';
-import { covShowPanel } from '../../covenants/generation/ui_and_keys.js';
+import { covShowPanel } from '../../covenants/generation/panel_keys.js';
 import { covRenderActive, covSaveActive } from '../../covenants/recovery/active.js';
 import { stringifyCovenantJson } from '../../covenants/model/exact_fields.js';
-import { getCovFee, ownerReceiveAddr } from '../../covenants/payload_and_swaps/state.js';
-import { runCovenantClaim } from '../../covenants/spending/standard/thread_and_claims/claim_controller.js';
+import { getCovFee, ownerReceiveAddr } from '../../covenants/payload/state.js';
+import { runCovenantClaim } from '../../covenants/spending/standard/spend_paths/claim_controller.js';
 import {
     CovenantKnownScheme, covenantBindRequestHex, covenantKeyRequestHex, covenantKnownRequestHex, covenantRevealHex,
     covenantScriptFingerprint, covenantSignatureResponseHex, createCovenantSigningChallenge, parseCovenantResponse,

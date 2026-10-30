@@ -1,9 +1,9 @@
 import { covenantState } from '../../../../app/state/index.js';
 import { byId } from '../../../../core/dom.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { covShowPanel } from '../../generation/ui_and_keys.js';
-import { covRenderMetaLine } from '../../watchers_and_ui/ui/metadata.js';
-import { covUpdateResultButtons } from '../../watchers_and_ui/ui/result_buttons.js';
+import { covShowPanel } from '../../generation/panel_keys.js';
+import { covRenderMetaLine } from '../../watch/ui/metadata.js';
+import { covUpdateResultButtons } from '../../watch/ui/result_buttons.js';
 import { ACTIVE_METADATA_FIELDS, copyDefinedFields, saveActiveRecords } from './repository.js';
 import { stringifyCovenantJson } from '../../model/exact_fields.js';
 import { SCRIPT_TERM_TYPES, applyScriptTerms } from '../../model/script_terms.js';

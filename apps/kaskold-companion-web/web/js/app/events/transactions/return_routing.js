@@ -1,6 +1,6 @@
 import { navigationState, walletSession } from '../../state/index.js';
 import { showScreen } from '../../navigation.js';
-import { covReturnAfterBroadcast } from '../../../features/covenants/scanning_and_swap.js';
+import { covReturnAfterBroadcast } from '../../../features/covenants/scanning.js';
 
 export function takeTransactionReturnScreen() {
     const screen = navigationState._broadcastReturnScreen;

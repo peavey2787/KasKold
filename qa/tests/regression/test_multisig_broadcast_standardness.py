@@ -21,7 +21,7 @@ MULTISIG_TESTS = kaskold_source("crates/online-watcher/src/transaction_builder/m
 MASS = portal_path("transaction/mass.rs")
 SUBMISSION_TESTS = kaskold_source("crates/online-watcher/src/network/unit_tests/submission.rs")
 FINALIZER_TESTS = portal_path("transaction/interchange/pskt/pipeline/unit-tests/consensus.rs")
-CSS = ROOT / "apps/kaskold-companion-web/web/css/app/components/qr_and_address.css"
+CSS = ROOT / "apps/kaskold-companion-web/web/css/app/components/qr_address.css"
 
 
 class MultisigBroadcastStandardnessTests(unittest.TestCase):

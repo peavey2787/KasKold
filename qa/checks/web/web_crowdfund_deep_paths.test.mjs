@@ -13,8 +13,8 @@ try {
   const sweep = await import(moduleUrl('features/covenants/crowdfund/sweep.js'));
   const events = await import(moduleUrl('app/events/contracts/covenant_specialized/crowdfund.js'));
   const recovery = await import(moduleUrl('features/covenants/recovery/scanner/primary/crowdfund.js'));
-  const serializers = await import(moduleUrl('features/covenants/payload_and_swaps/params/advanced.js'));
-  const actions = await import(moduleUrl('features/covenants/watchers_and_ui/ui/result_buttons/primary_advanced/crowdfund.js'));
+  const serializers = await import(moduleUrl('features/covenants/payload/params/advanced.js'));
+  const actions = await import(moduleUrl('features/covenants/watch/ui/result_buttons/primary_advanced/crowdfund.js'));
   const stubs = globalThis.__COMPANION_WASM_STUBS__;
 
   const VK = 'ab'.repeat(48);

@@ -1,11 +1,11 @@
 import { applyScriptTerms } from '../model/script_terms.js';
 import { covenantState, covenantWatcherState, oracleState } from '../../../app/state/index.js';
 import { toast } from '../../../core/ui/toast.js';
-import { covShowPanel } from '../generation/ui_and_keys.js';
-import { covRenderMetaLine } from '../watchers_and_ui/ui/metadata.js';
-import { covUpdateResultButtons } from '../watchers_and_ui/ui/result_buttons.js';
-import { covWatcherStart, covWatcherStop } from '../watchers_and_ui/watcher/polling/lifecycle.js';
-import { isWatchedCovenantType } from '../watchers_and_ui/watcher/types.js';
+import { covShowPanel } from '../generation/panel_keys.js';
+import { covRenderMetaLine } from '../watch/ui/metadata.js';
+import { covUpdateResultButtons } from '../watch/ui/result_buttons.js';
+import { covWatcherStart, covWatcherStop } from '../watch/watcher/polling/lifecycle.js';
+import { isWatchedCovenantType } from '../watch/watcher/types.js';
 import { byId } from '../../../core/dom.js';
 
 export function covReturnAfterBroadcast() {

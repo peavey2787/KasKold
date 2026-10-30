@@ -1,9 +1,9 @@
 import { covenantState, covenantWatcherState } from '../../../app/state/index.js';
 import { toast } from '../../../core/ui/toast.js';
-import { covShowPanel, getAccountPubkeyHex } from './ui_and_keys.js';
+import { covShowPanel, getAccountPubkeyHex } from './panel_keys.js';
 import { covAddActive } from '../recovery/active.js';
-import { covRenderMetaLine } from '../watchers_and_ui/ui/metadata.js';
-import { covUpdateResultButtons } from '../watchers_and_ui/ui/result_buttons.js';
+import { covRenderMetaLine } from '../watch/ui/metadata.js';
+import { covUpdateResultButtons } from '../watch/ui/result_buttons.js';
 // KasKold Companion Web — features/covenants/generation/create
 import { byId } from '../../../core/dom.js';
 import { buildCovenant } from './builders/index.js';

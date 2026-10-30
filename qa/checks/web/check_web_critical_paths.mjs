@@ -52,7 +52,7 @@ const compactRelay = await read('features/transactions/pskt_multisig/review_rela
 assert.match(compactRelay, /beginAntiKlepto\(ksptHex\)/,
     'KasKold compact relay must begin the anti-klepto transcript before displaying the request');
 
-const payjoinActions = await read('features/covenants/watchers_and_ui/ui/result_buttons/primary_advanced/payjoin.js');
+const payjoinActions = await read('features/covenants/watch/ui/result_buttons/primary_advanced/payjoin.js');
 assert.match(payjoinActions, /configurePayjoinActions\(\{[^}]*\bisBeneficiary\b[^}]*\}\)/,
     'PayJoin result configuration must receive isBeneficiary explicitly');
 
@@ -62,7 +62,7 @@ assert.match(controller, /finally\s*\{\s*scannerState\._covbImporting\s*=\s*fals
 
 
 for (const retired of [
-    'features/covenants/payload_and_swaps/adaptor_policy.js',
+    'features/covenants/payload/adaptor_policy.js',
     'app/events/contracts/adaptor_swap.js',
     'app/state/covenants/adaptor_state.js',
 ]) {

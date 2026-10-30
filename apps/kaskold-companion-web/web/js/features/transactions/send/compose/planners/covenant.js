@@ -1,10 +1,10 @@
 import { covenantState, navigationState, networkState, transactionState, walletSession } from '../../../../../app/state/index.js';
-import { COVENANT_TYPE_CODES } from '../../../../covenants/payload_and_swaps/types.js';
+import { COVENANT_TYPE_CODES } from '../../../../covenants/payload/types.js';
 import { hideLoading } from '../../../../../app/navigation.js';
 import { resolveNodeUrl } from '../../../../../core/node/resolver.js';
 import { toast } from '../../../../../core/ui/toast.js';
-import { encryptCovenantPayload } from '../../../../covenants/payload_and_swaps/payload.js';
-import { pickThread } from '../../../../covenants/spending/standard/thread_and_claims.js';
+import { encryptCovenantPayload } from '../../../../covenants/payload/payload.js';
+import { pickThread } from '../../../../covenants/spending/standard/spend_paths.js';
 import { openPsktReview } from '../../../pskt_multisig/review.js';
 import { withNodeRetry } from '../../../../wallet/core.js';
 import {

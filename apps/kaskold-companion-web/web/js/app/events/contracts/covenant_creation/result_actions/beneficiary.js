@@ -1,7 +1,7 @@
 import { covenantState } from '../../../../state/index.js';
 import { toast } from '../../../../../core/ui/toast.js';
-import { covShowPanel } from '../../../../../features/covenants/generation/ui_and_keys.js';
-import { ownerReceiveAddr } from '../../../../../features/covenants/payload_and_swaps/state.js';
+import { covShowPanel } from '../../../../../features/covenants/generation/panel_keys.js';
+import { ownerReceiveAddr } from '../../../../../features/covenants/payload/state.js';
 import { handleEscrowSpend } from '../../../../../features/covenants/spending/standard/shipment.js';
 import { openOracleV1Claim } from '../../../../../features/oracle/v1/controller.js';
 // KasKold Companion Web — focused covenant result action registration.

@@ -117,7 +117,7 @@ def _check_browser_state_boundaries(root: Path) -> list[str]:
         "core/node/daa.js",
         "core/config/network.js",
         "core/config/services.js",
-        "features/covenants/payload_and_swaps/types.js",
+        "features/covenants/payload/types.js",
         "features/stealth/index/config.js",
         "features/assets/client.js",
         "features/assets/render.js",
@@ -125,8 +125,8 @@ def _check_browser_state_boundaries(root: Path) -> list[str]:
         "features/oracle/model_b/controller/proving/client.js",
         "features/oracle/model_b/controller/proving/validation.js",
         "features/oracle/model_b/controller/proving/skeleton.js",
-        "features/covenants/payload_and_swaps/params/standard.js",
-        "features/covenants/payload_and_swaps/params/advanced.js",
+        "features/covenants/payload/params/standard.js",
+        "features/covenants/payload/params/advanced.js",
     )
     for relative in required:
         if not (web_root / relative).is_file():

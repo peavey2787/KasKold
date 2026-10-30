@@ -146,7 +146,7 @@ class UniversalCovenantSigningTests(unittest.TestCase):
         invite_import = read("apps/kaskold-companion-web/web/js/features/covenants/recovery/import/invite.js")
         beneficiary = read("apps/kaskold-companion-web/web/js/features/covenants/recovery/export/beneficiary_payload.js")
         repository = read("apps/kaskold-companion-web/web/js/features/covenants/recovery/active/repository.js")
-        params = read("apps/kaskold-companion-web/web/js/features/covenants/payload_and_swaps/params/advanced.js")
+        params = read("apps/kaskold-companion-web/web/js/features/covenants/payload/params/advanced.js")
         scanner = read("apps/kaskold-companion-web/web/js/features/covenants/recovery/scanner/primary/oracle.js")
         fund = read("apps/kaskold-companion-web/web/js/features/covenants/generation/fund.js")
         self.assertIn("scanOracleV1BindingResponse", oracle)

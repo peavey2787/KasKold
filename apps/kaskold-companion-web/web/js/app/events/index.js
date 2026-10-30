@@ -7,10 +7,10 @@ import { bindStealthEvents } from './transactions/stealth.js';
 import { bindCovenantCreationEvents } from './contracts/covenant_creation.js';
 import { bindCovenantActionsEvents } from './contracts/covenant_actions.js';
 import { bindCovenantSpecializedEvents } from './contracts/covenant_specialized.js';
-import { bindTaggedVaultAndRecoveryEvents } from './contracts/tagged_vault_and_recovery.js';
+import { bindVaultRecoveryEvents } from './contracts/vault_recovery_events.js';
 import { bindCovenantLoadingEvents } from './contracts/covenant_loading.js';
 import { bindTransactionsEvents } from './transactions/transactions.js';
-import { bindSettingsAndWalletEvents } from './wallet/settings_and_wallet.js';
+import { bindWalletSettingsEvents } from './wallet/wallet_settings.js';
 import { bindPortfolioEvents } from '../../features/portfolio/index.js';
 
 function bindSafely(name, binder, failures) {
@@ -30,10 +30,10 @@ export function bindEvents() {
     bindSafely('covenant creation', () => { bindCovenantCreationEvents(); }, failures);
     bindSafely('covenant actions', () => { bindCovenantActionsEvents(); }, failures);
     bindSafely('specialized covenants', () => { bindCovenantSpecializedEvents(); }, failures);
-    bindSafely('tagged vault and recovery', () => { bindTaggedVaultAndRecoveryEvents(); }, failures);
+    bindSafely('tagged vault and recovery', () => { bindVaultRecoveryEvents(); }, failures);
     bindSafely('covenant loading', () => { bindCovenantLoadingEvents(); }, failures);
     bindSafely('transactions', () => { bindTransactionsEvents(); }, failures);
-    bindSafely('settings and wallet', () => { bindSettingsAndWalletEvents(); }, failures);
+    bindSafely('settings and wallet', () => { bindWalletSettingsEvents(); }, failures);
     bindSafely('portfolio', () => { bindPortfolioEvents(); }, failures);
     return failures;
 }

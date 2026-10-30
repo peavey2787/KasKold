@@ -2,7 +2,7 @@ import { el, setContent } from '../../../../core/ui/elements.js';
 import { covenantState } from '../../../state/index.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { covShowPanel } from '../../../../features/covenants/generation/ui_and_keys.js';
+import { covShowPanel } from '../../../../features/covenants/generation/panel_keys.js';
 import { fetch_utxos_for_address_js } from '../../../../wasm/api.js';
 // KasKold Companion Web — covenant UTXO picker and selection summary.
 

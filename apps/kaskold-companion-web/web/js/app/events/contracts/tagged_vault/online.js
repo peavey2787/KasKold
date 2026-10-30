@@ -3,7 +3,7 @@ import { kasToSompi } from '../../../../core/amounts.js';
 import { byId } from '../../../../core/dom.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { covShowPanel } from '../../../../features/covenants/generation/ui_and_keys.js';
+import { covShowPanel } from '../../../../features/covenants/generation/panel_keys.js';
 import { openPsktReview } from '../../../../features/transactions/pskt_multisig/review.js';
 import {
     decode_address,

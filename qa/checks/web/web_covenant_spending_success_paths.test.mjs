@@ -16,7 +16,7 @@ try {
     create_covenant_beneficiary_spend:()=>PSKB, create_covenant_timelocked_savings_claim:()=>PSKB, create_covenant_timeout_refund:()=>PSKB,
     pskt_summary:()=>JSON.stringify({format:'pskb',tx_version:0,input_count:0,output_count:0,fee_sompi:'0',total_in_sompi:'0',total_out_sompi:'0',finalize_ready:false,inputs:[],outputs:[]}),
   });
-  const owner=await import(moduleUrl('features/covenants/spending/standard/thread_and_claims/owner.js'));
+  const owner=await import(moduleUrl('features/covenants/spending/standard/spend_paths/owner.js'));
   element('cov-owner-addr').value=ADDRESS; element('cov-owner-script').value='51'; element('cov-owner-dest').value=DEST;
   // Standard full owner sweep.
   covenantState.lastCovenantResult={type:'savings',address:ADDRESS,redeem_script_hex:'51',locktime_daa:'0'};
@@ -34,7 +34,7 @@ try {
   currentDaa='2000'; transactionState._psktReviewHex=null; await owner.handleCovOwnerSpend(); assert.equal(transactionState._psktReviewHex,null);
   currentDaa='4000'; await owner.handleCovOwnerSpend(); assert.equal(transactionState._psktReviewHex,PSKB);
 
-  const part=await import(moduleUrl('features/covenants/spending/standard/thread_and_claims/participants.js'));
+  const part=await import(moduleUrl('features/covenants/spending/standard/spend_paths/participants.js'));
   element('cov-borrower-addr').value=ADDRESS; element('cov-borrower-script').value='51'; element('cov-borrower-amount').value='1';
   element('cov-borrower-mode').value='spend'; await part.handleCovBorrowerSpend(); assert.equal(transactionState._psktReviewHex,PSKB);
   element('cov-borrower-mode').value='withdraw'; await part.handleCovBorrowerSpend(); assert.equal(transactionState._psktReviewHex,PSKB);

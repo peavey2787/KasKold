@@ -6,9 +6,9 @@ import { exactUnsigned } from '../../../core/exact.js';
 import { resolveFutureDaa } from '../../../core/node/future_daa.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';
 import { toast } from '../../../core/ui/toast.js';
-import { getOwnerPubkeyHex, covShowPanel } from '../generation/ui_and_keys.js';
+import { getOwnerPubkeyHex, covShowPanel } from '../generation/panel_keys.js';
 import { handleCovFund } from '../generation/fund.js';
-import { getCovFee, ownerReceiveAddr } from '../payload_and_swaps/state.js';
+import { getCovFee, ownerReceiveAddr } from '../payload/state.js';
 import { covAddActive, covRenderActive, covSaveActive } from '../recovery/active.js';
 import { startScanner, stopScanner } from '../../stealth/index/camera.js';
 import {

@@ -7,13 +7,13 @@ import {
 
 const { state } = await setupDeepHarness();
 try {
-  const sharing = await import(moduleUrl('app/events/contracts/covenant_creation/sharing_and_claims.js'));
+  const sharing = await import(moduleUrl('app/events/contracts/covenant_creation/claim_sharing.js'));
   const ownerActions = await import(moduleUrl('app/events/contracts/covenant_creation/result_actions/owner.js'));
   const beneActions = await import(moduleUrl('app/events/contracts/covenant_creation/result_actions/beneficiary.js'));
   const utilities = await import(moduleUrl('app/events/contracts/covenant_loading/utilities.js'));
-  const policy = await import(moduleUrl('app/events/contracts/covenant_creation/withdrawal_and_consolidation/policy.js'));
-  const build = await import(moduleUrl('app/events/contracts/covenant_creation/withdrawal_and_consolidation/build.js'));
-  const withdrawal = await import(moduleUrl('app/events/contracts/covenant_creation/withdrawal_and_consolidation/controller.js'));
+  const policy = await import(moduleUrl('app/events/contracts/covenant_creation/withdrawal/policy.js'));
+  const build = await import(moduleUrl('app/events/contracts/covenant_creation/withdrawal/build.js'));
+  const withdrawal = await import(moduleUrl('app/events/contracts/covenant_creation/withdrawal/controller.js'));
   const stubs = globalThis.__COMPANION_WASM_STUBS__;
 
   let daa = 1000n;
@@ -26,7 +26,7 @@ try {
     outputs:[{script_kind:'p2pk',amount_sompi:'249999000',address:ADDRESS}],
   });
 
-  sharing.registerSharingAndClaims();
+  sharing.registerClaimSharing();
 
   // Spend-panel navigation covers no-result/result branches and DMS
   // heartbeat prefill. Borrower/beneficiary presets copy only public covenant data.
@@ -93,7 +93,7 @@ try {
 
   // Withdrawal/consolidation controller validates selection/destination/count,
   // applies policy, and routes successful owner spends to hardware PSKB review.
-  withdrawal.registerWithdrawalAndConsolidation();
+  withdrawal.registerWithdrawal();
   const list=element('cov-consol-list'); const makeChecks=count=>Array.from({length:count},(_,index)=>({checked:true,dataset:{utxoIdx:String(index)}})); let checks=[];
   list.querySelectorAll=selector=>selector==='input[type="checkbox"]'?checks:[];
   state.covenantState.lastCovenantResult=null; checks=[]; await element('btn-consol-create').onclick(); assert.match(element('toast').textContent,/No covenant loaded/);

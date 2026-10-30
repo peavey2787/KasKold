@@ -2,7 +2,7 @@ import { covenantState } from '../../../../app/state/index.js';
 import { showScreen } from '../../../../app/navigation.js';
 import { hexToBytes } from '../../../../core/bytes.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { covShowPanel } from '../../generation/ui_and_keys.js';
+import { covShowPanel } from '../../generation/panel_keys.js';
 import { covAddActive, covRenderActive, covSaveActive } from '../active.js';
 import { verifiedCovenantTerms } from '../../model/script_terms.js';
 import { inferCovenantRole } from './role.js';
