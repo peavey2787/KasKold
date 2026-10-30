@@ -33,6 +33,9 @@ class AndroidGradleExecutableRecoveryTests(unittest.TestCase):
             script.parent.mkdir(parents=True)
             shutil.copy2(ROOT / "scripts/linux/build/android-build.sh", script)
             script.chmod(0o755)
+            sdk_helper = root / "scripts/linux/lib/android-sdk.sh"
+            sdk_helper.parent.mkdir(parents=True)
+            shutil.copy2(ROOT / "scripts/linux/lib/android-sdk.sh", sdk_helper)
 
             android = root / "apps/kaskold-companion-android"
             wrapper = android / "gradle/wrapper/gradle-wrapper.properties"
@@ -40,12 +43,21 @@ class AndroidGradleExecutableRecoveryTests(unittest.TestCase):
             (android / "gradle/gradle-daemon-jvm.properties").write_text("toolchainVersion=25\n", encoding="utf-8")
             toolchains = root / "qa/config/toolchains.env"
             toolchains.parent.mkdir(parents=True)
-            toolchains.write_text("KASKOLD_ANDROID_JDK=25\n", encoding="utf-8")
+            toolchains.write_text(
+                "KASKOLD_ANDROID_JDK=25\n"
+                "KASKOLD_ANDROID_API=37\n"
+                "KASKOLD_ANDROID_BUILD_TOOLS=37.0.0\n",
+                encoding="utf-8",
+            )
             sdk = root / "sdk"
             platform = sdk / "platforms/android-37"
             platform.mkdir(parents=True)
             (platform / "android.jar").write_bytes(b"")
             (platform / "source.properties").write_text("AndroidVersion.ApiLevel = 37\n")
+            aapt2 = sdk / "build-tools/37.0.0/aapt2"
+            aapt2.parent.mkdir(parents=True)
+            aapt2.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
+            aapt2.chmod(0o755)
 
             archive = root / "fixtures/gradle-9.5.0-bin.zip"
             archive.parent.mkdir(parents=True)
