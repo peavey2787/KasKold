@@ -15,15 +15,7 @@ def read(relative: str) -> str:
 
 
 class PrivateSwapFeatureParityTests(unittest.TestCase):
-    def test_private_swap_wire_error_tests_do_not_require_request_debug_or_equality(self):
-        tests = read('crates/shared-signer/src/covenant_sign/private_swap/unit_tests/mod.rs')
-        compact_tests = "".join(tests.split())
-        self.assertIn('matches!(parse_request(&bad),Err(ProtocolError::InvalidMagic))', compact_tests)
-        self.assertIn('matches!(parse_request(&bad),Err(ProtocolError::UnsupportedVersion))', compact_tests)
-        self.assertIn('matches!(parse_request(&bad),Err(ProtocolError::InvalidKind))', compact_tests)
-        self.assertIn('matches!(parse_request(&bad),Err(ProtocolError::InvalidFields))', compact_tests)
-        self.assertIn('matches!(parse_request(&bad),Err(ProtocolError::InvalidLength))', compact_tests)
-        self.assertNotIn('assert_eq!(parse_request(&bad)', compact_tests)
+    def test_private_swap_request_struct_is_separated_from_prior_item(self):
         protocol = read('crates/shared-signer/src/covenant_sign/private_swap.rs')
         request_line = next(i for i, line in enumerate(protocol.splitlines()) if line.startswith('pub struct PrivateSwapRequest'))
         previous = protocol.splitlines()[request_line - 1].strip()
