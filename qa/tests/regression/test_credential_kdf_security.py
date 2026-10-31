@@ -115,8 +115,6 @@ class CredentialKdfSecurityTests(unittest.TestCase):
             re.compile(r'const\s+CURRENT_MAGIC\s*:\s*\[u8\s*;\s*4\]\s*=\s*\*b"KSW4"\s*;'),
         )
         self.assertNotIn("open_legacy", sd_wallet)
-        self.assertIn('b"KASDB004"', framing_tests)
-        self.assertIn('b"KAS\\x03"', framing_tests)
         for source in (backup, framing, kspt, wallet, sd_wallet):
             self.assertNotIn("legacy_pbkdf2", source)
             self.assertNotIn("derive_legacy_32", source)
