@@ -325,6 +325,13 @@ fn generic_vault_review_sign_and_serialize_reject_hidden_sighash_committed_seman
         ));
     };
 
+    let mut future_version = Transaction::try_new().expect("transaction allocation");
+    parse_compact_kspt(&base, &mut future_version).expect("fixture parses");
+    future_version.version = 2;
+    assert!(matches!(
+        serialize_compact_kspt_vec(&future_version),
+        Err(offline_signer::transaction::kspt::PsktError::UnsupportedTransactionVersion)
+    ));
     reject(|tx| tx.locktime = 1);
     reject(|tx| tx.gas = 1);
     reject(|tx| {

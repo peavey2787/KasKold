@@ -163,27 +163,17 @@ class VaultCustodyBoundaryTests(unittest.TestCase):
         self.assertIn('Image("KasKoldWordmark")', (ROOT / "apps/kaskold-vault-ios/KasKoldVault/Features/VaultHomeView.swift").read_text(encoding="utf-8"))
 
     def test_software_vault_security_boundaries_are_fail_closed(self) -> None:
-        review = (ROOT / "crates/hot-wallet/src/transaction_review.rs").read_text(encoding="utf-8")
-        signing = (ROOT / "crates/hot-wallet/src/transaction_signing.rs").read_text(encoding="utf-8")
         session = (ROOT / "crates/vault-runtime/src/signing_session.rs").read_text(encoding="utf-8")
         web = (ROOT / "apps/kaskold-vault-web/web/index.html").read_text(encoding="utf-8")
         android = (ROOT / "apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/MainActivity.kt").read_text(encoding="utf-8")
         ios = (ROOT / "apps/kaskold-vault-ios/KasKoldVault/Features/VaultViewModel.swift").read_text(encoding="utf-8")
         ios_project = (ROOT / "apps/kaskold-vault-ios/KasKoldVault.xcodeproj/project.pbxproj").read_text(encoding="utf-8")
 
-        for token in (
-            "transaction.version != 1", "transaction.locktime != 0",
-            "transaction.subnetwork_id != SUBNETWORK_ID_NATIVE", "transaction.gas != 0",
-            "!transaction.payload.is_empty()", "input.sequence != u64::MAX",
-            "input.sig_op_count != 1", "output.has_covenant",
-        ):
-            self.assertIn(token, review)
-        self.assertIn("validate_generic_vault_semantics(&parsed.transaction)?;", signing)
         self.assertGreaterEqual(session.count("self.check_session_signing_policy(now_unix)?;"), 2)
 
         self.assertNotIn('id="storage-use-pin"', web)
 
-        self.assertIn("createConfirmDeviceCredentialIntent", android)
+        self.assertIn("Authenticators.DEVICE_CREDENTIAL", android)
         self.assertIn("VaultScreenState.Locked", android)
         self.assertNotIn("mutableStateOf(controller.unlockPersisted())", android)
         self.assertIn("LAContext()", ios)
