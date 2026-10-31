@@ -351,12 +351,18 @@ class KasKoldCustodyConformanceTests(unittest.TestCase):
             self.assertIn(f"pub fn {export}", rust)
 
     def test_steganography_codec_has_one_shared_owner_and_hardware_reexports_it(self) -> None:
-        shared = (ROOT / "crates/shared-signer/src/stego_picture/mod.rs").read_text()
-        shim = (ROOT / "crates/kaskold-hardware-core/src/backup/stego_picture.rs").read_text()
-        self.assertIn("pub use shared_signer::stego_picture::*;", shim)
-        self.assertIn("pub fn embed", shared)
-        self.assertIn("pub fn extract", shared)
         self.assertFalse((ROOT / "crates/kaskold-hardware-core/src/backup/stego_picture").exists())
+        result = subprocess.run(
+            [
+                "cargo", "test", "--offline", "-p", "kaskold-hardware-core",
+                "hardware_shim_round_trips_with_shared_codec_in_both_directions",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("1 passed", result.stdout)
 
     def test_companion_has_one_watch_only_custody_mode(self) -> None:
         welcome = (ROOT / "apps/kaskold-companion-web/web/html/screens/system/welcome.html").read_text()
