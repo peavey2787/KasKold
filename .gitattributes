@@ -13,3 +13,5 @@ apps/kaskold-companion-web/web/lib/** linguist-vendored
 
 # Hashed into the signed firmware manifest; bytes must not vary by checkout.
 apps/kaskold-hardware/partitions/*.csv text eol=lf
+# Vendored files are pinned by hash, so their bytes must not change on checkout.
+*jsQR.js -text
