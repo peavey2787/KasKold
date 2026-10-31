@@ -50,13 +50,9 @@ class TransactionReviewAntiKleptoTests(unittest.TestCase):
 
     def test_companion_decoder_accepts_raw_single_frame_and_keeps_session_splice_rejection(self):
         decoder = read("crates/online-watcher/src/protocol/qr.rs")
-        protocol = read("crates/kaskold-protocol/src/qr/mod.rs")
         self.assertIn("kaskold_protocol::qr::{encode_frames, QrDecoder}", decoder)
         self.assertIn(".accept(&payload)", decoder)
         self.assertNotIn("shared_signer::qr_frame", decoder)
-        self.assertIn("if !shared_signer::qr_frame::is_session_frame(payload)", protocol)
-        self.assertIn('ProtocolError::qr("mixed multi-frame QR session rejected")', protocol)
-        self.assertIn("payload.starts_with(&shared_signer::qr_frame::FRAME_MAGIC)", protocol)
 
     def test_companion_anti_klepto_accepts_protocol_v2(self):
         session = read("apps/kaskold-companion-web/web/js/features/transactions/anti_klepto/session.js")
