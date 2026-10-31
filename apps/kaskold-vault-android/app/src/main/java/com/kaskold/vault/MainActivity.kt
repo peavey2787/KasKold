@@ -1,11 +1,12 @@
 package com.kaskold.vault
 
-import android.app.Activity
 import android.app.KeyguardManager
+import android.hardware.biometrics.BiometricManager
+import android.hardware.biometrics.BiometricPrompt
 import android.os.Bundle
+import android.os.CancellationSignal
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -44,19 +45,6 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
-    private var pendingVaultAuthentication: (() -> Unit)? = null
-    private var pendingVaultAuthenticationFailure: ((String) -> Unit)? = null
-    private val credentialLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult(),
-    ) { result ->
-        val success = pendingVaultAuthentication
-        val failure = pendingVaultAuthenticationFailure
-        pendingVaultAuthentication = null
-        pendingVaultAuthenticationFailure = null
-        if (result.resultCode == Activity.RESULT_OK) success?.invoke()
-        else failure?.invoke("Vault authentication was cancelled or failed.")
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // The Vault shows seed words and keys: no screenshots, recordings or recents previews.
@@ -70,17 +58,21 @@ class MainActivity : ComponentActivity() {
             onFailure("A secure device lock is required to unlock a saved KasKold Vault.")
             return
         }
-        val intent = keyguard.createConfirmDeviceCredentialIntent(
-            "Unlock KasKold Vault",
-            "Authenticate with your device credential to unlock private key custody.",
-        )
-        if (intent == null) {
-            onFailure("Device reauthentication is unavailable.")
-            return
-        }
-        pendingVaultAuthentication = onSuccess
-        pendingVaultAuthenticationFailure = onFailure
-        credentialLauncher.launch(intent)
+        BiometricPrompt.Builder(this)
+            .setTitle("Unlock KasKold Vault")
+            .setSubtitle("Confirm your device credential to use private key custody.")
+            .setAllowedAuthenticators(BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+            .build()
+            .authenticate(
+                CancellationSignal(),
+                mainExecutor,
+                object : BiometricPrompt.AuthenticationCallback() {
+                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) = onSuccess()
+
+                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) =
+                        onFailure("Vault authentication was cancelled or failed.")
+                },
+            )
     }
 }
 
@@ -90,6 +82,16 @@ private fun KasKoldVaultApp(activity: MainActivity) {
     val controller = remember { VaultController(context.applicationContext) }
     var state by remember { mutableStateOf<VaultScreenState>(VaultScreenState.Locked) }
     DisposableEffect(controller) { onDispose { controller.close() } }
+    LaunchedEffect(state) {
+        if (controller.persistencePending && state !is VaultScreenState.Error) {
+            activity.requestVaultReauthentication(
+                onSuccess = { state = controller.completePendingPersistence() },
+                onFailure = { message ->
+                    state = VaultScreenState.Error("$message The wallet is not saved yet.", controller.state)
+                },
+            )
+        }
+    }
 
     MaterialTheme {
         Column(

@@ -22,7 +22,7 @@
   "qa/tests/regression/test_critical_domain_coverage_policy.py": 6,
   "qa/tests/regression/test_critical_domain_reset.py": 16,
   "qa/tests/regression/test_crypto_mutation_and_host_coverage_hardening.py": 30,
-  "qa/tests/regression/test_device_bound_storage.py": 360,
+  "qa/tests/regression/test_device_bound_storage.py": 357,
   "qa/tests/regression/test_failure_diagnostics_and_pskt_boundary.py": 31,
   "qa/tests/regression/test_firmware_decision_extraction.py": 24,
   "qa/tests/regression/test_firmware_error_utf8_safety.py": 25,

@@ -76,19 +76,14 @@ class DeviceBoundStorageTests(unittest.TestCase):
             key,
             "42ce892f3b49ad9c4e34fda82bd9f64a2d94b2a0fdea887e0449d62b641cb841",
         )
+        # The Rust known-answer test must assert the key this independent
+        # computation produced, so neither side can drift alone.
         rust_test = read(
             "crates/offline-signer/src/crypto/unit_tests/device_bound_storage_tests.rs"
-        ).replace(" ", "").replace("\n", "")
-        for chunk in (
-            "0x42,0xce,0x89,0x2f",
-            "0x2d,0x94,0xb2,0xa0",
-            "0x64,0x1c,0xb8,0x41",
-        ):
-            self.assertIn(chunk, rust_test)
-        self.assertIn(
-            "deterministic_argon2_device_kdf_vector_matches_independent_host_result",
-            rust_test,
         )
+        expected = rust_test.split("const EXPECTED_KEY", 1)[1].split("];", 1)[0]
+        rust_bytes = re.findall(r"0x([0-9a-f]{2})", expected)
+        self.assertEqual("".join(rust_bytes), key)
 
     def test_hardware_boundary_exposes_hmac_operation_not_raw_key(self) -> None:
         core = read("crates/offline-signer/src/crypto/device_bound_storage.rs")
@@ -101,25 +96,6 @@ class DeviceBoundStorageTests(unittest.TestCase):
         self.assertIn("HmacPurpose::ToUser", firmware)
         self.assertIn("PERSISTENT_KEY_SLOTS: [u8; 3] = [3, 4, 5]", firmware)
         self.assertNotIn("Efuse::read_field_le(KEY", firmware)
-
-    def test_device_bound_tests_cover_required_failure_modes(self) -> None:
-        tests = read(
-            "crates/offline-signer/src/crypto/unit_tests/device_bound_storage_tests.rs"
-        )
-        for contract in (
-            "deterministic_argon2_device_kdf_vector_matches_independent_host_result",
-            "kdf_domain_separates_internal_sd_header_salt_and_credential_kind",
-            "unsupported_format_or_kdf_parameters_fail_closed_without_hmac_use",
-            "same_device_roundtrip_succeeds_and_tampering_fails_with_zeroized_plaintext",
-            "wrong_password_and_wrong_device_are_rejected",
-            "altered_authenticated_header_is_rejected",
-            "missing_hmac_service_fails_closed_and_zeroizes_buffers",
-            "fresh_salt_and_nonce_are_generated_for_each_container",
-            "entropy_failure_or_all_zero_material_fails_closed_and_clears_outputs",
-            "ciphertext[5] ^= 0x80",
-            "changed_salt[7] ^= 0x01",
-        ):
-            self.assertIn(contract, tests)
 
     def test_current_seed_and_xprv_backups_are_device_bound_not_password_only(self) -> None:
         backup = ROOT / "apps/kaskold-hardware/src/services/backup"

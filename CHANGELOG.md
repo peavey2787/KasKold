@@ -1,5 +1,6 @@
 <!-- KasKold: Kaspa signing and wallet platform -->
 
+- Vault Android's Keystore key now requires the device credential, confirmed within the last 60 seconds, on an unlocked device; before, only the app's own UI asked for it. Saves that fall outside that window prompt and retry, and removing the device lock tells the user to restore from recovery words. Vault Android now requires Android 11.
 - Companion web modules and stylesheets no longer use `x_and_y` names.
 - Companion console output is silent unless `kaskold.debug=1` is set in that browser profile, and Android forwards WebView console lines to logcat only in debug builds.
 - Companion CSP no longer allows inline styles or remote `ws:`; `ws://` works only for a loopback node. Web fonts were replaced by system fonts, so loading the app no longer contacts Google.

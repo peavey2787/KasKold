@@ -1,6 +1,7 @@
 package com.kaskold.vault
 
 import android.content.Context
+import android.security.keystore.UserNotAuthenticatedException
 import com.kaskold.vault.security.VaultBlobStore
 import com.kaskold.vault.security.VaultWrappingKeyStore
 import org.json.JSONArray
@@ -94,6 +95,8 @@ internal class VaultController(context: Context) : AutoCloseable {
     private var creationSession: CreationSession? = null
     private var automaticPersistence = true
     private var homeReached = false
+    var persistencePending = false
+        private set
     var state: VaultScreenState = VaultScreenState.Locked
         private set
 
@@ -505,13 +508,21 @@ internal class VaultController(context: Context) : AutoCloseable {
         VaultScreenState.MainMenu
     }
 
+    /** Retries the save deferred by [persistUnlocked] once the device credential is confirmed. */
+    fun completePendingPersistence(): VaultScreenState = guarded(state) {
+        persistUnlocked(force = true)
+        state
+    }
+
     fun lock(): VaultScreenState {
+        persistencePending = false
         runtime.lock()
         clearCreationSession()
         return set(VaultScreenState.Locked)
     }
 
     fun deleteWallet(): VaultScreenState {
+        persistencePending = false
         runtime.lock()
         clearCreationSession()
         blobStore.delete()
@@ -629,7 +640,13 @@ internal class VaultController(context: Context) : AutoCloseable {
 
     private fun persistUnlocked(force: Boolean = false) {
         if (!force && !automaticPersistence) return
-        val key = keyStore.loadOrCreate()
+        val key = try {
+            keyStore.loadOrCreate()
+        } catch (_: UserNotAuthenticatedException) {
+            persistencePending = true
+            return
+        }
+        persistencePending = false
         val sealed = try {
             runtime.sealWallet(key)
         } finally {

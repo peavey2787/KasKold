@@ -31,7 +31,7 @@ val buildVaultRuntime by tasks.registering(Exec::class) {
         "cargo", "+$stableRust", "ndk",
         "-t", "arm64-v8a",
         "-t", "x86_64",
-        "--platform", "26",
+        "--platform", "30",
         "build", "-p", "vault-runtime", "--release", "--locked",
     )
 }
@@ -43,7 +43,7 @@ android {
 
     defaultConfig {
         applicationId = "com.kaskold.vault"
-        minSdk = 26
+        minSdk = 30
         targetSdk = 37
         versionCode = 20000
         versionName = "2.0.0"
