@@ -367,13 +367,17 @@ class KasKoldCustodyConformanceTests(unittest.TestCase):
             self.assertNotIn(forbidden, welcome + header)
 
     def test_vault_review_is_a_separate_authorization_step(self) -> None:
-        runtime = (ROOT / "crates/vault-runtime/src/signing_session.rs").read_text()
-        accept = runtime[runtime.index("pub fn accept_qr_frame"):runtime.index("pub fn scan_progress")]
-        approve = runtime[runtime.index("pub fn approve"):runtime.index("pub fn anti_klepto_awaiting_reveal")]
-        self.assertNotIn("sign_transaction", accept)
-        self.assertIn("review_transaction", accept)
-        self.assertIn("sign_transaction", approve)
-        self.assertIn("anti_klepto.approve_request", approve)
+        result = subprocess.run(
+            [
+                "cargo", "test", "--offline", "-p", "vault-runtime",
+                "accept_qr_frame_reviews_without_signing_until_approve",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("1 passed", result.stdout)
 
     def test_documented_matrix_does_not_claim_unperformed_physical_qualification(self) -> None:
         matrix = (ROOT / "docs/development/CUSTODY_TEST_MATRIX.md").read_text()

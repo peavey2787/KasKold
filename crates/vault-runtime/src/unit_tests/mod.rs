@@ -304,6 +304,28 @@ fn signing_session_covers_progress_review_approval_and_reset() {
 }
 
 #[test]
+fn accept_qr_frame_reviews_without_signing_until_approve() {
+    let mut runtime = VaultRuntime::new();
+    runtime.restore_wallet(MNEMONIC, "").unwrap();
+    runtime.begin_scan().expect("unlocked scan begins");
+
+    let frames = owned_qr_frames();
+    let mut last = None;
+    for frame in &frames {
+        last = Some(runtime.accept_qr_frame(&frame.payload).expect("QR frame accepted"));
+    }
+    assert!(matches!(last, Some(ScanResult::Ready(_))));
+    assert!(matches!(
+        runtime.signed_response_frames(),
+        Err(VaultRuntimeError::NoSignedResponse)
+    ));
+    assert!(runtime.review_transaction().is_ok());
+
+    assert!(!runtime.approve(0).expect("approve signs").is_empty());
+    assert!(runtime.signed_response_frames().is_ok());
+}
+
+#[test]
 fn signing_session_rejects_locked_and_missing_review_states() {
     let mut runtime = VaultRuntime::new();
     assert!(matches!(
