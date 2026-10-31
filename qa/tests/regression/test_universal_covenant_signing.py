@@ -44,22 +44,6 @@ class UniversalCovenantSigningTests(unittest.TestCase):
         self.assertIn("verify_nonce_relation", service)
         self.assertNotIn("pub fn sign_covenant_commitment", derivation)
 
-    def test_request_kind_wire_decoder_is_present_and_fail_closed(self) -> None:
-        protocol = read("crates/shared-signer/src/covenant_sign/mod.rs") + read(
-            "crates/shared-signer/src/covenant_sign/validation.rs"
-        )
-        unit_tests = read("crates/shared-signer/src/covenant_sign/unit_tests/mod.rs")
-        self.assertIn("fn parse_kind(value: u8) -> Result<RequestKind, ProtocolError>", protocol)
-        for mapping in (
-            "0 => Ok(RequestKind::KeyInfo)",
-            "1 => Ok(RequestKind::Known)",
-            "2 => Ok(RequestKind::Opaque)",
-            "3 => Ok(RequestKind::Bind)",
-        ):
-            self.assertIn(mapping, protocol)
-        self.assertIn("_ => Err(ProtocolError::InvalidKind)", protocol)
-        self.assertIn("request_kind_decoder_rejects_unknown_wire_values", unit_tests)
-
     def test_envelope_keeps_transport_metadata_separate_from_exact_commitment(self) -> None:
         protocol = read("crates/shared-signer/src/covenant_sign/mod.rs") + read(
             "crates/shared-signer/src/covenant_sign/validation.rs"

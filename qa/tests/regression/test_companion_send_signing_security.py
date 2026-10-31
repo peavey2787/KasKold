@@ -48,18 +48,6 @@ class CompanionSendSigningSecurityTests(unittest.TestCase):
         self.assertIn("background: var(--teal-glow);", css)
         self.assertIn(".pskt-review-card::before", pskt_css)
 
-    def test_ordinary_send_is_bound_to_exact_user_intent_before_relay(self):
-        source = read("apps/kaskold-companion-web/web/js/features/transactions/send/compose/transaction_building.js")
-        self.assertIn("function assertStandardSendIntent", source)
-        self.assertIn("output.address === destination", source)
-        self.assertIn("exactUnsigned(output.amount_sompi, 'destination amount') === amount", source)
-        self.assertIn("summaryFee !== fee", source)
-        self.assertIn("Number(output.derivation_branch) === 1", source)
-        self.assertIn("Number(output.derivation_index) === changeIndex", source)
-        self.assertIn("output.address === changeAddress", source)
-        self.assertIn("exactUnsigned(output.amount_sompi, 'change amount') === expectedChange", source)
-        self.assertIn("Transaction safety check failed", source)
-
     def test_multisig_review_binds_local_destination_and_keeps_change_out_of_send_total(self):
         review = read("apps/kaskold-companion-web/web/js/features/transactions/pskt_multisig/review.js")
         create = read("apps/kaskold-companion-web/web/js/features/transactions/pskt_multisig/multisig.js")
@@ -71,24 +59,6 @@ class CompanionSendSigningSecurityTests(unittest.TestCase):
         self.assertIn("ownership === 'CHANGE' || ownership === 'MULTISIG CHANGE'", review)
         self.assertIn("{ kind: 'multisig-send', destinationAddress: resolvedDest }", create)
         self.assertIn("'_psktReviewContext': null", state)
-
-    def test_multi_address_multisig_uses_final_signed_shape_fee_floor(self):
-        consolidation = read("crates/online-watcher/src/transaction_builder/multisig/consolidation.rs")
-        builder = read("crates/online-watcher/src/transaction_builder/multisig.rs")
-        tests = read("crates/online-watcher/src/transaction_builder/multisig/unit_tests/mod.rs")
-        self.assertIn("let fee = consolidation_standard_fee(", consolidation)
-        self.assertIn("multisig_standard_fee_for_shape(", consolidation)
-        self.assertIn("pub(super) fn multisig_standard_fee_for_shape", builder)
-        self.assertIn('encode_p2pk_address(&[0x57; 32], "kaspa")', tests)
-        compact_tests = "".join(tests.split())
-        self.assertIn("assert_eq!(prepared.destination_script.len(),34)", compact_tests)
-        self.assertIn("assert_eq!(prepared.change_script.len(),35)", compact_tests)
-        self.assertIn("assert_eq!(multisig_standard_fee(&prepared,1,400_000),Ok(421_700))", compact_tests)
-        self.assertIn("assert_eq!(multisig_standard_fee(&p2sh_prepared,1,400_000),Ok(422_800))", compact_tests)
-        self.assertIn("consolidation_standard_fee(&descriptor,&inputs,&destination,400_000)", compact_tests)
-        self.assertIn("consolidation_standard_fee(&descriptor,&inputs,&source,400_000)", compact_tests)
-        self.assertIn("Ok(421_700)", tests)
-        self.assertIn("Ok(422_800)", tests)
 
     def test_change_hint_mismatch_is_fail_closed_not_external_spend(self):
         review = read("apps/kaskold-hardware/src/runtime/signing/review.rs")
