@@ -3049,6 +3049,7 @@ F	qa/firmware-sim/src/scenarios.rs
 F	qa/firmware-sim/src/scenarios/explore.rs
 F	qa/firmware-sim/src/scenarios/journeys.rs
 F	qa/firmware-sim/src/scenarios/journeys/backup.rs
+F	qa/firmware-sim/src/scenarios/journeys/card_storage.rs
 F	qa/firmware-sim/src/scenarios/journeys/device_bound.rs
 F	qa/firmware-sim/src/scenarios/journeys/everyday.rs
 F	qa/firmware-sim/src/scenarios/journeys/first_wallet.rs

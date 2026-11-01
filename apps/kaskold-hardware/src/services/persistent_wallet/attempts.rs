@@ -45,12 +45,29 @@ impl PersistentWallet<'_> {
         match result {
             Ok(()) => self.clear_unlock_failures(ad),
             Err(PersistError::DuressTriggered | PersistError::DeviceWipeFailed) => result,
+            Err(PersistError::SdStorageUnavailable) => {
+                self.refund_unlock_attempt(ad);
+                result
+            }
             Err(error) => match self.unlock_failures() {
                 Ok(failures) if unlock_attempt_limit_reached(failures) => {
                     Err(self.wipe_after_attempt_limit(ad, i2c, delay))
                 }
                 _ => Err(error),
             },
+        }
+    }
+
+    /// A card that could not be read never reached the credential check, so the
+    /// attempt reveals nothing and must not spend one of the owner's tries: a
+    /// missing card would otherwise let the right PIN erase the wallet.
+    fn refund_unlock_attempt(&mut self, ad: &mut AppData) {
+        let Ok(failures) = self.unlock_failures() else {
+            return;
+        };
+        let refunded = failures.saturating_sub(1);
+        if journal::write_unlock_failures(&mut self.flash, refunded).is_ok() {
+            ad.storage.persistence.unlock_failures = refunded;
         }
     }
 

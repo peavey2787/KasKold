@@ -45,6 +45,7 @@ macro_rules! finish_frame {
             $ad.runtime.needs_redraw = true;
         }
 
+        $crate::runtime::presentation::redraw_when_error_ready($ad);
         if $ad.runtime.needs_redraw {
             $ad.runtime.idle_ticks = 0;
             $ad.runtime.needs_redraw = false;

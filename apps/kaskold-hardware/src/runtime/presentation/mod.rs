@@ -235,6 +235,18 @@ fn install_recoverable_error(
     crate::log!("   UI recoverable error {}: {}", code, message);
 }
 
+/// A recoverable error reads PLEASE WAIT until its deadline and nothing else
+/// redraws a modal, so the deadline has to. Clearing it makes this fire once.
+pub(crate) fn redraw_when_error_ready(ad: &mut AppData) {
+    let ModalState::RecoverableError { dismiss_after_ms, .. } = &mut ad.presentation.modal else {
+        return;
+    };
+    if *dismiss_after_ms != 0 && now_millis() >= *dismiss_after_ms {
+        *dismiss_after_ms = 0;
+        ad.runtime.needs_redraw = true;
+    }
+}
+
 pub(crate) fn fail_fatal(ad: &mut AppData, message: &'static str, code: &'static str) {
     ad.presentation.operation.mark_fatal_error();
     ad.presentation.operation.clear();
