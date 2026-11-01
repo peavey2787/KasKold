@@ -116,6 +116,7 @@ D	apps/kaskold-companion-web/web/js/app/state/core
 D	apps/kaskold-companion-web/web/js/app/state/covenants
 D	apps/kaskold-companion-web/web/js/app/state/features
 D	apps/kaskold-companion-web/web/js/core
+D	apps/kaskold-companion-web/web/js/core/diagnostics
 D	apps/kaskold-companion-web/web/js/core/config
 D	apps/kaskold-companion-web/web/js/core/forms
 D	apps/kaskold-companion-web/web/js/core/node
