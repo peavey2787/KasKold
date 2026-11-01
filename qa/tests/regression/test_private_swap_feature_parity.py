@@ -101,27 +101,24 @@ class PrivateSwapFeatureParityTests(unittest.TestCase):
         controller = read('apps/kaskold-companion-web/web/js/features/covenants/private_swap/controller.js')
         scanner = read('apps/kaskold-companion-web/web/js/features/covenants/recovery/scanner/primary/private_swap.js')
         self.assertIn("private_swap_recovery_json", controller)
-        self.assertIn("key.toLowerCase().includes('secret')", controller)
         self.assertIn('MAX_RECOVERY_JSON_BYTES', scanner)
         self.assertIn('assertRecoveryObjectSafe', scanner)
-        for field in ('myClaimPskb', 'myClaimKspt', 'counterClaimKspt', 'counterCompletedSignature'):
-            self.assertIn(field, scanner)
+        # Secret-key and transient-field rejection are executed by
+        # qa/checks/web/web_recovery_coverage.test.mjs ('forbidden transient or secret material').
 
     def test_watcher_accepts_only_the_claim_branch_signature(self):
         watcher = read('apps/kaskold-companion-web/web/js/features/covenants/private_swap/watcher.js')
-        self.assertIn("script[0] !== 65", watcher)
-        self.assertIn("script[66] !== 0x51", watcher)
         self.assertIn("owner refund branch", watcher)
+        # Claim-branch witness shape (script[0] == 65, script[66] == OP_TRUE) is executed by
+        # qa/checks/web/web_private_swap_controller_paths.test.mjs (watcher records only completed claims).
 
     def test_recovered_swap_rebuilds_the_exact_reviewed_claim_before_completion(self):
         controller = read('apps/kaskold-companion-web/web/js/features/covenants/private_swap/controller.js')
         self.assertIn('ensureMyClaimTransaction()', controller)
         self.assertIn("exactUnsigned(privateSwapState.myClaimFeeSompi", controller)
         self.assertIn("if (sighash !== privateSwapState.myClaimSighash)", controller)
-        complete_body = controller.split('export async function completeAlicePrivateSwap()', 1)[1].split('export async function bobClaimPrivateSwap()', 1)[0]
-        bob_body = controller.split('export async function bobClaimPrivateSwap()', 1)[1].split('export function openPrivateSwapRefund()', 1)[0]
-        self.assertIn('await ensureMyClaimTransaction();', complete_body)
-        self.assertIn('await ensureMyClaimTransaction();', bob_body)
+        # Rebuild-before-completion ordering for both Alice and Bob is executed by
+        # qa/checks/web/web_private_swap_controller_paths.test.mjs ('missing the exact claim transcript').
 
     def test_firmware_review_displays_transaction_values_before_presign_or_complete(self):
         ui = read('apps/kaskold-hardware/src/ui/screens/signing/covenant.rs')

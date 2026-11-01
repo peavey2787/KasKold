@@ -343,6 +343,11 @@ try {
   stubs.private_swap_claim_sighash=()=>SIGHASH;
   await controller.completeAlicePrivateSwap();
   assert.match(element('toast').textContent, /no longer matches/);
+  // Bob rebuilds and checks the same transaction before any secret is extracted.
+  Object.assign(swapState.privateSwapState, { role:'bob', counterCompletedSignature:'11'.repeat(64) });
+  await controller.bobClaimPrivateSwap();
+  assert.match(element('toast').textContent, /Bob claim failed: .*no longer matches/);
+  Object.assign(swapState.privateSwapState, { role:'alice', counterCompletedSignature:'' });
   swapState.privateSwapState.myClaimPskb=''; swapState.privateSwapState.myClaimKspt='';
   swapState.privateSwapState.counterOutpoint=null;
   await controller.completeAlicePrivateSwap();
