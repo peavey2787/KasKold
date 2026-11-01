@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -10,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 
 from qa.tests.tooling.crap_check_test_support import (
     CrapCheckTestCase, ROOT, report_document,
@@ -19,12 +22,71 @@ sys.path.insert(0, str(ROOT / "qa/checks"))
 from toolchains import load_toolchains  # noqa: E402
 
 PINS = load_toolchains()
+PACKAGER = ROOT / "qa/checks/quality/crap/package_branch_artifacts.py"
+BRANCH_EVIDENCE_FILES = (
+    "cargo_crap.json",
+    "current.json",
+    "crap_summary.json",
+    "health_summary.json",
+    "coverage_run.txt",
+    "crap_run.txt",
+    "crap_report_prod.txt",
+    "browser_recovery/summary.json",
+    "browser_recovery/v8-coverage.json",
+    "browser_recovery/report.txt",
+    "web_runtime/summary.json",
+    "web_runtime/v8-coverage.json",
+    "web_runtime/report.txt",
+)
+
+
+def branch_run_document(requested: bool = True, available: bool = True, found: int = 4) -> str:
+    branches = {"available": available, "found": found, "hit": 3, "percent": 75.0}
+    return json.dumps({"branch_coverage_requested": requested, "coverage": {"branches": branches}})
+
+
+def write_branch_evidence(evidence: Path) -> Path:
+    evidence.mkdir()
+    (evidence / "run.json").write_text(branch_run_document(), encoding="utf-8")
+    (evidence / "lcov.info").write_text("BRF:4\nBRH:3\n", encoding="utf-8")
+    for relative in BRANCH_EVIDENCE_FILES:
+        path = evidence / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("evidence\n", encoding="utf-8")
+    return evidence
+
+
+def run_packager(*arguments: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(PACKAGER), *arguments],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+def rewrite_run(**fields: object) -> Callable[[Path], object]:
+    return lambda evidence: (evidence / "run.json").write_text(branch_run_document(**fields), encoding="utf-8")
+
+
+def remove_file(relative: str) -> Callable[[Path], None]:
+    return lambda evidence: (evidence / relative).unlink()
+
+
+BRANCH_EVIDENCE_DAMAGE = {
+    "branch coverage not requested": rewrite_run(requested=False),
+    "branch data unavailable": rewrite_run(available=False),
+    "no branches found": rewrite_run(found=0),
+    "lcov has no BRF record": lambda evidence: (evidence / "lcov.info").write_text("BRH:3\n", encoding="utf-8"),
+    "web runtime summary missing": remove_file("web_runtime/summary.json"),
+    "web runtime v8 coverage missing": remove_file("web_runtime/v8-coverage.json"),
+    "web runtime report missing": remove_file("web_runtime/report.txt"),
+}
 
 
 class CrapToolchainTests(CrapCheckTestCase):
     def test_windows_crap_runner_resolves_repository_root(self) -> None:
-        import importlib.util
-
         runner = ROOT / "scripts/windows/quality/crap_windows.py"
         spec = importlib.util.spec_from_file_location("kaskold_crap_windows_root_test", runner)
         self.assertIsNotNone(spec)
@@ -34,7 +96,6 @@ class CrapToolchainTests(CrapCheckTestCase):
 
         self.assertEqual(module.ROOT, ROOT)
         self.assertTrue((module.ROOT / "qa/checks/quality/crap/coverage_manifest.py").is_file())
-        self.assertEqual(module.ROOT / "target/qa/crap", ROOT / "target/qa/crap")
 
     def test_run_all_catalog_invokes_pinned_branch_coverage(self) -> None:
         catalog = (ROOT / "qa/config/run_all_steps.tsv").read_text()
@@ -418,19 +479,6 @@ exit 2
         ):
             self.assertIn(token, source)
 
-        packager = (ROOT / "qa/checks/quality/crap/package_branch_artifacts.py").read_text(encoding="utf-8")
-        for token in (
-            'document.get("branch_coverage_requested") is not True',
-            'branches.get("available") is not True',
-            'int(branches.get("found", 0)) <= 0',
-            'line.startswith("BRF:")',
-            '"web_runtime/summary.json"',
-            '"web_runtime/v8-coverage.json"',
-            '"web_runtime/report.txt"',
-            "archive.testzip()",
-        ):
-            self.assertIn(token, packager)
-
         artifact_ignore_path = ROOT / "qa/artifacts/.gitignore"
         if artifact_ignore_path.is_file():
             self.assertNotIn("branch-coverage", artifact_ignore_path.read_text())
@@ -445,70 +493,44 @@ exit 2
         self.assertNotIn("python3 - ", linux)
 
     def test_branch_artifact_helper_validates_and_self_checks_zip(self) -> None:
-        helper = ROOT / "qa/checks/quality/crap/package_branch_artifacts.py"
-        required = (
-            "cargo_crap.json",
-            "current.json",
-            "crap_summary.json",
-            "health_summary.json",
-            "coverage_run.txt",
-            "crap_run.txt",
-            "crap_report_prod.txt",
-            "browser_recovery/summary.json",
-            "browser_recovery/v8-coverage.json",
-            "browser_recovery/report.txt",
-            "web_runtime/summary.json",
-            "web_runtime/v8-coverage.json",
-            "web_runtime/report.txt",
-        )
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            evidence = root / "crap"
-            evidence.mkdir()
-            (evidence / "run.json").write_text(
-                json.dumps(
-                    {
-                        "branch_coverage_requested": True,
-                        "coverage": {
-                            "branches": {
-                                "available": True,
-                                "found": 4,
-                                "hit": 3,
-                                "percent": 75.0,
-                            }
-                        },
-                    }
-                ),
-                encoding="utf-8",
-            )
-            (evidence / "lcov.info").write_text("BRF:4\nBRH:3\n", encoding="utf-8")
-            for relative in required:
-                path = evidence / relative
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text("evidence\n", encoding="utf-8")
-
-            validate = subprocess.run(
-                [sys.executable, str(helper), "--validate-only", "--input-dir", str(evidence)],
-                cwd=ROOT,
-                text=True,
-                capture_output=True,
-                check=False,
-            )
+            evidence = write_branch_evidence(root / "crap")
+            validate = run_packager("--validate-only", "--input-dir", str(evidence))
             self.assertEqual(validate.returncode, 0, validate.stdout + validate.stderr)
             self.assertIn("Requested: True", validate.stdout)
             self.assertIn("First BRF records:", validate.stdout)
 
             bundle = root / "branch.zip"
-            package = subprocess.run(
-                [sys.executable, str(helper), "--input-dir", str(evidence), "--output", str(bundle)],
-                cwd=ROOT,
-                text=True,
-                capture_output=True,
-                check=False,
-            )
+            package = run_packager("--input-dir", str(evidence), "--output", str(bundle))
             self.assertEqual(package.returncode, 0, package.stdout + package.stderr)
             self.assertIn("Validated", package.stdout)
             self.assertTrue(bundle.is_file())
+
+    def test_branch_artifact_helper_refuses_incomplete_evidence(self) -> None:
+        for name, damage in BRANCH_EVIDENCE_DAMAGE.items():
+            with self.subTest(name), tempfile.TemporaryDirectory() as directory:
+                evidence = write_branch_evidence(Path(directory) / "crap")
+                damage(evidence)
+                refused = run_packager(
+                    "--input-dir", str(evidence), "--output", str(Path(directory) / "branch.zip")
+                )
+                self.assertNotEqual(refused.returncode, 0, refused.stdout + refused.stderr)
+
+    def test_branch_artifact_archive_check_refuses_a_corrupt_member(self) -> None:
+        spec = importlib.util.spec_from_file_location("kaskold_branch_packager_test", PACKAGER)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        marker = b"EVIDENCE-MARKER"
+        with tempfile.TemporaryDirectory() as directory:
+            bundle = Path(directory) / "branch.zip"
+            with zipfile.ZipFile(bundle, "w", zipfile.ZIP_STORED) as archive:
+                for relative in module.REQUIRED_ARTIFACTS:
+                    archive.writestr(f"crap/{relative}", marker)
+            module.verify_archive(bundle)
+            bundle.write_bytes(bundle.read_bytes().replace(marker, b"evidence-marker", 1))
+            with self.assertRaises((Exception, SystemExit)):
+                module.verify_archive(bundle)
 
     def test_authoritative_qa_owns_fresh_crap_and_web_runtime_evidence(self) -> None:
         linux_alias = (ROOT / "qa/linux/run-production-hardening.sh").read_text()

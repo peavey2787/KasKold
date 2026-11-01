@@ -91,7 +91,7 @@
   "qa/tests/tooling/test_crap_health.py": 7,
   "qa/tests/tooling/test_crap_reporting.py": 6,
   "qa/tests/tooling/test_crap_scope_merge.py": 9,
-  "qa/tests/tooling/test_crap_toolchain.py": 94,
+  "qa/tests/tooling/test_crap_toolchain.py": 93,
   "qa/tests/tooling/test_firmware_board_layout.py": 7,
   "qa/tests/tooling/test_kaskold_branding.py": 5,
   "qa/tests/tooling/test_qemu_scripts.py": 52,
