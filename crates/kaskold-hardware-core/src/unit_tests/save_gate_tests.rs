@@ -1,4 +1,4 @@
-use crate::storage::save_gate::{check_save, SaveRefusal};
+use crate::storage::wallet_slot::save_gate::{check_save, SaveRefusal};
 
 #[test]
 fn nothing_saves_before_the_recovery_words_are_acknowledged() {

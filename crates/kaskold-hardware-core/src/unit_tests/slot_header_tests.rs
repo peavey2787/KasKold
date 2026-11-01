@@ -1,4 +1,4 @@
-use crate::storage::slot_header::{decode, encode, SlotHeader, SlotHeaderError};
+use crate::storage::wallet_slot::slot_header::{decode, encode, SlotHeader, SlotHeaderError};
 
 #[test]
 fn every_valid_header_round_trips_to_a_distinct_byte() {

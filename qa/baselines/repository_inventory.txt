@@ -467,10 +467,12 @@ D	crates/kaskold-hardware-core/src/runtime
 D	crates/kaskold-hardware-core/src/runtime/worker
 D	crates/kaskold-hardware-core/src/screen_flow
 D	crates/kaskold-hardware-core/src/screen_flow/state
+D	crates/kaskold-hardware-core/src/screen_flow/navigation
 D	crates/kaskold-hardware-core/src/security
 D	crates/kaskold-hardware-core/src/storage
 D	crates/kaskold-hardware-core/src/storage/fat32_metadata
 D	crates/kaskold-hardware-core/src/storage/fat32_metadata/unit_tests
+D	crates/kaskold-hardware-core/src/storage/wallet_slot
 D	crates/kaskold-hardware-core/src/time
 D	crates/kaskold-hardware-core/src/unit_tests
 D	crates/kaskold-hardware-core/src/unit_tests/firmware_decisions
@@ -648,6 +650,7 @@ D	crates/vault-runtime/src/inventory_seal/unit_tests
 D	crates/vault-runtime/src/native_ffi
 D	crates/vault-runtime/src/native_ffi/workflows
 D	crates/vault-runtime/src/unit_tests
+D	crates/vault-runtime/src/wallet_tools
 D	docs
 D	docs/companion
 D	docs/development
@@ -2190,7 +2193,7 @@ F	apps/kaskold-vault-web/web/js/ui/qr.js
 F	apps/kaskold-vault-web/web/js/vault_advanced_workflows.js
 F	apps/kaskold-vault-web/web/js/vault_bytes.js
 F	apps/kaskold-vault-web/web/js/vault_covenant_workflows.js
-F	apps/kaskold-vault-web/web/js/vault_frame_guard.js
+F	apps/kaskold-vault-web/web/js/ui/vault_frame_guard.js
 F	apps/kaskold-vault-web/web/js/vault_legacy_workflows.js
 F	apps/kaskold-vault-web/web/js/vault_main.js
 F	apps/kaskold-vault-web/web/js/vault_onboarding.js
@@ -2282,6 +2285,7 @@ F	crates/kaskold-hardware-core/src/runtime/worker/mod.rs
 F	crates/kaskold-hardware-core/src/screen_flow/handler_group.rs
 F	crates/kaskold-hardware-core/src/screen_flow/mod.rs
 F	crates/kaskold-hardware-core/src/screen_flow/navigation.rs
+F	crates/kaskold-hardware-core/src/screen_flow/navigation/bridges.rs
 F	crates/kaskold-hardware-core/src/screen_flow/onboarding.rs
 F	crates/kaskold-hardware-core/src/screen_flow/state.rs
 F	crates/kaskold-hardware-core/src/screen_flow/state/predicates.rs
@@ -2297,8 +2301,9 @@ F	crates/kaskold-hardware-core/src/storage/mod.rs
 F	crates/kaskold-hardware-core/src/storage/payload.rs
 F	crates/kaskold-hardware-core/src/storage/retry.rs
 F	crates/kaskold-hardware-core/src/storage/routing.rs
-F	crates/kaskold-hardware-core/src/storage/save_gate.rs
-F	crates/kaskold-hardware-core/src/storage/slot_header.rs
+F	crates/kaskold-hardware-core/src/storage/wallet_slot/save_gate.rs
+F	crates/kaskold-hardware-core/src/storage/wallet_slot/mod.rs
+F	crates/kaskold-hardware-core/src/storage/wallet_slot/slot_header.rs
 F	crates/kaskold-hardware-core/src/time/bm8563.rs
 F	crates/kaskold-hardware-core/src/time/mod.rs
 F	crates/kaskold-hardware-core/src/unit_tests/advanced_policy_tests.rs
@@ -2668,6 +2673,7 @@ F	crates/vault-runtime/src/unit_tests/session_guards.rs
 F	crates/vault-runtime/src/unit_tests/wallet_inventory.rs
 F	crates/vault-runtime/src/wallet_lifecycle.rs
 F	crates/vault-runtime/src/wallet_tools.rs
+F	crates/vault-runtime/src/wallet_tools/conversions.rs
 F	docs/EFUSE_RUNBOOK.md
 F	docs/README.md
 F	docs/companion/ANDROID.md

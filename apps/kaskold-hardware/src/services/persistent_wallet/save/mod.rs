@@ -5,7 +5,7 @@ use crate::services::credential_policy::{self, CredentialKind, SALT_SIZE};
 use crate::wallet::seed_manager::SeedManager;
 use offline_signer::crypto::password_kdf::PasswordKdfPurpose;
 
-use kaskold_hardware_core::storage::save_gate::check_save;
+use kaskold_hardware_core::storage::wallet_slot::save_gate::check_save;
 
 impl PersistentWallet<'_> {
     pub(crate) fn prepare_async_save(

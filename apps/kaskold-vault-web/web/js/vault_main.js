@@ -12,7 +12,7 @@ import { downloadBytes, downloadText, requireMatchingPasswords } from './vault_b
 import { createRecoveryWordPager } from './workflows/vault_recovery_words.js';
 import { installFrameHexInput } from './workflows/vault_frame_hex_input.js';
 import { showQrSvg } from './ui/qr.js';
-import { refuseFramedVault } from './vault_frame_guard.js';
+import { refuseFramedVault } from './ui/vault_frame_guard.js';
 let runtime = null;
 function api(name) {
   if (!runtime) throw new Error('Vault runtime is not loaded.');

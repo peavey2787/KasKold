@@ -2,7 +2,7 @@
 
 import { assertEqual, test } from './harness.mjs';
 
-const GUARD = '/apps/kaskold-vault-web/web/js/vault_frame_guard.js';
+const GUARD = '/apps/kaskold-vault-web/web/js/ui/vault_frame_guard.js';
 
 test('a framed Vault clears its document and reports refusal', async () => {
     const { refuseFramedVault } = await import(GUARD);

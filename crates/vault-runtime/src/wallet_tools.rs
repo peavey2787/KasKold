@@ -3,10 +3,12 @@
 //! UI code owns navigation only. Address derivation, recovery, multisig and
 //! advanced cryptographic tools remain behind the Rust custody boundary.
 
-use hot_wallet::{CommittedSecret, HotWallet, MessageSignature, MultisigView, WalletNetwork};
+use hot_wallet::{HotWallet, WalletNetwork};
 use zeroize::Zeroizing;
 
 use super::{VaultCreation, VaultRuntime, VaultRuntimeError};
+
+mod conversions;
 
 pub const MAX_SOFTWARE_WALLETS: usize = 5;
 pub const WALLET_NAME_MAX: usize = 64;
@@ -404,37 +406,6 @@ impl VaultRuntime {
             Err(VaultRuntimeError::WalletCapacity)
         } else {
             Ok(())
-        }
-    }
-}
-
-impl From<MessageSignature> for SignedMessage {
-    fn from(value: MessageSignature) -> Self {
-        Self {
-            signature: value.signature,
-            digest: value.digest,
-        }
-    }
-}
-
-impl From<CommittedSecret> for SecretCommitment {
-    fn from(value: CommittedSecret) -> Self {
-        Self {
-            payload: value.payload,
-            commitment: value.commitment,
-        }
-    }
-}
-
-impl From<MultisigView> for MultisigResult {
-    fn from(value: MultisigView) -> Self {
-        Self {
-            descriptor: value.descriptor,
-            address: value.address,
-            threshold: value.threshold,
-            participants: value.participants,
-            chain: value.chain,
-            index: value.index,
         }
     }
 }

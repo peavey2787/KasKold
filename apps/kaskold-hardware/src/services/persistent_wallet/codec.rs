@@ -1,6 +1,6 @@
 //! Canonical binary encoding for the complete in-RAM wallet slot set.
 
-use kaskold_hardware_core::storage::slot_header::{self, SlotHeader, SlotHeaderError};
+use kaskold_hardware_core::storage::wallet_slot::slot_header::{self, SlotHeader, SlotHeaderError};
 
 use crate::wallet::seed_manager::{SeedManager, WalletNetwork, WalletProtection, WalletSource, MAX_SLOTS};
 
