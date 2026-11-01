@@ -2,6 +2,9 @@ from pathlib import Path
 import hashlib
 import json
 import io
+import shlex
+import shutil
+import tomllib
 import tarfile
 import subprocess
 import sys
@@ -24,6 +27,103 @@ if str(ROOT) not in sys.path:
 
 from scripts.linux.build.reproducible.common import deterministic_file_manifest, verify_file_manifest  # noqa: E402
 from scripts.linux.build.reproducible import common, prefetch, toolchains, ubuntu  # noqa: E402
+
+BASH_EXECUTABLE = shutil.which("bash")
+DOCKER_ACCESS_LIBRARY = ROOT / "scripts/linux/build/reproducible/docker_access.sh"
+# name -> (body, whether the invocation is appended to the command log)
+FAKE_DOCKER_COMMANDS = {
+    "docker": (
+        'if [ -e "$REPRO_TEST_STATE/docker-up" ]; then exit 0; fi\n'
+        'case "$REPRO_DOCKER_FAILURE" in\n'
+        '  daemon) echo "Cannot connect to the Docker daemon. Is the docker daemon running?" >&2 ;;\n'
+        '  permission) echo "permission denied while trying to connect to the Docker daemon socket" >&2 ;;\n'
+        "esac\n"
+        "exit 1\n",
+        True,
+    ),
+    "service": (
+        'if [ "$1 $2" = "docker start" ]; then : > "$REPRO_TEST_STATE/docker-up"; fi\n',
+        True,
+    ),
+    "systemctl": (
+        'if [ "$1 $2" = "start docker" ]; then : > "$REPRO_TEST_STATE/docker-up"; fi\n',
+        True,
+    ),
+    "usermod": ("", True),
+    "id": (
+        'if [ "$#" -eq 1 ]; then printf "%s\\n" "$REPRO_TEST_ACTIVE_GROUPS"\n'
+        'elif [ "$#" -eq 2 ]; then printf "%s\\n" "$REPRO_TEST_CONFIGURED_GROUPS"\n'
+        'else printf "uid=1000(alice)\\n"; fi\n',
+        False,
+    ),
+    "sg": ('printf \'%s\\0\' "$@" > "$REPRO_TEST_STATE/sg-argv"\n', True),
+}
+
+
+class _DockerAccessSandbox:
+    """Runs docker_access.sh functions against fake docker tooling on a private PATH."""
+
+    def __init__(
+        self,
+        case: unittest.TestCase,
+        *,
+        omit: tuple[str, ...] = (),
+        docker_failure: str = "",
+        active_groups: str = "",
+        configured_groups: str = "",
+    ) -> None:
+        directory = tempfile.TemporaryDirectory()
+        case.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        self.bin = root / "bin"
+        self.state = root / "state"
+        self.log = root / "commands.log"
+        self.bin.mkdir()
+        self.state.mkdir()
+        for name, (body, logged) in FAKE_DOCKER_COMMANDS.items():
+            if name in omit:
+                continue
+            prelude = (
+                'printf "%s" "${0##*/}" >> "$REPRO_TEST_LOG"\n'
+                'for arg in "$@"; do printf " %s" "$arg" >> "$REPRO_TEST_LOG"; done\n'
+                'printf "\\n" >> "$REPRO_TEST_LOG"\n'
+            ) if logged else ""
+            path = self.bin / name
+            path.write_text(f"#!{BASH_EXECUTABLE}\n{prelude}{body}")
+            path.chmod(0o755)
+        self._env = {
+            "PATH": str(self.bin),
+            "USER": "alice",
+            "REPRO_TEST_LOG": str(self.log),
+            "REPRO_TEST_STATE": str(self.state),
+            "REPRO_DOCKER_FAILURE": docker_failure,
+            "REPRO_TEST_ACTIVE_GROUPS": active_groups,
+            "REPRO_TEST_CONFIGURED_GROUPS": configured_groups,
+        }
+
+    def run(self, body: str, *, extra_env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+        script = (
+            f"source {shlex.quote(str(DOCKER_ACCESS_LIBRARY))}\n"
+            'run_as_root() { shift; "$@"; }\n'
+            f"{body}"
+        )
+        return subprocess.run(
+            [BASH_EXECUTABLE, "-c", script],
+            env={**self._env, **(extra_env or {})},
+            capture_output=True,
+            text=True,
+            stdin=subprocess.DEVNULL,
+            check=False,
+        )
+
+    def command_log(self) -> list[str]:
+        return self.log.read_text().splitlines() if self.log.exists() else []
+
+    def sg_argv(self) -> list[str] | None:
+        path = self.state / "sg-argv"
+        if not path.exists():
+            return None
+        return path.read_bytes().decode().split("\0")[:-1]
 
 
 @unittest.skipUnless(os.name == "posix", "Linux reproducible-build runner tests are POSIX-specific")
@@ -135,15 +235,17 @@ assert prefetch.prefetch_toolchains.__module__ == 'scripts.linux.build.reproduci
         self.assertIn("sources.container.list", base)
 
 
+    def _assert_reproducible_workspace_manifest(self, relative_path: str) -> None:
+        with (ROOT / relative_path).open("rb") as handle:
+            manifest = tomllib.load(handle)
+        self.assertEqual(manifest["package"]["rust-version"], "1.95")
+        self.assertEqual(manifest["workspace"]["resolver"], "2")
+
     def test_companion_reproducible_workspace_declares_rust_195_and_keeps_independent_resolver2(self) -> None:
-        manifest = (ROOT / "apps/kaskold-companion-web/Cargo.toml").read_text()
-        self.assertIn('rust-version = "1.95"', manifest)
-        self.assertIn('[workspace]\nresolver = "2"', manifest)
+        self._assert_reproducible_workspace_manifest("apps/kaskold-companion-web/Cargo.toml")
 
     def test_vault_web_reproducible_workspace_declares_rust_195_and_keeps_independent_resolver2(self) -> None:
-        manifest = (ROOT / "apps/kaskold-vault-web/Cargo.toml").read_text()
-        self.assertIn('rust-version = "1.95"', manifest)
-        self.assertIn('[workspace]\nresolver = "2"', manifest)
+        self._assert_reproducible_workspace_manifest("apps/kaskold-vault-web/Cargo.toml")
 
     def test_companion_lock_reconciliation_is_repro_msrv_aware(self) -> None:
         locks = (ROOT / "scripts/linux/lib/cargo_locks.sh").read_text()
@@ -203,14 +305,82 @@ repro_docker_error_kind "permission denied while trying to connect to the Docker
         result = subprocess.run(command, capture_output=True, text=True, check=True)
         self.assertEqual(result.stdout.splitlines(), ["daemon", "permission"])
 
-        source = library.read_text()
-        self.assertIn('run_as_root "start the Docker daemon for the reproducible build" service docker start', source)
-        self.assertIn('run_as_root "start the Docker daemon for the reproducible build" systemctl start docker', source)
-        self.assertIn('usermod -aG docker "$user_name"', source)
-        self.assertIn("root-equivalent", source)
-        self.assertIn("exec sg docker -c", source)
-        self.assertIn("no newgrp/login step is required", source)
-        self.assertNotIn("Run `newgrp docker`", source)
+    def test_docker_start_prefers_service_then_systemctl_and_fails_without_a_manager(self) -> None:
+        service = _DockerAccessSandbox(self, omit=("systemctl",))
+        result = service.run("repro_start_docker")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(service.command_log(), ["service docker start"])
+
+        systemd = _DockerAccessSandbox(self, omit=("service",))
+        result = systemd.run("repro_start_docker")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(systemd.command_log(), ["systemctl start docker"])
+
+        none = _DockerAccessSandbox(self, omit=("service", "systemctl"))
+        result = none.run("repro_start_docker")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("no supported Docker service manager was found", result.stderr)
+        self.assertEqual(none.command_log(), [])
+
+    def test_docker_group_enablement_runs_usermod_and_names_root_equivalence(self) -> None:
+        sandbox = _DockerAccessSandbox(self)
+        result = sandbox.run("repro_enable_docker_group", extra_env={"USER": "alice"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(sandbox.command_log(), ["usermod -aG docker alice"])
+        self.assertIn("root-equivalent", result.stdout)
+        self.assertIn("continue this same build automatically", result.stdout)
+
+    def test_docker_group_reexec_passes_original_arguments_through_sg(self) -> None:
+        sandbox = _DockerAccessSandbox(self)
+        script = "/opt/kaskold/reproducible-build.sh"
+        result = sandbox.run(f"repro_reexec_with_docker_group {shlex.quote(script)} one 'two words'", extra_env={"USER": "alice"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        argv = sandbox.sg_argv()
+        self.assertIsNotNone(argv)
+        self.assertEqual(argv[:2], ["docker", "-c"])
+        self.assertEqual(
+            shlex.split(argv[2]),
+            ["env", "KASKOLD_DOCKER_GROUP_REEXEC=1", script, "one", "two words"],
+        )
+        self.assertIn("no newgrp/login step is required", result.stdout)
+        self.assertNotIn("Run `newgrp docker`", result.stdout + result.stderr)
+
+    def test_docker_group_reexec_refuses_a_second_hop(self) -> None:
+        sandbox = _DockerAccessSandbox(self)
+        result = sandbox.run(
+            "repro_reexec_with_docker_group /opt/kaskold/reproducible-build.sh",
+            extra_env={"USER": "alice", "KASKOLD_DOCKER_GROUP_REEXEC": "1"},
+        )
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("still unavailable after activating the docker group", result.stderr)
+        self.assertIsNone(sandbox.sg_argv())
+
+    def test_docker_group_reexec_requires_sg(self) -> None:
+        sandbox = _DockerAccessSandbox(self, omit=("sg",))
+        result = sandbox.run("repro_reexec_with_docker_group /opt/kaskold/reproducible-build.sh")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("the `sg` command is unavailable", result.stderr)
+
+    def test_docker_bootstrap_starts_daemon_then_retries_the_same_check(self) -> None:
+        sandbox = _DockerAccessSandbox(self, docker_failure="daemon")
+        result = sandbox.run("repro_ensure_docker_access", extra_env={"USER": "alice"})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(sandbox.command_log(), ["docker info", "service docker start", "docker info"])
+        self.assertIn("Starting it automatically", result.stdout)
+
+    def test_docker_bootstrap_adds_absent_group_and_requests_reexec(self) -> None:
+        sandbox = _DockerAccessSandbox(self, docker_failure="permission")
+        result = sandbox.run("repro_ensure_docker_access", extra_env={"USER": "alice"})
+        self.assertEqual(result.returncode, 11)
+        self.assertEqual(sandbox.command_log(), ["docker info", "usermod -aG docker alice"])
+        self.assertIn("continue this same build automatically", result.stdout)
+        self.assertNotIn("read -r -p", result.stdout + result.stderr)
+
+    def test_docker_bootstrap_reexecs_when_group_is_configured_but_inactive(self) -> None:
+        sandbox = _DockerAccessSandbox(self, docker_failure="permission", configured_groups="alice docker")
+        result = sandbox.run("repro_ensure_docker_access", extra_env={"USER": "alice"})
+        self.assertEqual(result.returncode, 11)
+        self.assertEqual(sandbox.command_log(), ["docker info"])
 
     def test_reproducible_runner_reexecs_itself_when_group_session_is_stale(self) -> None:
         runner = (ROOT / "scripts/linux/build/reproducible-build.sh").read_text()
@@ -248,13 +418,6 @@ repro_docker_error_kind "permission denied while trying to connect to the Docker
             self.assertIn(f'"{lock}"', locks)
         self.assertIn("--offline", locks)
         self.assertIn("--locked", locks)
-
-    def test_docker_bootstrap_is_noninteractive(self) -> None:
-        source = (ROOT / "scripts/linux/build/reproducible/docker_access.sh").read_text()
-        self.assertNotIn("read -r -p", source)
-        self.assertNotIn("repro_confirm", source)
-        self.assertIn("Starting it automatically", source)
-        self.assertIn("continue this same build automatically", source)
 
     def test_ubuntu_prefetch_accepts_indexes_and_resolves_exact_linux_amd64_child(self) -> None:
         child = {
@@ -415,11 +578,40 @@ repro_docker_error_kind "permission denied while trying to connect to the Docker
                     prefetch._hardlink_context_file(str(source), str(destination))
             self.assertFalse(destination.exists())
 
+    def test_docker_reexec_replaces_the_running_shell(self) -> None:
+        # A fake sg cannot tell exec from a plain call: the shell would go on after it returns.
+        source = (ROOT / "scripts/linux/build/reproducible/docker_access.sh").read_text()
+        self.assertIn("exec sg docker -c", source)
+
     def test_prefetch_is_noninteractive_and_uses_private_apt_cache_files(self) -> None:
-        source = (ROOT / "scripts/linux/build/reproducible/ubuntu.py").read_text()
-        self.assertIn('"-y", "install"', source)
-        self.assertIn("Dir::Cache::pkgcache", source)
-        self.assertIn("Dir::Cache::srcpkgcache", source)
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "prefetch"
+            calls: list[list[str]] = []
+
+            def fake_run(argv: list[str], **_: object) -> None:
+                calls.append(list(argv))
+                if "--download-only" in argv:
+                    (output / "debs" / "fixture.deb").write_bytes(b"fixture-deb")
+
+            with mock.patch.object(ubuntu, "run", side_effect=fake_run), \
+                mock.patch.object(ubuntu, "require_command"), \
+                mock.patch.object(ubuntu, "_extract_member"), \
+                mock.patch.object(
+                    ubuntu,
+                    "_write_local_apt_packages",
+                    side_effect=lambda _debs, destination: destination.write_bytes(b"Package: curl\n"),
+                ):
+                ubuntu.prefetch_debs(output, Path(temporary) / "layer.tar", "20260101T000000Z", ["curl"])
+
+            download = next(argv for argv in calls if "--download-only" in argv)
+            install_at = download.index("install")
+            self.assertEqual(download[install_at - 1], "-y")
+            self.assertEqual(download[install_at + 1:], ["curl"])
+            for option in ("Dir::Cache::pkgcache=", "Dir::Cache::srcpkgcache="):
+                matches = [argv for argv in download if argv.startswith(option)]
+                self.assertEqual(len(matches), 1, option)
+                self.assertTrue(matches[0].removeprefix(option).startswith(str(output)), matches[0])
+            self.assertTrue(any("--simulate" in argv for argv in calls))
 
     @unittest.skipUnless(os.name == "posix", "passwd-home semantics are POSIX-specific")
     def test_rustup_init_uses_passwd_home_but_keeps_isolated_rust_homes(self) -> None:

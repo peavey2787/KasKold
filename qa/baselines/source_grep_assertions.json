@@ -97,7 +97,7 @@
   "qa/tests/tooling/test_qemu_scripts.py": 52,
   "qa/tests/tooling/test_repository_inventory.py": 26,
   "qa/tests/tooling/test_repository_organization.py": 13,
-  "qa/tests/tooling/test_reproducible_build_runner.py": 125,
+  "qa/tests/tooling/test_reproducible_build_runner.py": 118,
   "qa/tests/tooling/test_sdk_architecture.py": 78,
   "qa/tests/tooling/test_security_hardening.py": 61,
   "qa/tests/tooling/test_toolchain_policy.py": 73
