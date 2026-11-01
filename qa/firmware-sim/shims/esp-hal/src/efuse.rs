@@ -11,9 +11,24 @@ macro_rules! fields {
 }
 
 fields!(
-    DIS_DOWNLOAD_MANUAL_ENCRYPT, DIS_PAD_JTAG, DIS_USB_JTAG, KEY_PURPOSE_0, KEY_PURPOSE_1, KEY_PURPOSE_2,
-    KEY_PURPOSE_3, KEY_PURPOSE_4, KEY_PURPOSE_5, OPTIONAL_UNIQUE_ID, RD_DIS, SECURE_BOOT_EN, SECURE_BOOT_KEY_REVOKE0,
-    SECURE_BOOT_KEY_REVOKE1, SECURE_BOOT_KEY_REVOKE2, SECURE_VERSION, SPI_BOOT_CRYPT_CNT, WR_DIS,
+    DIS_DOWNLOAD_MANUAL_ENCRYPT,
+    DIS_PAD_JTAG,
+    DIS_USB_JTAG,
+    KEY_PURPOSE_0,
+    KEY_PURPOSE_1,
+    KEY_PURPOSE_2,
+    KEY_PURPOSE_3,
+    KEY_PURPOSE_4,
+    KEY_PURPOSE_5,
+    OPTIONAL_UNIQUE_ID,
+    RD_DIS,
+    SECURE_BOOT_EN,
+    SECURE_BOOT_KEY_REVOKE0,
+    SECURE_BOOT_KEY_REVOKE1,
+    SECURE_BOOT_KEY_REVOKE2,
+    SECURE_VERSION,
+    SPI_BOOT_CRYPT_CNT,
+    WR_DIS,
 );
 
 /// Little-endian widening from the field's stored bytes.
@@ -36,7 +51,14 @@ scalar_values!(u8, u16, u32);
 
 impl FieldValue for [u32; 4] {
     fn from_bytes(bytes: [u8; 16]) -> Self {
-        core::array::from_fn(|i| u32::from_le_bytes([bytes[4 * i], bytes[4 * i + 1], bytes[4 * i + 2], bytes[4 * i + 3]]))
+        core::array::from_fn(|i| {
+            u32::from_le_bytes([
+                bytes[4 * i],
+                bytes[4 * i + 1],
+                bytes[4 * i + 2],
+                bytes[4 * i + 3],
+            ])
+        })
     }
 }
 

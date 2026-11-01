@@ -104,6 +104,11 @@ pub fn handle_signing_operation_step(
 
     let is_final = input_idx + 1 == ad.signing.transaction.active.num_inputs;
     liveness();
+    if is_final && !added_a_signature(ad) {
+        rollback_session(ad);
+        reject_signing_with(ad, crate::runtime::presentation::SIGN_NOT_OURS);
+        return;
+    }
     if is_final && !finish_transaction(ad, boot_display, liveness) {
         rollback_session(ad);
         return;
@@ -112,6 +117,17 @@ pub fn handle_signing_operation_step(
         return;
     }
     advance_after_signing(ad);
+}
+
+/// A transaction this wallet holds no key for must not leave looking signed.
+/// Anti-klepto review signs only after the host's nonce commitment comes back.
+fn added_a_signature(ad: &AppData) -> bool {
+    let transaction = &ad.signing.transaction;
+    ad.signing.anti_klepto.phase == crate::runtime::data::AntiKleptoPhase::Reviewing
+        || transaction.active.inputs[..transaction.active.num_inputs]
+            .iter()
+            .zip(&transaction.initial_signature_counts)
+            .any(|(input, initial)| input.sig_count > *initial)
 }
 
 #[inline(never)]

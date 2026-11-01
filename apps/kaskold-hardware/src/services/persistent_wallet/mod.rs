@@ -331,10 +331,6 @@ impl<'d> PersistentWallet<'d> {
         if !wallet_dirty && !labels_dirty {
             return Ok(false);
         }
-        if wallet_dirty && self.mode == Some(StorageMode::SaveWallet) && !self.device_only {
-            self.migrate_outer_to_device_only(manager)?;
-            return Ok(true);
-        }
         if self.credential_key.is_none() {
             return Err(PersistError::CredentialRequired);
         }

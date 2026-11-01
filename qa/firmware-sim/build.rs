@@ -19,7 +19,10 @@ fn main() {
     println!("cargo:rustc-env=KASKOLD_WORKFLOW_E2E_FROM=1");
     emit_release_policy();
     let root = fs::read_to_string(src.join("main.rs")).expect("firmware main.rs");
-    let mut rewritten: Vec<String> = root.lines().filter_map(|line| rewrite(line, &src)).collect();
+    let mut rewritten: Vec<String> = root
+        .lines()
+        .filter_map(|line| rewrite(line, &src))
+        .collect();
     rewritten.push("pub(crate) use log;".to_owned());
     let out = Path::new(&env::var("OUT_DIR").expect("cargo sets OUT_DIR")).join("firmware_root.rs");
     fs::write(out, rewritten.join("\n")).expect("generated crate root");
@@ -28,7 +31,10 @@ fn main() {
 fn emit_release_policy() {
     let path = format!("{FIRMWARE}/release-policy.env");
     let policy = fs::read_to_string(path).expect("firmware release policy");
-    for (key, value) in policy.lines().filter_map(|line| line.trim().split_once('=')) {
+    for (key, value) in policy
+        .lines()
+        .filter_map(|line| line.trim().split_once('='))
+    {
         if RELEASE_POLICY_KEYS.contains(&key) {
             println!("cargo:rustc-env={key}={value}");
         }
@@ -40,10 +46,20 @@ fn rewrite(line: &str, src: &Path) -> Option<String> {
     if trimmed.starts_with("#![") || trimmed == "mod fault;" || trimmed == "#[macro_export]" {
         return None;
     }
-    let Some(name) = trimmed.strip_prefix("mod ").and_then(|rest| rest.strip_suffix(';')) else {
+    let Some(name) = trimmed
+        .strip_prefix("mod ")
+        .and_then(|rest| rest.strip_suffix(';'))
+    else {
         return Some(line.to_owned());
     };
     let single = src.join(format!("{name}.rs"));
-    let module = if single.exists() { single } else { src.join(name).join("mod.rs") };
-    Some(format!("#[path = {:?}]\nmod {name};", module.display().to_string()))
+    let module = if single.exists() {
+        single
+    } else {
+        src.join(name).join("mod.rs")
+    };
+    Some(format!(
+        "#[path = {:?}]\nmod {name};",
+        module.display().to_string()
+    ))
 }

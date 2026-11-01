@@ -24,8 +24,17 @@ impl Device {
         self.press_pin_pad(PinPadAction::Submit);
     }
 
+    /// Enters digits on the numeric keyboard and submits them.
+    pub(crate) fn enter_on_number_row(&self, digits: &str) {
+        for digit in digits.bytes() {
+            self.press_key(KeyAction::Char(digit), KeyboardMode::Numeric, 0);
+        }
+        self.press_key(KeyAction::Ok, KeyboardMode::Numeric, 0);
+    }
+
     fn press_pin_pad(&self, action: PinPadAction) {
-        let (x, y) = centre_of(screen_points().filter(|(x, y)| pin_pad_action(*x, *y) == Some(action)));
+        let (x, y) =
+            centre_of(screen_points().filter(|(x, y)| pin_pad_action(*x, *y) == Some(action)));
         self.tap_at(x, y);
     }
 

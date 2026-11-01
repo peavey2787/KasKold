@@ -267,23 +267,6 @@ pub(super) fn erase_wallet(device: &mut DeviceFlash<'_>) -> Result<(), FlashErro
     erase_wallet_sector_if_used(device, flash::WALLET_B)
 }
 
-/// Remove stale user-credential outer envelopes only after a newer device-only
-/// device-only record has been committed. This preserves power-fail safety
-/// during migration while ensuring the obsolete global-password ciphertext is not
-/// retained as a second recoverable copy.
-pub(super) fn erase_non_device_only_wallet_records(device: &mut DeviceFlash<'_>) -> Result<(), FlashError> {
-    for address in [flash::WALLET_A, flash::WALLET_B] {
-        let mut record = AlignedBytes::<RECORD_SIZE>::zeroed();
-        let header = read_wallet(device, address, &mut record)?;
-        let stale = header.is_some_and(|value| !value.device_only);
-        offline_signer::derivation::hmac::zeroize_buf(&mut record.0);
-        if stale {
-            device.erase_sector(address)?;
-        }
-    }
-    Ok(())
-}
-
 /// Erase all user-persistent state owned by the signer firmware. This intentionally
 /// preserves the firmware image and one-time eFuse hardware material.
 pub(super) fn erase_all_user_data(device: &mut DeviceFlash<'_>) -> Result<(), FlashError> {

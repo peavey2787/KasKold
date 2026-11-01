@@ -19,8 +19,8 @@ pub(crate) mod ui_graph;
 pub(crate) use event::{continuation, route, ContinuationRoute, ResumeTarget, ReturnScope, UiEvent, UiRoute};
 use kaskold_hardware_core::screen_flow::{navigation as policy, onboarding};
 pub(crate) use onboarding::OnboardingRoute;
-pub(crate) use policy::{tap_uses_router_click, NavigationOwner};
 use policy::home_shortcut_allowed;
+pub(crate) use policy::NavigationOwner;
 pub(crate) use root::main_menu_target_at;
 
 #[cfg(feature = "workflow-tests")]

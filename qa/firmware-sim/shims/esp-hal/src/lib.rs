@@ -33,7 +33,9 @@ pub struct Config {
 
 impl Config {
     pub fn with_cpu_clock(self, cpu_clock: clock::CpuClock) -> Self {
-        Self { _cpu_clock: cpu_clock }
+        Self {
+            _cpu_clock: cpu_clock,
+        }
     }
 }
 

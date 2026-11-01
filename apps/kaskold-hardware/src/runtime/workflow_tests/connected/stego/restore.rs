@@ -158,4 +158,3 @@ fn staged_matches(ctx: &StegoContext<'_, '_, '_>, artifacts: &MediaArtifacts) ->
     ctx.ad.wallet.seeds.word_count == artifacts.word_count
         && ctx.ad.wallet.seeds.mnemonic_indices[..words] == artifacts.original_indices[..words]
 }
-

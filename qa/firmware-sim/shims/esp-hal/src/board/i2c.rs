@@ -40,7 +40,10 @@ fn with_bus<T>(operation: impl FnOnce(&mut Bus) -> T) -> T {
 }
 
 fn require_present(address: u8) -> Result<(), Error> {
-    PRESENT.contains(&address).then_some(()).ok_or(Error::AcknowledgeCheckFailed)
+    PRESENT
+        .contains(&address)
+        .then_some(())
+        .ok_or(Error::AcknowledgeCheckFailed)
 }
 
 pub fn write(address: u8, bytes: &[u8]) -> Result<(), Error> {
@@ -51,7 +54,8 @@ pub fn write(address: u8, bytes: &[u8]) -> Result<(), Error> {
         };
         bus.pointers.insert(address, *register);
         for (offset, value) in values.iter().enumerate() {
-            bus.registers.insert((address, register.wrapping_add(offset as u8)), *value);
+            bus.registers
+                .insert((address, register.wrapping_add(offset as u8)), *value);
         }
     });
     Ok(())
@@ -59,7 +63,8 @@ pub fn write(address: u8, bytes: &[u8]) -> Result<(), Error> {
 
 pub fn read(address: u8, buffer: &mut [u8]) -> Result<(), Error> {
     require_present(address)?;
-    if address == FT6336U && with_bus(|bus| bus.pointers.get(&address) == Some(&FT6336U_TD_STATUS)) {
+    if address == FT6336U && with_bus(|bus| bus.pointers.get(&address) == Some(&FT6336U_TD_STATUS))
+    {
         control::firmware_poll();
         touch::read_registers(buffer);
         return Ok(());
@@ -84,8 +89,16 @@ impl Bus {
             (BMI270, BMI270_STATUS) => BMI270_ALL_DATA_READY,
             (BMI270, 0x00) => BMI270_CHIP_ID_VALUE,
             (BMI270, BMI270_INTERNAL_STATUS) => BMI270_INTERNAL_READY,
-            (BMI270, r) if (BMI270_ACCEL_DATA..BMI270_ACCEL_DATA + IMU_SAMPLE_BYTES).contains(&r) => self.imu_byte(),
-            _ => self.registers.get(&(address, register)).copied().unwrap_or(0),
+            (BMI270, r)
+                if (BMI270_ACCEL_DATA..BMI270_ACCEL_DATA + IMU_SAMPLE_BYTES).contains(&r) =>
+            {
+                self.imu_byte()
+            }
+            _ => self
+                .registers
+                .get(&(address, register))
+                .copied()
+                .unwrap_or(0),
         }
     }
 

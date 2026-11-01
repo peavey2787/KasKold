@@ -375,12 +375,11 @@ fn handle_wallet_details(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> boo
     }
     if (116..=146).contains(&y) {
         let active = usize::from(ad.wallet.seeds.seed_mgr.active);
-        let Some(slot) = ad.wallet.seeds.seed_mgr.active_slot() else {
+        if ad.wallet.seeds.seed_mgr.active_slot().is_none() {
             return false;
-        };
-        if !ad.storage.persistence.advanced.saved_wallet
-            || slot.protection != crate::wallet::seed_manager::WalletProtection::DeviceOnly
-        {
+        }
+        let advanced = &ad.storage.persistence.advanced;
+        if !advanced.saved_wallet || advanced.credential_kind.is_some() {
             return true;
         }
         if !ad.runtime.begin_wallet_protection_update(active) {

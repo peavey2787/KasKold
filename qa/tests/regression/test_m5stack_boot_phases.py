@@ -44,13 +44,14 @@ class M5StackBootPhaseTests(unittest.TestCase):
                 1,
                 f"CoreS3 hardware ownership changed for {constructor}",
             )
-        volatile_paths = sorted(
-            path.relative_to(ROOT).as_posix()
-            for path in (ROOT / "apps/kaskold-hardware/src/hw/m5stack").rglob("*.rs")
-            if "ptr::write_volatile" in path.read_text()
+        # Raw register writes live behind the one mmio module; only these drive it directly.
+        m5stack_sources = sorted((ROOT / "apps/kaskold-hardware/src/hw/m5stack").rglob("*.rs"))
+        self.assertFalse([path for path in m5stack_sources if "ptr::write_volatile" in path.read_text()])
+        register_paths = sorted(
+            path.relative_to(ROOT).as_posix() for path in m5stack_sources if "shared::" in path.read_text() and "mmio::" in path.read_text()
         )
         self.assertEqual(
-            volatile_paths,
+            register_paths,
             [
                 "apps/kaskold-hardware/src/hw/m5stack/spi_bus/gpio35.rs",
                 "apps/kaskold-hardware/src/hw/m5stack/spi_bus/sd_power_lines.rs",

@@ -59,7 +59,12 @@ pub mod master {
             board::i2c::read(address, buffer)
         }
 
-        pub fn write_read(&mut self, address: u8, bytes: &[u8], buffer: &mut [u8]) -> Result<(), Error> {
+        pub fn write_read(
+            &mut self,
+            address: u8,
+            bytes: &[u8],
+            buffer: &mut [u8],
+        ) -> Result<(), Error> {
             board::i2c::write(address, bytes)?;
             board::i2c::read(address, buffer)
         }
@@ -81,8 +86,12 @@ pub mod master {
         ) -> Result<(), Error> {
             for operation in operations {
                 match operation {
-                    embedded_hal::i2c::Operation::Read(buffer) => board::i2c::read(address, buffer)?,
-                    embedded_hal::i2c::Operation::Write(bytes) => board::i2c::write(address, bytes)?,
+                    embedded_hal::i2c::Operation::Read(buffer) => {
+                        board::i2c::read(address, buffer)?
+                    }
+                    embedded_hal::i2c::Operation::Write(bytes) => {
+                        board::i2c::write(address, bytes)?
+                    }
                 }
             }
             Ok(())

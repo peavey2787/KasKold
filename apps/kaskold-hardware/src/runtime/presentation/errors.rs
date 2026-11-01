@@ -36,6 +36,8 @@ pub(crate) const SIGN_INPUT: ErrorSpec = ErrorSpec { message: "Input signing fai
 pub(crate) const SIGN_REVIEW: ErrorSpec = ErrorSpec { message: "Review authorization failed", code: "SIGN-REVIEW-01" };
 pub(crate) const SIGN_KEY: ErrorSpec = ErrorSpec { message: "Wallet key unavailable", code: "SIGN-KEY-01" };
 pub(crate) const SIGN_POLICY: ErrorSpec = ErrorSpec { message: "Signing policy rejected", code: "SIGN-POLICY-01" };
+pub(crate) const SIGN_NOT_OURS: ErrorSpec =
+    ErrorSpec { message: "This wallet cannot sign this", code: "SIGN-NOKEY-01" };
 pub(crate) const SIGN_FINALIZE: ErrorSpec =
     ErrorSpec { message: "Transaction finalization failed", code: "SIGN-FINAL-01" };
 pub(crate) const TX_IMPORT: ErrorSpec = ErrorSpec { message: "Transaction import failed", code: "TX-IMPORT-01" };

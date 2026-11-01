@@ -38,16 +38,13 @@ impl<'a> BootDisplay<'a> {
             let fp = core::str::from_utf8(&fp).unwrap_or("????????");
             draw_lato_body(&mut self.display, fp, 28, 111, COLOR_TEXT_DIM);
         }
-        if let Some(slot) = ad.wallet.seeds.seed_mgr.active_slot() {
-            let protection_label = match slot.protection {
-                crate::wallet::seed_manager::WalletProtection::DeviceOnly
-                    if ad.storage.persistence.advanced.saved_wallet =>
-                {
-                    "Add PIN / Password"
-                }
-                crate::wallet::seed_manager::WalletProtection::DeviceOnly => "Session Only",
-                crate::wallet::seed_manager::WalletProtection::Pin => "PIN Enabled",
-                crate::wallet::seed_manager::WalletProtection::Password => "Password Enabled",
+        if ad.wallet.seeds.seed_mgr.active_slot().is_some() {
+            let advanced = &ad.storage.persistence.advanced;
+            let protection_label = match advanced.credential_kind {
+                Some(crate::services::persistent_wallet::CredentialKind::Pin) => "PIN Enabled",
+                Some(crate::services::persistent_wallet::CredentialKind::Password) => "Password Enabled",
+                None if advanced.saved_wallet => "Add PIN / Password",
+                None => "Session Only",
             };
             draw_details_button(&mut self.display, 45, 116, COLOR_CARD, COLOR_CARD_BORDER, protection_label);
         }

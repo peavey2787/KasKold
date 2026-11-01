@@ -4,6 +4,7 @@ use crate::services::credential_policy;
 use kaskold_hardware_core::advanced_policy::SigningPolicy;
 #[cfg(feature = "m5stack")]
 use kaskold_hardware_core::advanced_policy::{SigningWindow, MAX_WEEKLY_WINDOWS};
+use offline_signer::crypto::password_kdf::PasswordKdfPurpose;
 use offline_signer::derivation::hmac::zeroize_buf;
 
 use crate::{
@@ -14,7 +15,7 @@ use crate::{
 use super::{
     crypto::RECORD_SIZE,
     flash::AlignedBytes,
-    journal,
+    journal, kdf,
     security_policy::{self, DecodeResult, SecurityPolicy},
     CredentialKind, PersistError, PersistentWallet, StorageMode,
 };
@@ -247,7 +248,7 @@ impl<'d> PersistentWallet<'d> {
     }
 
     pub(super) fn sync_security_mirror(&self, ad: &mut AppData) {
-        let active_kind = ad.wallet.seeds.seed_mgr.active_slot().and_then(|slot| slot.protection.credential_kind());
+        let active_kind = self.active_wallet_credential(&ad.wallet.seeds.seed_mgr);
         let saved_wallet = self.advanced_available();
         ad.storage.persistence.advanced.saved_wallet = saved_wallet;
         ad.storage.persistence.advanced.outer_device_only = self.device_only;
@@ -273,10 +274,22 @@ impl<'d> PersistentWallet<'d> {
         if !self.advanced_available() {
             return Err(PersistError::AdvancedRequiresSavedWallet);
         }
-        manager
-            .active_slot()
-            .and_then(|slot| slot.protection.credential_kind())
-            .ok_or(PersistError::AdvancedRequiresSavedWallet)
+        self.active_wallet_credential(manager).ok_or(PersistError::AdvancedRequiresSavedWallet)
+    }
+
+    /// What stands between a person holding the device and the active wallet:
+    /// its own activation credential, or else the one that unlocks the whole store.
+    fn active_wallet_credential(&self, manager: &SeedManager) -> Option<CredentialKind> {
+        let own = manager.active_slot().and_then(|slot| slot.protection.credential_kind());
+        own.or(self.storage_credential())
+    }
+
+    fn storage_credential(&self) -> Option<CredentialKind> {
+        if self.device_only {
+            None
+        } else {
+            self.credential_kind
+        }
     }
 
     fn persist_security_once(
@@ -318,6 +331,9 @@ impl<'d> PersistentWallet<'d> {
         secret: &[u8],
         manager: &SeedManager,
     ) -> Result<bool, PersistError> {
+        if self.credential_matches_storage(kind, secret)? {
+            return Ok(true);
+        }
         let slot = usize::from(manager.active);
         let active = manager.active_slot().ok_or(PersistError::InvalidWallet)?;
         if active.protection.credential_kind() != Some(kind) {
@@ -328,6 +344,23 @@ impl<'d> PersistentWallet<'d> {
         let actual = self.make_wallet_activation_verifier(slot, kind, &salt, &stretched)?;
         zeroize_buf(&mut stretched);
         Ok(shared_signer::bytes::constant_time_eq_32(&verifier, &actual))
+    }
+
+    fn credential_matches_storage(&self, kind: CredentialKind, secret: &[u8]) -> Result<bool, PersistError> {
+        if self.storage_credential() != Some(kind) {
+            return Ok(false);
+        }
+        let expected = self.credential_key.as_ref().ok_or(PersistError::CredentialRequired)?;
+        let mut stretched = kdf::derive(
+            self.credential_kdf,
+            PasswordKdfPurpose::PersistentWallet,
+            secret,
+            &self.credential_salt,
+            &mut || {},
+        )?;
+        let matches = shared_signer::bytes::constant_time_eq_32(expected, &stretched);
+        zeroize_buf(&mut stretched);
+        Ok(matches)
     }
 }
 

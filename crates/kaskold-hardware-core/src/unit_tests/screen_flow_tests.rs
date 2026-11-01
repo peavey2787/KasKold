@@ -101,7 +101,6 @@ fn persistence_screens_are_onboarding_owned_whatever_the_intent() {
         StoragePinConfirm,
         StoragePasswordEntry,
         StoragePasswordConfirm,
-        StorageSeedWordCountChoice { action: 2 },
     ] {
         for seed_onboarding in [false, true] {
             assert_eq!(
@@ -290,6 +289,16 @@ fn entropy_is_gathered_before_the_passphrase_and_retries_keep_the_word_count() {
         StorageSeedWordCountChoice { action: 1 },
         StorageSeedDiceChoice
     ));
+}
+
+#[test]
+fn choosing_a_mnemonic_length_is_handled_by_seed_generation() {
+    for seed_onboarding in [false, true] {
+        assert_eq!(
+            route_for(seed_onboarding, StorageSeedWordCountChoice { action: 0 }),
+            Some(OnboardingRoute::Generation)
+        );
+    }
 }
 
 #[test]

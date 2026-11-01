@@ -12,7 +12,10 @@ struct Gate {
     completed_polls: u64,
 }
 
-static GATE: Mutex<Gate> = Mutex::new(Gate { granted_polls: 0, completed_polls: 0 });
+static GATE: Mutex<Gate> = Mutex::new(Gate {
+    granted_polls: 0,
+    completed_polls: 0,
+});
 static CHANGED: Condvar = Condvar::new();
 static FREE_RUNNING: AtomicBool = AtomicBool::new(false);
 static STOPPED: AtomicBool = AtomicBool::new(false);

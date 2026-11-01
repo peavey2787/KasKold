@@ -37,7 +37,9 @@ class OnlineWatcherTestCompileContractTests(unittest.TestCase):
         self.assertNotIn("decode_root", source)
         self.assertNotIn("pskt_from_root", source)
         self.assertIn("verify_complete_pskt", source)
-        self.assertIn(".to_consensus()", source)
+        self.assertIn("submit_verified", source)
+        sink = facade.split("fn submit_verified(", 1)[1].split("\n    }\n", 1)[0]
+        self.assertIn(".to_consensus()", sink)
 
     def test_covenant_tests_use_facade_reexports_instead_of_private_modules(self) -> None:
         source = (

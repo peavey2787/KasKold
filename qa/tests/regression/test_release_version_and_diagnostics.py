@@ -86,7 +86,7 @@ class ReleaseVersionAndDiagnosticsTests(unittest.TestCase):
         self.assertIn("wdev_capture_sample()", wdev)
         self.assertIn("SP 800-90B non-IID estimators", wdev)
         self.assertIn("0x6003_507C", entropy)
-        self.assertIn("read_volatile(RNG_DATA_REG)", entropy)
+        self.assertIn("mmio::read(RNG_DATA_REG)", entropy)
         boot_tests = (ROOT / "apps/kaskold-hardware/src/runtime/unit_tests/boot.rs").read_text()
         self.assertIn('[boot-kats-full] expanded software/QR KATs', boot_tests)
         self.assertIn('crate::halt_forever(delay);', boot_tests)

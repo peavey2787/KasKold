@@ -76,10 +76,9 @@ fn draw_duress_entry(ad: &AppData, boot_display: &mut display::BootDisplay<'_>, 
     let kind = ad.storage.persistence.advanced.credential_kind;
     let numeric = kind == Some(CredentialKind::Pin);
     let title = match (kind, confirming) {
-        (Some(CredentialKind::Pin), false) => "CREATE DURESS PIN",
-        (Some(CredentialKind::Pin), true) => "CONFIRM DURESS PIN",
-        (Some(CredentialKind::Password), false) => "CREATE DURESS PASS",
-        (Some(CredentialKind::Password), true) => "CONFIRM DURESS PASS",
+        (Some(CredentialKind::Pin), false) => "SET DURESS PIN",
+        (Some(CredentialKind::Password), false) => "SET DURESS PASS",
+        (Some(_), true) => "CONFIRM DURESS",
         (None, false) => "CREATE DURESS",
         (None, true) => "CONFIRM DURESS",
     };

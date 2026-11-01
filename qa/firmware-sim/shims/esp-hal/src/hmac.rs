@@ -38,7 +38,11 @@ pub struct Hmac<'d> {
 
 impl<'d> Hmac<'d> {
     pub fn new(peripheral: HMAC<'d>) -> Self {
-        Self { _peripheral: peripheral, key: [0; 32], message: Vec::new() }
+        Self {
+            _peripheral: peripheral,
+            key: [0; 32],
+            message: Vec::new(),
+        }
     }
 
     pub fn init(&mut self) {
@@ -67,7 +71,10 @@ impl<'d> Hmac<'d> {
             .chain_update(pad.map(|b| b ^ 0x36))
             .chain_update(&self.message)
             .finalize();
-        let outer = Sha256::new().chain_update(pad.map(|b| b ^ 0x5c)).chain_update(inner).finalize();
+        let outer = Sha256::new()
+            .chain_update(pad.map(|b| b ^ 0x5c))
+            .chain_update(inner)
+            .finalize();
         output.copy_from_slice(&outer[..output.len()]);
         self.message.clear();
         Ok(())

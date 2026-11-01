@@ -13,7 +13,10 @@ pub struct DmaRxBuf {
 }
 
 impl DmaRxBuf {
-    pub fn new(_descriptors: &'static mut [DmaDescriptor], storage: &'static mut [u8]) -> Result<Self, DmaError> {
+    pub fn new(
+        _descriptors: &'static mut [DmaDescriptor],
+        storage: &'static mut [u8],
+    ) -> Result<Self, DmaError> {
         let received = storage.len();
         Ok(Self { storage, received })
     }

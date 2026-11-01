@@ -1,6 +1,8 @@
 use crate::runtime::input::AppState;
 
-use super::{begin_restore, choose_no_passphrase, finish_restored_session, name_restored_wallet, RestoreIo, BUTTON_X, KEY_OK};
+use super::{
+    begin_restore, choose_no_passphrase, finish_restored_session, name_restored_wallet, RestoreIo, BUTTON_X, KEY_OK,
+};
 
 const KEY_A: (u16, u16) = (19, 100);
 const KEY_B: (u16, u16) = (54, 100);
@@ -150,4 +152,3 @@ fn choose_passphrase_a1(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     ctx.base.seed_touch(KEY_OK.0, KEY_OK.1, false) == Some(true)
         && ctx.base.ad.navigation.app.state == (AppState::WalletNameEntry { purpose: 3 })
 }
-

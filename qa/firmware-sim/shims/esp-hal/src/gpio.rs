@@ -23,7 +23,10 @@ pub struct Output<'d> {
 impl<'d> Output<'d> {
     pub fn new(pin: Pin, level: Level, _config: OutputConfig) -> Self {
         board::pins::set(pin.0, level == Level::High);
-        Self { pin: pin.0, _lifetime: PhantomData }
+        Self {
+            pin: pin.0,
+            _lifetime: PhantomData,
+        }
     }
 
     pub fn set_high(&mut self) {

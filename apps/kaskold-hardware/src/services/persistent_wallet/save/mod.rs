@@ -173,41 +173,4 @@ impl PersistentWallet<'_> {
         progress(100);
         Ok(())
     }
-
-    /// Re-key an already-unlocked internal store to the current device-only outer envelope.
-    ///
-    /// Per-wallet PIN/password activation is the only current user-credential boundary.
-    /// Current snapshots never retain a global wallet activation credential after a
-    /// successful unlock; retired pre-production PBKDF2 wallet records are intentionally unsupported.
-    pub(crate) fn migrate_outer_to_device_only(&mut self, manager: &SeedManager) -> Result<(), PersistError> {
-        if self.mode != Some(StorageMode::SaveWallet) {
-            return Ok(());
-        }
-        if self.device_only {
-            return Ok(());
-        }
-        if self.crypto.available_key_slot().is_none() {
-            return Err(PersistError::DeviceKeyMissing);
-        }
-
-        let mut salt = [0u8; SALT_SIZE];
-        crate::services::entropy::fill(&mut salt).map_err(|_| PersistError::Entropy)?;
-        self.clear_credential();
-        self.credential_kind = Some(CredentialKind::Password);
-        self.device_only = true;
-        self.credential_salt = salt;
-        self.credential_key = Some([0u8; 32]);
-        self.credential_kdf = kdf::CredentialKdf::current();
-
-        // Commit the new device-only snapshot first so a reset at any point
-        // still leaves at least one decryptable copy. Only then remove stale
-        // user-credential envelopes.
-        if let Err(error) = self.save_flash_snapshot(manager) {
-            self.clear_credential();
-            return Err(error);
-        }
-        journal::write_mode(&mut self.flash, StorageMode::SaveWallet)?;
-        journal::erase_non_device_only_wallet_records(&mut self.flash)?;
-        Ok(())
-    }
 }

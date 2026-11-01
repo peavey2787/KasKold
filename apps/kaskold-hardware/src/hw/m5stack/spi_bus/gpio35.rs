@@ -3,9 +3,7 @@
 
 use crate::hw::shared::{
     mmio::{read as read_register, write as write_register},
-    registers::esp32s3::{
-        GPIO_ENABLE1_W1TS, GPIO_FUNC_OUT_SEL_BASE, GPIO_OUT1_W1TC, GPIO_OUT1_W1TS,
-    },
+    registers::esp32s3::{GPIO_ENABLE1_W1TS, GPIO_FUNC_OUT_SEL_BASE, GPIO_OUT1_W1TC, GPIO_OUT1_W1TS},
 };
 
 const GPIO_ENABLE1_W1TC: u32 = 0x6000_4034;

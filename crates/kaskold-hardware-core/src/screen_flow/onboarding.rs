@@ -17,6 +17,9 @@ pub enum OnboardingRoute {
 /// The onboarding sub-flow that owns `state`. Fixed persistence screens are
 /// always onboarding-owned; the rest only while a new seed is being set up.
 pub fn route_for(seed_onboarding: bool, state: AppState) -> Option<OnboardingRoute> {
+    if matches!(state, AppState::StorageSeedWordCountChoice { .. }) {
+        return Some(OnboardingRoute::Generation);
+    }
     if is_fixed_persistence(state) {
         return Some(OnboardingRoute::Persistence);
     }
@@ -42,7 +45,6 @@ fn is_fixed_persistence(state: AppState) -> bool {
             | StoragePinConfirm
             | StoragePasswordEntry
             | StoragePasswordConfirm
-            | StorageSeedWordCountChoice { .. }
     )
 }
 

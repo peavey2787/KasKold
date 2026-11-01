@@ -67,8 +67,14 @@ pub mod master {
     }
 
     impl<'d> I2s<'d> {
-        pub fn new(_i2s: I2S1<'d>, _channel: DMA_CH1<'d>, _config: Config) -> Result<Self, ConfigError> {
-            Ok(Self { i2s_tx: TxCreator(PhantomData) })
+        pub fn new(
+            _i2s: I2S1<'d>,
+            _channel: DMA_CH1<'d>,
+            _config: Config,
+        ) -> Result<Self, ConfigError> {
+            Ok(Self {
+                i2s_tx: TxCreator(PhantomData),
+            })
         }
     }
 
@@ -79,7 +85,9 @@ pub mod master {
             &'t mut self,
             _words: &'t [u8],
         ) -> Result<DmaTransferTxCircular<'t, Self>, I2sError> {
-            Ok(DmaTransferTxCircular { _transmitter: PhantomData })
+            Ok(DmaTransferTxCircular {
+                _transmitter: PhantomData,
+            })
         }
     }
 }

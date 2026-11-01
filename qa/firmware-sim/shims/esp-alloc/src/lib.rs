@@ -30,7 +30,10 @@ impl HeapRegion {
     /// # Safety
     /// The region must stay valid and unused elsewhere, as for the vendor heap.
     pub unsafe fn new(start: *mut u8, len: usize, _caps: Capabilities) -> Self {
-        Self(Span { start: start as usize, len })
+        Self(Span {
+            start: start as usize,
+            len,
+        })
     }
 }
 
@@ -38,7 +41,9 @@ pub struct Heap {
     free: Mutex<Vec<Span>>,
 }
 
-pub static HEAP: Heap = Heap { free: Mutex::new(Vec::new()) };
+pub static HEAP: Heap = Heap {
+    free: Mutex::new(Vec::new()),
+};
 
 impl Heap {
     pub fn add_region(&self, region: HeapRegion) {
@@ -46,7 +51,12 @@ impl Heap {
     }
 
     pub fn free_caps(&self, _caps: Capabilities) -> usize {
-        self.free.lock().expect("heap poisoned").iter().map(|span| span.len).sum()
+        self.free
+            .lock()
+            .expect("heap poisoned")
+            .iter()
+            .map(|span| span.len)
+            .sum()
     }
 
     /// # Safety
@@ -62,12 +72,21 @@ impl Heap {
             return core::ptr::null_mut();
         };
         let span = free.remove(index);
-        let tail = Span { start: start + layout.size(), len: span.len - padding - layout.size() };
+        let tail = Span {
+            start: start + layout.size(),
+            len: span.len - padding - layout.size(),
+        };
         if tail.len > 0 {
             free.insert(index, tail);
         }
         if padding > 0 {
-            free.insert(index, Span { start: span.start, len: padding });
+            free.insert(
+                index,
+                Span {
+                    start: span.start,
+                    len: padding,
+                },
+            );
         }
         start as *mut u8
     }
@@ -76,7 +95,10 @@ impl Heap {
     /// Same contract as `GlobalAlloc::dealloc`.
     pub unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         let mut free = self.free.lock().expect("heap poisoned");
-        free.push(Span { start: ptr as usize, len: layout.size() });
+        free.push(Span {
+            start: ptr as usize,
+            len: layout.size(),
+        });
         free.sort_by_key(|span| span.start);
         let mut merged: Vec<Span> = Vec::with_capacity(free.len());
         for span in free.drain(..) {

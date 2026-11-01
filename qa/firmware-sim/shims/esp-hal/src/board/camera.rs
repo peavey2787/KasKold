@@ -14,11 +14,20 @@ struct Scene {
     noise: u32,
 }
 
-static SCENE: Mutex<Scene> = Mutex::new(Scene { pictures: Vec::new(), next: 0, noise: NOISE_SEED });
+static SCENE: Mutex<Scene> = Mutex::new(Scene {
+    pictures: Vec::new(),
+    next: 0,
+    noise: NOISE_SEED,
+});
 
 /// Holds top-down `WIDTH * HEIGHT` luma pictures in front of the lens.
 pub fn show(pictures: Vec<Vec<u8>>) {
-    assert!(pictures.iter().all(|picture| picture.len() == WIDTH * HEIGHT), "picture size");
+    assert!(
+        pictures
+            .iter()
+            .all(|picture| picture.len() == WIDTH * HEIGHT),
+        "picture size"
+    );
     let mut scene = SCENE.lock().expect("camera model poisoned");
     scene.pictures = pictures;
     scene.next = 0;

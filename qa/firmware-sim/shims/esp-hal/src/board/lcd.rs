@@ -38,7 +38,13 @@ fn with_panel<T>(operation: impl FnOnce(&mut Panel) -> T) -> T {
 }
 
 pub fn receive(byte: u8, is_data: bool) {
-    with_panel(|panel| if is_data { panel.data(byte) } else { panel.begin(byte) });
+    with_panel(|panel| {
+        if is_data {
+            panel.data(byte)
+        } else {
+            panel.begin(byte)
+        }
+    });
 }
 
 /// A count that moves whenever pixels change, so a settled screen is detectable.
@@ -93,6 +99,10 @@ impl Panel {
             self.pixels[y * WIDTH + x] = u16::from_be_bytes([high, byte]);
             PIXEL_WRITES.fetch_add(1, Ordering::Relaxed);
         }
-        self.cursor = if x >= self.columns.1 { (self.columns.0, y + 1) } else { (x + 1, y) };
+        self.cursor = if x >= self.columns.1 {
+            (self.columns.0, y + 1)
+        } else {
+            (x + 1, y)
+        };
     }
 }

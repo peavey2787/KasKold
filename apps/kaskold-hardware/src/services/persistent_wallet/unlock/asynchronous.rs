@@ -329,11 +329,11 @@ impl PersistentWallet<'_> {
         self.credential_kind = Some(kind);
         self.credential_salt = header.salt;
         self.credential_key = Some(key);
-        self.credential_kdf = kdf::CredentialKdf::current();
+        self.credential_kdf = header.credential_kdf;
         self.mode = Some(StorageMode::SaveWallet);
         self.load_security_policy(ad)?;
-        self.migrate_outer_to_device_only(&ad.wallet.seeds.seed_mgr)?;
         self.sync_security_mirror(ad);
+        self.accept_revision(&ad.wallet.seeds.seed_mgr);
         Ok(())
     }
 
@@ -348,7 +348,7 @@ impl PersistentWallet<'_> {
         self.clear_credential();
         self.credential_kind = Some(kind);
         self.credential_salt = header.salt;
-        self.credential_kdf = kdf::CredentialKdf::current();
+        self.credential_kdf = header.credential_kdf;
         self.credential_key = Some(key);
         self.security_policy = policy;
         self.security_integrity_ok = true;

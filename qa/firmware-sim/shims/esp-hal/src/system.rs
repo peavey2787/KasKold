@@ -32,7 +32,11 @@ impl CpuControl {
     where
         F: FnOnce() + Send + 'static,
     {
-        std::thread::Builder::new().name("firmware-core1".into()).stack_size(SIZE).spawn(entry).map_err(|_| Error::CoreAlreadyRunning)?;
+        std::thread::Builder::new()
+            .name("firmware-core1".into())
+            .stack_size(SIZE)
+            .spawn(entry)
+            .map_err(|_| Error::CoreAlreadyRunning)?;
         board::clock::peer_core_started();
         Ok(AppCoreGuard)
     }

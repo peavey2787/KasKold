@@ -17,7 +17,11 @@ fn every_connected_workflow_passes() {
         if serial.contains(PASS) {
             return;
         }
-        assert!(!serial.contains(FAIL) && started.elapsed() < DEADLINE, "{}", tail(&serial));
+        assert!(
+            !serial.contains(FAIL) && started.elapsed() < DEADLINE,
+            "{}",
+            tail(&serial)
+        );
         std::thread::sleep(Duration::from_millis(50));
     }
 }

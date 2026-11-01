@@ -8,6 +8,8 @@ pub struct LcdCam<'d> {
 
 impl<'d> LcdCam<'d> {
     pub fn new(_peripheral: LCD_CAM<'d>) -> Self {
-        Self { cam: cam::Cam::new() }
+        Self {
+            cam: cam::Cam::new(),
+        }
     }
 }

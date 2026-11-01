@@ -16,7 +16,9 @@ class ConnectedFailureRecoveryTests(unittest.TestCase):
         self.assertIn('reset_tranche_to_home',recover); self.assertNotIn('effects::home',recover)
         backup=(ROOT/'apps/kaskold-hardware/src/runtime/workflow_tests/connected/backup.rs').read_text()
         entry=backup.split('pub(super) fn enter_advanced_backup',1)[1].split('pub(super) struct WorkflowBackupDevice',1)[0]
-        self.assertIn('reset_tranche_to_home',entry); self.assertNotIn('effects::home',entry)
+        self.assertIn('enter_wallet_menu',entry); self.assertNotIn('effects::home',entry)
+        wallet_menu=backup.split('pub(super) fn enter_wallet_menu',1)[1].split('pub(super) fn enter_advanced_backup',1)[0]
+        self.assertIn('reset_tranche_to_home',wallet_menu); self.assertNotIn('effects::home',wallet_menu)
     def test_four_failed_tranches_have_tail_replay(self):
         connected=(ROOT/'apps/kaskold-hardware/src/runtime/workflow_tests/connected/mod.rs').read_text()
         self.assertIn('probe_status::replay_mask', connected)

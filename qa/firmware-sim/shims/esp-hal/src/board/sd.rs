@@ -38,7 +38,13 @@ pub fn set_present(present: bool) {
 }
 
 pub fn exchange(sent: u8) -> u8 {
-    with_card(|card| if card.present { card.exchange(sent) } else { IDLE })
+    with_card(|card| {
+        if card.present {
+            card.exchange(sent)
+        } else {
+            IDLE
+        }
+    })
 }
 
 /// The written blocks and whether the card is inserted, as one byte string.
@@ -60,7 +66,8 @@ pub fn restore(image: &[u8]) {
         for entry in blocks.chunks_exact(8 + BLOCK) {
             let (block, data) = entry.split_at(8);
             let block = u64::from_le_bytes(block.try_into().expect("eight bytes")) as usize;
-            card.blocks.insert(block, data.try_into().expect("one block"));
+            card.blocks
+                .insert(block, data.try_into().expect("one block"));
         }
     });
 }

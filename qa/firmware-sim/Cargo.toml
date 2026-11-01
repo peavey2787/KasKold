@@ -68,10 +68,9 @@ aes-gcm = { version = "0.10.3", default-features = false, features = ["aes"] }
 
 [dev-dependencies]
 firmware-tools = { path = "../../tools" }
+kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", default-features = false }
 png = "0.17"
-
-[patch.crates-io]
-serde_yaml = { path = "../../external/serde-yaml-ng-adapter" }
+qrcode = { version = "0.14.1", default-features = false }
 
 [workspace]
 resolver = "2"

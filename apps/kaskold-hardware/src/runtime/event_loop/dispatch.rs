@@ -120,7 +120,7 @@ macro_rules! handle_action {
                 $ad.navigation.app.state,
             );
             let click_after_route = (!is_scan_cam || is_back)
-                && $crate::runtime::navigation::tap_uses_router_click($ad.navigation.app.state);
+                && kaskold_hardware_core::screen_flow::navigation::tap_uses_router_click($ad.navigation.app.state);
             if is_scan_cam && is_back {
                 $crate::runtime::interactions::camera_loop::route_camera_back($ad);
                 $crate::runtime::event_loop::audio::click($ad, &mut $runtime_audio);

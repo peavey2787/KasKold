@@ -39,13 +39,29 @@ impl<'d> Camera<'d> {
     }
 
     pin_builders!(
-        with_master_clock, with_pixel_clock, with_vsync, with_h_enable, with_data0, with_data1,
-        with_data2, with_data3, with_data4, with_data5, with_data6, with_data7,
+        with_master_clock,
+        with_pixel_clock,
+        with_vsync,
+        with_h_enable,
+        with_data0,
+        with_data1,
+        with_data2,
+        with_data3,
+        with_data4,
+        with_data5,
+        with_data6,
+        with_data7,
     );
 
-    pub fn receive(self, mut buffer: DmaRxBuf) -> Result<CameraTransfer<'d>, (DmaError, Self, DmaRxBuf)> {
+    pub fn receive(
+        self,
+        mut buffer: DmaRxBuf,
+    ) -> Result<CameraTransfer<'d>, (DmaError, Self, DmaRxBuf)> {
         board::camera::capture(buffer.as_mut_slice());
-        Ok(CameraTransfer { camera: self, buffer })
+        Ok(CameraTransfer {
+            camera: self,
+            buffer,
+        })
     }
 }
 
