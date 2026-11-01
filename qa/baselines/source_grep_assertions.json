@@ -50,7 +50,7 @@
   "qa/tests/regression/test_online_watcher_native_logging.py": 9,
   "qa/tests/regression/test_online_watcher_script_locktime_policy.py": 11,
   "qa/tests/regression/test_online_watcher_test_compile_contracts.py": 45,
-  "qa/tests/regression/test_original_feature_parity_policy.py": 250,
+  "qa/tests/regression/test_original_feature_parity_policy.py": 232,
   "qa/tests/regression/test_parser_and_operation_ownership.py": 11,
   "qa/tests/regression/test_private_swap_feature_parity.py": 55,
   "qa/tests/regression/test_qemu_transaction_touch_parity.py": 22,
