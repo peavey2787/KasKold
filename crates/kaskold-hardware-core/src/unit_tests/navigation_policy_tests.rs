@@ -1,5 +1,5 @@
 use crate::screen_flow::navigation::{
-    owner_for_intent, recovery_owner, safe_recovery, transition_allowed,
+    self, owner_for_intent, recovery_owner, safe_recovery, transition_allowed,
     DeviceStorageIntent as Intent, NavigationOwner as Owner,
 };
 use crate::screen_flow::AppState::{self, *};
@@ -321,4 +321,44 @@ fn recovery_lands_on_each_owners_safe_screen() {
         assert_eq!(safe_recovery(owner), screen);
         assert_eq!(recovery_owner(owner), next_owner);
     }
+}
+
+#[test]
+fn secret_entry_screens_own_their_tap_feedback() {
+    for state in [
+        AppState::ChooseWordCount { action: 0 },
+        AppState::StorageSeedWordCountChoice { action: 0 },
+        AppState::SeedEntropyUnavailable { word_count: 12 },
+        AppState::StoragePinEntry,
+        AppState::StoragePinConfirm,
+        AppState::StoragePasswordEntry,
+        AppState::StoragePasswordConfirm,
+        AppState::StorageUnlockPin,
+        AppState::StorageUnlockPassword,
+    ] {
+        assert!(!navigation::tap_uses_router_click(state), "{state:?}");
+    }
+    assert!(navigation::tap_uses_router_click(AppState::MainMenu));
+    assert!(navigation::tap_uses_router_click(AppState::SettingsMenu));
+}
+
+#[test]
+fn home_shortcut_needs_home_reached_and_never_escapes_unlock() {
+    assert!(navigation::home_shortcut_allowed(
+        true,
+        AppState::SettingsMenu
+    ));
+    assert!(!navigation::home_shortcut_allowed(
+        false,
+        AppState::SettingsMenu
+    ));
+    assert!(!navigation::home_shortcut_allowed(true, AppState::MainMenu));
+    assert!(!navigation::home_shortcut_allowed(
+        true,
+        AppState::StorageUnlockPin
+    ));
+    assert!(!navigation::home_shortcut_allowed(
+        true,
+        AppState::StorageUnlockPassword
+    ));
 }

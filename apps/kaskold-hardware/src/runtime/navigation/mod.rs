@@ -19,7 +19,8 @@ pub(crate) mod ui_graph;
 pub(crate) use event::{continuation, route, ContinuationRoute, ResumeTarget, ReturnScope, UiEvent, UiRoute};
 use kaskold_hardware_core::screen_flow::{navigation as policy, onboarding};
 pub(crate) use onboarding::OnboardingRoute;
-pub(crate) use policy::NavigationOwner;
+pub(crate) use policy::{tap_uses_router_click, NavigationOwner};
+use policy::home_shortcut_allowed;
 pub(crate) use root::main_menu_target_at;
 
 #[cfg(feature = "workflow-tests")]
@@ -95,24 +96,6 @@ pub(crate) fn onboarding_route(ad: &AppData) -> Option<OnboardingRoute> {
     onboarding::route_for(ad.storage.persistence.device_storage_intent.is_seed_onboarding(), ad.navigation.app.state)
 }
 
-/// Whether the event loop should emit its ordinary navigation click after
-/// routing and reconciling a tap. Secret-entry screens own feedback locally so accepted
-/// credential keys may click once while the persisted global mute/volume policy remains authoritative.
-pub(crate) fn tap_uses_router_click(state: AppState) -> bool {
-    !matches!(
-        state,
-        AppState::ChooseWordCount { .. }
-            | AppState::StorageSeedWordCountChoice { .. }
-            | AppState::SeedEntropyUnavailable { .. }
-            | AppState::StoragePinEntry
-            | AppState::StoragePinConfirm
-            | AppState::StoragePasswordEntry
-            | AppState::StoragePasswordConfirm
-            | AppState::StorageUnlockPin
-            | AppState::StorageUnlockPassword
-    )
-}
-
 /// Fail closed when the onboarding router encounters a state it does not own.
 pub(crate) fn recover_onboarding(ad: &mut AppData) {
     kernel::force_recover(ad, ad.navigation.app.state);
@@ -185,12 +168,6 @@ pub(crate) fn home_shortcut_visible(ad: &AppData) -> bool {
     !wallet_resolution_required(ad)
         && !wallet_protection_setup
         && home_shortcut_allowed(ad.runtime.home_reached, ad.navigation.app.state)
-}
-
-fn home_shortcut_allowed(home_reached: bool, state: AppState) -> bool {
-    home_reached
-        && state != AppState::MainMenu
-        && !matches!(state, AppState::StorageUnlockPin | AppState::StorageUnlockPassword)
 }
 
 fn wallet_resolution_required(ad: &AppData) -> bool {

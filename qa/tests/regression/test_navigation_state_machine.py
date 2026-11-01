@@ -723,10 +723,6 @@ class NavigationStateMachineTests(unittest.TestCase):
         self.assertIn("word_count_choice_at(x, y)", dispatch[ack_at:route_at])
         self.assertLess(ack_at, click_at)
         self.assertLess(click_at, route_at)
-        navigation = read("apps/kaskold-hardware/src/runtime/navigation/mod.rs")
-        router = navigation.split("pub(crate) fn tap_uses_router_click", 1)[1].split("/// Fail closed", 1)[0]
-        self.assertIn("StorageSeedWordCountChoice { .. }", router)
-        self.assertIn("ChooseWordCount { .. }", router)
         self.assertIn("pub(crate) fn word_count_choice_at", wallet)
         self.assertIn("WORD_COUNT_BUTTON_X", wallet)
         self.assertIn("WORD_COUNT_12_Y", wallet)

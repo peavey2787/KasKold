@@ -480,3 +480,31 @@ fn is_settings_state(state: AppState) -> bool {
     }
     false
 }
+
+/// Whether the event loop should emit its ordinary navigation click after
+/// routing and reconciling a tap. Secret-entry screens own feedback locally so accepted
+/// credential keys may click once while the persisted global mute/volume policy remains authoritative.
+pub fn tap_uses_router_click(state: AppState) -> bool {
+    !matches!(
+        state,
+        AppState::ChooseWordCount { .. }
+            | AppState::StorageSeedWordCountChoice { .. }
+            | AppState::SeedEntropyUnavailable { .. }
+            | AppState::StoragePinEntry
+            | AppState::StoragePinConfirm
+            | AppState::StoragePasswordEntry
+            | AppState::StoragePasswordConfirm
+            | AppState::StorageUnlockPin
+            | AppState::StorageUnlockPassword
+    )
+}
+
+/// Home is a post-onboarding shortcut only, and never escapes a storage unlock.
+pub fn home_shortcut_allowed(home_reached: bool, state: AppState) -> bool {
+    home_reached
+        && state != AppState::MainMenu
+        && !matches!(
+            state,
+            AppState::StorageUnlockPin | AppState::StorageUnlockPassword
+        )
+}

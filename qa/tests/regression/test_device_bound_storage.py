@@ -413,8 +413,6 @@ class DeviceBoundStorageTests(unittest.TestCase):
         self.assertIn('draw_storage_pin_entry(&ad.wallet.seeds.pp_input, "CONFIRM PIN", true)', redraw)
         self.assertIn("unlock_feedback.pin_title()", redraw)
         self.assertIn("false,", redraw.split("unlock_feedback.pin_title()", 1)[1].split("),", 1)[0])
-        self.assertIn("accepted", navigation)
-        self.assertIn("credential keys may click once", navigation)
         self.assertIn("tap_uses_router_click", dispatch)
         self.assertIn("crate::services::audio::click();", controller)
         self.assertIn("if !matches!(action, KeyAction::None | KeyAction::Ok) { crate::services::audio::click(); }", flat(controller))
@@ -551,7 +549,6 @@ class DeviceBoundStorageTests(unittest.TestCase):
         geometry = read("apps/kaskold-hardware/src/ui/screens/wallet/mod.rs")
         redraw = read_device_redraw()
         dispatch = read("apps/kaskold-hardware/src/runtime/event_loop/dispatch.rs")
-        click_policy = read("apps/kaskold-hardware/src/runtime/navigation/mod.rs")
 
         # Ownership, touch routing and same-count retry of SeedEntropyUnavailable
         # are host-tested in kaskold-hardware-core unit_tests/screen_flow_tests.rs.
@@ -587,8 +584,6 @@ class DeviceBoundStorageTests(unittest.TestCase):
 
         self.assertIn("let entropy_recovery_ack = matches!(", dispatch)
         self.assertIn("entropy_recovery_choice_at(x, y)", dispatch)
-        router_click = click_policy.split("pub(crate) fn tap_uses_router_click", 1)[1].split("/// Fail closed", 1)[0]
-        self.assertIn("SeedEntropyUnavailable { .. }", router_click)
 
     def test_imported_mnemonic_skips_redundant_word_by_word_backup_review(self) -> None:
         state = read("apps/kaskold-hardware/src/runtime/data/storage/persistence.rs")
@@ -813,7 +808,6 @@ class DeviceBoundStorageTests(unittest.TestCase):
         self.assertEqual(pin.count("crate::services::audio::click();"), 1)
         self.assertEqual(password.count("crate::services::audio::click();"), 1)
         self.assertIn("tap_uses_router_click", dispatch)
-        self.assertIn("credential keys may click once", navigation)
 
     def test_imu_rejection_is_actionable_on_screen(self) -> None:
         generation = read("apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation.rs")
