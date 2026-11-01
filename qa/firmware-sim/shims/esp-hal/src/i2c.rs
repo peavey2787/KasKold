@@ -1,7 +1,7 @@
 pub mod master {
     use core::marker::PhantomData;
 
-    use crate::{board, gpio::Pin, peripherals::I2C0, time::Rate, Blocking};
+    use crate::{board, peripherals::I2C0, time::Rate, Blocking};
 
     #[derive(Clone, Copy, Debug, Default)]
     pub struct Config;

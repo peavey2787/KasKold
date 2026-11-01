@@ -218,6 +218,14 @@
     },
     {
       "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/firmware/run_firmware_simulator.py",
+      "role": "check",
+      "step": "integration.firmware-simulator"
+    },
+    {
+      "commands": [
         "make test-hardware"
       ],
       "path": "qa/checks/firmware/run_hardware_tests.py",
@@ -379,6 +387,15 @@
     },
     {
       "commands": [
+        "make test",
+        "make qa"
+      ],
+      "path": "qa/checks/security/dependency_advisories.py",
+      "role": "check",
+      "step": "preflight.dependency-advisories"
+    },
+    {
+      "commands": [
         "make qa"
       ],
       "path": "qa/checks/security/fuzz_results.py",
@@ -429,14 +446,6 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/checks/security/source_grep_ratchet.py",
-      "role": "security-check",
-      "step": "preflight.security-assurance"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
       "path": "qa/checks/security/security_control_evidence.py",
       "role": "security-check",
       "step": "preflight.security-assurance"
@@ -446,6 +455,14 @@
         "make qa"
       ],
       "path": "qa/checks/security/security_invariants.py",
+      "role": "security-check",
+      "step": "preflight.security-assurance"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/security/source_grep_ratchet.py",
       "role": "security-check",
       "step": "preflight.security-assurance"
     },
@@ -548,6 +565,15 @@
     },
     {
       "commands": [
+        "make test",
+        "make qa"
+      ],
+      "path": "qa/checks/web/real_dom/run_real_dom_tests.py",
+      "role": "test",
+      "step": "integration.kaskold-companion-web-browser"
+    },
+    {
+      "commands": [
         "make qa"
       ],
       "path": "qa/checks/web/run_web_recovery_coverage.py",
@@ -561,15 +587,6 @@
       "path": "qa/checks/web/run_web_runtime_coverage.py",
       "role": "coverage",
       "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make test",
-        "make qa"
-      ],
-      "path": "qa/checks/web/real_dom/run_real_dom_tests.py",
-      "role": "test",
-      "step": "integration.kaskold-companion-web-browser"
     },
     {
       "commands": [
@@ -721,14 +738,6 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/checks/web/web_wallet_views_behaviour.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
       "path": "qa/checks/web/web_oracle_model_b_deep_paths.test.mjs",
       "role": "test",
       "step": "preflight.crap-check"
@@ -863,21 +872,20 @@
     },
     {
       "commands": [
-        "make test",
         "make qa"
       ],
-      "path": "qa/checks/workspace/check_lockfile.py",
-      "role": "check",
-      "step": "preflight.repository-lockfiles"
+      "path": "qa/checks/web/web_wallet_views_behaviour.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
     },
     {
       "commands": [
         "make test",
         "make qa"
       ],
-      "path": "qa/checks/security/dependency_advisories.py",
+      "path": "qa/checks/workspace/check_lockfile.py",
       "role": "check",
-      "step": "preflight.dependency-advisories"
+      "step": "preflight.repository-lockfiles"
     },
     {
       "commands": [
@@ -989,7 +997,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/fuzz/std_pskt_parser.rs",
+      "path": "qa/fuzz/rqrr_camera_frame.rs",
       "role": "fuzz-target",
       "step": "fuzz.repository-security-targets"
     },
@@ -997,7 +1005,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/fuzz/rqrr_camera_frame.rs",
+      "path": "qa/fuzz/std_pskt_parser.rs",
       "role": "fuzz-target",
       "step": "fuzz.repository-security-targets"
     },
@@ -1442,6 +1450,14 @@
         "make qa"
       ],
       "path": "qa/tests/regression/test_hardware_transport_recovery.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/tests/regression/test_headless_chromium.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -2074,14 +2090,6 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_vendored_jsqr.py",
-      "role": "test",
-      "step": "unit.repository-python-qa"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
       "path": "qa/tests/tooling/test_master_launcher.py",
       "role": "test",
       "step": "unit.repository-python-qa"
@@ -2194,6 +2202,14 @@
       "commands": [
         "make qa"
       ],
+      "path": "qa/tests/tooling/test_vendored_jsqr.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
       "path": "qa/tests/tooling/test_web_build_pipeline.py",
       "role": "test",
       "step": "unit.repository-python-qa"
@@ -2279,14 +2295,6 @@
       "path": "qa/windows/runner/run_all.py",
       "role": "runner",
       "step": "catalog"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/tests/regression/test_headless_chromium.py",
-      "role": "test",
-      "step": "unit.repository-python-qa"
     }
   ],
   "schema_version": 1

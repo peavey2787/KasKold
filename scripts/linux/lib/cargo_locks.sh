@@ -221,4 +221,5 @@ kaskold_reconcile_host_locks() {
     kaskold_reconcile_one_host_lock "$root" "External rqrr workspace" "external/rqrr-nostd/Cargo.toml" "external/rqrr-nostd/Cargo.lock"
     kaskold_reconcile_one_host_lock "$root" "Funded/tools workspace" "tools/Cargo.toml" "tools/Cargo.lock"
     kaskold_reconcile_one_host_lock "$root" "QA workspace" "qa/Cargo.toml" "qa/Cargo.lock"
+    kaskold_reconcile_one_host_lock "$root" "Firmware simulator workspace" "qa/firmware-sim/Cargo.toml" "qa/firmware-sim/Cargo.lock"
 }

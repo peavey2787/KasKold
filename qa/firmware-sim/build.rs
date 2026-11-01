@@ -15,7 +15,7 @@ fn main() {
     let src = Path::new(&manifest).join(FIRMWARE).join("src");
     println!("cargo:rerun-if-changed={}", src.join("main.rs").display());
     println!("cargo:rerun-if-changed={FIRMWARE}/release-policy.env");
-    println!("cargo:rustc-env=KASKOLD_BUILD_COMMIT=firmware-sim");
+    println!("cargo:rustc-env=KASKOLD_BUILD_COMMIT=0000000");
     println!("cargo:rustc-env=KASKOLD_WORKFLOW_E2E_FROM=1");
     emit_release_policy();
     let root = fs::read_to_string(src.join("main.rs")).expect("firmware main.rs");

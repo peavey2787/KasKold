@@ -10,8 +10,17 @@ macro_rules! journey {
     };
 }
 
+mod backup;
+mod device_bound;
+mod everyday;
 mod first_wallet;
 mod known;
+mod multisig;
+mod phrases;
+mod policies;
+#[cfg(feature = "production")]
+mod retail;
 mod security;
 mod signing;
 mod walk;
+mod wallets;

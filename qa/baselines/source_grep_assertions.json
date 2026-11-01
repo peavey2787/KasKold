@@ -74,7 +74,6 @@
   "qa/tests/regression/test_universal_covenant_signing.py": 96,
   "qa/tests/regression/test_unlock_credential_privacy.py": 14,
   "qa/tests/regression/test_vault_network_isolation.py": 62,
-  "qa/tests/regression/test_verified_model_finalization_boundary.py": 74,
   "qa/tests/regression/test_wallet_activation_security.py": 40,
   "qa/tests/regression/test_wallet_inventory_behavior.py": 14,
   "qa/tests/regression/test_wallet_network_onboarding_safety.py": 99,

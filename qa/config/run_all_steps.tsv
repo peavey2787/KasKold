@@ -37,6 +37,7 @@ qa	security	repository	preflight.security-assurance	Formal security invariants t
 qa	coverage	repository	coverage.critical-branch-targets	Require refreshed critical branch floors and hard targets
 qa	integration	signer-firmware	integration.signer-firmware-builds	Firmware hardware and QEMU feature compile matrix
 qa	integration	signer-firmware	integration.signer-firmware-lints	Firmware hardware and QEMU warning lint and complexity matrix
+qa	integration	signer-firmware	integration.firmware-simulator	Real firmware on a virtual CoreS3 through every user journey and workflow tier
 qa	emulation	signer-firmware	emulation.signer-firmware-qemu	Boot ESP32-S3 QEMU and run all emulated hardware tests
 qa	interactive	repository	integration.real-node	Real Companion public-node integration against the official resolver pool
 qa	interactive	repository	integration.funded-testnet-e2e	Interactive funded Kaspa testnet transaction E2E against a real public node

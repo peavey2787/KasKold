@@ -16,6 +16,7 @@ exclude = [
     "apps/kaskold-vault-web",
     "tools",
     "qa",
+    "qa/firmware-sim",
     "qa/fuzz",
     "external/rqrr-nostd",
 ]

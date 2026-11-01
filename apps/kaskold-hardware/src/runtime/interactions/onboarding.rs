@@ -49,7 +49,15 @@ pub fn handle_onboarding_touch(context: OnboardingTouchContext<'_, '_, '_, '_, '
 
     match crate::runtime::navigation::onboarding_route(ad) {
         Some(crate::runtime::navigation::OnboardingRoute::Persistence) => {
-            crate::runtime::interactions::persistence::handle(input, ad, persistent_wallet, boot_display, delay)
+            crate::runtime::interactions::persistence::handle(
+                input,
+                ad,
+                persistent_wallet,
+                boot_display,
+                delay,
+                i2c,
+                sd_card_type.is_some(),
+            )
         }
         Some(crate::runtime::navigation::OnboardingRoute::Generation) => {
             crate::runtime::interactions::menu::seed_generation::handle(

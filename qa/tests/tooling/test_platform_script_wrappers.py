@@ -28,6 +28,8 @@ COMMON = SCRIPTS / "common"
 MAKEFILE = ROOT / "Makefile"
 CATEGORIES = {"build", "install", "lib", "qemu", "quality"}
 LINUX_RUN_ALL = "qa/linux/run-all.sh"
+WINDOWS_ROOT_ENTRY = "run-all-windows.cmd"
+LINUX_ROOT_ENTRY = "run-all-linux.sh"
 
 
 
@@ -1106,6 +1108,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
             "integration.companion-android-quality",
             "integration.signer-firmware-builds",
             "integration.signer-firmware-lints",
+            "integration.firmware-simulator",
             "emulation.signer-firmware-qemu",
             "hardware.signer-firmware-device",
             "bench.shared-signer-protocol-throughput",
@@ -1431,6 +1434,16 @@ class PlatformScriptWrapperTests(unittest.TestCase):
         self.assertNotIn('scripts/linux/build/ios-runtime-sync.sh', project)
         self.assertIn('shutil.copytree', helper)
         self.assertIn('companion_web_bg.wasm', helper)
+
+
+class RootValidationEntryPointTests(unittest.TestCase):
+    def test_root_entry_points_name_scripts_that_exist(self) -> None:
+        windows = (ROOT / WINDOWS_ROOT_ENTRY).read_bytes().decode()
+        target = re.search(r'%~dp0([^"]+)"', windows).group(1).replace("\\", "/")
+        self.assertTrue((ROOT / target).is_file(), target)
+        linux = (ROOT / LINUX_ROOT_ENTRY).read_text(encoding="utf-8")
+        target = re.search(r'/(qa/[^"]+)"', linux).group(1)
+        self.assertTrue((ROOT / target).is_file(), target)
 
 
 if __name__ == "__main__":

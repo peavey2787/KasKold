@@ -37,6 +37,9 @@ fn with_panel<T>(operation: impl FnOnce(&mut Panel) -> T) -> T {
     }))
 }
 
+const MAX_HELD_SCREENS: usize = 16;
+static HELD_FOR_READING: Mutex<Vec<Vec<u16>>> = Mutex::new(Vec::new());
+
 pub fn receive(byte: u8, is_data: bool) {
     with_panel(|panel| {
         if is_data {
@@ -55,6 +58,24 @@ pub fn pixel_writes() -> u64 {
 /// RGB565 pixels in reading order.
 pub fn snapshot() -> Vec<u16> {
     with_panel(|panel| panel.pixels.clone())
+}
+
+/// The firmware is holding this screen still for a person, even if nothing waits to look.
+pub fn remember_screen_held_for_reading() {
+    let screen = snapshot();
+    let mut held = HELD_FOR_READING.lock().expect("held screens poisoned");
+    if held.len() == MAX_HELD_SCREENS {
+        held.remove(0);
+    }
+    held.push(screen);
+}
+
+/// The most recent screens a person had time to read, oldest first.
+pub fn screens_held_for_reading() -> Vec<Vec<u16>> {
+    HELD_FOR_READING
+        .lock()
+        .expect("held screens poisoned")
+        .clone()
 }
 
 impl Panel {

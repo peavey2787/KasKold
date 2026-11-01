@@ -36,6 +36,18 @@ impl RestoreIo<'_, '_, '_> {
         )
     }
 
+    /// Chooses to restore from a card, which reads the card as a real tap does.
+    pub(super) fn card_source_touch(&mut self) -> Option<bool> {
+        crate::runtime::interactions::persistence::workflow_handle_source_touch(
+            TouchInput::new(BUTTON_X, RESTORE_ROWS[2], false),
+            self.base.ad,
+            &mut *self.base.display,
+            &mut *self.base.delay,
+            &mut *self.base.i2c,
+            self.base.sd.is_some(),
+        )
+    }
+
     pub(super) fn source_back(&mut self) -> Option<bool> {
         crate::runtime::interactions::persistence::workflow_handle_seed_source_choice(
             TouchInput::new(20, 20, true),

@@ -38,11 +38,11 @@ impl AttestationError {
             #[cfg(all(feature = "m5stack", feature = "production"))]
             Self::FlashEncryptionDisabled => "ATTESTATION: FLASH ENCRYPTION OFF",
             #[cfg(all(feature = "m5stack", feature = "production"))]
-            Self::FlashEncryptionNotRelease => "ATTESTATION: FLASH ENCRYPTION NOT RELEASE",
+            Self::FlashEncryptionNotRelease => "ATTESTATION: DEV ENCRYPTION",
             Self::FlashRead => "ATTESTATION: IMAGE READ FAILED",
             Self::ImageLayout => "ATTESTATION: IMAGE FORMAT INVALID",
             Self::AppendedHashMismatch => "ATTESTATION: IMAGE HASH INVALID",
-            Self::SecureBootDigestMissing => "ATTESTATION: BOOT SIGNATURE MISSING",
+            Self::SecureBootDigestMissing => "ATTESTATION: NO BOOT SIGNATURE",
             Self::SecureBootDigestMismatch => "ATTESTATION: BOOT DIGEST INVALID",
             Self::BuildIdentityMissing => "ATTESTATION: BUILD ID MISSING",
         }

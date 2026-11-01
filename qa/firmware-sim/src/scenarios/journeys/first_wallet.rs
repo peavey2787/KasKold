@@ -36,7 +36,7 @@ fn restore_the_known_wallet() {
     let stored = flash::image();
     for word in ["abandon", "about"] {
         assert!(
-            !contains(&stored, word.as_bytes()),
+            !walk::contains(&stored, word.as_bytes()),
             "{word:?} is readable in flash"
         );
     }
@@ -140,10 +140,4 @@ fn unlock_with_password() {
     walk::enter_password(&device, known::PASSWORD);
     walk::open_receive(&device);
     walk::expect_address(&device, known::RECEIVE_0);
-}
-
-fn contains(haystack: &[u8], needle: &[u8]) -> bool {
-    haystack
-        .windows(needle.len())
-        .any(|window| window == needle)
 }

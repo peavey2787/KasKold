@@ -7,6 +7,8 @@
 include!(concat!(env!("OUT_DIR"), "/firmware_root.rs"));
 
 #[cfg(test)]
+#[deny(warnings)]
 mod harness;
 #[cfg(test)]
+#[deny(warnings)]
 mod scenarios;

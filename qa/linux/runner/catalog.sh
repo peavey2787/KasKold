@@ -166,6 +166,10 @@ run_step() {
             require_command python3 || return
             run_in_directory "$ROOT_DIR" python3 qa/checks/firmware/check_firmware_lints.py
             ;;
+        integration.firmware-simulator)
+            require_command python3 || return
+            run_in_directory "$ROOT_DIR" python3 qa/checks/firmware/run_firmware_simulator.py
+            ;;
         integration.repository-architecture)
             require_command python3 || return
             run_in_directory "$ROOT_DIR" python3 qa/checks/check_architecture.py || return $?

@@ -45,8 +45,10 @@ fn explore() {
         device.settle();
         device.screen().save(&format!("{out}/{index:02}.png"));
         println!(
-            "{index:02} {step} -> {:?}",
-            app_state().navigation.app.state
+            "{index:02} {step} -> {:?} {:?} {:?}",
+            app_state().navigation.app.state,
+            app_state().navigation.owner,
+            app_state().storage.persistence.device_storage_intent,
         );
     }
     if let Some(board) = &kept_board {

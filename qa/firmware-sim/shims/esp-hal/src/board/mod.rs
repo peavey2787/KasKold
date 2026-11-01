@@ -11,6 +11,7 @@ pub mod mapped_flash;
 pub mod mmio;
 pub mod nonvolatile;
 pub mod pins;
+pub mod rtc;
 pub mod sd;
 pub mod spi;
 pub mod touch;

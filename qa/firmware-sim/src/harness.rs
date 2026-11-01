@@ -1,18 +1,28 @@
 //! Drives the running firmware the way a person holding the device does.
+#[cfg(feature = "production")]
+mod app_image;
 mod keyboard;
 mod power;
 mod qr;
 mod screen;
 
 use crate::runtime::input::AppState;
-use esp_hal::board::{clock, control, halt::SoftwareReset, lcd, mapped_flash, touch};
+use esp_hal::board::{
+    clock, control, efuse, halt::SoftwareReset, lcd, mapped_flash, rtc, sd, touch,
+};
+use kaskold_hardware_core::advanced_policy::parse_utc_yyyymmddhhmm;
+use kaskold_hardware_core::time::bm8563::encode_bm8563;
 
+#[cfg(feature = "production")]
+pub(crate) use app_image::ImageFault;
 pub(crate) use power::{across_power_cycles, discard_board, note, recall};
 pub(crate) use qr::{hold_up_qr, lower_qr, read_qr_on_screen};
 pub(crate) use screen::Screen;
 
 const TEST_SIGNING_KEY: &[u8; 32] =
     include_bytes!("../../../tools/build/firmware/dev_test_signing_key.bin");
+#[cfg(feature = "production")]
+const SIMULATED_RELEASE_SIGNING_KEY: &[u8; 32] = &[0x52; 32];
 const FIRMWARE_STACK_BYTES: usize = 8 * 1024 * 1024;
 const SETTLE_POLLS: u64 = 8;
 const MAX_SETTLE_ROUNDS: usize = 20_000;
@@ -21,6 +31,7 @@ const WAIT_POLLS: u64 = 32;
 const WAIT_SLICE: std::time::Duration = std::time::Duration::from_millis(10);
 const WAIT_LIMIT: std::time::Duration = std::time::Duration::from_secs(45);
 const NO_REVIEW_ROUNDS: usize = 200;
+const HOLD_SLICE_MILLIS: u128 = 250;
 
 pub(crate) struct Device;
 
@@ -32,6 +43,19 @@ impl Device {
         let device = Self;
         device.settle();
         device
+    }
+
+    /// Moves the hardware clock, as time passing or someone opening the case would.
+    pub(crate) fn set_clock(&self, utc: &str) {
+        let time = parse_utc_yyyymmddhhmm(utc.as_bytes()).expect("a UTC time");
+        let encoded = encode_bm8563(time).expect("a time the clock can hold");
+        rtc::restore(&[&encoded.time[1..], &encoded.date[1..]].concat());
+    }
+
+    /// Runs the real `firmware_main` with a memory card in the slot.
+    pub(crate) fn boot_with_card() -> Self {
+        sd::set_present(true);
+        Self::boot()
     }
 
     /// Powers on firmware changed after it was signed. A refused image never reads
@@ -51,6 +75,55 @@ impl Device {
         mapped_flash::set_signature([0x5A; 64]);
         start_firmware();
         Self
+    }
+
+    /// Powers on firmware carrying the repository's public development signature.
+    #[cfg(feature = "production")]
+    pub(crate) fn boot_with_development_signature() -> Self {
+        control::free_run();
+        install_signed_firmware();
+        mapped_flash::set_signature(
+            firmware_tools::sign_test_firmware_hash(TEST_SIGNING_KEY, &mapped_flash::image_hash())
+                .expect("test signature"),
+        );
+        start_firmware();
+        Self
+    }
+
+    /// Powers on a retail unit that must refuse to boot without the named fuses.
+    #[cfg(feature = "production")]
+    pub(crate) fn boot_refused_without(unburned: &[&str]) -> Self {
+        control::free_run();
+        install_signed_firmware();
+        efuse::burn_retail_fuses(unburned);
+        start_firmware();
+        Self
+    }
+
+    /// Powers on a chip nobody locked yet, holding a damaged application image.
+    #[cfg(feature = "production")]
+    pub(crate) fn boot_unlocked_with_damaged_image(fault: ImageFault) -> Self {
+        app_image::install_with(fault);
+        Self::boot_refused_without(&efuse::RETAIL_FUSES)
+    }
+
+    /// Powers on a chip nobody locked yet: it attests the application image it finds in flash.
+    #[cfg(feature = "production")]
+    pub(crate) fn boot_unlocked() -> Self {
+        app_image::install();
+        Self::boot_without(&efuse::RETAIL_FUSES)
+    }
+
+    /// Powers on a retail unit that still boots without the named fuses.
+    #[cfg(feature = "production")]
+    pub(crate) fn boot_without(unburned: &[&str]) -> Self {
+        install_signed_firmware();
+        efuse::burn_retail_fuses(unburned);
+        start_firmware();
+        control::run_polls(1);
+        let device = Self;
+        device.settle();
+        device
     }
 
     /// Asserts the device stopped on a refusal naming `reason` and never unlocks.
@@ -99,6 +172,26 @@ impl Device {
         self.settle();
     }
 
+    /// Keeps a finger on a label for as long as a destructive action asks.
+    pub(crate) fn hold(&self, label: &str, time: std::time::Duration) {
+        let screen = self.screen();
+        let Some((x, y)) = screen.find(label) else {
+            panic!(
+                "{label:?} is not on screen; see {}",
+                screen.save_for_failure(label)
+            );
+        };
+        touch::press(x, y);
+        control::run_polls(2);
+        for _ in 0..time.as_millis() / HOLD_SLICE_MILLIS {
+            clock::advance_micros(HOLD_SLICE_MILLIS as u64 * 1_000);
+            control::run_polls(2);
+        }
+        touch::release();
+        control::run_polls(2);
+        self.settle();
+    }
+
     /// Taps a label a person can read, and fails when it is not on the screen.
     pub(crate) fn tap(&self, label: &str) {
         let screen = self.screen();
@@ -115,12 +208,35 @@ impl Device {
         Screen::capture()
     }
 
+    /// Asserts the firmware held `text` on screen long enough for a person to read it.
+    #[cfg(feature = "production")]
+    pub(crate) fn expect_was_shown(&self, text: &str) {
+        let held = Screen::held_for_reading();
+        if !held.iter().any(|screen| screen.find(text).is_some()) {
+            let saved = held
+                .last()
+                .map_or_else(String::new, |screen| screen.save_for_failure(text));
+            panic!("{text:?} was never held on screen; last held screen: {saved}");
+        }
+    }
+
     /// Asserts a person can read `text` right now.
     pub(crate) fn expect_text(&self, text: &str) {
         let screen = self.screen();
         if screen.find(text).is_none() {
             panic!(
                 "{text:?} is not on screen; see {}",
+                screen.save_for_failure(text)
+            );
+        }
+    }
+
+    /// Asserts a person cannot read `text` right now.
+    pub(crate) fn expect_absent(&self, text: &str) {
+        let screen = self.screen();
+        if screen.find(text).is_some() {
+            panic!(
+                "{text:?} is on screen; see {}",
                 screen.save_for_failure(text)
             );
         }
@@ -226,10 +342,21 @@ fn power_on() {
 fn install_signed_firmware() {
     stop_the_run_when_firmware_panics();
     mapped_flash::install();
-    mapped_flash::set_signature(
-        firmware_tools::sign_test_firmware_hash(TEST_SIGNING_KEY, &mapped_flash::image_hash())
-            .expect("test signature"),
-    );
+    mapped_flash::set_signature(sign_for_this_build(&mapped_flash::image_hash()));
+    if cfg!(feature = "production") {
+        efuse::burn_retail_fuses(&[]);
+    }
+}
+
+#[cfg(feature = "production")]
+fn sign_for_this_build(hash: &[u8; 32]) -> [u8; 64] {
+    firmware_tools::sign_firmware_hash(SIMULATED_RELEASE_SIGNING_KEY, hash)
+        .expect("release signature")
+}
+
+#[cfg(not(feature = "production"))]
+fn sign_for_this_build(hash: &[u8; 32]) -> [u8; 64] {
+    firmware_tools::sign_test_firmware_hash(TEST_SIGNING_KEY, hash).expect("test signature")
 }
 
 fn start_firmware() {

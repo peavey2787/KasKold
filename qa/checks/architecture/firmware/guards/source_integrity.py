@@ -207,6 +207,7 @@ def _check_bip340_release_path(root: Path) -> list[str]:
     verifier = _source(root / "apps/kaskold-hardware/src/services/verify/signature.rs")
     if "kaskold_hardware_core::update::release::PRODUCTION_RELEASE_PUBKEY" not in verifier:
         errors.append("firmware verification must consume the shared release public key")
+    errors.extend(_simulated_identity_errors(root))
     vector = root / "qa/tests/integration/firmware_signing.rs"
     if not vector.is_file() or "generator_matches_bip340_vector_zero_and_production_verifier" not in _source(vector):
         errors.append("cross-package BIP340 release compatibility test is missing")
@@ -383,4 +384,16 @@ def check(root: Path) -> list[str]:
         *_check_repository_hygiene(root),
         *_check_ci_firmware_matrix(root),
         *_check_remediation_ownership(root),
+    ]
+
+
+def _simulated_identity_errors(root: Path) -> list[str]:
+    """Only the host simulator may turn on the stand-in release identity."""
+    allowed = {"crates/kaskold-hardware-core/Cargo.toml", "qa/firmware-sim/Cargo.toml"}
+    return [
+        f"simulated release identity reached a shipping manifest: {manifest.relative_to(root).as_posix()}"
+        for manifest in sorted(root.glob("**/Cargo.toml"))
+        if "target" not in manifest.relative_to(root).parts
+        and manifest.relative_to(root).as_posix() not in allowed
+        and "simulated-release-identity" in manifest.read_text(encoding="utf-8")
     ]

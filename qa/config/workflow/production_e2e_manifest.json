@@ -3,11 +3,11 @@
     "actions": {
       "backlog": 0,
       "catalog": 0,
-      "connected": 113,
+      "connected": 114,
       "hil": 2,
       "manual-hil": 0,
-      "qa": 97,
-      "total": 212
+      "qa": 98,
+      "total": 214
     },
     "menu_items": {
       "backlog": 0,
@@ -5119,7 +5119,8 @@
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_seed_source_choice",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_advanced_restore",
         "apps/kaskold-hardware/src/runtime/interactions/camera_loop/touch_input.rs::route_camera_back",
-        "apps/kaskold-hardware/src/runtime/interactions/sd/backup/import.rs::handle_wallet_backup_file_list"
+        "apps/kaskold-hardware/src/runtime/interactions/sd/backup/import.rs::handle_wallet_backup_file_list",
+        "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_source_touch"
       ],
       "id": "connected-onboarding-restore-menu",
       "items": [
@@ -5155,7 +5156,7 @@
       ],
       "serial_markers": [
         "RESTORE MENU ROUTES/OWNERS/NOOP OK",
-        "RESTORE SD EMPTY-LIST/BACK OWNER OK"
+        "RESTORE SD SCAN/BACK OWNER OK"
       ],
       "states": [
         "StorageModeChoice",
@@ -6588,7 +6589,9 @@
         "apps/kaskold-hardware/src/runtime/interactions/tx/private_swap.rs::handle_key",
         "apps/kaskold-hardware/src/runtime/interactions/tx/private_swap.rs::handle_result",
         "apps/kaskold-hardware/src/runtime/interactions/tx/private_swap.rs::handle_review",
-        "apps/kaskold-hardware/src/runtime/interactions/tx/transaction.rs::handle_anti_klepto_reveal_guide"
+        "apps/kaskold-hardware/src/runtime/interactions/tx/transaction.rs::handle_anti_klepto_reveal_guide",
+        "apps/kaskold-hardware/src/runtime/interactions/persistence.rs::handle_unlock_touch",
+        "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_source_touch"
       ],
       "id": "qa-production-exhaustiveness-gate",
       "items": [
@@ -8499,6 +8502,14 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
+      "apps/kaskold-hardware/src/runtime/interactions/persistence.rs::handle_unlock_touch": {
+        "baseline": false,
+        "catalog_workflows": [],
+        "highest_level": "qa",
+        "implemented_scenarios": [
+          "qa-production-exhaustiveness-gate"
+        ]
+      },
       "apps/kaskold-hardware/src/runtime/interactions/persistence/credential.rs::confirm_state": {
         "baseline": true,
         "catalog_workflows": [],
@@ -8565,6 +8576,15 @@
         "highest_level": "connected",
         "implemented_scenarios": [
           "connected-onboarding-create-core",
+          "connected-onboarding-restore-menu",
+          "qa-production-exhaustiveness-gate"
+        ]
+      },
+      "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_source_touch": {
+        "baseline": false,
+        "catalog_workflows": [],
+        "highest_level": "connected",
+        "implemented_scenarios": [
           "connected-onboarding-restore-menu",
           "qa-production-exhaustiveness-gate"
         ]

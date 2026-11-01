@@ -55,6 +55,9 @@ def _unused_internal_symbol_warnings(root: Path, paths: list[Path]) -> list[str]
     dockerfile = root / "Dockerfile"
     if dockerfile.is_file():
         combined_parts.append(dockerfile.read_text(errors="ignore"))
+    # The firmware simulator compiles firmware source and calls its harness hooks.
+    simulator = sorted((root / "qa/firmware-sim/src").rglob("*.rs"))
+    combined_parts.extend(path.read_text(errors="ignore") for path in simulator)
     combined = "\n".join(combined_parts)
     occurrences = Counter(re.findall(r"[A-Za-z_][A-Za-z0-9_]*", combined))
     warnings: list[str] = []

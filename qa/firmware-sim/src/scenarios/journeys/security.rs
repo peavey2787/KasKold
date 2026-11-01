@@ -1,6 +1,6 @@
 //! What the device does to someone who should not be using it.
 use super::known::{self, ABOUT_WORDS, PIN};
-use super::walk;
+use super::walk::{self, restore_the_known_wallet as restore_the_wallet};
 use crate::harness::Device;
 use std::time::Duration;
 
@@ -37,16 +37,10 @@ journey!(
     the_duress_pin_erases_the_wallet,
     welcomed_like_a_new_device,
 );
-journey!(a_factory_reset_leaves_a_new_device: restore_the_wallet, factory_reset, welcomed_like_a_new_device);
+journey!(a_factory_reset_leaves_a_new_device: restore_the_wallet, reset_and_read_the_flash, welcomed_like_a_new_device);
 journey!(a_wrong_pin_during_the_backoff_is_not_even_tried: restore_the_wallet, retry_too_soon);
 journey!(modified_firmware_never_reaches_a_wallet: restore_the_wallet, refuse_modified_firmware);
 journey!(firmware_with_a_bad_signature_never_reaches_a_wallet: restore_the_wallet, refuse_bad_signature);
-
-fn restore_the_wallet() {
-    let device = Device::boot();
-    walk::restore_words(&device, ABOUT_WORDS, "No Passphrase");
-    walk::save_with_pin(&device, PIN);
-}
 
 fn the_pin_opens_the_wallet() {
     let device = Device::boot();
@@ -116,16 +110,8 @@ fn the_duress_pin_erases_the_wallet() {
     assert_no_saved_wallet();
 }
 
-fn factory_reset() {
-    let device = Device::boot();
-    walk::unlock_with_pin(&device, PIN);
-    device.tap("Settings");
-    walk::next_menu_page(&device);
-    device.tap("Advanced");
-    device.tap("Factory Reset");
-    walk::accept_warning(&device);
-    walk::accept_warning(&device);
-    device.wait_until_stopped_or_text("WELCOME");
+fn reset_and_read_the_flash() {
+    walk::factory_reset();
     assert_no_saved_wallet();
 }
 

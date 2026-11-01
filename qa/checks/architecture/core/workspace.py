@@ -185,6 +185,7 @@ def _check_workspace_manifests(root: Path) -> list[str]:
         "apps/kaskold-vault-web",
         "tools",
         "qa",
+        "qa/firmware-sim",
         "qa/fuzz",
         "external/rqrr-nostd",
     }

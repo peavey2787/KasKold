@@ -5,6 +5,8 @@ static MICROS: AtomicU64 = AtomicU64::new(0);
 static PEER_CORE_RUNNING: AtomicBool = AtomicBool::new(false);
 const PEER_CORE_SLICE: Duration = Duration::from_micros(100);
 const MICROS_PER_MILLI: u64 = 1_000;
+/// A screen held this long is one a person has time to read.
+const READING_TIME_MICROS: u64 = 1_000_000;
 
 /// Each read costs a microsecond, so a busy-wait on time always terminates.
 pub fn read_micros() -> u64 {
@@ -22,6 +24,9 @@ pub fn peer_core_started() {
 
 /// A blocking wait: time passes, and the peer core gets a real slice to do its work.
 pub fn wait_micros(micros: u64) {
+    if micros >= READING_TIME_MICROS {
+        super::lcd::remember_screen_held_for_reading();
+    }
     advance_micros(micros);
     if micros >= MICROS_PER_MILLI && PEER_CORE_RUNNING.load(Ordering::Acquire) {
         std::thread::sleep(PEER_CORE_SLICE);

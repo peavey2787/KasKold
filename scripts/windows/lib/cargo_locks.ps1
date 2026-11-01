@@ -152,4 +152,5 @@ function Repair-KasKoldHostLocks {
     Repair-KasKoldOneHostLock $Root 'External rqrr workspace' 'external/rqrr-nostd/Cargo.toml' 'external/rqrr-nostd/Cargo.lock'
     Repair-KasKoldOneHostLock $Root 'Funded/tools workspace' 'tools/Cargo.toml' 'tools/Cargo.lock'
     Repair-KasKoldOneHostLock $Root 'QA workspace' 'qa/Cargo.toml' 'qa/Cargo.lock'
+    Repair-KasKoldOneHostLock $Root 'Firmware simulator workspace' 'qa/firmware-sim/Cargo.toml' 'qa/firmware-sim/Cargo.lock'
 }

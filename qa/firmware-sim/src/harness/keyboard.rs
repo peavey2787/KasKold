@@ -42,6 +42,10 @@ impl Device {
     pub(crate) fn type_text(&self, text: &str) {
         let mut page = 0;
         for character in text.bytes() {
+            if character == b' ' {
+                self.press_key(KeyAction::Space, KeyboardMode::Full, page);
+                continue;
+            }
             let wanted = page_with(character);
             while page != wanted {
                 self.press_key(KeyAction::Page, KeyboardMode::Full, page);

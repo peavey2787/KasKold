@@ -37,6 +37,10 @@ WORKSPACES = {
         "local": {"firmware-tools", "kaskold-protocol", "offline-signer", "shared-signer", "kaskold-hardware-core"},
         "forbidden": {"kaskold-companion-web", "kaskold-hardware", "online-watcher", "rqrr", "kaskold-qa"},
     },
+    ROOT / "qa/firmware-sim/Cargo.lock": {
+        "local": {"esp-alloc", "esp-bootloader-esp-idf", "esp-hal", "esp-hal-macros", "esp-println", "firmware-tools", "kaskold-firmware-sim", "kaskold-hardware-core", "kaskold-protocol", "offline-signer", "rqrr", "shared-signer"},
+        "forbidden": {"kaskold-companion-web", "kaskold-hardware", "kaskold-qa", "online-watcher"},
+    },
     ROOT / "qa/Cargo.lock": {
         "local": {"firmware-tools", "kaskold-protocol", "kaskold-qa", "kaskold-sdk", "offline-signer", "shared-signer", "kaskold-hardware-core"},
         "forbidden": {"kaskold-companion-web", "kaskold-hardware", "online-watcher", "rqrr"},
@@ -426,6 +430,7 @@ def validate_workspace_manifests() -> list[str]:
         "apps/kaskold-vault-web",
         "tools",
         "qa",
+        "qa/firmware-sim",
         "qa/fuzz",
         "external/rqrr-nostd",
     }
@@ -440,6 +445,7 @@ def validate_workspace_manifests() -> list[str]:
         ROOT / "apps/kaskold-vault-web/Cargo.toml",
         ROOT / "tools/Cargo.toml",
         ROOT / "qa/Cargo.toml",
+        ROOT / "qa/firmware-sim/Cargo.toml",
         ROOT / "qa/fuzz/Cargo.toml",
         ROOT / "external/rqrr-nostd/Cargo.toml",
     ):

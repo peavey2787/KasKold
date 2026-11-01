@@ -33,17 +33,16 @@ fn scan_seedqr_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     ctx.base.ad.navigation.app.state == AppState::StorageSeedSourceChoice
 }
 
+/// A card holding backups opens the list and back returns; anything else never leaves the menu.
 fn sd_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    if ctx.source_touch(2) != Some(true) || ctx.base.ad.navigation.app.state != AppState::SdWalletBackupFileList {
+    if ctx.card_source_touch() != Some(true) {
         return false;
     }
-    let zone = ctx.list[0];
-    if ctx.sd_touch(zone.x + 8, zone.y + 8, false) != Some(false)
-        || ctx.base.ad.navigation.app.state != AppState::SdWalletBackupFileList
+    if ctx.base.ad.navigation.app.state == AppState::SdWalletBackupFileList && ctx.sd_touch(20, 20, true) != Some(true)
     {
         return false;
     }
-    ctx.sd_touch(20, 20, true) == Some(true) && ctx.base.ad.navigation.app.state == AppState::StorageSeedSourceChoice
+    ctx.base.ad.navigation.app.state == AppState::StorageSeedSourceChoice
 }
 
 fn advanced_back_matrix(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
@@ -96,24 +95,12 @@ fn stego_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
 
 pub(super) fn sd_empty_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     if !begin_restore(ctx)
-        || ctx.source_touch(2) != Some(true)
-        || ctx.base.ad.navigation.app.state != AppState::SdWalletBackupFileList
-    {
-        return false;
-    }
-    let zone = ctx.list[0];
-    if ctx.sd_touch(zone.x + zone.w / 2, zone.y + zone.h / 2, false) != Some(false)
-        || ctx.base.ad.navigation.app.state != AppState::SdWalletBackupFileList
-    {
-        return false;
-    }
-    if ctx.sd_touch(20, 20, true) != Some(true)
-        || ctx.base.ad.navigation.app.state != AppState::StorageSeedSourceChoice
+        || !sd_back(ctx)
         || ctx.source_back() != Some(true)
         || ctx.base.ad.navigation.app.state != AppState::StorageModeChoice
     {
         return false;
     }
-    log!("KASKOLD_WORKFLOW_TESTS: RESTORE SD EMPTY-LIST/BACK OWNER OK");
+    log!("KASKOLD_WORKFLOW_TESTS: RESTORE SD SCAN/BACK OWNER OK");
     true
 }

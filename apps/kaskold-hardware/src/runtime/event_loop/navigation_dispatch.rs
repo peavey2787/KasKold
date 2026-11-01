@@ -38,7 +38,6 @@ pub(crate) fn handle_pure(
 
 pub(crate) fn handle_narrow_hardware(
     ad: &mut AppData,
-    persistent_wallet: &mut crate::services::persistent_wallet::PersistentWallet<'_>,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
@@ -49,7 +48,7 @@ pub(crate) fn handle_narrow_hardware(
         ad.navigation.app.state,
         crate::runtime::input::AppState::StorageUnlockPin | crate::runtime::input::AppState::StorageUnlockPassword
     ) {
-        return crate::runtime::interactions::persistence::handle(input, ad, persistent_wallet, boot_display, delay);
+        return crate::runtime::interactions::persistence::handle_unlock_touch(input, ad, boot_display);
     }
     if matches!(ad.navigation.app.state, crate::runtime::input::AppState::SeedList) {
         return crate::runtime::interactions::seed::handle_inventory_touch(ad, boot_display, delay, liveness, input);

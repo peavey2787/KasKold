@@ -5,7 +5,7 @@ use embedded_graphics::{
     pixelcolor::{raw::RawU16, Rgb565, RgbColor},
     Pixel,
 };
-use esp_hal::board::lcd::{snapshot, HEIGHT, WIDTH};
+use esp_hal::board::lcd::{screens_held_for_reading, snapshot, HEIGHT, WIDTH};
 
 use crate::ui::display as text;
 
@@ -90,6 +90,14 @@ pub(crate) struct Screen {
 impl Screen {
     pub(crate) fn capture() -> Self {
         Self { pixels: snapshot() }
+    }
+
+    /// The most recent screens the firmware held long enough for a person to read.
+    pub(crate) fn held_for_reading() -> Vec<Self> {
+        screens_held_for_reading()
+            .into_iter()
+            .map(|pixels| Self { pixels })
+            .collect()
     }
 
     /// The centre of `label` when a person could read it, in any firmware font.

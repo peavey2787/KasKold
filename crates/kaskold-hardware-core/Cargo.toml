@@ -16,6 +16,9 @@ m5stack = []
 provisioning-ui = []
 developer-ui = []
 workflow-tests = ["developer-ui", "provisioning-ui"]
+# The virtual CoreS3 runs the retail build under a public key of its own, so the
+# release private key is never needed to test it. Refused for the real chip.
+simulated-release-identity = []
 
 [dependencies]
 shared-signer = { version = "=2.0.0", path = "../shared-signer" }

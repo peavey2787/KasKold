@@ -20,6 +20,8 @@ macro_rules! peripherals {
     ($($name:ident),* $(,)?; $($pin:ident = $number:literal),* $(,)?) => {
         singletons!($($name,)*);
 
+        // Upper-case fields mirror the esp-hal API the firmware is written against.
+        #[allow(non_snake_case)]
         pub struct Peripherals {
             $(pub $name: $name<'static>,)*
             $(pub $pin: crate::gpio::Pin,)*

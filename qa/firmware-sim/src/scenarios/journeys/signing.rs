@@ -1,6 +1,6 @@
 //! Signing: a transaction arrives by camera, a person reviews it, the answer leaves as a QR.
-use super::known::{self, ABOUT_WORDS, PIN};
-use super::walk;
+use super::known::{self, PIN};
+use super::walk::{self, restore_the_known_wallet as restore_the_wallet};
 use crate::harness::{app_state, hold_up_qr, lower_qr, read_qr_on_screen, Device};
 use crate::runtime::input::AppState;
 use kaspa_portal::crypto::schnorr::{schnorr_verify, SchnorrSignature};
@@ -16,12 +16,8 @@ journey!(a_scanned_transaction_is_signed_and_leaves_as_a_verifiable_qr: restore_
 journey!(cancelling_a_scanned_transaction_signs_nothing: restore_the_wallet, cancel_by_camera);
 journey!(a_corrupted_transaction_never_reaches_review: restore_the_wallet, refuse_corrupted_transaction);
 journey!(a_transaction_spending_other_coins_is_refused: restore_the_wallet, refuse_other_peoples_coins);
-
-fn restore_the_wallet() {
-    let device = Device::boot();
-    walk::restore_words(&device, ABOUT_WORDS, "No Passphrase");
-    walk::save_with_pin(&device, PIN);
-}
+journey!(change_paying_a_stranger_never_reaches_review: restore_the_wallet, refuse_false_change);
+journey!(every_output_can_be_inspected_before_signing: restore_the_wallet, inspect_every_output);
 
 fn scan_the_known_transaction(device: &Device) {
     walk::unlock_with_pin(device, PIN);
@@ -47,7 +43,7 @@ fn sign_by_camera() {
     expect_valid_signature(&signed, 1, known::about_key(true, 0));
 }
 
-fn read_every_frame(device: &Device) -> Vec<u8> {
+pub(super) fn read_every_frame(device: &Device) -> Vec<u8> {
     let first = device.wait_for_qr();
     let total = usize::from(parse_frame(&first).expect("a QR frame").total_frames);
     let mut session = [0u8; SESSION_ID_LEN];
@@ -103,6 +99,31 @@ fn cancel_by_camera() {
         app_state().signing.transaction.active.inputs[0].sig_count,
         0
     );
+}
+
+fn refuse_false_change() {
+    let device = Device::boot();
+    walk::unlock_with_pin(&device, PIN);
+    device.tap("Scan QR");
+    hold_up_qr(&known::transaction_with_false_change());
+    device.wait_for_text("TX-OWN-01");
+    lower_qr();
+    assert_eq!(app_state().qr.outgoing.length, 0);
+    device.expect_absent("CONFIRM SEND");
+}
+
+fn inspect_every_output() {
+    let device = Device::boot();
+    scan_the_known_transaction(&device);
+    device.tap("INSPECT");
+    device.tap("Next");
+    device.wait_for_text("DESTINATION 1");
+    device.expect_text("1.50000000 KAS");
+    walk::expect_review_address(&device, known::STRANGER_ADDRESS);
+    device.tap("Next");
+    device.wait_for_text("CHANGE 2");
+    device.expect_text("0.49000000 KAS");
+    walk::expect_review_address(&device, known::CHANGE_1);
 }
 
 fn refuse_corrupted_transaction() {

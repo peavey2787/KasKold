@@ -127,6 +127,8 @@ macro_rules! route_touch {
                         &mut $persistent_wallet,
                         &mut $boot_display,
                         &mut $delay,
+                        &mut $i2c,
+                        $sd_card_type.is_some(),
                     )
                 }
                 #[cfg(feature = "workflow-tests")]

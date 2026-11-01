@@ -75,6 +75,16 @@ fn dispatch_import_scan(
     scan_rule_plan(plan.rule_index(), ad, boot_display, delay, i2c, card_present);
 }
 
+pub(crate) fn scan_wallet_backup_files(
+    ad: &mut AppData,
+    boot_display: &mut display::BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
+    card_present: bool,
+) {
+    scan_by_rule(ad, boot_display, delay, i2c, card_present, WALLET_BACKUP_RULE);
+}
+
 pub(crate) fn scan_multisig_descriptor_files(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,

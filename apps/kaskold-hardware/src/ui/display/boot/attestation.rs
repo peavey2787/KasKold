@@ -33,7 +33,7 @@ fn draw_trust_state<D: DrawTarget<Color = Rgb565>>(display: &mut D, hardware_sec
     } else {
         ("SOFTWARE", "VERIFIED", "Secure Boot v2: READY")
     };
-    for (text, y) in [(top, 10), (bottom, 32)] {
+    for (text, y) in [(top, 24), (bottom, 46)] {
         draw_oswald_header(display, text, 112, y, KASPA_TEAL);
     }
     draw_lato_hint(display, secure_boot, 112, 61, KASPA_TEAL);

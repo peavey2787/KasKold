@@ -27,16 +27,20 @@ use recovery::handle_recovery_acknowledgement;
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) use recovery::workflow_handle_recovery_acknowledgement;
 
+const RESTORE_FROM_CARD_ROW: usize = 2;
+
 pub(super) fn handle(
     input: TouchInput,
     ad: &mut AppData,
     persistence: &mut PersistentWallet<'_>,
     display: &mut BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
+    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
+    card_present: bool,
 ) -> Option<bool> {
     match ad.navigation.app.state {
         AppState::StorageModeChoice => handle_mode_choice(input, ad, persistence, display, delay),
-        AppState::StorageSeedSourceChoice => handle_seed_source_choice(input, ad),
+        AppState::StorageSeedSourceChoice => handle_source_touch(input, ad, display, delay, i2c, card_present),
         AppState::AdvancedRestoreMenu => handle_advanced_restore(input, ad),
         AppState::RestoreWord12Detected => handle_restore_12_detected(input, ad),
         AppState::StorageRecoveryAcknowledgement => handle_recovery_acknowledgement(input, ad, display, delay),
@@ -116,6 +120,18 @@ pub(crate) fn workflow_handle_seed_source_choice(input: TouchInput, ad: &mut App
 }
 
 #[cfg(feature = "workflow-test-auto")]
+pub(crate) fn workflow_handle_source_touch(
+    input: TouchInput,
+    ad: &mut AppData,
+    display: &mut BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
+    card_present: bool,
+) -> Option<bool> {
+    handle_source_touch(input, ad, display, delay, i2c, card_present)
+}
+
+#[cfg(feature = "workflow-test-auto")]
 pub(crate) fn workflow_handle_advanced_restore(input: TouchInput, ad: &mut AppData) -> Option<bool> {
     handle_advanced_restore(input, ad)
 }
@@ -140,6 +156,37 @@ fn menu_row(y: u16) -> Option<usize> {
     RESTORE_ROW_Y.iter().position(|range| range.contains(&y))
 }
 
+/// A card restore reads the card first, so the list only opens on backups that exist.
+fn handle_source_touch(
+    input: TouchInput,
+    ad: &mut AppData,
+    display: &mut BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
+    card_present: bool,
+) -> Option<bool> {
+    let on_card_row = (44..=276).contains(&input.x) && menu_row(input.y) == Some(RESTORE_FROM_CARD_ROW);
+    if input.is_back || !on_card_row {
+        return handle_seed_source_choice(input, ad);
+    }
+    begin_recovery_from_source(ad);
+    crate::runtime::interactions::sd::imports::import_menu::scan_wallet_backup_files(
+        ad,
+        display,
+        delay,
+        i2c,
+        card_present,
+    );
+    Some(true)
+}
+
+fn begin_recovery_from_source(ad: &mut AppData) {
+    reset_pending_recovery(ad);
+    if ad.storage.persistence.device_storage_intent.is_seed_onboarding() {
+        ad.storage.persistence.onboarding_imported_mnemonic = true;
+    }
+}
+
 fn handle_seed_source_choice(input: TouchInput, ad: &mut AppData) -> Option<bool> {
     if input.is_back {
         if ad.wallet.seeds.pending_add_wallet_is_restore() {
@@ -156,19 +203,13 @@ fn handle_seed_source_choice(input: TouchInput, ad: &mut AppData) -> Option<bool
         return None;
     }
     let item = menu_row(input.y)?;
-    reset_pending_recovery(ad);
-    if ad.storage.persistence.device_storage_intent.is_seed_onboarding() {
-        ad.storage.persistence.onboarding_imported_mnemonic = true;
-    }
+    begin_recovery_from_source(ad);
     match item {
         0 => {
             let _ = crate::runtime::effects::route(ad, crate::runtime::navigation::route!(RestoreWord { word_idx: 0 }));
         }
         1 => {
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ScanQR));
-        }
-        2 => {
-            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SdWalletBackupFileList));
         }
         3 => {
             ad.navigation.production.advanced_restore_menu.reset();

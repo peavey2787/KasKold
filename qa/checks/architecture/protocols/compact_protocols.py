@@ -455,9 +455,11 @@ def check_kspt(root: Path) -> list[str]:
     broadcast = facade.split("pub async fn broadcast(", 1)[-1].split("\n    }\n", 1)[0]
     # Signed KSPT is authorized once by the canonical verified pipeline; only
     # that typed result becomes the consensus transaction.
+    submit_verified = facade.split("async fn submit_verified(", 1)[-1].split("\n    }\n", 1)[0]
     if (
         "kaskold_protocol::compat::verify_complete_kspt(&bytes)" not in broadcast
-        or ".to_consensus()" not in broadcast
+        or "self.submit_verified(&transaction" not in broadcast
+        or ".to_consensus()" not in submit_verified
     ):
         errors.append("signed compact KSPT broadcast must delegate to the canonical verified pipeline")
     for duplicate in ('b"KSPT"', "COMPACT_KSPT_V4", "GENERATION_CURRENT: u8", "NETWORK_MARKER"):

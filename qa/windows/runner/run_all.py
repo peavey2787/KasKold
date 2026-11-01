@@ -629,6 +629,7 @@ def run_step(step_id: str, ns: argparse.Namespace) -> None:
     elif step_id=="integration.signer-firmware-builds":
         ensure_esp_rust_toolchain(ns.dry_run)
         run([py,"qa/checks/firmware/check_firmware_builds.py"],dry=ns.dry_run)
+    elif step_id=="integration.firmware-simulator": run([py,"qa/checks/firmware/run_firmware_simulator.py"],dry=ns.dry_run)
     elif step_id=="integration.signer-firmware-lints":
         ensure_esp_rust_toolchain(ns.dry_run)
         run([py,"qa/checks/firmware/check_firmware_lints.py"],dry=ns.dry_run)

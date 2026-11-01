@@ -74,7 +74,10 @@ fn finalize_back_route(ad: &mut AppData) -> crate::runtime::navigation::UiRoute 
 }
 
 fn enter_secure_storage_credential_setup(ad: &mut AppData) {
-    ad.storage.persistence.device_storage_intent = DeviceStorageIntent::CreateInternal;
+    // A wallet added beside others is not onboarding: Home must still mean the main menu.
+    if !ad.wallet.seeds.has_pending_add_wallet() {
+        ad.storage.persistence.device_storage_intent = DeviceStorageIntent::CreateInternal;
+    }
     ad.wallet.seeds.pp_input.reset();
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageProtectionChoice));
 }

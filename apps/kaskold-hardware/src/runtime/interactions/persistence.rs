@@ -122,6 +122,18 @@ pub(crate) fn workflow_handle_seed_source_choice(input: TouchInput, ad: &mut App
 }
 
 #[cfg(feature = "workflow-test-auto")]
+pub(crate) fn workflow_handle_source_touch(
+    input: TouchInput,
+    ad: &mut AppData,
+    display: &mut BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
+    card_present: bool,
+) -> Option<bool> {
+    onboarding::workflow_handle_source_touch(input, ad, display, delay, i2c, card_present)
+}
+
+#[cfg(feature = "workflow-test-auto")]
 pub(crate) fn workflow_handle_advanced_restore(input: TouchInput, ad: &mut AppData) -> Option<bool> {
     onboarding::workflow_handle_advanced_restore(input, ad)
 }
@@ -207,9 +219,16 @@ pub(crate) fn handle(
     persistence: &mut PersistentWallet<'_>,
     display: &mut BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
+    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
+    card_present: bool,
 ) -> Option<bool> {
-    if let Some(result) = onboarding::handle(input, ad, persistence, display, delay) {
+    if let Some(result) = onboarding::handle(input, ad, persistence, display, delay, i2c, card_present) {
         return Some(result);
     }
+    credential::handle(input, ad, display)
+}
+
+/// The unlock screens need only the credential reducer and stay reachable without storage I/O.
+pub(crate) fn handle_unlock_touch(input: TouchInput, ad: &mut AppData, display: &mut BootDisplay<'_>) -> Option<bool> {
     credential::handle(input, ad, display)
 }

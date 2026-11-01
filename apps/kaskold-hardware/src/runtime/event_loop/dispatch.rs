@@ -131,7 +131,7 @@ macro_rules! handle_action {
                 break 'tap_dispatch;
             }
             if let Some(redraw) = $crate::runtime::event_loop::navigation_dispatch::handle_narrow_hardware(
-                $ad, &mut $persistent_wallet, &mut $boot_display, &mut $delay, &mut $watchdog_feed, &$list_zones, input,
+                $ad, &mut $boot_display, &mut $delay, &mut $watchdog_feed, &$list_zones, input,
             ) {
                 $ad.runtime.needs_redraw = redraw;
                 let _ = $crate::runtime::navigation::reconcile($ad);

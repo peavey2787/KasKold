@@ -196,7 +196,17 @@ class ToolchainPolicyTests(unittest.TestCase):
         self.assertEqual([command.count("--package") for command in standalone], [1] * len(excluded))
         self.assertEqual(
             [command[4:] for command in path_only],
-            [["--check", "--edition", "2021", "external/serde-yaml-ng-adapter/src/lib.rs"]],
+            [
+                ["--check", "--edition", "2021", crate_root]
+                for crate_root in (
+                    "external/serde-yaml-ng-adapter/src/lib.rs",
+                    "qa/firmware-sim/shims/esp-alloc/src/lib.rs",
+                    "qa/firmware-sim/shims/esp-bootloader-esp-idf/src/lib.rs",
+                    "qa/firmware-sim/shims/esp-hal/src/lib.rs",
+                    "qa/firmware-sim/shims/esp-hal-macros/src/lib.rs",
+                    "qa/firmware-sim/shims/esp-println/src/lib.rs",
+                )
+            ],
         )
 
     def test_platform_ci_supports_manual_rerun(self) -> None:
