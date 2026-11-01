@@ -312,7 +312,11 @@ fn accept_qr_frame_reviews_without_signing_until_approve() {
     let frames = owned_qr_frames();
     let mut last = None;
     for frame in &frames {
-        last = Some(runtime.accept_qr_frame(&frame.payload).expect("QR frame accepted"));
+        last = Some(
+            runtime
+                .accept_qr_frame(&frame.payload)
+                .expect("QR frame accepted"),
+        );
     }
     assert!(matches!(last, Some(ScanResult::Ready(_))));
     assert!(matches!(

@@ -54,10 +54,9 @@ impl NativeVault {
         input: &serde_json::Value,
     ) -> Result<String, String> {
         match operation {
-            "creation_flow" | "receive_address" | "kip22_address" | "add_create_12" | "add_create_24"
-            | "add_restore" | "wallets" | "switch_wallet" | "set_wallet_name" | "delete_wallet" => {
-                self.dispatch_inventory_text(operation, input)
-            }
+            "creation_flow" | "receive_address" | "kip22_address" | "add_create_12"
+            | "add_create_24" | "add_restore" | "wallets" | "switch_wallet" | "set_wallet_name"
+            | "delete_wallet" => self.dispatch_inventory_text(operation, input),
             "import_raw_key" | "import_xprv" | "multisig_kpub" | "normalize_kpub"
             | "validate_address" | "create_multisig" | "import_multisig" => {
                 self.dispatch_key_text(operation, input)
