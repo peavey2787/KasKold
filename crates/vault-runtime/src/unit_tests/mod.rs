@@ -1211,3 +1211,26 @@ fn wallet_changes_end_a_pending_anti_klepto_reveal() {
     runtime.switch_wallet(0).unwrap();
     assert!(!runtime.anti_klepto_awaiting_reveal());
 }
+
+#[test]
+fn sealed_wallet_rejects_retired_container_formats_and_truncation() {
+    let key = [0x3cu8; PLATFORM_WRAPPING_KEY_LEN];
+    let mut runtime = VaultRuntime::new();
+    runtime.restore_wallet(MNEMONIC, "").unwrap();
+    let sealed = runtime.seal_wallet(&key).unwrap();
+
+    for retired_magic in [b"KHV1", b"KHV2"] {
+        let mut retired = sealed.clone();
+        retired[..4].copy_from_slice(retired_magic);
+        assert!(matches!(
+            VaultRuntime::new().unlock_sealed_wallet(&retired, &key),
+            Err(VaultRuntimeError::Custody(_))
+        ));
+    }
+
+    let truncated = &sealed[..sealed.len() - 1];
+    assert!(matches!(
+        VaultRuntime::new().unlock_sealed_wallet(truncated, &key),
+        Err(VaultRuntimeError::Custody(_))
+    ));
+}
