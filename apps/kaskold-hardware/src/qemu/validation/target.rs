@@ -71,9 +71,6 @@ fn test_transaction_reducer() -> bool {
     fn effect_name(effect: TransactionEffect) -> &'static str {
         match effect {
             TransactionEffect::None => "None",
-            TransactionEffect::GuideBack => "GuideBack",
-            TransactionEffect::DeriveAccount => "DeriveAccount",
-            TransactionEffect::BeginScan => "BeginScan",
             TransactionEffect::ScanBack(_) => "ScanBack",
             TransactionEffect::ReviewBack => "ReviewBack",
             TransactionEffect::ReviewAdvance => "ReviewAdvance",
@@ -99,11 +96,6 @@ fn test_transaction_reducer() -> bool {
         }
     }
 
-    let guide = expect_case(
-        "guide-derive",
-        reduce_touch(TransactionScreen::Guide { seed_loaded: true }, 50, 200, false).effect,
-        TransactionEffect::DeriveAccount,
-    );
     let confirm = expect_case(
         "confirm-left",
         reduce_touch(TransactionScreen::Confirm, 60, 208, false).effect,
@@ -130,7 +122,7 @@ fn test_transaction_reducer() -> bool {
         TransactionEffect::ReviewBack,
     );
 
-    guide && confirm && cancel && inspect && confirm_back && review_back
+    confirm && cancel && inspect && confirm_back && review_back
 }
 
 fn test_fat32_lfn() -> bool {

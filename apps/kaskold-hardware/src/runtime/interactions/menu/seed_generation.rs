@@ -198,10 +198,7 @@ fn start_word_count_action(
             cam_dma_buf_opt,
             word_count,
         ),
-        1 => start_dice_seed(ad, word_count),
-        2 => start_word_import(ad, word_count),
         4 => start_bip85(ad, word_count),
-        5 => start_touch_seed(ad, word_count),
         _ => {}
     }
 }
@@ -355,26 +352,9 @@ fn handle_entropy_recovery(
     }
 }
 
-fn start_dice_seed(ad: &mut AppData, word_count: u8) {
-    ad.wallet.seeds.dice_collector =
-        if word_count == 24 { mnemonic::DiceCollector::new_24_word() } else { mnemonic::DiceCollector::new_12_word() };
-    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(DiceRoll));
-}
-
-fn start_word_import(ad: &mut AppData, word_count: u8) {
-    ad.wallet.seeds.word_input.reset();
-    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ImportWord { word_idx: 0, word_count }));
-}
-
 fn start_bip85(ad: &mut AppData, word_count: u8) {
     ad.wallet.seeds.bip85_index = 0;
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(Bip85Index { word_count }));
-}
-
-fn start_touch_seed(ad: &mut AppData, word_count: u8) {
-    ad.wallet.seeds.word_count = word_count;
-    ad.wallet.seeds.touch_collector.reset();
-    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(TouchEntropy));
 }
 
 fn handle_touch_entropy(ad: &mut AppData, is_back: bool) -> bool {
@@ -382,10 +362,6 @@ fn handle_touch_entropy(ad: &mut AppData, is_back: bool) -> bool {
         return false;
     }
     ad.wallet.seeds.touch_collector.reset();
-    if ad.wallet.seeds.pending_seed_entropy_valid {
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageSeedTouchChoice));
-    } else {
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedToolsMenu));
-    }
+    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageSeedTouchChoice));
     true
 }

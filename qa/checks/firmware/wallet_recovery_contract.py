@@ -247,11 +247,10 @@ def check_wallet_recovery_contract(root: Path, errors: list[str]) -> None:
     require(
         '"Backup to SD"' in production_menu_graph
         and '"Encrypt to SD"' in production_menu_graph
+        and '"Encrypted SD Card"' in production_menu_graph
         and '"Seed / XPrv Backup"' in production_menu_graph
-        and '"Touch Seed"' in production_menu_graph
-        and '"Steganography"' in production_menu_graph
-        and '"Stego Import"' in production_menu_graph,
-        "wallet recovery: current device-bound backup and Touch Seed menu parity is missing",
+        and '"Steganographic"' in production_menu_graph,
+        "wallet recovery: current device-bound backup menu parity is missing",
     )
 
     wallet_session = read("apps/kaskold-hardware/src/services/wallet_session.rs")

@@ -60,10 +60,6 @@ fn universe() -> Vec<AppState> {
     }
     for word_count in [12, 24] {
         states.push(SeedEntropyUnavailable { word_count });
-        states.extend((0..word_count).map(|word_idx| ImportWord {
-            word_idx,
-            word_count,
-        }));
     }
     for word_idx in 0..=MAX_WORDS {
         states.push(RestoreWord { word_idx });
@@ -124,13 +120,6 @@ fn seed_screens_are_onboarding_owned_only_while_a_seed_is_set_up() {
         (TouchEntropy, OnboardingRoute::Generation),
         (DiceRoll, OnboardingRoute::Dice),
         (RestoreWord { word_idx: 3 }, OnboardingRoute::SeedEntry),
-        (
-            ImportWord {
-                word_idx: 1,
-                word_count: 12,
-            },
-            OnboardingRoute::SeedEntry,
-        ),
         (WalletNameEntry { purpose: 3 }, OnboardingRoute::SeedEntry),
         (SeedBackup { word_idx: 5 }, OnboardingRoute::RecoveryWords),
         (ScanQR, OnboardingRoute::Scan),
@@ -229,13 +218,6 @@ fn word_screens_step_one_word_at_a_time() {
         let detected = transition_allowed(RestoreWord { word_idx }, RestoreWord12Detected);
         assert_eq!(detected, word_idx == 11, "word {word_idx}");
     }
-    let import = |word_idx, word_count| ImportWord {
-        word_idx,
-        word_count,
-    };
-    assert!(transition_allowed(import(3, 12), import(4, 12)));
-    assert!(!transition_allowed(import(3, 12), import(2, 12)));
-    assert!(!transition_allowed(import(3, 12), import(4, 24)));
     assert!(transition_allowed(
         SeedBackup { word_idx: 4 },
         SeedBackup { word_idx: 3 }
@@ -369,7 +351,7 @@ fn only_scanner_facing_screens_present_or_read_qr_codes() {
         compact: false
     }
     .shows_scannable_qr());
-    assert!(!QrExportMenu.shows_scannable_qr());
+    assert!(!XprvExportMenu.shows_scannable_qr());
     for state in [ScanQR, DecryptSecretScan, SignMsgScan] {
         assert!(is_scan_state(state), "{state:?}");
     }

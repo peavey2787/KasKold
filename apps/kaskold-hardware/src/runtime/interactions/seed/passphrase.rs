@@ -394,7 +394,7 @@ fn recover_seed_setup_failure(ad: &mut AppData) {
         return;
     }
     if !crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SeedTool) {
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedToolsMenu));
+        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedsMenu));
     }
 }
 

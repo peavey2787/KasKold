@@ -22,12 +22,8 @@ pub(super) fn handle(
     }
     match ad.navigation.app.state {
         AppState::MainMenu => Some(handle_main_menu(ad, grid_zones, x, y)),
-        AppState::SeedToolsMenu => super::seed_tools::handle_pure(ad, list_zones, page_up, page_down, x, y, is_back),
-        AppState::ImportExportChoice | AppState::ImportMenu => {
-            super::import_export::handle_pure(ad, list_zones, x, y, is_back)
-        }
-        AppState::SingleSigMenu | AppState::MultisigMenu | AppState::MultisigDescriptorsMenu => {
-            super::signing::handle_pure(ad, list_zones, page_up, page_down, x, y, is_back)
+        AppState::MultisigMenu | AppState::MultisigDescriptorsMenu => {
+            super::signing::handle_pure(ad, list_zones, x, y, is_back)
         }
         AppState::ShowQR | AppState::Rejected => super::qr::handle(ad, x, y, is_back),
         _ => None,

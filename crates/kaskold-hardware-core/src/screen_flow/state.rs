@@ -43,11 +43,6 @@ pub enum AppState {
     SeedBackup {
         word_idx: u8,
     },
-    SeedToolsMenu,
-    /// Import/Export choice (2-button screen)
-    ImportExportChoice,
-    ImportMenu,
-    SingleSigMenu,
     MultisigMenu,
     /// Production Settings and intent-based advanced menus.
     SettingsMenu,
@@ -138,8 +133,6 @@ pub enum AppState {
     },
     /// Confirm page with OK/Cancel selection
     ConfirmTx,
-    /// Sign TX guide — step-by-step instructions before scanning KSPT
-    SignTxGuide,
     /// Guided anti-klepto handoff after the signer commitment is scanned by Companion.
     AntiKleptoRevealGuide,
     SignMsgChoice,
@@ -184,26 +177,14 @@ pub enum AppState {
     /// Touchscreen movement/timing entropy collection
     TouchEntropy,
     ShowAddressQR,
-    ImportWord {
-        word_idx: u8,
-        word_count: u8,
-    },
     ChooseWordCount {
         action: u8,
     },
     PassphraseChoice, // Explicit optional BIP39 passphrase decision.
     PassphraseEntry,
     ExportSeedQR,
-    /// QR Export sub-menu (Compact, Standard, Plain Words)
-    QrExportMenu,
     /// xprv export submenu: current-format QR export only
     XprvExportMenu,
-    /// Recovery-word submenu: Show Words / QR Export
-    SeedBackupMenu,
-    /// Watch-Only submenu: kpub as QR / kpub to SD
-    WatchOnlyMenu,
-    /// Signing Keys submenu: xprv Account / Private Key
-    SigningKeysMenu,
     /// Export plain BIP39 words as text QR code
     ExportPlainWordsQR,
     /// Export the account-level key as one compact binary QR.
@@ -231,7 +212,6 @@ pub enum AppState {
     /// Export private key as hex (show on screen / QR)
     ExportPrivKey,
     ExportPrivKeyIndex,
-    ExportChoice,
     ExportXprv,
     ExportCompactSeedQR,
     SeedQrGrid {

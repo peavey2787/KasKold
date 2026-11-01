@@ -61,6 +61,7 @@ pub struct QrScanState {
     pub address: [u8; 80],
     pub address_length: usize,
     pub address_valid: bool,
+    pub address_hidden_key: bool,
     camera_fault: CameraScanFault,
     camera_reset_requested: bool,
 }
@@ -124,6 +125,7 @@ impl QrState {
         core::ptr::write_bytes(core::ptr::addr_of_mut!((*scan).address).cast::<u8>(), 0, 80);
         core::ptr::addr_of_mut!((*scan).address_length).write(0);
         core::ptr::addr_of_mut!((*scan).address_valid).write(false);
+        core::ptr::addr_of_mut!((*scan).address_hidden_key).write(false);
         core::ptr::addr_of_mut!((*scan).camera_fault).write(CameraScanFault::None);
         core::ptr::addr_of_mut!((*scan).camera_reset_requested).write(false);
     }

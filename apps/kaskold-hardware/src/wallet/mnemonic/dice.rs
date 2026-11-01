@@ -39,11 +39,6 @@ impl DiceCollector {
         Self { rolls: [0; 200], count: 0, target: 99 }
     }
 
-    /// Create a dice collector targeting 24-word mnemonic (256 bits).
-    pub fn new_24_word() -> Self {
-        Self { rolls: [0; 200], count: 0, target: 198 }
-    }
-
     /// Reconfigure this collector for optional additive dice entropy.
     /// Returns false rather than silently clamping an invalid target.
     pub fn configure_target(&mut self, target: usize) -> bool {
@@ -78,40 +73,6 @@ impl DiceCollector {
         self.count >= self.target
     }
 
-    /// Extract entropy by hashing all rolls with SHA256.
-    /// Returns 16 bytes (12-word) or 32 bytes (24-word).
-    pub fn extract_entropy_16(&self) -> [u8; 16] {
-        use sha2::{Digest, Sha256};
-        let mut hasher = Sha256::new();
-        hasher.update(&self.rolls[..self.count]);
-        let hash = hasher.finalize();
-        let mut entropy = [0u8; 16];
-        entropy.copy_from_slice(&hash[..16]);
-        entropy
-    }
-
-    /// Extract collected dice entropy as a 32-byte array.
-    pub fn extract_entropy_32(&self) -> [u8; 32] {
-        use sha2::{Digest, Sha256};
-
-        // For 32 bytes, use SHA256 of rolls + SHA256 of (rolls reversed)
-        // and concatenate the first 16 bytes of each.
-        // Alternative: use two rounds with different prefixes.
-        let mut hasher1 = Sha256::new();
-        hasher1.update(b"KasSigner-dice-entropy-1:");
-        hasher1.update(&self.rolls[..self.count]);
-        let hash1 = hasher1.finalize();
-
-        let mut hasher2 = Sha256::new();
-        hasher2.update(b"KasSigner-dice-entropy-2:");
-        hasher2.update(&self.rolls[..self.count]);
-        let hash2 = hasher2.finalize();
-
-        let mut entropy = [0u8; 32];
-        entropy[..16].copy_from_slice(&hash1[..16]);
-        entropy[16..].copy_from_slice(&hash2[..16]);
-        entropy
-    }
     /// Zeroize every collected roll and reset the collector.
     pub fn zeroize(&mut self) {
         shared_signer::bytes::zeroize_bytes(&mut self.rolls);

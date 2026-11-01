@@ -15,9 +15,11 @@ fn accepts_canonical_decimal_string() {
 }
 
 #[test]
-fn rejects_unsafe_legacy_json_number() {
-    let error = serde_json::from_str::<Wrapper>(r#"{"value":9007199254740992}"#).unwrap_err();
-    assert!(error.to_string().contains("MAX_SAFE_INTEGER"));
+fn rejects_a_json_number_at_any_size() {
+    for encoded in [r#"{"value":1}"#, r#"{"value":9007199254740992}"#] {
+        let error = serde_json::from_str::<Wrapper>(encoded).unwrap_err();
+        assert!(error.to_string().contains("expected a string"), "{error}");
+    }
 }
 
 #[test]
@@ -43,12 +45,6 @@ struct SerializeWrapper {
 fn serializes_consensus_u64_as_decimal_string() {
     let encoded = serde_json::to_string(&SerializeWrapper { value: u64::MAX }).unwrap();
     assert_eq!(encoded, r#"{"value":"18446744073709551615"}"#);
-}
-
-#[test]
-fn accepts_safe_legacy_integer_at_javascript_boundary() {
-    let parsed: Wrapper = serde_json::from_str(r#"{"value":9007199254740991}"#).unwrap();
-    assert_eq!(parsed.value, 9_007_199_254_740_991);
 }
 
 #[test]

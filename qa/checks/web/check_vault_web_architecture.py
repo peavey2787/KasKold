@@ -58,7 +58,6 @@ def main() -> int:
         APP / "web/js/vault_transaction_workflows.js",
         APP / "web/js/vault_covenant_workflows.js",
         APP / "web/js/vault_private_swap_workflows.js",
-        APP / "web/js/vault_legacy_workflows.js",
         ROOT / "tools/build/web/build_vault_runtime.py",
         ROOT / "tools/build/web/wasm_runtime.py",
     )

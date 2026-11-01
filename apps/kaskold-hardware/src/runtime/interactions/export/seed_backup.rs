@@ -76,13 +76,6 @@ pub(crate) fn handle(ad: &mut AppData, is_back: bool) -> Option<bool> {
                                 crate::runtime::navigation::route!(StorageRecoveryAcknowledgement),
                             );
                         }
-                        _ if crate::runtime::navigation::return_target(
-                            ad,
-                            crate::runtime::navigation::ReturnScope::SeedBackup,
-                        ) == Some(crate::runtime::input::AppState::SeedToolsMenu) =>
-                        {
-                            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedList));
-                        }
                         _ => {
                             let _ = crate::runtime::effects::return_to(
                                 ad,

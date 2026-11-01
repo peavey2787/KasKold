@@ -3,10 +3,16 @@
 use super::{CameraScanFault, OutgoingQrPurpose, QrScanState, QrState};
 
 impl QrScanState {
-    pub fn clear(&mut self) {
+    /// Forget the address on the address screen, so the next visit derives its own.
+    pub fn clear_address(&mut self) {
         shared_signer::bytes::zeroize_bytes(&mut self.address);
         self.address_length = 0;
         self.address_valid = false;
+        self.address_hidden_key = false;
+    }
+
+    pub fn clear(&mut self) {
+        self.clear_address();
         self.camera_fault = CameraScanFault::None;
         self.camera_reset_requested = false;
     }

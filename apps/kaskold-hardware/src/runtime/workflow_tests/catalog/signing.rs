@@ -10,8 +10,6 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         terminal: Ordinary,
         states: &[
             MainMenu,
-            SingleSigMenu,
-            SignTxGuide,
             ScanQR,
             AntiKleptoRevealGuide,
             ConfirmTx,
@@ -31,7 +29,7 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         intent: DeviceStorageIntent::None,
         fixtures: F::CAMERA_QR,
         terminal: Ordinary,
-        states: &[SingleSigMenu, SignTxGuide, ScanQR, ConfirmTx, Rejected, MainMenu],
+        states: &[MainMenu, ScanQR, ConfirmTx, Rejected, MainMenu],
     },
     WorkflowSpec {
         id: "sign-message-type",
@@ -91,7 +89,7 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         fixtures: F::SEED.union(F::CAMERA_QR),
         terminal: Ordinary,
         states: &[
-            SingleSigMenu,
+            MainMenu,
             ScanQR,
             CovenantSignReview,
             CovenantSignOpaqueWarning,

@@ -4,23 +4,6 @@ use super::*;
 // ═══════════════════════════════════════════════════════════════════
 
 #[cfg(any(test, feature = "verbose-boot"))]
-/// Test: dice entropy collection for 12 words.
-pub fn test_dice_entropy_12() -> bool {
-    let mut dice = DiceCollector::new_12_word();
-    // Roll 99 dice (all 3s for test)
-    for _ in 0..99 {
-        dice.add_roll(3);
-    }
-    if !dice.is_complete() {
-        return false;
-    }
-
-    let entropy = dice.extract_entropy_16();
-    // Entropy should not be all zeros (SHA256 of "333...3" is not zero)
-    entropy.iter().any(|&b| b != 0)
-}
-
-#[cfg(any(test, feature = "verbose-boot"))]
 /// Test: word input prefix matching.
 pub fn test_word_input_matching() -> bool {
     let mut input = WordInput::new();
@@ -72,11 +55,8 @@ pub fn test_touch_entropy_collector() -> bool {
 /// Run all mnemonic-domain tests.
 pub fn run_mnemonic_tests() -> (u32, u32) {
     let mut passed = 0u32;
-    let total = 3u32;
+    let total = 2u32;
 
-    if test_dice_entropy_12() {
-        passed += 1;
-    }
     if test_word_input_matching() {
         passed += 1;
     }

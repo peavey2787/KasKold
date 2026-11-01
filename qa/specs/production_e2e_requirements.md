@@ -261,8 +261,8 @@ Coverage levels used by the generated manifest:
 - [ ] **E2E-032-05** — Export Key.
 - [ ] **E2E-032-06** — Back.
 
-## E2E-033 — Seed Tools
-- [ ] **E2E-033-01** — New Seed, Dice Seed, Touch Seed, Import Words, Address, BIP85 Child, Back.
+## E2E-033 — Hidden Key Address
+- [ ] **E2E-033-01** — Wallet Advanced Hidden Key Addr shows the KIP-22 P2SH address and the same address as a QR; Back returns to Advanced and Receive still shows the P2PK address.
 
 ## E2E-034 — BIP85 Child Wallet
 - [ ] **E2E-034-01** — Mnemonic-required/raw-key rejection.
@@ -286,12 +286,12 @@ This retired user-facing workflow remains reserved so the stable E2E section num
 - [ ] **E2E-038-02** — Display only after intended action, QR, close/back.
 - [ ] **E2E-038-03** — Invalid index/derivation failure.
 
-## E2E-039 — Single-Signature Menu
-- [ ] **E2E-039-01** — Sign TX, Sign Message, Covenant Sign, Commit Secret, Decrypt Secret, Back.
+## E2E-039 — Wallet Advanced Menu
+- [ ] **E2E-039-01** — BIP85 Child Wallet, Sign Message, Commit Secret, Decrypt Secret, Hidden Key Addr, kpub to SD, Back.
 - [ ] **E2E-039-02** — Seed-required actions fail closed without signing key.
 
 ## E2E-040 — Transaction Signing Entry
-- [ ] **E2E-040-01** — Guide/back/account export/scan.
+- [ ] **E2E-040-01** — Home Scan QR opens the camera; Back returns Home.
 - [ ] **E2E-040-02** — Compact KSPT and Standard PSKT accepted.
 - [ ] **E2E-040-03** — Invalid/unsupported network/version/oversized/truncated/malformed/overflow rejected.
 
@@ -409,12 +409,10 @@ This retired user-facing workflow remains reserved so the stable E2E section num
 - [ ] **E2E-053-02** — No seed/derivation failure/no match/one/multiple match.
 - [ ] **E2E-053-03** — Response QR/close/back.
 
-## E2E-054 — Export Menu
-- [ ] **E2E-054-01** — Export Menu Seed Backup route is reachable.
-- [ ] **E2E-054-02** — Export Menu Watch-Only route is reachable.
-- [ ] **E2E-054-03** — Export Menu Signing Keys route is reachable.
-- [ ] **E2E-054-04** — Export Menu Steganography route is reachable.
-- [ ] **E2E-054-05** — Export Menu Back returns to its documented parent.
+## E2E-054 — kpub to SD
+- [ ] **E2E-054-01** — Wallet Advanced kpub to SD refuses without a card and leaves the menu open.
+- [ ] **E2E-054-02** — A plain kpub file on the card derives the wallet's addresses.
+- [ ] **E2E-054-03** — Back steps from the encryption prompt to the filename, and from the filename to Advanced.
 ## E2E-055 — Watch-Only Export
 - [ ] **E2E-055-01** — kpub QR/SD/multisig QR, popup save/back.
 - [ ] **E2E-055-02** — Derivation/no-SD/write failures.

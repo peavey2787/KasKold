@@ -209,7 +209,6 @@ impl Device {
     }
 
     /// Asserts the firmware held `text` on screen long enough for a person to read it.
-    #[cfg(feature = "production")]
     pub(crate) fn expect_was_shown(&self, text: &str) {
         let held = Screen::held_for_reading();
         if !held.iter().any(|screen| screen.find(text).is_some()) {

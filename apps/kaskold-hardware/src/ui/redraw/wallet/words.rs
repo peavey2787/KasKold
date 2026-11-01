@@ -4,9 +4,6 @@ use crate::runtime::{data::AppData, input::AppState};
 pub(super) fn redraw(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     match ad.navigation.app.state {
         AppState::SeedBackup { word_idx } => draw_backup_word(ad, boot_display, word_idx),
-        AppState::ImportWord { word_idx, word_count } => {
-            boot_display.draw_import_word_screen(word_idx, word_count, &ad.wallet.seeds.word_input)
-        }
         _ => return false,
     }
     true

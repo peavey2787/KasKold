@@ -4,8 +4,9 @@
 
 //! Screen redraw — root/production navigation states.
 
-mod developer;
 mod production;
+#[cfg(feature = "workflow-tests")]
+mod workflow_tests;
 
 use super::{battery, display};
 use crate::runtime::input::AppState;
@@ -15,7 +16,11 @@ pub(super) fn redraw(
     boot_display: &mut display::BootDisplay<'_>,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
 ) -> bool {
-    if production::redraw(ad, boot_display) || developer::redraw(ad, boot_display) {
+    if production::redraw(ad, boot_display) {
+        return true;
+    }
+    #[cfg(feature = "workflow-tests")]
+    if workflow_tests::redraw(ad, boot_display) {
         return true;
     }
     match ad.navigation.app.state {

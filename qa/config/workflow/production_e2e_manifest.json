@@ -3,29 +3,29 @@
     "actions": {
       "backlog": 0,
       "catalog": 0,
-      "connected": 114,
+      "connected": 115,
       "hil": 2,
       "manual-hil": 0,
-      "qa": 98,
-      "total": 214
+      "qa": 80,
+      "total": 197
     },
     "menu_items": {
       "backlog": 0,
       "catalog": 0,
-      "connected": 45,
+      "connected": 44,
       "hil": 1,
       "manual-hil": 4,
-      "qa": 30,
-      "total": 80
+      "qa": 9,
+      "total": 58
     },
     "states": {
       "backlog": 0,
       "catalog": 0,
-      "connected": 134,
+      "connected": 133,
       "hil": 2,
       "manual-hil": 6,
-      "qa": 45,
-      "total": 187
+      "qa": 35,
+      "total": 176
     }
   },
   "definition_of_done_items": {
@@ -47,8 +47,8 @@
     "connected": 391,
     "hil": 42,
     "manual-hil": 32,
-    "qa": 38,
-    "total": 503
+    "qa": 36,
+    "total": 501
   },
   "policy": "the frozen production surface is a CI ratchet; stable item IDs are authoritative for release qualification",
   "release_qualification": {
@@ -1558,10 +1558,10 @@
     "E2E-033-01": {
       "highest_level": "connected",
       "implemented_scenarios": [
-        "connected-advanced-seed-tools"
+        "connected-receive-controls"
       ],
       "section": "E2E-033",
-      "text": "New Seed, Dice Seed, Touch Seed, Import Words, Address, BIP85 Child, Back."
+      "text": "Wallet Advanced Hidden Key Addr shows the KIP-22 P2SH address and the same address as a QR; Back returns to Advanced and Receive still shows the P2PK address."
     },
     "E2E-034-01": {
       "highest_level": "connected",
@@ -1661,7 +1661,7 @@
         "connected-sign-message-tools"
       ],
       "section": "E2E-039",
-      "text": "Sign TX, Sign Message, Covenant Sign, Commit Secret, Decrypt Secret, Back."
+      "text": "BIP85 Child Wallet, Sign Message, Commit Secret, Decrypt Secret, Hidden Key Addr, kpub to SD, Back."
     },
     "E2E-039-02": {
       "highest_level": "connected",
@@ -1680,7 +1680,7 @@
         "connected-transaction-signing"
       ],
       "section": "E2E-040",
-      "text": "Guide/back/account export/scan."
+      "text": "Home Scan QR opens the camera; Back returns Home."
     },
     "E2E-040-02": {
       "highest_level": "connected",
@@ -2477,42 +2477,26 @@
     "E2E-054-01": {
       "highest_level": "qa",
       "implemented_scenarios": [
-        "qa-export-menu-routing-matrix"
+        "qa-kpub-to-sd-journey"
       ],
       "section": "E2E-054",
-      "text": "Export Menu Seed Backup route is reachable."
+      "text": "Wallet Advanced kpub to SD refuses without a card and leaves the menu open."
     },
     "E2E-054-02": {
       "highest_level": "qa",
       "implemented_scenarios": [
-        "qa-export-menu-routing-matrix"
+        "qa-kpub-to-sd-journey"
       ],
       "section": "E2E-054",
-      "text": "Export Menu Watch-Only route is reachable."
+      "text": "A plain kpub file on the card derives the wallet's addresses."
     },
     "E2E-054-03": {
       "highest_level": "qa",
       "implemented_scenarios": [
-        "qa-export-menu-routing-matrix"
+        "qa-kpub-to-sd-journey"
       ],
       "section": "E2E-054",
-      "text": "Export Menu Signing Keys route is reachable."
-    },
-    "E2E-054-04": {
-      "highest_level": "qa",
-      "implemented_scenarios": [
-        "qa-export-menu-routing-matrix"
-      ],
-      "section": "E2E-054",
-      "text": "Export Menu Steganography route is reachable."
-    },
-    "E2E-054-05": {
-      "highest_level": "qa",
-      "implemented_scenarios": [
-        "qa-export-menu-routing-matrix"
-      ],
-      "section": "E2E-054",
-      "text": "Export Menu Back returns to its documented parent."
+      "text": "Back steps from the encryption prompt to the filename, and from the filename to Advanced."
     },
     "E2E-055-01": {
       "highest_level": "connected",
@@ -4423,7 +4407,7 @@
     },
     {
       "actions": [
-        "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/address.rs::open_kip22",
+        "apps/kaskold-hardware/src/runtime/interactions/menu/wallet_tools.rs::open_hidden_key_address",
         "apps/kaskold-hardware/src/runtime/interactions/export/address.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/export/address.rs::handle_address_view",
         "apps/kaskold-hardware/src/runtime/interactions/export/address.rs::step_address_index",
@@ -4453,12 +4437,12 @@
         "E2E-091-02",
         "E2E-091-03",
         "E2E-091-04",
-        "E2E-100-13"
+        "E2E-100-13",
+        "E2E-033-01"
       ],
       "level": "connected",
       "menu_items": [
         "Receive",
-        "Address",
         "Hidden Key Addr"
       ],
       "requirements": [
@@ -4466,7 +4450,8 @@
         "E2E-087",
         "E2E-089",
         "E2E-091",
-        "E2E-100"
+        "E2E-100",
+        "E2E-033"
       ],
       "serial_markers": [
         "RECEIVE QR OPEN/CLOSE OK",
@@ -4981,8 +4966,9 @@
         "apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation/additive.rs::handle_dice_choice",
         "apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation/additive.rs::handle_dice_count",
         "apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation/additive.rs::handle_touch_choice",
-        "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding/recovery.rs::handle_recovery_acknowledgement",
+        "apps/kaskold-hardware/src/runtime/interactions/onboarding/dice.rs::handle_dice_roll",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_seed_source_choice",
+        "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding/recovery.rs::handle_recovery_acknowledgement",
         "apps/kaskold-hardware/src/runtime/interactions/seed/wallet_name.rs::handle_back",
         "apps/kaskold-hardware/src/runtime/interactions/seed/wallet_name.rs::handle_submitted"
       ],
@@ -6146,7 +6132,6 @@
       ],
       "id": "connected-advanced-seed-tools",
       "items": [
-        "E2E-033-01",
         "E2E-034-01",
         "E2E-034-02",
         "E2E-034-03",
@@ -6166,7 +6151,6 @@
         "BIP85 Child Wallet"
       ],
       "requirements": [
-        "E2E-033",
         "E2E-034",
         "E2E-036",
         "E2E-087",
@@ -6273,12 +6257,10 @@
         "ADVANCED SIGN-MESSAGE TYPED EMPTY-REJECT/PREVIEW/BACK PASS",
         "ADVANCED SIGN-MESSAGE QR EMPTY/CONTROL/OVERSIZE/VALID PASS",
         "ADVANCED SIGN-MESSAGE SD CONTENT BOUNDARIES/PREVIEW PASS",
-        "ADVANCED SIGN-MESSAGE SIGN/RESULT-QR/NO-SD/BACK PASS",
-        "ADVANCED SIGN-MESSAGE CALLER RETURN-OWNER PASS"
+        "ADVANCED SIGN-MESSAGE SIGN/RESULT-QR/NO-SD/BACK PASS"
       ],
       "states": [
         "WalletAdvancedMenu",
-        "SingleSigMenu",
         "SignMsgChoice",
         "SignMsgType",
         "SignMsgScan",
@@ -6338,13 +6320,11 @@
       "serial_markers": [
         "ADVANCED COMMIT-SECRET EMPTY/LENGTH/PREVIEW/ENCRYPT/QR PASS",
         "ADVANCED DECRYPT-SECRET MALFORMED/WRONG-KEY/ROUND-TRIP/QR PASS",
-        "ADVANCED SECRET-TOOLS SINGLE-SIG PAGING/RETURN-OWNER PASS",
         "ADVANCED TOOLS PHYSICAL SD/RNG HIL DEFERRED TO PERIPHERAL TRANCHE",
         "ADVANCED WALLET TOOLS TRANCHE PASS"
       ],
       "states": [
         "WalletAdvancedMenu",
-        "SingleSigMenu",
         "CommitRevealType",
         "CommitRevealPreview",
         "CommitRevealResult",
@@ -6378,7 +6358,6 @@
     },
     {
       "actions": [
-        "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/address.rs::open_kip22",
         "apps/kaskold-hardware/src/runtime/interactions/camera_loop/cycle.rs::handle_m5_outcome",
         "apps/kaskold-hardware/src/runtime/interactions/camera_loop/decoder.rs::handle_decode_result",
         "apps/kaskold-hardware/src/runtime/interactions/camera_loop/state.rs::leave_screen",
@@ -6395,27 +6374,14 @@
         "apps/kaskold-hardware/src/runtime/interactions/export/kpub.rs::handle_export_screen",
         "apps/kaskold-hardware/src/runtime/interactions/export/kpub.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/export/menus/mod.rs::handle_navigation_touch",
-        "apps/kaskold-hardware/src/runtime/interactions/export/menus/root.rs::handle_pure",
-        "apps/kaskold-hardware/src/runtime/interactions/export/menus/seed.rs::handle_pure",
-        "apps/kaskold-hardware/src/runtime/interactions/export/menus/seed.rs::handle_qr_export_menu",
-        "apps/kaskold-hardware/src/runtime/interactions/export/menus/seed.rs::handle_qr_export_pure",
-        "apps/kaskold-hardware/src/runtime/interactions/export/menus/seed.rs::handle_seed_backup_menu",
-        "apps/kaskold-hardware/src/runtime/interactions/export/menus/seed.rs::handle_seed_backup_pure",
         "apps/kaskold-hardware/src/runtime/interactions/export/private_key.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/export/private_key/index_input.rs::append_digit",
-        "apps/kaskold-hardware/src/runtime/interactions/export/watch_only.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/export/xprv.rs::handle_menu",
         "apps/kaskold-hardware/src/runtime/interactions/export/xprv.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/menu.rs::handle_menu_touch",
         "apps/kaskold-hardware/src/runtime/interactions/menu.rs::handle_navigation_touch",
         "apps/kaskold-hardware/src/runtime/interactions/menu.rs::handle_root_touch",
         "apps/kaskold-hardware/src/runtime/interactions/menu.rs::handle_signing_feedback_touch",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs::handle_choice",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs::handle_choice_pure",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs::handle_import_menu",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs::handle_import_menu_pure",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs::handle_pure",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/mod.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/menu/primary.rs::handle_main_menu",
         "apps/kaskold-hardware/src/runtime/interactions/menu/primary.rs::handle_navigation_touch",
         "apps/kaskold-hardware/src/runtime/interactions/menu/primary.rs::handle_root_touch",
@@ -6435,10 +6401,6 @@
         "apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation/additive.rs::handle_dice_choice",
         "apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation/additive.rs::handle_dice_count",
         "apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation/additive.rs::handle_touch_choice",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools.rs::handle_onboarding_dice",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools.rs::handle_pure",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/address.rs::open_with_return",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/menu.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/menu/signing.rs::handle_feedback",
         "apps/kaskold-hardware/src/runtime/interactions/menu/signing.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/menu/signing/multisig.rs::handle_descriptors_menu",
@@ -6446,8 +6408,10 @@
         "apps/kaskold-hardware/src/runtime/interactions/menu/signing/multisig.rs::handle_root_menu",
         "apps/kaskold-hardware/src/runtime/interactions/menu/signing/multisig.rs::handle_without_storage",
         "apps/kaskold-hardware/src/runtime/interactions/menu/signing/multisig.rs::route_back",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/signing/single_sig.rs::handle_pure",
+        "apps/kaskold-hardware/src/runtime/interactions/menu/wallet_tools.rs::open_hidden_key_address",
         "apps/kaskold-hardware/src/runtime/interactions/onboarding.rs::handle_onboarding_touch",
+        "apps/kaskold-hardware/src/runtime/interactions/onboarding/dice.rs::handle_dice_roll",
+        "apps/kaskold-hardware/src/runtime/interactions/persistence.rs::handle_unlock_touch",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/credential.rs::confirm_state",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/credential.rs::handle_credential_type",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/credential.rs::handle_setup_entry",
@@ -6456,6 +6420,7 @@
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_mode_choice",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_restore_12_detected",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_seed_source_choice",
+        "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_source_touch",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding/finalize.rs::handle_finalize_choice",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding/finalize.rs::handle_protection_choice",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding/recovery.rs::handle_recovery_acknowledgement",
@@ -6589,9 +6554,7 @@
         "apps/kaskold-hardware/src/runtime/interactions/tx/private_swap.rs::handle_key",
         "apps/kaskold-hardware/src/runtime/interactions/tx/private_swap.rs::handle_result",
         "apps/kaskold-hardware/src/runtime/interactions/tx/private_swap.rs::handle_review",
-        "apps/kaskold-hardware/src/runtime/interactions/tx/transaction.rs::handle_anti_klepto_reveal_guide",
-        "apps/kaskold-hardware/src/runtime/interactions/persistence.rs::handle_unlock_touch",
-        "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_source_touch"
+        "apps/kaskold-hardware/src/runtime/interactions/tx/transaction.rs::handle_anti_klepto_reveal_guide"
       ],
       "id": "qa-production-exhaustiveness-gate",
       "items": [
@@ -6605,26 +6568,21 @@
       "menu_items": [
         "Hidden Key Addr",
         "About",
-        "Address",
         "Advanced",
         "Audio",
-        "BIP85 Child",
         "BIP85 Child Wallet",
         "Backup",
         "Backup to SD",
         "Cancel",
         "Commit Secret",
         "Compact SeedQR",
-        "CompactSeedQR",
         "Confirm",
         "Connect",
         "Covenant Restore",
-        "Covenant Sign",
         "Create Multisig",
         "Decrypt Secret",
         "Delete",
         "Descriptors",
-        "Dice Seed",
         "Display",
         "Encrypt to SD",
         "Encrypted SD Card",
@@ -6633,19 +6591,13 @@
         "Factory Reset",
         "Firmware Update",
         "Import Raw Key",
-        "Import Words",
-        "Import from SD",
         "Inspect",
         "Install from SD",
         "Multisig",
         "Multisig Address",
-        "New Seed",
         "Owner Firmware",
-        "Plain Text QR",
         "Plain-text SeedQR",
         "Pop It!",
-        "Private Key",
-        "QR Export",
         "Raw Private Key",
         "Receive",
         "Recovery",
@@ -6654,35 +6606,24 @@
         "Scan QR",
         "Security",
         "Seed / XPrv Backup",
-        "Seed Backup",
         "SeedQR",
         "SeedQR Backup",
         "Settings",
-        "Show Seed Words",
         "Show as QR",
         "Sign Message",
-        "Sign TX",
-        "Signing Keys",
-        "Standard SeedQR",
         "Steganographic",
-        "Steganography",
-        "Stego Import",
         "Storage",
         "Switch / Add Wallet",
-        "Touch Seed",
         "Transaction",
         "View",
         "View Words",
         "Wallet",
         "Wallet Details",
-        "Watch-Only",
         "Words",
         "XPrv Backup",
         "kpub (Watch-Only)",
         "kpub Multisig QR",
-        "kpub as QR",
-        "kpub to SD",
-        "xprv Account"
+        "kpub to SD"
       ],
       "requirements": [
         "E2E-099"
@@ -6731,7 +6672,6 @@
         "DecryptSecretScan",
         "DiceRoll",
         "DisplaySettings",
-        "ExportChoice",
         "ExportCompactSeedQR",
         "ExportKpub",
         "ExportKpubPopup",
@@ -6743,10 +6683,7 @@
         "FactoryResetConfirm",
         "FactoryResetWarning",
         "FirmwareUpdateReady",
-        "ImportExportChoice",
-        "ImportMenu",
         "ImportPrivKey",
-        "ImportWord",
         "InspectUtxo",
         "InspectUtxoSummary",
         "KpubScannedPopup",
@@ -6777,7 +6714,6 @@
         "PrivateSwapResult",
         "PrivateSwapResultQr",
         "PrivateSwapReview",
-        "QrExportMenu",
         "Rejected",
         "RestoreWord",
         "RestoreWord12Detected",
@@ -6809,11 +6745,9 @@
         "SdXprvExportPassphrase",
         "SdXprvFilename",
         "SeedBackup",
-        "SeedBackupMenu",
         "SeedEntropyUnavailable",
         "SeedList",
         "SeedQrGrid",
-        "SeedToolsMenu",
         "SeedsMenu",
         "SettingsMenu",
         "ShowAddress",
@@ -6828,9 +6762,6 @@
         "SignMsgResultQr",
         "SignMsgScan",
         "SignMsgType",
-        "SignTxGuide",
-        "SigningKeysMenu",
-        "SingleSigMenu",
         "StegoHintPassphrase",
         "StegoHintReveal",
         "StegoImportDescChoice",
@@ -6874,7 +6805,6 @@
         "WalletBackupMethodsMenu",
         "WalletDetails",
         "WalletNameEntry",
-        "WatchOnlyMenu",
         "XprvExportMenu"
       ],
       "status": "implemented"
@@ -7799,34 +7729,6 @@
       "status": "implemented"
     },
     {
-      "actions": [
-        "apps/kaskold-hardware/src/runtime/interactions/export/menus/root.rs::handle_pure"
-      ],
-      "id": "qa-export-menu-routing-matrix",
-      "items": [
-        "E2E-054-01",
-        "E2E-054-02",
-        "E2E-054-03",
-        "E2E-054-04",
-        "E2E-054-05"
-      ],
-      "level": "qa",
-      "menu_items": [
-        "Seed Backup",
-        "Watch-Only",
-        "Signing Keys",
-        "Steganography"
-      ],
-      "requirements": [
-        "E2E-054"
-      ],
-      "serial_markers": [],
-      "states": [
-        "ExportChoice"
-      ],
-      "status": "implemented"
-    },
-    {
       "actions": [],
       "id": "manual-hil-firmware-update-usb-reboot",
       "items": [
@@ -7889,6 +7791,29 @@
         "OwnerKeyConfirm",
         "OwnerInstallWarning",
         "OwnerInstallConfirm"
+      ],
+      "status": "implemented"
+    },
+    {
+      "actions": [],
+      "id": "qa-kpub-to-sd-journey",
+      "items": [
+        "E2E-054-01",
+        "E2E-054-02",
+        "E2E-054-03"
+      ],
+      "level": "qa",
+      "menu_items": [
+        "kpub to SD"
+      ],
+      "requirements": [
+        "E2E-054"
+      ],
+      "serial_markers": [],
+      "states": [
+        "WalletAdvancedMenu",
+        "SdKpubFilename",
+        "SdKpubEncryptAsk"
       ],
       "status": "implemented"
     }
@@ -8037,55 +7962,6 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "apps/kaskold-hardware/src/runtime/interactions/export/menus/root.rs::handle_pure": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-export-menu-routing-matrix",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/export/menus/seed.rs::handle_pure": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/export/menus/seed.rs::handle_qr_export_menu": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/export/menus/seed.rs::handle_qr_export_pure": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/export/menus/seed.rs::handle_seed_backup_menu": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/export/menus/seed.rs::handle_seed_backup_pure": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "apps/kaskold-hardware/src/runtime/interactions/export/private_key.rs::handle_pure": {
         "baseline": true,
         "catalog_workflows": [],
@@ -8100,14 +7976,6 @@
         "highest_level": "connected",
         "implemented_scenarios": [
           "connected-advanced-key-exports",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/export/watch_only.rs::handle_pure": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
           "qa-production-exhaustiveness-gate"
         ]
       },
@@ -8158,54 +8026,6 @@
         ]
       },
       "apps/kaskold-hardware/src/runtime/interactions/menu.rs::handle_signing_feedback_touch": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs::handle_choice": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs::handle_choice_pure": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs::handle_import_menu": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs::handle_import_menu_pure": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs::handle_pure": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/mod.rs::handle_pure": {
         "baseline": true,
         "catalog_workflows": [],
         "highest_level": "qa",
@@ -8380,47 +8200,6 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools.rs::handle_onboarding_dice": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools.rs::handle_pure": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/address.rs::open_kip22": {
-        "baseline": false,
-        "catalog_workflows": [],
-        "highest_level": "connected",
-        "implemented_scenarios": [
-          "connected-receive-controls",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/address.rs::open_with_return": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/menu.rs::handle_pure": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "apps/kaskold-hardware/src/runtime/interactions/menu/signing.rs::handle_feedback": {
         "baseline": false,
         "catalog_workflows": [],
@@ -8486,11 +8265,12 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "apps/kaskold-hardware/src/runtime/interactions/menu/signing/single_sig.rs::handle_pure": {
-        "baseline": true,
+      "apps/kaskold-hardware/src/runtime/interactions/menu/wallet_tools.rs::open_hidden_key_address": {
+        "baseline": false,
         "catalog_workflows": [],
-        "highest_level": "qa",
+        "highest_level": "connected",
         "implemented_scenarios": [
+          "connected-receive-controls",
           "qa-production-exhaustiveness-gate"
         ]
       },
@@ -8499,6 +8279,15 @@
         "catalog_workflows": [],
         "highest_level": "qa",
         "implemented_scenarios": [
+          "qa-production-exhaustiveness-gate"
+        ]
+      },
+      "apps/kaskold-hardware/src/runtime/interactions/onboarding/dice.rs::handle_dice_roll": {
+        "baseline": false,
+        "catalog_workflows": [],
+        "highest_level": "connected",
+        "implemented_scenarios": [
+          "connected-onboarding-create-core",
           "qa-production-exhaustiveness-gate"
         ]
       },
@@ -9755,15 +9544,6 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "Address": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "connected",
-        "implemented_scenarios": [
-          "connected-receive-controls",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "Advanced": {
         "baseline": true,
         "catalog_workflows": [],
@@ -9784,14 +9564,6 @@
           "connected-audio-settings-controller",
           "connected-global-audio-control",
           "connected-settings-root",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "BIP85 Child": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
           "qa-production-exhaustiveness-gate"
         ]
       },
@@ -9853,14 +9625,6 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "CompactSeedQR": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "Confirm": {
         "baseline": true,
         "catalog_workflows": [],
@@ -9882,14 +9646,6 @@
         ]
       },
       "Covenant Restore": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "Covenant Sign": {
         "baseline": true,
         "catalog_workflows": [],
         "highest_level": "qa",
@@ -9930,14 +9686,6 @@
         "highest_level": "connected",
         "implemented_scenarios": [
           "connected-multisig-create-sign",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "Dice Seed": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
           "qa-production-exhaustiveness-gate"
         ]
       },
@@ -10026,22 +9774,6 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "Import Words": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "Import from SD": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "Inspect": {
         "baseline": true,
         "catalog_workflows": [],
@@ -10079,14 +9811,6 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "New Seed": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "Owner Firmware": {
         "baseline": true,
         "catalog_workflows": [],
@@ -10095,14 +9819,6 @@
           "connected-pop-it-safe-simulation",
           "connected-settings-root",
           "manual-hil-owner-authority",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "Plain Text QR": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
           "qa-production-exhaustiveness-gate"
         ]
       },
@@ -10119,22 +9835,6 @@
         ]
       },
       "Pop It!": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "Private Key": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "QR Export": {
         "baseline": true,
         "catalog_workflows": [],
         "highest_level": "qa",
@@ -10221,15 +9921,6 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "Seed Backup": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-export-menu-routing-matrix",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "SeedQR": {
         "baseline": true,
         "catalog_workflows": [],
@@ -10259,14 +9950,6 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "Show Seed Words": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "Show as QR": {
         "baseline": true,
         "catalog_workflows": [],
@@ -10284,31 +9967,6 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "Sign TX": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "Signing Keys": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-export-menu-routing-matrix",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "Standard SeedQR": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "Steganographic": {
         "baseline": true,
         "catalog_workflows": [],
@@ -10316,23 +9974,6 @@
         "implemented_scenarios": [
           "connected-backup-advanced",
           "connected-onboarding-restore-menu",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "Steganography": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-export-menu-routing-matrix",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "Stego Import": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
           "qa-production-exhaustiveness-gate"
         ]
       },
@@ -10352,14 +9993,6 @@
         "implemented_scenarios": [
           "connected-wallet-details-delete",
           "connected-wallet-switch-add",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "Touch Seed": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
           "qa-production-exhaustiveness-gate"
         ]
       },
@@ -10410,15 +10043,6 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "Watch-Only": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-export-menu-routing-matrix",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "Words": {
         "baseline": true,
         "catalog_workflows": [],
@@ -10456,27 +10080,12 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "kpub as QR": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "kpub to SD": {
         "baseline": true,
         "catalog_workflows": [],
         "highest_level": "qa",
         "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "xprv Account": {
-        "baseline": true,
-        "catalog_workflows": [],
-        "highest_level": "qa",
-        "implemented_scenarios": [
+          "qa-kpub-to-sd-journey",
           "qa-production-exhaustiveness-gate"
         ]
       }
@@ -10586,7 +10195,8 @@
       "AdvancedRestoreMenu": {
         "baseline": true,
         "catalog_workflows": [
-          "restore-advanced"
+          "restore-advanced",
+          "stego-device-import"
         ],
         "highest_level": "connected",
         "implemented_scenarios": [
@@ -10709,7 +10319,12 @@
       "BackupRecoveryMenu": {
         "baseline": true,
         "catalog_workflows": [
-          "wallet-backup"
+          "backup-compact-qr",
+          "backup-plain-qr",
+          "private-key-export",
+          "stego-device-export",
+          "wallet-backup",
+          "xprv-export"
         ],
         "highest_level": "connected",
         "implemented_scenarios": [
@@ -10747,7 +10362,6 @@
       "ChooseWordCount": {
         "baseline": true,
         "catalog_workflows": [
-          "advanced-import-words",
           "seed-bip85",
           "seed-new-hardware"
         ],
@@ -10967,17 +10581,6 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "ExportChoice": {
-        "baseline": true,
-        "catalog_workflows": [
-          "xprv-export"
-        ],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-export-menu-routing-matrix",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "ExportCompactSeedQR": {
         "baseline": true,
         "catalog_workflows": [
@@ -11108,36 +10711,6 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "ImportExportChoice": {
-        "baseline": true,
-        "catalog_workflows": [
-          "backup-seedqr",
-          "backup-words",
-          "raw-key-import",
-          "sd-wallet-restore",
-          "stego-device-export",
-          "watch-kpub-qr",
-          "xprv-export"
-        ],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "ImportMenu": {
-        "baseline": true,
-        "catalog_workflows": [
-          "raw-key-import",
-          "sd-import-kpub",
-          "sd-import-transaction",
-          "sd-wallet-restore",
-          "stego-device-import"
-        ],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "ImportPrivKey": {
         "baseline": true,
         "catalog_workflows": [
@@ -11148,16 +10721,6 @@
         "implemented_scenarios": [
           "connected-onboarding-restore-menu",
           "connected-onboarding-restore-raw-key",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "ImportWord": {
-        "baseline": true,
-        "catalog_workflows": [
-          "advanced-import-words"
-        ],
-        "highest_level": "qa",
-        "implemented_scenarios": [
           "qa-production-exhaustiveness-gate"
         ]
       },
@@ -11230,7 +10793,8 @@
           "unlock-password",
           "unlock-pin",
           "wallet-connect-companion",
-          "wallet-home"
+          "wallet-home",
+          "watch-kpub-qr"
         ],
         "highest_level": "connected",
         "implemented_scenarios": [
@@ -11453,7 +11017,6 @@
       "PassphraseChoice": {
         "baseline": true,
         "catalog_workflows": [
-          "advanced-import-words",
           "bound-create-password",
           "bound-create-pin",
           "fresh-create-12",
@@ -11563,18 +11126,6 @@
         "baseline": true,
         "catalog_workflows": [
           "private-swap"
-        ],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "QrExportMenu": {
-        "baseline": true,
-        "catalog_workflows": [
-          "backup-compact-qr",
-          "backup-plain-qr",
-          "backup-seedqr"
         ],
         "highest_level": "qa",
         "implemented_scenarios": [
@@ -11719,9 +11270,11 @@
       "SdImportMenu": {
         "baseline": true,
         "catalog_workflows": [
+          "raw-key-import",
           "sd-generic-files",
           "sd-import-kpub",
           "sd-import-transaction",
+          "sd-wallet-restore",
           "wallet-backup"
         ],
         "highest_level": "connected",
@@ -11739,6 +11292,7 @@
         ],
         "highest_level": "qa",
         "implemented_scenarios": [
+          "qa-kpub-to-sd-journey",
           "qa-production-exhaustiveness-gate"
         ]
       },
@@ -11759,6 +11313,7 @@
         ],
         "highest_level": "qa",
         "implemented_scenarios": [
+          "qa-kpub-to-sd-journey",
           "qa-production-exhaustiveness-gate"
         ]
       },
@@ -11951,18 +11506,6 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "SeedBackupMenu": {
-        "baseline": true,
-        "catalog_workflows": [
-          "backup-seedqr",
-          "backup-words",
-          "sd-wallet-backup"
-        ],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "SeedEntropyUnavailable": {
         "baseline": true,
         "catalog_workflows": [
@@ -12002,27 +11545,21 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "SeedToolsMenu": {
-        "baseline": true,
-        "catalog_workflows": [
-          "advanced-import-words",
-          "receive-index-advanced",
-          "seed-bip85"
-        ],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "SeedsMenu": {
         "baseline": true,
         "catalog_workflows": [
+          "backup-words",
           "commit-secret",
           "decrypt-secret",
           "multisig-import-save",
           "multisig-kpub-qr",
           "multisig-local",
+          "raw-key-import",
           "receive-address",
+          "receive-index-advanced",
+          "sd-import-kpub",
+          "sd-import-transaction",
+          "sd-wallet-restore",
           "seed-list-delete",
           "sign-message-file",
           "sign-message-qr",
@@ -12211,42 +11748,6 @@
         ],
         "highest_level": "connected",
         "implemented_scenarios": [
-          "connected-sign-message-tools",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "SignTxGuide": {
-        "baseline": true,
-        "catalog_workflows": [
-          "reject-tx",
-          "sign-tx"
-        ],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "SigningKeysMenu": {
-        "baseline": true,
-        "catalog_workflows": [
-          "private-key-export",
-          "xprv-export"
-        ],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "SingleSigMenu": {
-        "baseline": true,
-        "catalog_workflows": [
-          "covenant-sign",
-          "reject-tx",
-          "sign-tx"
-        ],
-        "highest_level": "connected",
-        "implemented_scenarios": [
-          "connected-commit-decrypt-secret-tools",
           "connected-sign-message-tools",
           "qa-production-exhaustiveness-gate"
         ]
@@ -12736,7 +12237,8 @@
           "sign-message-file",
           "sign-message-qr",
           "sign-message-type",
-          "wallet-advanced"
+          "wallet-advanced",
+          "watch-kpub-sd"
         ],
         "highest_level": "connected",
         "implemented_scenarios": [
@@ -12744,12 +12246,16 @@
           "connected-commit-decrypt-secret-tools",
           "connected-sign-message-tools",
           "connected-wallet-root",
+          "qa-kpub-to-sd-journey",
           "qa-production-exhaustiveness-gate"
         ]
       },
       "WalletBackupMethodsMenu": {
         "baseline": true,
         "catalog_workflows": [
+          "backup-seedqr",
+          "backup-words",
+          "sd-wallet-backup",
           "wallet-backup"
         ],
         "highest_level": "connected",
@@ -12786,17 +12292,6 @@
           "connected-onboarding-create-core",
           "connected-wallet-details-delete",
           "connected-wallet-switch-add",
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "WatchOnlyMenu": {
-        "baseline": true,
-        "catalog_workflows": [
-          "watch-kpub-qr",
-          "watch-kpub-sd"
-        ],
-        "highest_level": "qa",
-        "implemented_scenarios": [
           "qa-production-exhaustiveness-gate"
         ]
       },

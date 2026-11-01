@@ -6,7 +6,6 @@ import { installTransactionWorkflows } from './vault_transaction_workflows.js';
 import { installOnboarding } from './vault_onboarding.js';
 import { installCovenantWorkflows } from './vault_covenant_workflows.js';
 import { installPrivateSwapWorkflows } from './vault_private_swap_workflows.js';
-import { installLegacyWorkflows } from './vault_legacy_workflows.js';
 import { installScanWorkflows } from './vault_scan_workflows.js';
 import { downloadBytes, downloadText, requireMatchingPasswords } from './vault_bytes.js';
 import { createRecoveryWordPager } from './workflows/vault_recovery_words.js';
@@ -371,9 +370,7 @@ async function boot() {
   const workflowContext = {
     $, api, parse, show, status, renderSecretText, renderReview: transactionWorkflows.renderReview,
     showCreatedPhrase, renderHome, lockVault, openScanner, stopCamera,
-    acceptTransactionFrame: transactionWorkflows.acceptFrame,
     applyStagedRestoreName: onboarding.applyStagedRestoreName,
-    startSeedTool: onboarding.startSeedTool,
     openWalletPicker: onboarding.openWalletPicker,
   };
   installWalletWorkflows(workflowContext);
@@ -381,7 +378,6 @@ async function boot() {
   installAdvancedWorkflows(workflowContext);
   installCovenantWorkflows(workflowContext);
   installPrivateSwapWorkflows(workflowContext);
-  installLegacyWorkflows(workflowContext);
   const settings = installSettings({
     ...workflowContext,
     openPortableBackup: () => workflowContext.openPortableBackup(),

@@ -22,7 +22,6 @@ pub(super) fn handle(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    liveness: &mut dyn FnMut(),
     x: u16,
     y: u16,
     is_back: bool,
@@ -35,7 +34,7 @@ pub(super) fn handle(
     }
     let screen = transaction_screen(ad)?;
     let decision = reduce_touch(screen, x, y, is_back);
-    apply_decision(ad, boot_display, delay, liveness, decision);
+    apply_decision(ad, boot_display, delay, decision);
     Some(decision.redraw)
 }
 
@@ -63,7 +62,6 @@ fn handle_anti_klepto_reveal_guide(ad: &mut AppData, x: u16, y: u16, is_back: bo
 
 fn transaction_screen(ad: &AppData) -> Option<TransactionScreen> {
     match ad.navigation.app.state {
-        AppState::SignTxGuide => Some(TransactionScreen::Guide { seed_loaded: ad.wallet.seeds.seed_loaded }),
         AppState::ScanQR => Some(TransactionScreen::ScanQr { return_target: scan_return(ad) }),
         AppState::ReviewTx { .. } => Some(TransactionScreen::Review),
         AppState::ConfirmTx => Some(TransactionScreen::Confirm),
@@ -89,18 +87,10 @@ fn apply_decision(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    liveness: &mut dyn FnMut(),
     decision: TransactionDecision,
 ) {
     match decision.effect {
         TransactionEffect::None => {}
-        TransactionEffect::GuideBack => {
-            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SingleSigMenu));
-        }
-        TransactionEffect::DeriveAccount => derive_account(ad, boot_display, delay, liveness),
-        TransactionEffect::BeginScan => {
-            let _ = crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ScanQR));
-        }
         TransactionEffect::ScanBack(target) => apply_scan_back(ad, target),
         TransactionEffect::ReviewBack => {
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ConfirmTx));
@@ -128,20 +118,6 @@ fn apply_decision(
             }
             crate::runtime::effects::confirm_transaction(ad, cursor);
         }
-    }
-}
-
-fn derive_account(
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    liveness: &mut dyn FnMut(),
-) {
-    boot_display.draw_saving_screen("Deriving account key...");
-    if crate::runtime::interactions::export::derive_watch_account(ad, liveness).is_ok() {
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ExportKpub));
-    } else {
-        show_rejection(boot_display, delay, "Account-key derivation failed", 2000, ErrorSound::Silent);
     }
 }
 

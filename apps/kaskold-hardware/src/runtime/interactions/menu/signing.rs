@@ -9,20 +9,16 @@ use crate::runtime::input::AppState;
 mod common;
 mod feedback;
 pub(super) mod multisig;
-pub(super) mod single_sig;
 
 /// Route signing-menu choices that only mutate navigation/application state.
 pub(super) fn handle_pure(
     ad: &mut AppData,
     list_zones: &[touch::TouchZone; 4],
-    page_up: &touch::TouchZone,
-    page_down: &touch::TouchZone,
     x: u16,
     y: u16,
     is_back: bool,
 ) -> Option<bool> {
-    single_sig::handle_pure(ad, list_zones, page_up, page_down, x, y, is_back)
-        .or_else(|| multisig::handle_pure(ad, list_zones, x, y, is_back))
+    multisig::handle_pure(ad, list_zones, x, y, is_back)
 }
 
 pub(super) fn handle(
@@ -38,9 +34,6 @@ pub(super) fn handle(
     is_back: bool,
 ) -> Option<bool> {
     match ad.navigation.app.state {
-        AppState::SingleSigMenu => {
-            Some(single_sig::handle(ad, boot_display, delay, liveness, list_zones, x, y, is_back))
-        }
         AppState::MultisigMenu | AppState::MultisigDescriptorsMenu => {
             Some(multisig::handle(ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones, x, y, is_back))
         }

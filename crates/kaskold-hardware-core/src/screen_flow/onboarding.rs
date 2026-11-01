@@ -72,7 +72,6 @@ fn restore_route(state: AppState) -> Option<OnboardingRoute> {
     use OnboardingRoute::*;
     match state {
         RestoreWord { .. }
-        | ImportWord { .. }
         | PassphraseChoice
         | PassphraseEntry
         | ImportPrivKey
@@ -231,17 +230,6 @@ fn restore_word_transition_allowed(from: AppState, to: AppState) -> bool {
 fn imported_word_transition_allowed(from: AppState, to: AppState) -> bool {
     use AppState::*;
     match from {
-        ImportWord {
-            word_idx: from_idx,
-            word_count: from_count,
-        } => match to {
-            ImportWord {
-                word_idx: to_idx,
-                word_count: to_count,
-            } => from_count == to_count && to_idx == from_idx.saturating_add(1),
-            StorageSeedSourceChoice | PassphraseChoice => true,
-            _ => false,
-        },
         ImportPrivKey => matches!(
             to,
             AdvancedRestoreMenu | StorageRecoveryAcknowledgement | StorageFinalizeChoice | MainMenu

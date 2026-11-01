@@ -24,6 +24,17 @@ export function installAdvancedWorkflows({ $, api, parse, show, status, openScan
   let reviewedSecret = '';
   let signedMessagePayload = null;
 
+  $('advanced-kip22').onclick = () => {
+    $('receive-format').value = 'kip22';
+    $('wallet-receive').click();
+  };
+  $('advanced-kpub-file').onclick = () => {
+    try {
+      const { kpub } = parse(api('kaskold_vault_export_kpub')());
+      downloadBytes(new TextEncoder().encode(`${kpub}\n`), 'kaskold-watch-only.kpub');
+      status('Watch-only kpub saved.');
+    } catch (error) { status(String(error), true); }
+  };
   $('advanced-bip85').onclick = () => show('bip85');
   $('bip85-generate').onclick = () => {
     try {

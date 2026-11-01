@@ -4,72 +4,10 @@
 
 //! Watch-only export workflows.
 
-use super::{context::ExportStorageContext, TouchInput};
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
-use crate::{
-    hw::display,
-    runtime::interactions::menu_selection::selected_visible_item,
-    runtime::{data::AppData, input::AppState},
-};
+use crate::{hw::display, runtime::data::AppData};
 
-pub(super) fn handle_pure(
-    ad: &mut AppData,
-    list_zones: &[crate::hw::touch::TouchZone; 4],
-    x: u16,
-    y: u16,
-    is_back: bool,
-) -> Option<bool> {
-    if ad.navigation.app.state != AppState::WatchOnlyMenu {
-        return None;
-    }
-    if is_back {
-        ad.navigation.watch_only_menu.reset();
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ExportChoice));
-        return Some(true);
-    }
-    match selected_visible_item(&ad.navigation.watch_only_menu, list_zones, x, y) {
-        None => Some(false),
-        Some(_) => None,
-    }
-}
-
-pub(super) fn handle(context: ExportStorageContext<'_, '_, '_>) -> Option<bool> {
-    let ExportStorageContext { ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones, input, .. } = context;
-    let TouchInput { x, y, is_back } = input;
-    if ad.navigation.app.state != AppState::WatchOnlyMenu {
-        return None;
-    }
-    if is_back {
-        ad.navigation.watch_only_menu.reset();
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ExportChoice));
-        return Some(true);
-    }
-
-    let Some(item) = selected_visible_item(&ad.navigation.watch_only_menu, list_zones, x, y) else {
-        return Some(false);
-    };
-    match item {
-        0 => export_as_qr(ad, boot_display, delay, liveness),
-        1 => export_to_sd(ad, boot_display, delay, liveness, i2c, sd_card_type),
-        2 => export_multisig_kpub_qr(ad, boot_display, delay, liveness),
-        _ => return Some(false),
-    }
-    Some(true)
-}
-
-fn export_as_qr(
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    liveness: &mut dyn FnMut(),
-) {
-    boot_display.draw_saving_screen("Deriving kpub...");
-    if derive_watch_account(ad, boot_display, delay, liveness) {
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ExportKpub));
-    }
-}
-
-fn export_to_sd(
+pub(crate) fn export_kpub_to_sd(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
@@ -77,6 +15,10 @@ fn export_to_sd(
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     sd_card_type: &Option<crate::services::storage_device::SdCardType>,
 ) {
+    if !ad.wallet.seeds.seed_loaded {
+        show_rejection(boot_display, delay, "Load a seed first", 1_500, ErrorSound::Silent);
+        return;
+    }
     if sd_card_type.is_none() {
         show_rejection(boot_display, delay, "No SD card", 1_500, ErrorSound::Silent);
         return;
@@ -90,15 +32,6 @@ fn export_to_sd(
     let filename = crate::runtime::interactions::sd::format_auto_name(b"KP", next, b"TXT");
     super::derivation::prepare_filename(ad, filename);
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SdKpubFilename));
-}
-
-fn export_multisig_kpub_qr(
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    liveness: &mut dyn FnMut(),
-) {
-    let _ = prepare_multisig_kpub_qr(ad, boot_display, delay, liveness);
 }
 
 pub(crate) fn prepare_multisig_kpub_qr(
@@ -131,8 +64,7 @@ pub(crate) fn prepare_multisig_kpub_qr(
         #[cfg(feature = "m5stack")]
         ad.export.reset_multisig_kpub_work();
         let index = match ad.navigation.app.state {
-            AppState::MultisigMenu => 2,
-            AppState::WatchOnlyMenu => 2,
+            crate::runtime::input::AppState::MultisigMenu => 2,
             _ => return false,
         };
         return crate::runtime::effects::menu_select(ad, index);

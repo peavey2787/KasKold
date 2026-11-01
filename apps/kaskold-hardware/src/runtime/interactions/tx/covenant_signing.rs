@@ -48,7 +48,7 @@ fn handle_known(
             ad.signing.covenant.context_page -= 1;
         } else {
             ad.signing.covenant.reset();
-            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SingleSigMenu));
+            crate::runtime::effects::home(ad);
         }
         return true;
     }
@@ -66,7 +66,7 @@ fn handle_known(
 fn handle_opaque_warning(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
     if is_back {
         ad.signing.covenant.reset();
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SingleSigMenu));
+        crate::runtime::effects::home(ad);
         return true;
     }
     if (178..=222).contains(&y) && (50..=270).contains(&x) {
@@ -119,7 +119,7 @@ fn sign(
         Err(error) => {
             ad.signing.covenant.reset();
             show_rejection(boot_display, delay, error.message(), 1800, ErrorSound::Beep);
-            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SingleSigMenu));
+            crate::runtime::effects::home(ad);
         }
     }
 }
@@ -133,7 +133,7 @@ fn handle_key_result(
 ) -> bool {
     if is_back {
         ad.signing.covenant.reset();
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SingleSigMenu));
+        crate::runtime::effects::home(ad);
         return true;
     }
     if (178..=222).contains(&y) && (80..=240).contains(&x) {
@@ -152,7 +152,7 @@ fn handle_sign_result(
 ) -> bool {
     if is_back {
         ad.signing.covenant.reset();
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SingleSigMenu));
+        crate::runtime::effects::home(ad);
         return true;
     }
     if !(178..=222).contains(&y) || !(60..=260).contains(&x) {

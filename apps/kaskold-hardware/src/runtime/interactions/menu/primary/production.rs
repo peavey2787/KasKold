@@ -2,7 +2,7 @@
 
 use crate::{
     hw::touch::TouchZone,
-    runtime::interactions::menu_selection::{handle_paged_menu_touch, PagedMenuAction},
+    runtime::interactions::menu_selection::{handle_paged_menu_touch, selected_visible_item, PagedMenuAction},
     runtime::{
         data::AppData,
         input::{AppState, Menu},
@@ -24,6 +24,11 @@ pub(super) fn handle(
             Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::WalletBackupMethods))
         }
         AppState::WalletAdvancedMenu => {
+            let hardware_item = selected_visible_item(&ad.navigation.production.wallet_advanced_menu, list, x, y)
+                .is_some_and(crate::runtime::interactions::menu::wallet_tools::owns_item);
+            if !is_back && hardware_item {
+                return None;
+            }
             Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::WalletAdvanced))
         }
         AppState::AdvancedMenu => Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::Advanced)),

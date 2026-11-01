@@ -5,7 +5,7 @@ const DICE_Y: [u16; 2] = [70, 135];
 const DIE_WIDTH: u16 = 100;
 const DIE_HEIGHT: u16 = 65;
 
-pub(super) fn handle(
+pub(crate) fn handle_dice_roll(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     x: u16,
@@ -14,12 +14,7 @@ pub(super) fn handle(
 ) -> bool {
     if is_back {
         ad.wallet.seeds.dice_collector.zeroize();
-        let route = if ad.wallet.seeds.pending_seed_entropy_valid {
-            crate::runtime::navigation::route!(StorageSeedDiceCountChoice)
-        } else {
-            crate::runtime::navigation::route!(SeedToolsMenu)
-        };
-        crate::runtime::effects::route(ad, route);
+        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageSeedDiceCountChoice));
         return true;
     }
 
@@ -64,23 +59,13 @@ fn add_roll(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, value
 fn generate_seed(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>) {
     boot_display.draw_saving_screen("Mixing dice entropy...");
     let mut dice = core::mem::replace(&mut ad.wallet.seeds.dice_collector, mnemonic::DiceCollector::new_12_word());
-    if ad.wallet.seeds.pending_seed_entropy_valid {
-        let rolls = dice.count;
-        if crate::runtime::interactions::menu::seed_generation::mix_dice_into_staged(ad, &mut dice) {
-            log!("   Added {} dice rolls; optional touch choice follows", rolls);
-        } else {
-            log!("   Additive dice entropy rejected");
-            crate::runtime::interactions::persistence::retry_seed_source_choice(ad);
-        }
-        return;
+    let rolls = dice.count;
+    if crate::runtime::interactions::menu::seed_generation::mix_dice_into_staged(ad, &mut dice) {
+        log!("   Added {} dice rolls; optional touch choice follows", rolls);
+    } else {
+        log!("   Additive dice entropy rejected");
+        crate::runtime::interactions::persistence::retry_seed_source_choice(ad);
     }
-
-    let word_count = if dice.target >= 198 { 24 } else { 12 };
-    ad.wallet.seeds.mnemonic_indices = mnemonic::generate_from_dice(word_count, &mut dice);
-    ad.wallet.seeds.word_count = word_count;
-    log!("   Dice seed generated ({} words)", word_count);
-    ad.wallet.seeds.pp_input.reset();
-    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(PassphraseChoice));
 }
 
 fn update_progress(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {

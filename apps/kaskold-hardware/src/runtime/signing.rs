@@ -28,14 +28,15 @@ mod workflow_test;
 pub(crate) use derivation::derive_slot_seed;
 #[cfg(all(feature = "workflow-test-auto", not(feature = "workflow-runtime-auto")))]
 pub(crate) use derivation::install_workflow_receive_fixture;
+#[cfg(any(feature = "workflow-test-auto", all(feature = "m5stack", feature = "hardware-tests")))]
+pub use derivation::populate_active_pubkeys_with_checkpoint;
 pub(crate) use derivation::zeroize_seed;
 #[cfg(feature = "workflow-test-auto")]
 pub use derivation::{derive_active_account_key, derive_active_seed};
 pub use derivation::{
     derive_active_account_key_with_checkpoint, derive_active_private_key_with_checkpoint,
     derive_active_seed_with_checkpoint, derive_change_pubkey_from_acct, derive_pubkey_from_acct,
-    derive_slot_pubkeys_with_checkpoint, populate_active_pubkeys_with_checkpoint,
-    serialize_active_xprv_with_checkpoint,
+    derive_slot_pubkeys_with_checkpoint, serialize_active_xprv_with_checkpoint,
 };
 #[cfg(any(test, all(feature = "m5stack", feature = "hardware-tests")))]
 pub use kspt::sign_and_serialize_multi;

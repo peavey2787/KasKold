@@ -26,16 +26,8 @@ pub struct NavigationState {
     pub(crate) committed_state: crate::runtime::input::AppState,
     pub(crate) app: crate::runtime::input::WalletApp,
     pub(crate) history: NavigationHistory,
-    pub seed_tools_menu: crate::runtime::input::Menu,
-    pub import_menu: crate::runtime::input::Menu,
-    pub single_sig_menu: crate::runtime::input::Menu,
     pub multisig_menu: crate::runtime::input::Menu,
     pub multisig_descriptors_menu: crate::runtime::input::Menu,
-    pub export_menu: crate::runtime::input::Menu,
-    pub seed_backup_menu: crate::runtime::input::Menu,
-    pub watch_only_menu: crate::runtime::input::Menu,
-    pub signing_keys_menu: crate::runtime::input::Menu,
-    pub qr_export_menu: crate::runtime::input::Menu,
     pub xprv_export_menu: crate::runtime::input::Menu,
     pub settings_menu: crate::runtime::input::Menu,
     pub production: ProductionNavigationState,
@@ -56,31 +48,11 @@ impl NavigationState {
             committed_state: crate::runtime::input::AppState::MainMenu,
             app: crate::runtime::input::WalletApp::new(),
             history: NavigationHistory::new(),
-            seed_tools_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::SEED_TOOLS_LABELS,
-            ),
-            import_menu: crate::runtime::input::Menu::from_items(crate::runtime::navigation::ui_graph::IMPORT_LABELS),
-            single_sig_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::SINGLE_SIG_LABELS,
-            ),
             multisig_menu: crate::runtime::input::Menu::from_items(
                 crate::runtime::navigation::ui_graph::MULTISIG_LABELS,
             ),
             multisig_descriptors_menu: crate::runtime::input::Menu::from_items(
                 crate::runtime::navigation::ui_graph::MULTISIG_DESCRIPTOR_LABELS,
-            ),
-            export_menu: crate::runtime::input::Menu::from_items(crate::runtime::navigation::ui_graph::EXPORT_LABELS),
-            seed_backup_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::SEED_BACKUP_LABELS,
-            ),
-            watch_only_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::WATCH_ONLY_LABELS,
-            ),
-            signing_keys_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::SIGNING_KEYS_LABELS,
-            ),
-            qr_export_menu: crate::runtime::input::Menu::from_items(
-                crate::runtime::navigation::ui_graph::QR_EXPORT_LABELS,
             ),
             xprv_export_menu: crate::runtime::input::Menu::from_items(
                 crate::runtime::navigation::ui_graph::XPRV_EXPORT_LABELS,

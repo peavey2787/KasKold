@@ -124,18 +124,6 @@ fn seeds_reach_stego_only_through_the_backup_entry() {
         SeedsMenu,
         StegoModeSelect
     ));
-    assert!(allowed(
-        Owner::Export,
-        Owner::Stego,
-        ImportMenu,
-        StegoImportPick
-    ));
-    assert!(!allowed(
-        Owner::Export,
-        Owner::Stego,
-        ImportExportChoice,
-        StegoImportPick
-    ));
 }
 
 #[test]
@@ -269,14 +257,6 @@ fn fixed_screens_have_one_owner() {
     assert_eq!(
         owner_for_intent(Intent::None, SeedList, Owner::Main),
         Owner::Seeds
-    );
-    assert_eq!(
-        owner_for_intent(Intent::None, ImportMenu, Owner::Main),
-        Owner::Export
-    );
-    assert_eq!(
-        owner_for_intent(Intent::None, SingleSigMenu, Owner::Main),
-        Owner::Signing
     );
     assert_eq!(
         owner_for_intent(Intent::None, MultisigMenu, Owner::Main),

@@ -44,33 +44,18 @@ pub fn process_step(
         fail(ad, boot_display, delay, "Touch entropy incomplete");
         return true;
     };
-    if ad.wallet.seeds.pending_seed_entropy_valid {
-        crate::services::entropy::mix_additive_touch(&mut ad.wallet.seeds.pending_seed_entropy, &mut touch_digest);
-        if crate::runtime::interactions::menu::seed_generation::finalize_staged_entropy(ad) {
-            log!("   Added touch transcript to checked staged entropy");
-        } else {
-            fail(ad, boot_display, delay, "Staged entropy unavailable");
-        }
-        ad.runtime.needs_redraw = true;
+    if !ad.wallet.seeds.pending_seed_entropy_valid {
+        fail(ad, boot_display, delay, "Staged entropy unavailable");
         return true;
     }
-
-    match crate::services::entropy::harden_touch_entropy(&mut touch_digest) {
-        Ok(mut pool) => {
-            let wc = if ad.wallet.seeds.word_count == 24 { 24 } else { 12 };
-            let entropy_len = if wc == 24 { 32 } else { 16 };
-            ad.wallet.seeds.mnemonic_indices = crate::wallet::mnemonic::generate_from_entropy(wc, &pool[..entropy_len]);
-            crate::services::entropy::zeroize(&mut pool);
-            ad.wallet.seeds.pp_input.reset();
-            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(PassphraseChoice));
-            true
-        }
-        Err(error) => {
-            crate::services::entropy::zeroize(&mut touch_digest);
-            fail(ad, boot_display, delay, error.message());
-            true
-        }
+    crate::services::entropy::mix_additive_touch(&mut ad.wallet.seeds.pending_seed_entropy, &mut touch_digest);
+    if crate::runtime::interactions::menu::seed_generation::finalize_staged_entropy(ad) {
+        log!("   Added touch transcript to checked staged entropy");
+    } else {
+        fail(ad, boot_display, delay, "Staged entropy unavailable");
     }
+    ad.runtime.needs_redraw = true;
+    true
 }
 
 fn fail(
@@ -94,6 +79,6 @@ fn fail(
             crate::runtime::navigation::route!(StorageSeedWordCountChoice { action: 0 }),
         );
     } else {
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedToolsMenu));
+        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ChooseWordCount { action: 0 }));
     }
 }

@@ -91,7 +91,7 @@ pub fn reset_decoder() {
     DECODER.with(|cell| cell.borrow_mut().reset());
 }
 
-/// Returns "0/0" while idle; otherwise the legacy Companion progress JSON shape.
+/// Returns "0/0" while idle; otherwise the progress as JSON.
 pub fn decoder_progress() -> String {
     DECODER.with(|cell| {
         let progress = cell.borrow().progress();

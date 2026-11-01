@@ -2,7 +2,7 @@ import { covenantState, navigationState, networkState, walletSession } from '../
 import { showScreen } from '../../../app/navigation.js';
 import { byId } from '../../../core/dom.js';
 import { kasToSompi, sompiToKasString } from '../../../core/amounts.js';
-import { exactUnsigned } from '../../../core/exact.js';
+import { exactJsonStringify, exactUnsigned } from '../../../core/exact.js';
 import { resolveFutureDaa } from '../../../core/node/future_daa.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';
 import { toast } from '../../../core/ui/toast.js';
@@ -287,7 +287,7 @@ async function buildMyClaim() {
     const utxo = await expectedFunding(privateSwapState.counterAddress, privateSwapState.counterAmountSompi, 'counterparty');
     const fee = getCovFee(1); if (fee > private_swap_max_fee_sompi()) throw new Error('Current claim fee exceeds the Private Swap covenant hard ceiling');
     if (fee >= BigInt(privateSwapState.counterAmountSompi)) throw new Error('Swap amount is too small for the claim fee');
-    const pskb = await create_private_swap_claim(privateSwapState.counterAddress, privateSwapState.myDestination, privateSwapState.counterRedeem, JSON.stringify([utxo]), fee);
+    const pskb = await create_private_swap_claim(privateSwapState.counterAddress, privateSwapState.myDestination, privateSwapState.counterRedeem, exactJsonStringify([utxo]), fee);
     const kspt = pskt_relay_to_kspt(pskb, networkState.network);
     const sighash = private_swap_claim_sighash(kspt);
     return {
@@ -313,7 +313,7 @@ async function ensureMyClaimTransaction() {
     }
     const pskb = await create_private_swap_claim(
         privateSwapState.counterAddress, privateSwapState.myDestination, privateSwapState.counterRedeem,
-        JSON.stringify([utxo]), fee,
+        exactJsonStringify([utxo]), fee,
     );
     const kspt = pskt_relay_to_kspt(pskb, networkState.network);
     const sighash = private_swap_claim_sighash(kspt);
@@ -330,7 +330,7 @@ async function acceptAlicePreSignature(raw) {
         const pkg = parseAlicePreSignaturePackage(raw, privateSwapState.swapId);
         const ownFunding = await expectedFunding(privateSwapState.myAddress, privateSwapState.myAmountSompi, 'Bob');
         assertOutpoint(pkg.outpoint, ownFunding);
-        const expectedPskb = await create_private_swap_claim(privateSwapState.myAddress, privateSwapState.counterDestination, privateSwapState.myRedeem, JSON.stringify([ownFunding]), pkg.feeSompi);
+        const expectedPskb = await create_private_swap_claim(privateSwapState.myAddress, privateSwapState.counterDestination, privateSwapState.myRedeem, exactJsonStringify([ownFunding]), pkg.feeSompi);
         const expectedKspt = pskt_relay_to_kspt(expectedPskb, networkState.network);
         const expectedSighash = private_swap_claim_sighash(expectedKspt);
         if (expectedSighash !== pkg.sighash) throw new Error('Alice pre-signature is not bound to Bob’s exact funded claim transaction');
@@ -350,7 +350,7 @@ async function acceptBobReady(raw) {
         if (pkg.alicePresigHash !== ownHash) throw new Error('Bob did not acknowledge Alice’s exact pre-signature');
         const aliceFunding = await expectedFunding(privateSwapState.myAddress, privateSwapState.myAmountSompi, 'Alice');
         assertOutpoint(pkg.outpoint, aliceFunding);
-        const expectedPskb = await create_private_swap_claim(privateSwapState.myAddress, privateSwapState.counterDestination, privateSwapState.myRedeem, JSON.stringify([aliceFunding]), pkg.feeSompi);
+        const expectedPskb = await create_private_swap_claim(privateSwapState.myAddress, privateSwapState.counterDestination, privateSwapState.myRedeem, exactJsonStringify([aliceFunding]), pkg.feeSompi);
         const expectedKspt = pskt_relay_to_kspt(expectedPskb, networkState.network);
         const expectedSighash = private_swap_claim_sighash(expectedKspt);
         if (expectedSighash !== pkg.sighash) throw new Error('Bob ready acknowledgement is not bound to Alice’s exact funded UTXO');

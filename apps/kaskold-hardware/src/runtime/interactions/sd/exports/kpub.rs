@@ -180,7 +180,7 @@ pub(crate) fn handle_sd_kpub_filename(ctx: SdIoContext<'_, '_, '_>) -> bool {
         ctx,
         FilenameWorkflow {
             extension: *b"TXT",
-            back_state: crate::runtime::navigation::continuation!(WatchOnlyMenu),
+            back_state: crate::runtime::navigation::continuation!(WalletAdvancedMenu),
             filename_state: crate::runtime::input::AppState::SdKpubFilename,
             next_state: crate::runtime::navigation::continuation!(SdKpubEncryptAsk),
             redraw_if_exists: true,
@@ -193,11 +193,11 @@ pub(crate) fn handle_sd_kpub_encrypt_ask(ctx: SdIoContext<'_, '_, '_>) -> bool {
     run_encryption_prompt(
         ctx,
         EncryptionPromptWorkflow {
-            back_state: crate::runtime::navigation::continuation!(WatchOnlyMenu),
+            back_state: crate::runtime::navigation::continuation!(WalletAdvancedMenu),
             payload: EncryptionPayload::KpubExport { kind: TextFileKind::Kpub },
             password_back_state: crate::runtime::navigation::continuation!(SdKpubEncryptAsk),
-            encrypted_success_state: crate::runtime::navigation::continuation!(ExportChoice),
-            plain_destination: PromptDestination::Route(crate::runtime::navigation::continuation!(WatchOnlyMenu)),
+            encrypted_success_state: crate::runtime::navigation::continuation!(WalletAdvancedMenu),
+            plain_destination: PromptDestination::Route(crate::runtime::navigation::continuation!(WalletAdvancedMenu)),
             progress_message: "Saving kpub...",
             success_message: "kpub saved!",
         },

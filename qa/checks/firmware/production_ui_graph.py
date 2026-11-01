@@ -23,7 +23,6 @@ ALLOWED_OWNERS = {"Onboarding", "Main", "Seeds", "Settings", "Signing", "Export"
 ALLOWED_KINDS = {"Menu", "Choice", "Input", "Modal", "Result", "Screen"}
 ALLOWED_OPERATIONS = {"ConnectCompanion", "DeriveMultisigKpub", "SignTransaction"}
 ALLOWED_SPECIAL_BACK = {"-", "workflow-specific", "history"}
-ALLOWED_EXTERNAL_ENTRIES = {"ImportExportChoice": "external:legacy-import-export"}
 
 STATE_RE = re.compile(
     r"ui_state!\(\s*([A-Z][A-Za-z0-9_]*)\s*,\s*([A-Za-z]+)\s*,\s*([A-Za-z]+)\s*,\s*\"([^\"]+)\"\s*,\s*\"([^\"]+)\"\s*\)"
@@ -119,10 +118,8 @@ def validate_graph(root: Path) -> list[str]:
         if row["kind"] not in ALLOWED_KINDS:
             errors.append(f"{row['state']}: invalid UI kind {row['kind']}")
         entry = row["entry"]
-        if not (_is_state_ref(entry, state_set) or entry.startswith("boot:") or entry.startswith("external:")):
+        if not (_is_state_ref(entry, state_set) or entry.startswith("boot:")):
             errors.append(f"{row['state']}: invalid canonical entry {entry}")
-        if entry.startswith("external:") and ALLOWED_EXTERNAL_ENTRIES.get(row["state"]) != entry:
-            errors.append(f"{row['state']}: unapproved external UI-graph root {entry}")
         back = row["back"]
         if not (_is_state_ref(back, state_set) or back in ALLOWED_SPECIAL_BACK or back.startswith("dynamic:")):
             errors.append(f"{row['state']}: invalid Back metadata {back}")
@@ -137,7 +134,7 @@ def validate_graph(root: Path) -> list[str]:
                 break
             seen.add(cursor)
             entry = row_by_state[cursor]["entry"]
-            if entry.startswith(("boot:", "external:")):
+            if entry.startswith("boot:"):
                 break
             if entry not in row_by_state:
                 errors.append(f"{state}: canonical-entry target {entry} is not a graph state")
@@ -204,7 +201,6 @@ def build_document(root: Path) -> dict:
             item["operation"] for items in graph["menus"].values()
             for item in items if item.get("operation")
         }),
-        "external_entry_exceptions": ALLOWED_EXTERNAL_ENTRIES,
         "states": graph["states"],
         "menus": [
             {
@@ -250,9 +246,6 @@ def render_markdown(document: dict) -> str:
         out.append(
             f"| `{state['state']}` | {state['owner']} | {state['kind']} | `{state['entry']}` | `{state['back']}` |\n"
         )
-    out.append("\n## Explicit entry exceptions\n\n")
-    for state, reason in document["external_entry_exceptions"].items():
-        out.append(f"- `{state}`: `{reason}`. This is explicit so legacy reachability cannot be mistaken for a normal production root.\n")
     return "".join(out)
 
 

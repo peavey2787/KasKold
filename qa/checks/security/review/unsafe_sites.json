@@ -442,7 +442,7 @@
     },
     {
       "path": "apps/kaskold-hardware/src/runtime/data/qr.rs",
-      "line": 107,
+      "line": 108,
       "source": "pub(super) unsafe fn initialize_in_place(target: *mut Self) {",
       "fingerprint": "0ee777f1f8f7a58cccef10c1ce4cb7d4dcb956a4708a5cf65ef0294a4a302e23",
       "rationale": "Reviewed in-place QR-state initialization boundary: the raw pointer is supplied only from the exclusive uninitialized AppData slot, every QrState field is initialized before exposure, and the 16,320-byte outgoing secret buffer plus scan buffer are zeroed directly at their final internal-SRAM addresses without reading uninitialized storage.",

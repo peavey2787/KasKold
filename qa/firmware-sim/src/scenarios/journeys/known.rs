@@ -43,6 +43,9 @@ pub(super) const CHANGE_0: &str =
     "kaspa:qqnkyg4hha30lnjystpugz42yh3paurdylxfrsshk3jfstgy95elu2a8l3jcs";
 pub(super) const CHANGE_1: &str =
     "kaspa:qzs0tzq7c6atuvu7zsu3g6ln9lxmqvcxgspn57rrkp5ttcgy88prchay8zt9q";
+/// m/22'/111111'/0'/0/0 as a KIP-22 P2SH address over `<key> OP_CHECKSIG`.
+pub(super) const HIDDEN_KEY_RECEIVE_0: &str =
+    "kaspa:pq02dzckvs0g6hhl9s9c484fv0wsd93sltwct9symfad4yw062w5y4v4mtlxa";
 pub(super) const STRANGER_ADDRESS: &str =
     "kaspa:qpumuen7l8wthtz45p3ftn58pvrs9xlumvkuu2xet8egzkcklqtes4ypce9sf";
 pub(super) const TWENTY_FOUR_WORD_RECEIVE_0: &str =

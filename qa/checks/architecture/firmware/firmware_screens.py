@@ -16,7 +16,6 @@ def _check_screen_modules(root: Path) -> list[str]:
         screens_root / "components/qr_renderer.rs",
         screens_root / "navigation/mod.rs",
         screens_root / "dialogs/mod.rs",
-        screens_root / "dialogs/choices.rs",
         screens_root / "dialogs/destructive.rs",
         screens_root / "dialogs/firmware_update.rs",
         screens_root / "dialogs/popups.rs",
@@ -174,7 +173,7 @@ def _check_mnemonic_and_seed_ui(root: Path) -> list[str]:
                 f"({len(source.splitlines())} > {limit})"
             )
     mnemonic_facade = (mnemonic_root / "mod.rs").read_text(errors="ignore") if mnemonic_root.exists() else ""
-    for symbol in ("DiceCollector", "TouchEntropyCollector", "generate_from_entropy", "generate_from_dice", "WordInput", "validate"):
+    for symbol in ("DiceCollector", "TouchEntropyCollector", "generate_from_entropy", "WordInput", "validate"):
         if symbol not in mnemonic_facade:
             errors.append(f"wallet mnemonic façade is missing export: {symbol}")
     if "TOUCH_ENTROPY_TARGET" in mnemonic_facade:

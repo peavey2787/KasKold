@@ -4,9 +4,7 @@ use super::walk::{self, restore_the_known_wallet};
 use crate::harness::{app_state, discard_board, hold_up_qr, lower_qr, note, recall, Device};
 use crate::runtime::input::AppState;
 use esp_hal::board::sd;
-use std::time::Duration;
 
-const FORMAT_HOLD: Duration = Duration::from_secs(5);
 const BACKUP_FILE_ON_DISK: &[u8] = b"SD000001KAS";
 const WRONG_PASSWORD: &str = "wrong4horse";
 
@@ -67,12 +65,7 @@ fn restore_from_the_seedqr() {
 fn back_up_to_a_card() {
     let device = Device::boot_with_card();
     walk::unlock_with_pin(&device, PIN);
-    device.tap("Settings");
-    device.tap("Storage");
-    device.tap("Format FAT32");
-    device.hold("HOLD 4s TO FORMAT", FORMAT_HOLD);
-    device.wait_for_text("Format FAT32");
-    walk::go_home(&device);
+    walk::format_card(&device);
     device.tap("Wallet");
     device.tap("Backup");
     device.tap("Encrypted SD Card");

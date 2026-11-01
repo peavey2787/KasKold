@@ -1,10 +1,14 @@
 //! What a person does day to day once a wallet exists.
 use super::known::{self, PIN};
 use super::walk::{self, restore_the_known_wallet};
-use crate::harness::Device;
+use crate::harness::{app_state, Device};
+use crate::runtime::input::AppState;
 use crate::ui::layout::ADDRESS_QR_ZONE;
+use esp_hal::board::sd;
 use kaspa_portal::crypto::message::message_digest;
 use kaspa_portal::crypto::schnorr::{schnorr_verify, SchnorrSignature};
+use kaspa_portal::primitives::address::decode_address;
+use kaspa_portal::wallet::account::derivation::import_kpub;
 
 /// The event loop counts one idle tick per pass, and the default dim is 60,000 ticks.
 const POLLS_UNTIL_DIMMED: u64 = 60_100;
@@ -14,8 +18,14 @@ const WAKE_TAP: (u16, u16) = (160, 60);
 const MESSAGE: &str = "hello";
 const SIGNATURE_QR_TAP: (u16, u16) = (235, 173);
 const SIGNATURE_BYTES: usize = 64;
+const TAP_FOR_QR: (u16, u16) = (160, 120);
+const P2SH_VERSION: u8 = 0x08;
+const KPUB_PREFIX: &[u8] = b"kpub";
 
 journey!(a_receive_qr_scans_as_the_address_on_screen: restore_the_known_wallet, scan_the_receive_qr);
+journey!(a_hidden_key_address_commits_only_to_a_script_hash: restore_the_known_wallet, show_the_hidden_key_address);
+journey!(a_kpub_saved_to_a_card_derives_the_wallet_addresses: restore_the_known_wallet, save_the_kpub_to_a_card);
+journey!(a_kpub_is_not_saved_without_a_card: restore_the_known_wallet, refuse_the_kpub_without_a_card);
 journey!(a_signed_message_verifies_against_the_wallet_key: restore_the_known_wallet, sign_a_message);
 journey!(an_idle_screen_stays_open_unless_the_lock_is_on: restore_the_known_wallet, idle_without_the_lock);
 journey!(
@@ -34,6 +44,83 @@ fn scan_the_receive_qr() {
     device.tap_at(zone.x + zone.w / 2, zone.y + zone.h / 2);
     let scanned = String::from_utf8(device.wait_for_qr()).expect("address text");
     assert_eq!(scanned.to_lowercase(), known::RECEIVE_0);
+}
+
+fn show_the_hidden_key_address() {
+    let device = Device::boot();
+    walk::unlock_with_pin(&device, PIN);
+    walk::open_wallet_tools(&device);
+    device.tap("Hidden Key Addr");
+    device.expect_text("HIDDEN ADDRESS");
+    walk::expect_address(&device, known::HIDDEN_KEY_RECEIVE_0);
+    device.tap_at(TAP_FOR_QR.0, TAP_FOR_QR.1);
+    let scanned = String::from_utf8(device.wait_for_qr()).expect("address text");
+    assert_eq!(scanned.to_lowercase(), known::HIDDEN_KEY_RECEIVE_0);
+    let (version, _) = decode_address(&scanned.to_lowercase()).expect("an address");
+    assert_eq!(
+        version, P2SH_VERSION,
+        "the address must be pay-to-script-hash"
+    );
+    walk::go_back(&device);
+    walk::expect_address(&device, known::HIDDEN_KEY_RECEIVE_0);
+    walk::go_back(&device);
+    device.wait_for_text("Hidden Key Addr");
+    assert_eq!(
+        app_state().navigation.app.state,
+        AppState::WalletAdvancedMenu
+    );
+    device.tap("Hidden Key Addr");
+    walk::expect_address(&device, known::HIDDEN_KEY_RECEIVE_0);
+    walk::go_home(&device);
+    walk::open_receive(&device);
+    device.wait_for_text("RECEIVE");
+    walk::expect_address(&device, known::RECEIVE_0);
+}
+
+fn save_the_kpub_to_a_card() {
+    let device = Device::boot_with_card();
+    walk::unlock_with_pin(&device, PIN);
+    walk::format_card(&device);
+    walk::open_wallet_tools(&device);
+    device.tap("kpub to SD");
+    device.wait_for_text("KPUB FILENAME");
+    walk::go_back(&device);
+    device.wait_for_text("kpub to SD");
+    device.tap("kpub to SD");
+    device.wait_for_text("KPUB FILENAME");
+    walk::press_full_ok(&device);
+    device.wait_for_text("ENCRYPT FILE?");
+    walk::go_back(&device);
+    device.wait_for_text("KPUB FILENAME");
+    walk::press_full_ok(&device);
+    device.wait_for_text("ENCRYPT FILE?");
+    device.tap("No");
+    device.wait_for_text("kpub to SD");
+    let card = sd::image();
+    let start = card
+        .windows(KPUB_PREFIX.len())
+        .position(|window| window == KPUB_PREFIX)
+        .expect("the kpub reached the card");
+    let text: String = card[start..]
+        .iter()
+        .take_while(|byte| byte.is_ascii_alphanumeric() || **byte == b':')
+        .map(|&byte| char::from(byte))
+        .collect();
+    let wallet = import_kpub(&text, "kaspa").expect("a readable kpub");
+    assert_eq!(wallet.receive_addresses[0], known::RECEIVE_0);
+}
+
+fn refuse_the_kpub_without_a_card() {
+    let device = Device::boot();
+    walk::unlock_with_pin(&device, PIN);
+    walk::open_wallet_tools(&device);
+    device.tap("kpub to SD");
+    device.expect_was_shown("No SD card");
+    device.wait_for_text("kpub to SD");
+    assert_eq!(
+        app_state().navigation.app.state,
+        AppState::WalletAdvancedMenu
+    );
 }
 
 fn sign_a_message() {

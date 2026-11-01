@@ -334,7 +334,5 @@ pub fn reset_derived_state(ad: &mut AppData) {
         ad.wallet.addresses.cache_last_progress_at_ms = 0;
     }
     shared_signer::bytes::zeroize_bytes(&mut ad.wallet.keys.acct_key_raw);
-    shared_signer::bytes::zeroize_bytes(&mut ad.qr.scan.address);
-    ad.qr.scan.address_length = 0;
-    ad.qr.scan.address_valid = false;
+    ad.qr.scan.clear_address();
 }

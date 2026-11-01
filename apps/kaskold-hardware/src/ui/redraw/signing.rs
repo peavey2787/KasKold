@@ -22,7 +22,6 @@ use crate::runtime::{data::AppData, input::AppState};
 
 pub(super) fn redraw(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     match ad.navigation.app.state {
-        AppState::SignTxGuide => transaction::draw_guide(ad, boot_display),
         AppState::AntiKleptoRevealGuide => boot_display.draw_anti_klepto_reveal_guide(),
         AppState::ReviewTx { page } => transaction::draw_review(ad, boot_display, page),
         AppState::InspectUtxoSummary => transaction::draw_utxo_summary(ad, boot_display),

@@ -305,7 +305,6 @@ export function installOnboarding({ $, api, parse, show, status, showCreatedPhra
     refreshSavedWalletList,
     openWalletPicker,
     startCreation: (next = null) => startCreation('add', 'choice', next),
-    startSeedTool: (mode, next) => startCreation('add', mode, next),
     startRestore,
     applyStagedRestoreName,
   };

@@ -286,11 +286,6 @@ export function setStatus(state, label) {
     networkTag.textContent = isTestnet ? `[${networkState.network.toUpperCase()}]` : '';
     networkTag.classList.toggle('hidden', !isTestnet);
 }
-export function toggleGearMenu() {
-    // Retained for compatibility with older callers. The settings cog now opens
-    // Node Connection directly and no longer owns a secondary gear menu.
-    return false;
-}
 export function closeGearMenu() {
     byId('btn-header-settings')?.classList.remove('active');
 }

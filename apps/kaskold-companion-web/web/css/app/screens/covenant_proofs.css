@@ -1,6 +1,5 @@
 
 
-/* Component-owned styles migrated from one-use global utilities. */
 #btn-cov-cr-show-ct-qr { width:100%; margin-bottom:6px; font-size: 14px; }
 #btn-cov-oracle-beacon { width:100%; margin-bottom:8px; display:none; background:var(--teal); }
 #cov-balance-kas { font-size:20px; font-weight:600; color:var(--text-primary); }

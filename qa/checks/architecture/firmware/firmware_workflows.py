@@ -60,7 +60,7 @@ def _check_signing_and_bip85(root: Path) -> list[str]:
 
     signing_facade = firmware / "menu/signing.rs"
     signing_root = firmware / "menu/signing"
-    expected_signing = {"common.rs", "feedback.rs", "single_sig.rs", "multisig.rs"}
+    expected_signing = {"common.rs", "feedback.rs", "multisig.rs"}
     actual_signing = {path.name for path in signing_root.glob("*.rs")} if signing_root.exists() else set()
     if actual_signing != expected_signing:
         errors.append(
@@ -72,10 +72,6 @@ def _check_signing_and_bip85(root: Path) -> list[str]:
     )
     if len(signing_facade.read_text(errors="ignore").splitlines()) > 80:
         errors.append("signing-menu façade exceeds 80 lines")
-    if signing_source.count('"No seed loaded"') != 1:
-        errors.append("signing-menu seed-required feedback must have one shared implementation")
-    if 'draw_saving_screen("Deriving addresses...")' not in signing_source:
-        errors.append("signing-menu address preparation must use the shared progress screen")
 
     bip85_facade = firmware / "seed/bip85.rs"
     bip85_root = firmware / "seed/bip85"

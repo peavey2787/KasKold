@@ -54,8 +54,6 @@ macro_rules! route_touch {
                                 dvp_camera_opt: &mut $dvp_camera_opt,
                                 cam_dma_buf_opt: &mut $cam_dma_buf_opt,
                                 list_zones: &$list_zones,
-                                page_up_zone: &$page_up_zone,
-                                page_down_zone: &$page_down_zone,
                                 input,
                             },
                         )

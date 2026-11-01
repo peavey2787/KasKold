@@ -10,11 +10,7 @@ pub(super) fn handle(
     is_back: bool,
 ) -> bool {
     if is_back {
-        if ad.storage.persistence.device_storage_intent.is_seed_onboarding() {
-            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedRestoreMenu));
-        } else {
-            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ImportMenu));
-        }
+        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedRestoreMenu));
         return true;
     }
     if page_up_zone.contains(x, y) && ad.stego.import.jpeg_selected >= 4 {

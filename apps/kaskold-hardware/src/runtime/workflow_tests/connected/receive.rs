@@ -44,6 +44,8 @@ impl ReceiveContext<'_, '_, '_> {
     }
 }
 
+const WALLET_ADVANCED_ITEM: usize = 6;
+
 pub(super) fn exercise(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
@@ -80,7 +82,14 @@ pub(super) fn exercise(
 
 /// The hidden-key entry must produce a P2SH address and never the P2PK one.
 fn hidden_key_address(ctx: &mut ReceiveContext<'_, '_, '_>) -> bool {
-    crate::runtime::interactions::menu::seed_tools::address::open_kip22(
+    if !open_wallet_menu(ctx.ad)
+        || !crate::runtime::interactions::menu::primary::workflow_wallet_select(ctx.ad, WALLET_ADVANCED_ITEM)
+        || ctx.ad.navigation.app.state != AppState::WalletAdvancedMenu
+    {
+        log!("KASKOLD_WORKFLOW_TESTS: RECEIVE HIDDEN KEY FAILED");
+        return false;
+    }
+    crate::runtime::interactions::menu::wallet_tools::open_hidden_key_address(
         &mut *ctx.ad,
         &mut *ctx.display,
         &mut *ctx.delay,
@@ -90,21 +99,25 @@ fn hidden_key_address(ctx: &mut ReceiveContext<'_, '_, '_>) -> bool {
     let is_p2sh = offline_signer::address::decode_address(core::str::from_utf8(address).unwrap_or(""))
         .is_ok_and(|(version, _)| version == 0x08);
     let shown = ctx.ad.navigation.app.state == AppState::ShowAddress && ctx.ad.qr.scan.address_valid;
-    ctx.ad.qr.scan.address_length = 0;
+    ctx.ad.qr.scan.clear_address();
     if !is_p2sh || !shown {
         log!("KASKOLD_WORKFLOW_TESTS: RECEIVE HIDDEN KEY FAILED");
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: RECEIVE HIDDEN KEY OK");
-    true
+    open_receive(ctx.ad)
 }
 
-fn open_receive(ad: &mut AppData) -> bool {
+fn open_wallet_menu(ad: &mut AppData) -> bool {
     crate::runtime::effects::home(ad);
     let zone = crate::ui::layout::HOME_GRID_ZONES[2];
     crate::runtime::interactions::menu::handle_connected_root_probe(ad, zone.x + zone.w / 2, zone.y + zone.h / 2)
         && ad.navigation.app.state == AppState::SeedsMenu
         && crate::runtime::navigation::reconcile(ad)
+}
+
+fn open_receive(ad: &mut AppData) -> bool {
+    open_wallet_menu(ad)
         && crate::runtime::interactions::menu::primary::workflow_wallet_select(ad, 0)
         && ad.navigation.app.state == AppState::ShowAddress
         && crate::runtime::navigation::reconcile(ad)

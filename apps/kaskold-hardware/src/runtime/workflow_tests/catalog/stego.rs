@@ -9,7 +9,7 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         fixtures: F::SEED.union(F::SD_CARD),
         terminal: Ordinary,
         states: &[
-            ImportExportChoice,
+            BackupRecoveryMenu,
             StegoModeSelect,
             StegoSecuritySelect,
             StegoJpegPick,
@@ -55,7 +55,7 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         fixtures: F::SD_CARD,
         terminal: Ordinary,
         states: &[
-            ImportMenu,
+            AdvancedRestoreMenu,
             StegoImportPick,
             StegoImportDescChoice,
             StegoImportDescFile,

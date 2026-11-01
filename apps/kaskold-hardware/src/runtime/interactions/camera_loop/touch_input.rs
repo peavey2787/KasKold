@@ -18,7 +18,7 @@ pub(crate) fn route_camera_back(ad: &mut AppData) {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigAddKey { key_idx }));
     } else if ad.signing.covenant.phase == crate::runtime::data::CovenantSigningPhase::AwaitingReveal {
         ad.signing.covenant.reset();
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SingleSigMenu));
+        crate::runtime::effects::home(ad);
     } else if ad.navigation.app.state == crate::runtime::input::AppState::DecryptSecretScan {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(WalletAdvancedMenu));
     } else if ad.navigation.app.state == crate::runtime::input::AppState::SignMsgScan {

@@ -7,8 +7,8 @@ use embedded_graphics::{
 use embedded_iconoir::{icons::size24px, prelude::*};
 
 use super::{
-    ActionIcon, AudioIcon, CustomIcon, DeviceIcon, DocsIcon, EditorIcon, FinanceIcon, GitIcon, MediaIcon, MenuIcon,
-    OtherIcon, SecurityIcon, UsersIcon,
+    ActionIcon, AudioIcon, CustomIcon, DeviceIcon, DocsIcon, FinanceIcon, GitIcon, MediaIcon, MenuIcon, OtherIcon,
+    SecurityIcon, UsersIcon,
 };
 use crate::ui::display::{COLOR_BG, KASPA_TEAL};
 
@@ -26,7 +26,6 @@ pub(super) fn draw_classified_icon<D: DrawTarget<Color = Rgb565>>(display: &mut 
         MenuIcon::Custom(icon) => draw_custom_icon(display, position, icon),
         MenuIcon::Devices(icon) => draw_device_icon(display, position, icon),
         MenuIcon::Docs(icon) => draw_docs_icon(display, position, icon),
-        MenuIcon::Editor(icon) => draw_editor_icon(display, position, icon),
         MenuIcon::Finance(icon) => draw_finance_icon(display, position, icon),
         MenuIcon::Git(icon) => draw_git_icon(display, position, icon),
         MenuIcon::Media(icon) => draw_media_icon(display, position, icon),
@@ -89,9 +88,6 @@ fn draw_action_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Po
         ActionIcon::HelpCircle => {
             draw_embedded_icon!(display, position, size24px::actions::HelpCircle)
         }
-        ActionIcon::OpenNewWindow => {
-            draw_embedded_icon!(display, position, size24px::actions::OpenNewWindow)
-        }
         ActionIcon::Upload => draw_embedded_icon!(display, position, size24px::actions::Upload),
         ActionIcon::UploadSquare => {
             draw_embedded_icon!(display, position, size24px::actions::UploadSquare)
@@ -123,19 +119,7 @@ fn draw_device_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Po
 
 fn draw_docs_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: DocsIcon) {
     match icon {
-        DocsIcon::AddFolder => draw_embedded_icon!(display, position, size24px::docs::AddFolder),
         DocsIcon::Page => draw_embedded_icon!(display, position, size24px::docs::Page),
-    }
-}
-
-fn draw_editor_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: EditorIcon) {
-    match icon {
-        EditorIcon::EditPencil => {
-            draw_embedded_icon!(display, position, size24px::editor::EditPencil)
-        }
-        EditorIcon::NumberedListRight => {
-            draw_embedded_icon!(display, position, size24px::editor::NumberedListRight)
-        }
     }
 }
 

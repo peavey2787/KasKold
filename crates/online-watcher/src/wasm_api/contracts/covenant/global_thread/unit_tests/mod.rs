@@ -37,7 +37,7 @@ fn wallet_json() -> String {
 }
 
 fn thread_json(amount: u64) -> String {
-    json!({"tx_id": "11".repeat(32), "index": 0, "amount": amount}).to_string()
+    json!({"tx_id": "11".repeat(32), "index": 0, "amount": amount.to_string()}).to_string()
 }
 
 fn topup_request<'a>(
@@ -74,7 +74,7 @@ fn global_thread_withdrawal_covers_allowance_spending_limit_and_invalid_inputs()
     );
     let covenant = crate::protocol::script::p2sh::script_to_address(&allowance, "kaspa").unwrap();
     let selected = json!([
-        {"tx_id": "11".repeat(32), "index": 0, "amount": 100_000_000, "block_daa_score": 1}
+        {"tx_id": "11".repeat(32), "index": 0, "amount": "100000000", "block_daa_score": "1"}
     ])
     .to_string();
     let prepared = build_withdrawal_core(WithdrawalRequest {

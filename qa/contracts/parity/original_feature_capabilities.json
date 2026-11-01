@@ -118,7 +118,7 @@
         ],
         "paths": [
           "apps/kaskold-hardware/src/wallet/mnemonic/dice.rs",
-          "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/dice.rs"
+          "apps/kaskold-hardware/src/runtime/interactions/onboarding/dice.rs"
         ],
         "status": "parity"
       },

@@ -11,8 +11,8 @@ fn selected_sweep_preparation_covers_valid_rows_and_all_validation_stages() {
     let source = address(1);
     let destination = address(2);
     let valid = json!([
-        {"tx_id": "11".repeat(32), "index": 1, "amount": 40},
-        {"tx_id": "22".repeat(32), "index": 2, "amount": 60}
+        {"tx_id": "11".repeat(32), "index": 1, "amount": "40"},
+        {"tx_id": "22".repeat(32), "index": 2, "amount": "60"}
     ])
     .to_string();
     let prepared =
@@ -37,16 +37,16 @@ fn selected_sweep_preparation_covers_valid_rows_and_all_validation_stages() {
         );
     }
 
-    let missing = json!([{"index": 0, "amount": 1}]).to_string();
+    let missing = json!([{"index": 0, "amount": "1"}]).to_string();
     assert_eq!(
         prepare_selected_sweep(&missing, &source, &destination, 0, "missing", "low",)
             .err()
             .map(|error| error.to_string())
             .as_deref(),
-        Some("Bad UTXO JSON: missing field `tx_id` at line 1 column 23")
+        Some("Bad UTXO JSON: missing field `tx_id` at line 1 column 25")
     );
 
-    let bad_txid = json!([{"tx_id": "zz", "index": 0, "amount": 1}]).to_string();
+    let bad_txid = json!([{"tx_id": "zz", "index": 0, "amount": "1"}]).to_string();
     assert_eq!(
         prepare_selected_sweep(&bad_txid, &source, &destination, 0, "missing", "low",)
             .err()
@@ -58,7 +58,7 @@ fn selected_sweep_preparation_covers_valid_rows_and_all_validation_stages() {
     let large_index = json!([{
         "tx_id": "11".repeat(32),
         "index": u64::from(u32::MAX) + 1,
-        "amount": 1
+        "amount": "1"
     }])
     .to_string();
     assert_eq!(
@@ -78,11 +78,17 @@ fn selected_sweep_preparation_covers_valid_rows_and_all_validation_stages() {
     );
 
     let overflow = json!([
-        {"tx_id": "11".repeat(32), "index": 0, "amount": u64::MAX},
-        {"tx_id": "22".repeat(32), "index": 1, "amount": 1}
+        {"tx_id": "11".repeat(32), "index": 0, "amount": u64::MAX.to_string()},
+        {"tx_id": "22".repeat(32), "index": 1, "amount": "1"}
     ])
     .to_string();
-    assert_eq!(prepare_selected_sweep(&overflow, &source, &destination, 0, "missing", "low",).err().map(|error| error.to_string()).as_deref(), Some("Bad UTXO JSON: unsafe JSON integer above JavaScript Number.MAX_SAFE_INTEGER; use a decimal string at line 1 column 31"));
+    assert_eq!(
+        prepare_selected_sweep(&overflow, &source, &destination, 0, "missing", "low",)
+            .err()
+            .map(|error| error.to_string())
+            .as_deref(),
+        Some("UTXO total overflow")
+    );
 }
 
 fn utxo(byte: u8, amount: u64) -> crate::account::utxo::UtxoEntry {

@@ -19,10 +19,10 @@ pub(super) fn prepare(ad: &mut AppData) {
 }
 
 pub(super) fn target(ad: &AppData) -> Option<AppState> {
-    seed_or_multisig_target(ad)
-        .or_else(|| production_target(ad))
-        .or_else(|| platform_target(ad))
-        .or_else(|| developer_target(ad))
+    let target = seed_or_multisig_target(ad).or_else(|| production_target(ad)).or_else(|| platform_target(ad));
+    #[cfg(feature = "workflow-tests")]
+    let target = target.or_else(|| workflow_tests_target(ad));
+    target
 }
 
 fn seed_or_multisig_target(ad: &AppData) -> Option<AppState> {
@@ -67,18 +67,13 @@ fn platform_target(ad: &AppData) -> Option<AppState> {
     })
 }
 
-fn developer_target(ad: &AppData) -> Option<AppState> {
+#[cfg(feature = "workflow-tests")]
+fn workflow_tests_target(ad: &AppData) -> Option<AppState> {
     use AppState::*;
     Some(match ad.navigation.app.state {
-        SeedToolsMenu | ImportExportChoice | SingleSigMenu => SeedsMenu,
-        ImportMenu => ImportExportChoice,
-        #[cfg(feature = "workflow-tests")]
         WorkflowTestsMenu => ad.navigation.workflow_tests_return.state(),
-        #[cfg(feature = "workflow-tests")]
         WorkflowTestsCategory { .. } => WorkflowTestsMenu,
-        #[cfg(feature = "workflow-tests")]
         WorkflowTestsResult if ad.workflow_tests.result.ran_all => WorkflowTestsMenu,
-        #[cfg(feature = "workflow-tests")]
         WorkflowTestsResult => WorkflowTestsCategory { category: ad.workflow_tests.selected_category },
         _ => return None,
     })

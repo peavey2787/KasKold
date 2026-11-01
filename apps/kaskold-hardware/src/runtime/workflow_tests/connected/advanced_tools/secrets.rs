@@ -8,8 +8,7 @@ const SALT: [u8; 8] = [0x42; 8];
 pub(super) fn exercise(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     let commit_ok = commit_secret(ctx);
     let decrypt_ok = if commit_ok { decrypt_secret(ctx) } else { false };
-    let caller_ok = caller_return_owners(ctx);
-    commit_ok && decrypt_ok && caller_ok
+    commit_ok && decrypt_ok
 }
 
 fn commit_secret(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
@@ -116,42 +115,6 @@ fn wrong_recipient_rejects(ctx: &mut AdvancedToolsContext<'_, '_, '_>, ciphertex
     }
     crate::runtime::interactions::camera_loop::workflow_process_pending_payload(ciphertext_hex, ctx.ad)
         && ctx.ad.navigation.app.state == AppState::DecryptSecretScan
-}
-
-fn caller_return_owners(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
-    if !crate::services::wallet_session::install_workflow_backup_mnemonic_fixture(ctx.ad) {
-        return false;
-    }
-    if !single_sig_tool(ctx, 3, AppState::CommitRevealType) {
-        return false;
-    }
-    crate::runtime::effects::route(ctx.ad, crate::runtime::navigation::route!(SingleSigMenu));
-    ctx.ad.navigation.single_sig_menu.reset();
-    if ctx.menu_touch(ctx.down.x + 20, ctx.down.y + 20, false) != Some(true)
-        || ctx.ad.navigation.single_sig_menu.scroll != 4
-    {
-        return false;
-    }
-    let zone = ctx.list[0];
-    if ctx.menu_touch(zone.x + zone.w / 2, zone.y + zone.h / 2, false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::DecryptSecretScan
-        || ctx.tx_touch(20, 20, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::SingleSigMenu
-    {
-        return false;
-    }
-    log!("KASKOLD_WORKFLOW_TESTS: ADVANCED SECRET-TOOLS SINGLE-SIG PAGING/RETURN-OWNER PASS");
-    true
-}
-
-fn single_sig_tool(ctx: &mut AdvancedToolsContext<'_, '_, '_>, item: usize, expected: AppState) -> bool {
-    crate::runtime::effects::route(ctx.ad, crate::runtime::navigation::route!(SingleSigMenu));
-    ctx.ad.navigation.single_sig_menu.reset();
-    let zone = ctx.list[item];
-    ctx.menu_touch(zone.x + zone.w / 2, zone.y + zone.h / 2, false) == Some(true)
-        && ctx.ad.navigation.app.state == expected
-        && ctx.tx_touch(20, 20, true) == Some(true)
-        && ctx.ad.navigation.app.state == AppState::SingleSigMenu
 }
 
 fn encode_hex(input: &[u8], output: &mut [u8]) -> Option<usize> {

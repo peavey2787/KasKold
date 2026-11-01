@@ -5,19 +5,16 @@
     "apps/kaskold-hardware/src/runtime/navigation/ui_graph/states.rs",
     "apps/kaskold-hardware/src/runtime/navigation/ui_graph/menus.rs"
   ],
-  "state_count": 187,
-  "menu_count": 23,
-  "menu_item_count": 93,
-  "unique_menu_label_count": 80,
-  "operation_menu_item_count": 4,
+  "state_count": 176,
+  "menu_count": 15,
+  "menu_item_count": 64,
+  "unique_menu_label_count": 58,
+  "operation_menu_item_count": 3,
   "operation_kinds": [
     "ConnectCompanion",
     "DeriveMultisigKpub",
     "SignTransaction"
   ],
-  "external_entry_exceptions": {
-    "ImportExportChoice": "external:legacy-import-export"
-  },
   "states": [
     {
       "state": "About",
@@ -37,7 +34,7 @@
       "state": "AddrIndexPicker",
       "owner": "Export",
       "kind": "Input",
-      "entry": "SeedToolsMenu",
+      "entry": "ShowAddress",
       "back": "workflow-specific"
     },
     {
@@ -363,24 +360,17 @@
       "back": "SettingsMenu"
     },
     {
-      "state": "ExportChoice",
-      "owner": "Export",
-      "kind": "Menu",
-      "entry": "XprvExportMenu",
-      "back": "SeedList"
-    },
-    {
       "state": "ExportCompactSeedQR",
       "owner": "Export",
       "kind": "Screen",
-      "entry": "QrExportMenu",
+      "entry": "BackupRecoveryMenu",
       "back": "workflow-specific"
     },
     {
       "state": "ExportKpub",
       "owner": "Export",
       "kind": "Screen",
-      "entry": "WatchOnlyMenu",
+      "entry": "MainMenu",
       "back": "workflow-specific"
     },
     {
@@ -394,7 +384,7 @@
       "state": "ExportPlainWordsQR",
       "owner": "Export",
       "kind": "Input",
-      "entry": "QrExportMenu",
+      "entry": "BackupRecoveryMenu",
       "back": "workflow-specific"
     },
     {
@@ -408,49 +398,28 @@
       "state": "ExportPrivKeyIndex",
       "owner": "Export",
       "kind": "Input",
-      "entry": "SigningKeysMenu",
+      "entry": "BackupRecoveryMenu",
       "back": "workflow-specific"
     },
     {
       "state": "ExportSeedQR",
       "owner": "Export",
       "kind": "Screen",
-      "entry": "QrExportMenu",
+      "entry": "WalletBackupMethodsMenu",
       "back": "workflow-specific"
     },
     {
       "state": "ExportXprv",
       "owner": "Export",
       "kind": "Screen",
-      "entry": "ExportChoice",
+      "entry": "XprvExportMenu",
       "back": "workflow-specific"
-    },
-    {
-      "state": "ImportExportChoice",
-      "owner": "Export",
-      "kind": "Choice",
-      "entry": "external:legacy-import-export",
-      "back": "SeedsMenu"
-    },
-    {
-      "state": "ImportMenu",
-      "owner": "Export",
-      "kind": "Menu",
-      "entry": "ImportExportChoice",
-      "back": "ImportExportChoice"
     },
     {
       "state": "ImportPrivKey",
       "owner": "Dynamic",
       "kind": "Screen",
-      "entry": "ImportMenu",
-      "back": "workflow-specific"
-    },
-    {
-      "state": "ImportWord",
-      "owner": "Seeds",
-      "kind": "Input",
-      "entry": "ChooseWordCount",
+      "entry": "SdImportMenu",
       "back": "workflow-specific"
     },
     {
@@ -629,13 +598,6 @@
       "back": "workflow-specific"
     },
     {
-      "state": "QrExportMenu",
-      "owner": "Export",
-      "kind": "Menu",
-      "entry": "SeedBackupMenu",
-      "back": "SeedBackupMenu"
-    },
-    {
       "state": "Rejected",
       "owner": "Signing",
       "kind": "Modal",
@@ -667,14 +629,14 @@
       "state": "ScanQR",
       "owner": "Dynamic",
       "kind": "Screen",
-      "entry": "SingleSigMenu",
+      "entry": "MainMenu",
       "back": "workflow-specific"
     },
     {
       "state": "SdBackupWarning",
       "owner": "Storage",
       "kind": "Modal",
-      "entry": "SeedBackupMenu",
+      "entry": "WalletBackupMethodsMenu",
       "back": "workflow-specific"
     },
     {
@@ -709,7 +671,7 @@
       "state": "SdImportMenu",
       "owner": "Storage",
       "kind": "Menu",
-      "entry": "ImportMenu",
+      "entry": "SeedsMenu",
       "back": "history"
     },
     {
@@ -730,7 +692,7 @@
       "state": "SdKpubFilename",
       "owner": "Storage",
       "kind": "Input",
-      "entry": "WatchOnlyMenu",
+      "entry": "WalletAdvancedMenu",
       "back": "workflow-specific"
     },
     {
@@ -821,7 +783,7 @@
       "state": "SdWalletBackupFileList",
       "owner": "Storage",
       "kind": "Screen",
-      "entry": "ImportMenu",
+      "entry": "SdImportMenu",
       "back": "workflow-specific"
     },
     {
@@ -849,15 +811,8 @@
       "state": "SeedBackup",
       "owner": "Dynamic",
       "kind": "Screen",
-      "entry": "SeedBackupMenu",
+      "entry": "WalletBackupMethodsMenu",
       "back": "workflow-specific"
-    },
-    {
-      "state": "SeedBackupMenu",
-      "owner": "Export",
-      "kind": "Menu",
-      "entry": "ImportExportChoice",
-      "back": "ExportChoice"
     },
     {
       "state": "SeedEntropyUnavailable",
@@ -879,13 +834,6 @@
       "kind": "Screen",
       "entry": "ExportCompactSeedQR",
       "back": "workflow-specific"
-    },
-    {
-      "state": "SeedToolsMenu",
-      "owner": "Seeds",
-      "kind": "Menu",
-      "entry": "ShowAddress",
-      "back": "SeedsMenu"
     },
     {
       "state": "SeedsMenu",
@@ -986,32 +934,11 @@
       "back": "workflow-specific"
     },
     {
-      "state": "SignTxGuide",
-      "owner": "Signing",
-      "kind": "Screen",
-      "entry": "SingleSigMenu",
-      "back": "workflow-specific"
-    },
-    {
       "state": "AntiKleptoRevealGuide",
       "owner": "Signing",
       "kind": "Modal",
       "entry": "ShowQR",
       "back": "workflow-specific"
-    },
-    {
-      "state": "SigningKeysMenu",
-      "owner": "Export",
-      "kind": "Menu",
-      "entry": "ImportExportChoice",
-      "back": "ExportChoice"
-    },
-    {
-      "state": "SingleSigMenu",
-      "owner": "Signing",
-      "kind": "Menu",
-      "entry": "MainMenu",
-      "back": "SeedsMenu"
     },
     {
       "state": "StegoHintPassphrase",
@@ -1052,7 +979,7 @@
       "state": "StegoImportPick",
       "owner": "Stego",
       "kind": "Screen",
-      "entry": "ImportMenu",
+      "entry": "AdvancedRestoreMenu",
       "back": "workflow-specific"
     },
     {
@@ -1129,7 +1056,7 @@
       "state": "StegoModeSelect",
       "owner": "Stego",
       "kind": "Screen",
-      "entry": "ImportExportChoice",
+      "entry": "BackupRecoveryMenu",
       "back": "workflow-specific"
     },
     {
@@ -1315,17 +1242,10 @@
       "back": "workflow-specific"
     },
     {
-      "state": "WatchOnlyMenu",
-      "owner": "Export",
-      "kind": "Menu",
-      "entry": "ImportExportChoice",
-      "back": "ExportChoice"
-    },
-    {
       "state": "XprvExportMenu",
       "owner": "Export",
       "kind": "Menu",
-      "entry": "SigningKeysMenu",
+      "entry": "BackupRecoveryMenu",
       "back": "history"
     }
   ],
@@ -1563,6 +1483,22 @@
           "destination": "DecryptSecretScan",
           "guard": "seed_loaded",
           "operation": null
+        },
+        {
+          "index": 4,
+          "label": "Hidden Key Addr",
+          "action": "wallet.advanced.kip22_address",
+          "destination": "ShowAddress",
+          "guard": "mnemonic_wallet",
+          "operation": null
+        },
+        {
+          "index": 5,
+          "label": "kpub to SD",
+          "action": "wallet.advanced.kpub_sd",
+          "destination": "SdKpubFilename",
+          "guard": "sd_present_and_seed_loaded",
+          "operation": null
         }
       ]
     },
@@ -1743,152 +1679,6 @@
       ]
     },
     {
-      "state": "SeedToolsMenu",
-      "back": "SeedsMenu",
-      "items": [
-        {
-          "index": 0,
-          "label": "New Seed",
-          "action": "seed_tools.new_seed",
-          "destination": "ChooseWordCount",
-          "guard": "always",
-          "operation": null
-        },
-        {
-          "index": 1,
-          "label": "Dice Seed",
-          "action": "seed_tools.dice_seed",
-          "destination": "ChooseWordCount",
-          "guard": "always",
-          "operation": null
-        },
-        {
-          "index": 2,
-          "label": "Touch Seed",
-          "action": "seed_tools.touch_seed",
-          "destination": "ChooseWordCount",
-          "guard": "always",
-          "operation": null
-        },
-        {
-          "index": 3,
-          "label": "Import Words",
-          "action": "seed_tools.import_words",
-          "destination": "ChooseWordCount",
-          "guard": "always",
-          "operation": null
-        },
-        {
-          "index": 4,
-          "label": "Address",
-          "action": "seed_tools.address",
-          "destination": "ShowAddress",
-          "guard": "seed_loaded",
-          "operation": null
-        },
-        {
-          "index": 5,
-          "label": "BIP85 Child",
-          "action": "seed_tools.bip85",
-          "destination": "ChooseWordCount",
-          "guard": "seed_loaded",
-          "operation": null
-        },
-        {
-          "index": 6,
-          "label": "Hidden Key Addr",
-          "action": "seed_tools.kip22_address",
-          "destination": "ShowAddress",
-          "guard": "seed_loaded",
-          "operation": null
-        }
-      ]
-    },
-    {
-      "state": "ImportMenu",
-      "back": "ImportExportChoice",
-      "items": [
-        {
-          "index": 0,
-          "label": "Import from SD",
-          "action": "import.sd",
-          "destination": "SdImportMenu",
-          "guard": "always",
-          "operation": null
-        },
-        {
-          "index": 1,
-          "label": "Stego Import",
-          "action": "import.stego",
-          "destination": "StegoImportPick",
-          "guard": "sd_jpeg_available",
-          "operation": null
-        },
-        {
-          "index": 2,
-          "label": "Import Raw Key",
-          "action": "import.raw_key",
-          "destination": "ImportPrivKey",
-          "guard": "always",
-          "operation": null
-        },
-        {
-          "index": 3,
-          "label": "Covenant Restore",
-          "action": "import.covenant",
-          "destination": "SdFileList",
-          "guard": "sd_covenant_available",
-          "operation": null
-        }
-      ]
-    },
-    {
-      "state": "SingleSigMenu",
-      "back": "SeedsMenu",
-      "items": [
-        {
-          "index": 0,
-          "label": "Sign TX",
-          "action": "signing.sign_tx",
-          "destination": "SignTxGuide",
-          "guard": "seed_loaded",
-          "operation": null
-        },
-        {
-          "index": 1,
-          "label": "Sign Message",
-          "action": "signing.sign_message",
-          "destination": "SignMsgChoice",
-          "guard": "seed_loaded",
-          "operation": null
-        },
-        {
-          "index": 2,
-          "label": "Covenant Sign",
-          "action": "signing.covenant",
-          "destination": "ScanQR",
-          "guard": "mnemonic_wallet",
-          "operation": null
-        },
-        {
-          "index": 3,
-          "label": "Commit Secret",
-          "action": "signing.commit_secret",
-          "destination": "CommitRevealType",
-          "guard": "seed_loaded",
-          "operation": null
-        },
-        {
-          "index": 4,
-          "label": "Decrypt Secret",
-          "action": "signing.decrypt_secret",
-          "destination": "DecryptSecretScan",
-          "guard": "seed_loaded",
-          "operation": null
-        }
-      ]
-    },
-    {
       "state": "MultisigMenu",
       "back": "history",
       "items": [
@@ -1952,156 +1742,6 @@
           "action": "multisig.descriptors.delete",
           "destination": "MultisigDescriptorList",
           "guard": "mnemonic_wallet",
-          "operation": null
-        }
-      ]
-    },
-    {
-      "state": "ExportChoice",
-      "back": "SeedList",
-      "items": [
-        {
-          "index": 0,
-          "label": "Seed Backup",
-          "action": "export.seed_backup",
-          "destination": "SeedBackupMenu",
-          "guard": "seed_loaded",
-          "operation": null
-        },
-        {
-          "index": 1,
-          "label": "Watch-Only",
-          "action": "export.watch_only",
-          "destination": "WatchOnlyMenu",
-          "guard": "seed_loaded",
-          "operation": null
-        },
-        {
-          "index": 2,
-          "label": "Signing Keys",
-          "action": "export.signing_keys",
-          "destination": "SigningKeysMenu",
-          "guard": "seed_loaded",
-          "operation": null
-        },
-        {
-          "index": 3,
-          "label": "Steganography",
-          "action": "export.stego",
-          "destination": "StegoModeSelect",
-          "guard": "seed_loaded",
-          "operation": null
-        }
-      ]
-    },
-    {
-      "state": "SeedBackupMenu",
-      "back": "ExportChoice",
-      "items": [
-        {
-          "index": 0,
-          "label": "Show Seed Words",
-          "action": "export.seed.words",
-          "destination": "SeedBackup",
-          "guard": "mnemonic_wallet",
-          "operation": null
-        },
-        {
-          "index": 1,
-          "label": "QR Export",
-          "action": "export.seed.qr",
-          "destination": "QrExportMenu",
-          "guard": "seed_loaded",
-          "operation": null
-        },
-        {
-          "index": 2,
-          "label": "Backup to SD",
-          "action": "export.seed.sd",
-          "destination": "SdBackupWarning",
-          "guard": "mnemonic_wallet",
-          "operation": null
-        }
-      ]
-    },
-    {
-      "state": "WatchOnlyMenu",
-      "back": "ExportChoice",
-      "items": [
-        {
-          "index": 0,
-          "label": "kpub as QR",
-          "action": "export.watch.kpub_qr",
-          "destination": "ExportKpub",
-          "guard": "seed_loaded",
-          "operation": null
-        },
-        {
-          "index": 1,
-          "label": "kpub to SD",
-          "action": "export.watch.kpub_sd",
-          "destination": "SdKpubFilename",
-          "guard": "sd_present_and_seed_loaded",
-          "operation": null
-        },
-        {
-          "index": 2,
-          "label": "kpub Multisig QR",
-          "action": "export.watch.multisig_kpub",
-          "destination": "WatchOnlyMenu",
-          "guard": "mnemonic_wallet",
-          "operation": "DeriveMultisigKpub"
-        }
-      ]
-    },
-    {
-      "state": "SigningKeysMenu",
-      "back": "ExportChoice",
-      "items": [
-        {
-          "index": 0,
-          "label": "xprv Account",
-          "action": "export.keys.xprv",
-          "destination": "XprvExportMenu",
-          "guard": "seed_loaded",
-          "operation": null
-        },
-        {
-          "index": 1,
-          "label": "Private Key",
-          "action": "export.keys.private",
-          "destination": "ExportPrivKeyIndex",
-          "guard": "seed_loaded",
-          "operation": null
-        }
-      ]
-    },
-    {
-      "state": "QrExportMenu",
-      "back": "SeedBackupMenu",
-      "items": [
-        {
-          "index": 0,
-          "label": "CompactSeedQR",
-          "action": "export.seedqr.compact",
-          "destination": "ExportCompactSeedQR",
-          "guard": "mnemonic_wallet",
-          "operation": null
-        },
-        {
-          "index": 1,
-          "label": "Standard SeedQR",
-          "action": "export.seedqr.standard",
-          "destination": "ExportSeedQR",
-          "guard": "mnemonic_wallet",
-          "operation": null
-        },
-        {
-          "index": 2,
-          "label": "Plain Text QR",
-          "action": "export.seedqr.plain",
-          "destination": "ExportPlainWordsQR",
-          "guard": "mnemonic_12_words",
           "operation": null
         }
       ]
@@ -2215,26 +1855,21 @@
   ],
   "unique_menu_labels": [
     "About",
-    "Address",
     "Advanced",
     "Audio",
-    "BIP85 Child",
     "BIP85 Child Wallet",
     "Backup",
     "Backup to SD",
     "Cancel",
     "Commit Secret",
     "Compact SeedQR",
-    "CompactSeedQR",
     "Confirm",
     "Connect",
     "Covenant Restore",
-    "Covenant Sign",
     "Create Multisig",
     "Decrypt Secret",
     "Delete",
     "Descriptors",
-    "Dice Seed",
     "Display",
     "Encrypt to SD",
     "Encrypted SD Card",
@@ -2244,19 +1879,13 @@
     "Firmware Update",
     "Hidden Key Addr",
     "Import Raw Key",
-    "Import Words",
-    "Import from SD",
     "Inspect",
     "Install from SD",
     "Multisig",
     "Multisig Address",
-    "New Seed",
     "Owner Firmware",
-    "Plain Text QR",
     "Plain-text SeedQR",
     "Pop It!",
-    "Private Key",
-    "QR Export",
     "Raw Private Key",
     "Receive",
     "Recovery",
@@ -2265,34 +1894,23 @@
     "Scan QR",
     "Security",
     "Seed / XPrv Backup",
-    "Seed Backup",
     "SeedQR",
     "SeedQR Backup",
     "Settings",
-    "Show Seed Words",
     "Show as QR",
     "Sign Message",
-    "Sign TX",
-    "Signing Keys",
-    "Standard SeedQR",
     "Steganographic",
-    "Steganography",
-    "Stego Import",
     "Storage",
     "Switch / Add Wallet",
-    "Touch Seed",
     "Transaction",
     "View",
     "View Words",
     "Wallet",
     "Wallet Details",
-    "Watch-Only",
     "Words",
     "XPrv Backup",
     "kpub (Watch-Only)",
     "kpub Multisig QR",
-    "kpub as QR",
-    "kpub to SD",
-    "xprv Account"
+    "kpub to SD"
   ]
 }

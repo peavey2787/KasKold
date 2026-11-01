@@ -8,7 +8,7 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         intent: DeviceStorageIntent::None,
         fixtures: F::SEED,
         terminal: Ordinary,
-        states: &[ImportExportChoice, SeedBackupMenu, SeedBackup { word_idx: 0 }, SeedBackupMenu],
+        states: &[SeedsMenu, WalletBackupMethodsMenu, SeedBackup { word_idx: 0 }, WalletBackupMethodsMenu],
     },
     WorkflowSpec {
         id: "backup-seedqr",
@@ -17,12 +17,10 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         fixtures: F::SEED,
         terminal: Ordinary,
         states: &[
-            ImportExportChoice,
-            SeedBackupMenu,
-            QrExportMenu,
+            WalletBackupMethodsMenu,
             ExportSeedQR,
             SeedQrGrid { pan_x: 0, pan_y: 0, compact: false },
-            QrExportMenu,
+            WalletBackupMethodsMenu,
         ],
     },
     WorkflowSpec {
@@ -31,7 +29,12 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         intent: DeviceStorageIntent::None,
         fixtures: F::SEED,
         terminal: Ordinary,
-        states: &[QrExportMenu, ExportCompactSeedQR, SeedQrGrid { pan_x: 0, pan_y: 0, compact: true }, QrExportMenu],
+        states: &[
+            BackupRecoveryMenu,
+            ExportCompactSeedQR,
+            SeedQrGrid { pan_x: 0, pan_y: 0, compact: true },
+            BackupRecoveryMenu,
+        ],
     },
     WorkflowSpec {
         id: "backup-plain-qr",
@@ -39,7 +42,7 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         intent: DeviceStorageIntent::None,
         fixtures: F::SEED,
         terminal: Ordinary,
-        states: &[QrExportMenu, ExportPlainWordsQR, QrExportMenu],
+        states: &[BackupRecoveryMenu, ExportPlainWordsQR, BackupRecoveryMenu],
     },
     WorkflowSpec {
         id: "watch-kpub-qr",
@@ -47,7 +50,7 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         intent: DeviceStorageIntent::None,
         fixtures: F::SEED,
         terminal: Ordinary,
-        states: &[ImportExportChoice, WatchOnlyMenu, ExportKpub, ExportKpubPopup, WatchOnlyMenu],
+        states: &[MainMenu, ExportKpub, ExportKpubPopup, MainMenu],
     },
     WorkflowSpec {
         id: "watch-kpub-sd",
@@ -55,7 +58,7 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         intent: DeviceStorageIntent::None,
         fixtures: F::SEED.union(F::SD_CARD),
         terminal: Ordinary,
-        states: &[WatchOnlyMenu, SdKpubFilename, SdKpubEncryptAsk, SdOverwriteWarning, WatchOnlyMenu],
+        states: &[WalletAdvancedMenu, SdKpubFilename, SdKpubEncryptAsk, SdOverwriteWarning, WalletAdvancedMenu],
     },
     WorkflowSpec {
         id: "xprv-export",
@@ -64,14 +67,12 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         fixtures: F::SEED.union(F::SD_CARD),
         terminal: Ordinary,
         states: &[
-            ImportExportChoice,
-            SigningKeysMenu,
+            BackupRecoveryMenu,
             XprvExportMenu,
-            ExportChoice,
             ExportXprv,
             SdXprvFilename,
             SdXprvExportPassphrase,
-            SigningKeysMenu,
+            BackupRecoveryMenu,
         ],
     },
     WorkflowSpec {
@@ -80,7 +81,7 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         intent: DeviceStorageIntent::None,
         fixtures: F::SEED,
         terminal: Ordinary,
-        states: &[SigningKeysMenu, ExportPrivKeyIndex, ExportPrivKey, SigningKeysMenu],
+        states: &[BackupRecoveryMenu, ExportPrivKeyIndex, ExportPrivKey, BackupRecoveryMenu],
     },
     WorkflowSpec {
         id: "raw-key-import",
@@ -88,6 +89,6 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         intent: DeviceStorageIntent::None,
         fixtures: F::NONE,
         terminal: Ordinary,
-        states: &[ImportExportChoice, ImportMenu, ImportPrivKey, KpubScannedPopup, MainMenu],
+        states: &[SeedsMenu, SdImportMenu, ImportPrivKey, KpubScannedPopup, MainMenu],
     },
 ];

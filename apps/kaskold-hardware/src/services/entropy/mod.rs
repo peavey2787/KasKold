@@ -22,7 +22,7 @@ pub use imu::initialize as initialize_imu;
 pub use mixer::mix_additive_touch;
 pub use mixer::{mix_additive_dice, zeroize};
 #[cfg(not(feature = "hardware-tests"))]
-pub use touch::{harden_touch_entropy, touch_timestamp};
+pub use touch::touch_timestamp;
 
 #[cfg(feature = "wdev-capture")]
 pub(crate) fn wdev_capture_prepare() -> Result<(), EntropyError> {

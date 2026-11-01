@@ -60,7 +60,12 @@ fn draw_address(ad: &mut crate::runtime::data::AppData, boot_display: &mut displ
     }
     if ad.qr.scan.address_length > 0 {
         let addr = core::str::from_utf8(&ad.qr.scan.address[..ad.qr.scan.address_length]).unwrap_or("(invalid)");
-        boot_display.draw_address_screen(addr, ad.qr.scan.address_valid, None, None, false);
+        let title = match (ad.qr.scan.address_hidden_key, ad.qr.scan.address_valid) {
+            (true, _) => "HIDDEN ADDRESS",
+            (false, true) => "SCANNED ADDRESS",
+            (false, false) => "ADDRESS (INVALID)",
+        };
+        boot_display.draw_titled_address_screen(addr, title, ad.qr.scan.address_valid);
         return;
     }
     let Some(model) = address_model(ad) else {
@@ -79,7 +84,10 @@ fn draw_address(ad: &mut crate::runtime::data::AppData, boot_display: &mut displ
         boot_display.update_address_content(address, model.index.unwrap_or(0), model.is_change);
         ad.wallet.addresses.partial_redraw = false;
     } else {
-        boot_display.draw_address_screen(address, true, model.index, None, model.is_change);
+        match model.index {
+            Some(index) => boot_display.draw_address_screen(address, index, model.is_change),
+            None => boot_display.draw_titled_address_screen(address, "WALLET ADDRESS", true),
+        }
     }
 }
 
@@ -88,6 +96,10 @@ fn draw_address_qr(ad: &crate::runtime::data::AppData, boot_display: &mut displa
         boot_display.draw_saving_screen("Deriving addresses...");
         #[cfg(feature = "m5stack")]
         boot_display.update_progress_bar(ad.wallet.addresses.cache_progress);
+        return;
+    }
+    if ad.qr.scan.address_length > 0 {
+        boot_display.draw_qr_screen(&ad.qr.scan.address[..ad.qr.scan.address_length]);
         return;
     }
     let Some(model) = address_model(ad) else {

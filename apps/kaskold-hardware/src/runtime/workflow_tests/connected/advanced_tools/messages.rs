@@ -13,8 +13,7 @@ pub(super) fn exercise(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     let qr_ok = qr_source(ctx);
     let sd_ok = sd_source(ctx);
     let sign_ok = sign_and_result(ctx);
-    let owner_ok = single_sig_return_owner(ctx);
-    typed_ok && qr_ok && sd_ok && sign_ok && owner_ok
+    typed_ok && qr_ok && sd_ok && sign_ok
 }
 
 fn open_choice(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
@@ -130,27 +129,5 @@ fn sign_and_result(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: ADVANCED SIGN-MESSAGE SIGN/RESULT-QR/NO-SD/BACK PASS");
-    true
-}
-
-fn single_sig_return_owner(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
-    crate::runtime::effects::route(ctx.ad, crate::runtime::navigation::route!(SingleSigMenu));
-    ctx.ad.navigation.single_sig_menu.reset();
-    let zone = ctx.list[1];
-    if crate::runtime::interactions::menu::handle_signing_feedback_touch(
-        ctx.ad,
-        ctx.display,
-        ctx.delay,
-        &mut || {},
-        &ctx.list,
-        crate::runtime::interactions::TouchInput::new(zone.x + zone.w / 2, zone.y + zone.h / 2, false),
-    ) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::SignMsgChoice
-        || ctx.tx_touch(20, 20, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::SingleSigMenu
-    {
-        return false;
-    }
-    log!("KASKOLD_WORKFLOW_TESTS: ADVANCED SIGN-MESSAGE CALLER RETURN-OWNER PASS");
     true
 }

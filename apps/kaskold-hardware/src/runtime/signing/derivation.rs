@@ -55,9 +55,6 @@ pub(super) fn derive_slot_account_key(
     Err("Wallet source has no account key")
 }
 
-/// Signing-time account derivation with fixed BIP39 liveness checkpoints.
-/// Imported account keys do not need checkpoints; mnemonic PBKDF2 does.
-#[inline(never)]
 /// The KIP-22 receive address at the selected index. Only a mnemonic reaches
 /// m/22'/111111'/0'; other wallet types are refused rather than given a P2PK.
 pub(crate) fn derive_active_kip22_address(
@@ -84,6 +81,9 @@ pub(crate) fn derive_active_kip22_address(
     Ok(kip22::address(&xonly.map_err(|_| "Address derivation failed")?, prefix))
 }
 
+/// Signing-time account derivation with fixed BIP39 liveness checkpoints.
+/// Imported account keys do not need checkpoints; mnemonic PBKDF2 does.
+#[inline(never)]
 pub(super) fn derive_slot_account_key_with_checkpoint(
     slot: &SeedSlot,
     checkpoint: &mut (impl FnMut() + ?Sized),
@@ -150,6 +150,7 @@ pub(crate) fn install_workflow_receive_fixture(ad: &mut AppData) {
 }
 
 /// Populate receive/change public-key caches for the active key source.
+#[cfg(any(feature = "workflow-test-auto", all(feature = "m5stack", feature = "hardware-tests")))]
 #[inline(never)]
 pub fn populate_active_pubkeys_with_checkpoint(
     ad: &mut AppData,

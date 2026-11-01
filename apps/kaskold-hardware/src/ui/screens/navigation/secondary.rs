@@ -15,54 +15,15 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use super::super::{
-    draw_lato_hint, draw_oswald_header, measure_header, measure_hint, BootDisplay, DrawTarget, Drawable, Line, Point,
-    Primitive, PrimitiveStyle, Rgb565, COLOR_BG, COLOR_TEXT, KASPA_TEAL,
+    draw_lato_hint, measure_hint, BootDisplay, DrawTarget, Drawable, Point, Rgb565, COLOR_BG, COLOR_TEXT, KASPA_TEAL,
 };
 
 #[cfg(feature = "developer-ui")]
-use super::super::{draw_lato_body, COLOR_TEXT_DIM};
+use super::super::{
+    draw_lato_body, draw_oswald_header, measure_header, Line, Primitive, PrimitiveStyle, COLOR_TEXT_DIM,
+};
 
 impl<'a> BootDisplay<'a> {
-    /// Draw QR Export sub-menu — dims "Plain Words QR" when seed is 24 words
-    pub fn draw_qr_export_menu(&mut self, menu: &crate::runtime::input::Menu, word_count: u8) {
-        self.clear_keep_nav();
-
-        let tw = measure_header("QR EXPORT");
-        draw_oswald_header(&mut self.display, "QR EXPORT", (320 - tw) / 2, 30, COLOR_TEXT);
-        Line::new(Point::new(20, 40), Point::new(300, 40))
-            .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
-            .draw(&mut self.display)
-            .ok();
-
-        let max_visible = crate::runtime::input::Menu::MAX_VISIBLE;
-        let visible_count = max_visible.min(menu.count.saturating_sub(menu.scroll));
-        let card_h: i32 = 42;
-        let card_gap: i32 = 4;
-        let card_w: u32 = 232;
-        let start_y: i32 = 46;
-        let start_x: i32 = 44;
-
-        let mut drawn: u8 = 0;
-
-        for i in 0..visible_count {
-            let item_idx = menu.scroll + i;
-            if item_idx >= menu.count {
-                break;
-            }
-
-            // Plain-word QR is intentionally unavailable for 24-word seeds.
-            if item_idx == 2 && word_count > 12 {
-                continue;
-            }
-
-            let y = start_y + (drawn as i32) * (card_h + card_gap);
-            let label = menu.items[item_idx as usize];
-
-            self.draw_navigation_card(label, start_x, y, card_w, card_h as u32);
-            drawn += 1;
-        }
-    }
-
     /// Draw about screen
     pub fn draw_about_screen(&mut self) {
         use embedded_graphics::image::{Image, ImageRawLE};

@@ -92,10 +92,6 @@ pub(crate) fn audio_toggle_visible(state: crate::runtime::input::AppState) -> bo
             | AppState::ConfirmDeleteSeed
             | AppState::WalletBackupMethodsMenu
             | AppState::WalletDetails
-            | AppState::SeedToolsMenu
-            | AppState::ImportExportChoice
-            | AppState::ImportMenu
-            | AppState::SingleSigMenu
             | AppState::MultisigMenu
             | AppState::SettingsMenu
             | AppState::AdvancedMenu
@@ -112,10 +108,6 @@ pub(crate) fn audio_toggle_visible(state: crate::runtime::input::AppState) -> bo
             | AppState::AdvancedDuressWarning
             | AppState::AdvancedSdStorageWarning
             | AppState::About
-            | AppState::SeedBackupMenu
-            | AppState::WatchOnlyMenu
-            | AppState::SigningKeysMenu
-            | AppState::QrExportMenu
             | AppState::XprvExportMenu
             | AppState::StorageUnlockPin
             | AppState::StorageUnlockPassword

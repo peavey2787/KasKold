@@ -56,13 +56,22 @@ pub(crate) const WALLET_BACKUP_METHODS_MENU_ITEMS: [UiMenuItemSpec; 4] = [
 ];
 pub(crate) const WALLET_BACKUP_METHODS_MENU_LABELS: [&str; 4] = [WALLET_BACKUP_METHODS_MENU_ITEMS[0].label, WALLET_BACKUP_METHODS_MENU_ITEMS[1].label, WALLET_BACKUP_METHODS_MENU_ITEMS[2].label, WALLET_BACKUP_METHODS_MENU_ITEMS[3].label];
 
-pub(crate) const WALLET_ADVANCED_MENU_ITEMS: [UiMenuItemSpec; 4] = [
+pub(crate) const WALLET_ADVANCED_MENU_ITEMS: [UiMenuItemSpec; 6] = [
     ui_menu!(WalletAdvancedMenu, 0, "BIP85 Child Wallet", "wallet.advanced.bip85", ChooseWordCount, "seed_loaded"),
     ui_menu!(WalletAdvancedMenu, 1, "Sign Message", "wallet.advanced.sign_message", SignMsgChoice, "seed_loaded"),
     ui_menu!(WalletAdvancedMenu, 2, "Commit Secret", "wallet.advanced.commit_secret", CommitRevealType, "seed_loaded"),
     ui_menu!(WalletAdvancedMenu, 3, "Decrypt Secret", "wallet.advanced.decrypt_secret", DecryptSecretScan, "seed_loaded"),
+    ui_menu!(WalletAdvancedMenu, 4, "Hidden Key Addr", "wallet.advanced.kip22_address", ShowAddress, "mnemonic_wallet"),
+    ui_menu!(WalletAdvancedMenu, 5, "kpub to SD", "wallet.advanced.kpub_sd", SdKpubFilename, "sd_present_and_seed_loaded"),
 ];
-pub(crate) const WALLET_ADVANCED_MENU_LABELS: [&str; 4] = [WALLET_ADVANCED_MENU_ITEMS[0].label, WALLET_ADVANCED_MENU_ITEMS[1].label, WALLET_ADVANCED_MENU_ITEMS[2].label, WALLET_ADVANCED_MENU_ITEMS[3].label];
+pub(crate) const WALLET_ADVANCED_MENU_LABELS: [&str; 6] = [
+    WALLET_ADVANCED_MENU_ITEMS[0].label,
+    WALLET_ADVANCED_MENU_ITEMS[1].label,
+    WALLET_ADVANCED_MENU_ITEMS[2].label,
+    WALLET_ADVANCED_MENU_ITEMS[3].label,
+    WALLET_ADVANCED_MENU_ITEMS[4].label,
+    WALLET_ADVANCED_MENU_ITEMS[5].label,
+];
 
 pub(crate) const BACKUP_RECOVERY_MENU_ITEMS: [UiMenuItemSpec; 5] = [
     ui_menu!(BackupRecoveryMenu, 0, "Compact SeedQR", "wallet.backup.advanced.compact_seedqr", ExportCompactSeedQR, "mnemonic_wallet"),
@@ -100,34 +109,6 @@ pub(crate) const SETTINGS_MENU_ITEMS: [UiMenuItemSpec; 6] = [
 #[cfg(all(feature = "m5stack", not(feature = "developer-ui")))]
 pub(crate) const SETTINGS_MENU_LABELS: [&str; 6] = [SETTINGS_MENU_ITEMS[0].label, SETTINGS_MENU_ITEMS[1].label, SETTINGS_MENU_ITEMS[2].label, SETTINGS_MENU_ITEMS[3].label, SETTINGS_MENU_ITEMS[4].label, SETTINGS_MENU_ITEMS[5].label];
 
-pub(crate) const SEED_TOOLS_MENU_ITEMS: [UiMenuItemSpec; 7] = [
-    ui_menu!(SeedToolsMenu, 0, "New Seed", "seed_tools.new_seed", ChooseWordCount, "always"),
-    ui_menu!(SeedToolsMenu, 1, "Dice Seed", "seed_tools.dice_seed", ChooseWordCount, "always"),
-    ui_menu!(SeedToolsMenu, 2, "Touch Seed", "seed_tools.touch_seed", ChooseWordCount, "always"),
-    ui_menu!(SeedToolsMenu, 3, "Import Words", "seed_tools.import_words", ChooseWordCount, "always"),
-    ui_menu!(SeedToolsMenu, 4, "Address", "seed_tools.address", ShowAddress, "seed_loaded"),
-    ui_menu!(SeedToolsMenu, 5, "BIP85 Child", "seed_tools.bip85", ChooseWordCount, "seed_loaded"),
-    ui_menu!(SeedToolsMenu, 6, "Hidden Key Addr", "seed_tools.kip22_address", ShowAddress, "seed_loaded"),
-];
-pub(crate) const SEED_TOOLS_MENU_LABELS: [&str; 7] = [SEED_TOOLS_MENU_ITEMS[0].label, SEED_TOOLS_MENU_ITEMS[1].label, SEED_TOOLS_MENU_ITEMS[2].label, SEED_TOOLS_MENU_ITEMS[3].label, SEED_TOOLS_MENU_ITEMS[4].label, SEED_TOOLS_MENU_ITEMS[5].label, SEED_TOOLS_MENU_ITEMS[6].label];
-
-pub(crate) const IMPORT_MENU_ITEMS: [UiMenuItemSpec; 4] = [
-    ui_menu!(ImportMenu, 0, "Import from SD", "import.sd", SdImportMenu, "always"),
-    ui_menu!(ImportMenu, 1, "Stego Import", "import.stego", StegoImportPick, "sd_jpeg_available"),
-    ui_menu!(ImportMenu, 2, "Import Raw Key", "import.raw_key", ImportPrivKey, "always"),
-    ui_menu!(ImportMenu, 3, "Covenant Restore", "import.covenant", SdFileList, "sd_covenant_available"),
-];
-pub(crate) const IMPORT_MENU_LABELS: [&str; 4] = [IMPORT_MENU_ITEMS[0].label, IMPORT_MENU_ITEMS[1].label, IMPORT_MENU_ITEMS[2].label, IMPORT_MENU_ITEMS[3].label];
-
-pub(crate) const SINGLE_SIG_MENU_ITEMS: [UiMenuItemSpec; 5] = [
-    ui_menu!(SingleSigMenu, 0, "Sign TX", "signing.sign_tx", SignTxGuide, "seed_loaded"),
-    ui_menu!(SingleSigMenu, 1, "Sign Message", "signing.sign_message", SignMsgChoice, "seed_loaded"),
-    ui_menu!(SingleSigMenu, 2, "Covenant Sign", "signing.covenant", ScanQR, "mnemonic_wallet"),
-    ui_menu!(SingleSigMenu, 3, "Commit Secret", "signing.commit_secret", CommitRevealType, "seed_loaded"),
-    ui_menu!(SingleSigMenu, 4, "Decrypt Secret", "signing.decrypt_secret", DecryptSecretScan, "seed_loaded"),
-];
-pub(crate) const SINGLE_SIG_MENU_LABELS: [&str; 5] = [SINGLE_SIG_MENU_ITEMS[0].label, SINGLE_SIG_MENU_ITEMS[1].label, SINGLE_SIG_MENU_ITEMS[2].label, SINGLE_SIG_MENU_ITEMS[3].label, SINGLE_SIG_MENU_ITEMS[4].label];
-
 pub(crate) const MULTISIG_MENU_ITEMS: [UiMenuItemSpec; 3] = [
     ui_menu!(MultisigMenu, 0, "Create Multisig", "multisig.create", MultisigChooseMN, "always"),
     ui_menu!(MultisigMenu, 1, "Descriptors", "multisig.descriptors", MultisigDescriptorsMenu, "mnemonic_wallet"),
@@ -147,41 +128,6 @@ pub(crate) const MULTISIG_DESCRIPTORS_MENU_LABELS: [&str; 4] = [
     MULTISIG_DESCRIPTORS_MENU_ITEMS[2].label,
     MULTISIG_DESCRIPTORS_MENU_ITEMS[3].label,
 ];
-
-pub(crate) const EXPORT_CHOICE_ITEMS: [UiMenuItemSpec; 4] = [
-    ui_menu!(ExportChoice, 0, "Seed Backup", "export.seed_backup", SeedBackupMenu, "seed_loaded"),
-    ui_menu!(ExportChoice, 1, "Watch-Only", "export.watch_only", WatchOnlyMenu, "seed_loaded"),
-    ui_menu!(ExportChoice, 2, "Signing Keys", "export.signing_keys", SigningKeysMenu, "seed_loaded"),
-    ui_menu!(ExportChoice, 3, "Steganography", "export.stego", StegoModeSelect, "seed_loaded"),
-];
-pub(crate) const EXPORT_CHOICE_LABELS: [&str; 4] = [EXPORT_CHOICE_ITEMS[0].label, EXPORT_CHOICE_ITEMS[1].label, EXPORT_CHOICE_ITEMS[2].label, EXPORT_CHOICE_ITEMS[3].label];
-
-pub(crate) const SEED_BACKUP_MENU_ITEMS: [UiMenuItemSpec; 3] = [
-    ui_menu!(SeedBackupMenu, 0, "Show Seed Words", "export.seed.words", SeedBackup, "mnemonic_wallet"),
-    ui_menu!(SeedBackupMenu, 1, "QR Export", "export.seed.qr", QrExportMenu, "seed_loaded"),
-    ui_menu!(SeedBackupMenu, 2, "Backup to SD", "export.seed.sd", SdBackupWarning, "mnemonic_wallet"),
-];
-pub(crate) const SEED_BACKUP_MENU_LABELS: [&str; 3] = [SEED_BACKUP_MENU_ITEMS[0].label, SEED_BACKUP_MENU_ITEMS[1].label, SEED_BACKUP_MENU_ITEMS[2].label];
-
-pub(crate) const WATCH_ONLY_MENU_ITEMS: [UiMenuItemSpec; 3] = [
-    ui_menu!(WatchOnlyMenu, 0, "kpub as QR", "export.watch.kpub_qr", ExportKpub, "seed_loaded"),
-    ui_menu!(WatchOnlyMenu, 1, "kpub to SD", "export.watch.kpub_sd", SdKpubFilename, "sd_present_and_seed_loaded"),
-    ui_menu!(WatchOnlyMenu, 2, "kpub Multisig QR", "export.watch.multisig_kpub", WatchOnlyMenu, "mnemonic_wallet", DeriveMultisigKpub),
-];
-pub(crate) const WATCH_ONLY_MENU_LABELS: [&str; 3] = [WATCH_ONLY_MENU_ITEMS[0].label, WATCH_ONLY_MENU_ITEMS[1].label, WATCH_ONLY_MENU_ITEMS[2].label];
-
-pub(crate) const SIGNING_KEYS_MENU_ITEMS: [UiMenuItemSpec; 2] = [
-    ui_menu!(SigningKeysMenu, 0, "xprv Account", "export.keys.xprv", XprvExportMenu, "seed_loaded"),
-    ui_menu!(SigningKeysMenu, 1, "Private Key", "export.keys.private", ExportPrivKeyIndex, "seed_loaded"),
-];
-pub(crate) const SIGNING_KEYS_MENU_LABELS: [&str; 2] = [SIGNING_KEYS_MENU_ITEMS[0].label, SIGNING_KEYS_MENU_ITEMS[1].label];
-
-pub(crate) const QR_EXPORT_MENU_ITEMS: [UiMenuItemSpec; 3] = [
-    ui_menu!(QrExportMenu, 0, "CompactSeedQR", "export.seedqr.compact", ExportCompactSeedQR, "mnemonic_wallet"),
-    ui_menu!(QrExportMenu, 1, "Standard SeedQR", "export.seedqr.standard", ExportSeedQR, "mnemonic_wallet"),
-    ui_menu!(QrExportMenu, 2, "Plain Text QR", "export.seedqr.plain", ExportPlainWordsQR, "mnemonic_12_words"),
-];
-pub(crate) const QR_EXPORT_MENU_LABELS: [&str; 3] = [QR_EXPORT_MENU_ITEMS[0].label, QR_EXPORT_MENU_ITEMS[1].label, QR_EXPORT_MENU_ITEMS[2].label];
 
 pub(crate) const XPRV_EXPORT_MENU_ITEMS: [UiMenuItemSpec; 2] = [
     ui_menu!(XprvExportMenu, 0, "Show as QR", "export.xprv.qr", ExportXprv, "seed_loaded"),
@@ -218,16 +164,8 @@ pub(crate) const PRODUCTION_MENUS: &[UiMenuSpec] = &[
     UiMenuSpec { state: "StorageSeedSourceChoice", back: "StorageModeChoice", items: &STORAGE_SEED_SOURCE_CHOICE_ITEMS },
     UiMenuSpec { state: "AdvancedRestoreMenu", back: "StorageSeedSourceChoice", items: &ADVANCED_RESTORE_MENU_ITEMS },
     UiMenuSpec { state: "SettingsMenu", back: "MainMenu", items: &SETTINGS_MENU_ITEMS },
-    UiMenuSpec { state: "SeedToolsMenu", back: "SeedsMenu", items: &SEED_TOOLS_MENU_ITEMS },
-    UiMenuSpec { state: "ImportMenu", back: "ImportExportChoice", items: &IMPORT_MENU_ITEMS },
-    UiMenuSpec { state: "SingleSigMenu", back: "SeedsMenu", items: &SINGLE_SIG_MENU_ITEMS },
     UiMenuSpec { state: "MultisigMenu", back: "history", items: &MULTISIG_MENU_ITEMS },
     UiMenuSpec { state: "MultisigDescriptorsMenu", back: "MultisigMenu", items: &MULTISIG_DESCRIPTORS_MENU_ITEMS },
-    UiMenuSpec { state: "ExportChoice", back: "SeedList", items: &EXPORT_CHOICE_ITEMS },
-    UiMenuSpec { state: "SeedBackupMenu", back: "ExportChoice", items: &SEED_BACKUP_MENU_ITEMS },
-    UiMenuSpec { state: "WatchOnlyMenu", back: "ExportChoice", items: &WATCH_ONLY_MENU_ITEMS },
-    UiMenuSpec { state: "SigningKeysMenu", back: "ExportChoice", items: &SIGNING_KEYS_MENU_ITEMS },
-    UiMenuSpec { state: "QrExportMenu", back: "SeedBackupMenu", items: &QR_EXPORT_MENU_ITEMS },
     UiMenuSpec { state: "XprvExportMenu", back: "history", items: &XPRV_EXPORT_MENU_ITEMS },
     UiMenuSpec { state: "SdImportMenu", back: "history", items: &SD_IMPORT_MENU_ITEMS },
     UiMenuSpec { state: "ConfirmTx", back: "ReviewTx", items: &CONFIRM_TX_ITEMS },
@@ -241,16 +179,8 @@ pub(crate) const RESTORE_LABELS: &[&str] = &STORAGE_SEED_SOURCE_CHOICE_LABELS;
 pub(crate) const ADVANCED_RESTORE_LABELS: &[&str] = &ADVANCED_RESTORE_MENU_LABELS;
 #[cfg(all(feature = "m5stack", not(feature = "developer-ui")))]
 pub(crate) const M5STACK_SETTINGS_LABELS: &[&str] = &SETTINGS_MENU_LABELS;
-pub(crate) const SEED_TOOLS_LABELS: &[&str] = &SEED_TOOLS_MENU_LABELS;
-pub(crate) const IMPORT_LABELS: &[&str] = &IMPORT_MENU_LABELS;
-pub(crate) const SINGLE_SIG_LABELS: &[&str] = &SINGLE_SIG_MENU_LABELS;
 pub(crate) const MULTISIG_LABELS: &[&str] = &MULTISIG_MENU_LABELS;
 pub(crate) const MULTISIG_DESCRIPTOR_LABELS: &[&str] = &MULTISIG_DESCRIPTORS_MENU_LABELS;
-pub(crate) const EXPORT_LABELS: &[&str] = &EXPORT_CHOICE_LABELS;
-pub(crate) const SEED_BACKUP_LABELS: &[&str] = &SEED_BACKUP_MENU_LABELS;
-pub(crate) const WATCH_ONLY_LABELS: &[&str] = &WATCH_ONLY_MENU_LABELS;
-pub(crate) const SIGNING_KEYS_LABELS: &[&str] = &SIGNING_KEYS_MENU_LABELS;
-pub(crate) const QR_EXPORT_LABELS: &[&str] = &QR_EXPORT_MENU_LABELS;
 pub(crate) const XPRV_EXPORT_LABELS: &[&str] = &XPRV_EXPORT_MENU_LABELS;
 pub(crate) const SD_IMPORT_LABELS: &[&str] = &SD_IMPORT_MENU_LABELS;
 

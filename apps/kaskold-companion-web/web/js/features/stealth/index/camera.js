@@ -59,21 +59,9 @@ function modernCameraRequest() {
     });
 }
 
-function legacyCameraRequest() {
-    const legacy = navigator.getUserMedia
-        || navigator.webkitGetUserMedia
-        || navigator.mozGetUserMedia;
-    if (typeof legacy !== 'function') {
-        return Promise.reject(new Error('Live camera capture is not supported by this browser'));
-    }
-    return new Promise((resolve, reject) => {
-        legacy.call(navigator, { audio: false, video: true }, resolve, reject);
-    });
-}
-
 function requestCameraStream() {
-    const modern = modernCameraRequest();
-    return modern || legacyCameraRequest();
+    return modernCameraRequest()
+        || Promise.reject(new Error('Live camera capture is not supported by this browser'));
 }
 
 function stopStream(stream) {

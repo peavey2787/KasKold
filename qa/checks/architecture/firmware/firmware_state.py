@@ -12,10 +12,8 @@ def _expected_firmware_state_fields() -> dict[str, tuple[str, ...]]:
         "runtime": ("needs_redraw", "idle_ticks", "display_asleep", "home_reached", "qr_brightness_override", "reauth_return_to"),
         "presentation": (),
         "navigation": (
-            "seed_tools_menu", "import_menu",
-            "single_sig_menu", "multisig_menu", "multisig_descriptors_menu", "export_menu",
-            "seed_backup_menu", "watch_only_menu", "signing_keys_menu",
-            "qr_export_menu", "xprv_export_menu", "settings_menu",
+            "multisig_menu", "multisig_descriptors_menu",
+            "xprv_export_menu", "settings_menu",
             "production", "sd_import_menu",
         ),
         "wallet": ("seeds", "keys", "addresses"),
@@ -206,7 +204,7 @@ def _check_nested_domain_state(root: Path) -> list[str]:
         data_root / "qr.rs": {
             "OutgoingQrState": ("purpose", "manual_frames", "buffer", "length", "frame", "frame_count", "covenant_backup_length", "close_state"),
             "QrPresentationState": ("large", "mode", "via_density"),
-            "QrScanState": ("address", "address_length", "address_valid"),
+            "QrScanState": ("address", "address_length", "address_valid", "address_hidden_key"),
         },
         data_root / "storage.rs": {
             "FileBrowserState": ("file_list", "file_count", "file_scroll", "selected_file", "text_import_kind"),

@@ -2,6 +2,7 @@
 use super::known;
 use crate::harness::Device;
 use kaskold_hardware_core::input::keyboard::{KeyAction, KeyboardMode};
+use std::time::Duration;
 
 const WALLET_NAME: &str = "Main";
 const ADDRESS_LINE_CHARS: usize = 25;
@@ -13,6 +14,8 @@ const NEXT_PAGE_TAP: (u16, u16) = (300, 135);
 const PREVIOUS_PAGE_TAP: (u16, u16) = (18, 135);
 const WARNING_ACCEPT_TAP: (u16, u16) = (238, 212);
 const HOME_TAP: (u16, u16) = (295, 15);
+const BACK_TAP: (u16, u16) = (20, 15);
+const FORMAT_HOLD: Duration = Duration::from_secs(5);
 
 /// Restores the wallet whose addresses `known` lists, behind its PIN.
 pub(super) fn restore_the_known_wallet() {
@@ -37,6 +40,29 @@ pub(super) fn factory_reset() {
 /// Goes back to the main menu from wherever the home icon is shown.
 pub(super) fn go_home(device: &Device) {
     device.tap_at(HOME_TAP.0, HOME_TAP.1);
+}
+
+/// Goes back one screen.
+pub(super) fn go_back(device: &Device) {
+    device.tap_at(BACK_TAP.0, BACK_TAP.1);
+}
+
+/// Prepares the inserted card through Settings and returns to the main menu.
+pub(super) fn format_card(device: &Device) {
+    device.tap("Settings");
+    device.tap("Storage");
+    device.tap("Format FAT32");
+    device.hold("HOLD 4s TO FORMAT", FORMAT_HOLD);
+    device.wait_for_text("Format FAT32");
+    go_home(device);
+}
+
+/// Opens the second page of the wallet's Advanced menu from the main menu.
+pub(super) fn open_wallet_tools(device: &Device) {
+    device.tap("Wallet");
+    next_menu_page(device);
+    device.tap("Advanced");
+    next_menu_page(device);
 }
 
 /// True when a person looking through raw storage would find `needle`.

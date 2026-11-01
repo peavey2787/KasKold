@@ -84,7 +84,7 @@ fn apply_back(ad: &mut AppData) -> bool {
         {
             crate::runtime::navigation::route!(AdvancedRestoreMenu)
         } else {
-            crate::runtime::navigation::route!(ImportMenu)
+            crate::runtime::navigation::route!(SdImportMenu)
         };
         let _ = crate::runtime::effects::route(ad, fallback);
     }

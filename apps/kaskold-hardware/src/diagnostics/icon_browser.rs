@@ -2,26 +2,17 @@
 
 use embedded_graphics::{pixelcolor::Rgb565, prelude::*};
 
-const LABELS: [&str; 20] = [
-    "Sign TX",
+const LABELS: [&str; 11] = [
     "Sign Mess",
     "Create Multi",
     "Import Words",
-    "Import Key",
-    "Seed Tools",
-    "Show Seed",
     "Show as QR",
     "Backup to",
-    "Watch-Only",
     "Private Key",
     "Display",
     "Camera",
-    "Sound",
     "Settings",
     "Delete",
-    "Help",
-    "Upload",
-    "Download",
     "kpub",
 ];
 

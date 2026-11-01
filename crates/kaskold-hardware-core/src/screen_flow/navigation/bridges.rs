@@ -98,14 +98,10 @@ pub(super) fn backup_recovery_stego_entry_allowed(
     from_state: AppState,
     to_state: AppState,
 ) -> bool {
-    (from == NavigationOwner::Seeds
+    from == NavigationOwner::Seeds
         && to == NavigationOwner::Stego
         && from_state == AppState::BackupRecoveryMenu
-        && to_state == AppState::StegoModeSelect)
-        || (from == NavigationOwner::Export
-            && to == NavigationOwner::Stego
-            && from_state == AppState::ImportMenu
-            && to_state == AppState::StegoImportPick)
+        && to_state == AppState::StegoModeSelect
 }
 
 pub(super) fn seed_backup_return_allowed(
@@ -117,6 +113,6 @@ pub(super) fn seed_backup_return_allowed(
         && matches!(from_state, AppState::SeedBackup { .. })
         && matches!(
             to_state,
-            AppState::WalletBackupMethodsMenu | AppState::SeedBackupMenu | AppState::SeedList
+            AppState::WalletBackupMethodsMenu | AppState::SeedList
         )
 }

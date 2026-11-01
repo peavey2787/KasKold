@@ -134,14 +134,6 @@ try {
   assert.equal(element('scanner-camera-fallback').classList.contains('hidden'), false);
   assert.match(element('scanner-camera-fallback-message').textContent, /HTTPS/i);
 
-  // Legacy callback API succeeds and uses the createObjectURL attachment path.
-  delete video.srcObject;
-  Object.defineProperty(globalThis, 'navigator', { configurable:true, value:{ getUserMedia(_c, ok) { ok(makeStream()); } } });
-  camera.startScanner('Legacy QR', () => {});
-  await new Promise(resolve => setImmediate(resolve));
-  assert.match(element('scanner-status').textContent, /Point at QR/i);
-  camera.stopScanner();
-
   // Modern constraints retry only for constraint failures and the srcObject path.
   let requests = 0; video.srcObject = null;
   Object.defineProperty(globalThis, 'navigator', { configurable:true, value:{ mediaDevices:{ getUserMedia() { requests += 1; return requests === 1 ? Promise.reject({name:'OverconstrainedError'}) : Promise.resolve(makeStream()); } } } });

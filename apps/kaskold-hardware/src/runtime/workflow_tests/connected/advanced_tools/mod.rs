@@ -5,10 +5,10 @@ use crate::{
 };
 use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
+mod bip85;
 mod exports;
 mod messages;
 mod secrets;
-mod seed_tools;
 
 pub(super) type AdvancedToolsContext<'ctx, 'display, 'hal> =
     super::menu_context::MenuWorkflowContext<'ctx, 'display, 'hal>;
@@ -96,10 +96,10 @@ pub(super) fn exercise(
     log!("KASKOLD_WORKFLOW_TESTS: ADVANCED WALLET TOOLS TRANCHE BEGIN");
     let mut summary = super::probe_status::ProbeSummary::new("ADVANCED-TOOLS");
 
-    summary.begin("SEED-TOOLS");
-    let seed_tools_ok = seed_tools::exercise(&mut ctx);
-    summary.record("SEED-TOOLS", seed_tools_ok);
-    recover(&mut ctx, seed_tools_ok);
+    summary.begin("BIP85");
+    let bip85_ok = bip85::exercise(&mut ctx);
+    summary.record("BIP85", bip85_ok);
+    recover(&mut ctx, bip85_ok);
 
     summary.begin("EXPORTS");
     let exports_ok = exports::exercise(&mut ctx);

@@ -45,7 +45,7 @@
     },
     {
       "actions": [
-        "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/address.rs::open_kip22",
+        "apps/kaskold-hardware/src/runtime/interactions/menu/wallet_tools.rs::open_hidden_key_address",
         "apps/kaskold-hardware/src/runtime/interactions/export/address.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/export/address.rs::handle_address_view",
         "apps/kaskold-hardware/src/runtime/interactions/export/address.rs::step_address_index",
@@ -75,12 +75,12 @@
         "E2E-091-02",
         "E2E-091-03",
         "E2E-091-04",
-        "E2E-100-13"
+        "E2E-100-13",
+        "E2E-033-01"
       ],
       "level": "connected",
       "menu_items": [
         "Receive",
-        "Address",
         "Hidden Key Addr"
       ],
       "requirements": [
@@ -88,7 +88,8 @@
         "E2E-087",
         "E2E-089",
         "E2E-091",
-        "E2E-100"
+        "E2E-100",
+        "E2E-033"
       ],
       "serial_markers": [
         "RECEIVE QR OPEN/CLOSE OK",
@@ -603,8 +604,9 @@
         "apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation/additive.rs::handle_dice_choice",
         "apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation/additive.rs::handle_dice_count",
         "apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation/additive.rs::handle_touch_choice",
-        "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding/recovery.rs::handle_recovery_acknowledgement",
+        "apps/kaskold-hardware/src/runtime/interactions/onboarding/dice.rs::handle_dice_roll",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_seed_source_choice",
+        "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding/recovery.rs::handle_recovery_acknowledgement",
         "apps/kaskold-hardware/src/runtime/interactions/seed/wallet_name.rs::handle_back",
         "apps/kaskold-hardware/src/runtime/interactions/seed/wallet_name.rs::handle_submitted"
       ],
@@ -1768,7 +1770,6 @@
       ],
       "id": "connected-advanced-seed-tools",
       "items": [
-        "E2E-033-01",
         "E2E-034-01",
         "E2E-034-02",
         "E2E-034-03",
@@ -1788,7 +1789,6 @@
         "BIP85 Child Wallet"
       ],
       "requirements": [
-        "E2E-033",
         "E2E-034",
         "E2E-036",
         "E2E-087",
@@ -1895,12 +1895,10 @@
         "ADVANCED SIGN-MESSAGE TYPED EMPTY-REJECT/PREVIEW/BACK PASS",
         "ADVANCED SIGN-MESSAGE QR EMPTY/CONTROL/OVERSIZE/VALID PASS",
         "ADVANCED SIGN-MESSAGE SD CONTENT BOUNDARIES/PREVIEW PASS",
-        "ADVANCED SIGN-MESSAGE SIGN/RESULT-QR/NO-SD/BACK PASS",
-        "ADVANCED SIGN-MESSAGE CALLER RETURN-OWNER PASS"
+        "ADVANCED SIGN-MESSAGE SIGN/RESULT-QR/NO-SD/BACK PASS"
       ],
       "states": [
         "WalletAdvancedMenu",
-        "SingleSigMenu",
         "SignMsgChoice",
         "SignMsgType",
         "SignMsgScan",
@@ -1960,13 +1958,11 @@
       "serial_markers": [
         "ADVANCED COMMIT-SECRET EMPTY/LENGTH/PREVIEW/ENCRYPT/QR PASS",
         "ADVANCED DECRYPT-SECRET MALFORMED/WRONG-KEY/ROUND-TRIP/QR PASS",
-        "ADVANCED SECRET-TOOLS SINGLE-SIG PAGING/RETURN-OWNER PASS",
         "ADVANCED TOOLS PHYSICAL SD/RNG HIL DEFERRED TO PERIPHERAL TRANCHE",
         "ADVANCED WALLET TOOLS TRANCHE PASS"
       ],
       "states": [
         "WalletAdvancedMenu",
-        "SingleSigMenu",
         "CommitRevealType",
         "CommitRevealPreview",
         "CommitRevealResult",
@@ -2000,7 +1996,6 @@
     },
     {
       "actions": [
-        "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/address.rs::open_kip22",
         "apps/kaskold-hardware/src/runtime/interactions/camera_loop/cycle.rs::handle_m5_outcome",
         "apps/kaskold-hardware/src/runtime/interactions/camera_loop/decoder.rs::handle_decode_result",
         "apps/kaskold-hardware/src/runtime/interactions/camera_loop/state.rs::leave_screen",
@@ -2017,27 +2012,14 @@
         "apps/kaskold-hardware/src/runtime/interactions/export/kpub.rs::handle_export_screen",
         "apps/kaskold-hardware/src/runtime/interactions/export/kpub.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/export/menus/mod.rs::handle_navigation_touch",
-        "apps/kaskold-hardware/src/runtime/interactions/export/menus/root.rs::handle_pure",
-        "apps/kaskold-hardware/src/runtime/interactions/export/menus/seed.rs::handle_pure",
-        "apps/kaskold-hardware/src/runtime/interactions/export/menus/seed.rs::handle_qr_export_menu",
-        "apps/kaskold-hardware/src/runtime/interactions/export/menus/seed.rs::handle_qr_export_pure",
-        "apps/kaskold-hardware/src/runtime/interactions/export/menus/seed.rs::handle_seed_backup_menu",
-        "apps/kaskold-hardware/src/runtime/interactions/export/menus/seed.rs::handle_seed_backup_pure",
         "apps/kaskold-hardware/src/runtime/interactions/export/private_key.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/export/private_key/index_input.rs::append_digit",
-        "apps/kaskold-hardware/src/runtime/interactions/export/watch_only.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/export/xprv.rs::handle_menu",
         "apps/kaskold-hardware/src/runtime/interactions/export/xprv.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/menu.rs::handle_menu_touch",
         "apps/kaskold-hardware/src/runtime/interactions/menu.rs::handle_navigation_touch",
         "apps/kaskold-hardware/src/runtime/interactions/menu.rs::handle_root_touch",
         "apps/kaskold-hardware/src/runtime/interactions/menu.rs::handle_signing_feedback_touch",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs::handle_choice",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs::handle_choice_pure",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs::handle_import_menu",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs::handle_import_menu_pure",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/menu.rs::handle_pure",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/import_export/mod.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/menu/primary.rs::handle_main_menu",
         "apps/kaskold-hardware/src/runtime/interactions/menu/primary.rs::handle_navigation_touch",
         "apps/kaskold-hardware/src/runtime/interactions/menu/primary.rs::handle_root_touch",
@@ -2057,10 +2039,6 @@
         "apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation/additive.rs::handle_dice_choice",
         "apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation/additive.rs::handle_dice_count",
         "apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation/additive.rs::handle_touch_choice",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools.rs::handle_onboarding_dice",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools.rs::handle_pure",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/address.rs::open_with_return",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/menu.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/menu/signing.rs::handle_feedback",
         "apps/kaskold-hardware/src/runtime/interactions/menu/signing.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/menu/signing/multisig.rs::handle_descriptors_menu",
@@ -2068,8 +2046,10 @@
         "apps/kaskold-hardware/src/runtime/interactions/menu/signing/multisig.rs::handle_root_menu",
         "apps/kaskold-hardware/src/runtime/interactions/menu/signing/multisig.rs::handle_without_storage",
         "apps/kaskold-hardware/src/runtime/interactions/menu/signing/multisig.rs::route_back",
-        "apps/kaskold-hardware/src/runtime/interactions/menu/signing/single_sig.rs::handle_pure",
+        "apps/kaskold-hardware/src/runtime/interactions/menu/wallet_tools.rs::open_hidden_key_address",
         "apps/kaskold-hardware/src/runtime/interactions/onboarding.rs::handle_onboarding_touch",
+        "apps/kaskold-hardware/src/runtime/interactions/onboarding/dice.rs::handle_dice_roll",
+        "apps/kaskold-hardware/src/runtime/interactions/persistence.rs::handle_unlock_touch",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/credential.rs::confirm_state",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/credential.rs::handle_credential_type",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/credential.rs::handle_setup_entry",
@@ -2078,6 +2058,7 @@
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_mode_choice",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_restore_12_detected",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_seed_source_choice",
+        "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_source_touch",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding/finalize.rs::handle_finalize_choice",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding/finalize.rs::handle_protection_choice",
         "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding/recovery.rs::handle_recovery_acknowledgement",
@@ -2211,9 +2192,7 @@
         "apps/kaskold-hardware/src/runtime/interactions/tx/private_swap.rs::handle_key",
         "apps/kaskold-hardware/src/runtime/interactions/tx/private_swap.rs::handle_result",
         "apps/kaskold-hardware/src/runtime/interactions/tx/private_swap.rs::handle_review",
-        "apps/kaskold-hardware/src/runtime/interactions/tx/transaction.rs::handle_anti_klepto_reveal_guide",
-        "apps/kaskold-hardware/src/runtime/interactions/persistence.rs::handle_unlock_touch",
-        "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_source_touch"
+        "apps/kaskold-hardware/src/runtime/interactions/tx/transaction.rs::handle_anti_klepto_reveal_guide"
       ],
       "id": "qa-production-exhaustiveness-gate",
       "items": [
@@ -2227,26 +2206,21 @@
       "menu_items": [
         "Hidden Key Addr",
         "About",
-        "Address",
         "Advanced",
         "Audio",
-        "BIP85 Child",
         "BIP85 Child Wallet",
         "Backup",
         "Backup to SD",
         "Cancel",
         "Commit Secret",
         "Compact SeedQR",
-        "CompactSeedQR",
         "Confirm",
         "Connect",
         "Covenant Restore",
-        "Covenant Sign",
         "Create Multisig",
         "Decrypt Secret",
         "Delete",
         "Descriptors",
-        "Dice Seed",
         "Display",
         "Encrypt to SD",
         "Encrypted SD Card",
@@ -2255,19 +2229,13 @@
         "Factory Reset",
         "Firmware Update",
         "Import Raw Key",
-        "Import Words",
-        "Import from SD",
         "Inspect",
         "Install from SD",
         "Multisig",
         "Multisig Address",
-        "New Seed",
         "Owner Firmware",
-        "Plain Text QR",
         "Plain-text SeedQR",
         "Pop It!",
-        "Private Key",
-        "QR Export",
         "Raw Private Key",
         "Receive",
         "Recovery",
@@ -2276,35 +2244,24 @@
         "Scan QR",
         "Security",
         "Seed / XPrv Backup",
-        "Seed Backup",
         "SeedQR",
         "SeedQR Backup",
         "Settings",
-        "Show Seed Words",
         "Show as QR",
         "Sign Message",
-        "Sign TX",
-        "Signing Keys",
-        "Standard SeedQR",
         "Steganographic",
-        "Steganography",
-        "Stego Import",
         "Storage",
         "Switch / Add Wallet",
-        "Touch Seed",
         "Transaction",
         "View",
         "View Words",
         "Wallet",
         "Wallet Details",
-        "Watch-Only",
         "Words",
         "XPrv Backup",
         "kpub (Watch-Only)",
         "kpub Multisig QR",
-        "kpub as QR",
-        "kpub to SD",
-        "xprv Account"
+        "kpub to SD"
       ],
       "requirements": [
         "E2E-099"
@@ -2353,7 +2310,6 @@
         "DecryptSecretScan",
         "DiceRoll",
         "DisplaySettings",
-        "ExportChoice",
         "ExportCompactSeedQR",
         "ExportKpub",
         "ExportKpubPopup",
@@ -2365,10 +2321,7 @@
         "FactoryResetConfirm",
         "FactoryResetWarning",
         "FirmwareUpdateReady",
-        "ImportExportChoice",
-        "ImportMenu",
         "ImportPrivKey",
-        "ImportWord",
         "InspectUtxo",
         "InspectUtxoSummary",
         "KpubScannedPopup",
@@ -2399,7 +2352,6 @@
         "PrivateSwapResult",
         "PrivateSwapResultQr",
         "PrivateSwapReview",
-        "QrExportMenu",
         "Rejected",
         "RestoreWord",
         "RestoreWord12Detected",
@@ -2431,11 +2383,9 @@
         "SdXprvExportPassphrase",
         "SdXprvFilename",
         "SeedBackup",
-        "SeedBackupMenu",
         "SeedEntropyUnavailable",
         "SeedList",
         "SeedQrGrid",
-        "SeedToolsMenu",
         "SeedsMenu",
         "SettingsMenu",
         "ShowAddress",
@@ -2450,9 +2400,6 @@
         "SignMsgResultQr",
         "SignMsgScan",
         "SignMsgType",
-        "SignTxGuide",
-        "SigningKeysMenu",
-        "SingleSigMenu",
         "StegoHintPassphrase",
         "StegoHintReveal",
         "StegoImportDescChoice",
@@ -2496,7 +2443,6 @@
         "WalletBackupMethodsMenu",
         "WalletDetails",
         "WalletNameEntry",
-        "WatchOnlyMenu",
         "XprvExportMenu"
       ],
       "status": "implemented"
@@ -2858,7 +2804,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-01",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Fresh device \u2192 create 12-word wallet \u2192 save with PIN \u2192 Receive. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Fresh device → create 12-word wallet → save with PIN → Receive. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -2878,7 +2824,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-02",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Fresh device \u2192 create 24-word wallet \u2192 password \u2192 backup \u2192 Receive. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Fresh device → create 24-word wallet → password → backup → Receive. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -2898,7 +2844,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-03",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Fresh device \u2192 restore 12 words \u2192 unlock \u2192 sign transaction. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Fresh device → restore 12 words → unlock → sign transaction. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -2918,7 +2864,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-04",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Fresh device \u2192 restore 24 words + BIP39 passphrase \u2192 sign. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Fresh device → restore 24 words + BIP39 passphrase → sign. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -2938,7 +2884,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-05",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Restore SeedQR \u2192 verify address. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Restore SeedQR → verify address. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -2958,7 +2904,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-06",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Restore encrypted SD backup \u2192 verify address. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Restore encrypted SD backup → verify address. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -2978,7 +2924,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-07",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Import raw private key \u2192 Receive \u2192 sign supported operation. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Import raw private key → Receive → sign supported operation. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -2998,7 +2944,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-08",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Create second wallet \u2192 switch between wallets \u2192 verify different addresses. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Create second wallet → switch between wallets → verify different addresses. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3018,7 +2964,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-09",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Create wallet \u2192 Connect \u2192 export kpub. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Create wallet → Connect → export kpub. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3038,7 +2984,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-10",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Create wallet \u2192 backup SeedQR \u2192 restore that backup \u2192 verify identical address. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Create wallet → backup SeedQR → restore that backup → verify identical address. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3058,7 +3004,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-11",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Create wallet \u2192 encrypted SD backup \u2192 delete wallet \u2192 restore backup \u2192 verify identical address. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Create wallet → encrypted SD backup → delete wallet → restore backup → verify identical address. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3078,7 +3024,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-12",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Create stego backup \u2192 delete wallet \u2192 stego restore \u2192 verify identical address. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Create stego backup → delete wallet → stego restore → verify identical address. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3098,7 +3044,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-14",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Scan valid transaction \u2192 inspect every UTXO \u2192 confirm \u2192 sign \u2192 result QR. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Scan valid transaction → inspect every UTXO → confirm → sign → result QR. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3118,7 +3064,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-15",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Scan transaction \u2192 reject. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Scan transaction → reject. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3138,7 +3084,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-16",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Scan transaction with forged change \u2192 fail closed. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Scan transaction with forged change → fail closed. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3158,7 +3104,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-17",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Anti-klepto transaction \u2192 commitment \u2192 reveal \u2192 signed result. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Anti-klepto transaction → commitment → reveal → signed result. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3178,7 +3124,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-18",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Sign typed message \u2192 result QR. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Sign typed message → result QR. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3198,7 +3144,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-19",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Sign scanned message \u2192 result QR. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Sign scanned message → result QR. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3218,7 +3164,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-20",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Sign message loaded from SD \u2192 save signature to SD. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Sign message loaded from SD → save signature to SD. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3238,7 +3184,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-22",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Create multisig \u2192 mix local and scanned cosigners \u2192 address \u2192 descriptor \u2192 save. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Create multisig → mix local and scanned cosigners → address → descriptor → save. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3258,7 +3204,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-23",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Restore/import multisig descriptor \u2192 reproduce same address. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Restore/import multisig descriptor → reproduce same address. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3278,7 +3224,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-26",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Enable device-bound SD storage \u2192 reboot with card \u2192 unlock. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Enable device-bound SD storage → reboot with card → unlock. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3298,7 +3244,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-27",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Enable device-bound SD storage \u2192 reboot without card \u2192 fail closed. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Enable device-bound SD storage → reboot without card → fail closed. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3318,7 +3264,7 @@
       "operator_checkpoints": [
         {
           "id": "production-user-journey-28",
-          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Configure duress credential \u2192 reboot \u2192 exercise normal and duress credentials. Attest PASS only after the expected final address/result/rejection is visibly verified."
+          "prompt": "On the physical production CoreS3, perform this as one contiguous journey without Developer/Workflow-Test UI: Configure duress credential → reboot → exercise normal and duress credentials. Attest PASS only after the expected final address/result/rejection is visibly verified."
         }
       ],
       "requirements": [
@@ -3421,34 +3367,6 @@
       "status": "implemented"
     },
     {
-      "actions": [
-        "apps/kaskold-hardware/src/runtime/interactions/export/menus/root.rs::handle_pure"
-      ],
-      "id": "qa-export-menu-routing-matrix",
-      "items": [
-        "E2E-054-01",
-        "E2E-054-02",
-        "E2E-054-03",
-        "E2E-054-04",
-        "E2E-054-05"
-      ],
-      "level": "qa",
-      "menu_items": [
-        "Seed Backup",
-        "Watch-Only",
-        "Signing Keys",
-        "Steganography"
-      ],
-      "requirements": [
-        "E2E-054"
-      ],
-      "serial_markers": [],
-      "states": [
-        "ExportChoice"
-      ],
-      "status": "implemented"
-    },
-    {
       "actions": [],
       "id": "manual-hil-firmware-update-usb-reboot",
       "items": [
@@ -3511,6 +3429,29 @@
         "OwnerKeyConfirm",
         "OwnerInstallWarning",
         "OwnerInstallConfirm"
+      ],
+      "status": "implemented"
+    },
+    {
+      "actions": [],
+      "id": "qa-kpub-to-sd-journey",
+      "items": [
+        "E2E-054-01",
+        "E2E-054-02",
+        "E2E-054-03"
+      ],
+      "level": "qa",
+      "menu_items": [
+        "kpub to SD"
+      ],
+      "requirements": [
+        "E2E-054"
+      ],
+      "serial_markers": [],
+      "states": [
+        "WalletAdvancedMenu",
+        "SdKpubFilename",
+        "SdKpubEncryptAsk"
       ],
       "status": "implemented"
     }

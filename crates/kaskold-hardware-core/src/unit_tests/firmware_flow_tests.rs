@@ -49,73 +49,7 @@ fn seed_qr_grid_moves_clamps_and_exits() {
 }
 
 #[test]
-fn transaction_guide_scan_review_and_confirm_are_characterized() {
-    assert_eq!(
-        reduce_touch(
-            TransactionScreen::Guide { seed_loaded: false },
-            50,
-            200,
-            false
-        ),
-        TransactionDecision {
-            effect: TransactionEffect::None,
-            redraw: false
-        }
-    );
-    assert_eq!(
-        reduce_touch(
-            TransactionScreen::Guide { seed_loaded: true },
-            50,
-            200,
-            true
-        )
-        .effect,
-        TransactionEffect::GuideBack
-    );
-    assert_eq!(
-        reduce_touch(
-            TransactionScreen::Guide { seed_loaded: true },
-            50,
-            180,
-            false
-        ),
-        TransactionDecision {
-            effect: TransactionEffect::None,
-            redraw: false
-        }
-    );
-    assert_eq!(
-        reduce_touch(
-            TransactionScreen::Guide { seed_loaded: true },
-            50,
-            200,
-            false
-        )
-        .effect,
-        TransactionEffect::DeriveAccount
-    );
-    assert_eq!(
-        reduce_touch(
-            TransactionScreen::Guide { seed_loaded: true },
-            200,
-            200,
-            false
-        )
-        .effect,
-        TransactionEffect::BeginScan
-    );
-    assert_eq!(
-        reduce_touch(
-            TransactionScreen::Guide { seed_loaded: true },
-            160,
-            200,
-            false
-        ),
-        TransactionDecision {
-            effect: TransactionEffect::None,
-            redraw: false
-        }
-    );
+fn transaction_scan_review_and_confirm_are_characterized() {
     let scan = TransactionScreen::ScanQr {
         return_target: ScanReturn::MultisigAddKey(2),
     };

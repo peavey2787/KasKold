@@ -508,7 +508,7 @@ fn selected_covenant_sweep_exports_build_and_log_valid_pskbs() {
     let covenant = crate::account::address::encode_p2pk_address(&[0x61; 32], "kaspa");
     let destination = crate::account::address::encode_p2pk_address(&[0x62; 32], "kaspa");
     let utxos = serde_json::json!([
-        {"tx_id": "63".repeat(32), "index": 0, "amount": 30_000_000u64}
+        {"tx_id": "63".repeat(32), "index": 0, "amount": "30000000"}
     ])
     .to_string();
     for wire in [

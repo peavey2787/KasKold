@@ -6,9 +6,9 @@ fn utxo(script: serde_json::Value) -> serde_json::Value {
     json!({
         "tx_id": "11".repeat(32),
         "index": 2,
-        "amount": 3,
+        "amount": "3",
         "script_public_key": script,
-        "block_daa_score": 4
+        "block_daa_score": "4"
     })
 }
 

@@ -5,6 +5,8 @@
 //! generic Menu/Seed/Export routing can no longer silently steal an onboarding
 //! tap just because a visual component is shared with another workflow.
 
+pub(crate) mod dice;
+
 use crate::{
     hw::display, runtime::data::AppData, runtime::interactions::TouchInput,
     services::persistent_wallet::PersistentWallet, services::storage_device as sdcard,
@@ -74,9 +76,7 @@ pub fn handle_onboarding_touch(context: OnboardingTouchContext<'_, '_, '_, '_, '
                 is_back,
             )
         }
-        Some(crate::runtime::navigation::OnboardingRoute::Dice) => Some(
-            crate::runtime::interactions::menu::seed_tools::handle_onboarding_dice(ad, boot_display, x, y, is_back),
-        ),
+        Some(crate::runtime::navigation::OnboardingRoute::Dice) => Some(dice::handle_dice_roll(ad, boot_display, x, y, is_back)),
         Some(crate::runtime::navigation::OnboardingRoute::SeedEntry) => {
             crate::runtime::interactions::seed::handle_seed_touch(ad, boot_display, delay, liveness, input)
         }

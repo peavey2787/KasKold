@@ -60,7 +60,7 @@ impl OnboardingContext<'_, '_, '_> {
     }
 
     pub(super) fn dice_touch(&mut self, x: u16, y: u16, is_back: bool) -> bool {
-        crate::runtime::interactions::menu::seed_tools::handle_onboarding_dice(self.ad, self.display, x, y, is_back)
+        crate::runtime::interactions::onboarding::dice::handle_dice_roll(self.ad, self.display, x, y, is_back)
     }
 }
 

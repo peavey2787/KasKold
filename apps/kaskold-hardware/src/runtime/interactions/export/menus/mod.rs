@@ -4,10 +4,6 @@
 
 //! Export-menu handlers grouped behind the export controller façade.
 
-pub(super) mod root;
-pub(super) mod seed;
-pub(super) mod signing_keys;
-
 use crate::runtime::interactions::TouchInput;
 
 /// Hardware-free pre-dispatch for export states that only change navigation
@@ -35,19 +31,5 @@ pub(crate) fn handle_navigation_touch(
     if let Some(result) = super::private_key::handle_pure(ad) {
         return Some(result);
     }
-    if let Some(result) = super::watch_only::handle_pure(ad, list_zones, input.x, input.y, input.is_back) {
-        return Some(result);
-    }
-    if let Some(result) =
-        super::xprv::handle_pure(ad, list_zones, page_up_zone, page_down_zone, input.x, input.y, input.is_back)
-    {
-        return Some(result);
-    }
-    if let Some(result) = root::handle_pure(ad, list_zones, page_up_zone, page_down_zone, input) {
-        return Some(result);
-    }
-    if let Some(result) = seed::handle_pure(ad, list_zones, page_up_zone, page_down_zone, input) {
-        return Some(result);
-    }
-    signing_keys::handle(ad, list_zones, input.x, input.y, input.is_back)
+    super::xprv::handle_pure(ad, list_zones, page_up_zone, page_down_zone, input.x, input.y, input.is_back)
 }

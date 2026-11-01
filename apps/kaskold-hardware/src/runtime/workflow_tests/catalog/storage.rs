@@ -17,12 +17,12 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         fixtures: F::SEED.union(F::SD_CARD),
         terminal: Ordinary,
         states: &[
-            SeedBackupMenu,
+            WalletBackupMethodsMenu,
             SdBackupWarning,
             SdSeedFilename,
             SdSeedExportPassphrase,
             SdOverwriteWarning,
-            SeedBackupMenu,
+            WalletBackupMethodsMenu,
         ],
     },
     WorkflowSpec {
@@ -31,7 +31,7 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         intent: DeviceStorageIntent::None,
         fixtures: F::SD_CARD,
         terminal: Ordinary,
-        states: &[ImportExportChoice, ImportMenu, SdWalletBackupFileList, SdWalletBackupImportPassphrase, MainMenu],
+        states: &[SeedsMenu, SdImportMenu, SdWalletBackupFileList, SdWalletBackupImportPassphrase, MainMenu],
     },
     WorkflowSpec {
         id: "sd-import-transaction",
@@ -39,7 +39,7 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         intent: DeviceStorageIntent::None,
         fixtures: F::SD_CARD.union(F::SEED),
         terminal: Ordinary,
-        states: &[ImportMenu, SdImportMenu, SdKsptFileList, ReviewTx { page: 0 }, ConfirmTx, SdSigFilename, MainMenu],
+        states: &[SeedsMenu, SdImportMenu, SdKsptFileList, ReviewTx { page: 0 }, ConfirmTx, SdSigFilename, MainMenu],
     },
     WorkflowSpec {
         id: "sd-import-kpub",
@@ -47,7 +47,7 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         intent: DeviceStorageIntent::None,
         fixtures: F::SD_CARD,
         terminal: Ordinary,
-        states: &[ImportMenu, SdImportMenu, SdKpubFileList, KpubScannedPopup, MainMenu],
+        states: &[SeedsMenu, SdImportMenu, SdKpubFileList, KpubScannedPopup, MainMenu],
     },
     WorkflowSpec {
         id: "sd-generic-files",

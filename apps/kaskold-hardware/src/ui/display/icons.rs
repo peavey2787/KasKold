@@ -28,7 +28,6 @@ enum MenuIcon {
     Custom(CustomIcon),
     Devices(DeviceIcon),
     Docs(DocsIcon),
-    Editor(EditorIcon),
     Finance(FinanceIcon),
     Git(GitIcon),
     Media(MediaIcon),
@@ -43,7 +42,6 @@ enum ActionIcon {
     EyeEmpty,
     EyeOff,
     HelpCircle,
-    OpenNewWindow,
     Upload,
     UploadSquare,
 }
@@ -67,14 +65,7 @@ enum DeviceIcon {
 
 #[derive(Clone, Copy)]
 enum DocsIcon {
-    AddFolder,
     Page,
-}
-
-#[derive(Clone, Copy)]
-enum EditorIcon {
-    EditPencil,
-    NumberedListRight,
 }
 
 #[derive(Clone, Copy)]

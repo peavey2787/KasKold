@@ -14,8 +14,8 @@ KasKold mixes multiple independent and supplemental observations before BIP39 mn
 | `OPTIONAL_UNIQUE_ID` (128-bit eFuse field) | Device binding only | Restored from the original seed path and mixed with an explicit domain separator. It is public/deterministic identity context, receives **zero entropy credit**, and never satisfies a mandatory entropy gate. |
 | User idle/touch timing | Supplemental context | Mixed when available; assigned zero guaranteed entropy credit. |
 | SAR/ADC observation | Supplemental analog context | Mixed during final whitening; assigned zero guaranteed entropy credit. |
-| Manual d6 rolls | User-supplied additive source | Optional during new-mnemonic onboarding (Always Start Fresh or Device-Bound) and mixed only **after** the mandatory hardware/camera/IMU/timing path passes. Standalone Dice Seed remains a separate Seed Tools feature. |
-| Deliberate Touch entropy | User-supplied additive source | Optional after the Dice choice for new mnemonic creation. A domain-separated touch digest is mixed only **after** the mandatory hardware/camera/IMU/timing path passes; declining Touch does not alter the already validated staged pool. Standalone Touch Seed remains a separate Seed Tools feature. |
+| Manual d6 rolls | User-supplied additive source | Optional during new-mnemonic onboarding (Always Start Fresh or Device-Bound) and mixed only **after** the mandatory hardware/camera/IMU/timing path passes. |
+| Deliberate Touch entropy | User-supplied additive source | Optional after the Dice choice for new mnemonic creation. A domain-separated touch digest is mixed only **after** the mandatory hardware/camera/IMU/timing path passes; declining Touch does not alter the already validated staged pool. |
 
 The final pool is repeatedly domain-separated and whitened with SHA-256 and fresh checked hardware-RNG bytes. No deterministic identifier, timer, ADC sample, touch sample, or IMU sample is allowed to replace the mandatory WDEV RNG and camera gates.
 

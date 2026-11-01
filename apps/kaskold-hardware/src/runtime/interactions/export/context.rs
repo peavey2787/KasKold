@@ -26,19 +26,6 @@ pub struct ExportTouchContext<'ctx, 'display, 'hal> {
 }
 
 impl<'display, 'hal> ExportTouchContext<'_, 'display, 'hal> {
-    /// Reborrow the SD-free capabilities for one export menu handler.
-    pub(super) fn menu(&mut self) -> ExportMenuContext<'_, 'display> {
-        ExportMenuContext {
-            ad: &mut *self.ad,
-            boot_display: &mut *self.boot_display,
-            delay: &mut *self.delay,
-            list_zones: self.list_zones,
-            page_up_zone: self.page_up_zone,
-            page_down_zone: self.page_down_zone,
-            input: self.input,
-        }
-    }
-
     /// Reborrow the SD-capable capabilities for one export storage handler.
     pub(super) fn storage(&mut self) -> ExportStorageContext<'_, 'display, 'hal> {
         ExportStorageContext {
@@ -54,17 +41,6 @@ impl<'display, 'hal> ExportTouchContext<'_, 'display, 'hal> {
             input: self.input,
         }
     }
-}
-
-/// Capabilities for export menus that do not access the SD bus.
-pub(super) struct ExportMenuContext<'ctx, 'display> {
-    pub(super) ad: &'ctx mut AppData,
-    pub(super) boot_display: &'ctx mut display::BootDisplay<'display>,
-    pub(super) delay: &'ctx mut esp_hal::delay::Delay,
-    pub(super) list_zones: &'ctx [touch::TouchZone; 4],
-    pub(super) page_up_zone: &'ctx touch::TouchZone,
-    pub(super) page_down_zone: &'ctx touch::TouchZone,
-    pub(super) input: TouchInput,
 }
 
 /// Capabilities for export menus that may access the SD bus.

@@ -4,7 +4,6 @@ use super::{display, AppData};
 mod private_key;
 mod restore;
 mod word_entry;
-mod word_flow;
 
 pub(super) fn handle(
     ad: &mut AppData,
@@ -18,9 +17,6 @@ pub(super) fn handle(
         crate::runtime::input::AppState::ImportPrivKey => private_key::handle(ad, boot_display, delay, x, y, is_back),
         crate::runtime::input::AppState::RestoreWord { word_idx } => {
             restore::handle(ad, boot_display, delay, x, y, is_back, word_idx)
-        }
-        crate::runtime::input::AppState::ImportWord { word_idx, word_count } => {
-            word_flow::handle(ad, boot_display, delay, x, y, is_back, word_idx, word_count)
         }
         _ => return None,
     };

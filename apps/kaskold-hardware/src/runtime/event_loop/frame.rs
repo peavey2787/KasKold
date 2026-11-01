@@ -50,8 +50,6 @@ macro_rules! finish_frame {
             $ad.runtime.needs_redraw = false;
             // Reset sub-menu scroll positions on MainMenu
             if $ad.navigation.app.state == $crate::runtime::input::AppState::MainMenu {
-                $ad.navigation.export_menu.scroll = 0;
-                $ad.navigation.qr_export_menu.scroll = 0;
                 $ad.navigation.settings_menu.scroll = 0;
             }
             #[cfg(feature = "m5stack")]

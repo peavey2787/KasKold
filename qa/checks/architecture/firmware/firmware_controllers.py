@@ -43,12 +43,9 @@ def _check_export_controllers(root: Path) -> list[str]:
         export_root / "address.rs",
         export_root / "derivation.rs",
         export_root / "kpub.rs",
-        export_root / "menus/root.rs",
         export_root / "private_key.rs",
         export_root / "seed_backup.rs",
-        export_root / "menus/seed.rs",
         export_root / "seed_qr.rs",
-        export_root / "menus/signing_keys.rs",
         export_root / "watch_only.rs",
         export_root / "xprv.rs",
     )
@@ -257,7 +254,7 @@ def _check_state_controllers(root: Path) -> list[str]:
             "state_digest": "76b3da3f2bd9b528ae979c8f315c677c605ce336446f212b65279c4c1dbf6e6c",
         },
         "menu": {
-            "modules": ("context.rs", "import_export/mod.rs", "primary.rs", "qr.rs", "seed_generation.rs", "seed_tools.rs", "signing.rs"),
+            "modules": ("context.rs", "cov_backup_name.rs", "primary.rs", "qr.rs", "seed_generation.rs", "signing.rs", "wallet_tools.rs"),
             "api_count": 1,
             "api_digest": "d7fb2213d77171c5030f2f9ca6c2c99b5d23089ebe1cf95844ac8b1676d378f4",
             "state_count": 15,

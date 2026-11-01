@@ -344,23 +344,6 @@ impl<'a> BootDisplay<'a> {
                 .ok();
         }
     }
-    /// Draw word import keyboard screen (a-z + backspace + suggestions)
-    pub fn draw_import_word_screen(
-        &mut self,
-        word_idx: u8,
-        word_count: u8,
-        word_input: &crate::wallet::mnemonic::WordInput,
-    ) {
-        self.clear_keep_nav();
-
-        let mut title_buf: heapless::String<24> = heapless::String::new();
-        core::fmt::Write::write_fmt(&mut title_buf, format_args!("IMPORT {}/{}", word_idx + 1, word_count)).ok();
-        let tw = measure_header(title_buf.as_str());
-        draw_oswald_header(&mut self.display, &title_buf, (320 - tw) / 2, 24, COLOR_TEXT);
-
-        self.draw_import_keyboard_full(word_input);
-    }
-
     pub fn draw_restore_word_screen(&mut self, word_idx: u8, word_input: &crate::wallet::mnemonic::WordInput) {
         self.clear_keep_nav();
         let mut title: heapless::String<28> = heapless::String::new();
@@ -368,28 +351,5 @@ impl<'a> BootDisplay<'a> {
         let tw = measure_header(title.as_str());
         draw_oswald_header(&mut self.display, &title, (320 - tw) / 2, 24, COLOR_TEXT);
         self.draw_import_keyboard_full(word_input);
-    }
-
-    /// Partial redraw: only title + input/suggestions area.
-    /// Keyboard stays static, back/home icons preserved.
-    pub fn update_import_word_header(
-        &mut self,
-        word_idx: u8,
-        word_count: u8,
-        word_input: &crate::wallet::mnemonic::WordInput,
-    ) {
-        // Clear header through separator line (preserve back/home icons)
-        Rectangle::new(Point::new(34, 0), Size::new(252, 36))
-            .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
-            .draw(&mut self.display)
-            .ok();
-
-        let mut title_buf: heapless::String<24> = heapless::String::new();
-        core::fmt::Write::write_fmt(&mut title_buf, format_args!("IMPORT {}/{}", word_idx + 1, word_count)).ok();
-        let tw = measure_header(title_buf.as_str());
-        draw_oswald_header(&mut self.display, &title_buf, (320 - tw) / 2, 24, COLOR_TEXT);
-
-        // Redraw input + suggestions (no keyboard)
-        self.draw_import_keyboard(word_input);
     }
 }

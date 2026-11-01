@@ -49,11 +49,6 @@ impl<'a> BootDisplay<'a> {
         draw_lato_hint(&mut self.display, "Tap to dismiss — KEEP SECRET", (320 - bw) / 2, 232, warn_color);
     }
 
-    /// Draw export choice screen — uses same paged list layout as draw_menu_screen
-    pub fn draw_export_choice_screen(&mut self, menu: &crate::runtime::input::Menu) {
-        self.update_menu_content("EXPORT WALLET", menu);
-    }
-
     /// Draw xprv export screen — shows xprv as QR with warning
     pub fn draw_export_xprv_screen(&mut self, xprv_str: &[u8], xprv_len: usize) {
         self.display.clear(COLOR_BG).ok();

@@ -31,8 +31,8 @@ impl AppState {
         use AppState::*;
         match self {
             // Menu screens
-            MainMenu | SeedsMenu | SeedToolsMenu | ImportExportChoice
-            | ImportMenu | SingleSigMenu | MultisigMenu | MultisigDescriptorsMenu | WalletBackupMethodsMenu
+            MainMenu | SeedsMenu
+            | MultisigMenu | MultisigDescriptorsMenu | WalletBackupMethodsMenu
             | WalletDetails | AdvancedMenu | WalletAdvancedMenu | BackupRecoveryMenu
             | DiceRoll | TouchEntropy
             | ChooseWordCount { .. } | StorageSeedWordCountChoice { .. } | SeedEntropyUnavailable { .. } | StorageSeedDiceChoice | StorageSeedDiceCountChoice | StorageSeedTouchChoice | ShowQR | Rejected
@@ -64,15 +64,15 @@ impl AppState {
 
             // Seed management
             Bip85Index { .. } | Bip85ShowWord { .. }
-            | ImportPrivKey | ImportWord { .. } | RestoreWord { .. }
+            | ImportPrivKey | RestoreWord { .. }
             | PassphraseChoice | PassphraseEntry | SeedList | AddWalletChoice | WalletNameEntry { .. } | ConfirmDeleteSeed
                 => HandlerGroup::Seed,
 
             // Export/display
             SeedBackup { .. } | ShowAddress | ShowAddressQR | AddrIndexPicker
             | ExportSeedQR | ExportCompactSeedQR | SeedQrGrid { .. }
-            | QrExportMenu | XprvExportMenu | SeedBackupMenu | WatchOnlyMenu | SigningKeysMenu | ExportPlainWordsQR
-            | ExportKpub | ExportKpubPopup | KpubScannedPopup | ExportXprv | ExportChoice | ExportPrivKey
+            | XprvExportMenu | ExportPlainWordsQR
+            | ExportKpub | ExportKpubPopup | KpubScannedPopup | ExportXprv | ExportPrivKey
             | ExportPrivKeyIndex
                 => HandlerGroup::Export,
 
@@ -84,7 +84,7 @@ impl AppState {
                 => HandlerGroup::Settings,
 
             // Transaction / multisig / camera / message signing
-            ScanQR | ReviewTx { .. } | InspectUtxoSummary | InspectUtxo { .. } | ConfirmTx | SignTxGuide | AntiKleptoRevealGuide
+            ScanQR | ReviewTx { .. } | InspectUtxoSummary | InspectUtxo { .. } | ConfirmTx | AntiKleptoRevealGuide
             | MultisigChooseMN | MultisigPickSeed { .. }
             | MultisigAddKey { .. } | MultisigShowAddress | MultisigShowAddressQR
             | MultisigSaveAddrAsk | MultisigSaveDescriptorAsk | MultisigDescriptor | MultisigDescriptorList { .. }

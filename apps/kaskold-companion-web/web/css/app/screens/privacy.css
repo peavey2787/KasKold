@@ -1,6 +1,5 @@
 
 
-/* Component-owned styles migrated from one-use global utilities. */
 #input-spf-fee { margin-bottom:10px; }
 #stealth-announce-addr { color:var(--accent-teal); word-break:break-all; display:inline-block; max-width:100%; line-height:1.5; }
 #stealth-meta-hex { font-size: 14px; word-break:break-all; line-height:1.6; padding:8px; background:var(--card-bg); border-radius:6px; margin:8px 0; }

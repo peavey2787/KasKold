@@ -188,15 +188,8 @@ fn fixed_owner(state: AppState, current: NavigationOwner) -> Option<NavigationOw
             | WalletDetails
             | WalletAdvancedMenu
             | BackupRecoveryMenu
-            | SeedToolsMenu
     ) {
         return Some(Seeds);
-    }
-    if matches!(state, ImportExportChoice | ImportMenu) {
-        return Some(Export);
-    }
-    if state == SingleSigMenu {
-        return Some(Signing);
     }
     #[cfg(feature = "workflow-tests")]
     if matches!(

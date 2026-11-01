@@ -24,7 +24,7 @@ mod validation;
 mod word_input;
 
 pub use dice::DiceCollector;
-pub use generation::{generate_from_dice, generate_from_entropy};
+pub use generation::generate_from_entropy;
 pub use touch::TouchEntropyCollector;
 pub use validation::validate;
 pub use word_input::WordInput;

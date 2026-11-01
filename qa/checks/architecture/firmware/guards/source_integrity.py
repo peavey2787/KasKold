@@ -332,8 +332,6 @@ def _check_remediation_ownership(root: Path) -> list[str]:
         errors.append("navigation card presentation must have exactly one rendering owner")
     if menu_source.count("draw_navigation_card(") < 2:
         errors.append("primary navigation menu bypasses shared card rendering")
-    if "draw_navigation_card(" not in secondary_source:
-        errors.append("secondary navigation menu bypasses shared card rendering")
     if "RoundedRectangle::new" in secondary_source:
         errors.append("secondary navigation menu duplicates card presentation details")
 

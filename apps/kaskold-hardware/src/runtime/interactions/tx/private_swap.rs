@@ -40,7 +40,7 @@ fn handle_review(
     is_back: bool,
 ) -> bool {
     if is_back {
-        reset_to_single_sig(ad);
+        reset_to_home(ad);
         return true;
     }
     if !(178..=224).contains(&y) || !(55..=265).contains(&x) {
@@ -61,7 +61,7 @@ fn handle_review(
         Err(error) => {
             ad.signing.private_swap.reset();
             show_rejection(boot_display, delay, error.message(), 1800, ErrorSound::Beep);
-            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SingleSigMenu));
+            crate::runtime::effects::home(ad);
         }
     }
     true
@@ -69,7 +69,7 @@ fn handle_review(
 
 fn handle_key(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, x: u16, y: u16, is_back: bool) -> bool {
     if is_back {
-        reset_to_single_sig(ad);
+        reset_to_home(ad);
         return true;
     }
     if (178..=224).contains(&y) && (70..=250).contains(&x) {
@@ -82,7 +82,7 @@ fn handle_key(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, x: 
 
 fn handle_result(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, x: u16, y: u16, is_back: bool) -> bool {
     if is_back {
-        reset_to_single_sig(ad);
+        reset_to_home(ad);
         return true;
     }
     if !(178..=224).contains(&y) || !(55..=265).contains(&x) {
@@ -106,7 +106,7 @@ fn close_qr(ad: &mut AppData, marks_nonce_shown: bool, route: crate::runtime::na
     true
 }
 
-fn reset_to_single_sig(ad: &mut AppData) {
+fn reset_to_home(ad: &mut AppData) {
     ad.signing.private_swap.reset();
-    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SingleSigMenu));
+    crate::runtime::effects::home(ad);
 }

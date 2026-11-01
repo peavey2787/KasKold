@@ -54,7 +54,6 @@ pub(super) fn handle(
 
 fn handle_address_view(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
     if is_back {
-        ad.qr.scan.address_length = 0;
         ad.wallet.addresses.view_is_change = false;
         crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::Address);
         return true;

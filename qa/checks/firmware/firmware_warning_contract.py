@@ -86,7 +86,7 @@ def check_firmware_warning_contract(root: Path, errors: list[str]) -> None:
     for source, symbol in (
         (signing_facade, "pub use workflow::handle_signing_operation_step;"),
         (entropy_facade, "pub use ambient::stage_touch as stage_ambient_touch;"),
-        (entropy_facade, "pub use touch::{harden_touch_entropy, touch_timestamp};"),
+        (entropy_facade, "pub use touch::touch_timestamp;"),
         (camera_facade, "pub use cycle::run_camera_cycle;"),
         (camera_facade, "pub use state::CameraSessionState;"),
     ):

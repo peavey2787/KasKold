@@ -315,7 +315,7 @@ def check_sd_persistence_security_contract(errors: list[str]) -> None:
     additive_entropy = read("apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation/additive.rs")
     entropy_mixer = read("apps/kaskold-hardware/src/services/entropy/mixer.rs")
     shared_seed_entropy = read("crates/shared-signer/src/seed_entropy.rs")
-    dice_controller = read("apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/dice.rs")
+    dice_controller = read("apps/kaskold-hardware/src/runtime/interactions/onboarding/dice.rs")
     touch_entropy = read("apps/kaskold-hardware/src/runtime/event_loop/touch_entropy.rs")
     require(
         errors,
@@ -337,7 +337,8 @@ def check_sd_persistence_security_contract(errors: list[str]) -> None:
         and "hasher.update(*pool)" in shared_seed_entropy
         and "hasher.update(rolls)" in shared_seed_entropy
         and "mix_additive_touch" in touch_entropy
-        and "pending_seed_entropy_valid" in dice_controller,
+        and "mix_dice_into_staged" in dice_controller
+        and "pending_seed_entropy_valid" in additive_entropy,
         "optional dice and touch entropy must remain additive after mandatory checked hardware/camera entropy",
     )
     require(

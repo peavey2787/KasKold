@@ -224,7 +224,6 @@ fn returns_to_main_on_press(state: AppState) -> bool {
         | AppState::ScanQR
         | AppState::SeedBackup { .. }
         | AppState::DiceRoll
-        | AppState::ImportWord { .. }
         | AppState::ChooseWordCount { .. }
         | AppState::ExportSeedQR
         | AppState::ExportKpub
@@ -234,7 +233,6 @@ fn returns_to_main_on_press(state: AppState) -> bool {
         | AppState::DisplaySettings
         | AppState::SdCardSettings
         | AppState::SdCardUnlockPassword
-        | AppState::SignTxGuide
         | AppState::SignMsgChoice
         | AppState::SignMsgType
         | AppState::SignMsgScan
@@ -249,11 +247,7 @@ fn returns_to_main_on_press(state: AppState) -> bool {
         | AppState::DecryptSecretScan
         | AppState::DecryptSecretResult
         | AppState::DecryptSecretResultQr
-        | AppState::QrExportMenu
         | AppState::XprvExportMenu
-        | AppState::SeedBackupMenu
-        | AppState::WatchOnlyMenu
-        | AppState::SigningKeysMenu
         | AppState::ExportPlainWordsQR => true,
         #[cfg(feature = "m5stack")]
         AppState::AudioSettings => true,

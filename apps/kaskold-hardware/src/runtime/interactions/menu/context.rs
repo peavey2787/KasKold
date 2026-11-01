@@ -17,7 +17,5 @@ pub struct MenuTouchContext<'ctx, 'display, 'hal, 'camera> {
     pub dvp_camera_opt: &'ctx mut Option<DvpCamera<'camera>>,
     pub cam_dma_buf_opt: &'ctx mut Option<DmaRxBuf>,
     pub list_zones: &'ctx [touch::TouchZone; 4],
-    pub page_up_zone: &'ctx touch::TouchZone,
-    pub page_down_zone: &'ctx touch::TouchZone,
     pub input: TouchInput,
 }

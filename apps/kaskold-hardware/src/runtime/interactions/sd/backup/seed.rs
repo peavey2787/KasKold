@@ -55,7 +55,7 @@ pub(crate) fn workflow_prepare_seed_backup_filename(ad: &mut crate::runtime::dat
 pub(crate) fn handle_seed_backup_filename(ctx: SdIoContext<'_, '_, '_>) -> bool {
     let back_state = crate::runtime::navigation::continuation_from_state(
         crate::runtime::navigation::return_target(ctx.ad, crate::runtime::navigation::ReturnScope::SeedBackup)
-            .unwrap_or(AppState::SeedBackupMenu),
+            .unwrap_or(AppState::WalletBackupMethodsMenu),
     );
     run_filename_workflow(
         ctx,
@@ -90,11 +90,11 @@ fn export_seed(
 ) -> Option<crate::runtime::navigation::ContinuationRoute> {
     let Some(slot) = ad.wallet.seeds.seed_mgr.active_slot() else {
         show_rejection(boot_display, delay, "No active seed", 2_000, ErrorSound::Silent);
-        return Some(crate::runtime::navigation::continuation!(SeedBackupMenu));
+        return Some(crate::runtime::navigation::continuation!(WalletBackupMethodsMenu));
     };
     let Some(word_count) = slot.mnemonic_word_count() else {
         show_rejection(boot_display, delay, "No seed phrase (xprv)", 2_000, ErrorSound::Silent);
-        return Some(crate::runtime::navigation::continuation!(SeedBackupMenu));
+        return Some(crate::runtime::navigation::continuation!(WalletBackupMethodsMenu));
     };
     let mut indices = slot.indices;
     let mut password = [0u8; 128];

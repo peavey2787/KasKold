@@ -234,37 +234,22 @@ pub(super) fn return_from_error(ad: &mut AppData, target: AppState) -> bool {
 
 pub(super) fn return_target(ad: &AppData, scope: ReturnScope) -> Option<AppState> {
     match scope {
-        ReturnScope::SeedTool => ad.navigation.history.target(&[
-            AppState::AddWalletChoice,
-            AppState::SeedToolsMenu,
-            AppState::WalletAdvancedMenu,
-        ]),
-        ReturnScope::KeyExport => ad.navigation.history.target(&[
-            AppState::BackupRecoveryMenu,
-            AppState::SigningKeysMenu,
-            AppState::WalletAdvancedMenu,
-        ]),
-        ReturnScope::SigningTool => {
-            ad.navigation.history.target(&[AppState::SingleSigMenu, AppState::WalletAdvancedMenu])
+        ReturnScope::SeedTool => {
+            ad.navigation.history.target(&[AppState::AddWalletChoice, AppState::WalletAdvancedMenu])
         }
+        ReturnScope::KeyExport => {
+            ad.navigation.history.target(&[AppState::BackupRecoveryMenu, AppState::WalletAdvancedMenu])
+        }
+        ReturnScope::SigningTool => ad.navigation.history.target(&[AppState::WalletAdvancedMenu]),
         ReturnScope::SeedBackup => ad.navigation.history.target(&[
-            AppState::QrExportMenu,
-            AppState::SeedBackupMenu,
             AppState::WalletBackupMethodsMenu,
             AppState::BackupRecoveryMenu,
-            AppState::ExportChoice,
             AppState::AddWalletChoice,
-            AppState::SeedToolsMenu,
         ]),
         ReturnScope::Address => {
-            ad.navigation.history.target(&[AppState::SeedToolsMenu, AppState::SeedsMenu, AppState::MainMenu])
+            ad.navigation.history.target(&[AppState::WalletAdvancedMenu, AppState::SeedsMenu, AppState::MainMenu])
         }
-        ReturnScope::KpubExport => ad.navigation.history.target(&[
-            AppState::WatchOnlyMenu,
-            AppState::MultisigMenu,
-            AppState::SignTxGuide,
-            AppState::MainMenu,
-        ]),
+        ReturnScope::KpubExport => ad.navigation.history.target(&[AppState::MultisigMenu, AppState::MainMenu]),
     }
 }
 
@@ -287,6 +272,10 @@ fn apply(ad: &mut AppData, transition: Transition) {
         HistoryEffect::PopTo(target) => ad.navigation.history.pop_to(target),
         HistoryEffect::Clear => ad.navigation.history.clear(),
         HistoryEffect::Preserve | HistoryEffect::PushCurrent => {}
+    }
+
+    if !matches!(transition.next, AppState::ShowAddress | AppState::ShowAddressQR) && ad.qr.scan.address_length != 0 {
+        ad.qr.scan.clear_address();
     }
 
     let owner_changed = transition.owner != ad.navigation.owner;

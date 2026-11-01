@@ -5,10 +5,8 @@ pub(super) fn destination(state: AppState, index: u8) -> Option<AppState> {
         .or_else(|| wallet_a(state, index))
         .or_else(|| wallet_b(state, index))
         .or_else(|| wallet_advanced(state, index))
-        .or_else(|| seed_tools(state, index))
         .or_else(|| signing(state, index))
-        .or_else(|| export_a(state, index))
-        .or_else(|| export_b(state, index))
+        .or_else(|| export(state, index))
         .or_else(|| restore(state, index))
         .or_else(|| imports(state, index))
 }
@@ -78,19 +76,8 @@ fn wallet_advanced(state: AppState, index: u8) -> Option<AppState> {
         (WalletAdvancedMenu, 1) => SignMsgChoice,
         (WalletAdvancedMenu, 2) => CommitRevealType,
         (WalletAdvancedMenu, 3) => DecryptSecretScan,
-        _ => return None,
-    })
-}
-
-fn seed_tools(state: AppState, index: u8) -> Option<AppState> {
-    use AppState::*;
-    Some(match (state, index) {
-        (SeedToolsMenu, 0) => ChooseWordCount { action: 0 },
-        (SeedToolsMenu, 1) => ChooseWordCount { action: 1 },
-        (SeedToolsMenu, 2) => ChooseWordCount { action: 5 },
-        (SeedToolsMenu, 3) => ChooseWordCount { action: 2 },
-        (SeedToolsMenu, 4) => ShowAddress,
-        (SeedToolsMenu, 5) => ChooseWordCount { action: 4 },
+        (WalletAdvancedMenu, 4) => ShowAddress,
+        (WalletAdvancedMenu, 5) => SdKpubFilename,
         _ => return None,
     })
 }
@@ -98,7 +85,6 @@ fn seed_tools(state: AppState, index: u8) -> Option<AppState> {
 fn signing(state: AppState, index: u8) -> Option<AppState> {
     use AppState::*;
     let destinations: &[AppState] = match state {
-        SingleSigMenu => &[SignTxGuide, SignMsgChoice, ScanQR, CommitRevealType, DecryptSecretScan],
         MultisigMenu => &[MultisigChooseMN, MultisigDescriptorsMenu, MultisigMenu],
         MultisigDescriptorsMenu => &[
             MultisigDescriptorList { action: 0 },
@@ -112,31 +98,9 @@ fn signing(state: AppState, index: u8) -> Option<AppState> {
     destinations.get(usize::from(index)).copied()
 }
 
-fn export_a(state: AppState, index: u8) -> Option<AppState> {
+fn export(state: AppState, index: u8) -> Option<AppState> {
     use AppState::*;
     Some(match (state, index) {
-        (ExportChoice, 0) => SeedBackupMenu,
-        (ExportChoice, 1) => WatchOnlyMenu,
-        (ExportChoice, 2) => SigningKeysMenu,
-        (ExportChoice, 3) => StegoModeSelect,
-        (SeedBackupMenu, 0) => SeedBackup { word_idx: 0 },
-        (SeedBackupMenu, 1) => QrExportMenu,
-        (SeedBackupMenu, 2) => SdBackupWarning,
-        (WatchOnlyMenu, 0) => ExportKpub,
-        (WatchOnlyMenu, 1) => SdKpubFilename,
-        (WatchOnlyMenu, 2) => WatchOnlyMenu,
-        _ => return None,
-    })
-}
-
-fn export_b(state: AppState, index: u8) -> Option<AppState> {
-    use AppState::*;
-    Some(match (state, index) {
-        (SigningKeysMenu, 0) => XprvExportMenu,
-        (SigningKeysMenu, 1) => ExportPrivKeyIndex,
-        (QrExportMenu, 0) => ExportCompactSeedQR,
-        (QrExportMenu, 1) => ExportSeedQR,
-        (QrExportMenu, 2) => ExportPlainWordsQR,
         (XprvExportMenu, 0) => ExportXprv,
         (XprvExportMenu, 1) => SdXprvFilename,
         _ => return None,
@@ -154,10 +118,6 @@ fn restore(state: AppState, index: u8) -> Option<AppState> {
         (AdvancedRestoreMenu, 1) => ScanQR,
         (AdvancedRestoreMenu, 2) => StegoImportPick,
         (AdvancedRestoreMenu, 3) => ImportPrivKey,
-        (ImportMenu, 0) => SdImportMenu,
-        (ImportMenu, 1) => StegoImportPick,
-        (ImportMenu, 2) => ImportPrivKey,
-        (ImportMenu, 3) => SdFileList,
         _ => return None,
     })
 }

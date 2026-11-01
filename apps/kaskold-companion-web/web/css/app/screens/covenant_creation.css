@@ -1,6 +1,5 @@
 
 
-/* Component-owned styles migrated from one-use global utilities. */
 #btn-cov-cr-scan-commitment { width:100%; margin-bottom:4px; font-size: 14px; }
 #btn-cov-res-consolidate { width:100%; margin-bottom:8px; font-size: 14px; display:none; }
 #btn-tv-split { width:100%; margin-bottom:8px; background:var(--warning); }

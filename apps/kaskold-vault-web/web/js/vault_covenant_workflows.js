@@ -51,12 +51,6 @@ export function installCovenantWorkflows(ctx) {
     } catch (error) { status(String(error), true); }
   }
 
-  function start() {
-    clear();
-    openScanner('Covenant Sign', 'Scan a KasKold covenant KeyInfo, Bind, Known, or Opaque request.', prepare, clear);
-  }
-
-  $('single-covenant').onclick = start;
   $('covenant-cancel').onclick = () => {
     clear();
     renderHome();
@@ -87,8 +81,6 @@ export function installCovenantWorkflows(ctx) {
     renderHome();
   };
 
-  ctx.startCovenant = start;
-  ctx.prepareCovenant = prepare;
   ctx.routeCovenantPayload = bytes => {
     const payload = decodeHexPayloadIfMagic(bytes, ['CVSG', 'CVRV']) || bytes;
     if (hasMagic(payload, 'CVSG')) { prepare(payload); return true; }

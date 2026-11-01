@@ -1,5 +1,5 @@
 {
-  "connected_stable_state_count": 134,
+  "connected_stable_state_count": 133,
   "connected_stable_states": [
     "About",
     "AddWalletChoice",
@@ -95,7 +95,6 @@
     "SignMsgResultQr",
     "SignMsgScan",
     "SignMsgType",
-    "SingleSigMenu",
     "StegoHintPassphrase",
     "StegoHintReveal",
     "StegoImportDescChoice",
@@ -136,8 +135,8 @@
     "WalletNameEntry",
     "XprvExportMenu"
   ],
-  "formal_menu_count": 23,
-  "formal_menu_row_count": 92,
+  "formal_menu_count": 15,
+  "formal_menu_row_count": 64,
   "qualification_contracts": {
     "all_connected_stable_states_have_static_renderer_ownership": true,
     "all_declared_guards_have_reducer_implementation": true,
@@ -154,7 +153,7 @@
   "render_marker_prefix": "KASKOLD_UI_RUNTIME: RENDER ",
   "render_miss_marker_prefix": "KASKOLD_UI_RUNTIME: RENDER-MISS ",
   "schema": 2,
-  "stable_state_count": 187,
+  "stable_state_count": 176,
   "workflow_e2e_physical_render_count": 50,
   "workflow_e2e_physical_render_states": [
     "About",

@@ -2,7 +2,6 @@
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TransactionScreen {
-    Guide { seed_loaded: bool },
     ScanQr { return_target: ScanReturn },
     Review,
     Confirm,
@@ -17,9 +16,6 @@ pub enum ScanReturn {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TransactionEffect {
     None,
-    GuideBack,
-    DeriveAccount,
-    BeginScan,
     ScanBack(ScanReturn),
     ReviewBack,
     ReviewAdvance,
@@ -40,36 +36,9 @@ pub fn reduce_touch(
     is_back: bool,
 ) -> TransactionDecision {
     match screen {
-        TransactionScreen::Guide { seed_loaded } => reduce_guide(seed_loaded, x, y, is_back),
         TransactionScreen::ScanQr { return_target } => reduce_scan(return_target, x, y),
         TransactionScreen::Review => reduce_review(x, y, is_back),
         TransactionScreen::Confirm => reduce_confirm(x, y, is_back),
-    }
-}
-
-fn reduce_guide(seed_loaded: bool, x: u16, y: u16, is_back: bool) -> TransactionDecision {
-    if is_back {
-        return TransactionDecision {
-            effect: TransactionEffect::GuideBack,
-            redraw: true,
-        };
-    }
-    if !seed_loaded || !(190..=234).contains(&y) {
-        return TransactionDecision {
-            effect: TransactionEffect::None,
-            redraw: false,
-        };
-    }
-    let effect = if (25..=159).contains(&x) {
-        TransactionEffect::DeriveAccount
-    } else if (161..=295).contains(&x) {
-        TransactionEffect::BeginScan
-    } else {
-        TransactionEffect::None
-    };
-    TransactionDecision {
-        redraw: effect != TransactionEffect::None,
-        effect,
     }
 }
 

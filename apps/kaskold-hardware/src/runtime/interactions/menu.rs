@@ -19,12 +19,12 @@
 use crate::{hw::display, hw::touch, runtime::data::AppData, runtime::interactions::TouchInput};
 
 mod context;
-mod import_export;
+mod cov_backup_name;
 pub(crate) mod primary;
 mod qr;
 pub(crate) mod seed_generation;
-pub(crate) mod seed_tools;
 mod signing;
+pub(crate) mod wallet_tools;
 
 pub use context::MenuTouchContext;
 
@@ -49,12 +49,9 @@ pub fn handle_root_touch(ad: &mut AppData, x: u16, y: u16) -> bool {
 #[inline(never)]
 pub fn handle_menu_touch(context: MenuTouchContext<'_, '_, '_, '_>) -> Option<bool> {
     let MenuTouchContext { ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones, .. } = context;
-    let MenuTouchContext { dvp_camera_opt: camera, cam_dma_buf_opt: dma, page_up_zone, page_down_zone, input, .. } =
-        context;
+    let MenuTouchContext { dvp_camera_opt: camera, cam_dma_buf_opt: dma, input, .. } = context;
     let TouchInput { x, y, is_back } = input;
-    if let Some(result) =
-        seed_tools::handle(ad, boot_display, delay, liveness, list_zones, page_up_zone, page_down_zone, x, y, is_back)
-    {
+    if let Some(result) = wallet_tools::handle(ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones, x, y) {
         return Some(result);
     }
     if let Some(result) =
@@ -62,8 +59,8 @@ pub fn handle_menu_touch(context: MenuTouchContext<'_, '_, '_, '_>) -> Option<bo
     {
         return Some(result);
     }
-    if let Some(result) = import_export::handle(ad, boot_display, delay, i2c, list_zones, x, y, is_back) {
-        return Some(result);
+    if ad.navigation.app.state == crate::runtime::input::AppState::CovBackupName {
+        return Some(cov_backup_name::handle(ad, boot_display, x, y, is_back));
     }
     if let Some(result) =
         signing::handle(ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones, x, y, is_back)

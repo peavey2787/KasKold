@@ -139,9 +139,9 @@ fn standard_transaction_boundaries_complete_on_host_validation_paths() {
     let utxos = serde_json::json!([{
         "tx_id": "11".repeat(32),
         "index": 0,
-        "amount": 50_000_000u64,
+        "amount": "50000000",
         "script_public_key": [0u64, 0, 0x20, 0x61],
-        "block_daa_score": 0
+        "block_daa_score": "0"
     }])
     .to_string();
     let wire =

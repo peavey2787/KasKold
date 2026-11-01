@@ -78,21 +78,7 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
             ChooseWordCount { action: 4 },
             Bip85Index { word_count: 12 },
             Bip85ShowWord { word_idx: 0, word_count: 12 },
-            SeedToolsMenu,
-        ],
-    },
-    WorkflowSpec {
-        id: "advanced-import-words",
-        label: "Advanced Import Words",
-        intent: DeviceStorageIntent::None,
-        fixtures: F::NONE,
-        terminal: Ordinary,
-        states: &[
-            SeedToolsMenu,
-            ChooseWordCount { action: 2 },
-            ImportWord { word_idx: 0, word_count: 12 },
-            PassphraseChoice,
-            SeedToolsMenu,
+            WalletAdvancedMenu,
         ],
     },
     WorkflowSpec {
@@ -109,6 +95,6 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         intent: DeviceStorageIntent::None,
         fixtures: F::SEED,
         terminal: Ordinary,
-        states: &[SeedToolsMenu, AddrIndexPicker, ShowAddress, SeedToolsMenu],
+        states: &[SeedsMenu, ShowAddress, AddrIndexPicker, ShowAddress, SeedsMenu],
     },
 ];

@@ -19,7 +19,6 @@
 mod address;
 mod context;
 mod derivation;
-pub(crate) use self::derivation::derive_watch_account;
 mod index_keypad;
 mod kpub;
 pub(crate) mod menus;
@@ -27,7 +26,7 @@ mod private_key;
 pub(crate) mod seed_backup;
 mod seed_qr;
 mod watch_only;
-pub(crate) use watch_only::prepare_multisig_kpub_qr;
+pub(crate) use watch_only::{export_kpub_to_sd, prepare_multisig_kpub_qr};
 mod xprv;
 
 use crate::runtime::interactions::feedback::RedrawFlag;
@@ -49,18 +48,6 @@ pub fn handle_export_touch(mut context: ExportTouchContext<'_, '_, '_>) -> Optio
         return Some(result);
     }
     if let Some(result) = kpub::handle(context.ad, context.delay, context.i2c, x, is_back) {
-        return Some(result);
-    }
-    if let Some(result) = menus::root::handle(context.menu()) {
-        return Some(result);
-    }
-    if let Some(result) = menus::seed::handle(context.menu()) {
-        return Some(result);
-    }
-    if let Some(result) = watch_only::handle(context.storage()) {
-        return Some(result);
-    }
-    if let Some(result) = menus::signing_keys::handle(context.ad, context.list_zones, x, y, is_back) {
         return Some(result);
     }
     if let Some(result) = xprv::handle(context.storage()) {
