@@ -55,36 +55,7 @@ def bash_path(path: Path) -> str:
 
 
 class QemuScriptTests(unittest.TestCase):
-    def read(self, relative: str) -> str:
-        return (ROOT / relative).read_text()
 
-    def test_setup_installs_all_required_layers(self) -> None:
-        setup = self.read("scripts/linux/qemu/setup.sh")
-        for function in (
-            "install_qemu_host_packages",
-            "install_rustup_if_missing",
-            "install_esp_rust_toolchain",
-            "install_espflash",
-            "install_espressif_qemu",
-        ):
-            self.assertIn(function, setup)
-
-    def test_espressif_setup_installs_xtensa_qemu(self) -> None:
-        source = self.read("scripts/linux/lib/qemu-espressif.sh")
-        self.assertIn('python3 "${idf_tools}" install qemu-xtensa', source)
-        self.assertIn("qemu-system-xtensa", source)
-        self.assertIn("KASKOLD_ESP_IDF_VERSION", self.read("scripts/linux/lib/qemu-common.sh"))
-
-    def test_espressif_setup_does_not_activate_full_idf(self) -> None:
-        source = self.read("scripts/linux/lib/qemu-espressif.sh")
-        self.assertNotIn("install-python-env", source)
-        self.assertNotIn("export.sh", source)
-        self.assertIn("find_installed_xtensa_qemu", source)
-        self.assertIn("QEMU_SYSTEM_XTENSA", source)
-        self.assertLess(
-            source.index('if [[ -d "${search_root}" ]]'),
-            source.index("command -v qemu-system-xtensa"),
-        )
 
     @unittest.skipUnless(os.name == "posix", "Espressif QEMU setup execution is POSIX-specific")
     def test_espressif_setup_resolves_qemu_without_idf_activation(self) -> None:
@@ -141,75 +112,6 @@ class QemuScriptTests(unittest.TestCase):
             self.assertIn(f"SELECTED={expected}", completed.stdout)
             self.assertNotIn("Activating ESP-IDF", completed.stdout)
 
-    def test_build_and_run_preserve_setup_environment(self) -> None:
-        build = self.read("scripts/linux/qemu/build.sh")
-        self.assertIn('source "${SCRIPT_DIR}/setup.sh"', build)
-        self.assertIn("tools/firmware/qemu/build.sh", build)
-
-        run = self.read("scripts/linux/qemu/run.sh")
-        self.assertIn('source "${SCRIPT_DIR}/setup.sh"', run)
-        self.assertIn("tools/firmware/qemu/build.sh", run)
-        self.assertIn("qa/checks/firmware/qemu/run.py", run)
-        self.assertFalse((ROOT / "tools/firmware/qemu/run.sh").exists())
-
-    def test_make_routes_qemu_through_self_provisioning_scripts(self) -> None:
-        makefile = self.read("Makefile")
-        self.assertIn("firmware-qemu-setup:\n\t$(MAKE_TASK) entrypoint qemu-setup", makefile)
-        self.assertIn("firmware-qemu:\n\t$(MAKE_TASK) entrypoint qemu-build", makefile)
-        self.assertIn("firmware-qemu-test:\n\t$(MAKE_TASK) entrypoint qemu-test", makefile)
-        self.assertNotIn("firmware-qemu-run:", makefile)
-
-    def test_qemu_build_enables_guest_tests(self) -> None:
-        build = self.read("tools/firmware/qemu/build.sh")
-        self.assertIn("--features qemu-tests", build)
-        manifest = self.read("apps/kaskold-hardware/Cargo.toml")
-        self.assertIn('qemu-tests = ["qemu", "verbose-boot"]', manifest)
-
-    def test_qemu_test_image_initializes_internal_heap(self) -> None:
-        qemu_entry = self.read("apps/kaskold-hardware/src/qemu/mod.rs")
-        self.assertIn("\npub(crate) mod allocator;", qemu_entry)
-        self.assertIn("esp_hal::init(config);\n    allocator::initialize();", qemu_entry)
-
-        allocator = self.read("apps/kaskold-hardware/src/qemu/allocator.rs")
-        self.assertIn("esp_alloc::HEAP.add_region(HeapRegion::new", allocator)
-        self.assertIn("const QEMU_TEST_HEAP_BYTES: usize = 128 * 1024", allocator)
-        self.assertIn("StaticCell<[u8; QEMU_TEST_HEAP_BYTES]>", allocator)
-        self.assertIn("QEMU_TEST_HEAP.init_with", allocator)
-        self.assertIn("pub(crate) fn probe() -> bool", allocator)
-
-        soc = self.read("apps/kaskold-hardware/src/qemu/validation/soc.rs")
-        self.assertIn("internal heap allocation", soc)
-        self.assertIn("crate::qemu::allocator::probe()", soc)
-
-    def test_qemu_qr_facade_exports_only_used_surface(self) -> None:
-        encoder = self.read("apps/kaskold-hardware/src/qr/encoder/mod.rs")
-        self.assertIn("pub use modes::byte_mode::encode;", encoder)
-        self.assertGreaterEqual(
-            encoder.count('#[cfg(not(feature = "qemu"))]'),
-            2,
-        )
-
-    def test_master_qa_catalog_runs_qemu_emulation(self) -> None:
-        catalog = self.read("qa/linux/runner/catalog.sh")
-        self.assertIn("emulation.signer-firmware-qemu", catalog)
-        self.assertIn("scripts/linux/qemu/test.sh", catalog)
-        runner = self.read("qa/linux/run-all.sh")
-        self.assertIn("--skip-qemu", runner)
-        self.assertIn("emulation|hardware", runner)
-
-    def test_admin_prompt_explains_reason_before_sudo(self) -> None:
-        admin = self.read("scripts/linux/lib/admin.sh")
-        self.assertIn("KasKold needs administrator access", admin)
-        self.assertIn("Reason: %s", admin)
-        self.assertIn("The next prompt is from sudo", admin)
-        self.assertNotIn("notify-send", admin)
-        self.assertNotIn("kdialog", admin)
-        self.assertNotIn("\\033]9;", admin)
-        self.assertLess(admin.index("explain_admin_access"), admin.index("sudo -v"))
-
-        packages = self.read("scripts/linux/lib/qemu-packages.sh")
-        self.assertIn('run_as_root "${reason}" apt-get update', packages)
-        self.assertIn("Install missing %s packages required", packages)
 
     def test_sudo_is_centralized_behind_terminal_helper(self) -> None:
         offenders = []
@@ -220,17 +122,6 @@ class QemuScriptTests(unittest.TestCase):
                 offenders.append(str(path.relative_to(ROOT)))
         self.assertEqual(offenders, [])
 
-    def test_existing_esp_toolchain_directory_is_accepted(self) -> None:
-        rust = self.read("scripts/linux/lib/qemu-rust.sh")
-        self.assertIn("toolchains/esp", rust)
-        self.assertIn("rustup run esp rustc --version", rust)
-        self.assertIn("${toolchain_dir}/bin/rustc", rust)
-        self.assertNotIn("rustup toolchain list | grep", rust)
-
-    def test_debian_t64_replacements_are_recognized(self) -> None:
-        packages = self.read("scripts/linux/lib/qemu-packages.sh")
-        self.assertIn("${package}t64", packages)
-        self.assertNotIn("libnotify-bin", packages)
 
     def test_existing_esp_directory_passes_runtime_probe(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

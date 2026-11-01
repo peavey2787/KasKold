@@ -49,11 +49,12 @@ def load_checker():
 
 
 def rows() -> list[list[str]]:
-    return [
-        line.split("\t", 4)
-        for line in CATALOG.read_text(encoding="utf-8").splitlines()
-        if line and not line.startswith("#")
-    ]
+    with CATALOG.open(encoding="utf-8") as lines:
+        return [
+            line.rstrip("\n").split("\t", 4)
+            for line in lines
+            if line.strip() and not line.startswith("#")
+        ]
 
 
 class QaOrchestrationCatalogTests(unittest.TestCase):

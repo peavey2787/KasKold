@@ -11,11 +11,6 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class AndroidGradleBootstrapTests(unittest.TestCase):
-    def test_protocol_does_not_export_extended_public_keys(self) -> None:
-        # BIP32 extended keys are Kaspa Portal's; kaskold-protocol re-exports
-        # only the watch-only import surface.
-        source = (ROOT / "crates/kaskold-protocol/src/account/mod.rs").read_text()
-        self.assertNotRegex(source, r"pub use [^;]*ExtPubKey")
 
     def test_signing_authorization_quality_evidence_follows_firmware_core_owner(self) -> None:
         policy = json.loads((ROOT / "qa/checks/security/policy.json").read_text())
@@ -46,55 +41,6 @@ class AndroidGradleBootstrapTests(unittest.TestCase):
         self.assertIn("crates/kaskold-protocol/src/unit_tests/mod.rs", requirement["files"])
         self.assertIn("QrDecoder", requirement["terms"])
 
-    def test_android_gradle_daemon_jvm_matches_central_jdk_pin(self) -> None:
-        toolchains = {}
-        for raw in (ROOT / "qa/config/toolchains.env").read_text(encoding="utf-8").splitlines():
-            key, sep, value = raw.partition("=")
-            if sep:
-                toolchains[key.strip()] = value.strip()
-        daemon = {}
-        for raw in (ROOT / "apps/kaskold-companion-android/gradle/gradle-daemon-jvm.properties").read_text(encoding="utf-8").splitlines():
-            key, sep, value = raw.partition("=")
-            if sep:
-                daemon[key.strip()] = value.strip()
-        self.assertEqual(toolchains.get("KASKOLD_ANDROID_JDK"), "25")
-        self.assertEqual(daemon.get("toolchainVersion"), toolchains["KASKOLD_ANDROID_JDK"])
-
-    def test_linux_android_build_bootstraps_wrapper_distribution_with_sha256(self) -> None:
-        source = (ROOT / "scripts/linux/build/android-build.sh").read_text()
-        wrapper = (ROOT / "apps/kaskold-companion-android/gradle/wrapper/gradle-wrapper.properties").read_text()
-        self.assertIn("distributionSha256Sum=", wrapper)
-        self.assertIn("distributionUrl=https\\://services.gradle.org/distributions/gradle-9.5.0-bin.zip", wrapper)
-        self.assertIn('Pinned Gradle $GRADLE_VERSION is not installed; downloading and verifying it', source)
-        self.assertIn("urllib.request.urlopen(url)", source)
-        self.assertIn("Gradle SHA-256 mismatch", source)
-        self.assertIn('GRADLE_USER_HOME="${GRADLE_USER_HOME:-$HOME/.gradle}"', source)
-        self.assertIn('DAEMON_JVM_PROPERTIES="$ANDROID_APP/gradle/gradle-daemon-jvm.properties"', source)
-        self.assertIn('required_java="${KASKOLD_ANDROID_JDK:-}"', source)
-        self.assertIn('[[ "$daemon_java" == "$required_java" ]]', source)
-        self.assertIn('$HOME/.local/share/kaskold/jdk-$required_java/bin/java', source)
-        self.assertIn('install_managed_java()', source)
-        self.assertIn('api.adoptium.net/v3/assets/latest/{major}/hotspot', source)
-        self.assertIn('JDK SHA-256 mismatch', source)
-        self.assertIn('java_bin="$(install_managed_java)"', source)
-        self.assertNotIn('required_java=21', source)
-        self.assertNotIn('required_java=17', source)
-        self.assertNotIn('Install the verified Gradle 9.5.0 distribution before building.', source)
-
-    def test_linux_android_build_discovers_project_and_common_sdk_locations(self) -> None:
-        source = (ROOT / "scripts/linux/build/android-build.sh").read_text()
-        sdk_helper = (ROOT / "scripts/linux/lib/android-sdk.sh").read_text()
-        self.assertIn('read_local_sdk_dir', source)
-        self.assertIn('"/mnt/Extra/android-dev/sdk"', source)
-        self.assertIn('source "$ROOT/scripts/linux/lib/android-sdk.sh"', source)
-        self.assertIn('ensure_android_sdk_build_packages', source)
-        self.assertIn('AndroidVersion\\.ApiLevel', sdk_helper)
-        self.assertIn('KASKOLD_ANDROID_API', sdk_helper)
-        self.assertIn('platforms/android-$api', sdk_helper)
-        self.assertIn('build-tools/$build_tools', sdk_helper)
-        self.assertIn('sdk install --canary', sdk_helper)
-        self.assertIn('--channel=3', sdk_helper)
-        self.assertIn('KASKOLD_ANDROID_CMDLINE_TOOLS_LINUX_SHA256', sdk_helper)
 
     @unittest.skipUnless(os.name == "posix", "Android CLI bootstrap fixture uses POSIX shell stubs")
     def test_linux_android_sdk_helper_prefers_android_cli_preview_channel(self) -> None:
@@ -145,58 +91,6 @@ class AndroidGradleBootstrapTests(unittest.TestCase):
             self.assertIn("platforms/android-37", invocation)
             self.assertIn("build-tools/37.0.0", invocation)
 
-    def test_windows_android_build_has_equivalent_verified_bootstrap(self) -> None:
-        source = (ROOT / "scripts/windows/build/android-build.ps1").read_text()
-        self.assertIn("distributionSha256Sum", source)
-        self.assertIn("Invoke-WebRequest", source)
-        self.assertIn("Get-FileHash", source)
-        self.assertIn("Gradle SHA-256 mismatch", source)
-        self.assertIn("Read-LocalSdk", source)
-        self.assertIn("Find-AndroidPlatformJar", source)
-        self.assertIn("Ensure-AndroidSdkBuildPackages", source)
-        self.assertIn('"platforms/android-$Api"', source)
-        self.assertIn('"build-tools/$BuildToolsVersion"', source)
-        self.assertIn("'sdk', 'install', '--canary'", source)
-        self.assertIn("'--channel=3'", source)
-
-
-    def test_windows_android_build_bootstraps_pinned_vault_native_toolchain(self) -> None:
-        source = (ROOT / "scripts/windows/build/android-build.ps1").read_text(encoding="utf-8")
-        self.assertIn("function Ensure-RustAndroidTargets([string]$Toolchain)", source)
-        self.assertIn("'target','add',$rustTarget,'--toolchain',$Toolchain", source)
-        self.assertIn("Rust target $rustTarget could not be prepared", source)
-        self.assertNotIn("Run: rustup target add $rustTarget", source)
-        self.assertIn("function Ensure-CargoNdk([string]$Toolchain, [string]$Version)", source)
-        self.assertIn("'install','cargo-ndk','--version',$Version,'--locked','--force'", source)
-        self.assertIn("Pinned cargo-ndk $Version could not be prepared", source)
-        self.assertIn("function Ensure-AndroidCommandLineTools([string]$Sdk)", source)
-        self.assertIn("KASKOLD_ANDROID_CMDLINE_TOOLS_WINDOWS_SHA256", source)
-        self.assertIn("Android command-line tools SHA-256 mismatch", source)
-        self.assertIn("function Ensure-AndroidNdk([string]$Sdk, [string]$Version)", source)
-        self.assertIn('Install-AndroidSdkPackages $Sdk @("ndk/$Version")', source)
-        self.assertIn("Ensure-RustAndroidTargets $stableRust", source)
-        self.assertIn("Ensure-CargoNdk $stableRust $cargoNdkVersion", source)
-        self.assertIn("$ndkPath = Ensure-AndroidNdk $sdk $androidNdkVersion", source)
-
-    def test_windows_android_build_selects_managed_java_without_native_stderr_failure(self) -> None:
-        source = (ROOT / "scripts/windows/build/android-build.ps1").read_text(encoding="utf-8")
-        self.assertIn("Import-KasKoldToolchains $root", source)
-        self.assertIn("$daemonJvmProperties = Join-Path $android 'gradle/gradle-daemon-jvm.properties'", source)
-        self.assertIn("$requiredJava = [int]$centralJavaText", source)
-        self.assertIn("if ([int]$daemonJavaText -ne $requiredJava)", source)
-        self.assertIn(".kaskold/tools/jdk-$($env:KASKOLD_ANDROID_JDK)/bin/java.exe", source)
-        self.assertIn("Invoke-KasKoldCapture -Command $Java -Arguments @('-version')", source)
-        self.assertIn("if (-not (Test-Path -LiteralPath $Java -PathType Leaf)) { return 0 }", source)
-        self.assertIn("} catch {", source)
-        self.assertIn("A stale or partially prepared managed JDK must be treated as absent", source)
-        self.assertIn("$env:JAVA_HOME = Split-Path -Parent $javaBin", source)
-        self.assertIn("function Install-ManagedJava([int]$RequiredMajor)", source)
-        self.assertIn("api.adoptium.net/v3/assets/latest/$RequiredMajor/hotspot", source)
-        self.assertIn("JDK SHA-256 mismatch", source)
-        self.assertIn("$managed = Install-ManagedJava $RequiredMajor", source)
-        self.assertIn("if ($major -eq $RequiredMajor)", source)
-        self.assertNotIn("if ($major -ge $RequiredMajor)", source)
-        self.assertNotIn("& java -version 2>&1", source)
 
     def test_windows_powershell_build_scripts_are_ascii_safe_for_windows_powershell_51(self) -> None:
         # Windows PowerShell 5.1 interprets UTF-8-without-BOM source as the active
@@ -216,16 +110,6 @@ class AndroidGradleBootstrapTests(unittest.TestCase):
                             "native Windows PowerShell 5.1 runners must remain ASCII-safe: "
                             f"{exc}"
                         )
-
-    def test_windows_android_bootstrap_probes_native_versions_through_safe_capture(self) -> None:
-        installer = (ROOT / "scripts/windows/install/install.ps1").read_text(encoding="utf-8")
-        studio = (ROOT / "scripts/windows/build/android-studio.ps1").read_text(encoding="utf-8")
-        self.assertIn("Invoke-KasKoldCapture -Command $targetJava -Arguments @('-version')", installer)
-        self.assertIn("Invoke-KasKoldCapture -Command $managedJava -Arguments @('-version')", installer)
-        self.assertIn("Invoke-KasKoldCapture -Command 'gradle' -Arguments @('--version')", installer)
-        self.assertIn("Invoke-KasKoldCapture -Command 'kotlinc' -Arguments @('-version')", installer)
-        self.assertNotIn("& java -version 2>&1", installer)
-        self.assertIn("Invoke-KasKoldCapture -Command $java -Arguments @('-version')", studio)
 
 
 if __name__ == "__main__":

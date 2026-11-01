@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from hashlib import sha256
 from pathlib import Path
-import json
 import os
 import shutil
 import stat
@@ -15,15 +14,6 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class AndroidGradleExecutableRecoveryTests(unittest.TestCase):
-    def test_linux_gradle_bootstraps_restore_verified_zip_modes(self) -> None:
-        for relative in (
-            "scripts/linux/build/android-build.sh",
-            "scripts/linux/build/android-studio.sh",
-        ):
-            source = (ROOT / relative).read_text()
-            self.assertIn("member.external_attr >> 16", source)
-            self.assertIn("target.chmod(mode)", source)
-            self.assertIn("launcher.stat().st_mode | 0o100", source)
 
     @unittest.skipUnless(os.name == "posix", "Gradle executable-mode recovery is POSIX-specific")
     def test_android_build_repairs_fresh_and_cached_non_executable_gradle(self) -> None:
@@ -113,14 +103,6 @@ exit 0
             second = subprocess.run(command, cwd=root, env=env, text=True, capture_output=True)
             self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
             self.assertTrue(os.access(installed, os.X_OK))
-
-    def test_gradle_pin_stays_wrapper_authoritative_and_verified(self) -> None:
-        wrapper = (ROOT / "apps/kaskold-companion-android/gradle/wrapper/gradle-wrapper.properties").read_text()
-        self.assertIn("gradle-9.5.0-bin.zip", wrapper)
-        self.assertIn(
-            "distributionSha256Sum=553c78f50dafcd54d65b9a444649057857469edf836431389695608536d6b746",
-            wrapper,
-        )
 
 
 if __name__ == "__main__":

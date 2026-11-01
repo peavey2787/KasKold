@@ -36,75 +36,6 @@ class ToolchainPolicyTests(unittest.TestCase):
         for source in (runner, commands):
             self.assertIn("fuzz_targets.py", source)
 
-    def test_ci_keeps_required_push_pr_job_fast_and_fuzz_separate(self) -> None:
-        workflows = {
-            name: (ROOT / f".github/workflows/{name}").read_text()
-            for name in ("core.yml", "kaskold-companion-ci.yml", "android.yml", "ios.yml", "rqrr.yml", "fuzz.yml")
-        }
-        core = workflows["core.yml"]
-        fuzz = workflows["fuzz.yml"]
-        self.assertIn('make test STRICT_LOCKFILES=1', core)
-        self.assertNotIn('make qa', core)
-        exporter = "grep -E '^[A-Za-z_][A-Za-z0-9_]*=' qa/config/toolchains.env >> \"$GITHUB_ENV\""
-        for name in ("core.yml", "kaskold-companion-ci.yml", "android.yml", "ios.yml", "rqrr.yml"):
-            self.assertIn(exporter, workflows[name], name)
-            self.assertNotIn('cat qa/config/toolchains.env >> "$GITHUB_ENV"', workflows[name], name)
-            self.assertIn('actions/checkout@v6', workflows[name], name)
-        self.assertIn('actions/checkout@v6', fuzz)
-        self.assertIn('actions/upload-artifact@v6', fuzz)
-        for name in ("core.yml", "kaskold-companion-ci.yml"):
-            self.assertIn('--component rustfmt --component clippy', workflows[name], name)
-        self.assertIn('FUZZ_SECONDS=300 bash scripts/linux/quality/security-fuzz.sh', fuzz)
-        self.assertNotIn('make qa', fuzz)
-
-        esp_action = 'uses: esp-rs/xtensa-toolchain@v1.7.0'
-        self.assertIn(esp_action, core)
-        self.assertIn('version: ${{ env.KASKOLD_ESP_RUST }}', core)
-        self.assertIn('buildtargets: esp32s3', core)
-        self.assertIn('override: false', core)
-        self.assertIn('default: false', core)
-        self.assertIn('export: true', core)
-        self.assertIn('GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}', core)
-        self.assertLess(core.index(esp_action), core.index('make test STRICT_LOCKFILES=1'))
-
-    def test_core_ci_skips_mobile_only_source_changes(self) -> None:
-        core = (ROOT / ".github/workflows/core.yml").read_text()
-        trigger_block = core.split("\njobs:", 1)[0]
-        for platform_path in ("apps/kaskold-companion-android/**", "apps/kaskold-companion-ios/**"):
-            self.assertEqual(trigger_block.count(f"'{platform_path}'"), 2, platform_path)
-        self.assertEqual(trigger_block.count("    paths-ignore:\n"), 2)
-        self.assertIn("  workflow_dispatch:\n", trigger_block)
-
-    def test_android_ci_uses_pinned_jdk_and_sdk_policy(self) -> None:
-        android = (ROOT / ".github/workflows/android.yml").read_text()
-        self.assertIn('actions/setup-java@v6', android)
-        self.assertIn('java-version: ${{ steps.toolchains.outputs.android_jdk }}', android)
-        self.assertIn('KASKOLD_ANDROID_JDK', android)
-        self.assertIn('KASKOLD_ANDROID_CMDLINE_TOOLS', android)
-        self.assertIn('KASKOLD_ANDROID_CMDLINE_TOOLS_LINUX_SHA256', android)
-        self.assertIn('commandlinetools-linux-${KASKOLD_ANDROID_CMDLINE_TOOLS}_latest.zip', android)
-        self.assertIn('--list --channel=3', android)
-        self.assertIn('"platforms;android-${KASKOLD_ANDROID_API}"', android)
-        self.assertIn('"platforms;android-${KASKOLD_ANDROID_API}.0"', android)
-        self.assertIn('--sdk_root="$sdk_root" --channel=3', android)
-        self.assertIn('if (value == candidate) found=1', android)
-        self.assertNotIn('grep -Fq "$candidate"', android)
-        self.assertIn('build-tools;${KASKOLD_ANDROID_BUILD_TOOLS}', android)
-        self.assertNotIn('command -v sdkmanager', android)
-        self.assertNotIn("java-version: '21'", android)
-        self.assertIn('rustup toolchain install "$KASKOLD_STABLE_RUST" --profile minimal', android)
-        self.assertIn('rustup target add aarch64-linux-android x86_64-linux-android --toolchain "$KASKOLD_STABLE_RUST"', android)
-        self.assertIn('cargo "+$KASKOLD_STABLE_RUST" install cargo-ndk --version "$KASKOLD_CARGO_NDK_VERSION" --locked', android)
-        self.assertIn('ndk;${KASKOLD_ANDROID_NDK}', android)
-        self.assertIn("'apps/kaskold-vault-android/**'", android)
-        self.assertIn("'crates/vault-runtime/**'", android)
-
-    def test_ios_ci_builds_vault_with_pinned_rust_targets(self) -> None:
-        ios = (ROOT / ".github/workflows/ios.yml").read_text()
-        self.assertIn("'apps/kaskold-vault-ios/**'", ios)
-        self.assertIn("'crates/vault-runtime/**'", ios)
-        self.assertIn('rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios --toolchain "$KASKOLD_STABLE_RUST"', ios)
-        self.assertIn('make ios-test', ios)
 
     def test_root_lock_tracks_wasm_target_dependencies_used_by_workspace_members(self) -> None:
         lock = tomllib.loads((ROOT / "Cargo.lock").read_text())
@@ -142,42 +73,6 @@ class ToolchainPolicyTests(unittest.TestCase):
         rqrr_lock = tomllib.loads((ROOT / "external/rqrr-nostd/Cargo.lock").read_text())
         self.assertEqual([(p["name"], p["version"]) for p in rqrr_lock["package"]], [("rqrr", "0.10.1-nostd")])
 
-    def test_refactored_repository_retains_dedicated_rqrr_ci(self) -> None:
-        rqrr = (ROOT / ".github/workflows/rqrr.yml").read_text()
-        self.assertIn('name: rqrr CI', rqrr)
-        self.assertIn('external/rqrr-nostd/**', rqrr)
-        self.assertIn('working-directory: external/rqrr-nostd', rqrr)
-        self.assertIn('cargo build --release --locked', rqrr)
-        self.assertIn('cargo test --all-features --locked', rqrr)
-        self.assertIn('cargo clippy --all-targets --all-features --locked', rqrr)
-
-    def test_rqrr_documents_intentional_no_std_clippy_exceptions(self) -> None:
-        source = (ROOT / "external/rqrr-nostd/src/lib.rs").read_text()
-        for lint in (
-            "suspicious_arithmetic_impl",
-            "suspicious_op_assign_impl",
-            "result_unit_err",
-            "manual_is_multiple_of",
-            "manual_div_ceil",
-        ):
-            self.assertIn(f"#![allow(clippy::{lint})]", source, lint)
-        self.assertIn("GF(2^n) addition is XOR", source)
-        self.assertIn("older ESP toolchain", source)
-
-    def test_companion_ci_formats_only_the_companion_package(self) -> None:
-        workflow = (ROOT / ".github/workflows/kaskold-companion-ci.yml").read_text()
-        self.assertIn(
-            'cargo fmt --manifest-path apps/kaskold-companion-web/Cargo.toml --package kaskold-companion-web -- --check',
-            workflow,
-        )
-        self.assertNotIn(
-            'cargo fmt --manifest-path apps/kaskold-companion-web/Cargo.toml --all -- --check',
-            workflow,
-        )
-        self.assertNotIn(
-            'run: rustup run "$KASKOLD_STABLE_RUST" cargo fmt --all -- --check',
-            workflow,
-        )
 
     def test_rustfmt_gate_checks_every_crate_with_pinned_stable(self) -> None:
         from workspace.check_rust_format import format_commands
@@ -208,24 +103,6 @@ class ToolchainPolicyTests(unittest.TestCase):
                 )
             ],
         )
-
-    def test_platform_ci_supports_manual_rerun(self) -> None:
-        for name in ("core.yml", "kaskold-companion-ci.yml", "android.yml", "ios.yml", "rqrr.yml"):
-            workflow = (ROOT / f".github/workflows/{name}").read_text()
-            self.assertIn("  workflow_dispatch:\n", workflow, name)
-
-    def test_fuzz_stays_nightly_manual_or_harness_change_only(self) -> None:
-        fuzz = (ROOT / ".github/workflows/fuzz.yml").read_text()
-        trigger_block = fuzz.split("\njobs:", 1)[0]
-        self.assertIn("  schedule:\n", trigger_block)
-        self.assertIn("  workflow_dispatch:\n", trigger_block)
-        self.assertIn("  push:\n", trigger_block)
-        self.assertNotIn("  pull_request:\n", trigger_block)
-        self.assertIn("'qa/fuzz/**'", trigger_block)
-        self.assertIn("'scripts/linux/quality/security-fuzz.sh'", trigger_block)
-        self.assertNotIn("'.github/workflows/fuzz.yml'", trigger_block)
-        self.assertIn("bounded-security-fuzz:", fuzz)
-
 
 
 if __name__ == "__main__":

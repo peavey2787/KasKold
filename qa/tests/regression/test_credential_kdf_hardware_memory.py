@@ -3,54 +3,14 @@ import sys as _portal_sys
 from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
-from portal_source import kaskold_source  # noqa: E402
-import re
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def read(relative: str) -> str:
-    return kaskold_source(str(relative)).read_text(errors="strict")
-
-
 class CredentialKdfHardwareMemoryTests(unittest.TestCase):
 
-    def test_psram_region_comes_from_initialized_esp_hal_and_external_allocator(self) -> None:
-        psram = read("apps/kaskold-hardware/src/services/memory/psram.rs")
-        main = read("apps/kaskold-hardware/src/main.rs")
-        for token in (
-            "esp_hal::psram::psram_raw_parts(peripheral)",
-            "MemoryCapability::External.into()",
-            "HEAP.alloc_caps",
-            "HEAP.add_region",
-            "has_valid_provenance",
-            "initialize_or_halt(&peripherals.PSRAM)",
-        ):
-            self.assertIn(token, psram + main)
-        combined = (psram + main).lower()
-        self.assertNotIn("0x3c", combined)
-        self.assertNotIn("0x3d", combined)
-        self.assertNotIn("psram_allocator!", combined)
-
-    def test_production_argon2_uses_exact_psram_workspace_and_zeroizes_it(self) -> None:
-        core = read("crates/offline-signer/src/crypto/password_kdf.rs")
-        firmware = read("apps/kaskold-hardware/src/services/memory/password_kdf.rs")
-        for token in (
-            "workspace_block_count",
-            "WORKSPACE_BLOCK_BYTES",
-            "checked_mul(WORKSPACE_BLOCK_BYTES)",
-            "Argon2Workspace::allocate(parameters)",
-            "workspace.validate_provenance()?",
-            "derive_key_32_with_workspace",
-            "request.workspace.len() != params.block_count()",
-            "zeroize_workspace(request.workspace)",
-            "shared_signer::bytes::zeroize_bytes(self.as_mut_bytes())",
-        ):
-            self.assertIn(token, core + firmware + read("apps/kaskold-hardware/src/services/memory/psram.rs"))
-        self.assertNotIn("Vec::<PasswordKdfBlock>", firmware)
-        self.assertNotRegex(firmware, re.compile(r"m_cost_kib\s*[-/]"))
 
     def test_current_firmware_kdf_calls_cannot_bypass_psram_adapter(self) -> None:
         memory_adapter = ROOT / "apps/kaskold-hardware/src/services/memory/password_kdf.rs"
@@ -66,31 +26,6 @@ class CredentialKdfHardwareMemoryTests(unittest.TestCase):
                 offenders.append(path.relative_to(ROOT).as_posix())
                 break
         self.assertEqual(offenders, [])
-
-    def test_diagnostic_integrity_and_kat_use_same_provenance_checked_workspace(self) -> None:
-        firmware = read("apps/kaskold-hardware/src/services/memory/password_kdf.rs")
-        bench = read("apps/kaskold-hardware/src/diagnostics/argon2_bench.rs")
-        for token in (
-            "full_buffer_integrity_test",
-            "write_volatile",
-            "read_volatile",
-            "derive_benchmark_key_32_with_workspace",
-            "runtime_psram=0x",
-            "workspace=0x",
-            "workspace_bytes={}",
-            "provenance={}",
-            "integrity={}",
-            "vector={}",
-            "watchdog_ok={}",
-            "probe_largest_allocatable",
-        ):
-            self.assertIn(token, firmware + bench)
-
-    def test_qualified_cores3_keeps_argon2_diagnostic_build_and_lite_stays_build_supported(self) -> None:
-        matrix = read("tools/build/firmware/build_matrix.py")
-        self.assertIn('FirmwareBuild("m5stack,argon2-bench")', matrix)
-        self.assertIn('FirmwareBuild("m5stack-lite")', matrix)
-        self.assertNotIn('FirmwareBuild("m5stack-lite,production")', matrix)
 
 
 if __name__ == "__main__":

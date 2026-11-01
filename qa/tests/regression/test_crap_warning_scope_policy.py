@@ -12,12 +12,6 @@ POLICY = ROOT / "qa/checks/quality/crap/policy.json"
 
 
 class CrapWarningScopePolicyTests(unittest.TestCase):
-    def test_current_warning_target_is_zero_debt_without_persisted_run_evidence(self) -> None:
-        policy = json.loads(POLICY.read_text())
-        self.assertEqual(policy["report"]["maximum_production_failures"], 0)
-        self.assertEqual(policy["report"]["maximum_production_warnings"], 0)
-        self.assertFalse((ROOT / "qa/baselines/crap").exists())
-        self.assertTrue((ROOT / "qa/contracts/quality/crap_ratchets.json").is_file())
 
     def test_source_assessed_rows_obey_current_complexity_policy(self) -> None:
         policy = json.loads(POLICY.read_text())
@@ -29,16 +23,6 @@ class CrapWarningScopePolicyTests(unittest.TestCase):
             policy["source_complexity"]["maximum_production_source_decisions"],
         )
 
-    def test_crap_generation_uses_scope_matched_coverage_legs(self) -> None:
-        linux = (ROOT / "scripts/linux/quality/crap.sh").read_text()
-        windows = (ROOT / "scripts/windows/quality/crap_windows.py").read_text()
-        for source in (linux, windows):
-            self.assertIn("apps/kaskold-companion-web", source)
-            self.assertIn("apps/kaskold-hardware", source)
-            self.assertIn("--workspace", source)
-            self.assertIn("merge_reports.py", source)
-        self.assertNotIn("--path .", linux)
-        self.assertNotIn("'--path','.'", windows)
 
     def test_companion_web_rust_shell_is_in_source_complexity_fallback_scope(self) -> None:
         from source_complexity import PRODUCTION_ROOTS

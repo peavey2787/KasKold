@@ -172,12 +172,6 @@ class ReproducibleBuildRunnerTests(unittest.TestCase):
             self.assertEqual(destination.read_bytes(), b"payload")
             self.assertFalse(destination.with_suffix(".part").exists())
 
-    def test_espup_release_is_verified_before_rust_toolchain_installation(self) -> None:
-        source = (ROOT / "scripts/linux/build/reproducible/toolchains.py").read_text()
-        self.assertLess(
-            source.index('espup, espup_digest = _download_espup'),
-            source.index('str(rustup), "-y", "--no-modify-path"'),
-        )
 
     def test_verified_espup_cache_avoids_github_api_lookup(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -193,13 +187,6 @@ class ReproducibleBuildRunnerTests(unittest.TestCase):
             self.assertEqual(resolved, binary)
             self.assertEqual(resolved_digest, digest)
 
-    def test_partial_prefetch_policy_is_written_before_network_work(self) -> None:
-        source = (ROOT / "scripts/linux/build/reproducible/prefetch.py").read_text()
-        self.assertIn("same_partial_policy", source)
-        self.assertLess(
-            source.index('policy_file.write_text(expected_policy + "\\n")'),
-            source.index('print("==> Host prefetch: pinned Ubuntu rootfs")'),
-        )
 
     def test_reproducible_prefetch_is_immune_to_qa_toolchains_module_collision(self) -> None:
         probe = f"""
@@ -215,25 +202,6 @@ assert prefetch.prefetch_toolchains.__module__ == 'scripts.linux.build.reproduci
 """
         subprocess.run([sys.executable, "-c", probe], cwd=ROOT, check=True)
 
-    def test_docker_builds_are_networkless_after_host_prefetch(self) -> None:
-        runner = (ROOT / "scripts/linux/build/reproducible-build.sh").read_text()
-        base = (ROOT / "Dockerfile.base").read_text()
-        release = (ROOT / "Dockerfile").read_text()
-
-        self.assertGreaterEqual(runner.count("--network=none"), 2)
-        self.assertGreaterEqual(runner.count("--pull=false"), 2)
-        self.assertNotIn("docker pull", runner)
-        self.assertLess(runner.index("prefetch.py"), runner.index("docker import"))
-        self.assertIn("BUILD-INPUT-SHA256SUMS", base)
-        self.assertIn("CARGO_NET_OFFLINE=true", base)
-        self.assertIn("--offline", base)
-        self.assertIn("BUILD-INPUT-SHA256SUMS", release)
-        self.assertIn("BUILD-INPUT-MANIFEST.json", release)
-        for dockerfile in (base, release):
-            for forbidden in ("http://", "https://", "curl ", "wget ", "espup install", "rustup target add"):
-                self.assertNotIn(forbidden, dockerfile)
-        self.assertIn("sources.container.list", base)
-
 
     def _assert_reproducible_workspace_manifest(self, relative_path: str) -> None:
         with (ROOT / relative_path).open("rb") as handle:
@@ -247,30 +215,6 @@ assert prefetch.prefetch_toolchains.__module__ == 'scripts.linux.build.reproduci
     def test_vault_web_reproducible_workspace_declares_rust_195_and_keeps_independent_resolver2(self) -> None:
         self._assert_reproducible_workspace_manifest("apps/kaskold-vault-web/Cargo.toml")
 
-    def test_companion_lock_reconciliation_is_repro_msrv_aware(self) -> None:
-        locks = (ROOT / "scripts/linux/lib/cargo_locks.sh").read_text()
-        windows_locks = (ROOT / "scripts/windows/lib/cargo_locks.ps1").read_text()
-        runner = (ROOT / "scripts/linux/build/reproducible-build.sh").read_text()
-        dockerfile = (ROOT / "Dockerfile").read_text()
-        self.assertIn("CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS=fallback", locks)
-        self.assertIn("kaskold_reconcile_companion_msrv_lock", locks)
-        self.assertIn("kaskold_reconcile_vault_web_msrv_lock", locks)
-        self.assertIn("Repair-KasKoldVaultWebMsrvLock", windows_locks)
-        self.assertIn("KASKOLD_REPRO_HOST_RUST", locks)
-        self.assertIn("Verifying Companion lock with frozen reproducible Rust", runner)
-        self.assertIn('--manifest-path "$ROOT/apps/kaskold-companion-web/Cargo.toml"', runner)
-        self.assertIn("--locked", runner)
-        self.assertIn("--offline", runner)
-        self.assertIn("Preflighting Companion WASM release with frozen reproducible Rust", runner)
-        self.assertIn("cargo build", runner)
-        self.assertIn("CARGO_TARGET_DIR=\"$PREFETCH_ROOT/companion-msrv-target\"", runner)
-        self.assertIn("Verifying Vault Web lock with frozen reproducible Rust", runner)
-        self.assertIn('--manifest-path "$ROOT/apps/kaskold-vault-web/Cargo.toml"', runner)
-        self.assertIn("Preflighting Vault Web WASM release with frozen reproducible Rust", runner)
-        self.assertIn("CARGO_TARGET_DIR=\"$PREFETCH_ROOT/vault-web-msrv-target\"", runner)
-        self.assertIn("cd apps/kaskold-vault-web", dockerfile)
-        self.assertIn("Finalizing post-preflight Docker input manifests", runner)
-        self.assertIn("--finalize-context-manifests", runner)
 
     def test_msrv_metadata_checker_reports_only_packages_above_limit(self) -> None:
         library = ROOT / "scripts/linux/lib/cargo_locks.sh"
@@ -382,42 +326,6 @@ repro_docker_error_kind "permission denied while trying to connect to the Docker
         self.assertEqual(result.returncode, 11)
         self.assertEqual(sandbox.command_log(), ["docker info"])
 
-    def test_reproducible_runner_reexecs_itself_when_group_session_is_stale(self) -> None:
-        runner = (ROOT / "scripts/linux/build/reproducible-build.sh").read_text()
-        self.assertIn('ORIGINAL_ARGS=("$@")', runner)
-        self.assertIn("REPRO_DOCKER_REEXEC_STATUS", runner)
-        self.assertIn('repro_reexec_with_docker_group "$ROOT/scripts/linux/build/reproducible-build.sh" "${ORIGINAL_ARGS[@]}"', runner)
-
-    def test_reproducible_runner_initializes_pinned_toolchain_before_docker_reexec_boundary(self) -> None:
-        runner = (ROOT / "scripts/linux/build/reproducible-build.sh").read_text()
-        source_line = 'source "$ROOT/qa/config/toolchains.env"'
-        self.assertIn(source_line, runner)
-        self.assertIn('export KASKOLD_STABLE_RUST', runner)
-        self.assertLess(runner.index(source_line), runner.index("if repro_ensure_docker_access; then"))
-        self.assertLess(
-            runner.index(source_line),
-            runner.index("printf '==> Reconciling/verifying host Cargo.lock files under pinned Cargo %s\\n'"),
-        )
-
-    def test_release_commands_reconcile_host_locks_automatically(self) -> None:
-        runner = (ROOT / "scripts/linux/build/reproducible-build.sh").read_text()
-        real_node = (ROOT / "qa/linux/run-real-node-integration.sh").read_text()
-        locks = (ROOT / "scripts/linux/lib/cargo_locks.sh").read_text()
-        self.assertIn('kaskold_reconcile_host_locks "$ROOT"', runner)
-        self.assertIn('kaskold_reconcile_host_locks "$ROOT"', real_node)
-        self.assertIn('rustup toolchain install "$KASKOLD_STABLE_RUST" --profile minimal', locks)
-        for lock in (
-            "Cargo.lock",
-            "apps/kaskold-hardware/Cargo.lock",
-            "apps/kaskold-companion-web/Cargo.lock",
-            "apps/kaskold-vault-web/Cargo.lock",
-            "external/rqrr-nostd/Cargo.lock",
-            "tools/Cargo.lock",
-            "qa/Cargo.lock",
-        ):
-            self.assertIn(f'"{lock}"', locks)
-        self.assertIn("--offline", locks)
-        self.assertIn("--locked", locks)
 
     def test_ubuntu_prefetch_accepts_indexes_and_resolves_exact_linux_amd64_child(self) -> None:
         child = {
@@ -578,10 +486,6 @@ repro_docker_error_kind "permission denied while trying to connect to the Docker
                     prefetch._hardlink_context_file(str(source), str(destination))
             self.assertFalse(destination.exists())
 
-    def test_docker_reexec_replaces_the_running_shell(self) -> None:
-        # A fake sg cannot tell exec from a plain call: the shell would go on after it returns.
-        source = (ROOT / "scripts/linux/build/reproducible/docker_access.sh").read_text()
-        self.assertIn("exec sg docker -c", source)
 
     def test_prefetch_is_noninteractive_and_uses_private_apt_cache_files(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -622,12 +526,6 @@ repro_docker_error_kind "permission denied while trying to connect to the Docker
             self.assertEqual(env["CARGO_HOME"], str(home / ".cargo"))
             self.assertEqual(env["RUSTUP_HOME"], str(home / ".rustup"))
             self.assertEqual(env["RUSTUP_INIT_SKIP_PATH_CHECK"], "yes")
-
-    def test_default_release_staging_lives_under_qa_state(self) -> None:
-        runner = (ROOT / "scripts/linux/build/reproducible-build.sh").read_text()
-        self.assertIn('[[ "$OUTPUT_DIR" == "$ROOT"/* ]]', runner)
-        self.assertIn('STAGING_DIR="$ROOT/target/qa/state/reproducible-release-stage.$$"', runner)
-        self.assertIn('STAGING_DIR="${OUTPUT_DIR}.tmp.$$"', runner)
 
 
     def _write_esp_rom_sys_fixture(self, root: Path, home: Path, *, source_line: str | None = None) -> tuple[Path, str]:
@@ -712,33 +610,6 @@ repro_docker_error_kind "permission denied while trying to connect to the Docker
             with self.assertRaisesRegex(RuntimeError, "expected exactly one canonical"):
                 toolchains._install_esp_rom_sys_xtensa_patch(root, home)
 
-    def test_esp_rom_sys_xtensa_patch_happens_before_representative_firmware_build(self) -> None:
-        source = (ROOT / "scripts/linux/build/reproducible/toolchains.py").read_text()
-        patch_call = source.index("_install_esp_rom_sys_xtensa_patch(root, home)")
-        firmware_call = source.index("_prefetch_esp_firmware_build_std(root, output, home, export_file)")
-        manifest = source.index("deterministic_file_manifest(home, toolchain_manifest)")
-        self.assertLess(patch_call, firmware_call)
-        self.assertLess(firmware_call, manifest)
-        self.assertIn('"third_party_patches": [esp_rom_sys_patch]', source)
-
-    def test_esp_build_std_closure_is_seeded_then_proven_offline_before_context_inventory(self) -> None:
-        source = (ROOT / "scripts/linux/build/reproducible/toolchains.py").read_text()
-        self.assertIn("_prefetch_esp_firmware_build_std(root, output, home, export_file)", source)
-        self.assertIn("prefetching ESP build-std/sysroot crate closure", source)
-        self.assertIn("verifying ESP build-std/sysroot crate closure with networking disabled", source)
-        self.assertIn('offline.insert(3, "--offline")', source)
-        call = source.index("_prefetch_esp_firmware_build_std(root, output, home, export_file)")
-        rewrite = source.index("_rewrite_export(export_file, home)", call)
-        manifest = source.index("deterministic_file_manifest(home, toolchain_manifest)", rewrite)
-        self.assertLess(call, rewrite)
-        self.assertLess(rewrite, manifest)
-
-    def test_esp_build_std_prefetch_uses_disposable_target_and_representative_production_features(self) -> None:
-        source = (ROOT / "scripts/linux/build/reproducible/toolchains.py").read_text()
-        self.assertIn('output / "firmware-build-std-prefetch-target"', source)
-        self.assertIn('"--features", "m5stack,production"', source)
-        self.assertIn('"+esp", "build", "--locked", "--release"', source)
-        self.assertIn("shutil.rmtree(target_dir, ignore_errors=True)", source)
 
     def test_esp_build_std_prefetch_executes_online_then_offline_with_same_pinned_build(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -771,41 +642,6 @@ repro_docker_error_kind "permission denied while trying to connect to the Docker
                 self.assertEqual(kwargs.get("cwd"), root / "apps/kaskold-hardware")
             self.assertFalse((output / "firmware-build-std-prefetch-target").exists())
 
-    def test_esp_build_std_prefetch_runs_inside_firmware_cargo_config_scope(self) -> None:
-        source = (ROOT / "scripts/linux/build/reproducible/toolchains.py").read_text()
-        firmware_config = (ROOT / "apps/kaskold-hardware/.cargo/config.toml").read_text()
-        self.assertIn('firmware_root = root / "apps/kaskold-hardware"', source)
-        self.assertIn("cwd=firmware_root", source)
-        self.assertNotIn('"--manifest-path", str(root / "apps/kaskold-hardware/Cargo.toml")', source)
-        self.assertIn('target = "xtensa-esp32s3-none-elf"', firmware_config)
-        self.assertIn('build-std = ["core", "alloc"]', firmware_config)
-
-    def test_reproducible_base_prefetches_and_validates_python_runtime(self) -> None:
-        pins = dict(
-            line.split("=", 1)
-            for line in (ROOT / "qa/config/toolchains.env").read_text().splitlines()
-            if line and not line.startswith("#") and "=" in line
-        )
-        packages = prefetch.package_pins(pins)
-        self.assertIn(pins["KASKOLD_UBUNTU_PYTHON3"], packages)
-        self.assertTrue(pins["KASKOLD_UBUNTU_PYTHON3"].startswith("python3="))
-        base = (ROOT / "Dockerfile.base").read_text()
-        self.assertIn("python3 --version", base)
-
-    def test_base_image_offline_deb_install_uses_verified_local_repository(self) -> None:
-        base = (ROOT / "Dockerfile.base").read_text()
-        prefetch_source = (ROOT / "scripts/linux/build/reproducible/prefetch.py").read_text()
-        ubuntu_source = (ROOT / "scripts/linux/build/reproducible/ubuntu.py").read_text()
-        self.assertIn("sha256sum -c DEBS-SHA256SUMS", base)
-        self.assertIn("Dir::Etc::sourcelist=/opt/kaskold/input/apt-state/sources.container.list", base)
-        self.assertIn("Dir::State::lists=/tmp/kaskold-apt-lists", base)
-        self.assertIn("file:/opt/kaskold/input", ubuntu_source)
-        self.assertIn("apt-get \\\n", base)
-        self.assertIn("update &&", base)
-        self.assertNotIn("--no-download", base)
-        self.assertNotIn("AllowUnauthenticated", base)
-        self.assertIn('"Packages"', prefetch_source)
-        self.assertIn('"apt-state"', prefetch_source)
 
     def test_local_apt_packages_index_binds_each_prefetched_deb(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -828,23 +664,6 @@ repro_docker_error_kind "permission denied while trying to connect to the Docker
             self.assertIn(f"Size: {deb.stat().st_size}", index)
             self.assertIn(f"SHA256: {hashlib.sha256(deb.read_bytes()).hexdigest()}", index)
 
-    def test_run_all_and_reproducible_build_share_one_workflow_lock(self) -> None:
-        run_all = (ROOT / "qa/linux/run-all.sh").read_text()
-        reproducible = (ROOT / "scripts/linux/build/reproducible-build.sh").read_text()
-        lock = "target/qa/state/release-workflow.lock"
-        self.assertIn(lock, run_all)
-        self.assertIn(lock, reproducible)
-        self.assertIn("flock -n 9", run_all)
-        self.assertIn("flock -n 9", reproducible)
-        self.assertIn("waiting for it to finish", run_all)
-        self.assertIn("waiting for it to finish", reproducible)
-
-    def test_prefetch_cache_key_tracks_materialization_and_base_dockerfile(self) -> None:
-        source = (ROOT / "scripts/linux/build/reproducible/prefetch.py").read_text()
-        self.assertIn('"Dockerfile.base"', source)
-        self.assertIn('platform_repro = Path(__file__).resolve().parent.relative_to(root).as_posix()', source)
-        for name in ("common.py", "prefetch.py", "toolchains.py", "ubuntu.py"):
-            self.assertIn(f'f"{{platform_repro}}/{name}"', source)
 
     def test_post_preflight_context_finalization_repairs_hardlink_manifest_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -882,7 +701,6 @@ repro_docker_error_kind "permission denied while trying to connect to the Docker
             (root / "sub/b").write_text("changed\n")
             with self.assertRaisesRegex(RuntimeError, "SHA-256 mismatch"):
                 verify_file_manifest(root, manifest)
-
 
 
 @unittest.skipUnless(os.name == "posix", "Firmware hash shell-reader tests are POSIX-specific")
@@ -935,21 +753,6 @@ class FirmwareHashConvergenceReaderTests(unittest.TestCase):
         self.assertNotEqual(duplicate.returncode, 0)
         drift = self._run_reader(self._fixture(self._canonical().replace("0x1f\n", "0x1f /* drift */\n")))
         self.assertNotEqual(drift.returncode, 0)
-
-    def test_convergence_paths_never_reference_retired_hash_constant(self) -> None:
-        dockerfile = (ROOT / "Dockerfile").read_text()
-        builder = (ROOT / "tools/build/firmware/build_with_hash.sh").read_text()
-        self.assertNotIn("FIRMWARE_HASH_HEX", dockerfile)
-        self.assertNotIn("FIRMWARE_HASH_HEX", builder)
-        self.assertIn("build_with_hash.sh --read-generated-hash", dockerfile)
-
-
-class FirmwareHashWindowsReaderContractTests(unittest.TestCase):
-    def test_windows_reader_counts_literal_marker_without_string_split_overload(self) -> None:
-        builder = (ROOT / "tools/build/firmware/build_with_hash.ps1").read_text()
-        self.assertIn("[regex]::Matches($text, [regex]::Escape($marker)).Count", builder)
-        self.assertNotIn("$text.Split($marker)", builder)
-        self.assertIn("expected exactly one static EXPECTED_FIRMWARE_HASH declaration; found $markerCount", builder)
 
 
 @unittest.skipUnless(os.name == "posix", "Firmware tools lock fixture uses POSIX executable shims")
@@ -1040,13 +843,6 @@ class FirmwareToolsLockReconciliationTests(unittest.TestCase):
         self.assertIn("introduced external package identities", result.stderr)
         self.assertEqual((workspace / "Cargo.lock").read_bytes(), original)
 
-    def test_hash_builders_reconcile_then_restore_tools_lock(self) -> None:
-        sh = (ROOT / "tools/build/firmware/build_with_hash.sh").read_text()
-        ps1 = (ROOT / "tools/build/firmware/build_with_hash.ps1").read_text()
-        self.assertIn('python3 "$LOCK_RECONCILER" --workspace "$ROOT/tools"', sh)
-        self.assertIn('cp -p "$TOOLS_LOCK_BACKUP" "$TOOLS_LOCK"', sh)
-        self.assertIn("reconcile_tools_lock.py", ps1)
-        self.assertIn("[IO.File]::WriteAllBytes($toolsLock, $originalToolsLock)", ps1)
 
 if __name__ == "__main__":
     unittest.main()

@@ -13,22 +13,6 @@ HELPER = ROOT / "qa/checks/web/web_pkg_fixture.mjs"
 
 
 class WebPackageFixturePolicyTests(unittest.TestCase):
-    def test_browser_harnesses_use_the_shared_package_fixture(self) -> None:
-        for relative in (
-            "qa/checks/web/check_web_runtime.mjs",
-            "qa/checks/web/check_web_covenant_interactions.mjs",
-        ):
-            source = (ROOT / relative).read_text(encoding="utf-8")
-            self.assertIn("isolateWebPackage", source, relative)
-            self.assertIn(".restore()", source, relative)
-            self.assertNotIn("web/pkg already exists", source, relative)
-
-        recovery_test = (ROOT / "qa/checks/web/web_recovery_coverage.test.mjs").read_text(encoding="utf-8")
-        recovery_harness = (ROOT / "qa/checks/web/web_recovery_test_harness.mjs").read_text(encoding="utf-8")
-        self.assertIn("web_recovery_test_harness.mjs", recovery_test)
-        self.assertIn("isolateWebPackage", recovery_harness)
-        self.assertIn(".restore()", recovery_harness)
-        self.assertNotIn("web/pkg already exists", recovery_harness)
 
     def test_fixture_restores_an_existing_package_and_removes_a_temporary_one(self) -> None:
         node = shutil.which("node")

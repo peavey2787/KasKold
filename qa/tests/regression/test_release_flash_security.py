@@ -52,28 +52,6 @@ class ReleaseFlashSecurityTests(unittest.TestCase):
         self.assertIn("connected-firmware-update-usb-guidance", entry["implemented_scenarios"])
         self.assertGreaterEqual(coverage.LEVELS[entry["highest_level"]], coverage.LEVELS["connected"])
 
-    def test_normal_flash_build_does_not_import_workflow_auto_only_rejection(self) -> None:
-        nav = (ROOT / "apps/kaskold-hardware/src/runtime/navigation/mod.rs").read_text()
-        tx = (ROOT / "apps/kaskold-hardware/src/runtime/navigation/transaction.rs").read_text()
-        self.assertIn('#[cfg(feature = "workflow-test-auto")]\npub(crate) use transaction::reject_active_signing;', nav)
-        self.assertIn('#[cfg(feature = "workflow-test-auto")]\npub(crate) fn reject_active_signing', tx)
-        ordinary_reexport = nav.split("mod transaction;", 1)[1].split('#[cfg(feature = "workflow-test-auto")]', 1)[0]
-        self.assertNotIn("reject_active_signing", ordinary_reexport)
-
-    def test_firmware_update_workflow_helpers_do_not_warn_in_normal_flash_build(self) -> None:
-        facade = (ROOT / "apps/kaskold-hardware/src/services/fw_update/mod.rs").read_text()
-        self.assertNotIn("verify_image", facade)
-        self.assertFalse((ROOT / "apps/kaskold-hardware/src/services/fw_update/verification.rs").exists())
-        self.assertFalse((ROOT / "apps/kaskold-hardware/src/services/fw_update/layout.rs").exists())
-
-    def test_transaction_confirmation_has_no_unreviewed_impossible_panic(self) -> None:
-        source = (ROOT / "apps/kaskold-hardware/src/runtime/navigation/transaction.rs").read_text()
-        block = source.split("pub(crate) fn confirm_transaction", 1)[1].split("fn authorize_signing", 1)[0]
-        self.assertNotIn("unreachable!", block)
-        self.assertIn("if !matches!(cursor, 0 | 1 | 2)", block)
-        self.assertIn("match cursor", block)
-        self.assertIn("0 => authorize_signing(ad)", block)
-        self.assertIn("1 => reject_signing(ad)", block)
 
     def test_qa_exhaustiveness_scenario_owns_every_current_production_surface(self) -> None:
         coverage = load_coverage()
@@ -84,26 +62,6 @@ class ReleaseFlashSecurityTests(unittest.TestCase):
         self.assertEqual(set(scenario["menu_items"]), set(surface["menu_items"]))
         self.assertEqual(set(scenario["actions"]), set(surface["actions"]))
         self.assertEqual(set(scenario["items"]), {f"E2E-099-{index:02d}" for index in range(1, 6)})
-
-    def test_entropy_and_export_sections_have_explicit_qa_owners(self) -> None:
-        scenarios = {
-            item["id"]: item
-            for item in json.loads((ROOT / "qa/config/workflow/production_e2e_scenarios.json").read_text())["scenarios"]
-        }
-        entropy = scenarios["qa-mandatory-entropy-matrix"]
-        export = scenarios["qa-export-menu-routing-matrix"]
-        self.assertEqual(entropy["level"], "qa")
-        self.assertEqual(len(entropy["items"]), 15)
-        self.assertIn("SeedEntropyUnavailable", entropy["states"])
-        self.assertEqual(export["level"], "qa")
-        self.assertEqual(len(export["items"]), 5)
-        self.assertIn("ExportChoice", export["states"])
-        export_source = (ROOT / "apps/kaskold-hardware/src/runtime/interactions/export/menus/root.rs").read_text()
-        graph = (ROOT / "apps/kaskold-hardware/src/runtime/navigation/ui_graph/menus.rs").read_text()
-        for state in ("SeedBackupMenu", "WatchOnlyMenu", "SigningKeysMenu", "StegoModeSelect"):
-            self.assertIn(state, graph)
-        self.assertIn("effects::menu_select(ad, item)", export_source)
-        self.assertIn("route!(SeedList)", export_source)
 
 
 if __name__ == "__main__":

@@ -32,7 +32,6 @@ WINDOWS_ROOT_ENTRY = "run-all-windows.cmd"
 LINUX_ROOT_ENTRY = "run-all-linux.sh"
 
 
-
 def run_linux_qa(*args: str) -> str:
     """Run the Linux QA facade without leaking Windows backslash paths into Git Bash."""
     result = subprocess.run(
@@ -392,19 +391,6 @@ class PlatformScriptWrapperTests(unittest.TestCase):
         self.assertIn("'run',$env:KASKOLD_STABLE_RUST,'cargo','install','espup'", helper)
         self.assertIn("'install','--toolchain-version',$env:KASKOLD_ESP_RUST", helper)
 
-    def test_posix_only_tooling_execution_is_platform_scoped(self) -> None:
-        expectations = {
-            "test_master_launcher.py": "Linux master-launcher tests are POSIX-specific",
-            "test_reproducible_build_runner.py": "Linux reproducible-build runner tests are POSIX-specific",
-        }
-        tooling = ROOT / "qa/tests/tooling"
-        for filename, reason in expectations.items():
-            source = (tooling / filename).read_text(encoding="utf-8")
-            self.assertIn(reason, source, filename)
-        qemu = (tooling / "test_qemu_runner.py").read_text(encoding="utf-8")
-        self.assertIn("QemuRunnerPortabilityTests", qemu)
-        self.assertIn('QEMU fake guest fixture is POSIX-specific', qemu)
-        self.assertNotIn('QEMU host marker runner uses POSIX pipe/fd semantics', qemu)
 
     def test_windows_sources_never_bridge_to_wsl_or_bash(self) -> None:
         forbidden = ("wsl.exe", "wslpath", "_invoke-wsl", "bash.exe", "/bin/bash")
@@ -1425,15 +1411,6 @@ class PlatformScriptWrapperTests(unittest.TestCase):
         locator = (ROOT / "qa/windows/runner/msvc_asan.py").read_text(encoding="utf-8")
         self.assertIn("Microsoft.VisualStudio.Component.VC.ASAN", locator)
         self.assertIn("clang_rt.asan_dynamic-x86_64.dll", locator)
-
-    def test_ios_xcode_runtime_sync_is_not_linux_bound(self) -> None:
-        project = (ROOT / "apps/kaskold-companion-ios/KasKold.xcodeproj/project.pbxproj").read_text(encoding="utf-8")
-        helper = (ROOT / "tools/build/ios/sync_runtime.py").read_text(encoding="utf-8")
-        self.assertIn('tools/build/web/build_companion_runtime.py', project)
-        self.assertIn('tools/build/ios/sync_runtime.py', project)
-        self.assertNotIn('scripts/linux/build/ios-runtime-sync.sh', project)
-        self.assertIn('shutil.copytree', helper)
-        self.assertIn('companion_web_bg.wasm', helper)
 
 
 class RootValidationEntryPointTests(unittest.TestCase):

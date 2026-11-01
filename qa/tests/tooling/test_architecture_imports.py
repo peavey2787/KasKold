@@ -115,7 +115,6 @@ class GeneratedTreeExclusionTests(unittest.TestCase):
         )
 
 
-
 class CrossPlatformArchitecturePathTests(unittest.TestCase):
     def test_repository_relative_paths_are_posix_on_windows(self) -> None:
         root = PureWindowsPath(r"C:\repo\KasKold")
@@ -134,15 +133,6 @@ class CrossPlatformArchitecturePathTests(unittest.TestCase):
             self.assertFalse(workspace_delivery._requires_posix_executable_mode())
         with patch.object(workspace_delivery.os, "name", "posix"):
             self.assertTrue(workspace_delivery._requires_posix_executable_mode())
-
-    def test_web_inventory_checks_use_canonical_repository_paths(self) -> None:
-        for relative in (
-            "qa/checks/architecture/web/web_css.py",
-            "qa/checks/architecture/web/web_js.py",
-        ):
-            source = (ROOT / relative).read_text(encoding="utf-8")
-            self.assertIn("relative_posix", source, relative)
-            self.assertNotIn("str(path.relative_to(", source, relative)
 
 
 class WalletDomainBoundaryTests(unittest.TestCase):

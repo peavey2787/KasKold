@@ -35,7 +35,7 @@ test_quality = load_module("security_test_quality", "qa/checks/security/test_qua
 repository_test_quality = load_module(
     "repository_test_quality", "qa/checks/security/repository_test_quality.py"
 )
-source_grep_ratchet = sys.modules["source_grep_ratchet"]
+source_text_tests = sys.modules["source_text_tests"]
 mutation = load_module("security_mutation", "qa/checks/security/mutation.py")
 mutation_support = sys.modules["mutation_support"]
 mutation_reuse = sys.modules["mutation_reuse"]
@@ -154,11 +154,6 @@ class SecurityHardeningTests(unittest.TestCase):
                     ):
                         self.fail("low-space fresh mutation scratch must not start")
 
-    def test_fresh_mutation_preserves_original_cargo_mutants_copy_profile(self) -> None:
-        config = (ROOT / ".cargo/mutants.toml").read_text()
-        self.assertNotIn("gitignore =", config)
-        policy = json.loads((ROOT / "qa/checks/security/policy.json").read_text())
-        self.assertGreaterEqual(policy["mutation"]["minimum_scratch_free_gib"], 8)
 
     def test_security_review_paths_are_canonical_across_host_separators(self) -> None:
         with mock.patch.object(
@@ -200,45 +195,37 @@ class SecurityHardeningTests(unittest.TestCase):
         self.assertGreaterEqual(report["by_language"]["kotlin"], 4)
         self.assertGreaterEqual(report["by_language"]["swift"], 3)
 
-    def test_source_grep_ratchet_counts_only_tests_that_read_production_code(self) -> None:
+    def test_source_text_gate_counts_assertions_over_production_files(self) -> None:
         grep = (
             'def test_x(self):\n'
             '    src = read("apps/kaskold-hardware/src/main.rs")\n'
             '    self.assertIn("a", src)\n'
             '    self.assertNotIn("b", src)\n'
+            'def read(relative):\n'
+            '    return (ROOT / relative).read_text()\n'
         )
-        markup = (
-            'def test_x(self):\n'
-            '    src = read("web/html/open.html")\n'
-            '    self.assertIn("a", src)\n'
-        )
-        self.assertEqual(source_grep_ratchet.file_count(grep), 2)
-        self.assertEqual(source_grep_ratchet.file_count(markup), 0)
+        self.assertEqual(source_text_tests.file_count(grep), 2)
 
-    def test_source_grep_ratchet_only_moves_down(self) -> None:
-        baseline = {"qa/tests/a.py": 5, "qa/tests/b.py": 2}
-        self.assertEqual(source_grep_ratchet.compare(dict(baseline), baseline), [])
-        exceeded = "test behaviour instead of grepping production source"
-        self.assertEqual(
-            source_grep_ratchet.compare({"qa/tests/a.py": 6, "qa/tests/b.py": 2}, baseline),
-            [f"qa/tests/a.py: 6 source-text assertions exceed the ratchet (5); {exceeded}"],
+    def test_source_text_gate_ignores_parsed_data_and_owned_fixtures(self) -> None:
+        parsed = (
+            'def test_x(self):\n'
+            '    manifest = tomllib.loads(Path("crates/a/Cargo.toml").read_text())\n'
+            '    self.assertIn("a", manifest)\n'
         )
-        self.assertEqual(
-            source_grep_ratchet.compare({**baseline, "qa/tests/c.py": 1}, baseline),
-            [f"qa/tests/c.py: 1 source-text assertions exceed the ratchet (0); {exceeded}"],
+        owned = (
+            'def test_x(self):\n'
+            '    with TemporaryDirectory() as root:\n'
+            '        out = Path(root, "apps/a.rs")\n'
+            '        out.write_text("a")\n'
+            '        self.assertIn("a", out.read_text())\n'
         )
-        self.assertEqual(
-            source_grep_ratchet.compare({"qa/tests/a.py": 3}, baseline),
-            [
-                "qa/tests/a.py: source-text assertions fell to 3 (baseline 5); "
-                "run qa/checks/security/source_grep_ratchet.py --tighten",
-                "qa/tests/b.py: no source-text assertions remain; run --tighten to drop it",
-            ],
+        runtime = (
+            'def test_x(self):\n'
+            '    result = run_gate("apps/a.rs")\n'
+            '    self.assertIn("a", result.stdout)\n'
         )
-        self.assertEqual(
-            source_grep_ratchet.tighten({"qa/tests/a.py": 3, "qa/tests/c.py": 4}, baseline),
-            {"qa/tests/a.py": 3},
-        )
+        for source in (parsed, owned, runtime):
+            self.assertEqual(source_text_tests.file_count(source), 0)
 
     def test_repository_test_quality_rejects_python_tautologies(self) -> None:
         node = __import__("ast").parse("def test_bad():\n    assert True\n").body[0]
@@ -1239,13 +1226,6 @@ class SecurityHardeningTests(unittest.TestCase):
                     carried_forward_caught=1,
                 )
 
-    def test_healthy_hardening_bundle_requires_fresh_candidate_mutation_evidence(self) -> None:
-        source = (ROOT / "qa/checks/security/package_artifacts.py").read_text()
-        self.assertIn('document.get("candidate_certified") is not True', source)
-        self.assertIn("development-only, not fresh candidate-certified", source)
-        completion = (ROOT / "qa/checks/security/complete_hardening.py").read_text()
-        self.assertIn('mutation.get("candidate_certified") is not True', completion)
-        self.assertIn('crypto.get("candidate_certified") is not True', completion)
 
     def test_internal_security_evidence_is_explicit_about_limitations(self) -> None:
         errors, report = security_evidence.audit()
@@ -1275,64 +1255,6 @@ class SecurityHardeningTests(unittest.TestCase):
             [],
         )
 
-    def test_authoritative_qa_owns_hardening_mutation_and_fuzz_order(self) -> None:
-        alias = (ROOT / "qa/linux/run-production-hardening.sh").read_text()
-        self.assertIn("authoritative make qa catalog", alias)
-        self.assertIn('run-all.sh" --profile full', alias)
-        self.assertNotIn("run_gate", alias)
-
-        rows = [
-            line.split("\t") for line in (ROOT / "qa/config/run_all_steps.tsv").read_text().splitlines()
-            if line and not line.startswith("#")
-        ]
-        ids = [row[3] for row in rows]
-        self.assertLess(ids.index("integration.real-node"), ids.index("mutation.repository-security-fresh"))
-        self.assertLess(ids.index("integration.funded-testnet-e2e"), ids.index("mutation.repository-security-fresh"))
-        self.assertLess(ids.index("mutation.repository-security-fresh"), ids.index("mutation.repository-crypto-certification"))
-        self.assertLess(ids.index("mutation.repository-crypto-certification"), ids.index("fuzz.repository-security-targets"))
-
-        dispatch = (ROOT / "qa/linux/runner/catalog.sh").read_text()
-        self.assertIn("mutation.py run --fresh", dispatch)
-        self.assertIn("mutation.py crypto-check", dispatch)
-        self.assertIn("run_fuzz_targets", dispatch)
-        mutation_source = (ROOT / "qa/checks/security/mutation.py").read_text()
-        mutation_runner = (ROOT / "qa/checks/security/mutation_runner.py").read_text()
-        self.assertIn("Mutation source and workspace tests are unchanged", mutation_runner)
-        self.assertIn("Context-aware mutation reuse", mutation_runner)
-        self.assertIn("_execute_mutation_run", mutation_source)
-        makefile = (ROOT / "Makefile").read_text()
-        helper = (ROOT / "scripts/common/lib/make_tasks.py").read_text()
-        self.assertNotIn("mutation-certify:", makefile)
-        self.assertNotIn('platform("production-hardening")', helper)
-
-
-    def test_sole_failed_real_node_gate_can_be_completed_without_rewriting_original_results(self) -> None:
-        completion = (ROOT / "qa/checks/security/complete_hardening.py").read_text()
-        packager = (ROOT / "qa/checks/security/package_artifacts.py").read_text()
-        real_node = (ROOT / "qa/linux/run-real-node-integration.sh").read_text()
-        self.assertIn('failed != [REAL_NODE_GATE]', completion)
-        self.assertIn('mutation_scope_sha256()', completion)
-        self.assertIn('workspace_test_sha256()', completion)
-        self.assertIn('base_gate_results_sha256', completion)
-        self.assertIn('supplemental-sole-failed-gate-rerun', completion)
-        self.assertNotIn('gates_path.write_text', completion)
-        self.assertIn('valid_completion(current_run)', packager)
-        self.assertIn('kaskold-production-hardening.zip', completion)
-        self.assertIn('KASKOLD_SECURITY_RUN_DIR', real_node)
-
-    def test_compact_kspt_fuzzer_handles_empty_input_without_blind_slice(self) -> None:
-        source = (ROOT / "qa/fuzz/compact_kspt_roundtrip.rs").read_text()
-        self.assertIn('data.get(13..).unwrap_or_default()', source)
-        self.assertNotIn('&data[13..13 + payload_len]', source)
-        self.assertTrue((ROOT / "qa/fuzz/seeds/compact_kspt_roundtrip/empty").is_file())
-
-    def test_fuzz_runner_persists_results_even_when_a_target_fails(self) -> None:
-        source = (ROOT / "qa/linux/run-security-fuzz.sh").read_text()
-        self.assertIn('set -uo pipefail', source)
-        self.assertNotIn('set -euo pipefail', source)
-        self.assertIn('statuses.tsv', source)
-        self.assertIn('fuzz_results.py', source)
-        self.assertIn('PIPESTATUS[0]', source)
 
     def test_mutation_and_fuzz_versions_are_pinned(self) -> None:
         policy = json.loads((ROOT / "qa/checks/security/policy.json").read_text())
@@ -1414,30 +1336,6 @@ class SecurityHardeningTests(unittest.TestCase):
             ):
                 self.assertEqual(mutation_support.reconcile_root_lock("1.95.0"), 2)
             self.assertEqual(lockfile.read_bytes(), b"original-lock")
-
-    def test_cargo_fuzz_is_built_with_stable_and_executed_with_nightly(self) -> None:
-        standalone = (ROOT / "qa/linux/run-security-fuzz.sh").read_text()
-        commands = (ROOT / "qa/linux/runner/commands.sh").read_text()
-
-        for source in (standalone, commands):
-            self.assertIn('install cargo-fuzz', source)
-            self.assertNotIn(PINS["KASKOLD_STABLE_RUST"], source)
-            self.assertNotIn(PINS["KASKOLD_BRANCH_RUST"], source)
-
-        self.assertIn('INSTALLER_TOOLCHAIN="$KASKOLD_STABLE_RUST"', standalone)
-        self.assertIn('EXECUTION_TOOLCHAIN="$KASKOLD_BRANCH_RUST"', standalone)
-        self.assertIn(
-            'rustup run "$INSTALLER_TOOLCHAIN" cargo install cargo-fuzz', standalone
-        )
-        self.assertIn(
-            'rustup run "$EXECUTION_TOOLCHAIN" cargo fuzz run "$target"', standalone
-        )
-        self.assertIn(
-            'rustup run "$installer_toolchain" cargo install cargo-fuzz', commands
-        )
-        self.assertIn(
-            'rustup run "$KASKOLD_BRANCH_RUST" cargo fuzz run "$target"', commands
-        )
 
 
 if __name__ == "__main__":

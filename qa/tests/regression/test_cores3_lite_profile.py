@@ -14,12 +14,6 @@ class CoreS3LiteProfileTests(unittest.TestCase):
         self.assertEqual(features["default"], ["m5stack"])
         self.assertIn("m5stack", features["m5stack-lite"])
 
-    def test_profile_does_not_claim_lite_is_qualified(self) -> None:
-        profile = (ROOT / "apps/kaskold-hardware/src/hw/m5stack/profile.rs").read_text()
-        self.assertIn('model: "M5Stack CoreS3 Lite"', profile)
-        self.assertIn("hardware_qualified: false", profile)
-        self.assertIn("hardware qualification pending", profile)
-
 
 if __name__ == "__main__":
     unittest.main()

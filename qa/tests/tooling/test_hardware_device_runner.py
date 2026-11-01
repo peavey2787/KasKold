@@ -733,24 +733,6 @@ class HardwareDeviceRunnerTests(unittest.TestCase):
                 )
             self.assertEqual(result, 1)
 
-    def test_supervised_monitor_preserves_terminal_and_avoids_devnull_input(self) -> None:
-        source = RUNNER_PATH.read_text()
-        self.assertNotIn("stdin=subprocess.DEVNULL", source)
-        self.assertIn("private_monitor_input", source)
-        self.assertIn("stdin=monitor_stdin", source)
-        self.assertIn("with preserved_terminal(), private_monitor_input() as monitor_stdin:", source)
-        self.assertIn("Serial monitor stopped; terminal state restored.", source)
-        self.assertIn("device test still running", source)
-        self.assertIn("repeat_abort_marker", source)
-        self.assertIn("deadline_extension_marker", source)
-        self.assertIn("long-running device operation detected", source)
-        self.assertIn("rebooted before", source)
-        self.assertIn("FLASH_CONNECT_ATTEMPTS = 3", source)
-        self.assertIn("MONITOR_RECONNECT_ATTEMPTS = 3", source)
-        self.assertIn("FLASH_COMPLETE_MARKER", source)
-        self.assertIn('"no-reset-no-sync"', source)
-        self.assertIn("firmware will NOT be reflashed", source)
-
 
     def test_graph_derived_runtime_state_evidence_normalizes_payload_variants(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

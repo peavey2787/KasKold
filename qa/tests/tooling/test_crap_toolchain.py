@@ -14,9 +14,7 @@ import tempfile
 import unittest
 import zipfile
 
-from qa.tests.tooling.crap_check_test_support import (
-    CrapCheckTestCase, ROOT, report_document,
-)
+from qa.tests.tooling.crap_check_test_support import CrapCheckTestCase, ROOT
 
 sys.path.insert(0, str(ROOT / "qa/checks"))
 from toolchains import load_toolchains  # noqa: E402
@@ -97,34 +95,6 @@ class CrapToolchainTests(CrapCheckTestCase):
         self.assertEqual(module.ROOT, ROOT)
         self.assertTrue((module.ROOT / "qa/checks/quality/crap/coverage_manifest.py").is_file())
 
-    def test_run_all_catalog_invokes_pinned_branch_coverage(self) -> None:
-        catalog = (ROOT / "qa/config/run_all_steps.tsv").read_text()
-        dispatch = (ROOT / "qa/linux/runner/catalog.sh").read_text()
-        rows = [line.split("\t") for line in catalog.splitlines() if line and not line.startswith("#")]
-        ids = [row[3] for row in rows]
-        test_ids = [row[3] for row in rows if row[0] == "test"]
-        self.assertEqual(ids.count("preflight.crap-check"), 1)
-        self.assertEqual(ids.count("preflight.core-ci"), 1)
-        self.assertEqual(ids[:2], ["preflight.crap-check", "preflight.core-ci"])
-        self.assertTrue(test_ids)
-        self.assertGreater(min(ids.index(step) for step in test_ids), ids.index("preflight.crap-check"))
-        self.assertIn('run_in_directory "$ROOT_DIR" bash qa/linux/run-pinned-branch-coverage.sh', dispatch)
-        self.assertNotIn('run_in_directory "$ROOT_DIR" make branch-coverage', dispatch)
-
-        makefile = (ROOT / "Makefile").read_text()
-        self.assertIn("scripts/common/lib/make_tasks.py", makefile)
-        make_helper = (ROOT / "scripts/common/lib/make_tasks.py").read_text()
-        self.assertNotIn("_crap_ratchet_requests_branch", make_helper)
-        self.assertNotIn('env["CRAP_ENABLE_BRANCH"]', make_helper)
-        generator = ROOT / "scripts/linux/quality/crap.sh"
-        runner = (ROOT / "qa/linux/run-pinned-branch-coverage.sh").read_text()
-        setup = (ROOT / "scripts/linux/quality/branch-coverage-setup.sh").read_text()
-        self.assertTrue(generator.is_file())
-        source = generator.read_text()
-        self.assertIn("llvm-cov", source)
-        self.assertIn('rustup run "$COVERAGE_TOOLCHAIN" cargo crap', source)
-        self.assertIn("--strict", runner)
-        self.assertIn("ensure_cargo_plugin llvm-cov cargo-llvm-cov", setup)
 
     @unittest.skipUnless(os.name == "posix", "Linux CRAP runner execution is POSIX-specific")
     def test_optional_generator_skips_when_tools_are_unavailable(self) -> None:
@@ -404,93 +374,6 @@ exit 2
             self.assertNotIn("PASS: CRAP quality check", result.stdout)
             self.assertFalse((output / "run.json").exists())
 
-    def test_windows_branch_coverage_tools_are_repository_local(self) -> None:
-        setup = (ROOT / "scripts/windows/quality/branch-coverage-setup.ps1").read_text(encoding="utf-8")
-        self.assertIn("target/development-tools/branch-coverage-", setup)
-        self.assertIn("'--root',$toolRoot", setup)
-        self.assertIn("$env:PATH=$toolBin+';'+$env:PATH", setup)
-        self.assertNotIn("Join-Path $HOME '.cargo/bin'", setup)
-        self.assertNotIn("Join-Path $env:USERPROFILE '.cargo/bin'", setup)
-
-    def test_windows_branch_coverage_setup_provisions_node_when_missing(self) -> None:
-        setup = (ROOT / "scripts/windows/quality/branch-coverage-setup.ps1").read_text(encoding="utf-8")
-        self.assertIn("function Ensure-Node", setup)
-        self.assertIn("Get-Command node -ErrorAction SilentlyContinue", setup)
-        self.assertIn("OpenJS.NodeJS.LTS", setup)
-        self.assertIn("--accept-package-agreements", setup)
-        self.assertIn("--accept-source-agreements", setup)
-        self.assertIn("Refresh-ProcessPath", setup)
-        self.assertIn("Open a new terminal and rerun make qa", setup)
-
-    def test_windows_direct_cargo_plugin_probe_preserves_subcommand_argv(self) -> None:
-        setup = (ROOT / "scripts/windows/quality/branch-coverage-setup.ps1").read_text(encoding="utf-8")
-        self.assertIn("function Get-PluginVersion", setup)
-        self.assertIn('-Command \'cargo\' -Arguments @("+$toolchain",$sub,\'--version\')', setup)
-        self.assertNotIn("Invoke-KasKoldCapture -Command $exe", setup)
-        self.assertIn("Ensure-Plugin 'llvm-cov' 'cargo-llvm-cov' $llvm", setup)
-        self.assertIn("Ensure-Plugin 'crap' 'cargo-crap' $crap", setup)
-
-    def test_windows_branch_coverage_reuses_pinned_tools_before_network_install(self) -> None:
-        setup = (ROOT / "scripts/windows/quality/branch-coverage-setup.ps1").read_text(encoding="utf-8")
-        self.assertIn("Get-PluginVersion $sub", setup)
-        self.assertIn("(reused installed tool)", setup)
-        self.assertNotIn("--offline", setup)
-        self.assertIn("Cargo already", setup)
-        self.assertIn("Restore network/DNS access or install it once with", setup)
-        runner = (ROOT / "qa/windows/run-pinned-branch-coverage.ps1").read_text(encoding="utf-8")
-        self.assertIn('cargo "+$toolchain" llvm-cov --version', runner)
-        self.assertIn('cargo "+$toolchain" crap --version', runner)
-        self.assertIn('cargo "+$toolchain" llvm-cov clean --workspace', runner)
-        self.assertNotIn("branch-coverage-setup.ps1'); if ($LASTEXITCODE", runner)
-
-    def test_internal_branch_coverage_runner_provisions_pinned_tools_first(self) -> None:
-        makefile = (ROOT / "Makefile").read_text()
-        runner = (ROOT / "qa/linux/run-pinned-branch-coverage.sh").read_text()
-        setup = (ROOT / "scripts/linux/quality/branch-coverage-setup.sh").read_text()
-        self.assertNotIn("branch-coverage-setup:", makefile)
-        self.assertIn("scripts/linux/quality/branch-coverage-setup.sh", runner)
-        self.assertIn("scripts/linux/quality/crap.sh", runner)
-        self.assertIn("qa/checks/quality/crap/package_branch_artifacts.py", runner)
-        self.assertIn("--component llvm-tools-preview", setup)
-        self.assertIn('rustup run "$TOOLCHAIN" rustc --version', setup)
-        self.assertIn('rustup component add llvm-tools-preview --toolchain "$TOOLCHAIN"', setup)
-
-    def test_pinned_branch_coverage_runner_keeps_fresh_evidence_in_target(self) -> None:
-        runner = ROOT / "qa/linux/run-pinned-branch-coverage.sh"
-        self.assertTrue(runner.is_file())
-        if os.name == "posix":
-            self.assertTrue(runner.stat().st_mode & 0o111)
-        source = runner.read_text(encoding="utf-8")
-        for token in (
-            "KASKOLD_BRANCH_RUST",
-            "cargo-llvm-cov",
-            "KASKOLD_CARGO_LLVM_COV_VERSION",
-            "cargo-crap",
-            "KASKOLD_CARGO_CRAP_VERSION",
-            "llvm-cov clean --workspace",
-            "CRAP_ENABLE_BRANCH=1",
-            "scripts/linux/quality/crap.sh",
-            "qa/checks/quality/crap/package_branch_artifacts.py --validate-only",
-            "qa/checks/quality/crap/package_branch_artifacts.py --input-dir",
-            "target/qa/kaskold-branch-coverage.zip",
-            "Fresh evidence is retained only under target/qa/crap/.",
-            "TARGET_BUNDLE_SHA256",
-            "sha256sum --check",
-        ):
-            self.assertIn(token, source)
-
-        artifact_ignore_path = ROOT / "qa/artifacts/.gitignore"
-        if artifact_ignore_path.is_file():
-            self.assertNotIn("branch-coverage", artifact_ignore_path.read_text())
-        self.assertFalse((ROOT / "qa/artifacts/branch-coverage").exists())
-
-    def test_branch_artifact_validation_avoids_inline_python_on_windows(self) -> None:
-        windows = (ROOT / "qa/windows/run-pinned-branch-coverage.ps1").read_text(encoding="utf-8")
-        linux = (ROOT / "qa/linux/run-pinned-branch-coverage.sh").read_text(encoding="utf-8")
-        self.assertIn("package_branch_artifacts.py --validate-only", windows)
-        self.assertIn("package_branch_artifacts.py --validate-only", linux)
-        self.assertNotIn("$python -c", windows)
-        self.assertNotIn("python3 - ", linux)
 
     def test_branch_artifact_helper_validates_and_self_checks_zip(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -532,54 +415,6 @@ exit 2
             with self.assertRaises((Exception, SystemExit)):
                 module.verify_archive(bundle)
 
-    def test_authoritative_qa_owns_fresh_crap_and_web_runtime_evidence(self) -> None:
-        linux_alias = (ROOT / "qa/linux/run-production-hardening.sh").read_text()
-        windows_alias = (ROOT / "qa/windows/run-production-hardening.ps1").read_text()
-        coverage = (ROOT / "scripts/linux/quality/crap.sh").read_text()
-        self.assertIn("--profile full", linux_alias)
-        self.assertIn("--profile full", windows_alias)
-        self.assertIn('$OUTPUT_DIR/web_runtime/summary.json', coverage)
-        self.assertIn("qa/contracts/quality/crap_ratchets.json", coverage)
-
-
-    def test_remote_ci_does_not_run_private_full_crap_graph(self) -> None:
-        core = (ROOT / ".github/workflows/core.yml").read_text()
-        fuzz = (ROOT / ".github/workflows/fuzz.yml").read_text()
-        self.assertIn('make test STRICT_LOCKFILES=1', core)
-        self.assertNotIn('make qa', core)
-        self.assertNotIn('target/qa/crap', core)
-        self.assertIn('FUZZ_SECONDS=300 bash scripts/linux/quality/security-fuzz.sh', fuzz)
-        self.assertNotIn('make qa', fuzz)
-
-    def test_root_crap_and_lcov_share_production_source_filters(self) -> None:
-        linux = (ROOT / "scripts/linux/quality/crap.sh").read_text()
-        windows = (ROOT / "scripts/windows/quality/crap_windows.py").read_text()
-        for source in (linux, windows):
-            self.assertIn("ignore-filename-regex", source)
-            self.assertIn("unit_tests", source)
-            self.assertIn("online-watcher", source)
-            self.assertIn("wasm_api", source)
-            self.assertIn(r"mod\.rs", source)
-            self.assertIn("**/unit_tests/**", source)
-            self.assertIn("src/wasm/**", source)
-            self.assertIn("src/wasm_api/mod.rs", source)
-        self.assertEqual(linux.count("--no-default-excludes"), 2)
-        self.assertEqual(windows.count("'--no-default-excludes'"), 1)
-        self.assertNotIn("common=['--threshold','30','--missing','pessimistic','--no-default-excludes'", windows)
-        self.assertIn("KasKold CRAP analysis log", linux)
-        self.assertIn("KasKold CRAP analysis log", windows)
-        self.assertIn('tee -a "$crap_log"', linux)
-        self.assertIn("log=crap_log,append=True", windows)
-
-    def test_generator_does_not_install_tools_or_lock_coverage_run(self) -> None:
-        source = (ROOT / "scripts/linux/quality/crap.sh").read_text()
-        self.assertNotIn("cargo +stable install", source)
-        self.assertNotIn("rustup toolchain install", source)
-        self.assertNotIn("rustup component add", source)
-        self.assertNotIn("--locked", source)
-        self.assertIn('rustup run "$toolchain" cargo llvm-cov --version', source)
-        self.assertIn('rustup run "$toolchain" cargo crap --version', source)
-        self.assertIn("CRAP_BRANCH_TOOLCHAIN", source)
 
     def test_quality_check_has_one_policy_and_one_compact_ratchet(self) -> None:
         policy_files = sorted(
@@ -591,33 +426,6 @@ exit 2
         self.assertEqual(policy_files, ["policy.json"])
         self.assertIn("crap_ratchets.json", contract_files)
         self.assertFalse((ROOT / "qa/baselines/crap").exists())
-
-
-    def test_obsolete_quality_stage_labels_are_absent(self) -> None:
-        changelog = (ROOT / "CHANGELOG.md").read_text(errors="ignore")
-        sections = changelog.split("\n## ", 2)
-        current_changelog = (sections[1] if len(sections) > 1 else changelog).lower()
-        self.assertNotIn("milestone", current_changelog, "current unreleased changelog")
-        self.assertNotRegex(current_changelog, r"\bphase\s+[0-9]", "current unreleased changelog")
-
-        checked_paths = [
-            ROOT / "Makefile",
-            ROOT / "qa/checks/quality/crap",
-            ROOT / "qa/linux/runner/catalog.sh",
-            ROOT / "apps/kaskold-hardware/src/main.rs",
-            ROOT / "apps/kaskold-hardware/src/runtime/unit_tests/boot.rs",
-            ROOT / "apps/kaskold-hardware/src/runtime/unit_tests/software.rs",
-            ROOT / "apps/kaskold-hardware/src/runtime/signing/verification.rs",
-            ROOT / "apps/kaskold-hardware/src/boot",
-        ]
-        for checked in checked_paths:
-            paths = [checked] if checked.is_file() else sorted(checked.rglob("*"))
-            for path in paths:
-                if not path.is_file() or "__pycache__" in path.parts:
-                    continue
-                source = path.read_text(errors="ignore").lower()
-                self.assertNotIn("milestone", source, path)
-                self.assertNotRegex(source, r"\bphase\s+[0-9]", str(path))
 
 
 if __name__ == "__main__":

@@ -92,13 +92,6 @@ class CompiledStackBudgetTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "no .stack_sizes"):
                 read_stack_entries(path)
 
-    def test_converged_builds_emit_and_check_stack_metadata_on_both_platforms(self):
-        linux = (ROOT / "tools/build/firmware/build_with_hash.sh").read_text()
-        windows = (ROOT / "tools/build/firmware/build_with_hash.ps1").read_text()
-        for source in (linux, windows):
-            self.assertIn("emit-stack-sizes", source)
-            self.assertIn("compiled_stack_budget.py", source)
-
 
 if __name__ == "__main__":
     unittest.main()

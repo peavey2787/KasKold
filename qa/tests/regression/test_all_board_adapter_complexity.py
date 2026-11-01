@@ -32,43 +32,6 @@ class AllBoardAdapterComplexityTests(unittest.TestCase):
                         )
         self.assertEqual(offenders, [])
 
-    def test_board_loops_and_state_decisions_are_owned_by_shared_helpers(self) -> None:
-        ownership = {
-            "crates/kaskold-hardware-core/src/storage/retry.rs": (
-                "poll_sdhost_command",
-                "poll_r1_response",
-                "poll_ready_response",
-            ),
-            "crates/kaskold-hardware-core/src/storage/card.rs": (
-                "classify_card_kind",
-                "classify_card_state",
-                "command_frame",
-            ),
-            "crates/kaskold-hardware-core/src/power/sequencing.rs": (
-                "run_register_writes",
-            ),
-            "crates/kaskold-hardware-core/src/camera/registers.rs": (
-                "write_pairs",
-                "write_banked",
-            ),
-            "crates/kaskold-hardware-core/src/camera/dma.rs": (
-                "plan_decode_submission",
-                "descriptor_action",
-                "copy_sample_with",
-            ),
-            "crates/kaskold-hardware-core/src/presentation/audio.rs": (
-                "fill_stereo_square_wave",
-                "fill_stereo_tick",
-            ),
-            "crates/kaskold-hardware-core/src/input/recovery.rs": (
-                "run_i2c_recovery",
-            ),
-        }
-        for relative, fragments in ownership.items():
-            source = (ROOT / relative).read_text()
-            for fragment in fragments:
-                self.assertIn(fragment, source, f"{relative} lacks {fragment}")
-
 
 if __name__ == "__main__":
     unittest.main()

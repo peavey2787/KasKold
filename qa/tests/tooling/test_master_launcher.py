@@ -25,38 +25,6 @@ QA_DIR = ROOT / "qa/linux"
 
 @unittest.skipUnless(os.name == "posix", "Linux master-launcher tests are POSIX-specific")
 class MasterTestLauncherTests(unittest.TestCase):
-    def test_desktop_launcher_targets_sibling_runner(self) -> None:
-        launcher = QA_DIR / "run-all.desktop"
-        source = launcher.read_text()
-
-        self.assertTrue(os.access(launcher, os.X_OK))
-        self.assertIn("Type=Application", source)
-        self.assertIn("Terminal=true", source)
-        self.assertIn('qa_dir=$(dirname "$desktop_file")', source)
-        self.assertIn('exec "$qa_dir/run-all.sh" --pause', source)
-        self.assertIn("bash %k", source)
-
-    def test_runner_supports_terminal_pause(self) -> None:
-        runner = QA_DIR / "run-all.sh"
-        source = runner.read_text()
-
-        helper = QA_DIR / "lib/terminal_pause.sh"
-        helper_source = helper.read_text()
-
-        self.assertTrue(os.access(runner, os.X_OK))
-        self.assertIn("--pause", source)
-        self.assertIn('source "${SCRIPT_DIR}/lib/terminal_pause.sh"', source)
-        self.assertIn("kaskold_qa_install_exit_handler", source)
-        self.assertIn("trap kaskold_qa_exit_handler EXIT", helper_source)
-        self.assertIn("Press Enter to close this terminal", helper_source)
-        self.assertIn("KASKOLD_QA_NO_PAUSE", helper_source)
-
-
-    def test_cargo_preflight_resolves_full_dependency_graph(self) -> None:
-        commands = (QA_DIR / "runner/commands.sh").read_text()
-        self.assertIn("cargo metadata", commands)
-        self.assertIn("--locked", commands)
-        self.assertNotIn("--no-deps", commands)
 
 
     def test_runner_loads_cargo_from_user_environment(self) -> None:
@@ -381,15 +349,6 @@ class MasterTestLauncherTests(unittest.TestCase):
             self.assertEqual(len(log.read_text().splitlines()), 1)
 
 
-    def test_fuzz_runner_uses_central_nightly_policy(self) -> None:
-        self.assertFalse((ROOT / "qa/fuzz/rust-toolchain.toml").exists())
-        self.assertFalse((ROOT / "rust-toolchain.toml").exists())
-
-        commands = (QA_DIR / "runner/commands.sh").read_text()
-        self.assertIn('run_in_directory "${ROOT_DIR}/qa/fuzz"', commands)
-        self.assertIn('rustup run "$KASKOLD_BRANCH_RUST" cargo fuzz run "$target"', commands)
-        self.assertNotIn(PINS["KASKOLD_BRANCH_RUST"], commands)
-
     def test_fuzz_stage_invokes_nightly_cargo(self) -> None:
         runner = QA_DIR / "run-all.sh"
         with tempfile.TemporaryDirectory() as temporary:
@@ -590,34 +549,6 @@ class MasterTestLauncherTests(unittest.TestCase):
             self.assertNotIn("PASS: integration.repository-architecture", result.stdout)
             calls = log.read_text().splitlines()
             self.assertEqual(calls, ["qa/checks/check_architecture.py"])
-
-    def test_multi_command_catalog_and_helpers_explicitly_propagate_failures(self) -> None:
-        catalog = (QA_DIR / "runner/catalog.sh").read_text()
-        commands = (QA_DIR / "runner/commands.sh").read_text()
-        required_catalog = (
-            "build_web_index.py --check || return $?",
-            "build_app_css.py --check || return $?",
-            "check_web_dom_contract.py || return $?",
-            "check_web_runtime.mjs || return $?",
-            "check_web_covenant_interactions.mjs || return $?",
-            "check_web_critical_paths.mjs || return $?",
-            "qa/checks/check_architecture.py || return $?",
-        )
-        for marker in required_catalog:
-            self.assertIn(marker, catalog)
-        coverage = (ROOT / "scripts/linux/quality/crap.sh").read_text()
-        self.assertIn("run_web_recovery_coverage.py", coverage)
-        self.assertIn("run_web_runtime_coverage.py", coverage)
-        self.assertIn("set -Eeuo pipefail", coverage)
-        self.assertIn("generate_browser_recovery_coverage", coverage)
-        self.assertIn("generate_web_runtime_coverage", coverage)
-        self.assertIn("features m5stack-lite,verbose-boot || return $?", commands)
-        self.assertIn("features m5stack,verbose-boot || return $?", commands)
-        self.assertIn('"-runs=${FUZZ_PASSES}"', commands)
-        self.assertIn('statuses.tsv', commands)
-        self.assertIn('qa/checks/security/fuzz_results.py', commands)
-        self.assertIn('--runs "$FUZZ_PASSES"', commands)
-        self.assertIn('target_status=${PIPESTATUS[0]}', commands)
 
 
 if __name__ == "__main__":

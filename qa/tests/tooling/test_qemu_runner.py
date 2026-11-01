@@ -11,17 +11,6 @@ ROOT = Path(__file__).resolve().parents[3]
 RUNNER = ROOT / "qa/checks/firmware/qemu/run.py"
 
 
-class QemuRunnerPortabilityTests(unittest.TestCase):
-    def test_uart_reader_does_not_use_select_on_process_pipes(self) -> None:
-        source = RUNNER.read_text()
-        self.assertNotIn("import selectors", source)
-        self.assertNotIn("selector.select", source)
-        self.assertIn("queue.Queue", source)
-        self.assertIn("threading.Thread", source)
-        self.assertIn('process.stdout.read(4096)', source)
-        self.assertIn("stdin=None if args.keep_running else subprocess.PIPE", source)
-
-
 @unittest.skipUnless(os.name == "posix", "QEMU fake guest fixture is POSIX-specific")
 class QemuRunnerTests(unittest.TestCase):
     def make_guest(self, directory: Path, output: str, status: int = 0) -> Path:

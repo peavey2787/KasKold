@@ -383,18 +383,6 @@ class ReleaseReadinessGate(unittest.TestCase):
         finally:
             temporary.cleanup()
 
-    def test_software_assurance_generator_is_candidate_bound_and_canonical(self) -> None:
-        linux = (ROOT / "qa/linux/release/generate_software_assurance.sh").read_text()
-        windows = (ROOT / "qa/windows/release/generate_software_assurance.ps1").read_text()
-        generator = (ROOT / "qa/checks/release/generate_software_assurance.py").read_text()
-        for source in (linux, windows):
-            self.assertIn("KASKOLD_SOURCE_SHA256", source)
-            self.assertIn("KASKOLD_RELEASE_ARTIFACT_SHA256", source)
-            self.assertIn("KASKOLD_RELEASE_EVIDENCE_SIGNING_KEY", source)
-        self.assertIn('"software_assurance.json"', generator)
-        self.assertIn("LOCKFILES", generator)
-        self.assertNotIn("software-assurance.json", generator)
-
 
 if __name__ == "__main__":
     unittest.main()

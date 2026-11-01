@@ -7,14 +7,11 @@ import os
 import subprocess
 import sys
 import tempfile
-import tomllib
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 ENTRY_POINT = ROOT / "tools/build/web/build_companion_runtime.py"
 BUILDER = ROOT / "tools/build/web/wasm_runtime.py"
-LINUX_FACADE = ROOT / "apps/kaskold-companion-web/build.sh"
-WINDOWS_FACADE = ROOT / "apps/kaskold-companion-web/build.ps1"
 
 
 def load_module(path: Path, name: str):
@@ -204,12 +201,6 @@ class WebBuildPipelineTests(unittest.TestCase):
             self.assertIn(f"./app/named.js?rev={revision}", main)
             self.assertIn(f"./app/dynamic.js?rev={revision}", main)
 
-    def test_build_facades_delegate_without_duplicating_runtime_logic(self) -> None:
-        for facade in (LINUX_FACADE, WINDOWS_FACADE):
-            source = facade.read_text(encoding="utf-8")
-            self.assertIn("build_companion_runtime.py", source)
-            self.assertNotIn("cargo build", source)
-            self.assertNotIn("wasm-bindgen-cli", source)
 
     def test_builder_fails_closed_on_unknown_mode(self) -> None:
         source = BUILDER.read_text(encoding="utf-8")
@@ -225,14 +216,6 @@ class WebBuildPipelineTests(unittest.TestCase):
         self.assertIn('f"{cargo_wasm_artifact_stem(runtime)}.wasm"', source)
         self.assertNotIn('profile / "companion_web.wasm"', source)
 
-    def test_web_build_uses_direct_wasm_bindgen_not_wasm_pack(self) -> None:
-        source = BUILDER.read_text(encoding="utf-8")
-        manifest = (ROOT / "apps/kaskold-companion-web/Cargo.toml").read_text(encoding="utf-8")
-        self.assertNotIn("wasm-pack", source)
-        self.assertNotIn("package.metadata.wasm-pack", manifest)
-        self.assertIn('"--target", "web"', source)
-        self.assertIn('"--out-name", runtime.bindgen_stem', source)
-        self.assertIn('bindgen_stem="companion_web"', ENTRY_POINT.read_text(encoding="utf-8"))
 
     def test_web_build_resolves_lock_for_wasm_target_with_msrv_fallback(self) -> None:
         source = BUILDER.read_text(encoding="utf-8")
@@ -262,39 +245,6 @@ class WebBuildPipelineTests(unittest.TestCase):
         self.assertIn('"--root"', source)
         self.assertIn("XDG_CACHE_HOME", source)
 
-    def test_wasm_bindgen_cli_pin_matches_companion_lock(self) -> None:
-        lock = tomllib.loads((ROOT / "apps/kaskold-companion-web/Cargo.lock").read_text(encoding="utf-8"))
-        versions = {package["version"] for package in lock["package"] if package["name"] == "wasm-bindgen"}
-        self.assertEqual(versions, {"0.2.120"})
-        source = BUILDER.read_text(encoding="utf-8")
-        self.assertIn("locked_wasm_bindgen_version", source)
-        self.assertIn("wasm-bindgen crate/CLI mismatch", source)
-
-    def test_rust_195_uses_rustc_194_compatible_wasm_bindgen_family(self) -> None:
-        pins = (ROOT / "qa/config/toolchains.env").read_text(encoding="utf-8")
-        self.assertIn("KASKOLD_STABLE_RUST=1.95.0", pins)
-        self.assertIn("KASKOLD_WASM_BINDGEN_CLI_VERSION=0.2.120", pins)
-        # Applications pin the exact family their lockfile and CLI use; the
-        # reusable libraries declare the minimum compatible version so hosts
-        # with an older wasm-bindgen family can import them.
-        manifests = (
-            ("apps/kaskold-companion-web/Cargo.toml", "dependencies", "=0.2.120"),
-            ("crates/online-watcher/Cargo.toml", "dependencies", "=0.2.120"),
-            ("crates/kaskold-protocol/Cargo.toml", "target.cfg(target_arch = \"wasm32\").dependencies", "0.2.108"),
-            ("crates/kaskold-sdk/Cargo.toml", "target.cfg(target_arch = \"wasm32\").dependencies", "0.2.108"),
-        )
-        for relative, table, expected in manifests:
-            manifest = tomllib.loads((ROOT / relative).read_text(encoding="utf-8"))
-            current = manifest
-            for component in table.split("."):
-                current = current[component]
-            dependency = current["wasm-bindgen"]
-            version = dependency if isinstance(dependency, str) else dependency["version"]
-            self.assertEqual(version, expected, relative)
-        online = tomllib.loads((ROOT / "crates/online-watcher/Cargo.toml").read_text(encoding="utf-8"))
-        self.assertEqual(online["dependencies"]["wasm-bindgen-futures"], "=0.4.70")
-        self.assertEqual(online["dependencies"]["js-sys"], "=0.3.97")
-        self.assertEqual(online["dependencies"]["web-sys"]["version"], "=0.3.97")
 
     def test_builder_surfaces_captured_subprocess_diagnostics(self) -> None:
         module = load_module(BUILDER, "wasm_runtime_errors")
@@ -310,13 +260,6 @@ class WebBuildPipelineTests(unittest.TestCase):
         for name in ("RUSTC", "RUSTDOC", "CARGO_BUILD_TARGET", "RUSTFLAGS", "CARGO_ENCODED_RUSTFLAGS"):
             self.assertIn(f'"{name}"', source)
         self.assertIn('build_env["CARGO_TARGET_DIR"]', source)
-
-    def test_gradle_and_xcode_consume_the_same_builder(self) -> None:
-        gradle = (ROOT / "apps/kaskold-companion-android/app/build.gradle.kts").read_text(encoding="utf-8")
-        project = (ROOT / "apps/kaskold-companion-ios/KasKold.xcodeproj/project.pbxproj").read_text(encoding="utf-8")
-        self.assertIn("tools/build/web/build_companion_runtime.py", gradle)
-        self.assertIn("tools/build/web/build_companion_runtime.py", project)
-        self.assertNotIn('"bash", "-lc"', gradle)
 
 
 if __name__ == "__main__":

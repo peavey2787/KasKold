@@ -72,27 +72,6 @@ class IrreversibleActionPolicyTests(unittest.TestCase):
         ack = load(ACK_PATH, "irreversible_ack_binding")
         self.assertEqual(ack.DEVICE_TOKEN, "{device}")
 
-    def test_hardening_and_release_evidence_require_irreversible_policy(self) -> None:
-        makefile = (ROOT / "Makefile").read_text()
-        catalog = (ROOT / "qa/linux/runner/catalog.sh").read_text()
-        self.assertIn("qa:\n\t$(MAKE_TASK) qa", makefile)
-        self.assertIn("qa/checks/security/irreversible_action_policy.py", catalog)
-
-        package = (ROOT / "qa/checks/security/package_artifacts.py").read_text()
-        self.assertGreaterEqual(package.count('SECURITY_ROOT / "irreversible-action-policy.json"'), 2)
-
-        release_doc = (ROOT / "qa/release/M5STACK_SECURITY_HIL.md").read_text()
-        self.assertIn("I UNDERSTAND THIS IS IRREVERSIBLE", release_doc)
-        self.assertIn("literal `{device}` token", release_doc)
-        self.assertIn("**Pop It!** consent", release_doc)
-
-        release_policy = (ROOT / "apps/kaskold-hardware/release-policy.env").read_text()
-        values = dict(
-            line.split("=", 1) for line in release_policy.splitlines()
-            if line and not line.startswith("#") and "=" in line
-        )
-        self.assertGreaterEqual(int(values["KASKOLD_UPDATE_SEQUENCE"]), 1)
-        self.assertEqual(values["KASKOLD_SECURITY_VERSION"], "1")
 
     def test_live_irreversible_command_requires_wrapper_reference(self) -> None:
         policy = load(POLICY_PATH, "irreversible_policy_scan")

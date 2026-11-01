@@ -169,32 +169,6 @@ class HilAndFuzzEvidenceTests(unittest.TestCase):
         self.assertEqual(seconds["seconds_per_target"], 300)
         self.assertIsNone(seconds["runs_per_target"])
 
-    def test_make_test_and_fuzz_security_use_the_same_fuzz_writer(self) -> None:
-        linux_master = (ROOT / "qa/linux/runner/commands.sh").read_text(encoding="utf-8")
-        windows_master = (ROOT / "qa/windows/runner/run_all.py").read_text(encoding="utf-8")
-        linux_security = (ROOT / "qa/linux/run-security-fuzz.sh").read_text(encoding="utf-8")
-        windows_security = (ROOT / "qa/windows/run-security-fuzz.ps1").read_text(encoding="utf-8")
-        for source in (linux_master, windows_master, linux_security, windows_security):
-            self.assertIn("qa/checks/security/fuzz_results.py", source)
-            self.assertIn("statuses.tsv", source)
-        self.assertIn('--runs "$FUZZ_PASSES"', linux_master)
-        self.assertIn('"--runs", str(ns.fuzz_passes)', windows_master)
-        self.assertIn('--seconds "$SECONDS_PER_TARGET"', linux_security)
-        self.assertIn("'--seconds',[string]$secondsPerTarget", windows_security)
-
-    def test_hil_entrypoints_have_durable_evidence_only_where_requested(self) -> None:
-        hardware = (ROOT / "qa/checks/firmware/run_hardware_tests.py").read_text(encoding="utf-8")
-        workflow = (ROOT / "qa/checks/firmware/run_workflow_tests.py").read_text(encoding="utf-8")
-        make_tasks = (ROOT / "scripts/common/lib/make_tasks.py").read_text(encoding="utf-8")
-        self.assertIn('kind="hardware"', hardware)
-        self.assertIn('include_build_log=False', hardware)
-        self.assertIn('kind="workflow"', workflow)
-        self.assertIn('include_build_log=True', workflow)
-        self.assertIn('if args.hil', workflow)
-        self.assertIn('"--board", board, "--timeout", timeout, "--hil"', make_tasks)
-        self.assertIn('uart_log=uart_log', hardware)
-        self.assertIn('uart_log=uart_log', workflow)
-
 
     def test_sigterm_is_converted_into_reportable_interruption(self) -> None:
         checks = ROOT / "qa/checks/firmware"

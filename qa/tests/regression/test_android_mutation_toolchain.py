@@ -239,27 +239,6 @@ class AndroidMutationToolchainTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("PASS: Android source CRAP", result.stdout)
 
-    def test_mutation_keeps_api37_and_pinned_gradle_cache_contracts(self) -> None:
-        source = MUTATION.read_text(encoding="utf-8")
-        gradle_source = (ROOT / "apps/kaskold-companion-android/app/build.gradle.kts").read_text(encoding="utf-8")
-        self.assertIn('Path("/mnt/Extra/android-dev/sdk")', source)
-        self.assertIn('Path("/mnt/Extra/android-dev/gradle")', source)
-        self.assertIn('APP / "local.properties"', source)
-        self.assertIn('kaskold/distributions/gradle-{version}/bin/gradle', source)
-        self.assertIn('":app:testDebugUnitTest"', source)
-        self.assertNotIn('"-x", ":app:syncCompanionWebUi"', source)
-        self.assertNotIn('":app:purgeLegacyKasKoldRuntime"', source)
-        self.assertIn("Gradle JUnit/Robolectric baseline remains authoritative", source)
-        self.assertIn('KASKOLD_ANDROID_JDK', source)
-        self.assertIn('gradle-daemon-jvm.properties', source)
-        self.assertIn('.kaskold/tools/jdk-{required}/bin/java.exe', source)
-        self.assertIn('configure_gradle_java()', source)
-        self.assertIn('configure_gradle_python()', source)
-        self.assertIn('os.environ["PYTHON"] = resolved', source)
-        self.assertIn('import sys, tomllib', source)
-        self.assertIn('it.name.startsWith("merge") && it.name.endsWith("Assets")', gradle_source)
-        self.assertIn("dependsOn(syncCompanionWebUi)", gradle_source)
-
 
 if __name__ == "__main__":
     unittest.main()

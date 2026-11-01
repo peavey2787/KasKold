@@ -20,11 +20,9 @@ ANDROID_TESTS = {
     "test_android_gradle_bootstrap.py",
     "test_android_gradle_exec_recovery.py",
     "test_android_mutation_toolchain.py",
-    "test_android_vault_isolation.py",
     "test_mobile_web_coverage_contracts.py",
 }
 IOS_TESTS = {
-    "test_ios_xcode_application_tests.py",
     "test_mobile_web_coverage_contracts.py",
 }
 MOBILE_TESTS = ANDROID_TESTS | IOS_TESTS

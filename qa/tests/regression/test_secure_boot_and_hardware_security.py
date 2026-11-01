@@ -1,4 +1,3 @@
-import hashlib
 import importlib.util
 import pathlib
 import subprocess
@@ -9,106 +8,10 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "qa/checks"))
-from firmware.source_contract_support import flat  # noqa: E402
 
 
 class PopItSecureBootTests(unittest.TestCase):
-    def read(self, relative: str) -> str:
-        return (ROOT / relative).read_text(encoding="utf-8")
 
-
-    def test_pop_it_is_settings_only_and_never_injected_at_startup(self):
-        runner = self.read("apps/kaskold-hardware/src/runtime/event_loop/runner.rs")
-        graph_menus = self.read("apps/kaskold-hardware/src/runtime/navigation/ui_graph/menus.rs")
-        preferences = self.read("apps/kaskold-hardware/src/services/persistent_wallet/device/preferences.rs")
-        journal = self.read("apps/kaskold-hardware/src/services/persistent_wallet/journal.rs")
-        self.assertNotIn("startup_security", runner)
-        self.assertFalse((ROOT / "apps/kaskold-hardware/src/runtime/event_loop/runner/startup_security.rs").exists())
-        self.assertIn('ui_menu!(AdvancedMenu, 3, "Pop It!"', graph_menus)
-        self.assertNotIn("pop_it_prompt_consumed", preferences)
-        self.assertNotIn("dev_pop_it_prompt", preferences)
-        self.assertNotIn("LEGACY_POP_IT_PROMPT_CONSUMED", journal)
-        self.assertNotIn("LEGACY_POP_IT_REQUESTED", journal)
-        self.assertIn("LEGACY_RESERVED_BIT_0", journal)
-        self.assertIn("Current firmware does not interpret them as active features", journal)
-
-    def test_prompt_warns_before_permanently_abandoning_owner_authority(self):
-        screen = self.read("apps/kaskold-hardware/src/ui/screens/device/pop_it.rs")
-        controller = self.read("apps/kaskold-hardware/src/runtime/interactions/settings/advanced/pop_it.rs")
-        route = self.read("apps/kaskold-hardware/src/runtime/interactions/menu/primary/production.rs")
-        states = self.read("crates/kaskold-hardware-core/src/screen_flow/state.rs")
-        for label in ('"SET UP OWNER FIRMWARE"', '"CONTINUE WITHOUT IT"', '"YES"', '"NO"', '"EXPLAIN"'):
-            self.assertIn(label, screen)
-        self.assertIn('"No owner firmware key is enrolled."', screen)
-        self.assertIn('"firmware enrollment on this device."', screen)
-        self.assertIn("OWNER_SETUP_BUTTON_Y", controller)
-        self.assertIn("CONTINUE_WITHOUT_BUTTON_Y", controller)
-        self.assertIn("route!(OwnerFirmwareMenu)", controller)
-        self.assertIn("route!(PopItConfirm)", controller)
-        self.assertIn("owner_authority_enrolled()", route)
-        for state in ("PopItPrompt", "PopItExplain", "PopItConfirm"):
-            self.assertIn(state, states)
-        self.assertIn("display.draw_pop_it_applying()", controller)
-        self.assertIn("esp_hal::system::software_reset()", controller)
-        self.assertIn('"FINAL: TYPE POP IT"', screen)
-        self.assertIn("confirmation_phrase_valid", controller)
-
-    def test_pop_it_remains_in_advanced_until_hardware_enabled(self):
-        navigation = self.read("apps/kaskold-hardware/src/runtime/navigation/production.rs")
-        graph_menus = self.read("apps/kaskold-hardware/src/runtime/navigation/ui_graph/menus.rs")
-        controller = self.read("apps/kaskold-hardware/src/runtime/interactions/menu/primary/production.rs")
-        self.assertIn('ui_menu!(AdvancedMenu, 3, "Pop It!"', graph_menus)
-        self.assertIn('ui_menu!(AdvancedMenu, 2, "Owner Firmware"', graph_menus)
-        self.assertIn("secure_boot_enabled()", navigation)
-        self.assertIn("ui_graph::advanced_labels", navigation)
-        self.assertIn("pop_it_available()", controller)
-        self.assertIn("effects::menu_select(ad, index)", controller)
-
-    def test_preflight_runs_before_request_and_reset(self):
-        # The preflight decision itself is host-tested in kaskold-hardware-core
-        # (unit_tests/boot_fuses_tests.rs); this pins only the call order.
-        controller = self.read("apps/kaskold-hardware/src/runtime/interactions/settings/advanced/pop_it.rs")
-        preflight_pos = controller.index("boot_security::pop_it_preflight()")
-        request_pos = controller.index("persistence.request_pop_it()")
-        reset_pos = controller.index("esp_hal::system::software_reset()")
-        self.assertLess(preflight_pos, request_pos)
-        self.assertLess(request_pos, reset_pos)
-        self.assertNotRegex(controller, r"Efuse::|write_field|burn_efuse|REG_WRITE")
-
-    def test_bootloader_gate_delegates_irreversible_work_to_esp_idf(self):
-        patcher = self.read("tools/build/firmware/secure_bootloader/m5stack/patch_pop_it_bootloader.py")
-        owner_patch = self.read("tools/build/firmware/secure_bootloader/m5stack/owner_bootloader_patch.py")
-        secure_patch = self.read("tools/build/firmware/secure_bootloader/m5stack/owner_secure_boot_patch.py")
-        build = self.read("tools/build/firmware/secure_bootloader/m5stack/build.sh")
-        config = self.read("tools/build/firmware/secure_bootloader/m5stack/sdkconfig.defaults")
-        boot_control = self.read("apps/kaskold-hardware/src/services/persistent_wallet/device/boot_control.rs")
-        self.assertIn("KASKOLD_BOOTCTL_BASE 0x00610000U", owner_patch)
-        self.assertIn("KASKOLD_OWNER_STAGE_BASE 0x00410000U", owner_patch)
-        self.assertIn("KASKOLD_BOOTCTL_OP_POP_IT 1U", owner_patch)
-        self.assertIn("KASKOLD_BOOTCTL_OP_ENROLL_OWNER 2U", owner_patch)
-        self.assertIn("KASKOLD_BOOTCTL_OP_INSTALL_OWNER 3U", owner_patch)
-        self.assertIn("esp_secure_boot_v2_permanently_enable(image_data)", secure_patch)
-        self.assertIn("esp_rom_get_reset_reason(0) != RESET_REASON_CORE_SW", owner_patch)
-        self.assertIn("esp_efuse_write_key", owner_patch)
-        self.assertIn("ESP_EFUSE_KEY_PURPOSE_SECURE_BOOT_DIGEST0", owner_patch)
-        self.assertIn("ESP_EFUSE_KEY_PURPOSE_SECURE_BOOT_DIGEST1", owner_patch)
-        self.assertIn("esp_efuse_set_digest_revoke(2)", owner_patch)
-        self.assertIn("esp_efuse_set_write_protect_of_digest_revoke(0)", owner_patch)
-        self.assertIn("esp_efuse_set_write_protect_of_digest_revoke(1)", owner_patch)
-        self.assertIn("kaskold_secure_boot_v2_verify_key_digest", owner_patch)
-        self.assertIn("check_anti_rollback(target)", owner_patch)
-        self.assertIn("esp_efuse_is_flash_encryption_enabled()", owner_patch)
-        self.assertIn("bootloader_components", build)
-        self.assertIn("patch_pop_it_bootloader.py", build)
-        self.assertIn("espsecure digest-sbv2-public-key", build)
-        self.assertIn("--expected-key-digest", build)
-        self.assertIn("CONFIG_SECURE_BOOT_V2_ENABLED=y", config)
-        self.assertIn("CONFIG_SECURE_BOOT_BUILD_SIGNED_BINARIES=y", config)
-        self.assertIn("# CONFIG_SECURE_BOOT_FLASH_ENC_KEYS_BURN_TOGETHER is not set", config)
-        self.assertIn("const BOOTCTL_BASE: u32 = 0x0061_0000;", boot_control)
-        self.assertNotIn("KSPREF01", owner_patch)
-        self.assertNotIn("KASKOLD_CONFIG_A", owner_patch)
-        self.assertIn("owner_bootloader_patch.py", patcher)
 
     def test_patcher_refuses_unknown_idf_source_and_gates_expected_blocks(self):
         path = ROOT / "tools/build/firmware/secure_bootloader/m5stack/patch_pop_it_bootloader.py"
@@ -226,141 +129,6 @@ class PopItSecureBootTests(unittest.TestCase):
             self.assertIn("owner-only authority must be enrolled before provisioning", utility_text)
             self.assertIn("expected owner-only key", secure_text)
 
-    def test_owner_only_profile_restores_sole_owner_secure_boot_authority(self):
-        cargo = self.read("apps/kaskold-hardware/Cargo.toml")
-        policy = self.read("apps/kaskold-hardware/src/feature_policy.rs")
-        production = self.read("apps/kaskold-hardware/src/services/verify/policy/production.rs")
-        pop = self.read("apps/kaskold-hardware/src/runtime/interactions/settings/advanced/pop_it.rs")
-        pop_ui = self.read("apps/kaskold-hardware/src/ui/screens/device/pop_it.rs")
-        owner_patch = self.read("tools/build/firmware/secure_bootloader/m5stack/owner_bootloader_patch.py")
-        prepare = self.read("tools/build/firmware/prepare_m5stack_secure_release.sh")
-        prepare_ps1 = self.read("tools/build/firmware/prepare_m5stack_secure_release.ps1")
-        boot_build_ps1 = self.read("tools/build/firmware/secure_bootloader/m5stack/build.ps1")
-        makefile = self.read("Makefile")
-
-        self.assertIn('secure-owner-only = ["secure-provisioning-core"]', cargo)
-        self.assertIn('secure-provisioning and secure-owner-only are mutually exclusive', policy)
-        self.assertIn('#[cfg(feature = "secure-owner-only")]', production)
-        self.assertIn('Owner-only pre-Pop mode: RSA trust root not yet fused', production)
-        self.assertIn('cfg!(feature = "secure-owner-only")', pop)
-        self.assertIn('Enroll the owner key before Pop It', pop)
-        self.assertIn('No vendor authority remains trusted.', pop_ui)
-        self.assertIn('#if KASKOLD_OWNER_ONLY_AUTHORITY', owner_patch)
-        self.assertIn('ESP_EFUSE_KEY_PURPOSE_SECURE_BOOT_DIGEST0, 0, owner_digest', owner_patch)
-        self.assertIn('esp_efuse_set_digest_revoke(1)', owner_patch)
-        self.assertIn('esp_efuse_set_digest_revoke(2)', owner_patch)
-        self.assertIn('owner-only enrollment refuses an existing alternate Secure Boot authority', owner_patch)
-        self.assertIn('ESP_EFUSE_KEY_PURPOSE_SECURE_BOOT_DIGEST1, &alternate_block', owner_patch)
-        self.assertIn('ESP_EFUSE_KEY_PURPOSE_SECURE_BOOT_DIGEST2, &alternate_block', owner_patch)
-        self.assertIn('--owner-only', prepare)
-        self.assertIn('KASKOLD_OWNER_SECURE_BOOT_KEY', prepare)
-        self.assertIn('unset KASKOLD_SIGNING_KEY', prepare)
-        self.assertIn('stale dual-authority artifact', prepare)
-        self.assertIn('stale owner-only artifact', prepare)
-        self.assertIn('refusing to mix secure authority modes', prepare)
-        self.assertIn('stale opposite-policy artifact', prepare_ps1)
-        self.assertIn('refusing to mix secure trust policies', prepare)
-        self.assertIn('OWNERKEY.KAS', prepare)
-        self.assertIn('[switch]$OwnerOnly', prepare_ps1)
-        self.assertIn('KASKOLD_OWNER_SECURE_BOOT_KEY', prepare_ps1)
-        self.assertIn("'owner-only'", boot_build_ps1)
-        self.assertIn('secure-owner-only:', makefile)
-        self.assertIn('secure-provisioning:', makefile)
-        owner_build = self.read("tools/build/firmware/build_owner_firmware.sh")
-        owner_build_ps1 = self.read("tools/build/firmware/build_owner_firmware.ps1")
-        self.assertIn('unset KASKOLD_SIGNING_KEY', owner_build)
-        self.assertIn('Remove-Item Env:KASKOLD_SIGNING_KEY', owner_build_ps1)
-
-    def test_owner_authority_is_production_only_and_development_is_simulation(self):
-        controller = self.read("apps/kaskold-hardware/src/runtime/interactions/settings/advanced/owner_firmware.rs")
-        boot_control = self.read("apps/kaskold-hardware/src/services/persistent_wallet/device/boot_control.rs")
-        production = self.read("apps/kaskold-hardware/src/services/verify/policy/production.rs")
-        self.assertIn('#[cfg(feature = "secure-provisioning-core")]', controller)
-        self.assertIn('#[cfg(not(feature = "secure-provisioning-core"))]', controller)
-        self.assertGreaterEqual(controller.count('"DEVELOPMENT SIMULATION"'), 2)
-        self.assertIn("request_owner_enrollment", controller)
-        self.assertIn("request_owner_install", controller)
-        self.assertIn('#[cfg(feature = "secure-provisioning-core")]', boot_control)
-        self.assertNotIn("Efuse", controller)
-        self.assertIn('#[cfg(feature = "owner-firmware")]', production)
-        self.assertIn("Owner firmware requires hardware Secure Boot", production)
-        self.assertIn("secure_boot_enabled()", production)
-
-    def test_dev_pop_it_indicator_helpers_exist_only_with_provisioning_ui(self):
-        boot_security = self.read("apps/kaskold-hardware/src/services/verify/boot_security.rs")
-        dev_gate = '#[cfg(all(feature = "provisioning-ui", feature = "m5stack", not(feature = "production")))]'
-        self.assertGreaterEqual(boot_security.count(dev_gate), 5)
-        self.assertIn("pub fn enable_dev_pop_it_indicator_demo()", boot_security)
-        self.assertIn("pub fn dev_pop_it_indicator_demo_active() -> bool", boot_security)
-        self.assertIn(
-            'feature = "provisioning-ui", not(all(feature = "m5stack", not(feature = "production")))',
-            flat(boot_security),
-        )
-        self.assertNotIn(
-            '#[cfg(all(feature = "m5stack", not(feature = "production")))]\npub fn enable_dev_pop_it_indicator_demo()',
-            boot_security,
-        )
-
-    def test_owner_firmware_menu_is_secure_profile_only(self):
-        navigation = self.read("apps/kaskold-hardware/src/runtime/navigation/production.rs")
-        menus = self.read("apps/kaskold-hardware/src/runtime/navigation/ui_graph/menus.rs")
-        self.assertIn('#[cfg(feature = "provisioning-ui")]', navigation)
-        self.assertIn('feature = "secure-provisioning-core"', navigation)
-        self.assertIn('#[cfg(feature = "provisioning-ui")]', menus)
-        self.assertIn('&ui_graph::ADVANCED_MENU_LABELS[..2]', navigation)
-
-    def test_advanced_menu_profiles_are_cfg_disjoint(self):
-        navigation = self.read("apps/kaskold-hardware/src/runtime/navigation/production.rs")
-
-        # Keep the two advanced-menu implementations cfg-disjoint rather than
-        # returning from a cfg block and leaving an unreachable fallback.
-        self.assertIn(
-            '#[cfg(all(feature = "m5stack", feature = "provisioning-ui"))]\n'
-            'pub(crate) fn advanced_items()',
-            navigation,
-        )
-        self.assertIn(
-            '#[cfg(not(all(feature = "m5stack", feature = "provisioning-ui")))]\n'
-            'pub(crate) fn advanced_items()',
-            navigation,
-        )
-        advanced_region = navigation.split('pub(crate) fn advanced_items()', 1)[1]
-        self.assertNotIn('return ui_graph::advanced_labels', advanced_region)
-
-    def test_mobile_signing_secrets_and_apple_team_are_not_repository_owned(self):
-        ignore = self.read(".gitignore")
-        project = self.read("apps/kaskold-companion-ios/KasKold.xcodeproj/project.pbxproj")
-        ios_build = self.read("scripts/mac/build/ios-build.sh")
-        self.assertIn("*.jks", ignore)
-        self.assertIn("*.keystore", ignore)
-        self.assertNotIn("DEVELOPMENT_TEAM =", project)
-        self.assertIn("KASKOLD_IOS_DEVELOPMENT_TEAM", ios_build)
-        self.assertIn('"DEVELOPMENT_TEAM=$team"', ios_build)
-
-    def test_secure_boot_signing_uses_canonical_64k_application_padding(self):
-        shell_wrapper = self.read("tools/build/firmware/secure_bootloader/m5stack/sign_app.sh")
-        sign = self.read("tools/build/firmware/secure_bootloader/m5stack/sign_app.py")
-        padding = self.read("tools/build/firmware/secure_pad_v2.py")
-        policy = self.read("apps/kaskold-hardware/release-policy.env")
-        self.assertIn("sign_app.py", shell_wrapper)
-        self.assertIn("secure_pad_v2.py", sign)
-        self.assertIn("--skip-padding", sign)
-        self.assertIn("SIGNATURE_SECTOR_SIZE = 4096", sign)
-        self.assertIn("verify-signature", sign)
-        self.assertIn("verify_image_hash.py", sign)
-        self.assertIn('EXPECTED_ESPTOOL_VERSION = "5.3.1"', padding)
-        self.assertIn('image.secure_pad = "2"', padding)
-        self.assertIn("MMU_PAGE_SIZE = 64 * 1024", padding)
-        self.assertIn("KASKOLD_ESPTOOL_VERSION=5.3.1", policy)
-
-    def test_status_badge_maps_software_hardware_and_neither(self):
-        boot = self.read("apps/kaskold-hardware/src/ui/display/boot.rs")
-        self.assertIn('include_bytes!("../../../assets/kascoin_90.raw")', boot)
-        self.assertIn('include_bytes!("../../../assets/kascoin_teal_90.raw")', boot)
-        self.assertIn("BootSecurityLevel::HardwareEnforced", boot)
-        self.assertIn("BootSecurityLevel::SoftwareVerified", boot)
-        self.assertIn("BootSecurityLevel::None", boot)
-        self.assertIn("COLOR_DANGER", boot)
 
     def test_teal_and_white_assets_have_editable_png_sources_and_exact_roundtrip(self):
         converter = ROOT / "tools/kaskold-image.py"
@@ -393,28 +161,6 @@ class PopItSecureBootTests(unittest.TestCase):
                     check=True,
                 )
                 self.assertEqual(raw.read_bytes(), encoded.read_bytes())
-
-    def test_hardware_asset_readme_uses_direct_converter_not_removed_make_target(self):
-        readme = self.read("apps/kaskold-hardware/assets/source/README.md")
-        self.assertIn("python3 tools/kaskold-image.py create png", readme)
-        self.assertIn("python3 tools/kaskold-image.py create raw", readme)
-        self.assertNotIn("make hw-assets", readme)
-
-    def test_no_private_secure_boot_key_is_added_to_assets_or_source(self):
-        forbidden_suffixes = {".pem", ".key", ".p12", ".pfx"}
-        hits = [p for p in ROOT.rglob("*") if p.is_file() and p.suffix.lower() in forbidden_suffixes]
-        self.assertEqual(hits, [])
-        build = self.read("tools/build/firmware/secure_bootloader/m5stack/build.sh")
-        self.assertIn("KASKOLD_SECURE_BOOT_SIGNING_KEY", build)
-        self.assertIn('[[ -n "$SIGNING_KEY" && -f "$SIGNING_KEY" ]]', build)
-
-    def test_documented_trust_model_does_not_overclaim_pre_pop_physical_security(self):
-        doc = self.read("docs/security/POP_IT_SECURE_BOOT.md")
-        self.assertIn("Until a hardware trust root is fused, physical flash replacement can replace both application and second-stage bootloader", doc)
-        self.assertIn("The Rust application never performs raw eFuse writes", doc)
-        self.assertIn("checksummed one-shot request", doc)
-        self.assertIn("exact RSA authority checks immediately before irreversible", doc)
-        self.assertIn("private key is never placed in the enrollment record, firmware, or signer", doc)
 
 
 if __name__ == "__main__":

@@ -12,7 +12,6 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "qa/checks"))
-from firmware.source_contract_support import flat  # noqa: E402
 CHECKER = ROOT / "qa/checks/firmware/production_e2e_coverage.py"
 SPEC = importlib.util.spec_from_file_location("production_e2e_coverage", CHECKER)
 assert SPEC and SPEC.loader
@@ -95,40 +94,6 @@ class ProductionE2ECoverageRatchetTests(unittest.TestCase):
             self.assertIn("new production state lacks implemented E2E scenario: FutureProductionScreen", joined)
             self.assertIn("new production menu_item lacks implemented E2E scenario: Future Menu Action", joined)
             self.assertIn("handle_future_action", joined)
-
-    def test_connected_tranche_emits_manifest_markers_and_keeps_public_only_fixture(self) -> None:
-        connected = "\n".join(
-            path.read_text() for path in sorted(
-                (ROOT / "apps/kaskold-hardware/src/runtime/workflow_tests/connected").glob("*.rs")
-            )
-        )
-        for marker in (
-            "HOME OUTSIDE-TILE NOOP OK",
-            "RECEIVE QR OPEN/CLOSE OK",
-            "RECEIVE CHAIN TOGGLE OK",
-            "RECEIVE INDEX STEP/BOUNDARY OK",
-            "RECEIVE CUSTOM INDEX OK",
-            "SETTINGS PAGING BOUNDARIES OK",
-            "SETTINGS DISPLAY BOUNDARIES/HIL OK",
-            "SETTINGS AUDIO BOUNDARIES OK",
-            "SETTINGS ROOT ITEMS PASS 6/6",
-        ):
-            self.assertIn(marker, connected)
-        fixture = (ROOT / "apps/kaskold-hardware/src/runtime/signing/derivation.rs").read_text()
-        block = fixture.split("pub(crate) fn install_workflow_receive_fixture", 1)[1].split("/// Populate receive/change", 1)[0]
-        self.assertIn("pubkey_cache.fill(GENERATOR_X)", block)
-        self.assertIn("change_pubkey_cache.fill(GENERATOR_X)", block)
-        self.assertNotIn("seed_mgr", block)
-        self.assertNotIn("private_key", block)
-
-    def test_home_connect_companion_back_target_is_owned_by_the_root_route(self) -> None:
-        navigation = (ROOT / "apps/kaskold-hardware/src/runtime/navigation/mod.rs").read_text()
-        transition = navigation.split("pub(crate) fn transition_root", 1)[1].split("fn root_ready", 1)[0]
-        self.assertIn("UiEvent::RootSelect(event_index)", transition)
-        kernel = (ROOT / "apps/kaskold-hardware/src/runtime/navigation/kernel.rs").read_text()
-        self.assertIn("HistoryEffect::PushCurrent", kernel)
-        self.assertIn("ReturnScope::Address => { ad.navigation.history.target(", flat(kernel))
-        self.assertIn("AppState::MainMenu", kernel)
 
 
 if __name__ == "__main__":

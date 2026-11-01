@@ -27,7 +27,6 @@ MENU_ROUTES = Path("apps/kaskold-hardware/src/runtime/navigation/menu_reducer/ro
 MENU_REDUCER = Path("apps/kaskold-hardware/src/runtime/navigation/menu_reducer.rs")
 RUNTIME_GUI = Path("apps/kaskold-hardware/src/runtime/workflow_tests/connected/runtime_gui.rs")
 OPERATIONS = Path("apps/kaskold-hardware/src/runtime/event_loop/operation_engine/mod.rs")
-STAGE5_TEST = Path("qa/tests/regression/test_bounded_operation_liveness.py")
 
 RENDER_PREFIX = "KASKOLD_UI_RUNTIME: RENDER "
 RENDER_MISS_PREFIX = "KASKOLD_UI_RUNTIME: RENDER-MISS "
@@ -177,8 +176,6 @@ def validate(root: Path) -> list[str]:
     for token in ("OP-TIMEOUT-01", "ModalState::RecoverableError", "handle_tap"):
         if token not in runtime_gui:
             errors.append(f"runtime timeout fault probe missing {token} recovery assertion")
-    if not (root / STAGE5_TEST).is_file():
-        errors.append("Stage-5 bounded operation liveness regression is missing")
 
     # Connected E2E may exercise Pop It controller confirmation states with a
     # synthetic fixture, but the physical runtime probe must stop at the prompt

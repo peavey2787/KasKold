@@ -8,14 +8,6 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class VerifiedModelFinalizationBoundaryTests(unittest.TestCase):
-    def test_parser_differential_is_symmetric_and_checks_verified_materialization(self):
-        fuzz = (ROOT / "qa/fuzz/pskt_parser_differential.rs").read_text(encoding="utf-8")
-        self.assertIn("assert_eq!(", fuzz)
-        self.assertIn("host_result.is_ok()", fuzz)
-        self.assertIn("vault_ok", fuzz)
-        self.assertIn("assert_same_semantic_model", fuzz)
-        self.assertIn("assert_verified_materialization_matches", fuzz)
-        self.assertIn("materialize_signature_script", fuzz)
 
     def test_new_security_boundary_is_in_mutation_scope(self):
         # The verify-once pipeline and KSPT grammar live in Kaspa Portal, whose

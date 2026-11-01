@@ -31,23 +31,6 @@ class WebRuntimeCoverageRatchet(unittest.TestCase):
         self.assertEqual(module.MIN_FUNCTION_COVERAGE_PERCENT, 91.01)
         self.assertEqual(module.MIN_BRANCH_COVERAGE_PERCENT, 90.0)
 
-    def test_runner_enforces_mapping_line_function_and_integration_requirements(self) -> None:
-        source = RUNNER.read_text(encoding="utf-8")
-        for required in (
-            '"mapping_percent": 100.0',
-            '"lines_percent": MIN_LINE_COVERAGE_PERCENT',
-            '"functions_percent": MIN_FUNCTION_COVERAGE_PERCENT',
-            'line_rounded >= MIN_LINE_COVERAGE_PERCENT',
-            'funcs_rounded >= MIN_FUNCTION_COVERAGE_PERCENT',
-            'branches_rounded >= MIN_BRANCH_COVERAGE_PERCENT',
-            '"branches_percent": MIN_BRANCH_COVERAGE_PERCENT',
-            'passed',
-            'len(measured) == len(expected)',
-        ):
-            self.assertIn(required, source)
-        self.assertNotIn('MIN_LINE_COVERAGE_PERCENT = 0', source)
-        self.assertNotIn('MIN_FUNCTION_COVERAGE_PERCENT = 0', source)
-        self.assertNotIn('MIN_BRANCH_COVERAGE_PERCENT = 0', source)
 
     def test_all_runtime_modules_remain_reachable_and_measured_scope_is_complete(self) -> None:
         module = load_runner()

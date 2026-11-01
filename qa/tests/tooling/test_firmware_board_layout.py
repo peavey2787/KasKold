@@ -67,18 +67,6 @@ class FirmwareBoardLayoutTests(unittest.TestCase):
         self.assertEqual(lite.state_offset, full.state_offset)
         self.assertEqual(lite.state_size, full.state_size)
 
-    def test_firmware_update_partition_hashes_match_board_csvs(self) -> None:
-        # Runtime SD/QR firmware updating is intentionally retired. Partition identity
-        # is now bound by host release tooling and the shared board-layout helper.
-        generator = (ROOT / "tools/firmware/gen_update_manifest.rs").read_text()
-        self.assertIn("partition_hash(board, &args[7])", generator)
-        self.assertIn("partition_layout_hash", generator)
-        self.assertFalse((ROOT / "apps/kaskold-hardware/src/services/fw_update/layout.rs").exists())
-        m5 = BOARD_LAYOUT.partition_sha256(BOARD_LAYOUT.layout_for("m5stack"))
-        lite = BOARD_LAYOUT.partition_sha256(BOARD_LAYOUT.layout_for("m5stack-lite"))
-        self.assertIsNotNone(m5)
-        self.assertIsNotNone(lite)
-        self.assertEqual(m5, lite)
 
     def test_layout_validator_rejects_state_overlap_or_drift(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

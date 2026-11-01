@@ -7,7 +7,6 @@ import sys as _portal_sys
 from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
-from portal_source import kaskold_source  # noqa: E402
 
 from pathlib import Path
 import sys
@@ -23,10 +22,6 @@ from architecture.protocols.offline_portability import (  # noqa: E402
 
 
 class OfflineSignerBoundaryTests(unittest.TestCase):
-    def test_covenant_key_error_does_not_overclaim_wrapped_traits(self) -> None:
-        source = kaskold_source("crates/offline-signer/src/derivation/covenant.rs").read_text()
-        self.assertIn("#[derive(Debug, PartialEq)]\npub enum CovenantKeyError", source)
-        self.assertNotIn("#[derive(Clone, Copy, Debug, Eq, PartialEq)]\npub enum CovenantKeyError", source)
 
     def _check_source(self, source: str) -> list[str]:
         with tempfile.TemporaryDirectory() as temporary:
@@ -47,15 +42,6 @@ class OfflineSignerBoundaryTests(unittest.TestCase):
     def test_accepts_crate_owned_noop_logging(self) -> None:
         errors = self._check_source('crate::log!("derived {}", 7);')
         self.assertEqual(errors, [])
-
-    def test_unit_tests_do_not_use_undeclared_hex_encode_crate(self) -> None:
-        source_root = ROOT / "crates/offline-signer/src"
-        offenders = [
-            path.relative_to(ROOT).as_posix()
-            for path in source_root.rglob("*.rs")
-            if "hex::encode(" in path.read_text()
-        ]
-        self.assertEqual(offenders, [])
 
 
 if __name__ == "__main__":

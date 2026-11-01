@@ -745,6 +745,411 @@
           ]
         }
       ]
+    },
+    {
+      "id": "watch-only-crates-cannot-reach-custody",
+      "description": "Watch-only and protocol crates, and the Companion, never depend on software custody.",
+      "forbidden": [
+        {
+          "paths": [
+            "crates/online-watcher/Cargo.toml",
+            "crates/kaskold-sdk/Cargo.toml",
+            "crates/kaskold-protocol/Cargo.toml",
+            "crates/shared-signer/Cargo.toml"
+          ],
+          "terms": [
+            "hot-wallet ="
+          ]
+        },
+        {
+          "path": "apps/kaskold-companion-web/Cargo.toml",
+          "terms": [
+            "hot-wallet =",
+            "vault-runtime =",
+            "offline-signer ="
+          ]
+        },
+        {
+          "globs": [
+            "apps/kaskold-companion-web/web/js/**/*.js",
+            "apps/kaskold-companion-android/app/src/main/java/**/*.kt",
+            "apps/kaskold-companion-ios/KasKold/**/*.swift"
+          ],
+          "terms": [
+            "PersistentHotWalletStore",
+            "persistentHotWallet",
+            "kaskold_hot_wallet"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "software-vaults-have-no-network-surface",
+      "description": "Vault runtime and its native shells cannot reach a network: the air gap is structural.",
+      "forbidden": [
+        {
+          "path": "crates/vault-runtime/Cargo.toml",
+          "terms": [
+            "online-watcher",
+            "reqwest",
+            "web-sys",
+            "tokio",
+            "tungstenite",
+            "wasm-bindgen"
+          ]
+        },
+        {
+          "globs": [
+            "crates/vault-runtime/src/**/*.rs"
+          ],
+          "terms": [
+            "use reqwest",
+            "use web_sys",
+            "use tokio",
+            "use tungstenite",
+            "broadcast_transaction("
+          ]
+        },
+        {
+          "globs": [
+            "apps/kaskold-vault-android/app/src/**/*.kt",
+            "apps/kaskold-vault-android/app/build.gradle.kts"
+          ],
+          "terms": [
+            "okhttp",
+            "retrofit",
+            "ktor-client",
+            "WebSocket",
+            "URLConnection",
+            "java.net.",
+            "android.net.",
+            "androidx.webkit"
+          ]
+        },
+        {
+          "path": "apps/kaskold-vault-android/app/src/main/AndroidManifest.xml",
+          "terms": [
+            "android:name=\"android.permission.INTERNET\""
+          ]
+        },
+        {
+          "globs": [
+            "apps/kaskold-vault-ios/KasKoldVault/**/*.swift"
+          ],
+          "terms": [
+            "URLSession",
+            "NWConnection",
+            "WebSocket",
+            "CFNetwork",
+            "import Network",
+            "WKWebView",
+            "SFSafariViewController"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "path": "apps/kaskold-vault-android/app/src/main/AndroidManifest.xml",
+          "contains": [
+            "android:usesCleartextTraffic=\"false\""
+          ]
+        }
+      ]
+    },
+    {
+      "id": "native-vaults-persist-only-rust-sealed-ciphertext",
+      "description": "Native shells store only what the Rust runtime sealed; they own no cipher and no plaintext path.",
+      "forbidden": [
+        {
+          "path": "apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/security/VaultBlobStore.kt",
+          "terms": [
+            "Cipher.getInstance",
+            "SecretKey",
+            "write(plaintext",
+            "writeSeed",
+            "writeMnemonic"
+          ]
+        },
+        {
+          "path": "apps/kaskold-vault-ios/KasKoldVault/Infrastructure/Security/VaultBlobStore.swift",
+          "terms": [
+            "CryptoKit",
+            "AES.GCM",
+            "writeSeed",
+            "writeMnemonic"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "irreversible-security-policy-has-no-undo-api",
+      "description": "Duress and signing-time policy, once set, have no disable or change call anywhere in firmware.",
+      "forbidden": [
+        {
+          "globs": [
+            "apps/kaskold-hardware/src/**/*.rs"
+          ],
+          "terms": [
+            "disable_duress",
+            "disable_not_before",
+            "disable_weekly",
+            "change_duress",
+            "change_not_before",
+            "change_weekly"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "no-api-signs-a-host-chosen-hash",
+      "description": "Firmware and the signer expose no raw-hash signing and no retired authorization protocol.",
+      "forbidden": [
+        {
+          "globs": [
+            "apps/kaskold-hardware/src/**/*.rs"
+          ],
+          "terms": [
+            "SignMsgHashPreview",
+            "AdaptorSignRequest",
+            "scan_hash",
+            "KADS1:",
+            "SIGN HASH"
+          ]
+        },
+        {
+          "path": "crates/offline-signer/src/facade.rs",
+          "terms": [
+            "pub fn sign_message(",
+            "pub fn sign_message_with_entropy("
+          ]
+        },
+        {
+          "path": "crates/offline-signer/src/derivation/covenant.rs",
+          "terms": [
+            "pub fn sign_covenant_commitment"
+          ]
+        },
+        {
+          "path": "apps/kaskold-hardware/src/services/covenant_sign.rs",
+          "terms": [
+            "derive_active_private_key",
+            "derive_active_account_key",
+            "request.label"
+          ]
+        },
+        {
+          "globs": [
+            "crates/online-watcher/src/**/*.rs",
+            "apps/kaskold-companion-web/web/js/**/*.js",
+            "apps/kaskold-companion-web/web/html/**/*.html"
+          ],
+          "terms": [
+            "create_covenant_oracle_claim",
+            "create_oracle_heartbeat",
+            "oracleSig",
+            "oracleMsgHash",
+            "oracleAttestations",
+            "cov-oracle-claim",
+            "cov-oracle-pk",
+            "schnorr_sign_ephemeral",
+            "schnorr_sign_with_key"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "covenant-authorization-carries-no-host-label",
+      "description": "Nothing the host names can reach a covenant signature's authorization state.",
+      "forbidden": [
+        {
+          "path": "crates/shared-signer/src/covenant_sign/mod.rs",
+          "terms": [
+            "MAX_LABEL_LEN",
+            "pub label"
+          ]
+        },
+        {
+          "path": "apps/kaskold-hardware/src/runtime/data/signing/covenant.rs",
+          "terms": [
+            "label_len"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "device-key-stays-behind-the-hmac-peripheral",
+      "description": "Firmware only ever asks the HMAC peripheral to use the eFuse key, and never reads it.",
+      "forbidden": [
+        {
+          "path": "apps/kaskold-hardware/src/services/persistent_wallet/crypto.rs",
+          "terms": [
+            "Efuse::read_field_le(KEY"
+          ]
+        },
+        {
+          "path": "apps/kaskold-hardware/src/runtime/interactions/settings/advanced/owner_firmware.rs",
+          "terms": [
+            "Efuse"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "path": "apps/kaskold-hardware/src/services/persistent_wallet/crypto.rs",
+          "contains": [
+            "HmacPurpose::ToUser",
+            "Efuse::read_field_le(RD_DIS)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "test-firmware-adapters-cannot-burn-efuses",
+      "description": "The workflow test adapter can never reach eFuse programming or the Pop It request.",
+      "forbidden": [
+        {
+          "path": "apps/kaskold-hardware/src/runtime/interactions/settings/advanced/workflow.rs",
+          "terms": [
+            "software_reset",
+            "request_pop_it",
+            "pop_it_preflight()",
+            "efuse",
+            "EFUSE"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "secure-boot-configuration-is-fail-closed",
+      "description": "The production bootloader enables Secure Boot, release flash encryption and anti-rollback, with no JTAG or eFuse emulation.",
+      "evidence": [
+        {
+          "path": "tools/build/firmware/secure_bootloader/m5stack/sdkconfig.defaults",
+          "contains": [
+            "CONFIG_SECURE_BOOT_V2_ENABLED=y",
+            "CONFIG_SECURE_FLASH_ENCRYPTION_MODE_RELEASE=y",
+            "CONFIG_BOOTLOADER_APP_ANTI_ROLLBACK=y",
+            "CONFIG_BOOTLOADER_APP_SEC_VER_SIZE_EFUSE_FIELD=16"
+          ]
+        }
+      ],
+      "forbidden": [
+        {
+          "path": "tools/build/firmware/secure_bootloader/m5stack/sdkconfig.defaults",
+          "terms": [
+            "CONFIG_BOOTLOADER_EFUSE_SECURE_VERSION_EMULATE=y",
+            "CONFIG_SECURE_BOOT_ALLOW_JTAG=y",
+            "CONFIG_SECURE_ENABLE_SECURE_ROM_DL_MODE=y",
+            "CONFIG_SECURE_DISABLE_ROM_DL_MODE=y"
+          ]
+        },
+        {
+          "path": "qa/linux/run-m5stack-security-hil.sh",
+          "terms": [
+            "espefuse.py",
+            "burn-key",
+            "burn-efuse",
+            "write-flash",
+            "erase-flash"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "production-builds-refuse-developer-features",
+      "description": "Compiling a production image with any diagnostic feature is a compile error.",
+      "evidence": [
+        {
+          "path": "apps/kaskold-hardware/src/feature_policy.rs",
+          "contains": [
+            "feature = \"sentinel-scan\"",
+            "feature = \"e12-capture\"",
+            "feature = \"rng-probe\"",
+            "feature = \"wdev-capture\"",
+            "feature = \"sha-bench\"",
+            "feature = \"icon-browser\"",
+            "feature = \"boot-kats-full\""
+          ]
+        }
+      ]
+    },
+    {
+      "id": "browser-types-stay-out-of-transaction-owners",
+      "description": "Covenant and transaction builders are browser-neutral, so native tests reach the same code the browser runs.",
+      "forbidden": [
+        {
+          "paths": [
+            "crates/online-watcher/src/contracts/covenant/construction/mod.rs",
+            "crates/online-watcher/src/contracts/oracle/genesis.rs",
+            "crates/online-watcher/src/contracts/shipping_escrow/construction.rs",
+            "crates/online-watcher/src/transaction_builder/pskb/application.rs",
+            "crates/online-watcher/src/transaction_builder/covenant/sweep.rs",
+            "crates/online-watcher/src/transaction_builder/covenant/vault/spend.rs",
+            "crates/online-watcher/src/transaction_builder/covenant/global_thread.rs",
+            "crates/online-watcher/src/transaction_builder/zk/crowdfund.rs",
+            "crates/online-watcher/src/transaction_builder/zk/merkle.rs"
+          ],
+          "terms": [
+            "JsValue",
+            "wasm_bindgen",
+            "web_sys",
+            "js_sys"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "secret-state-lives-in-one-static",
+      "description": "App data with secrets is a single static cell, never heap-boxed, and the outgoing QR buffer is a fixed array.",
+      "forbidden": [
+        {
+          "path": "apps/kaskold-hardware/src/main.rs",
+          "terms": [
+            "Box::new(AppData::new())"
+          ]
+        },
+        {
+          "path": "apps/kaskold-hardware/src/runtime/data/qr.rs",
+          "terms": [
+            "Vec<u8>"
+          ]
+        }
+      ],
+      "evidence": [
+        {
+          "path": "apps/kaskold-hardware/src/runtime/secret_state.rs",
+          "contains": [
+            "static APP_DATA: StaticCell<AppData>"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "repository-owns-no-signing-identity",
+      "description": "No Apple team or mobile signing secret is checked in.",
+      "forbidden": [
+        {
+          "paths": [
+            "apps/kaskold-companion-ios/KasKold.xcodeproj/project.pbxproj",
+            "apps/kaskold-vault-ios/KasKoldVault.xcodeproj/project.pbxproj"
+          ],
+          "terms": [
+            "DEVELOPMENT_TEAM ="
+          ]
+        }
+      ]
+    },
+    {
+      "id": "real-node-gate-never-broadcasts",
+      "description": "The public-node gate reads mainnet state and has no way to submit a transaction.",
+      "forbidden": [
+        {
+          "path": "qa/checks/integration/browser_real_node_case.mjs",
+          "terms": [
+            "wasm.broadcast_signed"
+          ]
+        }
+      ]
     }
   ]
 }

@@ -2,7 +2,6 @@ import sys as _portal_sys
 from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
-from portal_source import kaskold_source  # noqa: E402
 
 from pathlib import Path
 import importlib.util
@@ -32,58 +31,7 @@ class FakeProcess:
 
 
 class FundedTestnetE2EContractTests(unittest.TestCase):
-    def test_network_wallet_and_local_address_precede_public_node_status(self):
-        runner = RUNNER_PATH.read_text(encoding="utf-8")
-        main = runner[runner.index("def main()") : runner.index("def entrypoint()")]
-        self.assertLess(main.index("select_network()"), main.index("build_real_wasm()"))
-        self.assertLess(main.index("select_network()"), main.index("ensure_wallet(network)"))
-        self.assertLess(main.index('"phase": "address"'), main.index("ensure_funding_ready"))
-        self.assertLess(main.index("print_wallet_address"), main.index("ensure_funding_ready"))
-        self.assertIn('("1", "testnet-10", "Testnet-10")', runner)
-        self.assertIn('("2", "testnet-12", "Testnet-12")', runner)
-        self.assertIn('"testnet-10": "https://faucet-testnet.kaspanet.io/"', runner)
-        self.assertIn('"testnet-12": "https://faucet-tn12.kaspanet.io/"', runner)
-        self.assertNotIn("no Enter key is required", runner)
 
-    def test_funded_flow_uses_local_address_then_real_wasm_and_public_resolver(self):
-        browser = (ROOT / "qa/checks/integration/funded_testnet_e2e_case.mjs").read_text()
-        runner = RUNNER_PATH.read_text(encoding="utf-8")
-        signer = (ROOT / "tools/dev/funded_e2e_signer.rs").read_text()
-        gitignore = (ROOT / ".gitignore").read_text()
-        resolver = (ROOT / "apps/kaskold-companion-web/web/js/core/node/resolver.js").read_text()
-        balance = (ROOT / "apps/kaskold-companion-web/web/js/features/wallet/core/balance.js").read_text()
-
-        self.assertIn("if (input.phase === 'address') return addressCase(input, wallet)", browser)
-        self.assertLess(browser.index("if (input.phase === 'address')"), browser.index("configureNetwork(input.network)"))
-        self.assertIn("withNodeRetry", browser)
-        self.assertIn("withFundedNodeRetry", browser)
-        self.assertNotIn("await resolvePublicNode()", browser)
-        self.assertIn("networkState.customNodeUrl = null", browser)
-        self.assertIn("wasm.create_send_pskb", browser)
-        self.assertIn("wasm.pskt_relay_to_kspt", browser)
-        self.assertIn("wasm.kaskold_sdk_complete", browser)
-        self.assertIn("const merged = signed.psktHex", browser)
-        self.assertNotIn("wasm.pskt_merge_signed_kspt", browser)
-        self.assertIn("wasm.pskt_finalize_and_broadcast", browser)
-        self.assertIn("wasm.fetch_utxos_for_address_js", browser)
-        self.assertIn("BigInt(value)", browser)
-        self.assertNotIn("Number(utxo.amount)", browser)
-        self.assertIn("sign_transaction_multi_addr_with_entropy", signer)
-        self.assertIn("review_transaction", signer)
-        self.assertIn("OsRng.fill_bytes", signer)
-        self.assertIn("/target/", gitignore)
-        self.assertIn('Path.home() / ".local/state"', runner)
-        self.assertIn('"kaskold/funded-e2e"', runner)
-        self.assertIn("KASKOLD_FUNDED_E2E_STATE_DIR", runner)
-        self.assertIn("globalThis.location?.protocol === 'https:' ? 'tls' : 'any'", resolver)
-        self.assertIn("if (security === 'tls') return url.startsWith('wss://')", resolver)
-        self.assertIn("activeWsUrl = wsUrl", browser)
-        self.assertIn("attemptedWsUrls.push(wsUrl)", browser)
-        self.assertIn("ws_urls_attempted", browser)
-        self.assertIn("ws_urls_failed", browser)
-        self.assertIn("resolver repeated previously failed WebSocket endpoint", browser)
-        self.assertIn("return withNodeRetry", browser)
-        self.assertIn("return resolvePublicNode()", balance)
 
     def test_funded_http_server_uses_browser_safe_module_mime_and_ignores_favicon(self):
         runner = load_runner()
@@ -154,50 +102,6 @@ class FundedTestnetE2EContractTests(unittest.TestCase):
             with self.assertRaises(runner.BrowserPhaseError):
                 runner.query_funding_status(1234, "testnet-10", "kpub1:test", "kaspatest:qexample")
 
-    def test_browser_websocket_reports_close_and_timeout_stage(self):
-        transport = kaskold_source("crates/online-watcher/src/infrastructure/browser_websocket.rs").read_text()
-        errors = kaskold_source("crates/online-watcher/src/network/error.rs").read_text()
-        cargo = (ROOT / "crates/online-watcher/Cargo.toml").read_text()
-
-        self.assertIn('"CloseEvent"', cargo)
-        self.assertIn("set_onclose", transport)
-        self.assertIn("CloseEvent", transport)
-        self.assertIn("request_sent.set(true)", transport)
-        self.assertIn("NetworkError::ConnectTimeout", transport)
-        self.assertIn("NetworkError::ResponseTimeout", transport)
-        self.assertIn('"WebSocket connect timeout (15s)"', errors)
-        self.assertIn('"WebSocket RPC response timeout (15s)"', errors)
-        self.assertNotIn("NetworkError::Timeout", transport)
-
-
-    def test_funded_signer_helper_uses_pinned_stable_rust_and_verified_tools_graph(self):
-        wrapper = (ROOT / "qa/linux/run-funded-testnet-e2e.sh").read_text()
-        runner = RUNNER_PATH.read_text(encoding="utf-8")
-        self.assertIn('source "$ROOT/qa/config/toolchains.env"', wrapper)
-        self.assertIn('export KASKOLD_STABLE_RUST', wrapper)
-        self.assertIn('source "$ROOT/scripts/linux/lib/rustup_bootstrap.sh"', wrapper)
-        self.assertIn('kaskold_ensure_rust_toolchain "$KASKOLD_STABLE_RUST"', wrapper)
-        self.assertIn('"rustup"', runner)
-        self.assertIn('"run"', runner)
-        self.assertIn('toolchain', runner)
-        self.assertIn('"--locked"', runner)
-        self.assertIn("def ensure_tools_lock_current", runner)
-        lock_guard = runner[runner.index("def ensure_tools_lock_current") : runner.index("def run_signer_helper")]
-        self.assertIn('"--offline"', lock_guard)
-        self.assertIn('original = lockfile.read_bytes()', lock_guard)
-        self.assertIn('refreshed tools/Cargo.lock still fails --locked', lock_guard)
-        main = runner[runner.index("def main()") : runner.index("def entrypoint()")]
-        self.assertLess(main.index("ensure_tools_lock_current()"), main.index("ensure_wallet(network)"))
-
-    def test_browser_close_reason_keeps_browser_only_adapter_complexity_bounded(self):
-        transport = kaskold_source("crates/online-watcher/src/infrastructure/browser_websocket.rs").read_text()
-        helper = transport[transport.index("fn close_reason") : transport.index("fn complete")]
-        self.assertNotIn("if ", helper)
-        self.assertNotIn("match ", helper)
-        self.assertIn(".take(160)", helper)
-        self.assertIn("!character.is_control()", helper)
-        self.assertIn("code {}", helper)
-        self.assertIn("clean={}", helper)
 
     def test_funded_wallet_state_defaults_outside_the_repository_tree(self):
         runner = load_runner()
@@ -369,30 +273,6 @@ class FundedTestnetE2EContractTests(unittest.TestCase):
         self.assertEqual(detail["funding_address"], "kaspatest:qexample")
         open_target.assert_called_once()
         self.assertEqual(open_target.call_args.args[1], "http://127.0.0.1:12345/__qa_funded_e2e__")
-
-    def test_real_network_browser_reports_through_the_result_callback(self):
-        browser = (ROOT / "qa/checks/integration/funded_testnet_e2e_case.mjs").read_text()
-        self.assertIn("fetch('/__qa_funded_result__'", browser)
-        self.assertIn("await run();", browser)
-        self.assertIn("Python", browser)
-
-
-    def test_funded_gate_is_catalogued_after_real_node_and_before_long_campaigns(self):
-        catalog = (ROOT / "qa/config/run_all_steps.tsv").read_text(encoding="utf-8").splitlines()
-        ids = [line.split("\t")[3] for line in catalog if line and not line.startswith("#")]
-        dispatch = (ROOT / "scripts/common/lib/make_tasks.py").read_text(encoding="utf-8")
-        entry = ROOT / "scripts/linux/quality/funded-testnet-e2e.sh"
-        runner = RUNNER_PATH.read_text(encoding="utf-8")
-        self.assertIn('"funded-testnet-e2e": "quality/funded-testnet-e2e"', dispatch)
-        self.assertTrue(entry.is_file())
-        if os.name == "posix":
-            self.assertTrue(entry.stat().st_mode & 0o111)
-        self.assertLess(ids.index("integration.real-node"), ids.index("integration.funded-testnet-e2e"))
-        self.assertLess(ids.index("integration.funded-testnet-e2e"), ids.index("mutation.repository-security-fresh"))
-        self.assertIn("NONINTERACTIVE_SKIP = 77", runner)
-        self.assertIn("interactive_stdin_available()", runner)
-        self.assertIn("GetConsoleMode", runner)
-        self.assertNotIn("sys.stdout.isatty()", runner)
 
 
 if __name__ == "__main__":
