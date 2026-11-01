@@ -97,7 +97,6 @@ class CredentialKdfSecurityTests(unittest.TestCase):
     def test_current_formats_are_argon2_only_and_reject_retired_pbkdf2_magics(self) -> None:
         backup = read("apps/kaskold-hardware/src/services/backup/container.rs")
         framing = read("crates/offline-signer/src/crypto/container_framing.rs")
-        framing_tests = read("crates/offline-signer/src/crypto/unit_tests/container_framing_tests.rs")
         kspt = read("apps/kaskold-hardware/src/runtime/interactions/sd/exports/kspt_export/crypto.rs")
         wallet = read("apps/kaskold-hardware/src/services/persistent_wallet/crypto.rs")
         sd_wallet = read("apps/kaskold-hardware/src/services/persistent_wallet/sd_backend.rs")

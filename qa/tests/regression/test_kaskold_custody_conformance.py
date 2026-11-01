@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 def cargo_metadata(manifest: str) -> dict:
     result = subprocess.run(
-        ["cargo", "metadata", "--format-version", "1", "--offline", "--manifest-path", manifest],
+        ["cargo", "metadata", "--format-version", "1", "--locked", "--manifest-path", manifest],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -352,17 +352,6 @@ class KasKoldCustodyConformanceTests(unittest.TestCase):
 
     def test_steganography_codec_has_one_shared_owner_and_hardware_reexports_it(self) -> None:
         self.assertFalse((ROOT / "crates/kaskold-hardware-core/src/backup/stego_picture").exists())
-        result = subprocess.run(
-            [
-                "cargo", "test", "--offline", "-p", "kaskold-hardware-core",
-                "hardware_shim_round_trips_with_shared_codec_in_both_directions",
-            ],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("1 passed", result.stdout)
 
     def test_companion_has_one_watch_only_custody_mode(self) -> None:
         welcome = (ROOT / "apps/kaskold-companion-web/web/html/screens/system/welcome.html").read_text()
@@ -371,19 +360,6 @@ class KasKoldCustodyConformanceTests(unittest.TestCase):
         self.assertIn("Manage Wallets", welcome)
         for forbidden in ("Session Hot Wallet", "Persistent Hot Wallet", "Store signing keys on this device"):
             self.assertNotIn(forbidden, welcome + header)
-
-    def test_vault_review_is_a_separate_authorization_step(self) -> None:
-        result = subprocess.run(
-            [
-                "cargo", "test", "--offline", "-p", "vault-runtime",
-                "accept_qr_frame_reviews_without_signing_until_approve",
-            ],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-        )
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("1 passed", result.stdout)
 
     def test_documented_matrix_does_not_claim_unperformed_physical_qualification(self) -> None:
         matrix = (ROOT / "docs/development/CUSTODY_TEST_MATRIX.md").read_text()

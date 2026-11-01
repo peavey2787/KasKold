@@ -146,6 +146,7 @@ class VaultNetworkIsolationTests(unittest.TestCase):
         # behavioural tests in vault-runtime and hot-wallet unit tests.
         self.assertIn('b"KVI1"', runtime)
         # Only the current sealed-wallet format exists; KHV1/KHV2 were retired.
+        self.assertIn('b"KasKold/vault/platform-sealed-wallet/v3"', hot_wallet)
         self.assertNotIn('b"KasKold/vault/platform-sealed-wallet/v2"', hot_wallet)
         self.assertNotIn('b"KasKold/vault/platform-sealed-wallet/v1"', hot_wallet)
         self.assertNotIn("pub fn seed", hot_wallet)
