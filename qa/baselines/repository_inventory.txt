@@ -796,6 +796,8 @@ F	LICENSE
 F	Makefile
 F	README.md
 F	SECURITY.md
+F	run-all-linux.sh
+F	run-all-windows.cmd
 F	apps/kaskold-companion-android/README.md
 F	apps/kaskold-companion-android/app/build.gradle.kts
 F	apps/kaskold-companion-android/app/proguard-rules.pro
