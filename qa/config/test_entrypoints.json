@@ -1562,6 +1562,14 @@
       "commands": [
         "make qa"
       ],
+      "path": "qa/tests/tooling/test_firmware_simulator_coverage.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
       "path": "qa/tests/tooling/test_hardware_device_runner.py",
       "role": "test",
       "step": "unit.repository-python-qa"

@@ -2746,6 +2746,7 @@ F	external/serde-yaml-ng-adapter/Cargo.toml
 F	external/serde-yaml-ng-adapter/src/lib.rs
 F	qa/Cargo.lock
 F	qa/Cargo.toml
+F	qa/baselines/firmware_coverage.json
 F	qa/baselines/repository_inventory.txt
 F	qa/baselines/workflow/production_surface_baseline.json
 F	qa/benches/protocol_throughput.rs
@@ -2838,6 +2839,7 @@ F	qa/checks/firmware/run_firmware_simulator.py
 F	qa/checks/firmware/run_hardware_tests.py
 F	qa/checks/firmware/run_workflow_tests.py
 F	qa/checks/firmware/security_integration_contract.py
+F	qa/checks/firmware/simulator_coverage.py
 F	qa/checks/firmware/source_contract_security.py
 F	qa/checks/firmware/source_contract_storage.py
 F	qa/checks/firmware/source_contract_support.py
@@ -3214,6 +3216,7 @@ F	qa/tests/tooling/test_crap_reporting.py
 F	qa/tests/tooling/test_crap_scope_merge.py
 F	qa/tests/tooling/test_crap_toolchain.py
 F	qa/tests/tooling/test_firmware_board_layout.py
+F	qa/tests/tooling/test_firmware_simulator_coverage.py
 F	qa/tests/tooling/test_hardware_device_runner.py
 F	qa/tests/tooling/test_irreversible_action_policy.py
 F	qa/tests/tooling/test_kaskold_branding.py
