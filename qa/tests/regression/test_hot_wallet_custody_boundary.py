@@ -56,13 +56,8 @@ class VaultCustodyBoundaryTests(unittest.TestCase):
         self.assertNotIn("online-watcher", manifest.get("dependencies", {}))
         self.assertNotIn("kaskold-sdk", manifest.get("dependencies", {}))
         rust = "\n".join(path.read_text(encoding="utf-8") for path in sorted((ROOT / "apps/kaskold-vault-web/src").rglob("*.rs")))
-        html = (ROOT / "apps/kaskold-vault-web/web/index.html").read_text(encoding="utf-8")
         for symbol in ("kaskold_vault_create_12", "kaskold_vault_restore", "kaskold_vault_approve"):
             self.assertIn(symbol, rust)
-        for control in ('id="onboarding-create"', 'id="onboarding-12"', 'id="onboarding-24"', 'id="recovery-material-submit"', 'id="review-approve"'):
-            self.assertIn(control, html)
-        for asset in ('css/vault.css', 'js/vault_main.js', 'lib/vault_jsQR.js'):
-            self.assertIn(asset, html)
         js = (ROOT / "apps/kaskold-vault-web/web/js/vault_main.js").read_text(encoding="utf-8")
         self.assertIn("import('../pkg/vault_web.js')", js)
         companion = ROOT / "apps/kaskold-companion-web/web"
@@ -80,7 +75,6 @@ class VaultCustodyBoundaryTests(unittest.TestCase):
         self.assertFalse(companion_assets & vault_assets)
 
     def test_software_vault_consumer_creation_and_navigation_contract(self) -> None:
-        web = (ROOT / "apps/kaskold-vault-web/web/index.html").read_text(encoding="utf-8")
         web_css = (ROOT / "apps/kaskold-vault-web/web/css/vault.css").read_text(encoding="utf-8")
         web_main = (ROOT / "apps/kaskold-vault-web/web/js/vault_main.js").read_text(encoding="utf-8")
         recovery_words = (ROOT / "apps/kaskold-vault-web/web/js/workflows/vault_recovery_words.js").read_text(encoding="utf-8")
@@ -93,48 +87,25 @@ class VaultCustodyBoundaryTests(unittest.TestCase):
         ios_creation = (ROOT / "apps/kaskold-vault-ios/KasKoldVault/Features/CreationFlowView.swift").read_text(encoding="utf-8")
         ios_model = (ROOT / "apps/kaskold-vault-ios/KasKoldVault/Features/VaultViewModel+Creation.swift").read_text(encoding="utf-8")
 
-        for retired in (
-            ">SIGNER<",
-            "Create new recovery words securely.",
-            "Words, SeedQR, local backup file, or advanced restore.",
-            "Maximum 20 UTF-8 bytes, matching the M5 wallet slot limit.",
-            "Web equivalent: password-encrypted ciphertext is stored locally in this browser.",
-            "Wallet is cleared when this Vault session is locked or closed.",
-            "Vault unlocked.",
-        ):
-            self.assertNotIn(retired, web + web_main)
+        self.assertNotIn("Vault unlocked.", web_main)
 
-        self.assertIn('id="screen-locked"', web)
-        self.assertIn('<h2>Wallets</h2>', web)
-        self.assertIn('id="wallet-add-open"', web)
-        self.assertNotIn('id="wallet-list"', web)
         self.assertIn('openWalletPicker', web_main)
-        self.assertIn('.screen h2 { text-align:center; }', web_css)
-        self.assertLess(web.index('id="onboarding-24"'), web.index('id="onboarding-12"'))
-        self.assertIn('let wordCount = 24;', onboarding)
         self.assertIn('normalizeRecoveryPhraseInput', recovery_words)
         self.assertIn('position !== index + 1', recovery_words)
         self.assertIn("normalizeRecoveryPhraseInput($('recovery-material').value)", web_wallets)
-        self.assertIn('maxlength="64"', web)
+        self.assertIn('let wordCount = 24;', onboarding)
         self.assertIn('WALLET_NAME_MAX: usize = 64;', runtime)
-        self.assertIn('id="backup-show-all"', web)
         self.assertIn("$('backup-show-all').onclick = toggleAll;", recovery_words)
         self.assertIn('let showingAll = false;', recovery_words)
         self.assertIn('if (!showingAll && index + 1 < words.length)', recovery_words)
-        self.assertIn('id="response-copy-all"', web)
         self.assertIn('balanced-address-line', web_css)
         self.assertIn("createRecoveryWordPager", web_main)
         self.assertIn('button:not(:disabled):hover', web_css)
         self.assertIn('border-color:var(--teal)', web_css)
-        self.assertIn('id="saved-wallets"', web)
-        self.assertIn('id="saved-wallet-list"', web)
-        self.assertNotIn('id="unlock-saved"', web)
         self.assertIn('async function refreshSavedWalletList()', onboarding)
         self.assertIn('selectedSavedWalletId = wallet.id;', onboarding)
         self.assertIn("$('unlock-saved-credential').onkeydown", onboarding)
         self.assertIn("event.key !== 'Enter'", onboarding)
-        self.assertLess(web.index('id="kpub-qr"'), web.index('id="home-kpub"'))
-        self.assertIn('id="scan-cancel" data-back', web)
         self.assertIn('const saved = wallets.find(wallet => wallet.id === selectedSavedWalletId);', onboarding)
         self.assertIn('saveEncryptedWallet({', onboarding)
         self.assertNotIn('for (const saved of record.wallets)', onboarding)
@@ -159,14 +130,11 @@ class VaultCustodyBoundaryTests(unittest.TestCase):
 
     def test_software_vault_security_boundaries_are_fail_closed(self) -> None:
         session = (ROOT / "crates/vault-runtime/src/signing_session.rs").read_text(encoding="utf-8")
-        web = (ROOT / "apps/kaskold-vault-web/web/index.html").read_text(encoding="utf-8")
         android = (ROOT / "apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/MainActivity.kt").read_text(encoding="utf-8")
         ios = (ROOT / "apps/kaskold-vault-ios/KasKoldVault/Features/VaultViewModel.swift").read_text(encoding="utf-8")
         ios_project = (ROOT / "apps/kaskold-vault-ios/KasKoldVault.xcodeproj/project.pbxproj").read_text(encoding="utf-8")
 
         self.assertGreaterEqual(session.count("self.check_session_signing_policy(now_unix)?;"), 2)
-
-        self.assertNotIn('id="storage-use-pin"', web)
 
         self.assertIn("Authenticators.DEVICE_CREDENTIAL", android)
         self.assertIn("VaultScreenState.Locked", android)
@@ -184,19 +152,6 @@ class VaultCustodyBoundaryTests(unittest.TestCase):
         for root in roots:
             for path in root.rglob("*.css"):
                 self.assertNotIn("text-transform: uppercase", path.read_text(encoding="utf-8"), path.as_posix())
-        vault_html = (ROOT / "apps/kaskold-vault-web/web/index.html").read_text(encoding="utf-8")
-        self.assertIn("<h2>Wallets</h2>", vault_html)
-        self.assertNotIn("<h2>WALLETS</h2>", vault_html)
-
-    def test_companion_startup_is_kpub_management_and_watch_only_tools(self) -> None:
-        welcome = (ROOT / "apps/kaskold-companion-web/web/html/screens/system/welcome.html").read_text(encoding="utf-8")
-        self.assertIn("Manage Wallets", welcome)
-        self.assertIn("Multisig", welcome)
-        self.assertNotIn("Multisig / Multi-spend", welcome)
-        self.assertIn("Broadcast TX", welcome)
-        self.assertNotIn("Watch only · no private keys", welcome)
-        for forbidden in ("Create 12", "Create 24", "Restore wallet", "Hot Wallet"):
-            self.assertNotIn(forbidden, welcome)
 
 
 if __name__ == "__main__":

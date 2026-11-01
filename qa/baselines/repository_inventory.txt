@@ -2910,6 +2910,7 @@ F	qa/checks/web/real_dom/run_real_dom_tests.py
 F	qa/checks/web/real_dom/send_intent.dom.mjs
 F	qa/checks/web/real_dom/static_qr.dom.mjs
 F	qa/checks/web/real_dom/vault_frame_guard.dom.mjs
+F	qa/checks/web/real_dom/vault_shell.dom.mjs
 F	qa/checks/web/run_web_recovery_coverage.py
 F	qa/checks/web/run_web_runtime_coverage.py
 F	qa/checks/web/typescript_toolchain.py
