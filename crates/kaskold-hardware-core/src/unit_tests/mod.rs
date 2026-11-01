@@ -8,6 +8,7 @@ mod firmware_flow_tests;
 mod firmware_storage_tests;
 mod firmware_touch_tests;
 mod mailbox_tests;
+mod navigation_policy_tests;
 mod screen_flow_tests;
 mod security_tests;
 mod stego_picture_tests;

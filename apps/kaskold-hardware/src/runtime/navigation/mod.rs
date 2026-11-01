@@ -12,13 +12,12 @@ mod back;
 mod event;
 mod kernel;
 mod menu_reducer;
-mod policy;
 pub(crate) mod production;
 mod root;
 pub(crate) mod ui_graph;
 
 pub(crate) use event::{continuation, route, ContinuationRoute, ResumeTarget, ReturnScope, UiEvent, UiRoute};
-use kaskold_hardware_core::screen_flow::onboarding;
+use kaskold_hardware_core::screen_flow::{navigation as policy, onboarding};
 pub(crate) use onboarding::OnboardingRoute;
 pub(crate) use policy::NavigationOwner;
 pub(crate) use root::main_menu_target_at;

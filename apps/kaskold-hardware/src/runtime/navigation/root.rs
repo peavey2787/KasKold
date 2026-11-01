@@ -31,10 +31,3 @@ pub(crate) fn main_menu_target_at(x: u16, y: u16) -> Option<(usize, AppState)> {
         .position(|zone| zone.contains(x, y))
         .and_then(|index| main_menu_target(index).map(|state| (index, state)))
 }
-
-pub(super) fn transition_allowed(state: AppState) -> bool {
-    matches!(
-        state,
-        AppState::ShowAddress | AppState::ScanQR | AppState::SeedsMenu | AppState::SettingsMenu | AppState::ExportKpub
-    )
-}

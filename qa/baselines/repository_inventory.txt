@@ -1757,7 +1757,6 @@ F	apps/kaskold-hardware/src/runtime/navigation/menu_reducer.rs
 F	apps/kaskold-hardware/src/runtime/navigation/menu_reducer/catalog.rs
 F	apps/kaskold-hardware/src/runtime/navigation/menu_reducer/routes.rs
 F	apps/kaskold-hardware/src/runtime/navigation/mod.rs
-F	apps/kaskold-hardware/src/runtime/navigation/policy.rs
 F	apps/kaskold-hardware/src/runtime/navigation/production.rs
 F	apps/kaskold-hardware/src/runtime/navigation/root.rs
 F	apps/kaskold-hardware/src/runtime/navigation/transaction.rs
@@ -2279,6 +2278,7 @@ F	crates/kaskold-hardware-core/src/runtime/worker/mailbox.rs
 F	crates/kaskold-hardware-core/src/runtime/worker/mod.rs
 F	crates/kaskold-hardware-core/src/screen_flow/handler_group.rs
 F	crates/kaskold-hardware-core/src/screen_flow/mod.rs
+F	crates/kaskold-hardware-core/src/screen_flow/navigation.rs
 F	crates/kaskold-hardware-core/src/screen_flow/onboarding.rs
 F	crates/kaskold-hardware-core/src/screen_flow/state.rs
 F	crates/kaskold-hardware-core/src/screen_flow/state/predicates.rs
@@ -2327,6 +2327,7 @@ F	crates/kaskold-hardware-core/src/unit_tests/firmware_storage_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/firmware_touch_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/mailbox_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/mod.rs
+F	crates/kaskold-hardware-core/src/unit_tests/navigation_policy_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/screen_flow_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/security_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/stego_picture_tests.rs

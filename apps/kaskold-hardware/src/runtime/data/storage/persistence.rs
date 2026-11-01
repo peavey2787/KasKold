@@ -3,19 +3,7 @@
 use crate::services::credential_policy::CredentialKind;
 use kaskold_hardware_core::advanced_policy::{SigningPolicy, SigningWindow, MAX_WEEKLY_WINDOWS};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DeviceStorageIntent {
-    None,
-    StartFresh,
-    CreateInternal,
-    EnableSd,
-}
-
-impl DeviceStorageIntent {
-    pub const fn is_seed_onboarding(self) -> bool {
-        matches!(self, Self::StartFresh | Self::CreateInternal)
-    }
-}
+pub use kaskold_hardware_core::screen_flow::navigation::DeviceStorageIntent;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UnlockFeedback {

@@ -465,17 +465,13 @@ class NavigationStateMachineTests(unittest.TestCase):
 
     def test_main_to_settings_is_an_explicit_committed_root_transition(self) -> None:
         root = read("apps/kaskold-hardware/src/runtime/navigation/root.rs")
-        policy = read("apps/kaskold-hardware/src/runtime/navigation/policy.rs")
         facade = read("apps/kaskold-hardware/src/runtime/navigation/mod.rs")
         primary = read("apps/kaskold-hardware/src/runtime/interactions/menu/primary.rs")
 
         self.assertIn("3 => Some((AppState::SettingsMenu, Settings))", root)
-        self.assertIn("AppState::ShowAddress | AppState::ScanQR | AppState::SeedsMenu | AppState::SettingsMenu", root)
         self.assertIn("pub(crate) fn transition_root", facade)
         self.assertIn("root::root_route(index).map(|route| route.0)?", facade)
         self.assertIn("kernel::dispatch(ad, UiEvent::RootSelect(event_index))", facade)
-        self.assertIn("super::root::transition_allowed(to_state)", policy)
-        self.assertIn("Main => matches!(to, Seeds | Settings | Signing | Export)", policy)
         self.assertIn("prepare_owner_entry(ad, transition.owner)", read("apps/kaskold-hardware/src/runtime/navigation/kernel.rs"))
         self.assertIn("NavigationOwner::Settings => ad.navigation.settings_menu.reset()", read("apps/kaskold-hardware/src/runtime/navigation/kernel.rs"))
         self.assertIn("main_menu_target_at(x, y)", primary)
@@ -592,18 +588,15 @@ class NavigationStateMachineTests(unittest.TestCase):
         self.assertLess(click_after, audio_after)
 
     def test_settings_cannot_cross_into_signing_or_qr_results(self) -> None:
-        policy = read("apps/kaskold-hardware/src/runtime/navigation/policy.rs")
         facade = read("apps/kaskold-hardware/src/runtime/navigation/mod.rs")
         qr = read("apps/kaskold-hardware/src/runtime/data/qr.rs")
         signing = read("apps/kaskold-hardware/src/runtime/signing/workflow.rs")
 
-        self.assertIn("Settings => matches!(to, Main | Seeds | Signing | Export | Storage | Stego | Multisig)", policy)
         production = read("apps/kaskold-hardware/src/runtime/navigation/production.rs")
         self.assertNotIn("Covenant Sign", production)
         self.assertNotIn("Private Swap", production)
         self.assertNotIn("Anti-Klepto", production)
         self.assertNotIn("Stealth", production)
-        self.assertIn("Settings => AppState::SettingsMenu", policy)
         self.assertIn("ShowQrPopup", facade)
         self.assertIn("OutgoingQrPurpose::SignedTransaction", facade)
         self.assertIn("clear_abandoned_workflow", read("apps/kaskold-hardware/src/runtime/navigation/kernel.rs"))
@@ -646,12 +639,10 @@ class NavigationStateMachineTests(unittest.TestCase):
         self.assertIn("route!(StorageSeedWordCountChoice { action: 0 })", helper)
 
     def test_onboarding_requires_guarded_terminal_transition(self) -> None:
-        policy = read("apps/kaskold-hardware/src/runtime/navigation/policy.rs")
         facade = read("apps/kaskold-hardware/src/runtime/navigation/mod.rs")
         persistent_nav = read("apps/kaskold-hardware/src/runtime/interactions/persistence.rs")
         persistence = "\n".join(read(path) for path in ("apps/kaskold-hardware/src/runtime/interactions/persistence.rs", "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs", "apps/kaskold-hardware/src/runtime/interactions/persistence/credential.rs", "apps/kaskold-hardware/src/runtime/event_loop/operation_engine/credential/result.rs"))
 
-        self.assertIn("if to_state == AppState::MainMenu { return from != NavigationOwner::Onboarding; }", flat(policy))
         terminal = facade[facade.index("pub(crate) fn complete_onboarding"):facade.index("fn result_screen_is_valid", facade.index("pub(crate) fn complete_onboarding"))]
         self.assertIn("NavigationOwner::Onboarding", terminal)
         self.assertIn("intent.is_seed_onboarding()", terminal)
@@ -661,24 +652,6 @@ class NavigationStateMachineTests(unittest.TestCase):
         self.assertIn("kernel::force_commit(ad, AppState::MainMenu, NavigationOwner::Main, true)", terminal)
         self.assertIn("complete_onboarding(ad)", persistent_nav)
         self.assertIn("complete_onboarding(ad)", persistence)
-
-    # Which screens onboarding owns and the screen-to-screen matrix itself are
-    # host-tested in kaskold-hardware-core unit_tests/screen_flow_tests.rs; the
-    # two tests below assert the firmware policy consults them with live state.
-    def test_sd_recovery_ack_is_owned_by_settings_only_for_sd_enable_intent(self) -> None:
-        policy = read("apps/kaskold-hardware/src/runtime/navigation/policy.rs")
-        self.assertIn("DeviceStorageIntent::EnableSd", policy)
-        self.assertIn("is_sd_enable_state(state)", policy)
-        self.assertIn("return NavigationOwner::Settings", policy)
-        self.assertEqual(policy.count("onboarding::owns_state(intent.is_seed_onboarding(), state)"), 2)
-        self.assertLess(policy.index("DeviceStorageIntent::EnableSd"), policy.index("onboarding::owns_state("))
-
-    def test_onboarding_owner_moves_are_checked_against_the_core_matrix(self) -> None:
-        policy = read("apps/kaskold-hardware/src/runtime/navigation/policy.rs")
-        same_owner = policy[policy.index("    if from == to {"):]
-        same_owner = same_owner[:same_owner.index("\n    }")]
-        self.assertIn("from != NavigationOwner::Onboarding", same_owner)
-        self.assertIn("onboarding::transition_allowed(from_state, to_state)", same_owner)
 
     def test_optional_touch_entropy_follows_optional_dice_and_is_additive(self) -> None:
         additive = read("apps/kaskold-hardware/src/runtime/interactions/menu/seed_generation/additive.rs")

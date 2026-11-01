@@ -2,6 +2,7 @@
 //! controller owns each screen and which onboarding moves are legal.
 
 mod handler_group;
+pub mod navigation;
 pub mod onboarding;
 mod state;
 

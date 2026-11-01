@@ -1,13 +1,24 @@
 //! Navigation ownership and cross-workflow transition policy.
 
-use crate::runtime::{
-    data::DeviceStorageIntent,
-    input::{AppState, HandlerGroup},
-};
-use kaskold_hardware_core::screen_flow::onboarding;
+use super::{onboarding, AppState, HandlerGroup};
+
+/// Why the device is currently walking a storage workflow.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DeviceStorageIntent {
+    None,
+    StartFresh,
+    CreateInternal,
+    EnableSd,
+}
+
+impl DeviceStorageIntent {
+    pub const fn is_seed_onboarding(self) -> bool {
+        matches!(self, Self::StartFresh | Self::CreateInternal)
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum NavigationOwner {
+pub enum NavigationOwner {
     Onboarding,
     Main,
     Seeds,
@@ -21,7 +32,7 @@ pub(crate) enum NavigationOwner {
     WorkflowTests,
 }
 
-pub(super) fn owner_for_intent(
+pub fn owner_for_intent(
     intent: DeviceStorageIntent,
     state: AppState,
     current: NavigationOwner,
@@ -48,7 +59,7 @@ pub(super) fn owner_for_intent(
     fixed_owner(state, current).unwrap_or_else(|| owner_from_handler(state.handler_group(), current))
 }
 
-pub(crate) fn transition_allowed(
+pub fn transition_allowed(
     from: NavigationOwner,
     to: NavigationOwner,
     from_state: AppState,
@@ -69,12 +80,19 @@ pub(crate) fn transition_allowed(
         return true;
     }
     if from_state == AppState::MainMenu {
-        return super::root::transition_allowed(to_state) && owner_transition_allowed(from, to);
+        return home_route_allowed(to_state) && owner_transition_allowed(from, to);
     }
     if to_state == AppState::MainMenu {
         return from != NavigationOwner::Onboarding;
     }
     owner_transition_allowed(from, to)
+}
+
+fn home_route_allowed(state: AppState) -> bool {
+    matches!(
+        state,
+        AppState::ShowAddress | AppState::ScanQR | AppState::SeedsMenu | AppState::SettingsMenu | AppState::ExportKpub
+    )
 }
 
 fn special_transition_allowed(
@@ -107,7 +125,7 @@ fn special_transition_allowed(
     seed_backup_return_allowed(from, from_state, to_state)
 }
 
-pub(crate) fn safe_recovery(owner: NavigationOwner) -> AppState {
+pub fn safe_recovery(owner: NavigationOwner) -> AppState {
     use NavigationOwner::*;
     match owner {
         Onboarding => AppState::StorageModeChoice,
@@ -120,7 +138,7 @@ pub(crate) fn safe_recovery(owner: NavigationOwner) -> AppState {
     }
 }
 
-pub(crate) fn recovery_owner(owner: NavigationOwner) -> NavigationOwner {
+pub fn recovery_owner(owner: NavigationOwner) -> NavigationOwner {
     use NavigationOwner::*;
     match owner {
         Onboarding => Onboarding,
