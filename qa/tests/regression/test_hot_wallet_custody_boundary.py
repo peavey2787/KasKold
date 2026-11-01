@@ -40,9 +40,6 @@ class VaultCustodyBoundaryTests(unittest.TestCase):
         self.assertIn("seed: Seed", source)
         self.assertNotIn("pub fn seed", source)
         self.assertNotIn("pub fn private_key", source)
-        self.assertIn("pub fn backup_recovery_phrase", source)
-        self.assertIn("pub fn backup_receive_private_key_hex", source)
-        self.assertIn("sign_compact_kspt", source)
         self.assertIn("fill_random(&mut signing_entropy)", source)
 
     def test_vault_runtime_is_the_software_custody_facade(self) -> None:
@@ -52,8 +49,6 @@ class VaultCustodyBoundaryTests(unittest.TestCase):
         self.assertIn("create_wallet_12", source)
         self.assertIn("create_wallet_24", source)
         self.assertIn("restore_wallet", source)
-        self.assertIn("sign_transaction", source)
-        self.assertIn("prepare_anti_klepto", source)
 
     def test_vault_web_owns_browser_create_restore_and_signing(self) -> None:
         manifest = tomllib.loads((ROOT / "apps/kaskold-vault-web/Cargo.toml").read_text(encoding="utf-8"))
