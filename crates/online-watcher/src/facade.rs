@@ -5,7 +5,6 @@ use crate::{
         utxo::UtxoEntry,
     },
     network::{queries, submission},
-    protocol::transaction::consensus::ConsensusTransaction,
     transaction_builder, WalletData,
 };
 use std::vec::Vec;
@@ -148,9 +147,8 @@ impl WatchWallet {
             signed_envelope_hex,
             kaskold_protocol::Network::Mainnet,
         )
-        .map_err(|error| format!("PSKT cryptographic verification failed: {error}"))?
-        .to_consensus()?;
-        self.submit_transaction(&transaction, websocket_url).await
+        .map_err(|error| format!("PSKT cryptographic verification failed: {error}"))?;
+        self.submit_verified(&transaction, websocket_url).await
     }
 
     pub async fn broadcast(
@@ -160,16 +158,18 @@ impl WatchWallet {
     ) -> Result<String, String> {
         let bytes =
             hex::decode(signed_transaction_hex).map_err(|error| format!("Invalid hex: {error}"))?;
-        let transaction = kaskold_protocol::compat::verify_complete_kspt(&bytes)?.to_consensus()?;
-        self.submit_transaction(&transaction, websocket_url).await
+        let transaction = kaskold_protocol::compat::verify_complete_kspt(&bytes)?;
+        self.submit_verified(&transaction, websocket_url).await
     }
 
-    pub(crate) async fn submit_transaction(
+    /// Only the opaque verified token reaches the node, so nothing decoded after
+    /// authorization can be broadcast.
+    async fn submit_verified(
         &self,
-        transaction: &ConsensusTransaction,
+        transaction: &kaskold_protocol::compat::VerifiedTransaction,
         websocket_url: &str,
     ) -> Result<String, String> {
-        submission::submit(websocket_url, transaction).await
+        submission::submit(websocket_url, &transaction.to_consensus()?).await
     }
 }
 

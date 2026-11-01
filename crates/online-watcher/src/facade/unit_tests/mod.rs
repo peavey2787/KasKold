@@ -107,8 +107,6 @@ fn facade_import_signing_and_transaction_boundaries_are_host_testable() {
 
     #[cfg(not(target_arch = "wasm32"))]
     {
-        use crate::protocol::transaction::consensus::{ConsensusTransaction, InputEncoding};
-
         assert_eq!(
             ready(facade.synchronize_utxos(&wallet, "ws://unused"))
                 .err()
@@ -129,27 +127,6 @@ fn facade_import_signing_and_transaction_boundaries_are_host_testable() {
         );
         assert_eq!(
             ready(facade.build_consolidation(&wallet, 1, "ws://unused"))
-                .err()
-                .map(|error| error.to_string())
-                .as_deref(),
-            Some(
-                "browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"
-            )
-        );
-
-        let transaction = ConsensusTransaction {
-            tx_version: 0,
-            input_encoding: InputEncoding::Budgeted,
-            inputs: Vec::new(),
-            outputs: Vec::new(),
-            locktime: 0,
-            subnetwork_id: [0; 20],
-            gas: 0,
-            payload: Vec::new(),
-            storage_mass: 0,
-        };
-        assert_eq!(
-            ready(facade.submit_transaction(&transaction, "ws://unused"))
                 .err()
                 .map(|error| error.to_string())
                 .as_deref(),

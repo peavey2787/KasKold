@@ -3,10 +3,11 @@
 use serde_json::{json, Map, Value};
 
 use crate::wasm_api::protocol::pskt::{
+    pskt_finalize_and_broadcast_string,
     pskt_merge_signed_kspt_string as merge_signed_kspt_into_pskb,
     pskt_relay_to_kspt_string as relay_pskb_as_kspt_hex_for_network,
 };
-use crate::wasm_api::test_support::canonical_test_pskt;
+use crate::wasm_api::test_support::{canonical_test_pskt, ready};
 
 const RELAY_KSPT_HEX: &str = "4b535054010000000100000001000000000000000000000000000000000000000000000000000000000000000000000000000000001111111111111111111111111111111111111111111111111111111111111111010000006400000000000000000000000000000001000022204444444444444444444444444444444444444444444444444444444444444444ac0000005a00000000000000000022205555555555555555555555555555555555555555555555555555555555555555ac4e01";
 
@@ -72,6 +73,24 @@ fn valid_signed_p2pk_fixture() -> (String, String, String) {
         json!(format!("000020{}ac", hex::encode(test_xonly(1))));
     let (unsigned, signed, signatures) = sign_first_input_document(document, &[1]);
     (unsigned, signed, signatures.into_iter().next().unwrap())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn only_a_fully_verified_envelope_reaches_the_node_transport() {
+    let (unsigned, signed, _) = valid_signed_p2pk_fixture();
+    let transport = ready(pskt_finalize_and_broadcast_string(&signed, "ws://unused"))
+        .expect_err("native builds have no node transport");
+    assert!(
+        transport.contains("browser WebSocket transport is unavailable"),
+        "{transport}"
+    );
+    let refused = ready(pskt_finalize_and_broadcast_string(&unsigned, "ws://unused"))
+        .expect_err("an unsigned envelope is refused");
+    assert!(
+        refused.starts_with("PSKT cryptographic verification failed"),
+        "{refused}"
+    );
 }
 
 #[test]
