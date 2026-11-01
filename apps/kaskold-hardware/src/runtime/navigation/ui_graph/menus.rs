@@ -100,15 +100,16 @@ pub(crate) const SETTINGS_MENU_ITEMS: [UiMenuItemSpec; 6] = [
 #[cfg(all(feature = "m5stack", not(feature = "developer-ui")))]
 pub(crate) const SETTINGS_MENU_LABELS: [&str; 6] = [SETTINGS_MENU_ITEMS[0].label, SETTINGS_MENU_ITEMS[1].label, SETTINGS_MENU_ITEMS[2].label, SETTINGS_MENU_ITEMS[3].label, SETTINGS_MENU_ITEMS[4].label, SETTINGS_MENU_ITEMS[5].label];
 
-pub(crate) const SEED_TOOLS_MENU_ITEMS: [UiMenuItemSpec; 6] = [
+pub(crate) const SEED_TOOLS_MENU_ITEMS: [UiMenuItemSpec; 7] = [
     ui_menu!(SeedToolsMenu, 0, "New Seed", "seed_tools.new_seed", ChooseWordCount, "always"),
     ui_menu!(SeedToolsMenu, 1, "Dice Seed", "seed_tools.dice_seed", ChooseWordCount, "always"),
     ui_menu!(SeedToolsMenu, 2, "Touch Seed", "seed_tools.touch_seed", ChooseWordCount, "always"),
     ui_menu!(SeedToolsMenu, 3, "Import Words", "seed_tools.import_words", ChooseWordCount, "always"),
     ui_menu!(SeedToolsMenu, 4, "Address", "seed_tools.address", ShowAddress, "seed_loaded"),
     ui_menu!(SeedToolsMenu, 5, "BIP85 Child", "seed_tools.bip85", ChooseWordCount, "seed_loaded"),
+    ui_menu!(SeedToolsMenu, 6, "Hidden Key Addr", "seed_tools.kip22_address", ShowAddress, "seed_loaded"),
 ];
-pub(crate) const SEED_TOOLS_MENU_LABELS: [&str; 6] = [SEED_TOOLS_MENU_ITEMS[0].label, SEED_TOOLS_MENU_ITEMS[1].label, SEED_TOOLS_MENU_ITEMS[2].label, SEED_TOOLS_MENU_ITEMS[3].label, SEED_TOOLS_MENU_ITEMS[4].label, SEED_TOOLS_MENU_ITEMS[5].label];
+pub(crate) const SEED_TOOLS_MENU_LABELS: [&str; 7] = [SEED_TOOLS_MENU_ITEMS[0].label, SEED_TOOLS_MENU_ITEMS[1].label, SEED_TOOLS_MENU_ITEMS[2].label, SEED_TOOLS_MENU_ITEMS[3].label, SEED_TOOLS_MENU_ITEMS[4].label, SEED_TOOLS_MENU_ITEMS[5].label, SEED_TOOLS_MENU_ITEMS[6].label];
 
 pub(crate) const IMPORT_MENU_ITEMS: [UiMenuItemSpec; 4] = [
     ui_menu!(ImportMenu, 0, "Import from SD", "import.sd", SdImportMenu, "always"),

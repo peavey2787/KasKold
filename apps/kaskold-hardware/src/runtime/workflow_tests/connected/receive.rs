@@ -74,7 +74,29 @@ pub(super) fn exercise(
         && chain_toggle(&mut ctx)
         && index_step_boundaries(&mut ctx)
         && custom_index(&mut ctx)
+        && hidden_key_address(&mut ctx)
         && return_home(&mut ctx)
+}
+
+/// The hidden-key entry must produce a P2SH address and never the P2PK one.
+fn hidden_key_address(ctx: &mut ReceiveContext<'_, '_, '_>) -> bool {
+    crate::runtime::interactions::menu::seed_tools::address::open_kip22(
+        &mut *ctx.ad,
+        &mut *ctx.display,
+        &mut *ctx.delay,
+        &mut || {},
+    );
+    let address = &ctx.ad.qr.scan.address[..ctx.ad.qr.scan.address_length];
+    let is_p2sh = offline_signer::address::decode_address(core::str::from_utf8(address).unwrap_or(""))
+        .is_ok_and(|(version, _)| version == 0x08);
+    let shown = ctx.ad.navigation.app.state == AppState::ShowAddress && ctx.ad.qr.scan.address_valid;
+    ctx.ad.qr.scan.address_length = 0;
+    if !is_p2sh || !shown {
+        log!("KASKOLD_WORKFLOW_TESTS: RECEIVE HIDDEN KEY FAILED");
+        return false;
+    }
+    log!("KASKOLD_WORKFLOW_TESTS: RECEIVE HIDDEN KEY OK");
+    true
 }
 
 fn open_receive(ad: &mut AppData) -> bool {

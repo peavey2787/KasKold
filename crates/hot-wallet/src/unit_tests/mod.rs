@@ -11,6 +11,7 @@ use offline_signer::{
     },
 };
 
+mod kip22;
 pub(crate) mod zeroization;
 
 const MNEMONIC_12: &str =

@@ -17,6 +17,7 @@ mod output;
 mod pskt;
 mod qr;
 mod review;
+pub(crate) use derivation::derive_active_kip22_address;
 mod signature_status;
 mod strategy;
 mod verification;

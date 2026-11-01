@@ -7,8 +7,8 @@
   ],
   "state_count": 187,
   "menu_count": 23,
-  "menu_item_count": 92,
-  "unique_menu_label_count": 79,
+  "menu_item_count": 93,
+  "unique_menu_label_count": 80,
   "operation_menu_item_count": 4,
   "operation_kinds": [
     "ConnectCompanion",
@@ -1793,6 +1793,14 @@
           "destination": "ChooseWordCount",
           "guard": "seed_loaded",
           "operation": null
+        },
+        {
+          "index": 6,
+          "label": "Hidden Key Addr",
+          "action": "seed_tools.kip22_address",
+          "destination": "ShowAddress",
+          "guard": "seed_loaded",
+          "operation": null
         }
       ]
     },
@@ -2234,6 +2242,7 @@
     "Export Key",
     "Factory Reset",
     "Firmware Update",
+    "Hidden Key Addr",
     "Import Raw Key",
     "Import Words",
     "Import from SD",

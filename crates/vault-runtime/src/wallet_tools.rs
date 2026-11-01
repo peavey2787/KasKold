@@ -205,6 +205,17 @@ impl VaultRuntime {
             .map_err(VaultRuntimeError::Custody)
     }
 
+    pub fn derive_kip22_address(
+        &self,
+        network: &str,
+        change: bool,
+        index: u32,
+    ) -> Result<String, VaultRuntimeError> {
+        self.active_wallet()?
+            .derive_kip22_address(parse_network(network)?, change, index)
+            .map_err(VaultRuntimeError::Custody)
+    }
+
     pub fn export_multisig_kpub(&self) -> Result<String, VaultRuntimeError> {
         self.active_wallet()?
             .export_multisig_kpub()

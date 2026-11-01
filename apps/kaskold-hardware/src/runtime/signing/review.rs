@@ -121,7 +121,45 @@ pub fn verify_transaction_output_ownership_with_checkpoint(
         &ad.signing.multisig.store.configs,
         &mut ownership,
     )?;
+    verify_kip22_output_ownership(ad, &mut ownership, checkpoint)?;
     ad.signing.transaction.output_ownership = ownership;
+    Ok(())
+}
+
+/// KIP-22 outputs carry no key to compare, so ownership is proved by deriving
+/// the wallet's own scripts. Without this, change would read as a payment. Only
+/// a mnemonic reaches the KIP-22 path, and the seed is derived only when a
+/// script hash is still unexplained.
+fn verify_kip22_output_ownership(
+    ad: &crate::runtime::data::AppData,
+    ownership: &mut [OutputOwnership; offline_signer::transaction::model::MAX_OUTPUTS],
+    checkpoint: &mut (impl FnMut() + ?Sized),
+) -> Result<(), &'static str> {
+    use offline_signer::{address::p2sh_hash, derivation::kip22};
+    let tx = &ad.signing.transaction.active;
+    let unexplained = |(index, output): (usize, &offline_signer::transaction::model::TransactionOutput)| {
+        ownership[index] == OutputOwnership::External && p2sh_hash(output.script_public_key.script_bytes()).is_some()
+    };
+    if !tx.outputs().iter().enumerate().any(unexplained) {
+        return Ok(());
+    }
+    let slot = ad.wallet.seeds.seed_mgr.active_slot().ok_or("No active wallet for output verification")?;
+    if !slot.is_mnemonic() {
+        return Ok(());
+    }
+    let mut seed = super::derivation::derive_slot_seed_with_checkpoint(slot, checkpoint)?;
+    let account = kip22::derive_account_key(&seed.bytes, 0);
+    shared_signer::bytes::zeroize_bytes(&mut seed.bytes);
+    let mut account = account.map_err(|_| "Wallet output derivation failed")?;
+    for (index, output) in tx.outputs().iter().enumerate() {
+        if ownership[index] != OutputOwnership::External || p2sh_hash(output.script_public_key.script_bytes()).is_none() {
+            continue;
+        }
+        if let Some((chain, _)) = kip22::find_owned_script(&account, output.script_public_key.script_bytes(), checkpoint) {
+            ownership[index] = if chain == kip22::Chain::Change { OutputOwnership::Change } else { OutputOwnership::Receive };
+        }
+    }
+    account.zeroize();
     Ok(())
 }
 

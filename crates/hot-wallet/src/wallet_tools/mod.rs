@@ -12,7 +12,7 @@ mod unit_tests;
 use offline_signer::{
     address::{encode_address_for_network, AddressType, KaspaNetwork, MAX_ADDR_LEN},
     crypto::{ecies, message},
-    derivation::{bip32, bip85, xpub},
+    derivation::{bip32, bip85, kip22, xpub},
     hash::blake2b_256,
 };
 use sha2::{Digest, Sha256};
@@ -113,6 +113,33 @@ impl HotWallet {
         validate_address_request(network, index)?;
         let public_key = self.address_public_key(change, index)?;
         encode_p2pk_address(&public_key, network)
+    }
+
+    /// Derive a KIP-22 address, which hides the public key until the coins are
+    /// spent. Only a seed reaches m/22'/111111'/0': raw-key and BIP44 account-key
+    /// wallets have no such path.
+    pub fn derive_kip22_address(
+        &self,
+        network: KaspaNetwork,
+        change: bool,
+        index: u32,
+    ) -> Result<String, HotWalletError> {
+        validate_address_request(network, index)?;
+        let seed = self
+            .seed_bytes()
+            .map_err(|_| HotWalletError::UnsupportedForWalletType)?;
+        let chain = if change {
+            kip22::Chain::Change
+        } else {
+            kip22::Chain::Receive
+        };
+        let mut account = kip22::derive_account_key(seed, 0)?;
+        let mut child = kip22::derive_address_key(&account, chain, index)?;
+        let public_key = child.public_key_x_only().map_err(HotWalletError::from);
+        account.zeroize();
+        child.zeroize();
+        let prefix = network.hrp().ok_or(HotWalletError::InvalidToolInput)?;
+        Ok(kip22::address(&public_key?, prefix))
     }
 
     fn address_public_key(&self, change: bool, index: u32) -> Result<[u8; 32], HotWalletError> {

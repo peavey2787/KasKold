@@ -45,6 +45,7 @@
     },
     {
       "actions": [
+        "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/address.rs::open_kip22",
         "apps/kaskold-hardware/src/runtime/interactions/export/address.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/export/address.rs::handle_address_view",
         "apps/kaskold-hardware/src/runtime/interactions/export/address.rs::step_address_index",
@@ -79,7 +80,8 @@
       "level": "connected",
       "menu_items": [
         "Receive",
-        "Address"
+        "Address",
+        "Hidden Key Addr"
       ],
       "requirements": [
         "E2E-020",
@@ -92,6 +94,7 @@
         "RECEIVE QR OPEN/CLOSE OK",
         "RECEIVE CHAIN TOGGLE OK",
         "RECEIVE INDEX STEP/BOUNDARY OK",
+        "RECEIVE HIDDEN KEY OK",
         "RECEIVE CONTROLS PASS",
         "RECEIVE CUSTOM INDEX/QR JOURNEY OK"
       ],

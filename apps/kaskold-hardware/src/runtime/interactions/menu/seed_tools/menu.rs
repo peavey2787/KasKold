@@ -115,9 +115,7 @@ fn dispatch_item(
                 show_rejection(boot_display, delay, "Load a seed first", 1_500, ErrorSound::Silent);
             }
         }
-        6 => {
-            let _ = crate::runtime::effects::menu_select(ad, 6);
-        }
+        6 => address::open_kip22(ad, boot_display, delay, liveness),
         _ => {}
     }
 }

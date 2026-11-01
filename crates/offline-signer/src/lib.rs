@@ -26,7 +26,7 @@ pub mod hash {
 /// Key derivation, mnemonics and account keys, from Kaspa Portal.
 pub mod derivation {
     pub use kaspa_portal::wallet::{
-        derivation::{bip32, bip85, covenant, hmac},
+        derivation::{bip32, bip85, covenant, hmac, kip22},
         key::xpub,
         mnemonic::{bip39, wordlist as bip39_wordlist},
         multisig,

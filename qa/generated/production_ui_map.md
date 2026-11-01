@@ -4,8 +4,8 @@
 
 Production state families: **187**  
 Declared menus: **23**  
-Menu rows: **92**  
-Unique menu labels: **79**  
+Menu rows: **93**  
+Unique menu labels: **80**  
 Menu-triggered operation rows: **4**  
 Operation kinds: **ConnectCompanion, DeriveMultisigKpub, SignTransaction**
 
@@ -139,6 +139,7 @@ Back: `SeedsMenu`
 | 3 | Import Words | `seed_tools.import_words` | `always` | `ChooseWordCount` | `-` |
 | 4 | Address | `seed_tools.address` | `seed_loaded` | `ShowAddress` | `-` |
 | 5 | BIP85 Child | `seed_tools.bip85` | `seed_loaded` | `ChooseWordCount` | `-` |
+| 6 | Hidden Key Addr | `seed_tools.kip22_address` | `seed_loaded` | `ShowAddress` | `-` |
 
 ### ImportMenu
 

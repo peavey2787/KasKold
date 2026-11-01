@@ -308,6 +308,7 @@
         <button id="seed-tools-import" data-workflow-action="seed_tools.import_words">Import Words</button>
         <button id="seed-tools-address" data-workflow-action="seed_tools.address">Address</button>
         <button id="seed-tools-bip85" data-workflow-action="seed_tools.bip85">BIP85 Child</button>
+        <button id="seed-tools-kip22" data-workflow-action="seed_tools.kip22_address">Hidden Key Addr</button>
         <button data-back>Back</button>
       </div>
     </section>
@@ -439,6 +440,7 @@
         <label>Network<select id="receive-network"><option value="mainnet">Mainnet</option><option value="testnet">Testnet</option><option value="devnet">Devnet</option><option value="simnet">Simnet</option></select></label>
         <label>Chain<select id="receive-chain"><option value="0">Receive</option><option value="1">Change</option></select></label>
       </div>
+      <label>Format<select id="receive-format"><option value="standard">Standard</option><option value="kip22">Hidden key (KIP-22)</option></select></label>
       <label>Address index<input id="receive-index" inputmode="numeric" pattern="[0-9]*" value="0"></label>
       <div class="row"><button id="receive-prev">Previous</button><button id="receive-next">Next</button></div>
       <div class="mono break selectable" id="receive-address"></div>

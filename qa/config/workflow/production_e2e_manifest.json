@@ -3,20 +3,20 @@
     "actions": {
       "backlog": 0,
       "catalog": 0,
-      "connected": 112,
+      "connected": 113,
       "hil": 2,
       "manual-hil": 0,
       "qa": 97,
-      "total": 211
+      "total": 212
     },
     "menu_items": {
       "backlog": 0,
       "catalog": 0,
-      "connected": 44,
+      "connected": 45,
       "hil": 1,
       "manual-hil": 4,
       "qa": 30,
-      "total": 79
+      "total": 80
     },
     "states": {
       "backlog": 0,
@@ -4423,6 +4423,7 @@
     },
     {
       "actions": [
+        "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/address.rs::open_kip22",
         "apps/kaskold-hardware/src/runtime/interactions/export/address.rs::handle_pure",
         "apps/kaskold-hardware/src/runtime/interactions/export/address.rs::handle_address_view",
         "apps/kaskold-hardware/src/runtime/interactions/export/address.rs::step_address_index",
@@ -4457,7 +4458,8 @@
       "level": "connected",
       "menu_items": [
         "Receive",
-        "Address"
+        "Address",
+        "Hidden Key Addr"
       ],
       "requirements": [
         "E2E-020",
@@ -4470,6 +4472,7 @@
         "RECEIVE QR OPEN/CLOSE OK",
         "RECEIVE CHAIN TOGGLE OK",
         "RECEIVE INDEX STEP/BOUNDARY OK",
+        "RECEIVE HIDDEN KEY OK",
         "RECEIVE CONTROLS PASS",
         "RECEIVE CUSTOM INDEX/QR JOURNEY OK"
       ],
@@ -8388,6 +8391,14 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
+      "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/address.rs::open_kip22": {
+        "baseline": false,
+        "catalog_workflows": [],
+        "highest_level": "connected",
+        "implemented_scenarios": [
+          "connected-receive-controls"
+        ]
+      },
       "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/address.rs::open_with_return": {
         "baseline": true,
         "catalog_workflows": [],
@@ -9973,6 +9984,14 @@
           "connected-firmware-update-usb-guidance",
           "manual-hil-firmware-update-usb-reboot",
           "qa-production-exhaustiveness-gate"
+        ]
+      },
+      "Hidden Key Addr": {
+        "baseline": false,
+        "catalog_workflows": [],
+        "highest_level": "connected",
+        "implemented_scenarios": [
+          "connected-receive-controls"
         ]
       },
       "Import Raw Key": {

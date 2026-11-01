@@ -2234,6 +2234,7 @@ F	crates/hot-wallet/src/transaction_codec.rs
 F	crates/hot-wallet/src/transaction_review.rs
 F	crates/hot-wallet/src/transaction_review/unit_tests/mod.rs
 F	crates/hot-wallet/src/transaction_signing.rs
+F	crates/hot-wallet/src/unit_tests/kip22.rs
 F	crates/hot-wallet/src/unit_tests/mod.rs
 F	crates/hot-wallet/src/unit_tests/zeroization.rs
 F	crates/hot-wallet/src/wallet_creation/mod.rs

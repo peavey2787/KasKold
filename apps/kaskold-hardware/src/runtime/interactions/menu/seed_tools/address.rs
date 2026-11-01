@@ -34,3 +34,30 @@ pub(crate) fn open_with_return(
     ad.qr.scan.address_length = 0;
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ShowAddress));
 }
+
+/// Show the KIP-22 receive address at the index last picked in Address. The
+/// address hides its public key until the coins are spent.
+pub(crate) fn open_kip22(
+    ad: &mut AppData,
+    boot_display: &mut display::BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    liveness: &mut dyn FnMut(),
+) {
+    if !ad.wallet.seeds.seed_loaded {
+        show_rejection(boot_display, delay, "Load a seed first", 1500, ErrorSound::Silent);
+        return;
+    }
+    boot_display.draw_saving_screen("Deriving address...");
+    let address = match crate::runtime::signing::derive_active_kip22_address(ad, liveness) {
+        Ok(address) => address,
+        Err(message) => {
+            show_rejection(boot_display, delay, message, 1500, ErrorSound::Silent);
+            return;
+        }
+    };
+    let length = address.len().min(ad.qr.scan.address.len());
+    ad.qr.scan.address[..length].copy_from_slice(&address.as_bytes()[..length]);
+    ad.qr.scan.address_length = length;
+    ad.qr.scan.address_valid = true;
+    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ShowAddress));
+}

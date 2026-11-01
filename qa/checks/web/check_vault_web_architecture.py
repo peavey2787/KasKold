@@ -305,6 +305,7 @@ def main() -> int:
             errors.append(f"Vault Web Rust boundary is missing backup export {required_backup_export}")
     for required_workflow_export in (
         "kaskold_vault_receive_address",
+        "kaskold_vault_kip22_address",
         "kaskold_vault_open_transaction_file",
         "kaskold_vault_normalize_kpub",
         "kaskold_vault_validate_address",

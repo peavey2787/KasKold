@@ -58,6 +58,31 @@ pub(super) fn derive_slot_account_key(
 /// Signing-time account derivation with fixed BIP39 liveness checkpoints.
 /// Imported account keys do not need checkpoints; mnemonic PBKDF2 does.
 #[inline(never)]
+/// The KIP-22 receive address at the selected index. Only a mnemonic reaches
+/// m/22'/111111'/0'; other wallet types are refused rather than given a P2PK.
+pub(crate) fn derive_active_kip22_address(
+    ad: &AppData,
+    checkpoint: &mut (impl FnMut() + ?Sized),
+) -> Result<alloc::string::String, &'static str> {
+    use offline_signer::derivation::kip22;
+    let slot = ad.wallet.seeds.seed_mgr.active_slot().ok_or("No active wallet")?;
+    if !slot.is_mnemonic() {
+        return Err("Needs a recovery phrase");
+    }
+    let prefix = ad.wallet.seeds.seed_mgr.network().kaspa_network().hrp().ok_or("Unknown network")?;
+    let mut seed = derive_slot_seed_with_checkpoint(slot, checkpoint)?;
+    let account = kip22::derive_account_key(&seed.bytes, 0);
+    zeroize_seed(&mut seed.bytes);
+    checkpoint();
+    let mut account = account.map_err(|_| "Address derivation failed")?;
+    let key = kip22::derive_address_key(&account, kip22::Chain::Receive, u32::from(ad.wallet.addresses.current_addr_index));
+    account.zeroize();
+    let mut key = key.map_err(|_| "Address derivation failed")?;
+    let xonly = key.public_key_x_only();
+    key.zeroize();
+    Ok(kip22::address(&xonly.map_err(|_| "Address derivation failed")?, prefix))
+}
+
 pub(super) fn derive_slot_account_key_with_checkpoint(
     slot: &SeedSlot,
     checkpoint: &mut (impl FnMut() + ?Sized),

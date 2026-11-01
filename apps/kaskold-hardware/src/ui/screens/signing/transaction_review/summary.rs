@@ -75,7 +75,9 @@ fn draw_transaction_class(display: &mut BootDisplay<'_>, tx: &offline_signer::tr
         }
     } else if script_type == ScriptType::P2SH {
         let redeem = tx.redeem_bytes(0);
-        if !redeem.is_empty() && redeem[0] == 0x63 {
+        if offline_signer::derivation::kip22::is_redeem_script(redeem) {
+            centered_title(display, "HIDDEN KEY SEND", y, KASPA_ACCENT);
+        } else if !redeem.is_empty() && redeem[0] == 0x63 {
             centered_title(display, "COVENANT P2SH", y, KASPA_ACCENT);
         }
     }

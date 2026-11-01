@@ -95,6 +95,22 @@ pub fn kaskold_vault_receive_address(
 }
 
 #[wasm_bindgen]
+pub fn kaskold_vault_kip22_address(
+    network: &str,
+    change: bool,
+    index: u32,
+) -> Result<String, JsValue> {
+    VAULT.with(|vault| {
+        let address = vault
+            .borrow()
+            .derive_kip22_address(network, change, index)
+            .map_err(vault_error)?;
+        let svg = qr_svg(address.as_bytes())?;
+        json(&AddressResponse { address, svg })
+    })
+}
+
+#[wasm_bindgen]
 pub fn kaskold_vault_add_create_12() -> Result<String, JsValue> {
     VAULT.with(|vault| {
         let created = vault.borrow_mut().add_wallet_12().map_err(vault_error)?;

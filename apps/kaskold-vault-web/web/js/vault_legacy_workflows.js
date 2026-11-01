@@ -11,6 +11,10 @@ export function installLegacyWorkflows(ctx) {
   $('seed-tools-touch').onclick = () => ctx.startSeedTool('touch');
   $('seed-tools-import').onclick = route('restore-source');
   $('seed-tools-address').onclick = click('wallet-receive');
+  $('seed-tools-kip22').onclick = () => {
+    $('receive-format').value = 'kip22';
+    $('wallet-receive').click();
+  };
   $('seed-tools-bip85').onclick = click('advanced-bip85');
 
   $('import-menu-sd').onclick = route('wallet-recovery');

@@ -28,7 +28,9 @@ export function installWalletWorkflows(ctx) {
       $('receive-next').disabled = raw;
       const index = nonNegativeInteger($('receive-index').value, 'Address index');
       const chain = $('receive-chain').value === '1';
-      const result = parse(api('kaskold_vault_receive_address')($('receive-network').value, chain, index));
+      const hidden = $('receive-format').value === 'kip22';
+      const derive = hidden ? 'kaskold_vault_kip22_address' : 'kaskold_vault_receive_address';
+      const result = parse(api(derive)($('receive-network').value, chain, index));
       $('receive-address').textContent = result.address;
       showQrSvg($('receive-qr'), result.svg, 'Receive address QR');
       show('receive');
@@ -39,6 +41,7 @@ export function installWalletWorkflows(ctx) {
   $('wallet-receive').onclick = renderReceive;
   $('receive-network').onchange = renderReceive;
   $('receive-chain').onchange = renderReceive;
+  $('receive-format').onchange = renderReceive;
   $('receive-index').onchange = renderReceive;
   $('receive-prev').onclick = () => {
     const index = nonNegativeInteger($('receive-index').value, 'Address index');

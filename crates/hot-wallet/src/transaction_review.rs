@@ -7,7 +7,7 @@
 use super::{transaction_codec::parse_transaction, HotWallet, HotWalletError};
 use offline_signer::{
     address::{encode_address_for_network, AddressType, MAX_ADDR_LEN},
-    derivation::bip32,
+    derivation::{bip32, kip22},
     transaction::{
         kspt,
         model::{ScriptPublicKey, ScriptType, Transaction},
@@ -134,8 +134,30 @@ impl HotWallet {
             verify_raw_output_hints(transaction, raw_key, &mut ownership)?;
         } else {
             self.verify_account_output_hints(transaction, &mut ownership)?;
+            self.verify_kip22_outputs(transaction, &mut ownership)?;
         }
         Ok(ownership)
+    }
+
+    /// KIP-22 outputs carry no key to compare, so ownership is proved by deriving
+    /// the wallet's own scripts. Without this, change would read as a payment.
+    fn verify_kip22_outputs(
+        &self,
+        transaction: &Transaction,
+        ownership: &mut [OutputOwnership],
+    ) -> Result<(), HotWalletError> {
+        let Ok(seed) = self.seed_bytes() else {
+            return Ok(());
+        };
+        let mut account = kip22::derive_account_key(seed, 0)?;
+        for (index, output) in transaction.outputs().iter().enumerate() {
+            let script = output.script_public_key.script_bytes();
+            if let Some((chain, _)) = kip22::find_owned_script(&account, script, &mut || {}) {
+                ownership[index] = ownership_from_branch(chain.index() as u8);
+            }
+        }
+        account.zeroize();
+        Ok(())
     }
 
     fn verify_account_output_hints(
@@ -188,7 +210,9 @@ fn validate_generic_inputs(transaction: &Transaction) -> Result<(), HotWalletErr
     for (index, input) in transaction.inputs().iter().enumerate() {
         validate_generic_input_fields(input)?;
         let (script_type, _) = kspt::analyze_input_script(transaction, index);
-        if !matches!(script_type, ScriptType::P2PK | ScriptType::Multisig) {
+        let kip22_spend = script_type == ScriptType::P2SH
+            && kip22::is_redeem_script(transaction.redeem_bytes(index));
+        if !kip22_spend && !matches!(script_type, ScriptType::P2PK | ScriptType::Multisig) {
             return Err(HotWalletError::InvalidToolInput);
         }
     }

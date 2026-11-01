@@ -38,6 +38,17 @@ impl NativeVault {
         Ok(serde_json::json!({"address": address}).to_string())
     }
 
+    pub(super) fn kip22_address(&self, input: &serde_json::Value) -> Result<String, String> {
+        let network = text(input, "network")?;
+        let change = boolean(input, "change")?;
+        let index = u32_value(input, "index")?;
+        let address = self
+            .runtime
+            .derive_kip22_address(network, change, index)
+            .map_err(debug_error)?;
+        Ok(serde_json::json!({"address": address}).to_string())
+    }
+
     pub(super) fn wallets(&self) -> Result<String, String> {
         let summaries = self.runtime.wallet_summaries().map_err(debug_error)?;
         Ok(serde_json::json!({
