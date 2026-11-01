@@ -13,25 +13,15 @@ use super::{
 };
 
 const CONFIG_SIZE: usize = 2048;
-const LEGACY_CONFIG_SIZE: usize = 128;
 const CONFIG_MAGIC: [u8; 8] = *b"KSPREF01";
 const CONFIG_VERSION: u8 = 8;
-const V7_COMPAT_VERSION: u8 = 7;
-const V6_COMPAT_VERSION: u8 = 6;
-const V5_COMPAT_VERSION: u8 = 5;
 const DEVICE_FLAGS_OFFSET: usize = 39;
 const DEVICE_PREFERENCES_OFFSET: usize = 88;
 const DIM_TIMEOUT_OFFSET: usize = 89;
 const UNLOCK_FAILURES_OFFSET: usize = 90;
-const V6_CONFIG_DIGEST_START: usize = 90;
-const V6_CONFIG_DIGEST_END: usize = 122;
-const LEGACY_CONFIG_DIGEST_START: usize = 88;
-const LEGACY_CONFIG_DIGEST_END: usize = 120;
 const WALLET_LABELS_OFFSET: usize = 96;
 const WALLET_LABEL_RECORD_SIZE: usize = 1 + WALLET_NAME_MAX;
 const WALLET_LABELS_END: usize = WALLET_LABELS_OFFSET + MAX_SLOTS * WALLET_LABEL_RECORD_SIZE;
-const V7_CONFIG_DIGEST_START: usize = 448;
-const V7_CONFIG_DIGEST_END: usize = 480;
 const WALLET_ACTIVATION_OFFSET: usize = 448;
 const WALLET_ACTIVATION_RECORD_SIZE: usize = 1 + SALT_SIZE + 32;
 const WALLET_ACTIVATION_END: usize = WALLET_ACTIVATION_OFFSET + MAX_SLOTS * WALLET_ACTIVATION_RECORD_SIZE;
@@ -39,8 +29,9 @@ const MULTISIG_DESCRIPTOR_OFFSET: usize = WALLET_ACTIVATION_END;
 const MULTISIG_DESCRIPTOR_ENTRY_SIZE: usize = 10 + MAX_MULTISIG_KEYS * 74;
 const MULTISIG_DESCRIPTOR_BYTES: usize = MAX_MULTISIG_WALLETS * MULTISIG_DESCRIPTOR_ENTRY_SIZE;
 const MULTISIG_DESCRIPTOR_END: usize = MULTISIG_DESCRIPTOR_OFFSET + MULTISIG_DESCRIPTOR_BYTES;
-const CONFIG_DIGEST_START: usize = 1984;
-const CONFIG_DIGEST_END: usize = 2016;
+const CONFIG_DIGEST_START: usize = CONFIG_SIZE - 32;
+const CONFIG_DIGEST_END: usize = CONFIG_SIZE;
+const _: () = assert!(MULTISIG_DESCRIPTOR_END <= CONFIG_DIGEST_START);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct SdAnchor {
@@ -170,18 +161,8 @@ impl Default for WalletActivationRecords {
 pub(super) struct DeviceFlags(u8);
 
 impl DeviceFlags {
-    // Bits 0-1 are reserved for compatibility with historical device-config
-    // records. Current firmware does not interpret them as active features.
-    const LEGACY_RESERVED_BIT_0: u8 = 1 << 0;
-    const LEGACY_RESERVED_BIT_1: u8 = 1 << 1;
-    const AUDIO_MUTED: u8 = 1 << 2;
-    #[cfg(all(feature = "m5stack", not(feature = "production")))]
-    const LEGACY_DEV_POP_IT_TAG_MASK: u8 = 0b1111_1000;
-    const BASE_KNOWN_MASK: u8 = Self::LEGACY_RESERVED_BIT_0 | Self::LEGACY_RESERVED_BIT_1 | Self::AUDIO_MUTED;
-    #[cfg(all(feature = "m5stack", not(feature = "production")))]
-    const KNOWN_MASK: u8 = Self::BASE_KNOWN_MASK | Self::LEGACY_DEV_POP_IT_TAG_MASK;
-    #[cfg(not(all(feature = "m5stack", not(feature = "production"))))]
-    const KNOWN_MASK: u8 = Self::BASE_KNOWN_MASK;
+    const AUDIO_MUTED: u8 = 1 << 0;
+    const KNOWN_MASK: u8 = Self::AUDIO_MUTED;
 
     #[cfg(feature = "m5stack")]
     pub const fn audio_muted(self) -> bool {

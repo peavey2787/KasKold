@@ -181,13 +181,12 @@ def check_sd_persistence_security_contract(errors: list[str]) -> None:
     require(
         errors,
         "const CONFIG_VERSION: u8 = 8;" in journal
-        and "const V7_COMPAT_VERSION: u8 = 7;" in journal
-        and "const V6_COMPAT_VERSION: u8 = 6;" in journal
-        and "const V5_COMPAT_VERSION: u8 = 5;" in journal
+        and "record.0[8] != CONFIG_VERSION" in journal
+        and "COMPAT_VERSION" not in journal
         and "record.0[8] = CONFIG_VERSION;" in journal
         and "WALLET_LABELS_OFFSET" in journal
         and "CONFIG_DIGEST_START" in journal,
-        "persistent config writer must remain current v8 while explicitly reading v7/v6/v5",
+        "persistent config must read and write only the current v8 record",
     )
     require(
         errors,

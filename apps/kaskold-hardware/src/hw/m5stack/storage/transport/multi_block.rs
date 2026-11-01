@@ -1,7 +1,7 @@
-//! Bounded multi-block compatibility facade.
+//! Bounded multi-block transfers.
 //!
-//! CoreS3 uses repeated HAL-owned single-block transactions. This deliberately
-//! favors bus ownership correctness over the retired raw-GPIO CMD18/CMD25 path.
+//! CoreS3 uses repeated HAL-owned single-block transactions, favoring bus
+//! ownership correctness over raw-GPIO CMD18/CMD25 speed.
 
 use super::{
     block::{sd_read_block, sd_write_block},

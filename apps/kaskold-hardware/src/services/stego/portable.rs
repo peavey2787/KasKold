@@ -1,8 +1,7 @@
 //! Password-only cross-device Portable JPEG protection.
 //!
 //! The versioned payload header supplies authenticated Argon2id parameters and
-//! a random salt. The password is the only secret required to restore; there is
-//! deliberately no recovery-key factor and no legacy two-factor fallback.
+//! a random salt. The password is the only secret required to restore.
 
 use crate::services::credential_policy::{self, CredentialKind};
 use aes_gcm::{

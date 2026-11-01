@@ -41,7 +41,7 @@ pub(super) fn mix_seed_sample(
     );
     if healthy {
         let mut hasher = Sha256::new();
-        // Legacy cryptographic domain string retained for seed compatibility.
+        // Fixed domain separator: changing it changes every derived seed.
         hasher.update(b"KasSigner-seed-imu-v2");
         hasher.update(*sample);
         hasher.update((count as u32).to_le_bytes());

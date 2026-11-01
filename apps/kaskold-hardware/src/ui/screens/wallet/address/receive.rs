@@ -30,9 +30,7 @@ impl<'a> BootDisplay<'a> {
 
         let btn_corner = CornerRadii::new(Size::new(6, 6));
 
-        // Chain + QR actions share one explicit row. QR used to be an
-        // undiscoverable tap-on-address gesture; keep that gesture for
-        // compatibility but expose a real scanner-facing button.
+        // Chain + QR actions share one explicit row, alongside the tap-on-address gesture.
 
         let toggle_label = if is_change { "Change" } else { "Receive" };
         let chain = crate::ui::layout::ADDRESS_CHAIN_ZONE;

@@ -2,22 +2,7 @@
 
 use crate::services::storage_device;
 
-/// Shared state for SD backup/restore touch handlers.
-/// Parse v1.0.6 `multi_hd45(...)` descriptors and legacy `multi_hd(...)`
-/// descriptors. The function prefix is authoritative for the derivation scheme.
-///
-/// where each participant hex = compressed pubkey (33 bytes = 66 hex)
-/// immediately followed by chain code (32 bytes = 64 hex), for a total
-/// of 130 hex chars. Trailing whitespace is tolerated.
-///
-/// Returns `(m, n, cosigner_pubkeys, cosigner_chain_codes)` on success.
-///
-/// The `multi_hd` function name distinguishes this format from the v1.0.x
-/// `multi(...)` single-point format which was incompatible with per-address
-/// HD derivation. Old `multi(...)` descriptors will fail to parse here —
-/// that's intentional: v1.0.x multisigs cannot be rebuilt as HD wallets
-/// because the account-level xpub (needed for child derivation) was never
-/// recorded.
+// The signer and the descriptor grammar must agree on how many cosigners fit.
 const _: [(); offline_signer::transaction::model::MAX_MULTISIG_KEYS] =
     [(); kaskold_protocol::wire::multisig_descriptor::MAX_DESCRIPTOR_PARTICIPANTS];
 

@@ -188,17 +188,6 @@ pub fn decode_hex(input: &[u8], output: &mut [u8]) -> Result<usize, HexError> {
     Ok(decoded_len)
 }
 
-pub fn is_seed_backup_candidate(data: &[u8], declared_size: usize) -> bool {
-    let size = declared_size.min(data.len());
-    let input = &data[..size];
-    let encrypted_seed = size >= 57 && input.starts_with(b"KAS\x01");
-    let encrypted_xprv =
-        size >= 40 && (input.starts_with(b"KAX\x02") || input.starts_with(b"KAS\x02"));
-    let plain_xprv = size >= 100 && input.starts_with(b"xprv");
-    let plain_hex = (64..=66).contains(&size) && input[..64].iter().all(u8::is_ascii_hexdigit);
-    encrypted_seed || encrypted_xprv || plain_xprv || plain_hex
-}
-
 fn starts_with_case_insensitive(input: &[u8], expected: &[u8]) -> bool {
     if input.len() < expected.len() {
         return false;

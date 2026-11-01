@@ -14,8 +14,7 @@ pub(crate) fn handle_show_qr_popup(ctx: SdIoContext<'_, '_, '_>) -> bool {
         if (30..=155).contains(&x) && (140..=185).contains(&y) {
             // Save to SD → detect content type for correct extension
             let outgoing = &ad.qr.outgoing.buffer[..ad.qr.outgoing.length];
-            let is_descriptor = outgoing.starts_with(b"multi_hd45(") || outgoing.starts_with(b"multi_hd(");
-            if is_descriptor {
+            if kaskold_protocol::wire::multisig_descriptor::looks_like_descriptor(outgoing) {
                 let next = scan_auto_increment(i2c, delay, b"MD", b"TXT");
                 let name = format_auto_name(b"MD", next, b"TXT");
                 ad.storage.export_file.filename = name;

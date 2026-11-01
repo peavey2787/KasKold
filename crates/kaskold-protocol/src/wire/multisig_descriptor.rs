@@ -15,6 +15,12 @@ pub const MAX_DESCRIPTOR_PARTICIPANTS: usize =
 
 pub type ParsedMultisigDescriptor = grammar::ParsedMultisigDescriptor<MAX_DESCRIPTOR_PARTICIPANTS>;
 
+/// Whether a payload is written in the HD descriptor syntax and should be
+/// parsed as one rather than treated as an address or a transaction.
+pub fn looks_like_descriptor(payload: &[u8]) -> bool {
+    payload.starts_with(b"multi_hd45(") || payload.starts_with(b"multi_hd(")
+}
+
 /// Parse a descriptor the KasKold signer can co-sign.
 pub fn parse_multisig_descriptor(
     data: &[u8],

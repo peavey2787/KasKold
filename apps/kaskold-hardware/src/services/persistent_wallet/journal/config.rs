@@ -13,11 +13,9 @@ use super::{
     flash, is_newer, AlignedBytes, ConfigHeader, DeviceFlags, DeviceFlash, DevicePreferences, FlashError, SdAnchor,
     StorageMode, WalletActivationRecord, WalletActivationRecords, WalletLabels, CONFIG_DIGEST_END, CONFIG_DIGEST_START,
     CONFIG_MAGIC, CONFIG_SIZE, CONFIG_VERSION, DEVICE_FLAGS_OFFSET, DEVICE_PREFERENCES_OFFSET, DIM_TIMEOUT_OFFSET,
-    LEGACY_CONFIG_DIGEST_END, LEGACY_CONFIG_DIGEST_START, LEGACY_CONFIG_SIZE, MULTISIG_DESCRIPTOR_BYTES,
-    MULTISIG_DESCRIPTOR_END, MULTISIG_DESCRIPTOR_ENTRY_SIZE, MULTISIG_DESCRIPTOR_OFFSET, UNLOCK_FAILURES_OFFSET,
-    V5_COMPAT_VERSION, V6_COMPAT_VERSION, V6_CONFIG_DIGEST_END, V6_CONFIG_DIGEST_START, V7_COMPAT_VERSION,
-    V7_CONFIG_DIGEST_END, V7_CONFIG_DIGEST_START, WALLET_ACTIVATION_END, WALLET_ACTIVATION_OFFSET,
-    WALLET_ACTIVATION_RECORD_SIZE, WALLET_LABELS_END, WALLET_LABELS_OFFSET, WALLET_LABEL_RECORD_SIZE,
+    MULTISIG_DESCRIPTOR_BYTES, MULTISIG_DESCRIPTOR_END, MULTISIG_DESCRIPTOR_ENTRY_SIZE, MULTISIG_DESCRIPTOR_OFFSET,
+    UNLOCK_FAILURES_OFFSET, WALLET_ACTIVATION_OFFSET, WALLET_ACTIVATION_RECORD_SIZE, WALLET_LABELS_END,
+    WALLET_LABELS_OFFSET, WALLET_LABEL_RECORD_SIZE,
 };
 
 pub(in crate::services::persistent_wallet) fn read_mode(
@@ -178,10 +176,7 @@ pub(super) fn encode_wallet_labels(labels: WalletLabels, out: &mut [u8; CONFIG_S
     }
 }
 
-pub(super) fn decode_wallet_labels(record: &[u8; CONFIG_SIZE], version: u8) -> Option<WalletLabels> {
-    if !matches!(version, CONFIG_VERSION | V7_COMPAT_VERSION) {
-        return Some(WalletLabels::empty());
-    }
+pub(super) fn decode_wallet_labels(record: &[u8; CONFIG_SIZE]) -> Option<WalletLabels> {
     let mut labels = WalletLabels::empty();
     for index in 0..MAX_SLOTS {
         let base = WALLET_LABELS_OFFSET + index * WALLET_LABEL_RECORD_SIZE;
@@ -212,10 +207,7 @@ pub(super) fn encode_wallet_activation(records: WalletActivationRecords, out: &m
     }
 }
 
-pub(super) fn decode_wallet_activation(record: &[u8; CONFIG_SIZE], version: u8) -> Option<WalletActivationRecords> {
-    if version != CONFIG_VERSION {
-        return Some(WalletActivationRecords::empty());
-    }
+pub(super) fn decode_wallet_activation(record: &[u8; CONFIG_SIZE]) -> Option<WalletActivationRecords> {
     let mut records = WalletActivationRecords::empty();
     for index in 0..MAX_SLOTS {
         let base = WALLET_ACTIVATION_OFFSET + index * WALLET_ACTIVATION_RECORD_SIZE;
@@ -259,10 +251,7 @@ pub(in crate::services::persistent_wallet) fn write_multisig_store(
 pub(super) fn read_config(device: &mut DeviceFlash<'_>, address: u32) -> Result<Option<ConfigHeader>, FlashError> {
     let mut record = AlignedBytes::<CONFIG_SIZE>::zeroed();
     device.read(address, &mut record)?;
-    if record.0[..8] != CONFIG_MAGIC {
-        return Ok(None);
-    }
-    if !matches!(record.0[8], CONFIG_VERSION | V7_COMPAT_VERSION | V6_COMPAT_VERSION | V5_COMPAT_VERSION) {
+    if record.0[..8] != CONFIG_MAGIC || record.0[8] != CONFIG_VERSION {
         return Ok(None);
     }
     read_current_config(&record.0)
@@ -277,7 +266,6 @@ pub(super) fn has_unknown_bits(value: u8, known_mask: u8) -> bool {
 }
 
 pub(super) fn read_current_config(record: &[u8; CONFIG_SIZE]) -> Result<Option<ConfigHeader>, FlashError> {
-    let version = record[8];
     let mode = if record[9] == 0 { None } else { StorageMode::from_byte(record[9]) };
     if record[9] != 0 && mode.is_none() {
         return Ok(None);
@@ -287,23 +275,21 @@ pub(super) fn read_current_config(record: &[u8; CONFIG_SIZE]) -> Result<Option<C
         return Ok(None);
     }
 
-    let Some((digest_start, digest_end, device_preferences)) = config_preferences(record, version) else {
+    let Some(device_preferences) = decode_preferences(record) else {
         return Ok(None);
     };
-    if !config_digest_valid(record, version, digest_start, digest_end) {
+    if !config_digest_valid(record) {
         return Ok(None);
     }
-    let Some(wallet_labels) = decode_wallet_labels(record, version) else {
+    let Some(wallet_labels) = decode_wallet_labels(record) else {
         return Ok(None);
     };
-    let Some(wallet_activation) = decode_wallet_activation(record, version) else {
+    let Some(wallet_activation) = decode_wallet_activation(record) else {
         return Ok(None);
     };
     let mut multisig_descriptors = [0u8; MULTISIG_DESCRIPTOR_BYTES];
-    if version == CONFIG_VERSION {
-        multisig_descriptors.copy_from_slice(&record[MULTISIG_DESCRIPTOR_OFFSET..MULTISIG_DESCRIPTOR_END]);
-    }
-    let unlock_failures = if version == CONFIG_VERSION { record[UNLOCK_FAILURES_OFFSET] } else { 0 };
+    multisig_descriptors.copy_from_slice(&record[MULTISIG_DESCRIPTOR_OFFSET..MULTISIG_DESCRIPTOR_END]);
+    let unlock_failures = record[UNLOCK_FAILURES_OFFSET];
     if unlock_failures > MAX_UNLOCK_FAILURES {
         return Ok(None);
     }
@@ -311,7 +297,7 @@ pub(super) fn read_current_config(record: &[u8; CONFIG_SIZE]) -> Result<Option<C
     let sd_anchor = if mode == Some(StorageMode::SdCard) {
         decode_sd_anchor(record)?
     } else {
-        if !empty_config_body_valid(record, version, digest_start) {
+        if !empty_config_body_valid(record) {
             return Ok(None);
         }
         None
@@ -329,65 +315,34 @@ pub(super) fn read_current_config(record: &[u8; CONFIG_SIZE]) -> Result<Option<C
     }))
 }
 
-pub(super) fn config_preferences(record: &[u8; CONFIG_SIZE], version: u8) -> Option<(usize, usize, DevicePreferences)> {
-    if matches!(version, CONFIG_VERSION | V7_COMPAT_VERSION | V6_COMPAT_VERSION) {
-        let preferences = DevicePreferences {
-            flags: record[DEVICE_PREFERENCES_OFFSET],
-            dim_timeout_code: record[DIM_TIMEOUT_OFFSET],
-        };
-        if preferences.flags & !DevicePreferences::KNOWN_MASK != 0
-            || preferences.dim_timeout_code > 4
-            || !preferences.wallet_network_code_valid()
-        {
-            return None;
-        }
-        let digest = match version {
-            CONFIG_VERSION => (CONFIG_DIGEST_START, CONFIG_DIGEST_END),
-            V7_COMPAT_VERSION => (V7_CONFIG_DIGEST_START, V7_CONFIG_DIGEST_END),
-            _ => (V6_CONFIG_DIGEST_START, V6_CONFIG_DIGEST_END),
-        };
-        return Some((digest.0, digest.1, preferences));
-    }
-    Some((LEGACY_CONFIG_DIGEST_START, LEGACY_CONFIG_DIGEST_END, DevicePreferences::default()))
+pub(super) fn decode_preferences(record: &[u8; CONFIG_SIZE]) -> Option<DevicePreferences> {
+    let preferences =
+        DevicePreferences { flags: record[DEVICE_PREFERENCES_OFFSET], dim_timeout_code: record[DIM_TIMEOUT_OFFSET] };
+    let valid = preferences.flags & !DevicePreferences::KNOWN_MASK == 0
+        && preferences.dim_timeout_code <= 4
+        && preferences.wallet_network_code_valid();
+    valid.then_some(preferences)
 }
 
-pub(super) fn config_digest_valid(
-    record: &[u8; CONFIG_SIZE],
-    version: u8,
-    digest_start: usize,
-    digest_end: usize,
-) -> bool {
-    let digest = Sha256::digest(&record[..digest_start]);
-    let tail_end = if version == CONFIG_VERSION {
-        CONFIG_SIZE
-    } else if version == V7_COMPAT_VERSION {
-        512
-    } else {
-        LEGACY_CONFIG_SIZE
-    };
-    digest[..] == record[digest_start..digest_end] && record[digest_end..tail_end].iter().all(|byte| *byte == 0)
+pub(super) fn config_digest_valid(record: &[u8; CONFIG_SIZE]) -> bool {
+    let digest = Sha256::digest(&record[..CONFIG_DIGEST_START]);
+    digest[..] == record[CONFIG_DIGEST_START..CONFIG_DIGEST_END]
 }
 
-pub(super) fn empty_config_body_valid(record: &[u8; CONFIG_SIZE], version: u8, digest_start: usize) -> bool {
-    if record[10] != 0
-        || record[11] != 0
-        || record[16..DEVICE_FLAGS_OFFSET].iter().any(|byte| *byte != 0)
-        || record[DEVICE_FLAGS_OFFSET + 1..DEVICE_PREFERENCES_OFFSET].iter().any(|byte| *byte != 0)
-    {
-        return false;
-    }
-    if version == CONFIG_VERSION {
-        return record[UNLOCK_FAILURES_OFFSET + 1..WALLET_LABELS_OFFSET].iter().all(|byte| *byte == 0)
-            && record[WALLET_LABELS_END..WALLET_ACTIVATION_OFFSET].iter().all(|byte| *byte == 0)
-            && record[WALLET_ACTIVATION_END..CONFIG_DIGEST_START].iter().all(|byte| *byte == 0);
-    }
-    if version == V7_COMPAT_VERSION {
-        return record[90..WALLET_LABELS_OFFSET].iter().all(|byte| *byte == 0)
-            && record[WALLET_LABELS_END..V7_CONFIG_DIGEST_START].iter().all(|byte| *byte == 0);
-    }
-    record[DEVICE_PREFERENCES_OFFSET + usize::from(version == V6_COMPAT_VERSION) * 2..digest_start]
-        .iter()
-        .all(|byte| *byte == 0)
+/// Without an SD anchor, every byte no field owns must be zero. The labels,
+/// activation records and multisig descriptors are real fields in every mode.
+pub(super) fn empty_config_body_valid(record: &[u8; CONFIG_SIZE]) -> bool {
+    record[10] == 0
+        && record[11] == 0
+        && all_zero(&record[16..DEVICE_FLAGS_OFFSET])
+        && all_zero(&record[DEVICE_FLAGS_OFFSET + 1..DEVICE_PREFERENCES_OFFSET])
+        && all_zero(&record[UNLOCK_FAILURES_OFFSET + 1..WALLET_LABELS_OFFSET])
+        && all_zero(&record[WALLET_LABELS_END..WALLET_ACTIVATION_OFFSET])
+        && all_zero(&record[MULTISIG_DESCRIPTOR_END..CONFIG_DIGEST_START])
+}
+
+fn all_zero(bytes: &[u8]) -> bool {
+    bytes.iter().all(|byte| *byte == 0)
 }
 
 pub(super) fn current_config(device: &mut DeviceFlash<'_>) -> Result<Option<ConfigHeader>, FlashError> {

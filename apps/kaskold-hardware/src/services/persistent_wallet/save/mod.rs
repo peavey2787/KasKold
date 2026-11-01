@@ -105,9 +105,8 @@ impl PersistentWallet<'_> {
         self.credential_kdf = kdf::CredentialKdf::current();
         self.mode = Some(StorageMode::SaveWallet);
 
-        // v1/v2 password-only or device-only journal records are intentionally
-        // incompatible. Erase both wallet slots before creating the first v3
-        // device-bound record so no weaker ciphertext remains recoverable.
+        // Erase both wallet slots before the first device-bound record so no
+        // ciphertext under a previous credential remains recoverable.
         journal::erase_wallet(&mut self.flash)?;
         progress(88);
         if let Err(error) = self.save_flash_snapshot(manager) {

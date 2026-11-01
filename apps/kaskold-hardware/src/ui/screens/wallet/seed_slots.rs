@@ -139,9 +139,7 @@ fn draw_seed_slot_identity(
     }
     draw_lato_title(display, label.as_str(), SEED_CARD_START_X + 12, row_y + 20, text);
 
-    // The canonical WALLETS card always exposes the wallet material type. For
-    // mnemonic wallets this is the familiar 12w/24w cue from the retired seed
-    // picker, without retaining any legacy destructive row affordance.
+    // The WALLETS card always shows the wallet material type (12w/24w for mnemonics).
     draw_lato_hint(display, slot.source.display_label(), SEED_CARD_START_X + 12, row_y + 35, COLOR_TEXT_DIM);
     if slot.is_mnemonic() && slot.passphrase_len > 0 {
         draw_lato_hint(display, "Pass", SEED_CARD_START_X + 54, row_y + 35, COLOR_ORANGE);

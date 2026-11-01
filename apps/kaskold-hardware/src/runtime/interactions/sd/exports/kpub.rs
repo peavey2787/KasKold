@@ -81,7 +81,7 @@ fn handle_import_payload(
 }
 
 fn is_encrypted(payload: &[u8]) -> bool {
-    payload.starts_with(b"KAS\x04") || payload.starts_with(b"KAS\x03")
+    payload.starts_with(&offline_signer::crypto::container_framing::TRANSPORT_CURRENT_MAGIC)
 }
 
 fn stage_encrypted_import(ad: &mut AppData, payload: &[u8], kind: TextFileKind) {

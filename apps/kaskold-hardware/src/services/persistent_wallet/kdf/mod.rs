@@ -1,7 +1,7 @@
 //! Argon2id password KDF for persistent-wallet credentials.
 //!
-//! KasKold has no pre-production PBKDF2 compatibility reader. Persisted wallet
-//! records authenticate explicit Argon2id parameters and unsupported formats fail closed.
+//! Persisted wallet records authenticate explicit Argon2id parameters and
+//! unsupported formats fail closed.
 
 use crate::services::credential_policy::SALT_SIZE;
 use offline_signer::crypto::password_kdf::{self, PasswordKdfParams, PasswordKdfPurpose};

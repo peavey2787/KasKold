@@ -1,7 +1,7 @@
 use std::vec;
 
 use crate::qr::classification::{
-    classify_qr_payload, decode_hex, is_covenant_hex, is_seed_backup_candidate, HexError,
+    classify_qr_payload, decode_hex, is_covenant_hex, HexError,
     QrPayloadKind,
 };
 
@@ -86,28 +86,6 @@ fn hex_decoder_supports_both_cases_and_reports_every_error() {
         decode_hex(b"0011", &mut output[..1]),
         Err(HexError::OutputTooSmall)
     );
-}
-
-#[test]
-fn seed_backup_detection_covers_current_legacy_and_plain_formats() {
-    let mut seed = [0u8; 57];
-    seed[..4].copy_from_slice(b"KAS\x01");
-    assert!(is_seed_backup_candidate(&seed, seed.len()));
-
-    let mut xprv_encrypted = [0u8; 40];
-    xprv_encrypted[..4].copy_from_slice(b"KAX\x02");
-    assert!(is_seed_backup_candidate(
-        &xprv_encrypted,
-        xprv_encrypted.len()
-    ));
-
-    let mut xprv_plain = [b'x'; 100];
-    xprv_plain[..4].copy_from_slice(b"xprv");
-    assert!(is_seed_backup_candidate(&xprv_plain, xprv_plain.len()));
-
-    let key = [b'a'; 64];
-    assert!(is_seed_backup_candidate(&key, key.len()));
-    assert!(!is_seed_backup_candidate(b"not a backup", usize::MAX));
 }
 
 #[test]
@@ -245,39 +223,4 @@ fn hex_decoder_covers_low_nibble_failure_and_empty_input() {
     assert_eq!(decode_hex(b"z0", &mut output), Err(HexError::InvalidDigit));
     let mut empty = [];
     assert_eq!(decode_hex(b"", &mut empty), Ok(0));
-}
-
-#[test]
-fn seed_backup_detection_covers_alternate_headers_and_range_edges() {
-    let mut kas_v2 = [0u8; 40];
-    kas_v2[..4].copy_from_slice(b"KAS\x02");
-    assert!(is_seed_backup_candidate(&kas_v2, kas_v2.len()));
-
-    let mut wrong_seed = [0u8; 57];
-    wrong_seed[..4].copy_from_slice(b"NOPE");
-    assert!(!is_seed_backup_candidate(&wrong_seed, wrong_seed.len()));
-
-    let mut wrong_xprv = [0u8; 40];
-    wrong_xprv[..4].copy_from_slice(b"NOPE");
-    assert!(!is_seed_backup_candidate(&wrong_xprv, wrong_xprv.len()));
-
-    let mut short_plain_xprv = [b'x'; 99];
-    short_plain_xprv[..4].copy_from_slice(b"xprv");
-    assert!(!is_seed_backup_candidate(
-        &short_plain_xprv,
-        short_plain_xprv.len()
-    ));
-
-    let hex_65 = [b'a'; 65];
-    let hex_66 = [b'F'; 66];
-    assert!(is_seed_backup_candidate(&hex_65, hex_65.len()));
-    assert!(is_seed_backup_candidate(&hex_66, hex_66.len()));
-
-    let mut bad_hex = [b'a'; 64];
-    bad_hex[63] = b'g';
-    assert!(!is_seed_backup_candidate(&bad_hex, bad_hex.len()));
-
-    // Declared size, rather than backing-buffer size, controls recognition.
-    let full_hex = [b'a'; 64];
-    assert!(!is_seed_backup_candidate(&full_hex, 63));
 }

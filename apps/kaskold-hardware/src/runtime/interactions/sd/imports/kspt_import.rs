@@ -8,9 +8,10 @@ use crate::runtime::{
     data::{AppData, EncryptedFileOperation, EncryptedPayloadKind},
     input::AppState,
 };
+use kaskold_protocol::wire::multisig_descriptor::looks_like_descriptor;
+use offline_signer::crypto::container_framing::TRANSPORT_CURRENT_MAGIC;
 
 const MAX_IMPORT_BYTES: usize = 1_024;
-const ENCRYPTED_HEADERS: [&[u8; 4]; 2] = [b"KAS\x04", b"KAS\x03"];
 
 pub(crate) fn handle_sd_kspt_file_list(context: SdFileListContext<'_, '_, '_>) -> bool {
     run_sd_file_list_context(
@@ -34,7 +35,7 @@ fn import_selected_payload(
     let _ = &mut *i2c;
     boot_display.draw_loading_screen("Loading TX...");
     match read_selected_payload(ad, delay, i2c) {
-        Ok((payload, length)) if ENCRYPTED_HEADERS.iter().any(|header| payload[..length].starts_with(*header)) => {
+        Ok((payload, length)) if payload[..length].starts_with(&TRANSPORT_CURRENT_MAGIC) => {
             stage_encrypted_payload(ad, &payload[..length]);
         }
         Ok((payload, length)) => {
@@ -89,7 +90,7 @@ fn load_plain_payload(
     ad.signing.transaction.signatures_required = 0;
     log!("[SD-KSPT] Loaded {} bytes from SD", payload.len());
 
-    if payload.starts_with(b"multi_hd45(") || payload.starts_with(b"multi_hd(") {
+    if looks_like_descriptor(payload) {
         load_descriptor(ad, boot_display, delay, liveness, payload);
     } else if payload.starts_with(b"kaspa:") || payload.starts_with(b"kaspatest:") {
         load_multisig_address(ad, boot_display, delay, payload);
@@ -144,13 +145,9 @@ pub(crate) fn workflow_import_transaction_payload(
     delay: &mut esp_hal::delay::Delay,
     payload: &[u8],
 ) {
-    if ENCRYPTED_HEADERS.iter().any(|header| payload.starts_with(*header)) {
+    if payload.starts_with(&TRANSPORT_CURRENT_MAGIC) {
         stage_encrypted_payload(ad, payload);
-    } else if payload.starts_with(b"multi_hd45(")
-        || payload.starts_with(b"multi_hd(")
-        || payload.starts_with(b"kaspa:")
-        || payload.starts_with(b"kaspatest:")
-    {
+    } else if looks_like_descriptor(payload) || payload.starts_with(b"kaspa:") || payload.starts_with(b"kaspatest:") {
         load_plain_payload(ad, boot_display, delay, &mut || {}, payload);
     } else if payload.starts_with(kaskold_protocol::wire::pskt_envelope::PSKT_MAGIC) {
         crate::runtime::interactions::tx::workflow_load_standard_transaction(payload, ad);

@@ -1,10 +1,9 @@
-//! Multisig descriptor QR import (`multi_hd45` and legacy `multi_hd`).
+//! Multisig descriptor QR import.
 
 use super::super::{sound, AppData};
 
 pub(super) fn matches(data: &[u8], len: usize) -> bool {
-    let payload = &data[..len.min(data.len())];
-    payload.starts_with(b"multi_hd45(") || payload.starts_with(b"multi_hd(")
+    kaskold_protocol::wire::multisig_descriptor::looks_like_descriptor(&data[..len.min(data.len())])
 }
 
 pub(super) fn process(data: &[u8], len: usize, ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Sized)) {

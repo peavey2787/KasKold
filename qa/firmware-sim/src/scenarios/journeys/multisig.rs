@@ -2,7 +2,7 @@
 use super::known::{self, ABOUT_WORDS, LEGAL_WORDS, PIN, TWENTY_FOUR_WORDS};
 use super::signing::read_every_frame;
 use super::walk::{self, restore_the_known_wallet};
-use crate::harness::{discard_board, hold_up_qr, lower_qr, note, recall, Device};
+use crate::harness::{app_state, discard_board, hold_up_qr, lower_qr, note, recall, Device};
 use kaskold_protocol::wire::qr_payload::unwrap_v1_raw;
 use kaspa_portal::crypto::schnorr::{schnorr_verify, SchnorrSignature};
 use kaspa_portal::primitives::address::script_to_p2sh_address;
@@ -26,12 +26,23 @@ const SAVE_NO_TAP: (u16, u16) = (225, 160);
 /// The about wallet sorts second of the three cosigners, so its addresses use branch 1.
 const ABOUT_COSIGNER_BRANCH: u32 = 1;
 const PARTIAL_NOTE: &str = "partially-signed";
+const WRONG_PIN: &str = "111111";
+const WRONG_PIN_BACKOFF: core::time::Duration = core::time::Duration::from_secs(60);
 
 journey!(
     two_devices_complete_a_two_of_three_spend:
     restore_the_known_wallet,
     create_the_shared_wallet_and_sign_first,
     sign_second_on_another_device,
+);
+
+journey!(
+    a_saved_shared_wallet_signs_after_a_power_cycle:
+    restore_the_known_wallet,
+    save_the_shared_wallet,
+    sign_with_the_saved_shared_wallet,
+    write_the_device_record_again,
+    the_saved_shared_wallet_is_still_there,
 );
 
 fn cosigner_words() -> [&'static [&'static str]; 3] {
@@ -202,6 +213,54 @@ fn create_the_shared_wallet_and_sign_first() {
     let signed = scan_and_sign(&device, &shared_transaction());
     expect_signed_by(&signed, &[ABOUT_WORDS]);
     discard_board();
+}
+
+fn save_the_shared_wallet() {
+    let device = Device::boot();
+    walk::unlock_with_pin(&device, PIN);
+    open_multisig_menu(&device);
+    let own_key = read_own_key(&device, ABOUT_WORDS);
+    add_all_cosigners(&device, &own_key);
+    save_the_descriptor(&device);
+}
+
+fn expect_the_shared_wallet_saved() {
+    let saved = app_state()
+        .signing
+        .multisig
+        .store
+        .configs
+        .iter()
+        .filter(|config| config.active)
+        .count();
+    assert_eq!(saved, 1, "the saved shared wallet did not come back");
+}
+
+fn sign_with_the_saved_shared_wallet() {
+    let device = Device::boot();
+    walk::unlock_with_pin(&device, PIN);
+    expect_the_shared_wallet_saved();
+    let signed = scan_and_sign(&device, &shared_transaction());
+    expect_signed_by(&signed, &[ABOUT_WORDS]);
+}
+
+/// A wrong PIN rewrites the device record, which must carry the saved wallet forward.
+fn write_the_device_record_again() {
+    let device = Device::boot();
+    device.expect_text("UNLOCK PIN");
+    device.enter_pin(WRONG_PIN);
+    device.settle();
+    device.expect_text("Invalid PIN");
+    device.let_time_pass(WRONG_PIN_BACKOFF);
+    device.enter_pin(PIN);
+    device.expect_text("Scan QR");
+    expect_the_shared_wallet_saved();
+}
+
+fn the_saved_shared_wallet_is_still_there() {
+    let device = Device::boot();
+    walk::unlock_with_pin(&device, PIN);
+    expect_the_shared_wallet_saved();
 }
 
 fn sign_second_on_another_device() {

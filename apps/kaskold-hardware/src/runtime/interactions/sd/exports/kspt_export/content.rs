@@ -4,6 +4,7 @@ use crate::runtime::{
     data::{EncryptedPayloadKind, TextFileKind},
     navigation::ContinuationRoute,
 };
+use kaskold_protocol::wire::multisig_descriptor::looks_like_descriptor;
 
 pub(super) fn route(
     ad: &mut AppData,
@@ -35,7 +36,7 @@ fn route_transaction_import(
     liveness: &mut dyn FnMut(),
     plaintext: &[u8],
 ) {
-    if is_descriptor(plaintext) {
+    if looks_like_descriptor(plaintext) {
         load_descriptor_only(
             ad,
             boot_display,
@@ -68,7 +69,7 @@ fn load_descriptor_only(
     plaintext: &[u8],
     failure_state: ContinuationRoute,
 ) {
-    if !is_descriptor(plaintext) {
+    if !looks_like_descriptor(plaintext) {
         failure(ad, boot_display, delay, "Not a descriptor", failure_state);
         return;
     }
@@ -130,10 +131,6 @@ fn store_address(ad: &mut AppData, plaintext: &[u8]) {
     ad.export.kpub_data[..plaintext.len()].copy_from_slice(plaintext);
     ad.export.kpub_len = plaintext.len();
     ad.signing.multisig.creating.active = false;
-}
-
-fn is_descriptor(plaintext: &[u8]) -> bool {
-    plaintext.starts_with(b"multi_hd45(") || plaintext.starts_with(b"multi_hd(")
 }
 
 fn is_address(plaintext: &[u8]) -> bool {
