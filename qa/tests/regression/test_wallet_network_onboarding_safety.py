@@ -18,7 +18,6 @@ class WalletNetworkOnboardingSafetyTests(unittest.TestCase):
         routes = read("apps/kaskold-hardware/src/runtime/interactions/menu/primary/production.rs")
         network = read("apps/kaskold-hardware/src/wallet/seed_manager/network.rs")
         preferences = read("apps/kaskold-hardware/src/services/persistent_wallet/journal/preferences.rs")
-        codec = read("apps/kaskold-hardware/src/services/persistent_wallet/codec.rs")
 
         self.assertIn('"Network",', production)
         for label in ("Mainnet", "Testnet-12", "Testnet-10"):
@@ -30,14 +29,6 @@ class WalletNetworkOnboardingSafetyTests(unittest.TestCase):
         self.assertIn("const NETWORK_SHIFT: u8 = 2", preferences)
         self.assertIn("with_wallet_network", preferences)
         self.assertIn("with_wallet_network(ad.wallet.seeds.seed_mgr.network())", read("apps/kaskold-hardware/src/services/persistent_wallet/device/preferences.rs"))
-        # The same authenticated high nibble also includes per-wallet
-        # protection while preserving old network-only tags 0..2 as LegacyStore.
-        self.assertIn("const SLOT_TAG_SHIFT: u8 = 4", codec)
-        self.assertIn("network.slot_tag() + NETWORK_COUNT * protection.slot_code()", codec)
-        self.assertIn("let tag = value >> SLOT_TAG_SHIFT", codec)
-        self.assertIn("tag % NETWORK_COUNT", codec)
-        self.assertIn("tag / NETWORK_COUNT", codec)
-        # Old records stored source values 1..4 with a zero high nibble, which maps to Mainnet.
         self.assertIn("0 => Some(Self::Mainnet)", network)
 
     def test_network_switch_clears_active_context_and_signing_uses_visible_active_slot(self):

@@ -1,5 +1,7 @@
 //! Canonical binary encoding for the complete in-RAM wallet slot set.
 
+use kaskold_hardware_core::storage::slot_header::{self, SlotHeader, SlotHeaderError};
+
 use crate::wallet::seed_manager::{SeedManager, WalletNetwork, WalletProtection, WalletSource, MAX_SLOTS};
 
 pub(super) const SLOT_SIZE: usize = 122;
@@ -180,10 +182,6 @@ fn valid_private_key(indices: &[u16; 24]) -> bool {
     valid
 }
 
-const SOURCE_MASK: u8 = 0x0f;
-const SLOT_TAG_SHIFT: u8 = 4;
-const NETWORK_COUNT: u8 = 3;
-
 const fn source_byte(source: WalletSource) -> u8 {
     match source {
         WalletSource::Empty => 0,
@@ -206,24 +204,20 @@ const fn source_from_byte(value: u8) -> Option<WalletSource> {
 }
 
 const fn slot_header_byte(source: WalletSource, network: WalletNetwork, protection: WalletProtection) -> u8 {
-    if matches!(source, WalletSource::Empty) {
-        0
-    } else {
-        let tag = network.slot_tag() + NETWORK_COUNT * protection.slot_code();
-        source_byte(source) | (tag << SLOT_TAG_SHIFT)
-    }
+    slot_header::encode(SlotHeader {
+        source: source_byte(source),
+        network: network.slot_tag(),
+        protection: protection.slot_code(),
+    })
 }
 
 fn decode_slot_header(value: u8) -> Result<(WalletSource, WalletNetwork, WalletProtection), CodecError> {
-    let source = source_from_byte(value & SOURCE_MASK).ok_or(CodecError::Source)?;
-    if source == WalletSource::Empty {
-        if value != 0 {
-            return Err(CodecError::Canonical);
-        }
-        return Ok((source, WalletNetwork::Mainnet, WalletProtection::DeviceOnly));
-    }
-    let tag = value >> SLOT_TAG_SHIFT;
-    let network = WalletNetwork::from_slot_tag(tag % NETWORK_COUNT).ok_or(CodecError::Network)?;
-    let protection = WalletProtection::from_slot_code(tag / NETWORK_COUNT).ok_or(CodecError::Canonical)?;
+    let header = slot_header::decode(value).map_err(|error| match error {
+        SlotHeaderError::Source => CodecError::Source,
+        SlotHeaderError::Canonical => CodecError::Canonical,
+    })?;
+    let source = source_from_byte(header.source).ok_or(CodecError::Source)?;
+    let network = WalletNetwork::from_slot_tag(header.network).ok_or(CodecError::Network)?;
+    let protection = WalletProtection::from_slot_code(header.protection).ok_or(CodecError::Canonical)?;
     Ok((source, network, protection))
 }

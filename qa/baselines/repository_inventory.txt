@@ -2294,6 +2294,7 @@ F	crates/kaskold-hardware-core/src/storage/mod.rs
 F	crates/kaskold-hardware-core/src/storage/payload.rs
 F	crates/kaskold-hardware-core/src/storage/retry.rs
 F	crates/kaskold-hardware-core/src/storage/routing.rs
+F	crates/kaskold-hardware-core/src/storage/slot_header.rs
 F	crates/kaskold-hardware-core/src/time/bm8563.rs
 F	crates/kaskold-hardware-core/src/time/mod.rs
 F	crates/kaskold-hardware-core/src/unit_tests/advanced_policy_tests.rs
@@ -2330,6 +2331,7 @@ F	crates/kaskold-hardware-core/src/unit_tests/mod.rs
 F	crates/kaskold-hardware-core/src/unit_tests/navigation_policy_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/screen_flow_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/security_tests.rs
+F	crates/kaskold-hardware-core/src/unit_tests/slot_header_tests.rs
 F	crates/kaskold-hardware-core/src/unit_tests/stego_picture_tests.rs
 F	crates/kaskold-hardware-core/src/update/attestation.rs
 F	crates/kaskold-hardware-core/src/update/manifest/mod.rs

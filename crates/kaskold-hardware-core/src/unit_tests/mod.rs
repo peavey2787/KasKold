@@ -11,6 +11,7 @@ mod mailbox_tests;
 mod navigation_policy_tests;
 mod screen_flow_tests;
 mod security_tests;
+mod slot_header_tests;
 mod stego_picture_tests;
 
 mod credential_policy_tests;
