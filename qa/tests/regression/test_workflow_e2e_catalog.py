@@ -10,7 +10,9 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "qa/checks"))
+sys.path.insert(0, str(ROOT / "tools/build/firmware"))
 from firmware.source_contract_support import flat  # noqa: E402
+import build_matrix  # noqa: E402
 FW = ROOT / "apps/kaskold-hardware"
 CATALOG = FW / "src/runtime/workflow_tests/catalog"
 STATE = ROOT / "crates/kaskold-hardware-core/src/screen_flow/state.rs"
@@ -89,9 +91,9 @@ class WorkflowE2ECatalogTests(unittest.TestCase):
         policy = (FW / "src/feature_policy.rs").read_text()
         self.assertIn('feature = "workflow-tests"', policy)
         self.assertIn("developer/QA firmware features are forbidden in production/silent builds", policy)
-        matrix = (ROOT / "tools/build/firmware/build_matrix.py").read_text()
-        self.assertIn('FirmwareBuild("m5stack-lite,workflow-tests")', matrix)
-        self.assertIn('FirmwareBuild("m5stack,workflow-tests")', matrix)
+        builds = {build.features for build in build_matrix.FEATURE_MATRIX}
+        self.assertIn("m5stack,workflow-tests", builds)
+        self.assertIn("m5stack-lite,workflow-tests", builds)
 
     def test_catalog_runner_uses_production_navigation_policy_without_preboard_smoke(self) -> None:
         runner = (FW / "src/runtime/workflow_tests/runner.rs").read_text()
@@ -157,16 +159,18 @@ class WorkflowE2ECatalogTests(unittest.TestCase):
         self.assertIn("handle_navigation_touch", receive)
 
     def test_development_menu_and_headless_autorun_are_separate_features(self) -> None:
-        manifest = (FW / "Cargo.toml").read_text()
+        features = tomllib.loads((FW / "Cargo.toml").read_text())["features"]
         main = (FW / "src/main.rs").read_text()
         make_helper = (ROOT / "scripts/common/lib/make_tasks.py").read_text()
         runner = (ROOT / "qa/checks/firmware/run_workflow_tests.py").read_text()
-        self.assertIn('developer-ui = ["kaskold-hardware-core/developer-ui"]', manifest)
-        self.assertIn('workflow-tests = ["developer-ui", "provisioning-ui", "kaskold-hardware-core/workflow-tests"]', manifest)
-        self.assertNotIn('workflow-tests = ["verbose-boot"]', manifest)
-        self.assertIn('workflow-test-auto = ["workflow-tests"]', manifest)
-        self.assertIn('workflow-runtime-auto = ["workflow-test-auto"]', manifest)
-        self.assertIn('workflow-hil-auto = ["workflow-runtime-auto"]', manifest)
+        self.assertEqual(features["developer-ui"], ["kaskold-hardware-core/developer-ui"])
+        self.assertEqual(
+            features["workflow-tests"],
+            ["developer-ui", "provisioning-ui", "kaskold-hardware-core/workflow-tests"],
+        )
+        self.assertEqual(features["workflow-test-auto"], ["workflow-tests"])
+        self.assertEqual(features["workflow-runtime-auto"], ["workflow-test-auto"])
+        self.assertEqual(features["workflow-hil-auto"], ["workflow-runtime-auto"])
         self.assertRegex(main, r'#\[cfg\(feature = "workflow-test-auto"\)\]\s+runtime::workflow_tests::run_boot_gate\(\);')
         self.assertNotIn('#[cfg(feature = "workflow-tests")]\n    let workflow_test_summary = runtime::workflow_tests::run_boot_gate();', main)
         self.assertIn('features = "m5stack,workflow-tests,argon2-bench"', make_helper)

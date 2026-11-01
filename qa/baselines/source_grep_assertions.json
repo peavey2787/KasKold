@@ -80,7 +80,7 @@
   "qa/tests/regression/test_wallet_network_onboarding_safety.py": 99,
   "qa/tests/regression/test_wasm_business_boundary.py": 8,
   "qa/tests/regression/test_workflow_camera_ownership.py": 17,
-  "qa/tests/regression/test_workflow_e2e_catalog.py": 116,
+  "qa/tests/regression/test_workflow_e2e_catalog.py": 110,
   "qa/tests/regression/test_workflow_production_coverage.py": 12,
   "qa/tests/regression/test_workflow_runtime_parity.py": 27,
   "qa/tests/regression/test_workflow_ui_touch_parity.py": 20,
