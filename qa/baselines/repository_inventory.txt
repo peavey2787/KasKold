@@ -2902,6 +2902,7 @@ F	qa/checks/web/check_web_runtime.mjs
 F	qa/checks/web/covenant_sign_protocol.test.mjs
 F	qa/checks/web/network_routing.test.mjs
 F	qa/checks/web/portal_wasm_fakes.mjs
+F	qa/checks/web/real_dom/companion_connection.dom.mjs
 F	qa/checks/web/real_dom/console_gate.dom.mjs
 F	qa/checks/web/real_dom/dom_builder.dom.mjs
 F	qa/checks/web/real_dom/harness.mjs

@@ -25,21 +25,10 @@ LOADING_HTML = ROOT / "apps/kaskold-companion-web/web/html/document/close.html"
 
 
 class CompanionConnectionAndQrImportPolicyTests(unittest.TestCase):
-    def test_balance_reconnect_is_background_and_bounded(self) -> None:
+    def test_supplemental_utxo_history_has_no_tracking_log(self) -> None:
+        # Reconnect, loading overlay, retry bound, and supplemental-history
+        # behaviour are executed by real_dom companion_connection.dom.mjs.
         source = BALANCE.read_text()
-        self.assertNotIn("showLoading('Connecting...')", source)
-        self.assertNotIn("console.error('Balance fetch failed:'", source)
-        self.assertIn("const BALANCE_RECONNECT_ATTEMPTS = 3", source)
-        self.assertIn("isRetryableNodeError", source)
-        self.assertIn("'timeout'", source)
-        self.assertIn("noteReconnectAttempt", source)
-        self.assertIn("showNodeFailureAfterRetries", source)
-        self.assertIn("Last known balance shown", source)
-
-    def test_supplemental_utxo_timeout_does_not_replace_balance(self) -> None:
-        source = BALANCE.read_text()
-        self.assertIn("History tracking is supplemental", source)
-        self.assertIn("setStatus('online', 'Connected');", source)
         self.assertNotIn("UTXO history track:", source)
 
     def test_websocket_error_handler_does_not_read_optional_message(self) -> None:
