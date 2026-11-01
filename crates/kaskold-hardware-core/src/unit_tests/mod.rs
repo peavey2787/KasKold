@@ -9,6 +9,7 @@ mod firmware_storage_tests;
 mod firmware_touch_tests;
 mod mailbox_tests;
 mod navigation_policy_tests;
+mod save_gate_tests;
 mod screen_flow_tests;
 mod security_tests;
 mod slot_header_tests;

@@ -5,6 +5,8 @@ use crate::services::credential_policy::{self, CredentialKind, SALT_SIZE};
 use crate::wallet::seed_manager::SeedManager;
 use offline_signer::crypto::password_kdf::PasswordKdfPurpose;
 
+use kaskold_hardware_core::storage::save_gate::check_save;
+
 impl PersistentWallet<'_> {
     pub(crate) fn prepare_async_save(
         &mut self,
@@ -12,12 +14,7 @@ impl PersistentWallet<'_> {
         secret: &[u8],
         recovery_words_acknowledged: bool,
     ) -> Result<[u8; SALT_SIZE], PersistError> {
-        if !recovery_words_acknowledged {
-            return Err(PersistError::RecoveryAcknowledgementRequired);
-        }
-        if self.mode == Some(StorageMode::SdCard) {
-            return Err(PersistError::AdvancedAlreadyEnabled);
-        }
+        check_save(recovery_words_acknowledged, self.mode == Some(StorageMode::SdCard))?;
         credential_policy::validate(kind, secret)?;
         if self.crypto.available_key_slot().is_none() {
             return Err(PersistError::DeviceKeyMissing);
@@ -82,12 +79,7 @@ impl PersistentWallet<'_> {
         recovery_words_acknowledged: bool,
         progress: &mut dyn FnMut(u8),
     ) -> Result<(), PersistError> {
-        if !recovery_words_acknowledged {
-            return Err(PersistError::RecoveryAcknowledgementRequired);
-        }
-        if self.mode == Some(StorageMode::SdCard) {
-            return Err(PersistError::AdvancedAlreadyEnabled);
-        }
+        check_save(recovery_words_acknowledged, self.mode == Some(StorageMode::SdCard))?;
         credential_policy::validate(kind, secret)?;
         if self.crypto.available_key_slot().is_none() {
             return Err(PersistError::DeviceKeyMissing);
@@ -143,12 +135,7 @@ impl PersistentWallet<'_> {
         recovery_words_acknowledged: bool,
         progress: &mut dyn FnMut(u8),
     ) -> Result<(), PersistError> {
-        if !recovery_words_acknowledged {
-            return Err(PersistError::RecoveryAcknowledgementRequired);
-        }
-        if self.mode == Some(StorageMode::SdCard) {
-            return Err(PersistError::AdvancedAlreadyEnabled);
-        }
+        check_save(recovery_words_acknowledged, self.mode == Some(StorageMode::SdCard))?;
         if self.crypto.available_key_slot().is_none() {
             return Err(PersistError::DeviceKeyMissing);
         }

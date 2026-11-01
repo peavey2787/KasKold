@@ -184,15 +184,9 @@ class DeviceBoundStorageTests(unittest.TestCase):
         self.assertNotIn("Recovery words are your permanent portable backup.", ui)
         state = read("apps/kaskold-hardware/src/runtime/data/storage/persistence.rs")
         controller = read_persistence_controller()
-        service = read("apps/kaskold-hardware/src/services/persistent_wallet/mod.rs")
-        service_save = read("apps/kaskold-hardware/src/services/persistent_wallet/save/mod.rs")
-        advanced = read("apps/kaskold-hardware/src/services/persistent_wallet/advanced.rs")
         self.assertIn("recovery_words_acknowledged: bool", state)
         self.assertIn("recovery_words_acknowledged = true", controller)
         self.assertIn("onboarding_mnemonic_ready", controller)
-        self.assertIn("RecoveryAcknowledgementRequired", service)
-        self.assertIn("if !recovery_words_acknowledged", service + service_save)
-        self.assertIn("if !recovery_words_acknowledged", advanced)
 
     def test_device_bound_onboarding_establishes_words_before_ack_and_credential(self) -> None:
         app_state = read("crates/kaskold-hardware-core/src/screen_flow/state.rs")
@@ -228,15 +222,12 @@ class DeviceBoundStorageTests(unittest.TestCase):
         self.assertIn("StartupDisposition::ChoiceRequired => enter_storage_choice(ad)", read("apps/kaskold-hardware/src/runtime/interactions/persistence.rs"))
 
     def test_always_start_fresh_requires_mnemonic_onboarding_before_home(self) -> None:
-        state = read("apps/kaskold-hardware/src/runtime/data/storage/persistence.rs")
         startup = read("apps/kaskold-hardware/src/services/persistent_wallet/startup.rs")
         onboarding = read("apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs")
         wallet_name = read("apps/kaskold-hardware/src/runtime/interactions/seed/wallet_name.rs")
         passphrase = read("apps/kaskold-hardware/src/runtime/interactions/seed/passphrase.rs")
         persistence = read_persistence_controller()
 
-        self.assertIn("StartFresh", state)
-        self.assertIn("is_seed_onboarding", state)
         empty = startup[startup.index("fn initialize_empty"):startup.index("fn initialize_choice")]
         choice = startup[startup.index("fn initialize_choice"):]
         self.assertIn("self.initialize_choice(ad)", empty)

@@ -406,3 +406,13 @@ impl Drop for PersistentWallet<'_> {
         self.clear_credential();
     }
 }
+
+impl From<kaskold_hardware_core::storage::save_gate::SaveRefusal> for PersistError {
+    fn from(refusal: kaskold_hardware_core::storage::save_gate::SaveRefusal) -> Self {
+        use kaskold_hardware_core::storage::save_gate::SaveRefusal;
+        match refusal {
+            SaveRefusal::RecoveryWordsNotAcknowledged => Self::RecoveryAcknowledgementRequired,
+            SaveRefusal::SdStorageActive => Self::AdvancedAlreadyEnabled,
+        }
+    }
+}

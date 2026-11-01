@@ -5,4 +5,5 @@ pub mod fifo;
 pub mod payload;
 pub mod retry;
 pub mod routing;
+pub mod save_gate;
 pub mod slot_header;

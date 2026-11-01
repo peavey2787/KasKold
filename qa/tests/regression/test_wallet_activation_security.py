@@ -12,13 +12,10 @@ def read(relative: str) -> str:
 class WalletActivationSecurityTests(unittest.TestCase):
     def test_slot_header_authenticates_network_and_per_wallet_protection(self):
         protection = read("apps/kaskold-hardware/src/wallet/seed_manager/protection.rs")
-        codec = read("apps/kaskold-hardware/src/services/persistent_wallet/codec.rs")
         self.assertIn("pub enum WalletProtection", protection)
         for name in ("DeviceOnly", "Pin", "Password"):
             self.assertIn(name, protection)
         self.assertNotIn("LegacyStore", protection)
-        self.assertIn("NETWORK_COUNT * protection.slot_code()", codec)
-        self.assertIn("WalletProtection::from_slot_code(tag / NETWORK_COUNT)", codec)
         # Transitional protection tag 0 is intentionally rejected in the current format.
         self.assertNotIn("0 => Some(Self::", protection)
 

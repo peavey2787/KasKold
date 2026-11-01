@@ -1999,6 +1999,7 @@
     },
     {
       "actions": [
+        "apps/kaskold-hardware/src/runtime/interactions/menu/seed_tools/address.rs::open_kip22",
         "apps/kaskold-hardware/src/runtime/interactions/camera_loop/cycle.rs::handle_m5_outcome",
         "apps/kaskold-hardware/src/runtime/interactions/camera_loop/decoder.rs::handle_decode_result",
         "apps/kaskold-hardware/src/runtime/interactions/camera_loop/state.rs::leave_screen",
@@ -2221,6 +2222,7 @@
       ],
       "level": "qa",
       "menu_items": [
+        "Hidden Key Addr",
         "About",
         "Address",
         "Advanced",

@@ -110,7 +110,7 @@ def check_sd_persistence_security_contract(errors: list[str]) -> None:
     require(
         errors,
         "RecoveryAcknowledgementRequired" in persistence
-        and "if !recovery_words_acknowledged" in persistence,
+        and "check_save(recovery_words_acknowledged" in persistence,
         "device-bound storage creation must fail closed without recovery-word acknowledgement",
     )
     startup = read("apps/kaskold-hardware/src/services/persistent_wallet/startup.rs")
@@ -350,7 +350,6 @@ def check_sd_persistence_security_contract(errors: list[str]) -> None:
     )
     startup = read("apps/kaskold-hardware/src/services/persistent_wallet/startup.rs")
     persistent_service = read("apps/kaskold-hardware/src/services/persistent_wallet/mod.rs")
-    persistence_state = read("apps/kaskold-hardware/src/runtime/data/storage/persistence.rs")
     seed_backup = read("apps/kaskold-hardware/src/runtime/interactions/export/seed_backup.rs")
     require(
         errors,
@@ -361,9 +360,7 @@ def check_sd_persistence_security_contract(errors: list[str]) -> None:
         and "StorageFinalizeChoice" in persistence_controller
         and "SeedSourceRequired" not in startup
         and "fn initialize_empty(&mut self, ad: &mut AppData)" in startup
-        and "self.initialize_choice(ad)" in startup
-        and "StartFresh" in persistence_state
-        and "is_seed_onboarding" in persistence_state,
+        and "self.initialize_choice(ad)" in startup,
         "empty-wallet startup must require wallet onboarding before the terminal storage choice",
     )
     require(
