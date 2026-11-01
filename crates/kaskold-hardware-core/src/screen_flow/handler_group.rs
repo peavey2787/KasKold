@@ -90,8 +90,8 @@ impl AppState {
             | MultisigSaveAddrAsk | MultisigSaveDescriptorAsk | MultisigDescriptor | MultisigDescriptorList { .. }
             | SignMsgChoice | SignMsgType | SignMsgScan | SignMsgFile | SignMsgPreview | SignMsgResult | SignMsgResultQr
             | CovenantSignReview | CovenantSignOpaqueWarning | CovenantSignOpaqueConfirm
-            | CovenantKeyResult | CovenantKeyResultQr | CovenantSignResult | CovenantSignResultQr
-            | PrivateSwapReview | PrivateSwapKeyResult | PrivateSwapKeyResultQr | PrivateSwapResult | PrivateSwapResultQr
+            | CovenantKeyResult | CovenantSignResult
+            | PrivateSwapReview | PrivateSwapKeyResult | PrivateSwapResult
             | CommitRevealType | CommitRevealPreview | CommitRevealResult | CommitRevealResultQr
             | DecryptSecretScan | DecryptSecretResult | DecryptSecretResultQr
                 => HandlerGroup::Tx,

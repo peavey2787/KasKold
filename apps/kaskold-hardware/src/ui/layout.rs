@@ -48,6 +48,9 @@ pub(crate) const NAV_HEADER_CONTENT_LEFT: i32 = 92;
 
 pub(crate) const HOME_SHORTCUT_ZONE: TouchZone = TouchZone::new(272, 0, 48, 48);
 
+// The room a top header has between Back + Audio and Home.
+pub(crate) const NAV_HEADER_MAX_WIDTH: i32 = HOME_SHORTCUT_ZONE.x as i32 - NAV_HEADER_CONTENT_LEFT;
+
 // Shared geometry for the standard two-button modal. Rendering and touch
 // dispatch consume the same zones so visible Yes/No buttons cannot drift from
 // their hit targets.
@@ -58,12 +61,15 @@ pub(crate) fn is_back_tap(x: u16, y: u16) -> bool {
     BACK_ZONE.contains(x, y)
 }
 
+/// Where a centered top header starts: on the screen center when that clears the
+/// controls, otherwise centered in the room between them.
 pub(crate) fn nav_header_x(centered_x: i32, width: i32) -> i32 {
-    let shifted = centered_x.max(NAV_HEADER_CONTENT_LEFT);
-    if shifted.saturating_add(width) <= 320 {
-        shifted
-    } else {
+    let clears_left = centered_x >= NAV_HEADER_CONTENT_LEFT;
+    let clears_right = centered_x.saturating_add(width) <= HOME_SHORTCUT_ZONE.x as i32;
+    if clears_left && clears_right {
         centered_x
+    } else {
+        NAV_HEADER_CONTENT_LEFT + (NAV_HEADER_MAX_WIDTH - width).max(0) / 2
     }
 }
 

@@ -5,7 +5,7 @@
     "apps/kaskold-hardware/src/runtime/navigation/ui_graph/states.rs",
     "apps/kaskold-hardware/src/runtime/navigation/ui_graph/menus.rs"
   ],
-  "state_count": 176,
+  "state_count": 172,
   "menu_count": 15,
   "menu_item_count": 64,
   "unique_menu_label_count": 58,
@@ -272,7 +272,7 @@
       "state": "CovBackupName",
       "owner": "Storage",
       "kind": "Screen",
-      "entry": "CovenantSignResultQr",
+      "entry": "CovenantSignResult",
       "back": "workflow-specific"
     },
     {
@@ -280,13 +280,6 @@
       "owner": "Signing",
       "kind": "Result",
       "entry": "CovenantSignReview",
-      "back": "workflow-specific"
-    },
-    {
-      "state": "CovenantKeyResultQr",
-      "owner": "Signing",
-      "kind": "Result",
-      "entry": "CovenantKeyResult",
       "back": "workflow-specific"
     },
     {
@@ -308,13 +301,6 @@
       "owner": "Signing",
       "kind": "Result",
       "entry": "CovenantSignOpaqueConfirm",
-      "back": "workflow-specific"
-    },
-    {
-      "state": "CovenantSignResultQr",
-      "owner": "Signing",
-      "kind": "Result",
-      "entry": "CovenantSignResult",
       "back": "workflow-specific"
     },
     {
@@ -570,24 +556,10 @@
       "back": "workflow-specific"
     },
     {
-      "state": "PrivateSwapKeyResultQr",
-      "owner": "Signing",
-      "kind": "Result",
-      "entry": "PrivateSwapKeyResult",
-      "back": "workflow-specific"
-    },
-    {
       "state": "PrivateSwapResult",
       "owner": "Signing",
       "kind": "Result",
-      "entry": "PrivateSwapKeyResultQr",
-      "back": "workflow-specific"
-    },
-    {
-      "state": "PrivateSwapResultQr",
-      "owner": "Signing",
-      "kind": "Result",
-      "entry": "PrivateSwapResult",
+      "entry": "PrivateSwapKeyResult",
       "back": "workflow-specific"
     },
     {

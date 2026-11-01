@@ -18,14 +18,8 @@ pub(super) fn handle(
 ) -> Option<bool> {
     match ad.navigation.app.state {
         AppState::PrivateSwapReview => Some(handle_review(ad, boot_display, delay, liveness, x, y, is_back)),
-        AppState::PrivateSwapKeyResult => Some(handle_key(ad, boot_display, x, y, is_back)),
-        AppState::PrivateSwapKeyResultQr => {
-            Some(close_qr(ad, false, crate::runtime::navigation::route!(PrivateSwapKeyResult)))
-        }
-        AppState::PrivateSwapResult => Some(handle_result(ad, boot_display, x, y, is_back)),
-        AppState::PrivateSwapResultQr => {
-            Some(close_qr(ad, true, crate::runtime::navigation::route!(PrivateSwapResult)))
-        }
+        AppState::PrivateSwapKeyResult => Some(handle_key(ad, boot_display, delay, x, y, is_back)),
+        AppState::PrivateSwapResult => Some(handle_result(ad, boot_display, delay, x, y, is_back)),
         _ => None,
     }
 }
@@ -67,20 +61,33 @@ fn handle_review(
     true
 }
 
-fn handle_key(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, x: u16, y: u16, is_back: bool) -> bool {
+fn handle_key(
+    ad: &mut AppData,
+    boot_display: &mut display::BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    x: u16,
+    y: u16,
+    is_back: bool,
+) -> bool {
     if is_back {
         reset_to_home(ad);
         return true;
     }
     if (178..=224).contains(&y) && (70..=250).contains(&x) {
-        boot_display.draw_qr_fullscreen(&ad.signing.private_swap.response[..ad.signing.private_swap.response_len]);
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(PrivateSwapKeyResultQr));
+        show_response(ad, boot_display, delay, crate::runtime::navigation::continuation!(PrivateSwapKeyResult));
         return true;
     }
     false
 }
 
-fn handle_result(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, x: u16, y: u16, is_back: bool) -> bool {
+fn handle_result(
+    ad: &mut AppData,
+    boot_display: &mut display::BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    x: u16,
+    y: u16,
+    is_back: bool,
+) -> bool {
     if is_back {
         reset_to_home(ad);
         return true;
@@ -93,17 +100,23 @@ fn handle_result(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, 
         return true;
     }
 
-    boot_display.draw_qr_fullscreen(&ad.signing.private_swap.response[..ad.signing.private_swap.response_len]);
-    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(PrivateSwapResultQr));
+    ad.signing.private_swap.nonce_qr_shown = ad.signing.private_swap.phase == PrivateSwapPhase::AwaitingReveal;
+    show_response(ad, boot_display, delay, crate::runtime::navigation::continuation!(PrivateSwapResult));
     true
 }
 
-fn close_qr(ad: &mut AppData, marks_nonce_shown: bool, route: crate::runtime::navigation::UiRoute) -> bool {
-    if marks_nonce_shown && ad.signing.private_swap.phase == PrivateSwapPhase::AwaitingReveal {
-        ad.signing.private_swap.nonce_qr_shown = true;
+/// A response is larger than one QR code, so it leaves through the frame sequence.
+fn show_response(
+    ad: &mut AppData,
+    boot_display: &mut display::BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    close_state: crate::runtime::navigation::ContinuationRoute,
+) {
+    let response = ad.signing.private_swap.response;
+    let shown = &response[..ad.signing.private_swap.response_len];
+    if crate::runtime::qr_presentation::present_payload(ad, shown, close_state).is_err() {
+        show_rejection(boot_display, delay, "Not enough memory", 1800, ErrorSound::Beep);
     }
-    crate::runtime::effects::route(ad, route);
-    true
 }
 
 fn reset_to_home(ad: &mut AppData) {

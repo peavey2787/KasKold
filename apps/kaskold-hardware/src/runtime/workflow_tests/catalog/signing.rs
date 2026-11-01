@@ -95,7 +95,6 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
             CovenantSignOpaqueWarning,
             CovenantSignOpaqueConfirm,
             CovenantSignResult,
-            CovenantSignResultQr,
             CovBackupName,
             MainMenu,
         ],
@@ -106,7 +105,7 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         intent: DeviceStorageIntent::None,
         fixtures: F::SEED.union(F::CAMERA_QR),
         terminal: Ordinary,
-        states: &[ScanQR, CovenantSignReview, CovenantKeyResult, CovenantKeyResultQr, MainMenu],
+        states: &[ScanQR, CovenantSignReview, CovenantKeyResult, MainMenu],
     },
     WorkflowSpec {
         id: "private-swap",
@@ -114,15 +113,7 @@ pub(super) const WORKFLOWS: &[WorkflowSpec] = &[
         intent: DeviceStorageIntent::None,
         fixtures: F::SEED.union(F::CAMERA_QR),
         terminal: Ordinary,
-        states: &[
-            ScanQR,
-            PrivateSwapReview,
-            PrivateSwapKeyResult,
-            PrivateSwapKeyResultQr,
-            PrivateSwapResult,
-            PrivateSwapResultQr,
-            MainMenu,
-        ],
+        states: &[ScanQR, PrivateSwapReview, PrivateSwapKeyResult, PrivateSwapResult, MainMenu],
     },
     WorkflowSpec {
         id: "commit-secret",

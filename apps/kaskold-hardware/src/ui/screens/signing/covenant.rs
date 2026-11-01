@@ -10,7 +10,7 @@ use shared_signer::covenant_sign::KnownScheme;
 impl<'a> BootDisplay<'a> {
     pub fn draw_covenant_sign_review(&mut self, ad: &AppData) {
         let binding = ad.signing.covenant.mode == CovenantSigningMode::BindKnown;
-        self.covenant_header(if binding { "BIND COVENANT KEY" } else { "COVENANT SIGN" });
+        self.covenant_header(if binding { "BIND KEY" } else { "COVENANT SIGN" });
         let scheme = match ad.signing.covenant.scheme {
             KnownScheme::OracleV1 => "ORACLE-V1 VERIFIED",
             KnownScheme::Sha256Preimage => "SHA-256 CONTEXT VERIFIED",
@@ -45,7 +45,7 @@ impl<'a> BootDisplay<'a> {
 
     pub fn draw_covenant_opaque_confirm(&mut self, ad: &AppData) {
         let binding = ad.signing.covenant.mode == CovenantSigningMode::BindOpaque;
-        self.covenant_header(if binding { "CONFIRM KEY BINDING" } else { "CONFIRM OPAQUE SIGN" });
+        self.covenant_header(if binding { "CONFIRM BIND" } else { "CONFIRM SIGN" });
         self.center_body(if binding { "BIND TO EXACT SCRIPT" } else { "UNVERIFIED AUTHORIZATION" }, 54, COLOR_ORANGE);
         if binding {
             self.draw_hex_prefix("KEY INSTANCE", &ad.signing.covenant.key_id, 76);
@@ -79,7 +79,7 @@ impl<'a> BootDisplay<'a> {
         }
         let binding =
             matches!(ad.signing.covenant.mode, CovenantSigningMode::BindKnown | CovenantSigningMode::BindOpaque);
-        self.covenant_header(if binding { "COVENANT KEY BOUND" } else { "COVENANT SIGNED" });
+        self.covenant_header(if binding { "KEY BOUND" } else { "COVENANT SIGNED" });
         let mode = match ad.signing.covenant.mode {
             CovenantSigningMode::Known => "Known context verified",
             CovenantSigningMode::Opaque => "Opaque commitment signed",
@@ -169,9 +169,9 @@ impl<'a> BootDisplay<'a> {
         use crate::runtime::data::PrivateSwapMode;
         let s = &ad.signing.private_swap;
         let (title, action) = match s.mode {
-            PrivateSwapMode::Bind => ("BIND PRIVATE SWAP", "BIND KEY"),
-            PrivateSwapMode::PreSign => ("PRIVATE SWAP CLAIM", "PRE-SIGN"),
-            PrivateSwapMode::Complete => ("COMPLETE SWAP CLAIM", "COMPLETE"),
+            PrivateSwapMode::Bind => ("BIND SWAP KEY", "BIND KEY"),
+            PrivateSwapMode::PreSign => ("SWAP CLAIM", "PRE-SIGN"),
+            PrivateSwapMode::Complete => ("FINISH CLAIM", "COMPLETE"),
             _ => ("PRIVATE SWAP", "CONFIRM"),
         };
         self.covenant_header(title);
@@ -207,7 +207,7 @@ impl<'a> BootDisplay<'a> {
         use crate::runtime::data::{PrivateSwapMode, PrivateSwapPhase};
         let s = &ad.signing.private_swap;
         if s.phase == PrivateSwapPhase::AwaitingReveal {
-            self.covenant_header("SWAP NONCE COMMITTED");
+            self.covenant_header("NONCE COMMITTED");
             self.center_body("Host contribution required", 60, KASPA_TEAL);
             self.draw_hex_prefix("TX SIGHASH", &s.sighash, 92);
             let mut nx = [0u8; 32];
@@ -218,8 +218,8 @@ impl<'a> BootDisplay<'a> {
         }
         let title = match s.mode {
             PrivateSwapMode::Bind => "SWAP KEY BOUND",
-            PrivateSwapMode::PreSign => "ADAPTOR PRE-SIGNED",
-            PrivateSwapMode::Complete => "SWAP CLAIM COMPLETE",
+            PrivateSwapMode::PreSign => "PRE-SIGNED",
+            PrivateSwapMode::Complete => "CLAIM COMPLETE",
             _ => "PRIVATE SWAP",
         };
         self.covenant_header(title);

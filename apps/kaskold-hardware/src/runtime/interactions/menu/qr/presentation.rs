@@ -41,17 +41,17 @@ fn advance_or_close(ad: &mut AppData) {
         crate::runtime::effects::home(ad);
         return;
     }
-    if let Some(target) = ad.qr.outgoing.close_state {
-        ad.qr.outgoing.clear();
-        crate::runtime::effects::continue_to(ad, target);
-        return;
-    }
     if ad.qr.outgoing.manual_frames && ad.qr.outgoing.frame_count > 1 {
         let next = ad.qr.outgoing.frame + 1;
         if next < ad.qr.outgoing.frame_count {
             ad.qr.outgoing.frame = next;
             return;
         }
+    }
+    if let Some(target) = ad.qr.outgoing.close_state {
+        ad.qr.outgoing.clear();
+        crate::runtime::effects::continue_to(ad, target);
+        return;
     }
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ShowQrPopup));
 }

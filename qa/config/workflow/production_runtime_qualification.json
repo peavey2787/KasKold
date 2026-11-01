@@ -153,7 +153,7 @@
   "render_marker_prefix": "KASKOLD_UI_RUNTIME: RENDER ",
   "render_miss_marker_prefix": "KASKOLD_UI_RUNTIME: RENDER-MISS ",
   "schema": 2,
-  "stable_state_count": 176,
+  "stable_state_count": 172,
   "workflow_e2e_physical_render_count": 50,
   "workflow_e2e_physical_render_states": [
     "About",

@@ -16,7 +16,7 @@ use kaskold_hardware_core::time::bm8563::encode_bm8563;
 #[cfg(feature = "production")]
 pub(crate) use app_image::ImageFault;
 pub(crate) use power::{across_power_cycles, discard_board, note, recall};
-pub(crate) use qr::{hold_up_qr, lower_qr, read_qr_on_screen};
+pub(crate) use qr::{hold_up_frames, hold_up_qr, lower_qr, read_qr_on_screen};
 pub(crate) use screen::Screen;
 
 const TEST_SIGNING_KEY: &[u8; 32] =

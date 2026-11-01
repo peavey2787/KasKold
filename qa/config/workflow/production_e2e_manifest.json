@@ -24,8 +24,8 @@
       "connected": 133,
       "hil": 2,
       "manual-hil": 6,
-      "qa": 35,
-      "total": 176
+      "qa": 31,
+      "total": 172
     }
   },
   "definition_of_done_items": {
@@ -6661,11 +6661,9 @@
         "ConfirmTx",
         "CovBackupName",
         "CovenantKeyResult",
-        "CovenantKeyResultQr",
         "CovenantSignOpaqueConfirm",
         "CovenantSignOpaqueWarning",
         "CovenantSignResult",
-        "CovenantSignResultQr",
         "CovenantSignReview",
         "DecryptSecretResult",
         "DecryptSecretResultQr",
@@ -6710,9 +6708,7 @@
         "PopItExplain",
         "PopItPrompt",
         "PrivateSwapKeyResult",
-        "PrivateSwapKeyResultQr",
         "PrivateSwapResult",
-        "PrivateSwapResultQr",
         "PrivateSwapReview",
         "Rejected",
         "RestoreWord",
@@ -10464,16 +10460,6 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "CovenantKeyResultQr": {
-        "baseline": true,
-        "catalog_workflows": [
-          "covenant-key"
-        ],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "CovenantSignOpaqueConfirm": {
         "baseline": true,
         "catalog_workflows": [
@@ -10495,16 +10481,6 @@
         ]
       },
       "CovenantSignResult": {
-        "baseline": true,
-        "catalog_workflows": [
-          "covenant-sign"
-        ],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "CovenantSignResultQr": {
         "baseline": true,
         "catalog_workflows": [
           "covenant-sign"
@@ -11092,27 +11068,7 @@
           "qa-production-exhaustiveness-gate"
         ]
       },
-      "PrivateSwapKeyResultQr": {
-        "baseline": true,
-        "catalog_workflows": [
-          "private-swap"
-        ],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
       "PrivateSwapResult": {
-        "baseline": true,
-        "catalog_workflows": [
-          "private-swap"
-        ],
-        "highest_level": "qa",
-        "implemented_scenarios": [
-          "qa-production-exhaustiveness-gate"
-        ]
-      },
-      "PrivateSwapResultQr": {
         "baseline": true,
         "catalog_workflows": [
           "private-swap"

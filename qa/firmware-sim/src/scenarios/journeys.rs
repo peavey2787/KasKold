@@ -12,6 +12,7 @@ macro_rules! journey {
 
 mod backup;
 mod card_storage;
+mod covenant;
 mod device_bound;
 mod everyday;
 mod first_wallet;

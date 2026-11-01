@@ -22,14 +22,8 @@ pub(super) fn handle(
         AppState::CovenantSignOpaqueConfirm => {
             Some(handle_opaque_confirm(ad, boot_display, delay, liveness, x, y, is_back))
         }
-        AppState::CovenantKeyResult => Some(handle_key_result(ad, boot_display, x, y, is_back)),
-        AppState::CovenantKeyResultQr => {
-            Some(close_qr(ad, false, crate::runtime::navigation::route!(CovenantKeyResult)))
-        }
-        AppState::CovenantSignResult => Some(handle_sign_result(ad, boot_display, x, y, is_back)),
-        AppState::CovenantSignResultQr => {
-            Some(close_qr(ad, true, crate::runtime::navigation::route!(CovenantSignResult)))
-        }
+        AppState::CovenantKeyResult => Some(handle_key_result(ad, boot_display, delay, x, y, is_back)),
+        AppState::CovenantSignResult => Some(handle_sign_result(ad, boot_display, delay, x, y, is_back)),
         _ => None,
     }
 }
@@ -127,6 +121,7 @@ fn sign(
 fn handle_key_result(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
     x: u16,
     y: u16,
     is_back: bool,
@@ -137,8 +132,8 @@ fn handle_key_result(
         return true;
     }
     if (178..=222).contains(&y) && (80..=240).contains(&x) {
-        boot_display.draw_qr_fullscreen(&ad.signing.covenant.response[..ad.signing.covenant.response_len]);
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(CovenantKeyResultQr));
+        show_response(ad, boot_display, delay, crate::runtime::navigation::continuation!(CovenantKeyResult));
+        return true;
     }
     false
 }
@@ -146,6 +141,7 @@ fn handle_key_result(
 fn handle_sign_result(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
     x: u16,
     y: u16,
     is_back: bool,
@@ -162,15 +158,21 @@ fn handle_sign_result(
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ScanQR));
         return true;
     }
-    boot_display.draw_qr_fullscreen(&ad.signing.covenant.response[..ad.signing.covenant.response_len]);
-    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(CovenantSignResultQr));
+    ad.signing.covenant.nonce_qr_shown = ad.signing.covenant.phase == CovenantSigningPhase::AwaitingReveal;
+    show_response(ad, boot_display, delay, crate::runtime::navigation::continuation!(CovenantSignResult));
     true
 }
 
-fn close_qr(ad: &mut AppData, marks_nonce_shown: bool, route: crate::runtime::navigation::UiRoute) -> bool {
-    if marks_nonce_shown && ad.signing.covenant.phase == CovenantSigningPhase::AwaitingReveal {
-        ad.signing.covenant.nonce_qr_shown = true;
+/// A response is larger than one QR code, so it leaves through the frame sequence.
+fn show_response(
+    ad: &mut AppData,
+    boot_display: &mut display::BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    close_state: crate::runtime::navigation::ContinuationRoute,
+) {
+    let response = ad.signing.covenant.response;
+    let shown = &response[..ad.signing.covenant.response_len];
+    if crate::runtime::qr_presentation::present_payload(ad, shown, close_state).is_err() {
+        show_rejection(boot_display, delay, "Not enough memory", 1800, ErrorSound::Beep);
     }
-    crate::runtime::effects::route(ad, route);
-    true
 }

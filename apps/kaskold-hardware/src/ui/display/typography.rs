@@ -174,7 +174,12 @@ pub(crate) fn draw_oswald_header<D: DrawTarget<Color = Rgb565>>(
 ) -> i32 {
     let width = measure_header(text);
     let centered_x = (320 - width) / 2;
-    let x = if y <= 40 && x == centered_x { crate::ui::layout::nav_header_x(centered_x, width) } else { x };
+    let in_nav_rail = y <= 40 && x == centered_x;
+    if in_nav_rail && width > crate::ui::layout::NAV_HEADER_MAX_WIDTH {
+        let narrow = measure_body(text);
+        return draw_lato_body(d, text, crate::ui::layout::nav_header_x((320 - narrow) / 2, narrow), y, color);
+    }
+    let x = if in_nav_rail { crate::ui::layout::nav_header_x(centered_x, width) } else { x };
     prop_fonts::draw_prop_text(
         d,
         text,

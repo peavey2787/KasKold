@@ -1,14 +1,45 @@
 //! QR codes as a person meets them: held up to the lens, or read off the panel.
 use esp_hal::board::{camera, lcd};
+use kaspa_portal::transaction::interchange::qr::frame::{
+    encode_frame, session_id, FRAME_HEADER_LEN,
+};
 use qrcode::{Color, EcLevel, QrCode};
 
 const QUIET_MODULES: usize = 4;
 const WHITE: u8 = 255;
 const BLACK: u8 = 0;
+/// What a phone puts in each frame of an animated QR.
+const FRAME_FRAGMENT: usize = 91;
+const CAPTURES_PER_FRAME: usize = 3;
 
 /// Holds one QR code in front of the camera, as large as the frame allows.
 pub(crate) fn hold_up_qr(payload: &[u8]) {
     camera::show(vec![qr_picture(payload)]);
+}
+
+/// Plays a payload too big for one QR code as its looping frame sequence, as a phone would.
+pub(crate) fn hold_up_frames(payload: &[u8]) {
+    let total = payload.len().div_ceil(FRAME_FRAGMENT);
+    let session = session_id(payload);
+    let pictures: Vec<_> = payload
+        .chunks(FRAME_FRAGMENT)
+        .enumerate()
+        .map(|(index, fragment)| {
+            let mut wire = [0u8; FRAME_FRAGMENT + FRAME_HEADER_LEN];
+            let length = encode_frame(&session, index as u8, total as u8, fragment, &mut wire)
+                .expect("a QR frame");
+            qr_picture(&wire[..length])
+        })
+        .collect();
+    camera::show(held_for_several_captures(pictures));
+}
+
+/// A phone holds each frame for many camera captures, and the firmware does not read every capture.
+fn held_for_several_captures(pictures: Vec<Vec<u8>>) -> Vec<Vec<u8>> {
+    pictures
+        .into_iter()
+        .flat_map(|picture| std::iter::repeat_n(picture, CAPTURES_PER_FRAME))
+        .collect()
 }
 
 /// Takes the QR code away, leaving the sensor looking at nothing in particular.

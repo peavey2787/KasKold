@@ -19,10 +19,6 @@ impl AppState {
                 | Self::ExportXprv
                 | Self::MultisigShowAddressQR
                 | Self::SignMsgResultQr
-                | Self::CovenantKeyResultQr
-                | Self::CovenantSignResultQr
-                | Self::PrivateSwapKeyResultQr
-                | Self::PrivateSwapResultQr
                 | Self::CommitRevealResultQr
                 | Self::DecryptSecretResultQr
         )
