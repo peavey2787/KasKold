@@ -1,6 +1,6 @@
 //! Covenant keys: isolated from the wallet, bound to one script, and only signing with the host's nonce.
 use super::known::{self, PIN};
-use super::signing::read_every_frame;
+use super::signing::read_framed_answer;
 use super::walk::{self, restore_the_known_wallet};
 use crate::harness::{hold_up_frames, hold_up_qr, lower_qr, note, recall, Device};
 use kaspa_portal::crypto::schnorr::{schnorr_verify, SchnorrSignature};
@@ -71,14 +71,10 @@ fn scan_request(device: &Device, request: &CovenantSignRequest<'_>, screen: &str
 }
 
 fn read_response(device: &Device, label: &str, expected: ResponseKind) -> CovenantSignResponse {
-    device.tap(label);
-    device.wait_for_text("QR DISPLAY MODE");
-    device.tap("Manual");
-    let shown = read_every_frame(device);
+    let shown = read_framed_answer(device, label);
     assert_eq!(shown.len(), RESPONSE_LEN, "a whole response is on screen");
     let response = parse_response(&shown).expect("a covenant response");
     assert_eq!(response.kind, expected);
-    device.settle();
     response
 }
 
@@ -116,11 +112,11 @@ fn bind(device: &Device, key: &CovenantSignResponse, script: &[u8]) -> [u8; 32] 
     bound.binding_token
 }
 
-fn hex(bytes: &[u8]) -> String {
+pub(super) fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
-fn unhex(text: &str) -> [u8; 32] {
+pub(super) fn unhex(text: &str) -> [u8; 32] {
     let mut out = [0u8; 32];
     for (index, byte) in out.iter_mut().enumerate() {
         *byte = u8::from_str_radix(&text[index * 2..index * 2 + 2], 16).expect("hex");
@@ -231,7 +227,7 @@ fn sign_a_known_covenant() {
         script: &script,
         context: KNOWN_CONTEXT,
     };
-    scan_request(&device, &bind, "BIND KEY");
+    scan_request(&device, &bind, "BIND COVENANT");
     device.expect_text("SHA-256 CONTEXT VERIFIED");
     device.tap("BIND KEY");
     device.wait_for_text("KEY BOUND");

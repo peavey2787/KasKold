@@ -30,7 +30,7 @@ pub(super) const PIN: &str = "483920";
 pub(super) const PASSWORD: &str = "correct4horse";
 pub(super) const PASSPHRASE: &str = "TREZOR";
 /// The x coordinate of the secp256k1 generator: a valid key this wallet does not own.
-const STRANGER_KEY: [u8; 32] = [
+pub(super) const STRANGER_KEY: [u8; 32] = [
     0x79, 0xBE, 0x66, 0x7E, 0xF9, 0xDC, 0xBB, 0xAC, 0x55, 0xA0, 0x62, 0x95, 0xCE, 0x87, 0x0B, 0x07,
     0x02, 0x9B, 0xFC, 0xDB, 0x2D, 0xCE, 0x28, 0xD9, 0x59, 0xF2, 0x81, 0x5B, 0x16, 0xF8, 0x17, 0x98,
 ];
@@ -84,7 +84,7 @@ pub(super) fn multisig_seed_of(words: &[&str]) -> Seed {
 }
 
 /// A spend of a shared wallet's coins paying a stranger, naming where the signers' keys are.
-pub(super) fn transaction_spending_shared(redeem: &[u8], hint: Ms45Hint) -> Vec<u8> {
+fn transaction_spending_redeem(redeem: &[u8], hint: Ms45Hint) -> Transaction {
     let mut tx = Transaction::try_new().expect("transaction");
     tx.version = 0;
     tx.network = KaspaNetwork::Mainnet;
@@ -105,8 +105,20 @@ pub(super) fn transaction_spending_shared(redeem: &[u8], hint: Ms45Hint) -> Vec<
     script.script[2..34].copy_from_slice(&blake2b_256(redeem));
     script.script[34] = OP_EQUAL;
     script.script_len = 35;
-    tx.outputs[0].value = 99_000_000;
     set_p2pk(&mut tx.outputs[0].script_public_key, STRANGER_KEY);
+    tx
+}
+
+pub(super) fn transaction_spending_shared(redeem: &[u8], hint: Ms45Hint) -> Vec<u8> {
+    let mut tx = transaction_spending_redeem(redeem, hint);
+    tx.outputs[0].value = 99_000_000;
+    serialize_compact_kspt_vec(&tx).expect("serialize")
+}
+
+/// The one-input, one-output claim of a private swap whose covenant pays [`STRANGER_KEY`].
+pub(super) fn transaction_claiming_a_swap(covenant: &[u8]) -> Vec<u8> {
+    let mut tx = transaction_spending_redeem(covenant, Ms45Hint::none());
+    tx.outputs[0].value = 99_999_000;
     serialize_compact_kspt_vec(&tx).expect("serialize")
 }
 
@@ -192,6 +204,13 @@ fn spend(tx: &mut Transaction, index: usize, key: [u8; 32], txid: [u8; 32], amou
     input.sig_op_count = 1;
     input.sighash_type = SigHashType::All.to_byte();
     set_p2pk(&mut input.utxo_entry.script_public_key, key);
+}
+
+pub(super) fn p2pk_script(key: [u8; 32]) -> Vec<u8> {
+    let mut script = vec![0x20];
+    script.extend_from_slice(&key);
+    script.push(0xac);
+    script
 }
 
 fn set_p2pk(script: &mut ScriptPublicKey, key: [u8; 32]) {

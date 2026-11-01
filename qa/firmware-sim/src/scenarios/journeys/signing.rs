@@ -43,6 +43,16 @@ fn sign_by_camera() {
     expect_valid_signature(&signed, 1, known::about_key(true, 0));
 }
 
+/// Asks for an answer too large for one QR code and reads it frame by frame.
+pub(super) fn read_framed_answer(device: &Device, label: &str) -> Vec<u8> {
+    device.tap(label);
+    device.wait_for_text("QR DISPLAY MODE");
+    device.tap("Manual");
+    let shown = read_every_frame(device);
+    device.settle();
+    shown
+}
+
 pub(super) fn read_every_frame(device: &Device) -> Vec<u8> {
     let first = device.wait_for_qr();
     let total = usize::from(parse_frame(&first).expect("a QR frame").total_frames);

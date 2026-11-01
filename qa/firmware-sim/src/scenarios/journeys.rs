@@ -20,6 +20,7 @@ mod known;
 mod multisig;
 mod phrases;
 mod policies;
+mod private_swap;
 #[cfg(feature = "production")]
 mod retail;
 mod security;

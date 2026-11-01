@@ -10,7 +10,7 @@ use shared_signer::covenant_sign::KnownScheme;
 impl<'a> BootDisplay<'a> {
     pub fn draw_covenant_sign_review(&mut self, ad: &AppData) {
         let binding = ad.signing.covenant.mode == CovenantSigningMode::BindKnown;
-        self.covenant_header(if binding { "BIND KEY" } else { "COVENANT SIGN" });
+        self.covenant_header(if binding { "BIND COVENANT" } else { "COVENANT SIGN" });
         let scheme = match ad.signing.covenant.scheme {
             KnownScheme::OracleV1 => "ORACLE-V1 VERIFIED",
             KnownScheme::Sha256Preimage => "SHA-256 CONTEXT VERIFIED",
