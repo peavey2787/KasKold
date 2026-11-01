@@ -14,8 +14,7 @@ SOURCE_SUFFIXES = {".rs", ".js"}
 MODULE_SOURCE_SUFFIXES = {".rs", ".js", ".py", ".sh"}
 DIRECTORY_SOURCE_SUFFIXES = {".rs", ".js", ".html", ".css", ".py", ".sh"}
 MODULE_SIZE_EXEMPTIONS = {
-    "apps/kaskold-companion-web/web/lib/jsQR.js",
-    "apps/kaskold-vault-web/web/lib/vault_jsQR.js",
+    "apps/web-common/lib/jsQR.js",
     "apps/kaskold-hardware/src/ui/prop_fonts.rs",
     "crates/offline-signer/src/derivation/bip39_wordlist.rs",
 }

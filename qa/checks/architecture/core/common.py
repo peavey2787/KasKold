@@ -34,6 +34,8 @@ def has_exact_child(directory: Path, name: str) -> bool:
 GENERATED_PREFIXES = (
     Path("apps/kaskold-companion-web/web/pkg"),
     Path("apps/kaskold-vault-web/web/pkg"),
+    Path("apps/kaskold-companion-web/web/lib"),
+    Path("apps/kaskold-vault-web/web/lib"),
     Path("apps/kaskold-companion-android/.gradle"),
     Path("apps/kaskold-companion-android/.kotlin"),
     Path("apps/kaskold-companion-android/build"),

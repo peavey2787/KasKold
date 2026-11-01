@@ -11,12 +11,13 @@ from architecture.core.inventory.repository_inventory import _excluded as exclud
 def check_web_pkg_policy(root: Path) -> list[str]:
     """Keep target/ canonical while permitting an ignored local web/pkg mirror."""
     errors: list[str] = []
-    builder = (root / "tools/build/web/build_companion_runtime.py").read_text(errors="ignore")
-    if "target/kaskold-companion-web/site" not in builder:
+    entry_point = (root / "tools/build/web/build_companion_runtime.py").read_text(errors="ignore")
+    builder = (root / "tools/build/web/wasm_runtime.py").read_text(errors="ignore")
+    if "target/kaskold-companion-web/site" not in entry_point:
         errors.append("Canonical Companion runtime builder must stage the deployable site under target/kaskold-companion-web/site")
     if 'shutil.rmtree(authored / "pkg"' not in builder:
         errors.append("Canonical Companion runtime builder must remove stale local web/pkg before staging")
-    if "sync_local_web_package(site)" not in builder:
+    if "sync_local_web_package(runtime, site)" not in builder:
         errors.append("Canonical Companion runtime builder must mirror fresh bindings into local web/pkg")
 
     for product, directory in (("Companion", "kaskold-companion-web"), ("Vault", "kaskold-vault-web")):

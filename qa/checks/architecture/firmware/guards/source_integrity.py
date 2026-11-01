@@ -248,7 +248,7 @@ def _check_repository_hygiene(root: Path) -> list[str]:
 
     attributes = _source(root / ".gitattributes")
     for recursive in (
-        "apps/kaskold-companion-web/web/lib/** linguist-vendored",
+        "apps/web-common/lib/** linguist-vendored",
     ):
         if recursive not in attributes:
             errors.append(f".gitattributes lost recursive generated/vendor classification: {recursive}")

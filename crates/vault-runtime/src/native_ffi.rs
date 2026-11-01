@@ -7,7 +7,7 @@ use core::{ptr, slice, str};
 
 use zeroize::Zeroizing;
 
-use crate::{ScanResult, VaultRuntime};
+use crate::{ScanResult, VaultReview, VaultRuntime};
 
 const OK: i32 = 0;
 const ERROR: i32 = -1;
@@ -18,6 +18,32 @@ pub(crate) struct NativeVault {
     last_text: Zeroizing<Vec<u8>>,
     last_bytes: Zeroizing<Vec<u8>>,
     last_error: Zeroizing<Vec<u8>>,
+}
+
+fn review_json(review: &VaultReview) -> String {
+    serde_json::json!({
+        "state": "review",
+        "network": review.network,
+        "inputCount": review.input_count,
+        "outputCount": review.output_count,
+        "inputTotal": review.input_total.to_string(),
+        "outputTotal": review.output_total.to_string(),
+        "fee": review.fee.to_string(),
+        "inputs": review.inputs.iter().map(|input| serde_json::json!({
+            "index": input.index,
+            "outpoint": input.outpoint,
+            "amount": input.amount.to_string(),
+            "scriptType": input.script_type,
+            "address": input.address,
+        })).collect::<Vec<_>>(),
+        "outputs": review.outputs.iter().map(|output| serde_json::json!({
+            "index": output.index,
+            "amount": output.amount.to_string(),
+            "ownership": output.ownership,
+            "address": output.address,
+        })).collect::<Vec<_>>(),
+    })
+    .to_string()
 }
 
 impl NativeVault {
@@ -201,31 +227,7 @@ impl NativeVault {
                 1
             }
             Ok(ScanResult::Ready(review)) => {
-                self.set_text(
-                    serde_json::json!({
-                        "state": "review",
-                        "network": review.network,
-                        "inputCount": review.input_count,
-                        "outputCount": review.output_count,
-                        "inputTotal": review.input_total.to_string(),
-                        "outputTotal": review.output_total.to_string(),
-                        "fee": review.fee.to_string(),
-                        "inputs": review.inputs.iter().map(|input| serde_json::json!({
-                            "index": input.index,
-                            "outpoint": input.outpoint,
-                            "amount": input.amount.to_string(),
-                            "scriptType": input.script_type,
-                            "address": input.address,
-                        })).collect::<Vec<_>>(),
-                        "outputs": review.outputs.iter().map(|output| serde_json::json!({
-                            "index": output.index,
-                            "amount": output.amount.to_string(),
-                            "ownership": output.ownership,
-                            "address": output.address,
-                        })).collect::<Vec<_>>(),
-                    })
-                    .to_string(),
-                );
+                self.set_text(review_json(&review));
                 2
             }
             Err(error) => self.fail(error),
@@ -236,31 +238,7 @@ impl NativeVault {
         self.clear_results();
         match self.runtime.review_transaction() {
             Ok(review) => {
-                self.set_text(
-                    serde_json::json!({
-                        "state": "review",
-                        "network": review.network,
-                        "inputCount": review.input_count,
-                        "outputCount": review.output_count,
-                        "inputTotal": review.input_total.to_string(),
-                        "outputTotal": review.output_total.to_string(),
-                        "fee": review.fee.to_string(),
-                        "inputs": review.inputs.iter().map(|input| serde_json::json!({
-                            "index": input.index,
-                            "outpoint": input.outpoint,
-                            "amount": input.amount.to_string(),
-                            "scriptType": input.script_type,
-                            "address": input.address,
-                        })).collect::<Vec<_>>(),
-                        "outputs": review.outputs.iter().map(|output| serde_json::json!({
-                            "index": output.index,
-                            "amount": output.amount.to_string(),
-                            "ownership": output.ownership,
-                            "address": output.address,
-                        })).collect::<Vec<_>>(),
-                    })
-                    .to_string(),
-                );
+                self.set_text(review_json(&review));
                 OK
             }
             Err(error) => self.fail(error),

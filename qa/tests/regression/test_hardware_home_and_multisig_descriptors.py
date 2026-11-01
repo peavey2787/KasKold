@@ -83,7 +83,7 @@ class HardwareHomeAndMultisigDescriptorTests(unittest.TestCase):
         web_js = read("apps/kaskold-vault-web/web/js/vault_main.js")
         web_css = read("apps/kaskold-vault-web/web/css/vault.css")
         web_settings = read("apps/kaskold-vault-web/web/js/vault_settings.js")
-        web_builder = read("tools/build/web/build_vault_runtime.py")
+        web_builder = read("tools/build/web/wasm_runtime.py")
         web_revision = read("tools/build/web/static_asset_revision.py")
         android_main = read("apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/MainActivity.kt")
         android_controller = read("apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/runtime/VaultController.kt")

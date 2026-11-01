@@ -60,6 +60,7 @@ def main() -> int:
         APP / "web/js/vault_private_swap_workflows.js",
         APP / "web/js/vault_legacy_workflows.js",
         ROOT / "tools/build/web/build_vault_runtime.py",
+        ROOT / "tools/build/web/wasm_runtime.py",
     )
     for path in required:
         if not path.is_file():

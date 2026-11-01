@@ -21,7 +21,7 @@ def _consumer_requirements() -> dict[str, tuple[str, ...]]:
     return {
         "Makefile": ("include qa/config/toolchains.env",),
         "qa/linux/runner/environment.sh": ("qa/config/toolchains.env", "KASKOLD_ANDROID_JDK"),
-        "tools/build/web/build_companion_runtime.py": (
+        "tools/build/web/wasm_runtime.py": (
             "qa/config/toolchains.env", "KASKOLD_STABLE_RUST", "KASKOLD_WASM_BINDGEN_CLI_VERSION",
         ),
         "scripts/linux/build/android-studio.sh": (
@@ -107,7 +107,7 @@ def _consumer_requirements() -> dict[str, tuple[str, ...]]:
 def _pin_consumers() -> dict[str, tuple[str, ...]]:
     return {
         "qa/linux/runner/commands.sh": ("KASKOLD_STABLE_RUST", "KASKOLD_BRANCH_RUST", "KASKOLD_CARGO_FUZZ_VERSION"),
-        "tools/build/web/build_companion_runtime.py": ("KASKOLD_STABLE_RUST", "KASKOLD_WASM_BINDGEN_CLI_VERSION"),
+        "tools/build/web/wasm_runtime.py": ("KASKOLD_STABLE_RUST", "KASKOLD_WASM_BINDGEN_CLI_VERSION"),
         "qa/linux/run-pinned-branch-coverage.sh": ("KASKOLD_BRANCH_RUST", "KASKOLD_CARGO_LLVM_COV_VERSION", "KASKOLD_CARGO_CRAP_VERSION"),
         "qa/linux/run-security-fuzz.sh": ("KASKOLD_STABLE_RUST", "KASKOLD_BRANCH_RUST", "KASKOLD_CARGO_FUZZ_VERSION"),
         "scripts/linux/quality/branch-coverage-setup.sh": ("KASKOLD_BRANCH_RUST", "KASKOLD_CARGO_LLVM_COV_VERSION", "KASKOLD_CARGO_CRAP_VERSION"),

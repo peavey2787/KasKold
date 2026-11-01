@@ -46,4 +46,4 @@ migration.
 
 ## Vendored web libraries
 
-`apps/kaskold-companion-web/web/lib/jsQR.js` and `apps/kaskold-vault-web/web/lib/vault_jsQR.js` are the unmodified `dist/jsQR.js` of the npm package `jsqr@1.4.0` (Apache-2.0). `qa/tests/tooling/test_vendored_jsqr.py` pins its SHA-256.
+`apps/web-common/lib/jsQR.js`, which both web apps ship, is the unmodified `dist/jsQR.js` of the npm package `jsqr@1.4.0` (Apache-2.0). `qa/tests/tooling/test_vendored_jsqr.py` pins its SHA-256.

@@ -10,6 +10,9 @@
 **/node_modules/
 /apps/kaskold-companion-web/web/pkg/
 /apps/kaskold-vault-web/web/pkg/
+/apps/kaskold-companion-web/web/lib/
+/apps/kaskold-vault-web/web/lib/
+*.profraw
 
 # Python
 __pycache__/

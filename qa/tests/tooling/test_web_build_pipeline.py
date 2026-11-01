@@ -11,9 +11,30 @@ import tomllib
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
-BUILDER = ROOT / "tools/build/web/build_companion_runtime.py"
+ENTRY_POINT = ROOT / "tools/build/web/build_companion_runtime.py"
+BUILDER = ROOT / "tools/build/web/wasm_runtime.py"
 LINUX_FACADE = ROOT / "apps/kaskold-companion-web/build.sh"
 WINDOWS_FACADE = ROOT / "apps/kaskold-companion-web/build.ps1"
+
+
+def load_module(path: Path, name: str):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def scratch_runtime(module, root: Path):
+    return module.WebRuntime(
+        label="scratch",
+        app=root / "apps" / "kaskold-companion-web",
+        bindgen_stem="companion_web",
+        site_env="KASKOLD_SCRATCH_SITE",
+        site_default=root / "target/site",
+        target_dir=root / "target/wasm",
+    )
 
 
 class WebBuildPipelineTests(unittest.TestCase):
@@ -83,12 +104,13 @@ class WebBuildPipelineTests(unittest.TestCase):
 
     def test_all_asset_generators_run_before_wasm_build(self) -> None:
         source = BUILDER.read_text(encoding="utf-8")
-        wasm = source.index('"build",')
+        self.assertLess(source.index("runtime.authored_generators"), source.index("_compile_wasm(runtime, toolchain"))
+        entry_point = ENTRY_POINT.read_text(encoding="utf-8")
         for builder in (
             "tools/build/web/build_web_index.py",
             "tools/build/web/build_app_css.py",
         ):
-            self.assertLess(source.index(builder), wasm)
+            self.assertIn(builder, entry_point)
 
     def test_full_qa_runs_crap_before_the_normal_companion_build(self) -> None:
         catalog = (ROOT / "qa/config/run_all_steps.tsv").read_text(encoding="utf-8")
@@ -112,30 +134,27 @@ class WebBuildPipelineTests(unittest.TestCase):
         source = BUILDER.read_text(encoding="utf-8")
         clean = source.index('shutil.rmtree(authored / "pkg"')
         bindgen = source.index('"--target", "web"')
-        mirror = source.index("sync_local_web_package(site)")
+        mirror = source.index("sync_local_web_package(runtime, site)")
         self.assertLess(clean, bindgen)
         self.assertLess(bindgen, mirror)
-        self.assertIn('ROOT / "target/kaskold-companion-web/site"', source)
-        self.assertIn('local = APP / "web" / "pkg"', source)
+        self.assertIn('ROOT / "target/kaskold-companion-web/site"', ENTRY_POINT.read_text(encoding="utf-8"))
+        self.assertIn('local = runtime.app / "web" / "pkg"', source)
         self.assertIn('shutil.copytree(source, local)', source)
 
     def test_local_web_runtime_sync_copies_generated_bindings(self) -> None:
-        spec = importlib.util.spec_from_file_location("build_companion_runtime_test", BUILDER)
-        module = importlib.util.module_from_spec(spec)
-        assert spec.loader is not None
-        spec.loader.exec_module(module)
+        module = load_module(BUILDER, "wasm_runtime_sync")
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            module.APP = root / "apps" / "kaskold-companion-web"
+            runtime = scratch_runtime(module, root)
             site = root / "target" / "kaskold-companion-web" / "site"
             (site / "pkg").mkdir(parents=True)
             (site / "pkg" / "companion_web.js").write_text("export default function init() {}\n")
             (site / "pkg" / "companion_web_bg.wasm").write_bytes(b"wasm")
-            local = module.APP / "web" / "pkg"
+            local = runtime.app / "web" / "pkg"
             local.mkdir(parents=True)
             (local / "stale.js").write_text("stale\n")
 
-            module.sync_local_web_package(site)
+            module.sync_local_web_package(runtime, site)
 
             self.assertFalse((local / "stale.js").exists())
             self.assertEqual((local / "companion_web.js").read_text(encoding="utf-8"), "export default function init() {}\n")
@@ -143,14 +162,11 @@ class WebBuildPipelineTests(unittest.TestCase):
 
 
     def test_companion_site_revision_covers_html_assets_and_every_module_edge(self) -> None:
-        spec = importlib.util.spec_from_file_location("build_companion_runtime_revision", BUILDER)
-        module = importlib.util.module_from_spec(spec)
-        assert spec.loader is not None
-        spec.loader.exec_module(module)
+        module = load_module(BUILDER, "wasm_runtime_revision")
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
-            module.APP = root / "apps" / "kaskold-companion-web"
-            authored = module.APP / "web"
+            runtime = scratch_runtime(module, root)
+            authored = runtime.app / "web"
             (authored / "css").mkdir(parents=True)
             (authored / "js" / "app").mkdir(parents=True)
             (authored / "img").mkdir(parents=True)
@@ -177,7 +193,7 @@ class WebBuildPipelineTests(unittest.TestCase):
             (authored / "js" / "app" / "dynamic.js").write_text("export default 1;\n", encoding="utf-8")
 
             site = root / "target" / "kaskold-companion-web" / "site"
-            revision = module.copy_site(site)
+            revision = module.copy_site(runtime, site)
             html = (site / "index.html").read_text(encoding="utf-8")
             main = (site / "js" / "main.js").read_text(encoding="utf-8")
 
@@ -201,14 +217,12 @@ class WebBuildPipelineTests(unittest.TestCase):
         self.assertIn("return 2", source)
 
     def test_companion_cargo_artifact_name_is_distinct_from_stable_browser_binding_name(self) -> None:
-        spec = importlib.util.spec_from_file_location("build_companion_runtime_artifact", BUILDER)
-        module = importlib.util.module_from_spec(spec)
-        assert spec.loader is not None
-        spec.loader.exec_module(module)
-        self.assertEqual(module.cargo_wasm_artifact_stem(), "kaskold_companion_web")
-        self.assertEqual(module.BINDGEN_STEM, "companion_web")
+        shared = load_module(BUILDER, "wasm_runtime")
+        entry_point = load_module(ENTRY_POINT, "build_companion_runtime_artifact")
+        self.assertEqual(shared.cargo_wasm_artifact_stem(entry_point.RUNTIME), "kaskold_companion_web")
+        self.assertEqual(entry_point.RUNTIME.bindgen_stem, "companion_web")
         source = BUILDER.read_text(encoding="utf-8")
-        self.assertIn('f"{cargo_wasm_artifact_stem()}.wasm"', source)
+        self.assertIn('f"{cargo_wasm_artifact_stem(runtime)}.wasm"', source)
         self.assertNotIn('profile / "companion_web.wasm"', source)
 
     def test_web_build_uses_direct_wasm_bindgen_not_wasm_pack(self) -> None:
@@ -217,11 +231,11 @@ class WebBuildPipelineTests(unittest.TestCase):
         self.assertNotIn("wasm-pack", source)
         self.assertNotIn("package.metadata.wasm-pack", manifest)
         self.assertIn('"--target", "web"', source)
-        self.assertIn('"--out-name", BINDGEN_STEM', source)
-        self.assertIn('BINDGEN_STEM = "companion_web"', source)
+        self.assertIn('"--out-name", runtime.bindgen_stem', source)
+        self.assertIn('bindgen_stem="companion_web"', ENTRY_POINT.read_text(encoding="utf-8"))
 
     def test_web_build_resolves_lock_for_wasm_target_with_msrv_fallback(self) -> None:
-        source = (ROOT / "tools/build/web/build_companion_runtime.py").read_text()
+        source = BUILDER.read_text(encoding="utf-8")
         self.assertIn('"--filter-platform"', source)
         self.assertIn('WASM_TARGET', source)
         self.assertIn('CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS', source)
@@ -283,10 +297,7 @@ class WebBuildPipelineTests(unittest.TestCase):
         self.assertEqual(online["dependencies"]["web-sys"]["version"], "=0.3.97")
 
     def test_builder_surfaces_captured_subprocess_diagnostics(self) -> None:
-        spec = importlib.util.spec_from_file_location("build_companion_runtime_errors", BUILDER)
-        module = importlib.util.module_from_spec(spec)
-        assert spec.loader is not None
-        spec.loader.exec_module(module)
+        module = load_module(BUILDER, "wasm_runtime_errors")
         error = subprocess.CalledProcessError(101, ["cargo", "metadata"], output="resolver stdout", stderr="resolver stderr")
         rendered = module.subprocess_error_detail(error)
         self.assertIn("exit code 101", rendered)

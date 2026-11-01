@@ -187,7 +187,6 @@ D	apps/kaskold-companion-web/web/js/features/wallet/kpub_manager
 D	apps/kaskold-companion-web/web/js/features/wallet/tools
 D	apps/kaskold-companion-web/web/js/mobile
 D	apps/kaskold-companion-web/web/js/wasm
-D	apps/kaskold-companion-web/web/lib
 D	apps/kaskold-hardware
 D	apps/kaskold-hardware/.cargo
 D	apps/kaskold-hardware/assets
@@ -429,7 +428,8 @@ D	apps/kaskold-vault-web/web/img/hardware
 D	apps/kaskold-vault-web/web/js
 D	apps/kaskold-vault-web/web/js/ui
 D	apps/kaskold-vault-web/web/js/workflows
-D	apps/kaskold-vault-web/web/lib
+D	apps/web-common
+D	apps/web-common/lib
 D	branding
 D	branding/android
 D	branding/firmware
@@ -1296,7 +1296,6 @@ F	apps/kaskold-companion-web/web/js/main.js
 F	apps/kaskold-companion-web/web/js/mobile/native_adaptations.js
 F	apps/kaskold-companion-web/web/js/wasm/api.js
 F	apps/kaskold-companion-web/web/js/wasm/runtime.js
-F	apps/kaskold-companion-web/web/lib/jsQR.js
 F	apps/kaskold-companion-web/web/manifest.json
 F	apps/kaskold-hardware/.cargo/config.toml
 F	apps/kaskold-hardware/Cargo.lock
@@ -2224,7 +2223,7 @@ F	apps/kaskold-vault-web/web/js/vault_wallet_workflows.js
 F	apps/kaskold-vault-web/web/js/workflows/vault_frame_hex_input.js
 F	apps/kaskold-vault-web/web/js/workflows/vault_multisig_workflows.js
 F	apps/kaskold-vault-web/web/js/workflows/vault_recovery_words.js
-F	apps/kaskold-vault-web/web/lib/vault_jsQR.js
+F	apps/web-common/lib/jsQR.js
 F	branding/README.md
 F	branding/android/kaskold-app-icon-1024.png
 F	branding/firmware/kaskold-logo-320x240.png
@@ -3459,6 +3458,7 @@ F	tools/build/web/build_vault_runtime.py
 F	tools/build/web/build_web_index.py
 F	tools/build/web/ordered_manifest.py
 F	tools/build/web/static_asset_revision.py
+F	tools/build/web/wasm_runtime.py
 F	tools/dev/firmware_mirror.rs
 F	tools/dev/funded_e2e_signer.rs
 F	tools/dev/setup_check.rs

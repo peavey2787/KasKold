@@ -208,13 +208,14 @@ def check(root: Path) -> list[str]:
         errors.append("Canonical Companion runtime builder is missing: tools/build/web/build_companion_runtime.py")
     else:
         build_source = build_script.read_text(errors="ignore")
-        wasm_offset = build_source.find('"build",')
+        shared = (root / "tools/build/web/wasm_runtime.py").read_text(errors="ignore")
+        if shared.find("runtime.authored_generators") > shared.find("_compile_wasm(runtime, toolchain"):
+            errors.append("Shared WASM runtime builder must generate authored assets before the WASM cargo build")
         for builder in (
             "tools/build/web/build_web_index.py",
             "tools/build/web/build_app_css.py",
         ):
-            offset = build_source.find(builder)
-            if offset < 0 or wasm_offset < 0 or offset > wasm_offset:
+            if builder not in build_source:
                 errors.append(f"Canonical Companion runtime builder must run {builder} before the WASM cargo build")
     index_path = root / "apps/kaskold-companion-web/web/index.html"
     if not index_path.is_file():

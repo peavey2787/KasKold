@@ -1,5 +1,5 @@
 # Keep generated/vendor-heavy trees classified consistently in repository browsers.
-apps/kaskold-companion-web/web/lib/** linguist-vendored
+apps/web-common/lib/** linguist-vendored
 
 # Text normalization.
 * text=auto

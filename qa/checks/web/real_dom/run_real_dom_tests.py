@@ -27,6 +27,11 @@ RESULT_PATH = "/__qa_real_dom_result__"
 PAGE_PATH = "/__qa_real_dom__"
 MAX_RESULT_BYTES = 1024 * 1024
 
+sys.path.insert(0, str(ROOT / "tools/build/web"))
+from build_companion_runtime import RUNTIME as COMPANION  # noqa: E402
+from build_vault_runtime import RUNTIME as VAULT  # noqa: E402
+from wasm_runtime import sync_vendored_assets  # noqa: E402
+
 sys.path.insert(0, str(ROOT / "qa/checks/integration"))
 from headless_chromium import (  # noqa: E402
     ChromiumError,
@@ -116,6 +121,8 @@ class Handler(LoopbackRequestHandler):
 
 
 def run(selected: list[str], timeout: int) -> dict[str, object]:
+    for runtime in (COMPANION, VAULT):
+        sync_vendored_assets(runtime)
     Handler.suites = suite_paths(selected)
     if not Handler.suites:
         raise ChromiumError("no real-DOM suites found")
