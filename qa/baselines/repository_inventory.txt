@@ -2905,6 +2905,7 @@ F	qa/checks/web/portal_wasm_fakes.mjs
 F	qa/checks/web/real_dom/console_gate.dom.mjs
 F	qa/checks/web/real_dom/dom_builder.dom.mjs
 F	qa/checks/web/real_dom/harness.mjs
+F	qa/checks/web/real_dom/pskt_review.dom.mjs
 F	qa/checks/web/real_dom/run_real_dom_tests.py
 F	qa/checks/web/real_dom/send_intent.dom.mjs
 F	qa/checks/web/real_dom/static_qr.dom.mjs

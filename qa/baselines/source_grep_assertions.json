@@ -9,7 +9,7 @@
   "qa/tests/regression/test_coin_control_and_hil_policy.py": 12,
   "qa/tests/regression/test_companion_connection_and_qr_import_policy.py": 76,
   "qa/tests/regression/test_companion_multisig_discovery_state.py": 15,
-  "qa/tests/regression/test_companion_send_signing_security.py": 55,
+  "qa/tests/regression/test_companion_send_signing_security.py": 42,
   "qa/tests/regression/test_complete_utxo_scan.py": 22,
   "qa/tests/regression/test_connected_controller_isolation.py": 20,
   "qa/tests/regression/test_connected_failure_recovery.py": 8,

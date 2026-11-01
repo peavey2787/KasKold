@@ -19,24 +19,14 @@ class CompanionSendSigningSecurityTests(unittest.TestCase):
     def test_companion_review_defaults_to_simple_summary_with_optional_inspection(self):
         html = read("apps/kaskold-companion-web/web/html/screens/transactions/pskt_review.html")
         js = read("apps/kaskold-companion-web/web/js/features/transactions/pskt_multisig/review.js")
-        self.assertIn('id="pskt-to-address"', html)
-        self.assertIn('id="pskt-send-total"', html)
         self.assertIn('id="pskt-fee"', html)
-        self.assertIn('id="pskt-change-total"', html)
-        self.assertIn('id="btn-pskt-inspect"', html)
         self.assertIn('id="pskt-inspect-details" class="pskt-inspect-details hidden"', html)
         self.assertIn('>UTXOs</h3>', html)
-        self.assertIn("toAddressEl.textContent = externalOutputs[0].address", js)
-        self.assertIn("inspectDetails.classList.add('hidden')", js)
-        self.assertIn("inspectButton.setAttribute('aria-expanded', 'false')", js)
         self.assertIn('class="card pskt-review-card"', html)
 
     def test_review_always_offers_a_signing_action_until_ready(self):
         js = read("apps/kaskold-companion-web/web/js/features/transactions/pskt_multisig/review.js")
         relay = read("apps/kaskold-companion-web/web/js/features/transactions/pskt_multisig/review_relay.js")
-        self.assertIn("relayButton.textContent = needsMultisigRelay ? 'Relay to next signer' : 'Send to signer'", js)
-        self.assertIn("relayButton.classList.toggle('hidden', summary.finalize_ready)", js)
-        self.assertIn("btnFinalize.classList.toggle('hidden', !summary.finalize_ready)", js)
         self.assertIn("const missingInputs = inputs.filter", js)
         self.assertIn("actionLabel === 'Send to signer'", relay)
 
@@ -54,9 +44,6 @@ class CompanionSendSigningSecurityTests(unittest.TestCase):
         state = read("apps/kaskold-companion-web/web/js/app/state/core/transaction_state.js")
         self.assertIn("function psktBodyKey(summary)", review)
         self.assertIn("context?.bodyKey === bodyKey", review)
-        self.assertIn("reviewContext?.kind === 'multisig-send'", review)
-        self.assertIn("return 'MULTISIG CHANGE'", review)
-        self.assertIn("ownership === 'CHANGE' || ownership === 'MULTISIG CHANGE'", review)
         self.assertIn("{ kind: 'multisig-send', destinationAddress: resolvedDest }", create)
         self.assertIn("'_psktReviewContext': null", state)
 
