@@ -45,7 +45,9 @@ pub fn owner_for_intent(
     // Export, Storage, or Multisig result screen. Active onboarding still
     // retains QR ownership because its current owner is already Onboarding.
     if is_qr_state(state) {
-        if current == NavigationOwner::Onboarding && onboarding::owns_state(intent.is_seed_onboarding(), state) {
+        if current == NavigationOwner::Onboarding
+            && onboarding::owns_state(intent.is_seed_onboarding(), state)
+        {
             return NavigationOwner::Onboarding;
         }
         return qr_owner(current);
@@ -56,7 +58,8 @@ pub fn owner_for_intent(
     if state == AppState::StorageSdFailure && current == NavigationOwner::Settings {
         return NavigationOwner::Settings;
     }
-    fixed_owner(state, current).unwrap_or_else(|| owner_from_handler(state.handler_group(), current))
+    fixed_owner(state, current)
+        .unwrap_or_else(|| owner_from_handler(state.handler_group(), current))
 }
 
 pub fn transition_allowed(
@@ -69,12 +72,15 @@ pub fn transition_allowed(
         return true;
     }
     if from == to {
-        return from != NavigationOwner::Onboarding || onboarding::transition_allowed(from_state, to_state);
+        return from != NavigationOwner::Onboarding
+            || onboarding::transition_allowed(from_state, to_state);
     }
     if from_state == AppState::MainMenu
         && matches!(
             to_state,
-            AppState::StorageModeChoice | AppState::StorageUnlockPin | AppState::StorageUnlockPassword
+            AppState::StorageModeChoice
+                | AppState::StorageUnlockPin
+                | AppState::StorageUnlockPassword
         )
     {
         return true;
@@ -91,7 +97,11 @@ pub fn transition_allowed(
 fn home_route_allowed(state: AppState) -> bool {
     matches!(
         state,
-        AppState::ShowAddress | AppState::ScanQR | AppState::SeedsMenu | AppState::SettingsMenu | AppState::ExportKpub
+        AppState::ShowAddress
+            | AppState::ScanQR
+            | AppState::SeedsMenu
+            | AppState::SettingsMenu
+            | AppState::ExportKpub
     )
 }
 
@@ -162,16 +172,46 @@ fn add_wallet_restore_transport_bridge(
     matches!(
         (from, to, from_state, to_state),
         (Onboarding, Seeds, StorageSeedSourceChoice, AddWalletChoice)
-            | (Onboarding, Seeds, StorageSeedSourceChoice, RestoreWord { word_idx: 0 })
-            | (Seeds, Onboarding, RestoreWord { .. }, StorageSeedSourceChoice)
+            | (
+                Onboarding,
+                Seeds,
+                StorageSeedSourceChoice,
+                RestoreWord { word_idx: 0 }
+            )
+            | (
+                Seeds,
+                Onboarding,
+                RestoreWord { .. },
+                StorageSeedSourceChoice
+            )
             | (Seeds, Onboarding, PassphraseChoice, StorageSeedSourceChoice)
-            | (Seeds, Onboarding, RestoreWord { word_idx: 11 }, RestoreWord12Detected)
-            | (Onboarding, Seeds, RestoreWord12Detected, RestoreWord { word_idx: 11 | 12 })
+            | (
+                Seeds,
+                Onboarding,
+                RestoreWord { word_idx: 11 },
+                RestoreWord12Detected
+            )
+            | (
+                Onboarding,
+                Seeds,
+                RestoreWord12Detected,
+                RestoreWord { word_idx: 11 | 12 }
+            )
             | (Onboarding, Seeds, RestoreWord12Detected, PassphraseChoice)
             | (Onboarding, Signing, StorageSeedSourceChoice, ScanQR)
             | (Signing, Onboarding, ScanQR, StorageSeedSourceChoice)
-            | (Onboarding, Storage, StorageSeedSourceChoice, SdWalletBackupFileList)
-            | (Storage, Onboarding, SdWalletBackupFileList, StorageSeedSourceChoice)
+            | (
+                Onboarding,
+                Storage,
+                StorageSeedSourceChoice,
+                SdWalletBackupFileList
+            )
+            | (
+                Storage,
+                Onboarding,
+                SdWalletBackupFileList,
+                StorageSeedSourceChoice
+            )
             | (Onboarding, Signing, AdvancedRestoreMenu, ScanQR)
             | (Signing, Onboarding, ScanQR, AdvancedRestoreMenu)
             | (Onboarding, Stego, AdvancedRestoreMenu, StegoImportPick)
@@ -224,10 +264,17 @@ fn backup_recovery_stego_entry_allowed(
             && to_state == AppState::StegoImportPick)
 }
 
-fn seed_backup_return_allowed(from: NavigationOwner, from_state: AppState, to_state: AppState) -> bool {
+fn seed_backup_return_allowed(
+    from: NavigationOwner,
+    from_state: AppState,
+    to_state: AppState,
+) -> bool {
     from == NavigationOwner::Onboarding
         && matches!(from_state, AppState::SeedBackup { .. })
-        && matches!(to_state, AppState::WalletBackupMethodsMenu | AppState::SeedBackupMenu | AppState::SeedList)
+        && matches!(
+            to_state,
+            AppState::WalletBackupMethodsMenu | AppState::SeedBackupMenu | AppState::SeedList
+        )
 }
 
 fn fixed_owner(state: AppState, current: NavigationOwner) -> Option<NavigationOwner> {
@@ -261,7 +308,10 @@ fn fixed_owner(state: AppState, current: NavigationOwner) -> Option<NavigationOw
         return Some(Signing);
     }
     #[cfg(feature = "workflow-tests")]
-    if matches!(state, WorkflowTestsMenu | WorkflowTestsCategory { .. } | WorkflowTestsResult) {
+    if matches!(
+        state,
+        WorkflowTestsMenu | WorkflowTestsCategory { .. } | WorkflowTestsResult
+    ) {
         return Some(WorkflowTests);
     }
     if is_multisig_menu_state(state) {
@@ -282,14 +332,23 @@ fn fixed_owner(state: AppState, current: NavigationOwner) -> Option<NavigationOw
 fn owner_transition_allowed(from: NavigationOwner, to: NavigationOwner) -> bool {
     use NavigationOwner::*;
     #[cfg(feature = "workflow-tests")]
-    if matches!((from, to), (Settings, WorkflowTests) | (WorkflowTests, Settings)) {
+    if matches!(
+        (from, to),
+        (Settings, WorkflowTests) | (WorkflowTests, Settings)
+    ) {
         return true;
     }
     match from {
         Onboarding => matches!(to, Onboarding | Main),
-        Settings => matches!(to, Main | Seeds | Signing | Export | Storage | Stego | Multisig),
+        Settings => matches!(
+            to,
+            Main | Seeds | Signing | Export | Storage | Stego | Multisig
+        ),
         Main => matches!(to, Seeds | Settings | Signing | Export),
-        Seeds => matches!(to, Main | Settings | Signing | Export | Storage | Multisig | Onboarding),
+        Seeds => matches!(
+            to,
+            Main | Settings | Signing | Export | Storage | Multisig | Onboarding
+        ),
         Signing => matches!(to, Main | Seeds | Export | Storage | Multisig),
         Export => matches!(to, Main | Seeds | Signing | Storage | Multisig),
         Storage => matches!(to, Main | Seeds | Signing | Export | Multisig | Stego),
@@ -331,7 +390,10 @@ fn owner_from_handler(group: HandlerGroup, current: NavigationOwner) -> Navigati
 
 fn menu_handler_owner(current: NavigationOwner) -> NavigationOwner {
     use NavigationOwner::*;
-    if matches!(current, Onboarding | Main | Seeds | Settings | Signing | Export | Multisig) {
+    if matches!(
+        current,
+        Onboarding | Main | Seeds | Settings | Signing | Export | Multisig
+    ) {
         current
     } else {
         Main
@@ -339,7 +401,10 @@ fn menu_handler_owner(current: NavigationOwner) -> NavigationOwner {
 }
 
 fn is_sd_enable_state(state: AppState) -> bool {
-    matches!(state, AppState::StorageRecoveryAcknowledgement | AppState::StorageSdFailure)
+    matches!(
+        state,
+        AppState::StorageRecoveryAcknowledgement | AppState::StorageSdFailure
+    )
 }
 
 fn is_multisig_menu_state(state: AppState) -> bool {

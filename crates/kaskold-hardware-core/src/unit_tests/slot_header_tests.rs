@@ -6,7 +6,11 @@ fn every_valid_header_round_trips_to_a_distinct_byte() {
     for source in 1..=4 {
         for network in 0..3 {
             for protection in 1..=3 {
-                let header = SlotHeader { source, network, protection };
+                let header = SlotHeader {
+                    source,
+                    network,
+                    protection,
+                };
                 let byte = encode(header);
                 assert!(seen.insert(byte), "{byte:#04x} is ambiguous");
                 assert_eq!(decode(byte), Ok(header));
@@ -27,13 +31,34 @@ fn every_decodable_byte_is_canonical() {
 #[test]
 fn the_wire_layout_is_pinned() {
     // Mnemonic24 on Testnet-12 with a password: tag 2 + 3 * 3 = 11.
-    assert_eq!(encode(SlotHeader { source: 2, network: 2, protection: 3 }), 0xb2);
+    assert_eq!(
+        encode(SlotHeader {
+            source: 2,
+            network: 2,
+            protection: 3
+        }),
+        0xb2
+    );
 }
 
 #[test]
 fn an_empty_slot_encodes_as_zero_whatever_it_carried() {
-    assert_eq!(encode(SlotHeader { source: 0, network: 2, protection: 3 }), 0);
-    assert_eq!(decode(0), Ok(SlotHeader { source: 0, network: 0, protection: 1 }));
+    assert_eq!(
+        encode(SlotHeader {
+            source: 0,
+            network: 2,
+            protection: 3
+        }),
+        0
+    );
+    assert_eq!(
+        decode(0),
+        Ok(SlotHeader {
+            source: 0,
+            network: 0,
+            protection: 1
+        })
+    );
 }
 
 #[test]

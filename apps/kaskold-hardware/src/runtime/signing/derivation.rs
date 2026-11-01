@@ -75,7 +75,8 @@ pub(crate) fn derive_active_kip22_address(
     zeroize_seed(&mut seed.bytes);
     checkpoint();
     let mut account = account.map_err(|_| "Address derivation failed")?;
-    let key = kip22::derive_address_key(&account, kip22::Chain::Receive, u32::from(ad.wallet.addresses.current_addr_index));
+    let key =
+        kip22::derive_address_key(&account, kip22::Chain::Receive, u32::from(ad.wallet.addresses.current_addr_index));
     account.zeroize();
     let mut key = key.map_err(|_| "Address derivation failed")?;
     let xonly = key.public_key_x_only();

@@ -152,11 +152,15 @@ fn verify_kip22_output_ownership(
     shared_signer::bytes::zeroize_bytes(&mut seed.bytes);
     let mut account = account.map_err(|_| "Wallet output derivation failed")?;
     for (index, output) in tx.outputs().iter().enumerate() {
-        if ownership[index] != OutputOwnership::External || p2sh_hash(output.script_public_key.script_bytes()).is_none() {
+        if ownership[index] != OutputOwnership::External || p2sh_hash(output.script_public_key.script_bytes()).is_none()
+        {
             continue;
         }
-        if let Some((chain, _)) = kip22::find_owned_script(&account, output.script_public_key.script_bytes(), checkpoint) {
-            ownership[index] = if chain == kip22::Chain::Change { OutputOwnership::Change } else { OutputOwnership::Receive };
+        if let Some((chain, _)) =
+            kip22::find_owned_script(&account, output.script_public_key.script_bytes(), checkpoint)
+        {
+            ownership[index] =
+                if chain == kip22::Chain::Change { OutputOwnership::Change } else { OutputOwnership::Receive };
         }
     }
     account.zeroize();

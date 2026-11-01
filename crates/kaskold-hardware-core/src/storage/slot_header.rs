@@ -40,7 +40,11 @@ pub const fn decode(value: u8) -> Result<SlotHeader, SlotHeaderError> {
     }
     if source == SOURCE_EMPTY {
         return if value == 0 {
-            Ok(SlotHeader { source, network: 0, protection: PROTECTION_MIN })
+            Ok(SlotHeader {
+                source,
+                network: 0,
+                protection: PROTECTION_MIN,
+            })
         } else {
             Err(SlotHeaderError::Canonical)
         };
@@ -50,5 +54,9 @@ pub const fn decode(value: u8) -> Result<SlotHeader, SlotHeaderError> {
     if protection < PROTECTION_MIN || protection > PROTECTION_MAX {
         return Err(SlotHeaderError::Canonical);
     }
-    Ok(SlotHeader { source, network: tag % NETWORK_COUNT, protection })
+    Ok(SlotHeader {
+        source,
+        network: tag % NETWORK_COUNT,
+        protection,
+    })
 }
