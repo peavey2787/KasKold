@@ -105,7 +105,7 @@ fn drive_threshold(ctx: &mut MultisigContext<'_, '_, '_>, target: u8) -> bool {
 }
 
 fn multisig_kpub_export(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
-    let zone = ctx.list[1];
+    let zone = ctx.list[2];
     if ctx.signing_feedback_touch(zone.x + zone.w / 2, zone.y + zone.h / 2, false) != Some(true) {
         return false;
     }

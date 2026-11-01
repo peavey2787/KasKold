@@ -100,7 +100,7 @@ fn build_bpb(geometry: FormatGeometry) -> [u8; 512] {
     bpb[64] = 0x80;
     bpb[66] = 0x29;
     bpb[67..71].copy_from_slice(&0x0053_534Bu32.to_le_bytes());
-    bpb[71..82].copy_from_slice(b"KASKOLD  ");
+    bpb[71..82].copy_from_slice(b"KASKOLD    ");
     bpb[82..90].copy_from_slice(b"FAT32   ");
     bpb[510..512].copy_from_slice(&[0x55, 0xAA]);
     bpb

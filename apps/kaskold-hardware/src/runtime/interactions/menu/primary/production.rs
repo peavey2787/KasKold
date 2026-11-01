@@ -268,17 +268,17 @@ fn route_wallet_backup_methods(ad: &mut AppData, item: usize) {
 
 fn route_wallet_advanced(ad: &mut AppData, item: usize) {
     match item {
-        2 => {
+        1 => {
             ad.wallet.seeds.pp_input.reset();
             ad.signing.message.payload_len = 0;
         }
-        3 => {
+        2 => {
             ad.wallet.seeds.pp_input.reset();
             ad.signing.commit_reveal.plaintext_len = 0;
             ad.signing.commit_reveal.ciphertext.clear();
             ad.signing.commit_reveal.hash = [0u8; 32];
         }
-        4 => {
+        3 => {
             ad.signing.commit_reveal.ciphertext.clear();
             ad.signing.commit_reveal.plaintext_len = 0;
         }

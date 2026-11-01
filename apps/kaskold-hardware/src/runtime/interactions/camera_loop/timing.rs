@@ -23,10 +23,10 @@ pub(super) fn systick() -> u32 {
     const SYSTIMER_BASE: u32 = 0x6002_3000;
     unsafe {
         // Trigger UNIT0 value update (bit 30 of UNIT0_OP_REG)
-        core::ptr::write_volatile((SYSTIMER_BASE + 0x0004) as *mut u32, 1 << 30);
+        crate::hw::shared::mmio::write(SYSTIMER_BASE + 0x0004, 1 << 30);
         // Small delay for value to latch
-        let _ = core::ptr::read_volatile((SYSTIMER_BASE + 0x0004) as *const u32);
+        let _ = crate::hw::shared::mmio::read(SYSTIMER_BASE + 0x0004);
         // Read UNIT0_VALUE_LO
-        core::ptr::read_volatile((SYSTIMER_BASE + 0x0044) as *const u32)
+        crate::hw::shared::mmio::read(SYSTIMER_BASE + 0x0044)
     }
 }

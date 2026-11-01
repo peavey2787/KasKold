@@ -79,10 +79,7 @@ impl AdvancedToolsContext<'_, '_, '_> {
             return false;
         }
         self.ad.navigation.production.wallet_advanced_menu.reset();
-        if item >= 4 && self.menu_touch(self.down.x + 20, self.down.y + 20, false) != Some(true) {
-            return false;
-        }
-        let zone = self.list[item % 4];
+        let zone = self.list[item];
         self.menu_touch(zone.x + zone.w / 2, zone.y + zone.h / 2, false) == Some(true)
             && self.ad.navigation.app.state == expected
     }

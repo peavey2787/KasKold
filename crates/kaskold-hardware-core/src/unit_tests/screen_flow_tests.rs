@@ -154,6 +154,13 @@ fn seed_screens_are_onboarding_owned_only_while_a_seed_is_set_up() {
 }
 
 #[test]
+fn a_restored_stego_wallet_with_a_hint_moves_on_to_being_named() {
+    let naming = WalletNameEntry { purpose: 3 };
+    assert!(transition_allowed(StegoHintReveal, naming));
+    assert!(transition_allowed(StegoHintPassphrase, naming));
+}
+
+#[test]
 fn onboarding_can_only_leave_into_the_main_menu() {
     let reached = reachable_from(StorageModeChoice);
     let escaped: Vec<_> = reached

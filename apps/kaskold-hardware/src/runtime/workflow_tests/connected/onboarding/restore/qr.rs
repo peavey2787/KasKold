@@ -1,6 +1,6 @@
 use crate::{runtime::input::AppState, wallet::seed_manager};
 
-use super::{begin_restore, choose_no_passphrase, finish_restored_session, RestoreIo};
+use super::{begin_restore, choose_no_passphrase, finish_restored_session, name_restored_wallet, RestoreIo};
 
 pub(super) fn standard_seedqr(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     if !begin_restore(ctx) || ctx.source_touch(1) != Some(true) || ctx.base.ad.navigation.app.state != AppState::ScanQR
@@ -19,6 +19,7 @@ pub(super) fn standard_seedqr(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     crate::runtime::interactions::camera_loop::workflow_process_seed_payload(&encoded[..length], false, ctx.base.ad);
     if ctx.base.ad.navigation.app.state != AppState::PassphraseChoice
         || !choose_no_passphrase(ctx)
+        || !name_restored_wallet(ctx, b"SeedQR 12")
         || !finish_restored_session(ctx, 12)
     {
         return false;
@@ -44,6 +45,7 @@ pub(super) fn compact_seedqr(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     crate::runtime::interactions::camera_loop::workflow_process_seed_payload(&entropy, true, ctx.base.ad);
     if ctx.base.ad.navigation.app.state != AppState::PassphraseChoice
         || !choose_no_passphrase(ctx)
+        || !name_restored_wallet(ctx, b"SeedQR 24")
         || !finish_restored_session(ctx, 24)
     {
         return false;

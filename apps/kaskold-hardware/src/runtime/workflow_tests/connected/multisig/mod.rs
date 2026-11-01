@@ -173,7 +173,7 @@ fn enter_multisig_menu(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: MULTISIG ENTER CONFIG WALLET ROUTE OK");
-    if !crate::runtime::interactions::menu::primary::workflow_wallet_select(ctx.ad, 4)
+    if !crate::runtime::interactions::menu::primary::workflow_wallet_select(ctx.ad, 5)
         || ctx.ad.navigation.app.state != AppState::MultisigMenu
     {
         return false;

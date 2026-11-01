@@ -1,0 +1,82 @@
+# Runs the real KasKold firmware source on the host against a virtual CoreS3.
+# Only the ESP vendor crates are replaced, by the stand-ins under shims/.
+[package]
+name = "kaskold-firmware-sim"
+version = "2.0.0"
+edition = "2021"
+license = "GPL-3.0-only"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+default = ["m5stack"]
+m5stack = ["dep:bmi2", "kaskold-hardware-core/m5stack"]
+qemu = []
+qemu-tests = []
+production = []
+provisioning-ui = ["kaskold-hardware-core/provisioning-ui"]
+secure-provisioning-core = []
+secure-provisioning = []
+secure-owner-only = []
+owner-firmware = []
+silent = []
+verbose-boot = []
+skip-tests = []
+screenshot = []
+mirror = []
+test-psram = []
+hardware-tests = []
+developer-ui = ["kaskold-hardware-core/developer-ui"]
+workflow-tests = ["developer-ui", "provisioning-ui", "kaskold-hardware-core/workflow-tests"]
+workflow-test-auto = ["workflow-tests"]
+workflow-runtime-auto = ["workflow-test-auto"]
+workflow-hil-auto = ["workflow-runtime-auto"]
+diagnostics = []
+e12-capture = []
+sentinel-scan = []
+rng-probe = []
+wdev-capture = []
+sha-bench = []
+argon2-bench = []
+icon-browser = []
+boot-kats-full = []
+m5stack-lite = []
+
+[dependencies]
+esp-hal = { path = "shims/esp-hal" }
+esp-alloc = { path = "shims/esp-alloc" }
+esp-bootloader-esp-idf = { path = "shims/esp-bootloader-esp-idf" }
+esp-println = { path = "shims/esp-println" }
+rqrr = { path = "../../external/rqrr-nostd", default-features = false }
+offline-signer = { path = "../../crates/offline-signer" }
+shared-signer = { path = "../../crates/shared-signer" }
+kaskold-hardware-core = { path = "../../crates/kaskold-hardware-core" }
+kaskold-protocol = { path = "../../crates/kaskold-protocol", default-features = false }
+mipidsi = "0.9"
+embedded-hal-bus = "0.3"
+static_cell = "2.1"
+embedded-hal = "1.0"
+bmi2 = { version = "=0.1.2", optional = true }
+embedded-graphics = "0.8"
+embedded-iconoir = { version = "0.2", default-features = false, features = ["24px"] }
+sha2 = { version = "0.10", default-features = false }
+heapless = "0.8"
+k256 = { version = "0.14", default-features = false, features = ["arithmetic", "ecdsa", "schnorr"] }
+aes-gcm = { version = "0.10.3", default-features = false, features = ["aes"] }
+
+[dev-dependencies]
+firmware-tools = { path = "../../tools" }
+png = "0.17"
+
+[patch.crates-io]
+serde_yaml = { path = "../../external/serde-yaml-ng-adapter" }
+
+[workspace]
+resolver = "2"
+members = ["shims/*"]
+
+[profile.dev]
+opt-level = 1
+overflow-checks = true

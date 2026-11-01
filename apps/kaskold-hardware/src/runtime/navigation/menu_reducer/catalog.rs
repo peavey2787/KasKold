@@ -13,6 +13,8 @@ fn primary(state: AppState) -> Option<&'static [UiMenuItemSpec]> {
     Some(match state {
         AppState::MainMenu => &ui_graph::MAIN_MENU_ITEMS,
         AppState::AdvancedMenu => &ui_graph::ADVANCED_MENU_ITEMS,
+        #[cfg(feature = "provisioning-ui")]
+        AppState::OwnerFirmwareMenu => &ui_graph::OWNER_FIRMWARE_MENU_ITEMS,
         AppState::SettingsMenu => &ui_graph::SETTINGS_MENU_ITEMS,
         AppState::SeedsMenu => &ui_graph::SEEDS_MENU_ITEMS,
         AppState::WalletBackupMethodsMenu => &ui_graph::WALLET_BACKUP_METHODS_MENU_ITEMS,

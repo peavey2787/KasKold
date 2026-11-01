@@ -60,7 +60,7 @@ pub(super) fn exercise(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
     if !authorize_signing(ctx) {
         return fail(5, "FIRST-AUTHORIZATION");
     }
-    if !run_signing_step(ctx.ad) || !partial_result_ok(ctx.ad) {
+    if !run_signing_step(ctx) || !partial_result_ok(ctx.ad) {
         return fail(6, "FIRST-PARTIAL");
     }
     let partial_wire = ctx.ad.qr.outgoing.buffer[..ctx.ad.qr.outgoing.length].to_vec();
@@ -70,7 +70,7 @@ pub(super) fn exercise(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
     if !drive_review(ctx) || !authorize_signing(ctx) {
         return fail(8, "SECOND-REVIEW-AUTHORIZATION");
     }
-    if !run_signing_step(ctx.ad) || !verify_signing_result(ctx.ad) {
+    if !run_signing_step(ctx) || !verify_signing_result(ctx.ad) {
         return fail(9, "FINAL-RESULT");
     }
     true
@@ -168,7 +168,13 @@ fn authorize_signing(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
     true
 }
 
-fn run_signing_step(ad: &mut crate::runtime::data::AppData) -> bool {
+fn run_signing_step(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
+    ctx.redraw_step();
+    if !crate::runtime::signing::workflow_activate_signing_operation(ctx.ad) {
+        log!("KASKOLD_WORKFLOW_TESTS: MULTISIG SIGN ACTIVATION FAILED");
+        return false;
+    }
+    let ad = &mut *ctx.ad;
     let before = ad.signing.transaction.active.inputs[0].sig_count;
     let step_ok = crate::runtime::signing::workflow_signing_step(ad);
     let after = ad.signing.transaction.active.inputs[0].sig_count;

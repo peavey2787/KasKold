@@ -64,6 +64,19 @@ pub(crate) fn initialize(peripheral: &esp_hal::peripherals::PSRAM<'_>) -> Result
     Ok(PsramRegion { start: start_addr, len })
 }
 
+/// Unit tests skip the boot sequence, so the first allocation maps PSRAM unless a boot did.
+#[cfg(test)]
+fn initialize_for_unit_test() {
+    static MAPPED: std::sync::Once = std::sync::Once::new();
+    MAPPED.call_once(|| {
+        if region().is_err() {
+            // SAFETY: tests own no other handle to the virtual PSRAM peripheral.
+            let peripheral = unsafe { esp_hal::peripherals::PSRAM::steal() };
+            initialize(&peripheral).expect("virtual PSRAM maps once");
+        }
+    });
+}
+
 pub(crate) fn initialize_or_halt(peripheral: &esp_hal::peripherals::PSRAM<'_>) -> PsramRegion {
     let region = match initialize(peripheral) {
         Ok(region) => region,
@@ -104,6 +117,8 @@ impl PsramAllocation {
     }
 
     pub(crate) fn allocate_with_reserve(size: usize, align: usize, reserve: usize) -> Result<Self, PsramError> {
+        #[cfg(test)]
+        initialize_for_unit_test();
         let required = size.checked_add(reserve).ok_or(PsramError::InvalidLayout)?;
         if free_bytes() < required {
             return Err(PsramError::AllocationFailed);

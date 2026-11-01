@@ -373,7 +373,7 @@ class KasKoldCustodyConformanceTests(unittest.TestCase):
         navigation = (ROOT / "apps/kaskold-hardware/src/ui/redraw/navigation.rs").read_text()
         about = (ROOT / "apps/kaskold-hardware/src/ui/screens/navigation/secondary.rs").read_text()
         qr = (ROOT / "apps/kaskold-hardware/src/ui/screens/signing/qr.rs").read_text()
-        self.assertIn('Mainnet => "KASKOLD HARDWARE"', navigation)
+        self.assertIn('Mainnet => "KASKOLD"', navigation)
         self.assertIn("format_args!(\"V{}\", vtxt.trim_start_matches('v'))", about)
         self.assertIn('let s4 = "kaspa.org";', about)
         self.assertNotIn('KasKold Hardware";', about)

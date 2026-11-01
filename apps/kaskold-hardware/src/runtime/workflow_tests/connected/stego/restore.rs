@@ -87,9 +87,11 @@ fn device_bound_round_trip(ctx: &mut StegoContext<'_, '_, '_>, artifacts: &Media
     if ctx.touch(160, 120, false, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoHintPassphrase {
         return false;
     }
+    // Mnemonic restores order passphrase before name, so a hint restore staged
+    // in onboarding continues to the same naming step as every other restore.
     if ctx.touch(20, 20, true, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::StorageRecoveryAcknowledgement
-        || !recovered_matches(ctx, artifacts)
+        || ctx.ad.navigation.app.state != (AppState::WalletNameEntry { purpose: 3 })
+        || !staged_matches(ctx, artifacts)
     {
         return false;
     }
@@ -129,8 +131,8 @@ fn portable_round_trip(ctx: &mut StegoContext<'_, '_, '_>, artifacts: &MediaArti
     }
     ctx.set_text(PASSWORD);
     if ctx.touch(290, 215, false, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::StorageRecoveryAcknowledgement
-        || !recovered_matches(ctx, artifacts)
+        || ctx.ad.navigation.app.state != AppState::PassphraseChoice
+        || !staged_matches(ctx, artifacts)
     {
         return false;
     }
@@ -151,11 +153,9 @@ fn extract_descriptor(jpeg: &[u8]) -> Option<[u8; stego::STEGO_PAYLOAD_SIZE]> {
     Some(payload)
 }
 
-fn recovered_matches(ctx: &StegoContext<'_, '_, '_>, artifacts: &MediaArtifacts) -> bool {
-    let Some(slot) = ctx.ad.wallet.seeds.seed_mgr.active_slot() else {
-        return false;
-    };
-    slot.mnemonic_word_count() == Some(artifacts.word_count)
-        && slot.indices[..usize::from(artifacts.word_count)]
-            == artifacts.original_indices[..usize::from(artifacts.word_count)]
+fn staged_matches(ctx: &StegoContext<'_, '_, '_>, artifacts: &MediaArtifacts) -> bool {
+    let words = usize::from(artifacts.word_count);
+    ctx.ad.wallet.seeds.word_count == artifacts.word_count
+        && ctx.ad.wallet.seeds.mnemonic_indices[..words] == artifacts.original_indices[..words]
 }
+

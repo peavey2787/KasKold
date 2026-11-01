@@ -37,7 +37,7 @@ fn redraw_home(
     let _ = &mut *i2c;
     ad.signing.multisig.creating.n = 0;
     let title = match ad.wallet.seeds.seed_mgr.network() {
-        crate::wallet::seed_manager::WalletNetwork::Mainnet => "KASKOLD HARDWARE",
+        crate::wallet::seed_manager::WalletNetwork::Mainnet => "KASKOLD",
         crate::wallet::seed_manager::WalletNetwork::Testnet10 => "Test-10",
         crate::wallet::seed_manager::WalletNetwork::Testnet12 => "Test-12",
     };

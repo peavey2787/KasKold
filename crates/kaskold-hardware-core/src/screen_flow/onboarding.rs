@@ -331,9 +331,15 @@ fn stego_unlock_transition_allowed(from: AppState, to: AppState) -> bool {
         ),
         StegoHintReveal => matches!(
             to,
-            StegoHintPassphrase | PassphraseChoice | StorageRecoveryAcknowledgement
+            StegoHintPassphrase
+                | PassphraseChoice
+                | StorageRecoveryAcknowledgement
+                | WalletNameEntry { purpose: 3 }
         ),
-        StegoHintPassphrase => matches!(to, PassphraseChoice | StorageRecoveryAcknowledgement),
+        StegoHintPassphrase => matches!(
+            to,
+            PassphraseChoice | StorageRecoveryAcknowledgement | WalletNameEntry { purpose: 3 }
+        ),
         _ => false,
     }
 }

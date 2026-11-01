@@ -53,7 +53,7 @@ fn delete_commit(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: WALLET DELETE COMMIT HOLD STARTED");
-    if !crate::runtime::destructive::workflow_fast_forward_active_hold(ctx.ad) {
+    if !crate::runtime::destructive::workflow_fast_forward_active_hold(ctx.ad, ctx.delay) {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: WALLET DELETE COMMIT FAST FORWARD OK");
@@ -91,7 +91,7 @@ fn delete_commit(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
 }
 
 fn open_delete_for_active(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
-    if !ctx.open_wallet_item(2, AppState::WalletDetails) {
+    if !ctx.open_wallet_item(3, AppState::WalletDetails) {
         return false;
     }
     crate::runtime::interactions::menu::primary::workflow_wallet_details_delete(ctx.ad)

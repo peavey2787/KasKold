@@ -1,0 +1,3 @@
+# PSRAM holds one Argon2 workspace at a time on the chip and in the virtual board.
+[env]
+RUST_TEST_THREADS = "1"

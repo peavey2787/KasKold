@@ -15,23 +15,25 @@ use offline_signer::crypto::device_bound_storage::{StoragePurpose, NONCE_SIZE, T
 mod recovery_words;
 mod seedqr;
 
-/// Enter Wallet -> Backup -> Advanced Backup through production controllers.
-/// Connected SD and stego probes share this bounded setup so they cannot drift
-/// into manufacturing Storage/Stego ownership with direct route injection.
-pub(super) fn enter_advanced_backup(ad: &mut AppData) -> bool {
+/// Enter the Wallet menu from a clean Home through production controllers.
+pub(super) fn enter_wallet_menu(ad: &mut AppData) -> bool {
     if !super::reset_tranche_to_home(ad) {
         return false;
     }
     let wallet = crate::ui::layout::HOME_GRID_ZONES[2];
-    if !crate::runtime::interactions::menu::handle_connected_root_probe(
+    crate::runtime::interactions::menu::handle_connected_root_probe(
         ad,
         wallet.x + wallet.w / 2,
         wallet.y + wallet.h / 2,
-    ) || ad.navigation.app.state != AppState::SeedsMenu
-    {
-        return false;
-    }
-    crate::runtime::interactions::menu::primary::workflow_wallet_select(ad, 1)
+    ) && ad.navigation.app.state == AppState::SeedsMenu
+}
+
+/// Enter Wallet -> Backup -> Advanced Backup through production controllers.
+/// Connected SD and stego probes share this bounded setup so they cannot drift
+/// into manufacturing Storage/Stego ownership with direct route injection.
+pub(super) fn enter_advanced_backup(ad: &mut AppData) -> bool {
+    enter_wallet_menu(ad)
+        && crate::runtime::interactions::menu::primary::workflow_wallet_select(ad, 1)
         && ad.navigation.app.state == AppState::WalletBackupMethodsMenu
         && crate::runtime::interactions::menu::primary::workflow_wallet_backup_methods_select(ad, 3)
         && ad.navigation.app.state == AppState::BackupRecoveryMenu
@@ -319,7 +321,8 @@ fn encrypted_sd_entry(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
 fn continue_seed_backup_without_scope_leak(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
     #[cfg(feature = "workflow-hil-auto")]
     {
-        return ctx.sd.is_some() && ctx.sd_touch(160, 220, false) == Some(true);
+        let (x, y) = crate::ui::layout::zone_center(crate::ui::layout::MODAL_LEFT_BUTTON_ZONE);
+        return ctx.sd.is_some() && ctx.sd_touch(x, y, false) == Some(true);
     }
 
     #[cfg(not(feature = "workflow-hil-auto"))]

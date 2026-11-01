@@ -1,6 +1,6 @@
 use crate::runtime::input::AppState;
 
-use super::{begin_restore, choose_no_passphrase, finish_restored_session, RestoreIo, BUTTON_X};
+use super::{begin_restore, choose_no_passphrase, finish_restored_session, name_restored_wallet, RestoreIo, BUTTON_X, KEY_OK};
 
 const KEY_A: (u16, u16) = (19, 100);
 const KEY_B: (u16, u16) = (54, 100);
@@ -9,7 +9,6 @@ const KEY_M: (u16, u16) = (124, 130);
 const KEY_O: (u16, u16) = (194, 130);
 const KEY_Z: (u16, u16) = (299, 164);
 const KEY_BACKSPACE: (u16, u16) = (0, 210);
-const KEY_OK: (u16, u16) = (295, 210);
 const SUGGESTION_FIRST: (u16, u16) = (4, 80);
 
 pub(super) fn restore_12(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
@@ -30,9 +29,7 @@ pub(super) fn restore_12(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
         || ctx.detected_touch(93, false) != Some(true)
         || ctx.base.ad.navigation.app.state != AppState::PassphraseChoice
         || !choose_no_passphrase(ctx)
-        || ctx.base.ad.navigation.app.state != (AppState::WalletNameEntry { purpose: 3 })
         || !name_restored_wallet(ctx, b"Restored 12")
-        || ctx.base.ad.navigation.app.state != AppState::StorageFinalizeChoice
     {
         return false;
     }
@@ -65,9 +62,7 @@ pub(super) fn restore_24(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
         || !enter_almost(ctx)
         || ctx.base.ad.navigation.app.state != AppState::PassphraseChoice
         || !choose_passphrase_a1(ctx)
-        || ctx.base.ad.navigation.app.state != (AppState::WalletNameEntry { purpose: 3 })
         || !name_restored_wallet(ctx, b"Restored 24")
-        || ctx.base.ad.navigation.app.state != AppState::StorageFinalizeChoice
     {
         return false;
     }
@@ -156,10 +151,3 @@ fn choose_passphrase_a1(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
         && ctx.base.ad.navigation.app.state == (AppState::WalletNameEntry { purpose: 3 })
 }
 
-fn name_restored_wallet(ctx: &mut RestoreIo<'_, '_, '_>, name: &[u8]) -> bool {
-    ctx.base.ad.wallet.seeds.pp_input.reset();
-    for byte in name {
-        ctx.base.ad.wallet.seeds.pp_input.push_char(*byte);
-    }
-    ctx.base.seed_touch(KEY_OK.0, KEY_OK.1, false) == Some(true)
-}

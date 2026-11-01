@@ -12,6 +12,7 @@ mod raw_key;
 mod routes;
 mod words;
 
+pub(super) const KEY_OK: (u16, u16) = (295, 210);
 pub(super) const BUTTON_X: u16 = 160;
 pub(super) const RESTORE_ROWS: [u16; 4] = [66, 112, 158, 204];
 
@@ -151,6 +152,15 @@ pub(super) fn begin_restore(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
 
 pub(super) fn choose_no_passphrase(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     ctx.base.seed_touch(BUTTON_X, 143, false) == Some(true)
+        && ctx.base.ad.navigation.app.state == (AppState::WalletNameEntry { purpose: 3 })
+}
+
+pub(super) fn name_restored_wallet(ctx: &mut RestoreIo<'_, '_, '_>, name: &[u8]) -> bool {
+    ctx.base.ad.wallet.seeds.pp_input.reset();
+    for byte in name {
+        ctx.base.ad.wallet.seeds.pp_input.push_char(*byte);
+    }
+    ctx.base.seed_touch(KEY_OK.0, KEY_OK.1, false) == Some(true)
         && ctx.base.ad.navigation.app.state == AppState::StorageFinalizeChoice
 }
 

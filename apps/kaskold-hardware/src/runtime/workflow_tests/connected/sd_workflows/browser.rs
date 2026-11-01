@@ -43,7 +43,7 @@ fn import_menu_card_scan(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool {
         }
         _ => return false,
     }
-    if ctx.sd_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::BackupRecoveryMenu {
+    if ctx.sd_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::SeedsMenu {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: SD IMPORT MENU REAL-CARD SCAN/BACK OWNER OK");

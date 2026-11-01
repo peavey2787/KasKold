@@ -4,18 +4,17 @@ use super::health::{inspect, EntropyError, HealthReport, HEALTH_SAMPLE_COUNT};
 
 /// ESP32-S3 WDEV_RND register. The older ESP32 address 0x6003_5144
 /// reads zero on this chip and must never be used.
-const RNG_DATA_REG: *const u32 = 0x6003_507Cu32 as *const u32;
-const RTC_CLK_CONF_REG: *mut u32 = 0x6000_8074u32 as *mut u32;
-const APB_CTRL_WIFI_CLK_EN_REG: *mut u32 = 0x6002_6014u32 as *mut u32;
+const RNG_DATA_REG: u32 = 0x6003_507C;
+const RTC_CLK_CONF_REG: u32 = 0x6000_8074;
+const APB_CTRL_WIFI_CLK_EN_REG: u32 = 0x6002_6014;
 const DIG_CLK8M_EN: u32 = 1 << 10;
 const WIFI_CLK_RNG_EN: u32 = 1 << 15;
 const SAMPLE_SPACING: u32 = 160;
 
-fn set_and_verify(register: *mut u32, mask: u32) -> bool {
+fn set_and_verify(register: u32, mask: u32) -> bool {
     unsafe {
-        let current = core::ptr::read_volatile(register);
-        core::ptr::write_volatile(register, current | mask);
-        core::ptr::read_volatile(register) & mask == mask
+        crate::hw::shared::mmio::set_bits(register, mask);
+        crate::hw::shared::mmio::read(register) & mask == mask
     }
 }
 
@@ -34,7 +33,7 @@ pub fn enable_hardware_rng() -> Result<(), EntropyError> {
 
 #[inline]
 pub fn sample() -> u32 {
-    unsafe { core::ptr::read_volatile(RNG_DATA_REG) }
+    unsafe { crate::hw::shared::mmio::read(RNG_DATA_REG) }
 }
 
 fn spaced_sample() -> u32 {

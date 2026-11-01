@@ -59,7 +59,7 @@ pub fn update_optional_unique_id(hasher: &mut impl Digest) {
 
 pub fn update_adc_noise(hasher: &mut impl Digest, samples: usize) {
     for _ in 0..samples {
-        let value = unsafe { core::ptr::read_volatile(0x6004_0868u32 as *const u32) };
+        let value = unsafe { crate::hw::shared::mmio::read(0x6004_0868) };
         hasher.update(value.to_le_bytes());
     }
 }

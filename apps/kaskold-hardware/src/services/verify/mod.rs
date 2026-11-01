@@ -4,8 +4,12 @@ use crate::crypto::{constant_time, flow};
 use core::sync::atomic::{compiler_fence, Ordering};
 use sha2::{Digest, Sha256};
 
+#[cfg(target_arch = "xtensa")]
 #[path = "../../firmware_hash.rs"]
 mod firmware_hash;
+// The host build of this source verifies the image mapped on the virtual board.
+#[cfg(not(target_arch = "xtensa"))]
+use esp_hal::board::mapped_flash as firmware_hash;
 
 /// Load generated image-identity bytes from their dedicated flash rodata object.
 ///

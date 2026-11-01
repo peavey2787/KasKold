@@ -197,17 +197,17 @@ pub fn run_tests() -> (u32, u32) {
         total += 1;
     }
 
-    // Test 13: every redrawn screen requires two consecutive NoTouch samples
-    // (or an explicit LiftUp) before a new PressDown can activate the screen.
+    // Test 13: a credential screen ignores a moved PressDown until the release
+    // is confirmed: a held contact needs two NoTouch pairs, or an explicit LiftUp.
     {
         let mut tracker = TouchTracker::new();
         let home = tracker.update(TouchState::One(TouchPoint { x: 226, y: 190, event: TouchEventType::PressDown }));
-        tracker.require_release();
+        tracker.require_strict_release();
         let held = tracker.update(TouchState::One(TouchPoint { x: 226, y: 190, event: TouchEventType::Contact }));
         let release1 = tracker.update(TouchState::NoTouch);
         let false_edge =
             tracker.update(TouchState::One(TouchPoint { x: 200, y: 115, event: TouchEventType::PressDown }));
-        for _ in 0..2 {
+        for _ in 0..4 {
             tracker.update(TouchState::NoTouch);
         }
         let settings = tracker.update(TouchState::One(TouchPoint { x: 160, y: 67, event: TouchEventType::PressDown }));

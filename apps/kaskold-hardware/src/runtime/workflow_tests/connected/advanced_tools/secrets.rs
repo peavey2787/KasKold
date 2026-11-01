@@ -21,8 +21,10 @@ fn commit_secret(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
 }
 
 fn commit_secret_preview(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
+    ctx.ad.signing.commit_reveal.plaintext_len = 1;
     if !crate::services::wallet_session::install_workflow_backup_mnemonic_fixture(ctx.ad)
-        || !ctx.open_advanced_item(3, AppState::CommitRevealType)
+        || !ctx.open_advanced_item(2, AppState::CommitRevealType)
+        || ctx.ad.signing.commit_reveal.plaintext_len != 0
     {
         return false;
     }
@@ -79,7 +81,7 @@ fn decrypt_secret(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
 fn begin_decrypt_and_reject_malformed(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     if ctx.tx_touch(20, 20, true) != Some(true)
         || ctx.ad.navigation.app.state != AppState::WalletAdvancedMenu
-        || !ctx.open_advanced_item(4, AppState::DecryptSecretScan)
+        || !ctx.open_advanced_item(3, AppState::DecryptSecretScan)
     {
         return false;
     }
@@ -108,7 +110,7 @@ fn decrypt_result_navigation(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool
 
 fn wrong_recipient_rejects(ctx: &mut AdvancedToolsContext<'_, '_, '_>, ciphertext_hex: &[u8]) -> bool {
     if !crate::services::wallet_session::install_workflow_wallet_inventory_fixture(ctx.ad)
-        || !ctx.open_advanced_item(4, AppState::DecryptSecretScan)
+        || !ctx.open_advanced_item(3, AppState::DecryptSecretScan)
     {
         return false;
     }

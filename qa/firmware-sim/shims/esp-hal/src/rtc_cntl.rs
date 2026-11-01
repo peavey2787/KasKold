@@ -1,0 +1,22 @@
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SocResetReason {
+    ChipPowerOn,
+    CoreSw,
+    CoreMwdt0,
+    CoreMwdt1,
+    CoreRtcWdt,
+    CoreDeepSleep,
+    CoreEfuseCrc,
+    CoreUsbUart,
+    CoreUsbJtag,
+    CorePwrGlitch,
+    CpuMwdt0,
+    CpuMwdt1,
+    CpuSw,
+    CpuRtcWdt,
+    CoreUsbJtagCpu,
+    SysBrownOut,
+    SysRtcWdt,
+    SysSuperWdt,
+    SysClkGlitch,
+}

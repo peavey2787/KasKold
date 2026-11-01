@@ -52,15 +52,15 @@ impl SdWorkflowContext<'_, '_, '_> {
         super::reset_tranche_to_home(self.ad)
     }
 
-    /// Enter the SD import hierarchy through the same production Wallet ->
-    /// Backup -> Advanced Backup route a user must take. Normal controller E2E
-    /// may inject file bytes, but it must not manufacture Storage ownership by
-    /// jumping directly from Home to an SD screen.
+    /// Enter the SD import hierarchy through the same production Wallet route
+    /// a user must take. Normal controller E2E may inject file bytes, but it
+    /// must not manufacture Storage ownership by jumping directly from Home to
+    /// an SD screen.
     pub(super) fn enter_import_menu(&mut self) -> bool {
-        if !super::backup::enter_advanced_backup(self.ad) {
+        if !super::backup::enter_wallet_menu(self.ad) {
             return false;
         }
-        crate::runtime::interactions::menu::primary::workflow_backup_recovery_select(self.ad, 3)
+        crate::runtime::interactions::menu::primary::workflow_wallet_select(self.ad, 2)
             && self.ad.navigation.app.state == AppState::SdImportMenu
             && crate::runtime::navigation::reconcile(self.ad)
     }

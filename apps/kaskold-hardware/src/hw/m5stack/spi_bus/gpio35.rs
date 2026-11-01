@@ -1,10 +1,11 @@
 //! CoreS3 GPIO35 role switch: SD MISO when LCD is deselected, LCD D/C while
 //! the LCD chip-select is asserted.
 
-use core::ptr;
-
-use crate::hw::shared::registers::esp32s3::{
-    GPIO_ENABLE1_W1TS, GPIO_FUNC_OUT_SEL_BASE, GPIO_OUT1_W1TC, GPIO_OUT1_W1TS,
+use crate::hw::shared::{
+    mmio::{read as read_register, write as write_register},
+    registers::esp32s3::{
+        GPIO_ENABLE1_W1TS, GPIO_FUNC_OUT_SEL_BASE, GPIO_OUT1_W1TC, GPIO_OUT1_W1TS,
+    },
 };
 
 const GPIO_ENABLE1_W1TC: u32 = 0x6000_4034;
@@ -41,12 +42,4 @@ pub(super) fn set_dc(high: bool) {
     unsafe {
         write_register(register, GPIO35_BIT);
     }
-}
-
-unsafe fn read_register(address: u32) -> u32 {
-    ptr::read_volatile(address as *const u32)
-}
-
-unsafe fn write_register(address: u32, value: u32) {
-    ptr::write_volatile(address as *mut u32, value);
 }

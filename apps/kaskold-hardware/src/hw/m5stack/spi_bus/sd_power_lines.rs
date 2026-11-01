@@ -4,8 +4,7 @@
 //! Driving every card-facing line low while ALDO4 is off prevents IO-clamp
 //! back-power from defeating a requested card cold reset.
 
-use core::ptr;
-
+use crate::hw::shared::mmio::write as write_register;
 use crate::hw::shared::registers::esp32s3::{GPIO_ENABLE1_W1TS, GPIO_FUNC_OUT_SEL_BASE, GPIO_OUT1_W1TC};
 
 const GPIO_OUT_W1TS: u32 = 0x6000_4008;
@@ -48,8 +47,4 @@ pub(super) fn restore() {
 
 const fn output_selector(pin: u32) -> u32 {
     GPIO_FUNC_OUT_SEL_BASE + pin * 4
-}
-
-unsafe fn write_register(address: u32, value: u32) {
-    unsafe { ptr::write_volatile(address as *mut u32, value) };
 }

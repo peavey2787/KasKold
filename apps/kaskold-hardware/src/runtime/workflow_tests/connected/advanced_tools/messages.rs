@@ -18,7 +18,7 @@ pub(super) fn exercise(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
 }
 
 fn open_choice(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
-    ctx.open_advanced_item(2, AppState::SignMsgChoice)
+    ctx.open_advanced_item(1, AppState::SignMsgChoice)
 }
 
 fn choice_and_typed(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {

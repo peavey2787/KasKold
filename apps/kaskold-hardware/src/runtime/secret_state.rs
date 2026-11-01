@@ -43,3 +43,9 @@ pub(crate) fn take_for_fault() -> Option<&'static mut AppData> {
     // swap hands it out at most once, and its previous holder never resumes.
     unsafe { root.as_mut() }
 }
+
+/// The virtual-board harness reads the root of a parked firmware thread.
+#[cfg(not(target_arch = "xtensa"))]
+pub(crate) fn peek_for_harness() -> *const AppData {
+    FAULT_ROOT.load(Ordering::Acquire)
+}

@@ -131,7 +131,7 @@ pub(crate) fn prepare_multisig_kpub_qr(
         #[cfg(feature = "m5stack")]
         ad.export.reset_multisig_kpub_work();
         let index = match ad.navigation.app.state {
-            AppState::MultisigMenu => 1,
+            AppState::MultisigMenu => 2,
             AppState::WatchOnlyMenu => 2,
             _ => return false,
         };

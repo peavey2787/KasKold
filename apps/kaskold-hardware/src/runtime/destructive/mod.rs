@@ -295,7 +295,7 @@ fn clear(ad: &mut AppData) {
 }
 
 #[cfg(feature = "workflow-test-auto")]
-pub(crate) fn workflow_fast_forward_active_hold(ad: &mut AppData) -> bool {
+pub(crate) fn workflow_fast_forward_active_hold(ad: &mut AppData, delay: &mut esp_hal::delay::Delay) -> bool {
     let hold = &mut ad.runtime.destructive;
     if hold.action == DestructiveAction::None || hold.started_at_ms == 0 {
         return false;
@@ -304,8 +304,12 @@ pub(crate) fn workflow_fast_forward_active_hold(ad: &mut AppData) -> bool {
     // seconds of uptime. Backdating an Instant-derived millisecond counter then
     // saturates at zero and fails to advance the hold. Mark terminal progress
     // instead; the next still-held sample goes through the real completion and
-    // destructive service path deterministically.
+    // destructive service path deterministically. The physical-media tier runs
+    // the production hold, which only time can complete, so it really waits.
     hold.progress_step = PROGRESS_STEPS;
+    if cfg!(feature = "workflow-hil-auto") {
+        delay.delay_millis(HOLD_MILLIS as u32);
+    }
     true
 }
 

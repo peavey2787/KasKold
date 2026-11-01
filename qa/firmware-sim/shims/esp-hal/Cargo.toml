@@ -1,0 +1,12 @@
+[package]
+name = "esp-hal"
+version = "0.0.0"
+edition = "2021"
+license = "GPL-3.0-only"
+publish = false
+
+[dependencies]
+esp-hal-macros = { path = "../esp-hal-macros" }
+embedded-hal = "1.0"
+nb = "1"
+sha2 = "0.10"
