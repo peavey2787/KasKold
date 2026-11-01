@@ -15,13 +15,11 @@
 use offline_signer::crypto::password_kdf::{
     derive_key_32_with_params, PasswordKdfParams, PasswordKdfPurpose, SALT_SIZE,
 };
-use offline_signer::hash::blake2b_256;
 use zeroize::{Zeroize, Zeroizing};
 
 use super::{portable_backup::PORTABLE_BACKUP_LEN, HotWallet, HotWalletError};
 
 const STEGO_V2_SALT: &[u8; SALT_SIZE] = b"KasKoldStego/v2\0";
-const STEGO_V1_KEY_DOMAIN: &[u8] = b"KasKold/WebStego/permutation/v1\0";
 
 pub(crate) fn v2_permutation_key(password: &str) -> Result<Zeroizing<[u8; 32]>, HotWalletError> {
     derive_key_32_with_params(
@@ -32,15 +30,6 @@ pub(crate) fn v2_permutation_key(password: &str) -> Result<Zeroizing<[u8; 32]>, 
     )
     .map(Zeroizing::new)
     .map_err(|_| HotWalletError::BackupCryptoFailed)
-}
-
-pub(crate) fn v1_permutation_key(password: &str) -> Zeroizing<[u8; 32]> {
-    let mut key_material = Zeroizing::new(Vec::with_capacity(
-        STEGO_V1_KEY_DOMAIN.len() + password.len(),
-    ));
-    key_material.extend_from_slice(STEGO_V1_KEY_DOMAIN);
-    key_material.extend_from_slice(password.as_bytes());
-    Zeroizing::new(blake2b_256(&key_material))
 }
 
 fn carrier_output_len(jpeg: &[u8]) -> Result<usize, HotWalletError> {
@@ -73,26 +62,12 @@ impl HotWallet {
     }
 
     pub fn restore_stego_backup(jpeg: &[u8], password: &str) -> Result<Self, HotWalletError> {
-        Self::restore_v2_stego_backup(jpeg, password)
-            .or_else(|_| Self::restore_v1_stego_backup(jpeg, password))
-    }
-
-    fn restore_v2_stego_backup(jpeg: &[u8], password: &str) -> Result<Self, HotWalletError> {
         let key = v2_permutation_key(password)?;
         let mut payload = Zeroizing::new(vec![0u8; PORTABLE_BACKUP_LEN]);
         shared_signer::stego_picture::extract_exact(jpeg, &key[..], &mut payload)
             .map_err(|_| HotWalletError::BackupCryptoFailed)?;
+        // A wrong password reads noise, so it must look the same as an ordinary photo.
         Self::restore_portable_backup(&payload, password)
-    }
-
-    fn restore_v1_stego_backup(jpeg: &[u8], password: &str) -> Result<Self, HotWalletError> {
-        let key = v1_permutation_key(password);
-        let mut payload = Zeroizing::new(vec![0u8; PORTABLE_BACKUP_LEN]);
-        let length = shared_signer::stego_picture::extract(jpeg, &key[..], &mut payload)
-            .map_err(|_| HotWalletError::BackupCryptoFailed)?;
-        if length != PORTABLE_BACKUP_LEN {
-            return Err(HotWalletError::BackupCryptoFailed);
-        }
-        Self::restore_portable_backup(&payload, password)
+            .map_err(|_| HotWalletError::BackupCryptoFailed)
     }
 }

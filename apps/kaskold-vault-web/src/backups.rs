@@ -27,11 +27,6 @@ pub fn kaskold_vault_portable_xprv_backup(password: &str) -> Result<Vec<u8>, JsV
 }
 
 #[wasm_bindgen]
-pub fn kaskold_vault_portable_backup_is_current(data: &[u8]) -> bool {
-    VaultRuntime::portable_backup_is_current(data)
-}
-
-#[wasm_bindgen]
 pub fn kaskold_vault_restore_portable(data: &[u8], password: &str) -> Result<String, JsValue> {
     VAULT.with(|vault| {
         let wallet = vault

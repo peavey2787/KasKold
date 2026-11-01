@@ -73,8 +73,8 @@ test('saving replaces the entry for the same wallet identity', async () => {
   const replaced = await storage.saveEncryptedWallet({ name: 'A2', ciphertext: [3], fingerprint: 'f1', kind: 'mnemonic' });
   assert.equal(replaced, first);
   const { wallets } = await storage.loadEncryptedWallet();
-  assert.deepEqual(wallets.map(wallet => [wallet.id, wallet.name, [...wallet.ciphertext], wallet.credentialType]),
-    [[first, 'A2', [3], 'password'], [other, 'B', [2], 'password']]);
+  assert.deepEqual(wallets.map(wallet => [wallet.id, wallet.name, [...wallet.ciphertext]]),
+    [[first, 'A2', [3]], [other, 'B', [2]]]);
 });
 
 test('deleting a wallet erases only that identity from browser storage', async () => {
@@ -98,16 +98,4 @@ test('records from retired storage schemas are not read', async () => {
     walletRows().set(ACTIVE, legacy);
     assert.equal(await storage.loadEncryptedWallet(), null);
   }
-});
-
-test('resealing replaces a legacy PIN ciphertext with a password-sealed one', async () => {
-  walletRows().set(ACTIVE, {
-    schema: 3,
-    savedAt: 5,
-    wallets: [{ id: 'w1', name: 'Old', ciphertext: [7], credentialType: 'pin', fingerprint: 'f1', kind: 'mnemonic' }],
-  });
-  await storage.resealEncryptedWallet('w1', [8, 9]);
-  const [wallet] = (await storage.loadEncryptedWallet()).wallets;
-  assert.deepEqual([wallet.id, wallet.name, [...wallet.ciphertext], wallet.credentialType], ['w1', 'Old', [8, 9], 'password']);
-  await assert.rejects(storage.resealEncryptedWallet('missing', [1]), /no longer available/);
 });

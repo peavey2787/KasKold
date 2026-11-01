@@ -179,7 +179,7 @@ function renderWalletDetails() {
   $('details-name').textContent = wallet.name;
   $('details-name-input').value = wallet.name;
   $('details-kind').textContent = wallet.kind;
-  $('details-fingerprint').textContent = wallet.fingerprint || 'Unavailable for legacy wallet metadata';
+  $('details-fingerprint').textContent = wallet.fingerprint || 'Unavailable';
   $('details-kpub').textContent = wallet.kpub || '';
   $('details-kpub-panel').classList.toggle('hidden', !wallet.kpub);
   $('details-delete').dataset.walletIndex = String(wallet.index);

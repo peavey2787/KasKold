@@ -183,20 +183,15 @@ fn native_inventory_authentication_rejects_tampering_and_restores_raw_key_slot()
 }
 
 #[test]
-fn native_inventory_accepts_legacy_single_wallet_ciphertext_as_migration_input() {
+fn native_inventory_refuses_a_bare_wallet_ciphertext() {
     let key = [0x71u8; PLATFORM_WRAPPING_KEY_LEN];
     let mut runtime = VaultRuntime::new();
-    let expected = runtime.restore_wallet(MNEMONIC, "").unwrap();
-    let legacy_single = runtime.seal_wallet(&key).unwrap();
+    runtime.restore_wallet(MNEMONIC, "").unwrap();
+    let single = runtime.seal_wallet(&key).unwrap();
 
-    let mut restored = VaultRuntime::new();
-    assert_eq!(
-        restored
-            .unlock_native_inventory(&legacy_single, &key)
-            .unwrap(),
-        Some(expected)
-    );
-    assert_eq!(restored.wallet_summaries().unwrap().len(), 1);
+    assert!(VaultRuntime::new()
+        .unlock_native_inventory(&single, &key)
+        .is_err());
 }
 
 #[test]
@@ -435,8 +430,6 @@ fn advanced_runtime_tools_and_portable_recovery_are_shared_and_locked() {
     );
 
     let backup = runtime.portable_backup("backup password 7").unwrap();
-    assert!(VaultRuntime::portable_backup_is_current(&backup));
-    assert!(!VaultRuntime::portable_backup_is_current(&backup[1..]));
     let expected = runtime.export_public_account().unwrap();
     runtime.lock_wallet();
     assert!(matches!(

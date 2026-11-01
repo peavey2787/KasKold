@@ -44,7 +44,6 @@ function normalizedWallet(wallet, fallbackId, savedAt) {
     id: String(wallet.id || fallbackId),
     name: String(wallet.name || 'Wallet'),
     ciphertext: wallet.ciphertext,
-    credentialType: wallet.credentialType === 'pin' ? 'pin' : 'password',
     fingerprint: wallet.fingerprint ? String(wallet.fingerprint) : '',
     kind: wallet.kind ? String(wallet.kind) : '',
     savedAt: Number(wallet.savedAt) || savedAt,
@@ -81,7 +80,6 @@ export async function saveEncryptedWallet(wallet) {
     id: previous?.id || walletId(),
     name: String(wallet.name || previous?.name || 'Wallet'),
     ciphertext: new Uint8Array(wallet.ciphertext),
-    credentialType: 'password',
     fingerprint,
     kind,
     savedAt,
@@ -112,16 +110,6 @@ export async function updateEncryptedWalletIdentity(id, identity) {
 }
 
 // Erase every saved ciphertext for one wallet identity; returns how many were removed.
-// Replace one saved wallet's ciphertext with a fresh password-sealed backup.
-export async function resealEncryptedWallet(id, ciphertext) {
-  const current = await loadEncryptedWallet();
-  const index = current?.wallets?.findIndex(wallet => wallet.id === id) ?? -1;
-  if (index < 0) throw new Error('The saved wallet is no longer available.');
-  const savedAt = Date.now();
-  current.wallets[index] = { ...current.wallets[index], ciphertext: new Uint8Array(ciphertext), credentialType: 'password', savedAt };
-  await writeRecord({ schema: 3, wallets: current.wallets, savedAt });
-}
-
 export async function deleteSavedWalletIdentity(identity) {
   const fingerprint = identity?.fingerprint ? String(identity.fingerprint) : '';
   const kind = identity?.kind ? String(identity.kind) : '';

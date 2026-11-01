@@ -550,29 +550,24 @@ fn new_portable_backups_need_a_strong_password_and_the_host_kdf_profile() {
     let backup = wallet
         .portable_backup("CorrectHorse9")
         .expect("host backup");
-    assert!(HotWallet::portable_backup_is_current(&backup));
-    assert!(!HotWallet::portable_backup_is_current(
-        &backup[..backup.len() - 1]
-    ));
+    assert!(HotWallet::restore_portable_backup(&backup, "CorrectHorse9").is_ok());
+    assert!(
+        HotWallet::restore_portable_backup(&backup[..backup.len() - 1], "CorrectHorse9").is_err()
+    );
     let mut renamed = backup.clone();
     renamed[0] ^= 0x20;
-    assert!(!HotWallet::portable_backup_is_current(&renamed));
+    assert!(HotWallet::restore_portable_backup(&renamed, "CorrectHorse9").is_err());
 
-    // A backup sealed under the embedded v1 profile (and an older 8-character
-    // minimum) still restores but reports that it needs re-sealing.
+    // A backup sealed under a cheaper Argon2id profile is refused even with the right password.
     let salt = [0x5a; 16];
-    let mut key = derive_key_32(PasswordKdfPurpose::PortableBackup, b"Short7pw", &salt).unwrap();
-    let mut legacy = backup[..4].to_vec();
-    legacy.extend_from_slice(&encode_metadata(PasswordKdfParams::current()).unwrap());
-    legacy.extend_from_slice(&salt);
-    legacy.extend_from_slice(&wallet.seal_for_platform(&key).unwrap());
+    let mut key =
+        derive_key_32(PasswordKdfPurpose::PortableBackup, b"CorrectHorse9", &salt).unwrap();
+    let mut cheaper = backup[..4].to_vec();
+    cheaper.extend_from_slice(&encode_metadata(PasswordKdfParams::current()).unwrap());
+    cheaper.extend_from_slice(&salt);
+    cheaper.extend_from_slice(&wallet.seal_for_platform(&key).unwrap());
     key.fill(0);
-    assert!(!HotWallet::portable_backup_is_current(&legacy));
-    let reopened = HotWallet::restore_portable_backup(&legacy, "Short7pw").expect("v1 restore");
-    assert_eq!(
-        reopened.export_kpub().unwrap(),
-        wallet.export_kpub().unwrap()
-    );
+    assert!(HotWallet::restore_portable_backup(&cheaper, "CorrectHorse9").is_err());
 }
 
 #[test]
@@ -1779,7 +1774,7 @@ fn stego_v2_photos_carry_no_length_and_open_only_under_the_argon2id_key() {
         "../../../../apps/kaskold-hardware/src/runtime/workflow_tests/fixtures/stego_noise.jpg"
     );
     use crate::portable_backup::PORTABLE_BACKUP_LEN;
-    use crate::stego_backup::{v1_permutation_key, v2_permutation_key};
+    use crate::stego_backup::v2_permutation_key;
     let password = "CorrectHorse9";
     let carrier = restored_wallet()
         .stego_backup(NOISE_JPEG, password)
@@ -1793,56 +1788,13 @@ fn stego_v2_photos_carry_no_length_and_open_only_under_the_argon2id_key() {
     assert_eq!(&payload[..4], b"KWP1");
     assert!(HotWallet::restore_portable_backup(&payload, password).is_ok());
 
-    // The cheap v1 key sees no backup, and nothing announces a length.
-    let v1_key = v1_permutation_key(password);
-    let mut v1_view = std::vec![0u8; PORTABLE_BACKUP_LEN];
-    shared_signer::stego_picture::extract_exact(&carrier, &v1_key[..], &mut v1_view)
-        .expect("any key reads bits");
-    assert_ne!(v1_view, payload);
+    // Nothing announces a length.
     let announced = u16::from_be_bytes([payload[0], payload[1]]) as usize;
     assert_ne!(announced, PORTABLE_BACKUP_LEN);
 }
 
 #[test]
-fn stego_v1_photos_still_restore_read_only() {
-    const NOISE_JPEG: &[u8] = include_bytes!(
-        "../../../../apps/kaskold-hardware/src/runtime/workflow_tests/fixtures/stego_noise.jpg"
-    );
-    let password = "CorrectHorse9";
-    let wallet = restored_wallet();
-    let backup = wallet.portable_backup(password).expect("portable backup");
-    let key = crate::stego_backup::v1_permutation_key(password);
-    let mut encoded = std::vec![0u8; NOISE_JPEG.len() * 2 + 4_096];
-    let length = shared_signer::stego_picture::embed(NOISE_JPEG, &backup, &key[..], &mut encoded)
-        .expect("v1 embeds");
-    let restored =
-        HotWallet::restore_stego_backup(&encoded[..length], password).expect("v1 photo restores");
-    assert_eq!(
-        restored.export_kpub().unwrap(),
-        wallet.export_kpub().unwrap()
-    );
-    assert!(HotWallet::restore_stego_backup(&encoded[..length], "WrongHorse9").is_err());
-
-    // A v1 photo whose prefix names another length is refused.
-    let short = &backup[..backup.len() - 1];
-    let length = shared_signer::stego_picture::embed(NOISE_JPEG, short, &key[..], &mut encoded)
-        .expect("short v1 embeds");
-    assert!(HotWallet::restore_stego_backup(&encoded[..length], password).is_err());
-}
-
-#[test]
-fn stego_permutation_keys_match_their_published_derivations() {
-    // v1 is BLAKE2b-256 over the web domain and password, so photos made by
-    // earlier web releases keep restoring; v2 pins the Argon2id host profile.
-    let v1 = crate::stego_backup::v1_permutation_key("CorrectHorse9");
-    assert_eq!(
-        v1[..],
-        [
-            0xfa, 0xb0, 0xc4, 0x91, 0x77, 0x8f, 0x8f, 0x09, 0xd2, 0x06, 0x15, 0xe5, 0x57, 0x99,
-            0xfd, 0x25, 0x40, 0x7e, 0x69, 0x90, 0xe0, 0xd7, 0x31, 0x67, 0xd8, 0x37, 0x89, 0xa1,
-            0x3d, 0x50, 0x90, 0xcc,
-        ]
-    );
+fn stego_permutation_key_matches_its_published_derivation() {
     let v2 = crate::stego_backup::v2_permutation_key("CorrectHorse9").expect("v2 key");
     assert_eq!(
         v2[..],

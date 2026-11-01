@@ -4,8 +4,7 @@
 //! Browser/mobile software cannot honestly reproduce that property, so this
 //! format is explicitly portable: Argon2id derives a wrapping key from the
 //! user's password and the authenticated versioned KHV3 wallet seal protects
-//! the recovery material. New backups use the 64 MiB host Argon2id profile;
-//! backups sealed under the embedded v1 profile still restore.
+//! the recovery material under the 64 MiB host Argon2id profile.
 
 use offline_signer::crypto::password_kdf::{
     derive_key_32_with_params, encode_metadata, parse_metadata, PasswordKdfParams,
@@ -77,20 +76,14 @@ impl HotWallet {
         Ok(output)
     }
 
-    /// Whether `data` is a portable backup sealed under the current host KDF
-    /// profile; an older backup should be re-sealed once it has been opened.
-    pub fn portable_backup_is_current(data: &[u8]) -> bool {
-        data.len() == PORTABLE_BACKUP_LEN
-            && &data[..4] == PORTABLE_MAGIC
-            && parse_metadata(&data[4..4 + METADATA_SIZE]).is_ok_and(PasswordKdfParams::is_host)
-    }
-
     pub fn restore_portable_backup(data: &[u8], password: &str) -> Result<Self, HotWalletError> {
         if data.len() != HEADER_LEN + SEALED_WALLET_LEN || &data[..4] != PORTABLE_MAGIC {
             return Err(HotWalletError::InvalidSealedWallet);
         }
         let parameters = parse_metadata(&data[4..4 + METADATA_SIZE])
-            .map_err(|_| HotWalletError::BackupCryptoFailed)?;
+            .ok()
+            .filter(|parameters| parameters.is_host())
+            .ok_or(HotWalletError::BackupCryptoFailed)?;
         let mut salt = [0u8; SALT_SIZE];
         salt.copy_from_slice(&data[4 + METADATA_SIZE..HEADER_LEN]);
         let mut key = derive_key_32_with_params(

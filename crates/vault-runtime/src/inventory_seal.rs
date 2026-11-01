@@ -46,33 +46,18 @@ impl VaultRuntime {
         Ok(output)
     }
 
-    /// Restore a complete native inventory (`KVI1`) or a single KHV3 wallet as one slot.
+    /// Restore a complete native inventory (`KVI1`).
     pub fn unlock_native_inventory(
         &mut self,
         sealed: &[u8],
         wrapping_key: &[u8; PLATFORM_WRAPPING_KEY_LEN],
     ) -> Result<Option<String>, VaultRuntimeError> {
-        if !sealed.starts_with(MAGIC) {
-            return self.unlock_single_wallet(sealed, wrapping_key);
-        }
         let body = authenticated_inventory_body(sealed, wrapping_key)?;
         let (active, count) = parse_inventory_header(body)?;
         let (wallets, names) = decode_inventory_slots(body, count, wrapping_key)?;
 
         let kpub = wallets[active].export_kpub().ok();
         self.install_inventory(wallets, names, active);
-        Ok(kpub)
-    }
-
-    fn unlock_single_wallet(
-        &mut self,
-        sealed: &[u8],
-        wrapping_key: &[u8; PLATFORM_WRAPPING_KEY_LEN],
-    ) -> Result<Option<String>, VaultRuntimeError> {
-        let wallet = HotWallet::restore_platform_sealed(sealed, wrapping_key)
-            .map_err(VaultRuntimeError::Custody)?;
-        let kpub = wallet.export_kpub().ok();
-        self.install_inventory(vec![wallet], vec!["Wallet 1".to_owned()], 0);
         Ok(kpub)
     }
 

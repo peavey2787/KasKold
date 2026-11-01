@@ -1,6 +1,6 @@
-import { meetsPasswordPolicy, requireMatchingPasswords } from './vault_bytes.js';
+import { requireMatchingPasswords } from './vault_bytes.js';
 import {
-  deleteEncryptedWallet, deleteSavedWalletIdentity, loadEncryptedWallet, resealEncryptedWallet,
+  deleteEncryptedWallet, deleteSavedWalletIdentity, loadEncryptedWallet,
   saveEncryptedWallet, updateEncryptedWalletIdentity,
 } from './vault_storage.js';
 
@@ -87,7 +87,7 @@ export function installOnboarding({ $, api, parse, show, status, showCreatedPhra
         const name = document.createElement('span');
         name.textContent = wallet?.name || `Wallet ${index + 1}`;
         const action = document.createElement('small');
-        action.textContent = wallet.credentialType === 'pin' ? 'Unlock legacy PIN wallet' : 'Unlock with password';
+        action.textContent = 'Unlock with password';
         button.append(name, action);
         button.onclick = () => {
           selectedSavedWalletId = wallet.id;
@@ -274,28 +274,11 @@ export function installOnboarding({ $, api, parse, show, status, showCreatedPhra
       selectedSavedWalletId = null;
       $('unlock-saved-name').textContent = '';
       $('unlock-saved-credential').value = '';
-      if (saved.credentialType === 'password' && api('kaskold_vault_portable_backup_is_current')(new Uint8Array(saved.ciphertext))) {
-        renderHome(false);
-        status(`${name} unlocked.`);
-        return;
-      }
-      await upgradeSavedWallet(saved.id, name, credential);
+      renderHome(false);
+      status(`${name} unlocked.`);
     } catch (error) { status(String(error), true); }
   }
 
-  // A PIN-sealed or older-KDF wallet is re-sealed under the current Argon2id
-  // profile; a password below the current policy must be replaced first.
-  async function upgradeSavedWallet(id, name, credential) {
-    if (meetsPasswordPolicy(credential)) {
-      await resealEncryptedWallet(id, api('kaskold_vault_portable_backup')(credential));
-      renderHome(false);
-      status(`${name} unlocked and re-encrypted with the current key-derivation settings.`);
-      return;
-    }
-    afterCreationStorage = () => renderHome(false);
-    chooseStoragePassword('Choose a Stronger Password');
-    status(`${name} unlocked. Its saved copy uses an outdated credential; choose a new password to keep it saved.`, true);
-  }
   $('unlock-saved-submit').onclick = unlockSelectedSavedWallet;
   $('unlock-saved-credential').onkeydown = event => {
     if (event.key !== 'Enter') return;
