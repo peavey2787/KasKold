@@ -23,6 +23,8 @@ ROOT = Path(__file__).resolve().parents[4]
 SUITE_ROOT = Path(__file__).resolve().parent
 API = ROOT / "apps/kaskold-companion-web/web/js/wasm/api.js"
 PACKAGE_PATH = "/apps/kaskold-companion-web/web/pkg/companion_web.js"
+VAULT_JS = ROOT / "apps/kaskold-vault-web/web/js"
+VAULT_PACKAGE_PATH = "/apps/kaskold-vault-web/web/pkg/vault_web.js"
 RESULT_PATH = "/__qa_real_dom_result__"
 PAGE_PATH = "/__qa_real_dom__"
 MAX_RESULT_BYTES = 1024 * 1024
@@ -50,6 +52,15 @@ from headless_chromium import (  # noqa: E402
 def wasm_export_names(api_source: str) -> list[str]:
     """Names the Companion WASM facade forwards to the generated package."""
     return sorted(set(re.findall(r"invoke\('([A-Za-z0-9_]+)'", api_source)))
+
+
+def vault_export_names() -> list[str]:
+    """Names the Vault modules call through their `api('name')` lookup."""
+    names: set[str] = set()
+    for module in VAULT_JS.rglob("*.js"):
+        names.update(re.findall(r"api\('([A-Za-z0-9_]+)'\)", module.read_text(encoding="utf-8")))
+    names.discard("default")
+    return sorted(names)
 
 
 def fake_package(names: list[str]) -> str:
@@ -105,6 +116,8 @@ class Handler(LoopbackRequestHandler):
             self.send_body(page(type(self).suites), "text/html; charset=utf-8")
         elif path == PACKAGE_PATH:
             self.send_body(type(self).package.encode(), "text/javascript")
+        elif path == VAULT_PACKAGE_PATH:
+            self.send_body(fake_package(vault_export_names()).encode(), "text/javascript")
         else:
             super().do_GET()
 

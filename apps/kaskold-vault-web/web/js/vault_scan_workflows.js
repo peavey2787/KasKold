@@ -1,5 +1,5 @@
-import {
 import { showQrSvg } from './ui/qr.js';
+import {
   bytesToText, decodeHexPayloadIfMagic, downloadBytes, hasMagic, hexToBytes,
 } from './vault_bytes.js';
 

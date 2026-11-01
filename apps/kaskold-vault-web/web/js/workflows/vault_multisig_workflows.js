@@ -1,6 +1,6 @@
 import { downloadBytes, nonNegativeInteger } from '../vault_bytes.js';
-import {
 import { showQrSvg } from '../ui/qr.js';
+import {
   deleteMultisigDescriptor,
   listMultisigDescriptors,
   saveMultisigDescriptor,

@@ -1,7 +1,7 @@
 // The Software Vault shell must render the creation, navigation and consumer
 // copy a browser actually shows, observed through the parsed and styled DOM.
 
-import { assert, assertEqual, mount, test } from './harness.mjs';
+import { assert, assertEqual, fakeWasm, mount, test } from './harness.mjs';
 
 const VAULT = '/apps/kaskold-vault-web/web';
 
@@ -147,4 +147,28 @@ test('the Companion welcome offers management and watch-only tools only', async 
     for (const forbidden of ['Multisig / Multi-spend', 'Watch only · no private keys', 'Create 12', 'Create 24', 'Restore wallet', 'Hot Wallet']) {
         assert(!rendered.includes(forbidden), `welcome still shows ${forbidden}`);
     }
+});
+
+test('every Vault module links and the app boots with its controls live', async () => {
+    const host = await mountVaultShell();
+    fakeWasm({
+        kaskold_vault_creation_flow: () => JSON.stringify({ diceRollTargets: [50, 99, 150, 200], touchEntropyTarget: 128 }),
+    });
+    let bootError = null;
+    const onRejection = event => { bootError = event.reason; };
+    addEventListener('unhandledrejection', onRejection);
+    await import(`${VAULT}/js/vault_main.js`);
+    const failure = requireOne(host, '#status-card');
+    const lastInstalled = requireOne(host, '#lock-vault');
+    for (let tries = 0; tries < 300 && !lastInstalled.onclick && !failure.textContent && !bootError; tries += 1) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    removeEventListener('unhandledrejection', onRejection);
+    assertEqual(bootError && String(bootError.stack || bootError), null, 'Vault boot threw');
+    assertEqual(failure.textContent, '', 'Vault boot failure');
+    assert(lastInstalled.onclick, 'boot must reach the end of handler installation');
+    const disabled = [...host.querySelectorAll('button')].filter(button => button.disabled);
+    assertEqual(disabled.length, 0, 'buttons disabled by a failed boot');
+    assert(requireOne(host, '#home-settings').onclick, 'navigation handlers must be installed');
+    assert(requireOne(host, '#advanced-kip22').onclick, 'advanced workflow handlers must be installed');
 });

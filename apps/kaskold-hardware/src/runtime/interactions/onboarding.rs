@@ -76,7 +76,9 @@ pub fn handle_onboarding_touch(context: OnboardingTouchContext<'_, '_, '_, '_, '
                 is_back,
             )
         }
-        Some(crate::runtime::navigation::OnboardingRoute::Dice) => Some(dice::handle_dice_roll(ad, boot_display, x, y, is_back)),
+        Some(crate::runtime::navigation::OnboardingRoute::Dice) => {
+            Some(dice::handle_dice_roll(ad, boot_display, x, y, is_back))
+        }
         Some(crate::runtime::navigation::OnboardingRoute::SeedEntry) => {
             crate::runtime::interactions::seed::handle_seed_touch(ad, boot_display, delay, liveness, input)
         }
