@@ -230,9 +230,8 @@ def _highest_level(items: list[dict], catalog: bool = False) -> str:
     return max(candidates, key=lambda value: LEVELS[value], default="backlog")
 
 
-def build_manifest(root: Path) -> tuple[dict, list[str]]:
-    errors: list[str] = []
-    errors.extend(ui_graph.validate_graph(root))
+def _checklist_errors(root: Path) -> tuple[set[str], dict, dict, list[str]]:
+    errors: list[str] = list(ui_graph.validate_graph(root))
     requirements = requirement_ids(root)
     if requirements != {f"E2E-{value:03d}" for value in range(1, 101)}:
         errors.append("production E2E checklist must contain stable E2E-001..E2E-100 sections")
@@ -246,127 +245,160 @@ def build_manifest(root: Path) -> tuple[dict, list[str]]:
     checkbox_count = len(re.findall(r"^- \[ \] ", _read(root, REQUIREMENTS_SPEC), re.M))
     if checkbox_count != len(items) + len(dod_items):
         errors.append("every production E2E/Definition-of-Done checkbox requires a stable item ID")
+    return requirements, items, dod_items, errors
 
-    baseline = _load_json(root, BASELINE)
-    scenario_doc = _load_json(root, SCENARIOS)
-    scenarios = scenario_doc.get("scenarios", [])
-    current = discover_surface(root)
-    baseline_surface = baseline.get("surface", {})
 
-    for scenario in scenarios:
-        sid = scenario.get("id", "<missing>")
-        if scenario.get("level") not in LEVELS or scenario.get("level") == "backlog":
-            errors.append(f"E2E scenario {sid}: invalid level")
-        scenario_requirements = set(scenario.get("requirements", []))
-        for req in scenario_requirements:
-            if req not in requirements:
-                errors.append(f"E2E scenario {sid}: unknown requirement {req}")
-        scenario_items = scenario.get("items", [])
-        if scenario.get("status") == "implemented" and scenario.get("level") != "catalog" and not scenario_items:
-            errors.append(f"E2E scenario {sid}: implemented connected/HIL scenarios require exact item IDs")
-        for item_id in scenario_items:
-            item = items.get(item_id)
-            if item is None:
-                errors.append(f"E2E scenario {sid}: unknown requirement item {item_id}")
-            elif item["section"] not in scenario_requirements:
-                errors.append(
-                    f"E2E scenario {sid}: item {item_id} parent {item['section']} is missing from requirements"
-                )
-        for field in ("states", "menu_items", "actions"):
-            unknown = sorted(set(scenario.get(field, [])) - set(current[field]))
-            if unknown:
-                errors.append(f"E2E scenario {sid}: unknown {field}: {', '.join(unknown)}")
-        if scenario.get("status") == "implemented" and scenario.get("level") == "manual-hil":
-            checkpoints = scenario.get("operator_checkpoints", [])
-            if not checkpoints:
-                errors.append(f"E2E scenario {sid}: manual-hil scenarios require operator_checkpoints")
-            checkpoint_ids = [checkpoint.get("id") for checkpoint in checkpoints]
-            if any(not value for value in checkpoint_ids) or len(checkpoint_ids) != len(set(checkpoint_ids)):
-                errors.append(f"E2E scenario {sid}: operator checkpoint IDs must be non-empty and unique")
-            if scenario.get("serial_markers"):
-                errors.append(f"E2E scenario {sid}: manual-hil evidence must not use serial_markers")
-        elif scenario.get("status") == "implemented" and scenario.get("level") not in {"catalog", "qa"} and not scenario.get("serial_markers"):
-            errors.append(f"E2E scenario {sid}: implemented device scenarios require serial_markers")
-        hil_only_markers = set(scenario.get("hil_only_serial_markers", []))
-        serial_markers = set(scenario.get("serial_markers", []))
-        if hil_only_markers - serial_markers:
-            errors.append(f"E2E scenario {sid}: hil_only_serial_markers must be a subset of serial_markers")
-        if hil_only_markers and scenario.get("level") != "connected":
-            errors.append(f"E2E scenario {sid}: hil_only_serial_markers are valid only on connected scenarios")
-
-    indexes = {field: _scenario_index(scenarios, field) for field in ("states", "menu_items", "actions")}
-    item_index = _scenario_index(scenarios, "items")
-    catalog = catalog_state_coverage(root)
-
-    # Frozen-backlog ratchet. New surface is forbidden without implemented E2E.
-    for field in ("states", "menu_items", "actions"):
-        baseline_set = set(baseline_surface.get(field, []))
-        if field == "actions":
-            baseline_set = {_migrate_baseline_action(item) for item in baseline_set}
-            baseline_set -= EXCLUDED_BASELINE_ACTIONS
-        elif field == "menu_items":
-            baseline_set = {BASELINE_MENU_ITEM_MIGRATIONS.get(item, item) for item in baseline_set}
-        current_set = set(current[field])
-        for item in sorted(current_set - baseline_set):
-            if not indexes[field].get(item):
-                errors.append(f"new production {field[:-1]} lacks implemented E2E scenario: {item}")
-        removed_set = baseline_set - current_set
-        if field == "states":
-            declared_operations = set(ui_graph.build_document(root).get("operation_kinds", []))
-            migrated = {
-                state for state, operation in BASELINE_STATE_OPERATION_MIGRATIONS.items()
-                if operation in declared_operations
-            }
-            removed_set -= migrated
-            removed_set -= {
-                old for old, new in BASELINE_STATE_MIGRATIONS.items()
-                if new in current_set
-            }
-        removed = sorted(removed_set)
-        if removed:
+def _scenario_requirement_errors(sid: str, scenario: dict, requirements: set[str], items: dict) -> list[str]:
+    errors: list[str] = []
+    if scenario.get("level") not in LEVELS or scenario.get("level") == "backlog":
+        errors.append(f"E2E scenario {sid}: invalid level")
+    scenario_requirements = set(scenario.get("requirements", []))
+    for req in scenario_requirements:
+        if req not in requirements:
+            errors.append(f"E2E scenario {sid}: unknown requirement {req}")
+    for item_id in scenario.get("items", []):
+        item = items.get(item_id)
+        if item is None:
+            errors.append(f"E2E scenario {sid}: unknown requirement item {item_id}")
+        elif item["section"] not in scenario_requirements:
             errors.append(
-                f"frozen production baseline {field} changed/removed without baseline migration: {', '.join(removed)}"
+                f"E2E scenario {sid}: item {item_id} parent {item['section']} is missing from requirements"
             )
+    if scenario.get("status") == "implemented" and scenario.get("level") != "catalog" and not scenario.get("items", []):
+        errors.append(f"E2E scenario {sid}: implemented connected/HIL scenarios require exact item IDs")
+    return errors
 
+
+def _scenario_surface_errors(sid: str, scenario: dict, current: dict) -> list[str]:
+    errors: list[str] = []
+    for field in ("states", "menu_items", "actions"):
+        unknown = sorted(set(scenario.get(field, [])) - set(current[field]))
+        if unknown:
+            errors.append(f"E2E scenario {sid}: unknown {field}: {', '.join(unknown)}")
+    return errors
+
+
+def _manual_hil_errors(sid: str, scenario: dict) -> list[str]:
+    checkpoints = scenario.get("operator_checkpoints", [])
+    errors: list[str] = []
+    if not checkpoints:
+        errors.append(f"E2E scenario {sid}: manual-hil scenarios require operator_checkpoints")
+    checkpoint_ids = [checkpoint.get("id") for checkpoint in checkpoints]
+    if any(not value for value in checkpoint_ids) or len(checkpoint_ids) != len(set(checkpoint_ids)):
+        errors.append(f"E2E scenario {sid}: operator checkpoint IDs must be non-empty and unique")
+    if scenario.get("serial_markers"):
+        errors.append(f"E2E scenario {sid}: manual-hil evidence must not use serial_markers")
+    return errors
+
+
+def _scenario_evidence_errors(sid: str, scenario: dict) -> list[str]:
+    status = scenario.get("status")
+    level = scenario.get("level")
+    if status == "implemented" and level == "manual-hil":
+        return _manual_hil_errors(sid, scenario)
+    if status == "implemented" and level not in {"catalog", "qa"} and not scenario.get("serial_markers"):
+        return [f"E2E scenario {sid}: implemented device scenarios require serial_markers"]
+    return []
+
+
+def _hil_marker_errors(sid: str, scenario: dict) -> list[str]:
+    errors: list[str] = []
+    hil_only_markers = set(scenario.get("hil_only_serial_markers", []))
+    serial_markers = set(scenario.get("serial_markers", []))
+    if hil_only_markers - serial_markers:
+        errors.append(f"E2E scenario {sid}: hil_only_serial_markers must be a subset of serial_markers")
+    if hil_only_markers and scenario.get("level") != "connected":
+        errors.append(f"E2E scenario {sid}: hil_only_serial_markers are valid only on connected scenarios")
+    return errors
+
+
+def _scenario_errors(scenario: dict, requirements: set[str], items: dict, current: dict) -> list[str]:
+    sid = scenario.get("id", "<missing>")
+    return [
+        *_scenario_requirement_errors(sid, scenario, requirements, items),
+        *_scenario_surface_errors(sid, scenario, current),
+        *_scenario_evidence_errors(sid, scenario),
+        *_hil_marker_errors(sid, scenario),
+    ]
+
+
+def _baseline_members(field: str, baseline_surface: dict) -> set[str]:
+    if field == "actions":
+        return {_migrate_baseline_action(item) for item in baseline_surface.get(field, [])} - EXCLUDED_BASELINE_ACTIONS
+    if field == "menu_items":
+        return {BASELINE_MENU_ITEM_MIGRATIONS.get(item, item) for item in baseline_surface.get(field, [])}
+    return set(baseline_surface.get(field, []))
+
+
+def _migrated_state_removals(root: Path, current_set: set[str]) -> set[str]:
+    declared_operations = set(ui_graph.build_document(root).get("operation_kinds", []))
+    migrated = {
+        state for state, operation in BASELINE_STATE_OPERATION_MIGRATIONS.items()
+        if operation in declared_operations
+    }
+    migrated |= {old for old, new in BASELINE_STATE_MIGRATIONS.items() if new in current_set}
+    return migrated
+
+
+def _ratchet_errors(root: Path, field: str, baseline_surface: dict, current: dict, indexes: dict) -> list[str]:
+    errors: list[str] = []
+    baseline_set = _baseline_members(field, baseline_surface)
+    current_set = set(current[field])
+    for item in sorted(current_set - baseline_set):
+        if not indexes[field].get(item):
+            errors.append(f"new production {field[:-1]} lacks implemented E2E scenario: {item}")
+    removed_set = baseline_set - current_set
+    if field == "states":
+        removed_set -= _migrated_state_removals(root, current_set)
+    removed = sorted(removed_set)
+    if removed:
+        errors.append(
+            f"frozen production baseline {field} changed/removed without baseline migration: {', '.join(removed)}"
+        )
+    return errors
+
+
+def _harness_marker_errors(root: Path, scenarios: list[dict]) -> list[str]:
     harness_sources = "\n".join(
         path.read_text(errors="ignore")
         for path in sorted((root / "apps/kaskold-hardware/src/runtime/workflow_tests").rglob("*.rs"))
     )
+    errors: list[str] = []
     for scenario in scenarios:
         if scenario.get("status") != "implemented" or scenario.get("level") in {"catalog", "qa"}:
             continue
         for marker in scenario.get("serial_markers", []):
             if marker not in harness_sources:
                 errors.append(f"E2E scenario {scenario['id']}: serial marker not emitted by harness: {marker}")
+    return errors
 
-    surface_manifest: dict[str, dict[str, dict]] = {}
-    for field in ("states", "menu_items", "actions"):
-        entries: dict[str, dict] = {}
-        for item in current[field]:
-            implemented = indexes[field].get(item, [])
-            catalog_ids = catalog.get(item, []) if field == "states" else []
-            entries[item] = {
-                "baseline": item in (
-                    ({_migrate_baseline_action(value) for value in baseline_surface.get(field, [])}
-                     if field == "actions" else
-                     {BASELINE_MENU_ITEM_MIGRATIONS.get(value, value) for value in baseline_surface.get(field, [])}
-                     if field == "menu_items" else
-                     set(baseline_surface.get(field, [])))
-                    - (EXCLUDED_BASELINE_ACTIONS if field == "actions" else set())
-                ),
-                "catalog_workflows": catalog_ids,
-                "implemented_scenarios": sorted(s["id"] for s in implemented),
-                "highest_level": _highest_level(implemented, bool(catalog_ids)),
-            }
-        surface_manifest[field] = entries
 
+def _surface_entries(field: str, current: dict, indexes: dict, catalog: dict, baseline_surface: dict) -> dict[str, dict]:
+    baseline_set = _baseline_members(field, baseline_surface)
+    entries: dict[str, dict] = {}
+    for item in current[field]:
+        implemented = indexes[field].get(item, [])
+        catalog_ids = catalog.get(item, []) if field == "states" else []
+        entries[item] = {
+            "baseline": item in baseline_set,
+            "catalog_workflows": catalog_ids,
+            "implemented_scenarios": sorted(s["id"] for s in implemented),
+            "highest_level": _highest_level(implemented, bool(catalog_ids)),
+        }
+    return entries
+
+
+def _surface_summary(surface_manifest: dict[str, dict[str, dict]]) -> dict:
     summary = {}
     for field, entries in surface_manifest.items():
         counts = {level: 0 for level in LEVELS}
         for entry in entries.values():
             counts[entry["highest_level"]] += 1
         summary[field] = {"total": len(entries), **counts}
+    return summary
 
+
+def _item_manifest(items: dict, item_index: dict) -> tuple[dict[str, dict], dict[str, int]]:
     item_manifest: dict[str, dict] = {}
     item_counts = {level: 0 for level in LEVELS}
     for item_id, item in sorted(items.items()):
@@ -379,18 +411,46 @@ def build_manifest(root: Path) -> tuple[dict, list[str]]:
             "implemented_scenarios": sorted(s["id"] for s in implemented),
             "highest_level": highest,
         }
+    return item_manifest, item_counts
 
-    surface_incomplete = {
-        field: sorted(
-            item for item, entry in surface_manifest[field].items()
-            if LEVELS[entry["highest_level"]] < LEVELS["connected"]
-        )
+
+def _below_connected(entry: dict) -> bool:
+    return LEVELS[entry["highest_level"]] < LEVELS["connected"]
+
+
+def build_manifest(root: Path) -> tuple[dict, list[str]]:
+    requirements, items, dod_items, errors = _checklist_errors(root)
+
+    baseline = _load_json(root, BASELINE)
+    scenario_doc = _load_json(root, SCENARIOS)
+    scenarios = scenario_doc.get("scenarios", [])
+    current = discover_surface(root)
+    baseline_surface = baseline.get("surface", {})
+
+    for scenario in scenarios:
+        errors.extend(_scenario_errors(scenario, requirements, items, current))
+
+    indexes = {field: _scenario_index(scenarios, field) for field in ("states", "menu_items", "actions")}
+    item_index = _scenario_index(scenarios, "items")
+    catalog = catalog_state_coverage(root)
+
+    # Frozen-backlog ratchet. New surface is forbidden without implemented E2E.
+    for field in ("states", "menu_items", "actions"):
+        errors.extend(_ratchet_errors(root, field, baseline_surface, current, indexes))
+
+    errors.extend(_harness_marker_errors(root, scenarios))
+
+    surface_manifest = {
+        field: _surface_entries(field, current, indexes, catalog, baseline_surface)
         for field in ("states", "menu_items", "actions")
     }
-    item_incomplete = sorted(
-        item_id for item_id, entry in item_manifest.items()
-        if LEVELS[entry["highest_level"]] < LEVELS["connected"]
-    )
+    item_manifest, item_counts = _item_manifest(items, item_index)
+
+    surface_incomplete = {
+        field: sorted(item for item, entry in surface_manifest[field].items() if _below_connected(entry))
+        for field in ("states", "menu_items", "actions")
+    }
+    item_incomplete = sorted(item_id for item_id, entry in item_manifest.items() if _below_connected(entry))
     qualification_ready = not item_incomplete and not any(surface_incomplete.values())
 
     manifest = {
@@ -398,7 +458,7 @@ def build_manifest(root: Path) -> tuple[dict, list[str]]:
         "requirements_document": REQUIREMENTS_SPEC.as_posix(),
         "scenario_registry": SCENARIOS.as_posix(),
         "policy": "the frozen production surface is a CI ratchet; stable item IDs are authoritative for release qualification",
-        "coverage_summary": summary,
+        "coverage_summary": _surface_summary(surface_manifest),
         "item_coverage_summary": {"total": len(item_manifest), **item_counts},
         "requirement_items": item_manifest,
         "definition_of_done_items": dod_items,

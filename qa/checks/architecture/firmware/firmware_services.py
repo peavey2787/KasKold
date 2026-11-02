@@ -141,12 +141,17 @@ def _check_argon2_psram(root: Path) -> list[str]:
     firmware_kdf = (memory_root / "password_kdf.rs").read_text(errors="ignore")
     main = (root / "apps/kaskold-hardware/src/main.rs").read_text(errors="ignore")
     bench = (root / "apps/kaskold-hardware/src/diagnostics/argon2_bench.rs").read_text(errors="ignore")
-    firmware_source = "\n".join(
-        path.read_text(errors="ignore")
-        for path in (root / "apps/kaskold-hardware/src").rglob("*.rs")
-        if "services/memory/password_kdf.rs" not in path.as_posix()
-    )
+    return [
+        *errors,
+        *_psram_allocator_errors(psram, main),
+        *_argon2_workspace_errors(firmware_kdf),
+        *_argon2_bench_errors(bench),
+        *_kdf_bypass_errors(root, memory_root),
+    ]
 
+
+def _psram_allocator_errors(psram: str, main: str) -> list[str]:
+    errors: list[str] = []
     for required in (
         "esp_hal::psram::psram_raw_parts(peripheral)",
         "MemoryCapability::External.into()",
@@ -161,7 +166,11 @@ def _check_argon2_psram(root: Path) -> list[str]:
             errors.append(f"PSRAM provenance must not hard-code/map via convenience fallback: {forbidden}")
     if "initialize_or_halt(&peripherals.PSRAM)" not in main:
         errors.append("firmware boot must retain the runtime ESP-HAL PSRAM region before password KDF use")
+    return errors
 
+
+def _argon2_workspace_errors(firmware_kdf: str) -> list[str]:
+    errors: list[str] = []
     for required in (
         "Argon2Workspace::allocate(parameters)",
         "workspace.info()?",
@@ -176,30 +185,42 @@ def _check_argon2_psram(root: Path) -> list[str]:
     for forbidden in ("Vec::<PasswordKdfBlock>", "try_reserve_exact", "m_cost_kib -", "m_cost_kib / 2"):
         if forbidden in firmware_kdf:
             errors.append(f"firmware Argon2 workspace must never heap-fallback or downgrade: {forbidden}")
+    return errors
 
-    for required in (
-        "runtime_psram=0x", "workspace=0x", "workspace_bytes={}",
-        "provenance={}", "integrity={}", "vector={}", "watchdog_ok={}",
-        "probe_largest_allocatable",
-    ):
-        if required not in bench:
-            errors.append(f"Argon2 benchmark provenance report missing: {required}")
 
+def _argon2_bench_errors(bench: str) -> list[str]:
+    return [
+        f"Argon2 benchmark provenance report missing: {required}"
+        for required in (
+            "runtime_psram=0x", "workspace=0x", "workspace_bytes={}",
+            "provenance={}", "integrity={}", "vector={}", "watchdog_ok={}",
+            "probe_largest_allocatable",
+        )
+        if required not in bench
+    ]
+
+
+def _kdf_bypass_errors(root: Path, memory_root: Path) -> list[str]:
+    errors: list[str] = []
     for path in (root / "apps/kaskold-hardware/src").rglob("*.rs"):
         if path == memory_root / "password_kdf.rs":
             continue
-        for line in path.read_text(errors="ignore").splitlines():
-            stripped = line.strip()
-            if "password_kdf::derive_key_32" not in stripped:
-                continue
-            if "crate::services::memory::password_kdf::derive_key_32" in stripped:
-                continue
+        if _uses_unwrapped_kdf(path.read_text(errors="ignore")):
             errors.append(
                 f"current firmware password KDF bypasses PSRAM provenance adapter: {path.relative_to(root)}"
             )
-            break
     return errors
 
+
+def _uses_unwrapped_kdf(source: str) -> bool:
+    for line in source.splitlines():
+        stripped = line.strip()
+        if "password_kdf::derive_key_32" not in stripped:
+            continue
+        if "crate::services::memory::password_kdf::derive_key_32" in stripped:
+            continue
+        return True
+    return False
 
 
 def _check_panic_free_boundaries(root: Path) -> list[str]:

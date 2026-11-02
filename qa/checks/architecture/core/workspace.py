@@ -12,8 +12,6 @@ from architecture.tooling.workspace_delivery import _check_firmware_delivery_pat
 from .sdk.workspace import check as check_sdk_workspace
 
 
-
-
 def _check_qa_test_layout(root: Path) -> list[str]:
     """Reject Rust integration-test roots that collide with sibling module directories."""
     errors: list[str] = []
@@ -99,9 +97,8 @@ def _check_business_facades(root: Path) -> list[str]:
         errors.append("unexpected broad business facade types: " + ", ".join(sorted(unexpected)))
     return errors
 
-def _check_firmware_core_ownership(root: Path) -> list[str]:
+def _check_core_groups(root: Path, core: Path) -> list[str]:
     errors: list[str] = []
-    core = root / "crates/kaskold-hardware-core/src"
     expected_groups = {
         "backup", "camera", "entropy", "input", "power", "presentation",
         "qr", "runtime", "screen_flow", "security", "storage", "time", "update",
@@ -127,7 +124,10 @@ def _check_firmware_core_ownership(root: Path) -> list[str]:
                 f"crowded kaskold-hardware-core group: {group.relative_to(root)} has "
                 f"{len(direct_modules)} modules (maximum 6)"
             )
+    return errors
 
+def _check_shared_signer_policy(root: Path) -> list[str]:
+    errors: list[str] = []
     shared_lib = (root / "crates/shared-signer/src/lib.rs").read_text(errors="ignore")
     for forbidden in ("firmware", "entropy", "release"):
         if f"pub mod {forbidden};" in shared_lib:
@@ -139,6 +139,10 @@ def _check_firmware_core_ownership(root: Path) -> list[str]:
         errors.append("shared-signer must not keep a copy of Kaspa Portal's signing policy")
     if not hardware_time.is_file() or "pub use shared_signer::advanced_policy;" not in hardware_time.read_text(errors="ignore"):
         errors.append("hardware-core advanced policy must remain a thin re-export of shared-signer")
+    return errors
+
+def _check_stego_modules(root: Path) -> list[str]:
+    errors: list[str] = []
     shared_stego = root / "crates/shared-signer/src/stego_picture/mod.rs"
     hardware_stego = root / "crates/kaskold-hardware-core/src/backup/stego_picture.rs"
     if not shared_stego.is_file():
@@ -159,11 +163,23 @@ def _check_firmware_core_ownership(root: Path) -> list[str]:
         errors.append(
             "hardware-core must not retain a duplicate stego_picture implementation directory"
         )
+    return errors
+
+def _check_descriptor_and_firmware_residue(root: Path) -> list[str]:
+    errors: list[str] = []
     if (root / "crates/shared-signer/src/firmware").exists():
         errors.append("shared-signer/src/firmware must not exist after firmware-core extraction")
     descriptor = root / "crates/kaskold-protocol/src/wire/multisig_descriptor.rs"
     if not descriptor.is_file():
         errors.append("canonical multisig descriptor parser must live in kaskold-protocol wire")
+    return errors
+
+def _check_firmware_core_ownership(root: Path) -> list[str]:
+    core = root / "crates/kaskold-hardware-core/src"
+    errors = _check_core_groups(root, core)
+    errors.extend(_check_shared_signer_policy(root))
+    errors.extend(_check_stego_modules(root))
+    errors.extend(_check_descriptor_and_firmware_residue(root))
     return errors
 
 def _check_workspace_manifests(root: Path) -> list[str]:
@@ -213,78 +229,72 @@ def _check_workspace_manifests(root: Path) -> list[str]:
         errors.append("firmware-local ESP toolchain pin is missing")
     return errors
 
-
-def check(root: Path) -> list[str]:
-    ROOT = root
-    errors: list[str] = [
-        *_check_firmware_delivery_paths(root),
-        *_check_master_test_runner(root),
-        *check_quality_ownership(root),
-        *_check_qa_test_layout(root),
-        *_check_repository_metadata(root),
-        *check_web_pkg_policy(root),
-    ]
-
+def _check_obsolete_paths(root: Path) -> list[str]:
+    errors: list[str] = []
     for obsolete in (
         "bootloader", "companion", "rqrr_nostd", "platforms", "vendor", "hardware",
         "src", "tests", "benches", "fuzz",
     ):
-        if (ROOT / obsolete).exists():
+        if (root / obsolete).exists():
             errors.append(f"obsolete or misplaced top-level path exists: {obsolete}")
+    return errors
 
-
-    errors.extend(check_sdk_workspace(ROOT))
-
-    errors.extend(_check_business_facades(ROOT))
-
-    errors.extend(_check_workspace_manifests(ROOT))
-
+def _check_crowded_source_roots(root: Path) -> list[str]:
+    errors: list[str] = []
     organized_roots = {
-        ROOT / "crates/kaskold-protocol/src": 1,
-        ROOT / "crates/kaskold-sdk/src": 1,
-        ROOT / "crates/offline-signer/src": 2,
-        ROOT / "crates/online-watcher/src": 2,
-        ROOT / "crates/kaskold-hardware-core/src": 3,
-        ROOT / "apps/kaskold-hardware/src/hw": 1,
+        root / "crates/kaskold-protocol/src": 1,
+        root / "crates/kaskold-sdk/src": 1,
+        root / "crates/offline-signer/src": 2,
+        root / "crates/online-watcher/src": 2,
+        root / "crates/kaskold-hardware-core/src": 3,
+        root / "apps/kaskold-hardware/src/hw": 1,
     }
     for directory, maximum_files in organized_roots.items():
         direct_files = [path for path in directory.iterdir() if path.is_file()]
         if len(direct_files) > maximum_files:
             errors.append(
-                f"crowded source root: {directory.relative_to(ROOT)} has "
+                f"crowded source root: {directory.relative_to(root)} has "
                 f"{len(direct_files)} direct files (maximum {maximum_files})"
             )
+    return errors
 
-    errors.extend(_check_firmware_core_ownership(ROOT))
-
+def _check_qa_paths(root: Path) -> list[str]:
+    errors: list[str] = []
     required_qa_paths = [
-        ROOT / "qa/Cargo.toml",
-        ROOT / "qa/tests/common",
-        ROOT / "qa/tests/conformance",
-        ROOT / "qa/tests/integration",
-        ROOT / "qa/tests/fixtures",
-        ROOT / "qa/benches",
-        ROOT / "qa/fuzz/Cargo.toml",
-        ROOT / "qa/fuzz/unwrap_qr_payload.rs",
+        root / "qa/Cargo.toml",
+        root / "qa/tests/common",
+        root / "qa/tests/conformance",
+        root / "qa/tests/integration",
+        root / "qa/tests/fixtures",
+        root / "qa/benches",
+        root / "qa/fuzz/Cargo.toml",
+        root / "qa/fuzz/unwrap_qr_payload.rs",
     ]
     for required in required_qa_paths:
         if not required.exists():
-            errors.append(f"required QA path is missing: {required.relative_to(ROOT)}")
+            errors.append(f"required QA path is missing: {required.relative_to(root)}")
 
-    if (ROOT / "qa/src").exists():
+    if (root / "qa/src").exists():
         errors.append("qa must not contain an artificial src/ package target")
-    if (ROOT / "qa/fuzz/fuzz_targets").exists():
+    if (root / "qa/fuzz/fuzz_targets").exists():
         errors.append("qa/fuzz must be flat; fuzz_targets/ is not allowed")
-    for forbidden_name in ("boot_test.rs", "self_test.rs"):
-        for path in ROOT.rglob(forbidden_name):
-            if is_generated_tree(path, ROOT):
-                continue
-            errors.append(f"test implementation must live under unit_tests/: {path.relative_to(ROOT)}")
+    return errors
 
-    for path in ROOT.rglob("*.rs"):
-        relative = path.relative_to(ROOT)
+def _check_forbidden_test_names(root: Path) -> list[str]:
+    errors: list[str] = []
+    for forbidden_name in ("boot_test.rs", "self_test.rs"):
+        for path in root.rglob(forbidden_name):
+            if is_generated_tree(path, root):
+                continue
+            errors.append(f"test implementation must live under unit_tests/: {path.relative_to(root)}")
+    return errors
+
+def _check_inline_tests(root: Path) -> list[str]:
+    errors: list[str] = []
+    for path in root.rglob("*.rs"):
+        relative = path.relative_to(root)
         if (
-            is_generated_tree(path, ROOT)
+            is_generated_tree(path, root)
             or "unit_tests" in relative.parts
             or "tests" in relative.parts
             or relative.parts[0] == "qa"
@@ -293,30 +303,58 @@ def check(root: Path) -> list[str]:
         source = path.read_text(errors="ignore")
         if "#[test]" in source or re.search(r"\bmod\s+tests\b", source):
             errors.append(f"inline test implementation remains in production source: {relative}")
+    return errors
 
-    for duplicate_root in ROOT.rglob("src/mod.rs"):
-        if is_generated_tree(duplicate_root, ROOT):
+def _check_duplicate_crate_roots(root: Path) -> list[str]:
+    errors: list[str] = []
+    for duplicate_root in root.rglob("src/mod.rs"):
+        if is_generated_tree(duplicate_root, root):
             continue
         if (duplicate_root.parent / "lib.rs").exists():
-            errors.append(f"duplicate crate root module exists: {duplicate_root.relative_to(ROOT)}")
+            errors.append(f"duplicate crate root module exists: {duplicate_root.relative_to(root)}")
+    return errors
 
+def _check_production_lint_allowances(root: Path) -> list[str]:
+    errors: list[str] = []
     production_roots = (
-        ROOT / "apps/kaskold-hardware/src",
-        ROOT / "crates/offline-signer/src",
-        ROOT / "crates/online-watcher/src",
-        ROOT / "crates/shared-signer/src",
-        ROOT / "crates/kaskold-hardware-core/src",
+        root / "apps/kaskold-hardware/src",
+        root / "crates/offline-signer/src",
+        root / "crates/online-watcher/src",
+        root / "crates/shared-signer/src",
+        root / "crates/kaskold-hardware-core/src",
     )
     for source_root in production_roots:
         for path in source_root.rglob("*.rs"):
             source = path.read_text(errors="ignore")
-            relative = path.relative_to(ROOT)
+            relative = path.relative_to(root)
             if re.search(r"(?m)^#!\[allow\(", source):
                 errors.append(f"crate/file-wide lint allowance is forbidden: {relative}")
             if "#[allow(deprecated)]" in source:
                 errors.append(f"deprecated API suppression is forbidden: {relative}")
             if "#[allow(dead_code)]" in source:
                 errors.append(f"retained dead-code suppression is forbidden: {relative}")
+    return errors
 
-    errors.extend(_check_root_manifest_and_lints(ROOT))
+
+def check(root: Path) -> list[str]:
+    errors: list[str] = [
+        *_check_firmware_delivery_paths(root),
+        *_check_master_test_runner(root),
+        *check_quality_ownership(root),
+        *_check_qa_test_layout(root),
+        *_check_repository_metadata(root),
+        *check_web_pkg_policy(root),
+    ]
+    errors.extend(_check_obsolete_paths(root))
+    errors.extend(check_sdk_workspace(root))
+    errors.extend(_check_business_facades(root))
+    errors.extend(_check_workspace_manifests(root))
+    errors.extend(_check_crowded_source_roots(root))
+    errors.extend(_check_firmware_core_ownership(root))
+    errors.extend(_check_qa_paths(root))
+    errors.extend(_check_forbidden_test_names(root))
+    errors.extend(_check_inline_tests(root))
+    errors.extend(_check_duplicate_crate_roots(root))
+    errors.extend(_check_production_lint_allowances(root))
+    errors.extend(_check_root_manifest_and_lints(root))
     return errors

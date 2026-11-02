@@ -86,18 +86,8 @@ def guard_vocabulary(source: str) -> set[str]:
     return set(re.findall(r'"([a-z0-9_]+)"', body))
 
 
-def validate(root: Path) -> list[str]:
+def _connected_scope_errors(doc: dict, expected_connected: list[str], state_set: set[str]) -> list[str]:
     errors: list[str] = []
-    graph_errors = ui_graph.validate_graph(root)
-    errors.extend(f"UI graph: {error}" for error in graph_errors)
-    if graph_errors:
-        return errors
-
-    graph = ui_graph.parse_graph(root)
-    state_names = sorted(row["state"] for row in graph["states"])
-    state_set = set(state_names)
-    doc = manifest(root)
-    expected_connected = connected_states(doc)
     if len(expected_connected) != doc.get("coverage_summary", {}).get("states", {}).get("connected"):
         errors.append("connected stable-state count disagrees with E2E coverage summary")
     if not expected_connected:
@@ -105,8 +95,11 @@ def validate(root: Path) -> list[str]:
     unknown_connected = sorted(set(expected_connected) - state_set)
     if unknown_connected:
         errors.append("runtime qualification references unknown stable states: " + ", ".join(unknown_connected))
+    return errors
 
-    physical_states = workflow_e2e_physical_states(root)
+
+def _physical_shape_errors(physical_states: list[str], state_set: set[str], expected_connected: list[str]) -> list[str]:
+    errors: list[str] = []
     if not physical_states:
         errors.append("workflow-e2e physical-render scope is empty or malformed")
     if physical_states != sorted(set(physical_states)):
@@ -117,36 +110,53 @@ def validate(root: Path) -> list[str]:
     nonconnected_physical = sorted(set(physical_states) - set(expected_connected))
     if nonconnected_physical:
         errors.append("workflow-e2e physical-render scope must be connected states: " + ", ".join(nonconnected_physical))
-    connected_scenario_states = {
+    return errors
+
+
+def _implemented_connected_states(root: Path) -> set[str]:
+    scenarios = json.loads(read(root, SCENARIOS)).get("scenarios", [])
+    return {
         state
-        for scenario in json.loads(read(root, SCENARIOS)).get("scenarios", [])
+        for scenario in scenarios
         if scenario.get("status") == "implemented" and scenario.get("level") == "connected"
         for state in scenario.get("states", [])
     }
-    unclaimed_physical = sorted(set(physical_states) - connected_scenario_states)
-    if unclaimed_physical:
-        errors.append("workflow-e2e physical-render states lack an implemented connected scenario: " + ", ".join(unclaimed_physical))
 
+
+def _physical_scenario_errors(root: Path, physical_states: list[str]) -> list[str]:
+    unclaimed_physical = sorted(set(physical_states) - _implemented_connected_states(root))
+    if unclaimed_physical:
+        return ["workflow-e2e physical-render states lack an implemented connected scenario: " + ", ".join(unclaimed_physical)]
+    return []
+
+
+def _ownership_errors(root: Path, state_names: list[str]) -> list[str]:
     routing = read(root, ROUTING)
     renderers = "\n".join(path.read_text(encoding="utf-8") for path in sorted((root / REDRAW_ROOT).rglob("*.rs")))
     missing_handler = [state for state in state_names if not re.search(rf"\b{re.escape(state)}\b", routing)]
     missing_renderer = [state for state in state_names if not re.search(rf"\b{re.escape(state)}\b", renderers)]
+    errors: list[str] = []
     if missing_handler:
         errors.append("stable states missing touch-handler ownership: " + ", ".join(missing_handler))
     if missing_renderer:
         errors.append("stable states missing redraw ownership: " + ", ".join(missing_renderer))
+    return errors
 
-    catalog = read(root, MENU_CATALOG)
-    if ".get(usize::from(index))" not in catalog:
+
+def _menu_reducer_errors(root: Path, graph: dict) -> list[str]:
+    errors: list[str] = []
+    if ".get(usize::from(index))" not in read(root, MENU_CATALOG):
         errors.append("formal menu reducer no longer rejects out-of-range indexes via slice get")
-
-    reducer = read(root, MENU_REDUCER)
-    guards = guard_vocabulary(reducer)
+    guards = guard_vocabulary(read(root, MENU_REDUCER))
     declared_guards = {item["guard"] for items in graph["menus"].values() for item in items}
     missing_guards = sorted(declared_guards - guards)
     if missing_guards:
         errors.append("UI graph guards missing reducer implementations: " + ", ".join(missing_guards))
+    return errors
 
+
+def _menu_route_errors(root: Path, graph: dict) -> list[str]:
+    errors: list[str] = []
     route_pairs = parse_route_pairs(read(root, MENU_ROUTES))
     for menu, items in graph["menus"].items():
         for item in items:
@@ -157,18 +167,24 @@ def validate(root: Path) -> list[str]:
                     f"graph menu route {menu}[{item['index']}] -> {item['destination']} "
                     "has no matching reducer destination"
                 )
+    return errors
 
+
+def _render_evidence_errors(root: Path) -> list[str]:
     redraw = read(root, REDRAW_DISPATCH)
     evidence = read(root, RUNTIME_EVIDENCE)
+    errors: list[str] = []
     if "super::runtime_evidence::record(ad.navigation.app.state, handled);" not in redraw:
         errors.append("workflow runtime redraw no longer records physical-render evidence")
     if RENDER_PREFIX not in evidence or RENDER_MISS_PREFIX not in evidence:
         errors.append("workflow runtime evidence helper does not emit success/miss physical-render evidence")
     if "if handled {" not in evidence:
         errors.append("physical-render evidence is not gated on a successful redraw handler")
+    return errors
 
-    runtime_gui = read(root, RUNTIME_GUI)
-    operations = read(root, OPERATIONS)
+
+def _timeout_fault_errors(runtime_gui: str, operations: str) -> list[str]:
+    errors: list[str] = []
     if FAULT_ACTION not in runtime_gui:
         errors.append("runtime HIL lacks recoverable cooperative-operation timeout fault injection")
     if "workflow_inject_timeout" not in operations or "cancel_stepped(ad, kind)" not in operations or "fail_recoverable_spec(ad, error)" not in operations:
@@ -176,16 +192,44 @@ def validate(root: Path) -> list[str]:
     for token in ("OP-TIMEOUT-01", "ModalState::RecoverableError", "handle_tap"):
         if token not in runtime_gui:
             errors.append(f"runtime timeout fault probe missing {token} recovery assertion")
+    return errors
 
+
+def _pop_it_probe_errors(runtime_gui: str) -> list[str]:
     # Connected E2E may exercise Pop It controller confirmation states with a
     # synthetic fixture, but the physical runtime probe must stop at the prompt
     # and must never invoke the irreversible provisioning/confirmation action.
     pop_probe = runtime_gui.split("fn probe_pop_it", 1)[1].split("fn probe_receive_change", 1)[0]
+    errors: list[str] = []
     if "Never advance to explanation/confirmation or burn eFuses" not in pop_probe:
         errors.append("Pop It runtime probe no longer documents its non-destructive boundary")
     if "workflow_advanced_select(ad, 3)" not in pop_probe:
         errors.append("Pop It runtime probe no longer reaches the production prompt route")
+    return errors
 
+
+def validate(root: Path) -> list[str]:
+    graph_errors = ui_graph.validate_graph(root)
+    if graph_errors:
+        return [f"UI graph: {error}" for error in graph_errors]
+
+    graph = ui_graph.parse_graph(root)
+    state_names = sorted(row["state"] for row in graph["states"])
+    state_set = set(state_names)
+    doc = manifest(root)
+    expected_connected = connected_states(doc)
+    physical_states = workflow_e2e_physical_states(root)
+
+    errors = _connected_scope_errors(doc, expected_connected, state_set)
+    errors.extend(_physical_shape_errors(physical_states, state_set, expected_connected))
+    errors.extend(_physical_scenario_errors(root, physical_states))
+    errors.extend(_ownership_errors(root, state_names))
+    errors.extend(_menu_reducer_errors(root, graph))
+    errors.extend(_menu_route_errors(root, graph))
+    errors.extend(_render_evidence_errors(root))
+    runtime_gui = read(root, RUNTIME_GUI)
+    errors.extend(_timeout_fault_errors(runtime_gui, read(root, OPERATIONS)))
+    errors.extend(_pop_it_probe_errors(runtime_gui))
     return errors
 
 

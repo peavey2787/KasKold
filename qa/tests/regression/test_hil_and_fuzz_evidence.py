@@ -22,7 +22,6 @@ for path in (FIRMWARE_CHECKS, SECURITY_CHECKS):
     if str(path) not in sys.path:
         sys.path.insert(0, str(path))
 
-import hil_evidence  # noqa: E402
 import run_hardware_tests  # noqa: E402
 import run_workflow_tests  # noqa: E402
 

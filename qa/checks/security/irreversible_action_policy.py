@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 from pathlib import Path
 import re
@@ -36,6 +37,9 @@ IRREVERSIBLE_API = re.compile(
     r"\b(?:esp_secure_boot_v2_permanently_enable|"
     r"esp_efuse_(?:write\w*|batch_write_commit|set_write_protect\w*))\b"
 )
+USER_CONSENT_LABEL = "on-device irreversible consent contract"
+OWNER_CONSENT_LABEL = "owner-authority irreversible consent contract"
+WRAPPER_LABEL = "developer irreversible acknowledgement contract"
 
 
 def executable_scripts() -> list[Path]:
@@ -107,11 +111,9 @@ def unguarded_markdown_blocks(path: Path) -> list[str]:
     return failures
 
 
-def audit() -> tuple[list[str], dict[str, object]]:
-    errors: list[str] = []
-    guarded_scripts: list[str] = []
+def _script_phase(errors: list[str]) -> tuple[list[dict[str, object]], list[str]]:
     destructive_scripts: list[dict[str, object]] = []
-
+    guarded_scripts: list[str] = []
     for path in executable_scripts():
         commands = live_command_lines(path)
         if not commands:
@@ -128,98 +130,137 @@ def audit() -> tuple[list[str], dict[str, object]]:
                 f"{relative} contains an irreversible eFuse/security command without "
                 f"the mandatory interactive wrapper {ACK_WRAPPER} and bound {{device}} token"
             )
+    return destructive_scripts, guarded_scripts
 
-    guarded_markdown: list[str] = []
+
+def _markdown_files() -> list[Path]:
+    paths: list[Path] = []
     for root in MARKDOWN_ROOTS:
-        if not root.is_dir():
-            continue
-        for path in sorted(root.rglob("*.md")):
-            failures = unguarded_markdown_blocks(path)
-            relative = path.relative_to(ROOT).as_posix()
-            if failures:
-                for command in failures:
-                    errors.append(
-                        f"{relative} contains a copy-pasteable irreversible command without "
-                        f"{ACK_WRAPPER} and the bound {{device}} token: {command}"
-                    )
-            elif any(IRREVERSIBLE_COMMAND.search(block) for block in FENCED_CODE.findall(path.read_text(errors="replace"))):
-                guarded_markdown.append(relative)
+        if root.is_dir():
+            paths.extend(sorted(root.rglob("*.md")))
+    return paths
 
+
+def _markdown_phase(errors: list[str]) -> list[str]:
+    guarded_markdown: list[str] = []
+    for path in _markdown_files():
+        failures = unguarded_markdown_blocks(path)
+        relative = path.relative_to(ROOT).as_posix()
+        if failures:
+            for command in failures:
+                errors.append(
+                    f"{relative} contains a copy-pasteable irreversible command without "
+                    f"{ACK_WRAPPER} and the bound {{device}} token: {command}"
+                )
+        elif any(IRREVERSIBLE_COMMAND.search(block) for block in FENCED_CODE.findall(path.read_text(errors="replace"))):
+            guarded_markdown.append(relative)
+    return guarded_markdown
+
+
+def _source_phase(errors: list[str]) -> list[str]:
     source_violations = unauthorized_irreversible_source_calls()
     for violation in source_violations:
         errors.append(
             "irreversible production eFuse API exists outside the single Pop It-gated "
             f"bootloader patcher: {violation}"
         )
+    return source_violations
 
-    ui = (ROOT / "apps/kaskold-hardware/src/ui/screens/device/pop_it.rs").read_text()
-    controller = (
-        ROOT / "apps/kaskold-hardware/src/runtime/interactions/settings/advanced/pop_it.rs"
-    ).read_text()
-    secure_boot_source = (
-        ROOT / "tools/build/firmware/secure_bootloader/m5stack/owner_secure_boot_patch.py"
-    ).read_text()
-    owner_boot_source = (
-        ROOT / "tools/build/firmware/secure_bootloader/m5stack/owner_bootloader_patch.py"
-    ).read_text()
-    owner_ui = (ROOT / "apps/kaskold-hardware/src/ui/screens/device/owner_firmware.rs").read_text()
-    owner_controller = (
-        ROOT / "apps/kaskold-hardware/src/runtime/interactions/settings/advanced/owner_firmware.rs"
-    ).read_text()
-    boot_control = (
-        ROOT / "apps/kaskold-hardware/src/services/persistent_wallet/device/boot_control.rs"
-    ).read_text()
 
-    user_consent_checks = {
-        "warns_permanent": "This permanently burns security eFuses." in ui,
-        "warns_cannot_undo": "It cannot be undone or reset later." in ui,
-        "requires_typed_pop_it": "FINAL: TYPE POP IT" in ui
-        and "confirmation_phrase_valid" in controller,
-        "arms_one_shot_request": "persistence.request_pop_it()" in controller,
+@dataclass(frozen=True)
+class _Sources:
+    ui: str
+    controller: str
+    secure_boot_source: str
+    owner_boot_source: str
+    owner_ui: str
+    owner_controller: str
+    boot_control: str
+    wrapper: str
+
+
+def _read_source(relative: str) -> str:
+    return (ROOT / relative).read_text()
+
+
+def _load_sources() -> _Sources:
+    return _Sources(
+        ui=_read_source("apps/kaskold-hardware/src/ui/screens/device/pop_it.rs"),
+        controller=_read_source("apps/kaskold-hardware/src/runtime/interactions/settings/advanced/pop_it.rs"),
+        secure_boot_source=_read_source("tools/build/firmware/secure_bootloader/m5stack/owner_secure_boot_patch.py"),
+        owner_boot_source=_read_source("tools/build/firmware/secure_bootloader/m5stack/owner_bootloader_patch.py"),
+        owner_ui=_read_source("apps/kaskold-hardware/src/ui/screens/device/owner_firmware.rs"),
+        owner_controller=_read_source("apps/kaskold-hardware/src/runtime/interactions/settings/advanced/owner_firmware.rs"),
+        boot_control=_read_source("apps/kaskold-hardware/src/services/persistent_wallet/device/boot_control.rs"),
+        wrapper=_read_source(ACK_WRAPPER),
+    )
+
+
+def _user_consent_checks(sources: _Sources) -> dict[str, bool]:
+    return {
+        "warns_permanent": "This permanently burns security eFuses." in sources.ui,
+        "warns_cannot_undo": "It cannot be undone or reset later." in sources.ui,
+        "requires_typed_pop_it": "FINAL: TYPE POP IT" in sources.ui
+        and "confirmation_phrase_valid" in sources.controller,
+        "arms_one_shot_request": "persistence.request_pop_it()" in sources.controller,
     }
-    for name, met in user_consent_checks.items():
-        if not met:
-            errors.append(f"on-device irreversible consent contract missing: {name}")
 
+
+def _pop_it_blocks(source: str) -> tuple[str, str]:
     try:
-        armed = secure_boot_source.split("POP_IT_GATED_BLOCK = r'''", 1)[1].split("'''", 1)[0]
-        commit = secure_boot_source.split("POP_IT_COMMIT_BLOCK = r'''", 1)[1].split("'''", 1)[0]
+        armed = source.split("POP_IT_GATED_BLOCK = r'''", 1)[1].split("'''", 1)[0]
+        commit = source.split("POP_IT_COMMIT_BLOCK = r'''", 1)[1].split("'''", 1)[0]
     except IndexError:
-        armed = commit = ""
+        return "", ""
+    return armed, commit
+
+
+def _bootloader_gated(source: str) -> bool:
+    armed, commit = _pop_it_blocks(source)
     take = commit.find("kaskold_bootctl_take(KASKOLD_BOOTCTL_OP_POP_IT")
     burn = commit.find("esp_secure_boot_v2_permanently_enable(image_data)")
-    bootloader_gated = (
+    return (
         "kaskold_pop_it_transition_armed = true" in armed
         and take >= 0 and burn > take
         and "esp_secure_boot_v2_permanently_enable" not in armed
     )
-    if not bootloader_gated:
+
+
+def _bootloader_phase(errors: list[str], secure_boot_source: str) -> bool:
+    gated = _bootloader_gated(secure_boot_source)
+    if not gated:
         errors.append(
             "bootloader irreversible Secure Boot enable call is not ordered after the "
             "consumed Pop It one-shot request"
         )
+    return gated
 
-    owner_consent_checks = {
-        "warns_permanent_owner_key": "permanent" in owner_ui and "cannot be undone" in owner_ui,
-        "requires_typed_owner_enroll": "ENROLL OWNER" in owner_ui and 'b"ENROLL OWNER"' in owner_controller,
-        "requires_typed_owner_install": "INSTALL OWNER" in owner_ui and 'b"INSTALL OWNER"' in owner_controller,
-        "secure_profile_only_boot_control": '#[cfg(feature = "secure-provisioning-core")]' in boot_control,
-        "development_simulation_only": owner_controller.count("DEVELOPMENT SIMULATION") >= 2,
-        "owner_efuse_bootloader_owned": "esp_efuse_write_key" in owner_boot_source
-        and "esp_efuse_set_write_protect_of_digest_revoke" in owner_boot_source,
-        "pop_it_enrollment_prerequisite": "Do this BEFORE Pop It" in owner_ui,
-        "owner_only_requires_enrollment": 'cfg!(feature = "secure-owner-only")' in owner_controller
-        or 'cfg!(feature = "secure-owner-only")' in (ROOT / "apps/kaskold-hardware/src/runtime/interactions/settings/advanced/pop_it.rs").read_text(),
-        "owner_only_sole_authority_policy": "KASKOLD_OWNER_ONLY_AUTHORITY" in owner_boot_source
-        and "esp_efuse_set_digest_revoke(1)" in owner_boot_source
-        and "esp_efuse_set_digest_revoke(2)" in owner_boot_source,
+
+def _owner_key_checks(sources: _Sources) -> dict[str, bool]:
+    return {
+        "warns_permanent_owner_key": "permanent" in sources.owner_ui and "cannot be undone" in sources.owner_ui,
+        "requires_typed_owner_enroll": "ENROLL OWNER" in sources.owner_ui and 'b"ENROLL OWNER"' in sources.owner_controller,
+        "requires_typed_owner_install": "INSTALL OWNER" in sources.owner_ui and 'b"INSTALL OWNER"' in sources.owner_controller,
+        "secure_profile_only_boot_control": '#[cfg(feature = "secure-provisioning-core")]' in sources.boot_control,
+        "development_simulation_only": sources.owner_controller.count("DEVELOPMENT SIMULATION") >= 2,
     }
-    for name, met in owner_consent_checks.items():
-        if not met:
-            errors.append(f"owner-authority irreversible consent contract missing: {name}")
 
-    wrapper = (ROOT / ACK_WRAPPER).read_text()
-    wrapper_checks = {
+
+def _owner_bootloader_checks(sources: _Sources) -> dict[str, bool]:
+    return {
+        "owner_efuse_bootloader_owned": "esp_efuse_write_key" in sources.owner_boot_source
+        and "esp_efuse_set_write_protect_of_digest_revoke" in sources.owner_boot_source,
+        "pop_it_enrollment_prerequisite": "Do this BEFORE Pop It" in sources.owner_ui,
+        "owner_only_requires_enrollment": 'cfg!(feature = "secure-owner-only")' in sources.owner_controller
+        or 'cfg!(feature = "secure-owner-only")' in sources.controller,
+        "owner_only_sole_authority_policy": "KASKOLD_OWNER_ONLY_AUTHORITY" in sources.owner_boot_source
+        and "esp_efuse_set_digest_revoke(1)" in sources.owner_boot_source
+        and "esp_efuse_set_digest_revoke(2)" in sources.owner_boot_source,
+    }
+
+
+def _wrapper_checks(wrapper: str) -> dict[str, bool]:
+    return {
         "explicit_irreversible_phrase": "I UNDERSTAND THIS IS IRREVERSIBLE" in wrapper,
         "interactive_only": "isatty()" in wrapper,
         "device_retype": "Retype the target device exactly" in wrapper,
@@ -227,9 +268,28 @@ def audit() -> tuple[list[str], dict[str, object]]:
         and "bound_command" in wrapper,
         "no_environment_bypass": "os.environ" not in wrapper,
     }
-    for name, met in wrapper_checks.items():
+
+
+def _record_missing(errors: list[str], checks: dict[str, bool], label: str) -> None:
+    for name, met in checks.items():
         if not met:
-            errors.append(f"developer irreversible acknowledgement contract missing: {name}")
+            errors.append(f"{label} missing: {name}")
+
+
+def audit() -> tuple[list[str], dict[str, object]]:
+    errors: list[str] = []
+    destructive_scripts, guarded_scripts = _script_phase(errors)
+    guarded_markdown = _markdown_phase(errors)
+    source_violations = _source_phase(errors)
+
+    sources = _load_sources()
+    user_consent_checks = _user_consent_checks(sources)
+    _record_missing(errors, user_consent_checks, USER_CONSENT_LABEL)
+    bootloader_gated = _bootloader_phase(errors, sources.secure_boot_source)
+    owner_consent_checks = {**_owner_key_checks(sources), **_owner_bootloader_checks(sources)}
+    _record_missing(errors, owner_consent_checks, OWNER_CONSENT_LABEL)
+    wrapper_checks = _wrapper_checks(sources.wrapper)
+    _record_missing(errors, wrapper_checks, WRAPPER_LABEL)
 
     document: dict[str, object] = {
         "schema_version": 1,

@@ -117,42 +117,75 @@ def valid_completion(current_run: Path) -> bool:
     )
 
 
-def validate_healthy(current_run: Path) -> list[str]:
+MUTATION_SUMMARY_NAMES = frozenset({"mutation-summary.json", "crypto-mutation-summary.json"})
+CURRENT_RUN_EVIDENCE = ("mutation-results.zip", "fuzz-results.zip", "gate-results.json")
+
+
+def _is_missing_or_empty(path: Path) -> bool:
+    return not path.is_file() or path.stat().st_size == 0
+
+
+def _required_artifact_errors() -> list[str]:
+    return [
+        f"missing or empty hardening artifact: {relative(path)}"
+        for path in REQUIRED_HEALTHY_FILES
+        if _is_missing_or_empty(path)
+    ]
+
+
+def _health_document_errors(path: Path) -> list[str]:
+    try:
+        document = json.loads(path.read_text())
+    except json.JSONDecodeError as error:
+        return [f"invalid JSON artifact {relative(path)}: {error}"]
     errors: list[str] = []
-    for path in REQUIRED_HEALTHY_FILES:
-        if not path.is_file() or path.stat().st_size == 0:
-            errors.append(f"missing or empty hardening artifact: {relative(path)}")
-    for path in HEALTH_JSON:
-        if not path.is_file():
-            continue
-        try:
-            document = json.loads(path.read_text())
-        except json.JSONDecodeError as error:
-            errors.append(f"invalid JSON artifact {relative(path)}: {error}")
-            continue
-        if document.get("healthy") is not True:
-            errors.append(f"hardening artifact is not healthy: {relative(path)}")
-        if path.name in {"mutation-summary.json", "crypto-mutation-summary.json"}:
-            if document.get("candidate_certified") is not True:
-                errors.append(
-                    f"hardening mutation artifact is development-only, not fresh candidate-certified: {relative(path)}"
-                )
-    for name in ("mutation-results.zip", "fuzz-results.zip", "gate-results.json"):
-        path = current_run / name
-        if not path.is_file() or path.stat().st_size == 0:
-            errors.append(f"missing current-run evidence: {relative(path)}")
-    gate_results = current_run / "gate-results.json"
-    base_healthy = False
-    if gate_results.is_file():
-        try:
-            base_healthy = json.loads(gate_results.read_text()).get("healthy") is True
-        except json.JSONDecodeError:
-            pass
-    if not base_healthy and not valid_completion(current_run):
+    if document.get("healthy") is not True:
+        errors.append(f"hardening artifact is not healthy: {relative(path)}")
+    if path.name in MUTATION_SUMMARY_NAMES and document.get("candidate_certified") is not True:
         errors.append(
-            "hardening run is not healthy and has no valid supplemental sole-gate completion record"
+            f"hardening mutation artifact is development-only, not fresh candidate-certified: {relative(path)}"
         )
     return errors
+
+
+def _health_json_errors() -> list[str]:
+    errors: list[str] = []
+    for path in HEALTH_JSON:
+        if path.is_file():
+            errors.extend(_health_document_errors(path))
+    return errors
+
+
+def _current_run_evidence_errors(current_run: Path) -> list[str]:
+    return [
+        f"missing current-run evidence: {relative(current_run / name)}"
+        for name in CURRENT_RUN_EVIDENCE
+        if _is_missing_or_empty(current_run / name)
+    ]
+
+
+def _base_run_healthy(gate_results: Path) -> bool:
+    if not gate_results.is_file():
+        return False
+    try:
+        return json.loads(gate_results.read_text()).get("healthy") is True
+    except json.JSONDecodeError:
+        return False
+
+
+def _completion_errors(current_run: Path) -> list[str]:
+    if _base_run_healthy(current_run / "gate-results.json") or valid_completion(current_run):
+        return []
+    return ["hardening run is not healthy and has no valid supplemental sole-gate completion record"]
+
+
+def validate_healthy(current_run: Path) -> list[str]:
+    return [
+        *_required_artifact_errors(),
+        *_health_json_errors(),
+        *_current_run_evidence_errors(current_run),
+        *_completion_errors(current_run),
+    ]
 
 
 def write_bundle(output: Path, files: list[Path], *, healthy: bool, current_run: Path) -> None:

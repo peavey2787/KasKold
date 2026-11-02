@@ -8,7 +8,6 @@ import shutil
 import stat
 import tarfile
 import tomllib
-import urllib.request
 
 try:
     from .common import atomic_download, clean_environment, deterministic_file_manifest, download_json, run, sha256_file

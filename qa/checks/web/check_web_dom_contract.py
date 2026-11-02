@@ -8,6 +8,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[3]
 HTML_ROOT = ROOT / "apps/kaskold-companion-web/web/html"
 JS_ROOT = ROOT / "apps/kaskold-companion-web/web/js"
+APP_CSS_ROOT = ROOT / 'apps/kaskold-companion-web/web/css/app'
 
 REQUIRED_PRIVATE_SWAP_IDS = {
     "cov-private-swap-panel", "private-swap-hub", "private-swap-create",
@@ -39,12 +40,15 @@ RETIRED_CREATION_TOKENS = {
 }
 
 
-def main() -> int:
-    html = "\n".join(path.read_text(encoding="utf-8") for path in HTML_ROOT.rglob("*.html"))
-    js = "\n".join(path.read_text(encoding="utf-8") for path in JS_ROOT.rglob("*.js"))
-    ids = set(re.findall(r'\bid=["\']([^"\']+)["\']', html))
-    errors: list[str] = []
+def _read(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
 
+
+def _read_tree(root: Path, pattern: str) -> str:
+    return "\n".join(_read(path) for path in root.rglob(pattern))
+
+
+def _check_kpub_ids(ids: set[str], errors: list[str]) -> None:
     missing_kpub = sorted(REQUIRED_KPUB_IMPORT_IDS - ids)
     if missing_kpub:
         errors.append(f"kpub management/import DOM is incomplete: {missing_kpub}")
@@ -55,14 +59,8 @@ def main() -> int:
     if missing_welcome_kpub:
         errors.append(f"welcome saved-kpub selection DOM is incomplete: {missing_welcome_kpub}")
 
-    welcome = (HTML_ROOT / 'screens/system/welcome.html').read_text(encoding="utf-8")
-    scanner = (HTML_ROOT / 'screens/system/scanner.html').read_text(encoding="utf-8")
-    manager = (HTML_ROOT / 'screens/wallet/kpub_manager.html').read_text(encoding="utf-8")
-    if 'id="btn-scan-kpub"' not in welcome or 'Manage Wallets' not in welcome:
-        errors.append('welcome screen must expose one centralized watch-only wallet-management entry point')
-    for control in REQUIRED_KPUB_IMPORT_IDS - {"btn-scan-kpub", "companion-startup-status"}:
-        if control in welcome:
-            errors.append(f'welcome screen must not duplicate managed kpub control: {control}')
+
+def _check_managed_kpub_controls(manager: str, scanner: str, errors: list[str]) -> None:
     for control in (
         'btn-open-kpub-import', 'btn-scan-managed-kpub', 'btn-upload-managed-kpub',
         'input-managed-kpub-image', 'input-managed-kpub', 'input-kpub-friendly-name',
@@ -72,23 +70,32 @@ def main() -> int:
             errors.append(f'kpub management must own import control: {control}')
         if control in scanner:
             errors.append(f'camera scanner must not duplicate managed kpub control: {control}')
+
+
+def _check_kpub_screens(welcome: str, scanner: str, manager: str, js: str, errors: list[str]) -> None:
+    if 'id="btn-scan-kpub"' not in welcome or 'Manage Wallets' not in welcome:
+        errors.append('welcome screen must expose one centralized watch-only wallet-management entry point')
+    for control in REQUIRED_KPUB_IMPORT_IDS - {"btn-scan-kpub", "companion-startup-status"}:
+        if control in welcome:
+            errors.append(f'welcome screen must not duplicate managed kpub control: {control}')
+    _check_managed_kpub_controls(manager, scanner, errors)
     if 'Scan wallet QR with camera' not in js or 'decodeKpubQrImage' not in js:
         errors.append('wallet management must support camera scanning and QR image upload')
     if "showKpubManager('welcome', { openImport: true })" not in js:
         errors.append('the welcome Manage Wallets button must open centralized wallet management')
 
-    app_css_root = ROOT / 'apps/kaskold-companion-web/web/css/app'
-    header_css = (app_css_root / 'layout/header.css').read_text(encoding="utf-8")
-    buttons_css = (app_css_root / 'components/buttons.css').read_text(encoding="utf-8")
-    system_css = (app_css_root / 'screens/system.css').read_text(encoding="utf-8")
-    tokens_css = (app_css_root / 'foundation/tokens.css').read_text(encoding="utf-8")
+
+def _check_text_size_floor(errors: list[str]) -> None:
     too_small = []
-    for css_path in app_css_root.rglob('*.css'):
-        for match in re.finditer(r'font-size\s*:\s*(\d+)px', css_path.read_text(encoding="utf-8")):
+    for css_path in APP_CSS_ROOT.rglob('*.css'):
+        for match in re.finditer(r'font-size\s*:\s*(\d+)px', _read(css_path)):
             if int(match.group(1)) <= 13:
                 too_small.append(f"{css_path.relative_to(ROOT)}:{match.group(1)}px")
     if too_small:
         errors.append(f'Companion authored app CSS contains text below the 14px readability floor: {too_small[:12]}')
+
+
+def _check_header_sizing(header_css: str, errors: list[str]) -> None:
     for selector_snippet in (
         '.header-logo {\n    width: 50px;\n    height: 50px;',
         '.header-social svg {\n    width: 32px;\n    height: 32px;',
@@ -100,30 +107,44 @@ def main() -> int:
     ):
         if selector_snippet not in header_css:
             errors.append(f'Companion header sizing contract drifted: missing {selector_snippet!r}')
+
+
+def _check_startup_tools(welcome: str, system_css: str, errors: list[str]) -> None:
     if '<hr class="welcome-tools-separator" aria-hidden="true">' not in welcome or 'watch-only tools' in welcome:
         errors.append('Companion startup tools must use one unlabeled solid separator line')
     if '#btn-multisig-welcome { margin-top: 10px; }' not in system_css:
         errors.append('Companion startup Broadcast TX and Multisig buttons must retain visible spacing')
+
+
+def _check_manager_copy(manager: str, errors: list[str]) -> None:
     if 'Scan with a camera, upload a QR image, or paste the account public key.' in manager:
         errors.append('retired managed-kpub explanatory paragraph remains')
     if 'Use once loads this watch-only kpub for the current session only.' in manager:
         errors.append('retired one-time-kpub explanatory paragraph remains')
     if 'placeholder="Example: Main wallet"' not in manager:
         errors.append('Friendly Name placeholder must stay concise')
+
+
+def _check_back_button_shell(buttons_css: str, errors: list[str]) -> None:
     if '.btn-back,\n.btn-home-nav {' not in buttons_css or 'background: var(--surface-2);' not in buttons_css:
         errors.append('Companion Back and Home controls must share the same themed button shell')
     if 'linear-gradient(135deg, #2563eb, #1d4ed8)' in buttons_css:
         errors.append('retired blue Back-button theme remains in Companion CSS')
 
-    kpub_css = (ROOT / 'apps/kaskold-companion-web/web/css/app/screens/system.css').read_text(encoding="utf-8")
-    saved_list_rule = re.search(r'\.kpub-saved-list\s*\{([^}]*)\}', kpub_css, re.S)
+
+def _check_saved_kpub_list(system_css: str, errors: list[str]) -> None:
+    saved_list_rule = re.search(r'\.kpub-saved-list\s*\{([^}]*)\}', system_css, re.S)
     if not saved_list_rule or 'max-height:' not in saved_list_rule.group(1) or 'overflow-y: auto' not in saved_list_rule.group(1):
         errors.append('saved kpubs must render in a bounded scrollable list')
 
+
+def _check_social_links(html: str, errors: list[str]) -> None:
     for retired_social in ('https://x.com/KasKold', 'https://www.youtube.com/@KasKold', 'https://t.me/KasKold'):
         if retired_social in html:
             errors.append(f'unsupported project social link remains: {retired_social}')
 
+
+def _check_donation_surface(html: str, js: str, errors: list[str]) -> None:
     retired_donation_paths = (
         ROOT / 'apps/kaskold-companion-web/web/html/screens/system/donate.html',
         ROOT / 'apps/kaskold-companion-web/web/css/app/screens/donation_and_safe_area.css',
@@ -138,15 +159,17 @@ def main() -> int:
     for retired_token in ('screen-donate', 'btn-copy-donate', 'btn-donate-skip', 'DONATE_ADDRESS', 'features/donations'):
         if retired_token in html or retired_token in js:
             errors.append(f'retired Companion donation token remains: {retired_token}')
-    header = (HTML_ROOT / 'document/open.html').read_text(encoding='utf-8')
+
+
+def _check_header_home(header: str, shell_js: str, js: str, errors: list[str]) -> None:
     if 'id="btn-logo"' not in header or 'title="Home"' not in header or 'aria-label="Home"' not in header:
         errors.append('Companion header logo must be exposed as the Home control')
-    shell_controls = (JS_ROOT / 'app/shell_controls.js').read_text(encoding='utf-8')
-    if "logo.onclick = () => navigateHome();" not in shell_controls or 'navigateHome();' not in shell_controls:
+    if "logo.onclick = () => navigateHome();" not in shell_js or 'navigateHome();' not in shell_js:
         errors.append('Companion header logo must route through the shared navigateHome action')
 
-    settings_events = (JS_ROOT / 'app/events/wallet/wallet_settings.js').read_text(encoding="utf-8")
-    header = (HTML_ROOT / 'document/open.html').read_text(encoding='utf-8')
+
+def _check_settings_entry(header: str, html: str, errors: list[str]) -> None:
+    settings_events = _read(JS_ROOT / 'app/events/wallet/wallet_settings.js')
     if 'id="gear-menu"' in header or 'class="gear-tab' in header:
         errors.append('retired settings submenu remains; the cog must open Node Connection directly')
     if "bindClick('btn-header-settings', () => showSettings(" not in settings_events:
@@ -154,23 +177,29 @@ def main() -> int:
     for dashboard_target in ('btn-dashboard-tokens', 'btn-dashboard-history', 'btn-dashboard-portfolio'):
         if dashboard_target not in html:
             errors.append(f'dashboard secondary wallet view is missing: {dashboard_target}')
-    verify = (HTML_ROOT / 'screens/system/verify.html').read_text(encoding='utf-8')
+
+
+def _check_verify_and_multisig(errors: list[str]) -> None:
+    verify = _read(HTML_ROOT / 'screens/system/verify.html')
     if 'Compare with your KasKold or other wallet.' in verify or 'Every character must match exactly.' in verify:
         errors.append('Verify Address must not show the retired manual-comparison instruction')
 
-    multisig = (HTML_ROOT / 'screens/wallet/multisig.html').read_text(encoding='utf-8')
+    multisig = _read(HTML_ROOT / 'screens/wallet/multisig.html')
     if 'id="select-ms-saved-descriptor"' not in multisig or 'Saved Descriptor' not in multisig:
         errors.append('Multisig Spend must expose saved descriptor selection alongside paste/QR import')
-    pskt_css = (app_css_root / 'screens/pskt.css').read_text(encoding='utf-8')
+    pskt_css = _read(APP_CSS_ROOT / 'screens/pskt.css')
     if '#screen-multisig-spend .input-label {' not in pskt_css or 'text-transform: none;' not in pskt_css:
         errors.append('Multisig Spend labels must use normal authored capitalization rather than forced uppercase')
 
-    advanced = (HTML_ROOT / 'screens/system/advanced.html').read_text(encoding='utf-8')
+
+def _check_advanced_menu(errors: list[str]) -> None:
+    advanced = _read(HTML_ROOT / 'screens/system/advanced.html')
     for advanced_target in ('btn-broadcast', 'btn-covenant', 'btn-advanced-addresses', 'btn-stealth', 'btn-advanced-utxos'):
         if advanced_target not in advanced:
             errors.append(f'Advanced menu is missing: {advanced_target}')
 
 
+def _check_back_markup(html: str, errors: list[str]) -> None:
     back_buttons = re.findall(
         r'<button\b[^>]*\bclass=["\']([^"\']*)["\'][^>]*\bid=["\']([^"\']*(?:-back(?:-[^"\']*)?|btn-scanner-cancel))["\']',
         html,
@@ -178,19 +207,23 @@ def main() -> int:
     unstyled_back = sorted(button_id for classes, button_id in back_buttons if 'btn-back' not in classes.split())
     if unstyled_back:
         errors.append(f'back controls must use the shared btn-back style: {unstyled_back}')
-    buttons_css = (ROOT / 'apps/kaskold-companion-web/web/css/app/components/buttons.css').read_text(encoding="utf-8")
+
+
+def _check_back_style_and_nav(buttons_css: str, js: str, errors: list[str]) -> None:
     if '.btn-back {' not in buttons_css or "content: '←'" not in buttons_css:
         errors.append('shared back controls must be prominent and visually identifiable')
     if '.back-home-row {' not in buttons_css or '.btn-home-nav {' not in buttons_css:
         errors.append('every shared Back control must split its row with a Home control')
-    navigation_controls = (JS_ROOT / 'core/ui/navigation_controls.js').read_text(encoding="utf-8")
+    navigation_controls = _read(JS_ROOT / 'core/ui/navigation_controls.js')
     if "document.querySelectorAll('.btn-back')" not in navigation_controls or "homeButton.textContent = 'Home'" not in navigation_controls:
         errors.append('shared navigation controls must attach Home beside every Back button')
-    navigation_js = (JS_ROOT / 'app/navigation.js').read_text(encoding="utf-8")
+    navigation_js = _read(JS_ROOT / 'app/navigation.js')
     if 'screenHistory' not in navigation_js or 'export function navigateBack' not in navigation_js:
         errors.append('shared navigation must maintain bounded screen history for Back')
-    shell_js = (JS_ROOT / 'app/shell_controls.js').read_text(encoding="utf-8")
-    settings_js = (JS_ROOT / 'features/settings/screen.js').read_text(encoding="utf-8")
+
+
+def _check_settings_return(shell_js: str, errors: list[str]) -> None:
+    settings_js = _read(JS_ROOT / 'features/settings/screen.js')
     if "const source = visibleScreenName();" not in shell_js or "setScreenReturn('settings', source)" not in shell_js:
         errors.append('shell settings navigation must remember the visible return screen')
     if "if (source === 'settings') {" not in shell_js or "takeScreenReturn('settings', 'welcome')" not in shell_js:
@@ -200,7 +233,9 @@ def main() -> int:
     if "if (source === 'settings') {" not in settings_js or 'exitSettings();' not in settings_js:
         errors.append('full settings cog must toggle Node Connection closed when it is already open')
 
-    missing = sorted(REQUIRED_PRIVATE_SWAP_IDS - ids)
+
+def _check_private_swap(html: str, js: str, errors: list[str]) -> None:
+    missing = sorted(REQUIRED_PRIVATE_SWAP_IDS - set(re.findall(r'\bid=["\']([^"\']+)["\']', html)))
     if missing:
         errors.append(f"Private Swap v2 DOM is incomplete: {missing}")
     if 'data-cov-panel="private-swap"' not in html or 'id="cov-private-swap-panel"' not in html:
@@ -212,14 +247,54 @@ def main() -> int:
         if retired in html or retired in js:
             errors.append(f"retired HTLC Atomic Swap surface remains: {retired}")
 
+
+def _check_covenant_type_selection(js: str, errors: list[str]) -> None:
     if "context.covSelectType" in js:
         errors.append("covenant type selection must use the direct module function")
     if js.count("export function covSelectType") != 1:
         errors.append("covenant type selection must have one direct exported implementation")
 
+
+def _check_retired_creation(html: str, js: str, errors: list[str]) -> None:
     for token in sorted(RETIRED_CREATION_TOKENS):
         if token in html or token in js:
             errors.append(f"retired covenant creation surface remains: {token}")
+
+
+def main() -> int:
+    html = _read_tree(HTML_ROOT, "*.html")
+    js = _read_tree(JS_ROOT, "*.js")
+    ids = set(re.findall(r'\bid=["\']([^"\']+)["\']', html))
+    welcome = _read(HTML_ROOT / 'screens/system/welcome.html')
+    scanner = _read(HTML_ROOT / 'screens/system/scanner.html')
+    manager = _read(HTML_ROOT / 'screens/wallet/kpub_manager.html')
+    header = _read(HTML_ROOT / 'document/open.html')
+    shell_js = _read(JS_ROOT / 'app/shell_controls.js')
+    header_css = _read(APP_CSS_ROOT / 'layout/header.css')
+    buttons_css = _read(APP_CSS_ROOT / 'components/buttons.css')
+    system_css = _read(APP_CSS_ROOT / 'screens/system.css')
+    errors: list[str] = []
+
+    _check_kpub_ids(ids, errors)
+    _check_kpub_screens(welcome, scanner, manager, js, errors)
+    _check_text_size_floor(errors)
+    _check_header_sizing(header_css, errors)
+    _check_startup_tools(welcome, system_css, errors)
+    _check_manager_copy(manager, errors)
+    _check_back_button_shell(buttons_css, errors)
+    _check_saved_kpub_list(system_css, errors)
+    _check_social_links(html, errors)
+    _check_donation_surface(html, js, errors)
+    _check_header_home(header, shell_js, js, errors)
+    _check_settings_entry(header, html, errors)
+    _check_verify_and_multisig(errors)
+    _check_advanced_menu(errors)
+    _check_back_markup(html, errors)
+    _check_back_style_and_nav(buttons_css, js, errors)
+    _check_settings_return(shell_js, errors)
+    _check_private_swap(html, js, errors)
+    _check_covenant_type_selection(js, errors)
+    _check_retired_creation(html, js, errors)
 
     if errors:
         for error in errors:

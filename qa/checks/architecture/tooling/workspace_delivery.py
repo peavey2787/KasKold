@@ -6,7 +6,28 @@ from pathlib import Path
 import os
 import tomllib
 
-from architecture.core.common import has_exact_child
+
+
+_LINUX_LAUNCHERS = (
+    "qa/linux/run-all.sh",
+    "qa/linux/run-funded-testnet-e2e.sh",
+    "qa/linux/run-m5stack-security-hil.sh",
+    "qa/linux/run-pinned-branch-coverage.sh",
+    "qa/linux/run-production-hardening.sh",
+    "qa/linux/run-real-node-integration.sh",
+    "qa/linux/run-release-readiness.sh",
+    "qa/linux/run-security-fuzz.sh",
+    "qa/linux/release/generate_software_assurance.sh",
+)
+_EXPECTED_RUNNER_LIBRARY = {"catalog.sh", "commands.sh", "environment.sh"}
+_RUNNER_REQUIRED_TOKENS = (
+    "--resume-from", "--only", "--workspace", "--test", "--fuzz-passes",
+    "initialize_test_environment", "CARGO_HOME", ".espup/export-esp.sh",
+    "unit.shared-signer", "unit.kaskold-hardware-core", "unit.offline-signer", "unit.online-watcher",
+    "unit.kaskold-companion-web", "unit.signer-firmware",
+    "integration.shared-signer-conformance", "integration.repository-layout",
+    "bench.shared-signer-protocol-throughput", "fuzz.repository-security-targets",
+)
 
 
 def _requires_posix_executable_mode() -> bool:
@@ -64,17 +85,27 @@ def _check_firmware_delivery_paths(root: Path) -> list[str]:
 
 
 def _check_master_test_runner(root: Path) -> list[str]:
-    errors: list[str] = []
     runner = root / "qa/linux/run-all.sh"
-    terminal_helper = root / "qa/linux/lib/terminal_pause.sh"
-    library_root = root / "qa/linux/runner"
-    regression = root / "qa/tests/tooling/test_architecture_imports.py"
     if not runner.is_file():
         return ["master repository test runner is missing: qa/linux/run-all.sh"]
+    library_root = root / "qa/linux/runner"
+    return [
+        *_check_terminal_pause_helper(root),
+        *_check_linux_launchers(root),
+        *_check_runner_library_inventory(library_root),
+        *_check_runner_contract(runner, library_root),
+        *_check_master_catalog(root),
+        *_check_master_regressions(root),
+    ]
+
+
+def _check_terminal_pause_helper(root: Path) -> list[str]:
+    terminal_helper = root / "qa/linux/lib/terminal_pause.sh"
     if not terminal_helper.is_file():
-        errors.append("Linux QA terminal pause helper is missing: qa/linux/lib/terminal_pause.sh")
-    else:
-        helper_source = terminal_helper.read_text(errors="ignore")
+        return ["Linux QA terminal pause helper is missing: qa/linux/lib/terminal_pause.sh"]
+    helper_source = terminal_helper.read_text(errors="ignore")
+    return [
+        f"Linux QA terminal pause helper lost contract: {token}"
         for token in (
             "KASKOLD_QA_LAUNCHER_ACTIVE",
             "KASKOLD_QA_NO_PAUSE",
@@ -83,22 +114,14 @@ def _check_master_test_runner(root: Path) -> list[str]:
             "Press Enter to close this terminal",
             "PASS: %s completed successfully",
             "FAIL: %s exited with code %s",
-        ):
-            if token not in helper_source:
-                errors.append(f"Linux QA terminal pause helper lost contract: {token}")
+        )
+        if token not in helper_source
+    ]
 
-    launchers = (
-        "qa/linux/run-all.sh",
-        "qa/linux/run-funded-testnet-e2e.sh",
-        "qa/linux/run-m5stack-security-hil.sh",
-        "qa/linux/run-pinned-branch-coverage.sh",
-        "qa/linux/run-production-hardening.sh",
-        "qa/linux/run-real-node-integration.sh",
-        "qa/linux/run-release-readiness.sh",
-        "qa/linux/run-security-fuzz.sh",
-        "qa/linux/release/generate_software_assurance.sh",
-    )
-    for relative in launchers:
+
+def _check_linux_launchers(root: Path) -> list[str]:
+    errors: list[str] = []
+    for relative in _LINUX_LAUNCHERS:
         source_path = root / relative
         if not source_path.is_file():
             errors.append(f"Linux QA launcher is missing: {relative}")
@@ -106,56 +129,64 @@ def _check_master_test_runner(root: Path) -> list[str]:
         source = source_path.read_text(errors="ignore")
         if "terminal_pause.sh" not in source or "kaskold_qa_install_exit_handler" not in source:
             errors.append(f"Linux QA launcher lacks terminal result/pause handling: {relative}")
-    expected_library = {"catalog.sh", "commands.sh", "environment.sh"}
+    return errors
+
+
+def _check_runner_library_inventory(library_root: Path) -> list[str]:
     actual_library = {path.name for path in library_root.glob("*.sh")}
-    if actual_library != expected_library:
-        errors.append(
-            f"master test-runner support inventory changed: expected "
-            f"{sorted(expected_library)}, got {sorted(actual_library)}"
-        )
+    if actual_library == _EXPECTED_RUNNER_LIBRARY:
+        return []
+    return [
+        f"master test-runner support inventory changed: expected "
+        f"{sorted(_EXPECTED_RUNNER_LIBRARY)}, got {sorted(actual_library)}"
+    ]
+
+
+def _check_runner_contract(runner: Path, library_root: Path) -> list[str]:
+    errors: list[str] = []
     sources = [runner.read_text(errors="ignore")]
     sources.extend(
         (library_root / name).read_text(errors="ignore")
-        for name in sorted(expected_library)
+        for name in sorted(_EXPECTED_RUNNER_LIBRARY)
         if (library_root / name).is_file()
     )
     combined = "\n".join(sources)
     if _requires_posix_executable_mode() and not runner.stat().st_mode & 0o111:
         errors.append("master repository test runner must be executable")
-    required_tokens = (
-        "--resume-from", "--only", "--workspace", "--test", "--fuzz-passes",
-        "initialize_test_environment", "CARGO_HOME", ".espup/export-esp.sh",
-        "unit.shared-signer", "unit.kaskold-hardware-core", "unit.offline-signer", "unit.online-watcher",
-        "unit.kaskold-companion-web", "unit.signer-firmware",
-        "integration.shared-signer-conformance", "integration.repository-layout",
-        "bench.shared-signer-protocol-throughput", "fuzz.repository-security-targets",
-    )
-    for token in required_tokens:
+    for token in _RUNNER_REQUIRED_TOKENS:
         if token not in combined:
             errors.append(f"master repository test runner lost required contract: {token}")
+    return errors
+
+
+def _check_master_catalog(root: Path) -> list[str]:
     catalog_path = root / "qa/config/run_all_steps.tsv"
     if not catalog_path.is_file():
-        errors.append("canonical master test catalog is missing: qa/config/run_all_steps.tsv")
-    else:
-        rows = [
-            line.split("\t", 4)
-            for line in catalog_path.read_text(errors="ignore").splitlines()
-            if line and not line.startswith("#")
-        ]
-        ids = [row[3] for row in rows if len(row) == 5]
-        try:
-            bench_offset = ids.index("bench.shared-signer-protocol-throughput")
-            fuzz_offset = ids.index("fuzz.repository-security-targets")
-        except ValueError:
-            errors.append("master repository test catalog lost benchmark/fuzz stable IDs")
-        else:
-            if fuzz_offset < bench_offset:
-                errors.append("master repository test runner must keep fuzz targets after benches")
+        return ["canonical master test catalog is missing: qa/config/run_all_steps.tsv"]
+    rows = [
+        line.split("\t", 4)
+        for line in catalog_path.read_text(errors="ignore").splitlines()
+        if line and not line.startswith("#")
+    ]
+    ids = [row[3] for row in rows if len(row) == 5]
+    try:
+        bench_offset = ids.index("bench.shared-signer-protocol-throughput")
+        fuzz_offset = ids.index("fuzz.repository-security-targets")
+    except ValueError:
+        return ["master repository test catalog lost benchmark/fuzz stable IDs"]
+    if fuzz_offset < bench_offset:
+        return ["master repository test runner must keep fuzz targets after benches"]
+    return []
+
+
+def _check_master_regressions(root: Path) -> list[str]:
+    errors: list[str] = []
     launcher_regression = root / "qa/tests/tooling/test_master_launcher.py"
     if not launcher_regression.is_file():
         errors.append("master launcher regression test is missing")
     elif "test_runner_loads_cargo_from_user_environment" not in launcher_regression.read_text(errors="ignore"):
         errors.append("master launcher Cargo-environment regression coverage is missing")
+    regression = root / "qa/tests/tooling/test_architecture_imports.py"
     if not regression.is_file():
         errors.append("architecture grouped-import regression test is missing")
     else:

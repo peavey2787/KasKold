@@ -1246,6 +1246,7 @@ F	apps/kaskold-companion-web/web/js/features/stealth/index/scanning/live_control
 F	apps/kaskold-companion-web/web/js/features/stealth/index/scanning/live_controls/results.js
 F	apps/kaskold-companion-web/web/js/features/stealth/index/send.js
 F	apps/kaskold-companion-web/web/js/features/stealth/index/spend.js
+F	apps/kaskold-companion-web/web/js/features/stealth/index/whole_payload.js
 F	apps/kaskold-companion-web/web/js/features/transactions/anti_klepto/response.js
 F	apps/kaskold-companion-web/web/js/features/transactions/anti_klepto/session.js
 F	apps/kaskold-companion-web/web/js/features/transactions/pskt_multisig.js
@@ -2776,7 +2777,9 @@ F	qa/checks/architecture/core/workspace.py
 F	qa/checks/architecture/firmware/__init__.py
 F	qa/checks/architecture/firmware/camera_contract.py
 F	qa/checks/architecture/firmware/firmware_controllers.py
+F	qa/checks/architecture/firmware/firmware_controllers_sd.py
 F	qa/checks/architecture/firmware/firmware_display.py
+F	qa/checks/architecture/firmware/firmware_display_hardware.py
 F	qa/checks/architecture/firmware/firmware_navigation.py
 F	qa/checks/architecture/firmware/firmware_presentation.py
 F	qa/checks/architecture/firmware/firmware_runtime.py
@@ -2784,6 +2787,7 @@ F	qa/checks/architecture/firmware/firmware_screens.py
 F	qa/checks/architecture/firmware/firmware_services.py
 F	qa/checks/architecture/firmware/firmware_settings_state.py
 F	qa/checks/architecture/firmware/firmware_state.py
+F	qa/checks/architecture/firmware/firmware_state_fields.py
 F	qa/checks/architecture/firmware/firmware_workflows.py
 F	qa/checks/architecture/firmware/guards/__init__.py
 F	qa/checks/architecture/firmware/guards/account_key.py
@@ -2796,6 +2800,7 @@ F	qa/checks/architecture/firmware/subsystems/firmware_media.py
 F	qa/checks/architecture/firmware/subsystems/firmware_storage.py
 F	qa/checks/architecture/protocols/__init__.py
 F	qa/checks/architecture/protocols/compact_protocols.py
+F	qa/checks/architecture/protocols/compact_protocols_checks.py
 F	qa/checks/architecture/protocols/offline_portability.py
 F	qa/checks/architecture/protocols/offline_protocols.py
 F	qa/checks/architecture/protocols/online.py
@@ -2815,6 +2820,7 @@ F	qa/checks/architecture/web/web_css.py
 F	qa/checks/architecture/web/web_html.py
 F	qa/checks/architecture/web/web_infrastructure.py
 F	qa/checks/architecture/web/web_js.py
+F	qa/checks/architecture/web/web_wasm_api.py
 F	qa/checks/branding/__init__.py
 F	qa/checks/branding/check_kaskold_brand.py
 F	qa/checks/check_architecture.py
@@ -2860,6 +2866,7 @@ F	qa/checks/portal_source.py
 F	qa/checks/quality/__init__.py
 F	qa/checks/quality/crap/__init__.py
 F	qa/checks/quality/crap/check.py
+F	qa/checks/quality/crap/check_stages.py
 F	qa/checks/quality/crap/classify_report.py
 F	qa/checks/quality/crap/coverage_manifest.py
 F	qa/checks/quality/crap/firmware_testability.py
@@ -2930,6 +2937,8 @@ F	qa/checks/web/run_web_recovery_coverage.py
 F	qa/checks/web/run_web_runtime_coverage.py
 F	qa/checks/web/typescript_toolchain.py
 F	qa/checks/web/vault_saved_wallets.test.mjs
+F	qa/checks/web/vault_web_architecture_rules.py
+F	qa/checks/web/vault_web_menu_rules.py
 F	qa/checks/web/web_branch_completion.test.mjs
 F	qa/checks/web/web_branch_hardening.test.mjs
 F	qa/checks/web/web_branch_hardening_final.test.mjs
@@ -2944,6 +2953,7 @@ F	qa/checks/web/web_covenant_runtime_deep_paths.test.mjs
 F	qa/checks/web/web_covenant_sign_binding_deep_paths.test.mjs
 F	qa/checks/web/web_covenant_spending_success_paths.test.mjs
 F	qa/checks/web/web_crowdfund_deep_paths.test.mjs
+F	qa/checks/web/web_device_frame_scanning.test.mjs
 F	qa/checks/web/web_generation_vault_deep_paths.test.mjs
 F	qa/checks/web/web_kpub_manager_deep_paths.test.mjs
 F	qa/checks/web/web_oracle_model_b_deep_paths.test.mjs
@@ -3050,6 +3060,7 @@ F	qa/firmware-sim/src/scenarios/explore.rs
 F	qa/firmware-sim/src/scenarios/journeys.rs
 F	qa/firmware-sim/src/scenarios/journeys/backup.rs
 F	qa/firmware-sim/src/scenarios/journeys/card_storage.rs
+F	qa/firmware-sim/src/scenarios/journeys/covenant.rs
 F	qa/firmware-sim/src/scenarios/journeys/device_bound.rs
 F	qa/firmware-sim/src/scenarios/journeys/everyday.rs
 F	qa/firmware-sim/src/scenarios/journeys/first_wallet.rs
@@ -3057,6 +3068,7 @@ F	qa/firmware-sim/src/scenarios/journeys/known.rs
 F	qa/firmware-sim/src/scenarios/journeys/multisig.rs
 F	qa/firmware-sim/src/scenarios/journeys/phrases.rs
 F	qa/firmware-sim/src/scenarios/journeys/policies.rs
+F	qa/firmware-sim/src/scenarios/journeys/private_swap.rs
 F	qa/firmware-sim/src/scenarios/journeys/retail.rs
 F	qa/firmware-sim/src/scenarios/journeys/security.rs
 F	qa/firmware-sim/src/scenarios/journeys/signing.rs

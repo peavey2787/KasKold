@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compile and run the host-portable Android shell policy tests."""
 from pathlib import Path
-import shutil, subprocess, sys, tempfile
+import shutil, subprocess, tempfile
 ROOT = Path(__file__).resolve().parents[3]
 APP = ROOT / "apps/kaskold-companion-android"
 SKIP = 77

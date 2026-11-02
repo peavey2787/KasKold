@@ -55,23 +55,19 @@ export function installScanWorkflows(ctx) {
     show('scan-response');
   }
 
-  function route(bytes) {
-    if (!(bytes instanceof Uint8Array) || !bytes.length) throw new Error('Scanned QR payload is empty.');
-
+  function routeProtocolControllers(bytes) {
     // Protocol-specific controllers own their own two-round state machines.
-    if (ctx.routePrivateSwapPayload?.(bytes)) return true;
-    if (ctx.routeCovenantPayload?.(bytes)) return true;
+    return Boolean(ctx.routePrivateSwapPayload?.(bytes)) || Boolean(ctx.routeCovenantPayload?.(bytes));
+  }
 
-    // Transaction and anti-klepto payloads stay in the one shared signing scanner.
-    if (isTransactionPayload(bytes)) return false;
+  function routeKaspaAddress(text) {
+    if (!text.toLowerCase().startsWith('kaspa:')) return false;
+    ctx.renderPublicImport('Kaspa Address', parse(api('kaskold_vault_validate_address')(text)));
+    stopCamera();
+    return true;
+  }
 
-    const text = decodeText(bytes);
-    if (text.toLowerCase().startsWith('kaspa:')) {
-      ctx.renderPublicImport('Kaspa Address', parse(api('kaskold_vault_validate_address')(text)));
-      stopCamera();
-      return true;
-    }
-
+  function routeRecoveryScan(bytes) {
     if (isSeedQr(bytes)) {
       ctx.stageRecoveryScan(bytes, 'SeedQR');
       return true;
@@ -80,60 +76,90 @@ export function installScanWorkflows(ctx) {
       ctx.stageRecoveryScan(bytes, 'Compact SeedQR');
       return true;
     }
+    return false;
+  }
 
-    if (hasMagic(bytes, 'STLH') && bytes.length >= 37) {
-      renderBinaryResponse(
-        'Stealth Scan Response',
-        'Return this STLR response to the requesting wallet. Stealth derivation ran inside the shared offline signer.',
-        parse(api('kaskold_vault_stealth_scan')(bytes)),
-        'kaskold-stealth-response.bin',
-      );
-      return true;
-    }
+  function routeStealthScan(bytes) {
+    if (!(hasMagic(bytes, 'STLH') && bytes.length >= 37)) return false;
+    renderBinaryResponse(
+      'Stealth Scan Response',
+      'Return this STLR response to the requesting wallet. Stealth derivation ran inside the shared offline signer.',
+      parse(api('kaskold_vault_stealth_scan')(bytes)),
+      'kaskold-stealth-response.bin',
+    );
+    return true;
+  }
 
-    if (hasMagic(bytes, 'KSPR') && bytes.length === 31) {
-      renderBinaryResponse(
-        'Privacy Pairing Response',
-        'Return this KSPB address-batch response to the requesting watch-only wallet.',
-        parse(api('kaskold_vault_privacy_pairing')(bytes)),
-        'kaskold-privacy-pairing-response.bin',
-      );
-      return true;
-    }
+  function routePrivacyPairing(bytes) {
+    if (!(hasMagic(bytes, 'KSPR') && bytes.length === 31)) return false;
+    renderBinaryResponse(
+      'Privacy Pairing Response',
+      'Return this KSPB address-batch response to the requesting watch-only wallet.',
+      parse(api('kaskold_vault_privacy_pairing')(bytes)),
+      'kaskold-privacy-pairing-response.bin',
+    );
+    return true;
+  }
 
-    if (hasMagic(bytes, 'KSFU') && bytes.length === 152) {
-      stopCamera();
-      ctx.showFirmwareUpdate();
-      status('Firmware-update QR recognized. KasKold M5 firmware updates are performed over USB-C; QR firmware installation is intentionally rejected.');
-      return true;
-    }
+  function routeFirmwareUpdate(bytes) {
+    if (!(hasMagic(bytes, 'KSFU') && bytes.length === 152)) return false;
+    stopCamera();
+    ctx.showFirmwareUpdate();
+    status('Firmware-update QR recognized. KasKold M5 firmware updates are performed over USB-C; QR firmware installation is intentionally rejected.');
+    return true;
+  }
 
+  function routeCovenantBackup(bytes) {
     const covenantBackup = decodeHexPayloadIfMagic(bytes, ['COVB', 'COVI']) || bytes;
-    if (hasMagic(covenantBackup, 'COVB') || hasMagic(covenantBackup, 'COVI')) {
-      renderCovenantBackup(parse(api('kaskold_vault_normalize_covenant_backup')(bytes)));
-      return true;
-    }
+    if (!(hasMagic(covenantBackup, 'COVB') || hasMagic(covenantBackup, 'COVI'))) return false;
+    renderCovenantBackup(parse(api('kaskold_vault_normalize_covenant_backup')(bytes)));
+    return true;
+  }
 
+  function routeWrappedProtocolPayload(bytes) {
     const covenantMessage = decodeHexPayloadIfMagic(bytes, COVENANT_MAGICS);
     if (covenantMessage && ctx.routeCovenantPayload?.(covenantMessage)) return true;
     const swapMessage = decodeHexPayloadIfMagic(bytes, PRIVATE_SWAP_MAGICS);
-    if (swapMessage && ctx.routePrivateSwapPayload?.(swapMessage)) return true;
+    return Boolean(swapMessage && ctx.routePrivateSwapPayload?.(swapMessage));
+  }
 
-    if (looksLikeDescriptor(text)) {
+  function routeMultisigDescriptor(text) {
+    if (!looksLikeDescriptor(text)) return false;
+    stopCamera();
+    ctx.stageMultisigDescriptor(text);
+    return true;
+  }
+
+  function routeKpub(text) {
+    if (!text) return false;
+    try {
+      const normalized = parse(api('kaskold_vault_normalize_kpub')(text));
       stopCamera();
-      ctx.stageMultisigDescriptor(text);
+      ctx.renderPublicImport('kpub (Watch-Only)', normalized);
       return true;
+    } catch {
+      return false;
     }
+  }
 
-    if (text) {
-      try {
-        const normalized = parse(api('kaskold_vault_normalize_kpub')(text));
-        stopCamera();
-        ctx.renderPublicImport('kpub (Watch-Only)', normalized);
-        return true;
-      } catch {}
-    }
+  function routeDecodedPayload(bytes, text) {
+    return routeKaspaAddress(text)
+      || routeRecoveryScan(bytes)
+      || routeStealthScan(bytes)
+      || routePrivacyPairing(bytes)
+      || routeFirmwareUpdate(bytes)
+      || routeCovenantBackup(bytes)
+      || routeWrappedProtocolPayload(bytes)
+      || routeMultisigDescriptor(text)
+      || routeKpub(text);
+  }
 
+  function route(bytes) {
+    if (!(bytes instanceof Uint8Array) || !bytes.length) throw new Error('Scanned QR payload is empty.');
+    if (routeProtocolControllers(bytes)) return true;
+    // Transaction and anti-klepto payloads stay in the one shared signing scanner.
+    if (isTransactionPayload(bytes)) return false;
+    if (routeDecodedPayload(bytes, decodeText(bytes))) return true;
     throw new Error('Unknown QR format. No wallet state was changed.');
   }
 

@@ -127,11 +127,7 @@ export function limitKasAmountPrecision(input) {
 }
 
 
-async function openSendScreenWithOptions({ selectedUtxoIds = null, revealCoinControl = false } = {}) {
-    transactionState.selectedUtxoIds = selectedUtxoIds?.length ? [...selectedUtxoIds] : null;
-    networkState.cachedUtxos = null;
-    // Only reset _broadcastReturnScreen if not pre-set by covenant deposit
-    if (navigationState._broadcastReturnScreen !== 'covenant') navigationState._broadcastReturnScreen = null;
+function resetSendFormFields() {
     const utxoList = byId('send-utxo-list');
     utxoList.replaceChildren();
     byId('send-utxo-advanced').classList.add('hidden');
@@ -150,7 +146,9 @@ async function openSendScreenWithOptions({ selectedUtxoIds = null, revealCoinCon
     // deposits hide it again (handleCovFund), since they full-spend the chosen UTXOs.
     const _amtWrap = byId('send-amount-wrap');
     if (_amtWrap) _amtWrap.style.display = '';
+}
 
+function showAvailableBalanceRef() {
     // Show the exact dashboard balance in a compact KAS presentation.
     const balanceRaw = byId('balance-kas').dataset.balanceSompi;
     const ref = byId('send-balance-ref');
@@ -159,46 +157,67 @@ async function openSendScreenWithOptions({ selectedUtxoIds = null, revealCoinCon
     } else {
         ref.textContent = '';
     }
+}
 
+async function waitForRecentBroadcast() {
+    // Brief delay after broadcast to let the node process the TX
+    if (transactionState._lastBroadcastTime && Date.now() - transactionState._lastBroadcastTime < 5000) {
+        const ref3 = byId('send-balance-ref');
+        if (ref3) ref3.textContent = 'Refreshing balance...';
+        await new Promise(r => setTimeout(r, 2000));
+    }
+}
+
+async function applySuggestedFee(wsUrl) {
+    const resultJson = await get_fee_estimate(wsUrl);
+    networkState.lastFeeEstimate = JSON.parse(resultJson);
+    const isCov = (navigationState._broadcastReturnScreen === 'covenant');
+    const suggestedFee = exactUnsigned(networkState.lastFeeEstimate.suggested_fee, 'suggested fee');
+    const initialFee = isCov && suggestedFee < 400000n ? 400000n : suggestedFee;
+    setFeeSompi(initialFee);
+    updateFeeCardAmounts();
+    // Reset to Normal active
+    document.querySelectorAll('.fee-card').forEach(c => c.classList.remove('fee-card-active'));
+    byId('btn-fee-normal').classList.add('fee-card-active');
+}
+
+function pruneSelectedUtxos() {
+    if (!transactionState.selectedUtxoIds?.length) return;
+    const liveIds = new Set(networkState.cachedUtxos.map(utxoId));
+    transactionState.selectedUtxoIds = transactionState.selectedUtxoIds.filter(id => liveIds.has(id));
+    if (!transactionState.selectedUtxoIds.length) {
+        transactionState.selectedUtxoIds = null;
+        toast('Previously selected UTXOs are no longer available', 'info', 2600);
+    }
+}
+
+async function loadFreshSendUtxos(wsUrl) {
+    const coinControl = await fetchCoinControlUtxos({ wsUrl });
+    networkState.cachedUtxos = normalizeUtxos(coinControl.utxos);
+    // Deterministic amount-desc / outpoint-asc order shared with Rust selection.
+    sortUtxosLargestFirst(networkState.cachedUtxos);
+    pruneSelectedUtxos();
+    // Update available balance from fresh UTXOs
+    const freshTotal = networkState.cachedUtxos.reduce((s, u) => s + u.amount, 0n);
+    const ref2 = byId('send-balance-ref');
+    if (ref2) ref2.textContent = `Available: ${sompiToKasRoundedGrouped(freshTotal, 2)} KAS`;
+}
+
+async function openSendScreenWithOptions({ selectedUtxoIds = null, revealCoinControl = false } = {}) {
+    transactionState.selectedUtxoIds = selectedUtxoIds?.length ? [...selectedUtxoIds] : null;
+    networkState.cachedUtxos = null;
+    // Only reset _broadcastReturnScreen if not pre-set by covenant deposit
+    if (navigationState._broadcastReturnScreen !== 'covenant') navigationState._broadcastReturnScreen = null;
+    resetSendFormFields();
+    showAvailableBalanceRef();
     // Update placeholder for current network
-    const prefix = addressPrefix(networkState.network);
-    byId('input-dest').placeholder = prefix + '...';
-
+    byId('input-dest').placeholder = addressPrefix(networkState.network) + '...';
     showScreen('send');
     try {
-        // Brief delay after broadcast to let the node process the TX
-        if (transactionState._lastBroadcastTime && Date.now() - transactionState._lastBroadcastTime < 5000) {
-            const ref3 = byId('send-balance-ref');
-            if (ref3) ref3.textContent = 'Refreshing balance...';
-            await new Promise(r => setTimeout(r, 2000));
-        }
+        await waitForRecentBroadcast();
         const wsUrl = await resolveNodeUrl();
-        const resultJson = await get_fee_estimate(wsUrl);
-        networkState.lastFeeEstimate = JSON.parse(resultJson);
-        const isCov = (navigationState._broadcastReturnScreen === 'covenant');
-        const suggestedFee = exactUnsigned(networkState.lastFeeEstimate.suggested_fee, 'suggested fee');
-        const initialFee = isCov && suggestedFee < 400000n ? 400000n : suggestedFee;
-        setFeeSompi(initialFee);
-        updateFeeCardAmounts();
-        // Reset to Normal active
-        document.querySelectorAll('.fee-card').forEach(c => c.classList.remove('fee-card-active'));
-        byId('btn-fee-normal').classList.add('fee-card-active');
-        const coinControl = await fetchCoinControlUtxos({ wsUrl });
-        networkState.cachedUtxos = normalizeUtxos(coinControl.utxos);
-        // Deterministic amount-desc / outpoint-asc order shared with Rust selection.
-        sortUtxosLargestFirst(networkState.cachedUtxos);
-        if (transactionState.selectedUtxoIds?.length) {
-            const liveIds = new Set(networkState.cachedUtxos.map(utxoId));
-            transactionState.selectedUtxoIds = transactionState.selectedUtxoIds.filter(id => liveIds.has(id));
-            if (!transactionState.selectedUtxoIds.length) {
-                transactionState.selectedUtxoIds = null;
-                toast('Previously selected UTXOs are no longer available', 'info', 2600);
-            }
-        }
-        // Update available balance from fresh UTXOs
-        const freshTotal = networkState.cachedUtxos.reduce((s, u) => s + u.amount, 0n);
-        const ref2 = byId('send-balance-ref');
-        if (ref2) ref2.textContent = `Available: ${sompiToKasRoundedGrouped(freshTotal, 2)} KAS`;
+        await applySuggestedFee(wsUrl);
+        await loadFreshSendUtxos(wsUrl);
         if (revealCoinControl && transactionState.selectedUtxoIds?.length) toggleSendUtxos();
     } catch (e) {
         console.log('[Companion] Fee/UTXO fetch:', e);

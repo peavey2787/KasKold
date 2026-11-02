@@ -283,21 +283,35 @@ export function startScanner(title, callback, returnPanel, options = {}) {
     });
 }
 
+function isFrameDue(video, now) {
+    return now - lastDecodeAt >= SCAN_INTERVAL_MS
+        && video.readyState === video.HAVE_ENOUGH_DATA
+        && video.videoWidth > 0
+        && video.videoHeight > 0;
+}
+
+function syncCanvasToVideo(video, canvas) {
+    if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+    }
+}
+
+function decodeVideoFrame(video, canvas, ctx) {
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+    if (code && code.binaryData && code.binaryData.length > 0) {
+        scannerState.scanCallback?.(new Uint8Array(code.binaryData));
+    }
+}
+
 function scanLoop(video, canvas, ctx, now = performance.now(), generation = scannerGeneration) {
     if (generation !== scannerGeneration || !scannerState.scanStream) return;
-    const due = now - lastDecodeAt >= SCAN_INTERVAL_MS;
-    if (due && video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0 && video.videoHeight > 0) {
+    if (isFrameDue(video, now)) {
         lastDecodeAt = now;
-        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-        }
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
-        if (code && code.binaryData && code.binaryData.length > 0) {
-            scannerState.scanCallback?.(new Uint8Array(code.binaryData));
-        }
+        syncCanvasToVideo(video, canvas);
+        decodeVideoFrame(video, canvas, ctx);
     }
     scannerState.scanAnimFrame = requestAnimationFrame(timestamp => scanLoop(video, canvas, ctx, timestamp, generation));
 }

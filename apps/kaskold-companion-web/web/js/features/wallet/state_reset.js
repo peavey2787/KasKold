@@ -33,32 +33,51 @@ import { resetBalanceDisplayUnit } from './core/balance.js';
 
 const SKIP_AUTOLOAD_ONCE_KEY = '__companion_skip_autoload_once_v1';
 
+function bestEffort(action) {
+    try { action(); } catch (_) {}
+}
+
+function stopBestEffortWatchers() {
+    const stops = [
+        () => stopStealthScan(),
+        () => covWatcherStop(),
+        () => covActiveWatcherStop(),
+        () => oracleMbAmbientStop(),
+        () => stopOracleMbCountdown(),
+        () => stopCrowdfundWatcher(),
+        () => stopPrivateSwapWatcher(),
+        () => reset_qr_decoder(),
+    ];
+    for (const stop of stops) bestEffort(stop);
+}
+
+function stopScannerCapture() {
+    if (scannerState.scanAnimFrame) {
+        cancelAnimationFrame(scannerState.scanAnimFrame);
+        scannerState.scanAnimFrame = null;
+    }
+    if (scannerState.scanStream) {
+        bestEffort(() => scannerState.scanStream.getTracks().forEach(track => track.stop()));
+        scannerState.scanStream = null;
+    }
+}
+
+function clearToastTimer() {
+    if (uiState.toastTimer) {
+        clearTimeout(uiState.toastTimer);
+        uiState.toastTimer = null;
+    }
+}
+
 function stopWalletRuntimeServices() {
     stopAutoRefresh();
     stopQrCycle();
     resetSignedQrImageImportSession();
     clearAntiKleptoSession();
     hideOracleProvingScreen();
-    try { stopStealthScan(); } catch (_) {}
-    try { covWatcherStop(); } catch (_) {}
-    try { covActiveWatcherStop(); } catch (_) {}
-    try { oracleMbAmbientStop(); } catch (_) {}
-    try { stopOracleMbCountdown(); } catch (_) {}
-    try { stopCrowdfundWatcher(); } catch (_) {}
-    try { stopPrivateSwapWatcher(); } catch (_) {}
-    try { reset_qr_decoder(); } catch (_) {}
-    if (scannerState.scanAnimFrame) {
-        cancelAnimationFrame(scannerState.scanAnimFrame);
-        scannerState.scanAnimFrame = null;
-    }
-    if (scannerState.scanStream) {
-        try { scannerState.scanStream.getTracks().forEach(track => track.stop()); } catch (_) {}
-        scannerState.scanStream = null;
-    }
-    if (uiState.toastTimer) {
-        clearTimeout(uiState.toastTimer);
-        uiState.toastTimer = null;
-    }
+    stopBestEffortWatchers();
+    stopScannerCapture();
+    clearToastTimer();
 }
 
 function clearTransientStateObjects() {

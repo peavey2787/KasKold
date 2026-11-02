@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import os
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path
 import queue
 import signal
@@ -22,6 +24,19 @@ FAIL_MARKER = b"KASKOLD_QEMU_TESTS_FAIL"
 PANIC_MARKER = b"KASKOLD_PANIC"
 BOARD_MARKER = b"Board: ESP32-S3 QEMU"
 REQUIRED_MARKERS = (BOARD_MARKER, BEGIN_MARKER, UART_MARKER)
+TRACKED_MARKERS = (*REQUIRED_MARKERS, PASS_MARKER, FAIL_MARKER, PANIC_MARKER)
+OBSERVED_LIMIT = 65536
+OBSERVED_KEEP = 32768
+
+
+@dataclass
+class _GuestSession:
+    process: subprocess.Popen[bytes]
+    output_queue: queue.Queue[tuple[str, object]]
+    observed: bytearray = field(default_factory=bytearray)
+    seen: set[bytes] = field(default_factory=set)
+    passed: bool = False
+    stdout_eof: bool = False
 
 
 def parse_args() -> argparse.Namespace:
@@ -70,11 +85,11 @@ def missing_required(seen: set[bytes]) -> list[str]:
     return [marker.decode() for marker in REQUIRED_MARKERS if marker not in seen]
 
 
-def launch(args: argparse.Namespace) -> int:
+def _start_guest(args: argparse.Namespace) -> subprocess.Popen[bytes]:
     validate_paths(args.qemu, args.image)
     command = build_command(args.qemu, args.image)
     print("QEMU test command:", " ".join(command), flush=True)
-    process = subprocess.Popen(
+    return subprocess.Popen(
         command,
         # Automated QEMU tests never need keyboard input.  Give -nographic a
         # private pipe so it cannot put the maintainer console into raw/no-echo
@@ -85,9 +100,12 @@ def launch(args: argparse.Namespace) -> int:
         stderr=subprocess.STDOUT,
         bufsize=0,
     )
-    assert process.stdout is not None
 
-    output_queue: queue.Queue[tuple[str, object]] = queue.Queue()
+
+def _start_uart_reader(
+    process: subprocess.Popen[bytes], output_queue: queue.Queue[tuple[str, object]]
+) -> None:
+    assert process.stdout is not None
 
     def read_stdout() -> None:
         try:
@@ -104,99 +122,149 @@ def launch(args: argparse.Namespace) -> int:
     reader = threading.Thread(target=read_stdout, name="qemu-uart-reader", daemon=True)
     reader.start()
 
-    deadline = time.monotonic() + args.timeout
-    observed = bytearray()
-    seen: set[bytes] = set()
-    passed = False
-    stdout_eof = False
 
+def _make_signal_forwarder(
+    process: subprocess.Popen[bytes],
+) -> Callable[[int, object], None]:
     def forward_signal(signum: int, _frame: object) -> None:
         if process.poll() is None:
             process.send_signal(signum)
 
+    return forward_signal
+
+
+def _record_chunk(session: _GuestSession, chunk: bytes) -> None:
+    sys.stdout.buffer.write(chunk)
+    sys.stdout.buffer.flush()
+    session.observed.extend(chunk)
+    if len(session.observed) > OBSERVED_LIMIT:
+        del session.observed[:-OBSERVED_KEEP]
+    for marker in TRACKED_MARKERS:
+        if marker in session.observed:
+            session.seen.add(marker)
+
+
+def _wait_for_event(output_queue: queue.Queue[tuple[str, object]]) -> tuple[str, object]:
+    try:
+        return output_queue.get(timeout=0.1)
+    except queue.Empty:
+        return "idle", None
+
+
+def _next_pending_event(output_queue: queue.Queue[tuple[str, object]]) -> tuple[str, object]:
+    try:
+        return output_queue.get_nowait()
+    except queue.Empty:
+        return "idle", None
+
+
+def _handle_event(session: _GuestSession, event: str, payload: object) -> int | None:
+    if event == "data":
+        assert isinstance(payload, bytes)
+        _record_chunk(session, payload)
+    elif event == "error":
+        stop_process(session.process)
+        print(
+            f"\nERROR: failed while reading QEMU UART output: {payload}",
+            file=sys.stderr,
+        )
+        return 1
+    elif event == "eof":
+        session.stdout_eof = True
+    return None
+
+
+def _drain_events(session: _GuestSession) -> int | None:
+    event, payload = _wait_for_event(session.output_queue)
+    while event != "idle":
+        code = _handle_event(session, event, payload)
+        if code is not None:
+            return code
+        event, payload = _next_pending_event(session.output_queue)
+    return None
+
+
+def _guest_failure_code(session: _GuestSession) -> int | None:
+    if PANIC_MARKER in session.seen:
+        print("\nERROR: guest firmware panicked and reset.", file=sys.stderr)
+        stop_process(session.process)
+        return 1
+    if FAIL_MARKER in session.seen:
+        print("\nERROR: guest QEMU hardware tests failed.", file=sys.stderr)
+        stop_process(session.process)
+        return 1
+    return None
+
+
+def _handle_pass(session: _GuestSession, keep_running: bool) -> int | None:
+    if PASS_MARKER not in session.seen or session.passed:
+        return None
+    missing = missing_required(session.seen)
+    if missing:
+        print(
+            "\nERROR: guest passed without required markers: " + ", ".join(missing),
+            file=sys.stderr,
+        )
+        stop_process(session.process)
+        return 1
+    session.passed = True
+    print("\nPASS: ESP32-S3 QEMU hardware tests completed.", flush=True)
+    if not keep_running:
+        stop_process(session.process)
+        return 0
+    print("QEMU runtime remains active. Exit with Ctrl-A, then X.", flush=True)
+    return None
+
+
+def _exit_after_eof(session: _GuestSession) -> int | None:
+    status = session.process.poll()
+    if status is None or not session.stdout_eof:
+        return None
+    if session.passed:
+        return 0
+    print(
+        f"\nERROR: QEMU exited before the pass marker (exit {status}).",
+        file=sys.stderr,
+    )
+    return status or 1
+
+
+def _step(session: _GuestSession, keep_running: bool) -> int | None:
+    code = _drain_events(session)
+    if code is None:
+        code = _guest_failure_code(session)
+    if code is None:
+        code = _handle_pass(session, keep_running)
+    if code is None:
+        code = _exit_after_eof(session)
+    return code
+
+
+def _run_session(session: _GuestSession, args: argparse.Namespace, deadline: float) -> int:
+    while True:
+        if not session.passed and time.monotonic() >= deadline:
+            print(
+                f"\nERROR: QEMU tests timed out after {args.timeout} seconds.",
+                file=sys.stderr,
+            )
+            stop_process(session.process)
+            return 124
+        code = _step(session, args.keep_running)
+        if code is not None:
+            return code
+
+
+def launch(args: argparse.Namespace) -> int:
+    process = _start_guest(args)
+    output_queue: queue.Queue[tuple[str, object]] = queue.Queue()
+    _start_uart_reader(process, output_queue)
+    session = _GuestSession(process=process, output_queue=output_queue)
+    deadline = time.monotonic() + args.timeout
+    forward_signal = _make_signal_forwarder(process)
     previous_int = signal.signal(signal.SIGINT, forward_signal)
     previous_term = signal.signal(signal.SIGTERM, forward_signal)
     try:
-        while True:
-            if not passed and time.monotonic() >= deadline:
-                print(
-                    f"\nERROR: QEMU tests timed out after {args.timeout} seconds.",
-                    file=sys.stderr,
-                )
-                stop_process(process)
-                return 124
-
-            try:
-                event, payload = output_queue.get(timeout=0.1)
-            except queue.Empty:
-                event, payload = "idle", None
-
-            while event != "idle":
-                if event == "data":
-                    chunk = payload
-                    assert isinstance(chunk, bytes)
-                    sys.stdout.buffer.write(chunk)
-                    sys.stdout.buffer.flush()
-                    observed.extend(chunk)
-                    if len(observed) > 65536:
-                        del observed[:-32768]
-                    for marker in (*REQUIRED_MARKERS, PASS_MARKER, FAIL_MARKER, PANIC_MARKER):
-                        if marker in observed:
-                            seen.add(marker)
-                elif event == "error":
-                    stop_process(process)
-                    print(
-                        f"\nERROR: failed while reading QEMU UART output: {payload}",
-                        file=sys.stderr,
-                    )
-                    return 1
-                elif event == "eof":
-                    stdout_eof = True
-
-                try:
-                    event, payload = output_queue.get_nowait()
-                except queue.Empty:
-                    event, payload = "idle", None
-
-            if PANIC_MARKER in seen:
-                print("\nERROR: guest firmware panicked and reset.", file=sys.stderr)
-                stop_process(process)
-                return 1
-
-            if FAIL_MARKER in seen:
-                print("\nERROR: guest QEMU hardware tests failed.", file=sys.stderr)
-                stop_process(process)
-                return 1
-
-            if PASS_MARKER in seen and not passed:
-                missing = missing_required(seen)
-                if missing:
-                    print(
-                        "\nERROR: guest passed without required markers: "
-                        + ", ".join(missing),
-                        file=sys.stderr,
-                    )
-                    stop_process(process)
-                    return 1
-                passed = True
-                print("\nPASS: ESP32-S3 QEMU hardware tests completed.", flush=True)
-                if not args.keep_running:
-                    stop_process(process)
-                    return 0
-                print(
-                    "QEMU runtime remains active. Exit with Ctrl-A, then X.",
-                    flush=True,
-                )
-
-            status = process.poll()
-            if status is not None and stdout_eof:
-                if passed:
-                    return 0
-                print(
-                    f"\nERROR: QEMU exited before the pass marker (exit {status}).",
-                    file=sys.stderr,
-                )
-                return status or 1
+        return _run_session(session, args, deadline)
     finally:
         signal.signal(signal.SIGINT, previous_int)
         signal.signal(signal.SIGTERM, previous_term)

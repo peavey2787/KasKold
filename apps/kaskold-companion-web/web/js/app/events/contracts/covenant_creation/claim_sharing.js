@@ -24,6 +24,56 @@ import { exactUnsigned } from '../../../../core/exact.js';
 
 
 
+// Savings pre-flight: returns the ETA when a timelocked-savings claim is still locked, else null.
+// Uses a LIVE DAA fetch (the picker confirm is sync, so the cached _lastKnownDaa is unreliable there).
+async function savingsLockEta(lt) {
+    const lockN = exactUnsigned(lt || '0', 'savings locktime DAA');
+    if (lockN <= 0n) return null;
+    const curDaa = await fetchCurrentDaa();
+    return curDaa > 0n && curDaa < lockN ? formatDaaDuration(lockN - curDaa) : null;
+}
+
+async function fetchVaultUtxos(address) {
+    try { return JSON.parse(await fetch_utxos_for_address_js(address, await resolveNodeUrl())); } catch (_) { return []; }
+}
+
+function oldestUtxoDaa(utxos) {
+    let oldest = null;
+    for (const u of utxos) {
+        const d = exactUnsigned(u.block_daa_score ?? 0n, 'UTXO DAA');
+        if (d > 0n && (oldest === null || d < oldest)) oldest = d;
+    }
+    return oldest;
+}
+
+// DMS heir claim is gated by CSV (per-UTXO age). The OLDEST UTXO ages first, so return the ETA
+// only when not even that one has cleared the inactivity period. Once at least one has aged,
+// the heir may batch-claim the aged UTXOs in the picker.
+async function dmsClaimEta(result) {
+    const inact = exactUnsigned(result.inactivity_daa ?? 0n, 'inactivity DAA');
+    if (inact <= 0n) return null;
+    const curDaa = await fetchCurrentDaa();
+    const utxos = await fetchVaultUtxos(covenantState.lastCovenantResult.address);
+    if (curDaa <= 0n || !utxos.length) return null;
+    const oldest = oldestUtxoDaa(utxos);
+    return oldest !== null && curDaa < oldest + inact ? formatDaaDuration(oldest + inact - curDaa) : null;
+}
+
+// Returns { message, ms } when the selected beneficiary claim is still time-locked, else null.
+async function beneficiaryClaimBlock(lt) {
+    const result = covenantState.lastCovenantResult;
+    const type = result && result.type;
+    if (type === 'timelocked-savings') {
+        const eta = await savingsLockEta(lt);
+        return eta === null ? null : { message: 'Still locked. Unlocks in ~' + eta + '. An early claim is rejected by the node.', ms: 5000 };
+    }
+    if (type === 'dms') {
+        const eta = await dmsClaimEta(result);
+        return eta === null ? null : { message: 'Still locked. No vault UTXO has aged past the inactivity period yet. The heir can claim in ~' + eta + '. The node rejects an early claim.', ms: 6000 };
+    }
+    return null;
+}
+
 function registerSpendPanelActions() {
     if (byId('btn-cov-owner-spend')) byId('btn-cov-owner-spend').onclick = () => {
         covShowPanel('owner');
@@ -73,42 +123,10 @@ function registerSpendPanelActions() {
             // address; locktime comes from the claim setup.
             const dest = (byId('cov-bene-dest') ? byId('cov-bene-dest').value.trim() : '') || ownerReceiveAddr();
             const lt = byId('cov-bene-locktime') ? (byId('cov-bene-locktime').value.trim() || '0') : '0';
-            // Savings pre-flight: block before opening the picker if still locked,
-            // using a LIVE DAA fetch (the picker confirm is sync, so the cached
-            // _lastKnownDaa is unreliable there). The node rejects an early claim.
-            if ((covenantState.lastCovenantResult && covenantState.lastCovenantResult.type) === 'timelocked-savings') {
-                const lockN = exactUnsigned(lt || '0', 'savings locktime DAA');
-                if (lockN > 0n) {
-                    const curDaa = await fetchCurrentDaa();
-                    if (curDaa > 0n && curDaa < lockN) {
-                        const eta = formatDaaDuration(lockN - curDaa);
-                        toast('Still locked. Unlocks in ~' + eta + '. An early claim is rejected by the node.', 'error', 5000);
-                        return;
-                    }
-                }
-            } else if ((covenantState.lastCovenantResult && covenantState.lastCovenantResult.type) === 'dms') {
-                // DMS heir claim is gated by CSV (per-UTXO age). The OLDEST UTXO ages
-                // first, so block only when not even that one has cleared the inactivity
-                // period (nothing is claimable yet). Once at least one has aged, allow
-                // the heir to batch-claim the aged UTXOs in the picker.
-                const _inact = exactUnsigned(covenantState.lastCovenantResult.inactivity_daa ?? 0n, 'inactivity DAA');
-                if (_inact > 0n) {
-                    const curDaa = await fetchCurrentDaa();
-                    let _utxos = [];
-                    try { _utxos = JSON.parse(await fetch_utxos_for_address_js(covenantState.lastCovenantResult.address, await resolveNodeUrl())); } catch (_) {}
-                    if (curDaa > 0n && _utxos.length) {
-                        let _oldest = null;
-                        for (const u of _utxos) {
-                            const d = exactUnsigned(u.block_daa_score ?? 0n, 'UTXO DAA');
-                            if (d > 0n && (_oldest === null || d < _oldest)) _oldest = d;
-                        }
-                        if (_oldest !== null && curDaa < _oldest + _inact) {
-                            const eta = formatDaaDuration(_oldest + _inact - curDaa);
-                            toast('Still locked. No vault UTXO has aged past the inactivity period yet. The heir can claim in ~' + eta + '. The node rejects an early claim.', 'error', 6000);
-                            return;
-                        }
-                    }
-                }
+            const block = await beneficiaryClaimBlock(lt);
+            if (block) {
+                toast(block.message, 'error', block.ms);
+                return;
             }
             openUtxoPicker(dest, { locktime: lt });
         };

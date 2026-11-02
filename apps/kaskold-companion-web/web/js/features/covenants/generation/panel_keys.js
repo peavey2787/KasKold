@@ -5,37 +5,44 @@ import { showCovenantPanel } from './panels/router.js';
 import { byId } from '../../../core/dom.js';
 
 
+// Covenant type -> the dedicated field panel it reveals. Types not listed use the simple panel.
+const PANEL_BY_TYPE = new Map([
+    ['additive', 'cov-fields-piggy'],
+    ['escrow', 'cov-fields-escrow'],
+    ['ship-escrow', 'cov-fields-ship-escrow'],
+    ['timelocked-savings', 'cov-fields-savings'],
+    ['dms', 'cov-fields-dms'],
+    ['global-spending-limit', 'cov-fields-splimit'],
+    ['global-allowance', 'cov-fields-allowance'],
+    ['payjoin', 'cov-fields-payjoin'],
+    ['commit-reveal', 'cov-fields-commit-reveal'],
+    ['merkle-whitelist', 'cov-fields-merkle-whitelist'],
+    ['oracle-v1', 'cov-fields-oracle-v1'],
+    ['crowdfund', 'cov-fields-crowdfund'],
+]);
+
 export function covShowPanel(panel) {
     showCovenantPanel(panel);
 }
+
+// Panels that were guarded by a null check before the refactor; all others throw when missing.
+const OPTIONAL_PANEL_IDS = new Set([
+    'cov-fields-ship-escrow', 'cov-fields-savings', 'cov-fields-dms',
+    'cov-fields-splimit', 'cov-fields-oracle-v1', 'cov-fields-crowdfund',
+]);
+
+function setPanelVisible(id, visible) {
+    const panel = byId(id);
+    if (!panel && OPTIONAL_PANEL_IDS.has(id)) return;
+    panel.classList.toggle('hidden', !visible);
+}
+
 export function covTypeChanged() {
-    const t = byId('cov-type').value;
-    const isEscrow = t === 'escrow';
-    const isShipEscrow = t === 'ship-escrow';
-    const isSavings = t === 'timelocked-savings';
-    const isDms = t === 'dms';
-    const isGSplimit = t === 'global-spending-limit';
-    const isGAllowance = t === 'global-allowance';
-    const isPayjoin = t === 'payjoin';
-    const isCommitReveal = t === 'commit-reveal';
-    const isMerkleWhitelist = t === 'merkle-whitelist';
-    const isPiggy = t === 'additive';
-    const isOracleV1 = t === 'oracle-v1';
-    const isCrowdfund = t === 'crowdfund';
-    const hasSimple = !isPiggy && !isEscrow && !isShipEscrow && !isDms && !isGSplimit && !isGAllowance && !isPayjoin && !isCommitReveal && !isMerkleWhitelist && !isSavings && !isOracleV1 && !isCrowdfund;
-    byId('cov-fields-simple').classList.toggle('hidden', !hasSimple);
-    byId('cov-fields-piggy').classList.toggle('hidden', !isPiggy);
-    byId('cov-fields-escrow').classList.toggle('hidden', !isEscrow);
-    if (byId('cov-fields-ship-escrow')) byId('cov-fields-ship-escrow').classList.toggle('hidden', !isShipEscrow);
-    if (byId('cov-fields-savings')) byId('cov-fields-savings').classList.toggle('hidden', !isSavings);
-    if (byId('cov-fields-dms')) byId('cov-fields-dms').classList.toggle('hidden', !isDms);
-    if (byId('cov-fields-splimit')) byId('cov-fields-splimit').classList.toggle('hidden', !isGSplimit);
-    byId('cov-fields-allowance').classList.toggle('hidden', !isGAllowance);
-    byId('cov-fields-payjoin').classList.toggle('hidden', !isPayjoin);
-    byId('cov-fields-commit-reveal').classList.toggle('hidden', !isCommitReveal);
-    byId('cov-fields-merkle-whitelist').classList.toggle('hidden', !isMerkleWhitelist);
-    byId('cov-fields-oracle-v1')?.classList.toggle('hidden', !isOracleV1);
-    byId('cov-fields-crowdfund')?.classList.toggle('hidden', !isCrowdfund);
+    const selected = byId('cov-type').value;
+    setPanelVisible('cov-fields-simple', !PANEL_BY_TYPE.has(selected));
+    for (const [type, panelId] of PANEL_BY_TYPE) {
+        setPanelVisible(panelId, type === selected);
+    }
 }
 // key plus EVERY receive and change address payload — a counterparty may
 // have shared any index from their device, not just /0/0. Matching only

@@ -6,18 +6,21 @@ import { byId } from '../../../core/dom.js';
 import { beginAntiKlepto, clearAntiKleptoSession } from '../anti_klepto/session.js';
 
 export function createPsktRelayActions() {
+  function applyRelayDialogText(modal, sending) {
+    const title = modal?.querySelector?.('.relay-dialog-title');
+    const prompt = modal?.querySelector?.('.relay-dialog-prompt');
+    if (title) title.textContent = sending ? 'Send to signer' : 'Relay to next signer';
+    if (prompt) prompt.textContent = sending ? 'Choose the signer format' : 'Who is the next signer?';
+  }
+
   function openRelayModal() {
     if (!transactionState._psktReviewHex) {
       toast('No PSKT loaded', 'error');
       return;
     }
-    const actionLabel = byId('btn-pskt-relay')?.textContent?.trim() || 'Relay to next signer';
-    const sending = actionLabel === 'Send to signer';
+    const sending = byId('btn-pskt-relay')?.textContent?.trim() === 'Send to signer';
     const modal = byId('relay-choice-modal');
-    const title = modal?.querySelector?.('.relay-dialog-title');
-    const prompt = modal?.querySelector?.('.relay-dialog-prompt');
-    if (title) title.textContent = sending ? 'Send to signer' : 'Relay to next signer';
-    if (prompt) prompt.textContent = sending ? 'Choose the signer format' : 'Who is the next signer?';
+    applyRelayDialogText(modal, sending);
     modal?.classList.remove('hidden');
   }
 

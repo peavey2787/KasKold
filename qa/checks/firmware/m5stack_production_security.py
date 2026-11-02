@@ -2,7 +2,6 @@
 """Fail-closed source contracts for the CoreS3 production security boundary."""
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 import sys
 

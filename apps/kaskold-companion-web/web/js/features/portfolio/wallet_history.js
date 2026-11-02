@@ -52,41 +52,52 @@ function chainSync(previous, chain) {
     };
 }
 
-async function discoverChain(apiBase, walletJson, chain, previous = null) {
-    let wallet = JSON.parse(walletJson);
-    let addresses = chain === 'receive' ? wallet.receive_addresses : wallet.change_addresses;
-    const priorCount = Math.min(MAX_ADDRESSES_PER_CHAIN, previous?.addressCount || 0);
-    if (addresses.length < priorCount) {
-        const extra = priorCount - addresses.length;
-        const nextJson = extend_addresses(JSON.stringify(wallet), chain === 'receive' ? extra : 0, chain === 'change' ? extra : 0, networkState.network);
-        wallet = JSON.parse(nextJson);
-        addresses = chain === 'receive' ? wallet.receive_addresses : wallet.change_addresses;
-    }
+function chainAddresses(wallet, chain) {
+    return chain === 'receive' ? wallet.receive_addresses : wallet.change_addresses;
+}
 
+function ensureChainAddresses(wallet, chain, minimum) {
+    const current = chainAddresses(wallet, chain).length;
+    if (current >= minimum) return wallet;
+    const extra = minimum - current;
+    return JSON.parse(extend_addresses(JSON.stringify(wallet), chain === 'receive' ? extra : 0, chain === 'change' ? extra : 0, networkState.network));
+}
+
+async function scanNextWindow(apiBase, scan) {
+    const scanEnd = scan.scanned + DISCOVERY_GAP;
+    scan.wallet = ensureChainAddresses(scan.wallet, scan.chain, Math.min(MAX_ADDRESSES_PER_CHAIN, scanEnd));
+    const addresses = chainAddresses(scan.wallet, scan.chain);
+    const end = Math.min(addresses.length, scanEnd);
+    const batchUsed = await scanBatch(apiBase, addresses, scan.scanned, end);
+    for (const index of batchUsed) scan.usedIndices.add(index);
+    const batchHighest = batchUsed.length ? batchUsed.at(-1) : -1;
+    if (batchHighest > scan.highestUsed) scan.highestUsed = batchHighest;
+    scan.scanned = end;
+}
+
+function retainedAddressCount(highestUsed, length) {
+    return highestUsed < 0 ? Math.min(DISCOVERY_GAP, length) : Math.min(highestUsed + DISCOVERY_GAP + 1, length);
+}
+
+async function discoverChain(apiBase, walletJson, chain, previous = null) {
+    const priorCount = Math.min(MAX_ADDRESSES_PER_CHAIN, previous?.addressCount || 0);
     const usedIndices = new Set(previous?.usedIndices || []);
-    let highestUsed = usedIndices.size ? Math.max(...usedIndices) : -1;
     // First run starts at zero for a deep discovery. Follow-up runs re-check the
     // previous trailing gap, then extend forward only as needed. Previously used
     // addresses are retained and queried for recent transactions separately.
-    let scanned = previous ? Math.max(0, priorCount - DISCOVERY_GAP) : 0;
-
-    while (scanned < MAX_ADDRESSES_PER_CHAIN) {
-        const target = Math.min(MAX_ADDRESSES_PER_CHAIN, Math.max(addresses.length, scanned + DISCOVERY_GAP));
-        if (addresses.length < target) {
-            const extra = target - addresses.length;
-            const nextJson = extend_addresses(JSON.stringify(wallet), chain === 'receive' ? extra : 0, chain === 'change' ? extra : 0, networkState.network);
-            wallet = JSON.parse(nextJson);
-            addresses = chain === 'receive' ? wallet.receive_addresses : wallet.change_addresses;
-        }
-        const end = Math.min(addresses.length, scanned + DISCOVERY_GAP);
-        const batchUsed = await scanBatch(apiBase, addresses, scanned, end);
-        for (const index of batchUsed) usedIndices.add(index);
-        const batchHighest = batchUsed.length ? batchUsed.at(-1) : -1;
-        if (batchHighest > highestUsed) highestUsed = batchHighest;
-        scanned = end;
-        if (highestUsed < scanned - DISCOVERY_GAP) break;
+    const scan = {
+        chain,
+        wallet: ensureChainAddresses(JSON.parse(walletJson), chain, priorCount),
+        usedIndices,
+        highestUsed: usedIndices.size ? Math.max(...usedIndices) : -1,
+        scanned: previous ? Math.max(0, priorCount - DISCOVERY_GAP) : 0,
+    };
+    while (scan.scanned < MAX_ADDRESSES_PER_CHAIN) {
+        await scanNextWindow(apiBase, scan);
+        if (scan.highestUsed < scan.scanned - DISCOVERY_GAP) break;
     }
-    const last = highestUsed < 0 ? Math.min(DISCOVERY_GAP, addresses.length) : Math.min(highestUsed + DISCOVERY_GAP + 1, addresses.length);
+    const addresses = chainAddresses(scan.wallet, chain);
+    const last = retainedAddressCount(scan.highestUsed, addresses.length);
     return { addresses: addresses.slice(0, last), usedIndices };
 }
 

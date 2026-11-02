@@ -249,31 +249,46 @@ export function installOnboarding({ $, api, parse, show, status, showCreatedPhra
     } catch (error) { status(String(error), true); }
   };
 
+  function requireSelectedSavedWallet(record) {
+    const wallets = Array.isArray(record?.wallets) ? record.wallets : [];
+    if (!wallets.length) throw new Error('No saved encrypted wallet was found.');
+    if (!selectedSavedWalletId) throw new Error('Choose a saved wallet before unlocking.');
+    const saved = wallets.find(wallet => wallet.id === selectedSavedWalletId);
+    if (!saved) throw new Error('The selected saved wallet is no longer available.');
+    return saved;
+  }
+
+  function findRestoredWalletSummary(restored) {
+    return parse(api('kaskold_vault_wallets')()).find(wallet => wallet.index === restored.index);
+  }
+
+  async function refreshSavedWalletMetadata(saved, name, summary) {
+    try {
+      await updateEncryptedWalletIdentity(saved.id, {
+        name,
+        fingerprint: summary?.fingerprint || saved.fingerprint,
+        kind: summary?.kind || saved.kind,
+      });
+    } catch {
+      console.warn('Saved-wallet metadata could not be refreshed after unlock.');
+    }
+  }
+
+  function clearUnlockForm() {
+    selectedSavedWalletId = null;
+    $('unlock-saved-name').textContent = '';
+    $('unlock-saved-credential').value = '';
+  }
+
   async function unlockSelectedSavedWallet() {
     try {
-      const record = await loadEncryptedWallet();
-      const wallets = Array.isArray(record?.wallets) ? record.wallets : [];
-      if (!wallets.length) throw new Error('No saved encrypted wallet was found.');
-      if (!selectedSavedWalletId) throw new Error('Choose a saved wallet before unlocking.');
-      const saved = wallets.find(wallet => wallet.id === selectedSavedWalletId);
-      if (!saved) throw new Error('The selected saved wallet is no longer available.');
+      const saved = requireSelectedSavedWallet(await loadEncryptedWallet());
       const credential = $('unlock-saved-credential').value;
       const restored = parse(api('kaskold_vault_restore_portable')(new Uint8Array(saved.ciphertext), credential));
       const name = saved.name || 'Wallet';
       api('kaskold_vault_set_wallet_name')(restored.index, name);
-      const summary = parse(api('kaskold_vault_wallets')()).find(wallet => wallet.index === restored.index);
-      try {
-        await updateEncryptedWalletIdentity(saved.id, {
-          name,
-          fingerprint: summary?.fingerprint || saved.fingerprint,
-          kind: summary?.kind || saved.kind,
-        });
-      } catch {
-        console.warn('Saved-wallet metadata could not be refreshed after unlock.');
-      }
-      selectedSavedWalletId = null;
-      $('unlock-saved-name').textContent = '';
-      $('unlock-saved-credential').value = '';
+      await refreshSavedWalletMetadata(saved, name, findRestoredWalletSummary(restored));
+      clearUnlockForm();
       renderHome(false);
       status(`${name} unlocked.`);
     } catch (error) { status(String(error), true); }

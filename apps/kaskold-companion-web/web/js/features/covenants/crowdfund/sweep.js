@@ -13,6 +13,22 @@ import { contributionList, hydrateCrowdfundState } from './model.js';
 
 const DEFAULT_REQUESTED_FEE = 400_000n;
 
+const ORGANIZER_ONLY_BUTTON_IDS = [
+    'btn-crowdfund-share-campaign',
+    'btn-crowdfund-scan-contribution',
+    'btn-crowdfund-refresh',
+    'btn-crowdfund-sweep',
+];
+
+function setOrganizerControlsVisible(organizer) {
+    for (const id of ORGANIZER_ONLY_BUTTON_IDS) byId(id)?.classList.toggle('hidden', !organizer);
+}
+
+function renderCampaignInfo(result, organizer) {
+    const info = byId('crowdfund-campaign-info');
+    if (info) info.textContent = `${result.campaign_name || 'Crowdfunding campaign'} | Goal ${sompiToKasString(result.goal_sompi ?? 0n)} KAS | ${organizer ? 'Organizer' : 'Contributor'}`;
+}
+
 export function renderCrowdfundResult() {
     const result = covenantState.lastCovenantResult;
     const panel = byId('crowdfund-result-panel');
@@ -22,12 +38,8 @@ export function renderCrowdfundResult() {
     if (!active) { stopCrowdfundWatcher(); return; }
     hydrateCrowdfundState(result);
     const organizer = result.crowdfund_role === 'organizer';
-    byId('btn-crowdfund-share-campaign')?.classList.toggle('hidden', !organizer);
-    byId('btn-crowdfund-scan-contribution')?.classList.toggle('hidden', !organizer);
-    byId('btn-crowdfund-refresh')?.classList.toggle('hidden', !organizer);
-    byId('btn-crowdfund-sweep')?.classList.toggle('hidden', !organizer);
-    const info = byId('crowdfund-campaign-info');
-    if (info) info.textContent = `${result.campaign_name || 'Crowdfunding campaign'} | Goal ${sompiToKasString(result.goal_sompi ?? 0n)} KAS | ${organizer ? 'Organizer' : 'Contributor'}`;
+    setOrganizerControlsVisible(organizer);
+    renderCampaignInfo(result, organizer);
     renderContributionList();
     if (organizer) startCrowdfundWatcher(); else stopCrowdfundWatcher();
 }
@@ -62,24 +74,44 @@ export async function refreshCrowdfundTotals() {
     }
 }
 
+function provingMaterial(result) {
+    const pk = String(result.crowdfund_pk_hex || '');
+    const vk = String(result.vk_hex || '');
+    if (!pk || !vk) throw new Error('Organizer proving material is unavailable; restore the organizer backup');
+    return { pk, vk };
+}
+
+function contributionAmounts(refreshed) {
+    return refreshed.inspected.contributions.map(entry => String(exactUnsigned(entry.amount_sompi, 'contribution amount')));
+}
+
+function proveSweep(refreshed, pk, vk, status) {
+    if (status) status.textContent = 'Generating and locally verifying Groth16 proof...';
+    const proof = JSON.parse(zk_crowdfund_prove(pk, vk, JSON.stringify(contributionAmounts(refreshed))));
+    if (proof.verified !== true) throw new Error('Local Groth16 proof verification failed');
+    if (exactUnsigned(proof.total_sompi, 'proof total') !== refreshed.total) {
+        throw new Error('Proof total does not match the fetched contribution total');
+    }
+    return proof;
+}
+
+function showSweepTxid(txid) {
+    const txNode = byId('cov-result-txid');
+    const wrap = byId('cov-result-txid-wrap');
+    if (txNode) txNode.textContent = txid;
+    if (wrap) wrap.style.display = '';
+}
+
 export async function sweepCrowdfund() {
     const result = requireOrganizerResult();
     if (!result) return;
     const status = byId('crowdfund-sweep-status');
     try {
-        const pk = String(result.crowdfund_pk_hex || '');
-        const vk = String(result.vk_hex || '');
-        if (!pk || !vk) throw new Error('Organizer proving material is unavailable; restore the organizer backup');
+        const { pk, vk } = provingMaterial(result);
         const refreshed = await refreshCrowdfundTotals();
         if (!refreshed) return;
         if (refreshed.total < refreshed.goal) throw new Error('Campaign goal has not been reached');
-        const amounts = refreshed.inspected.contributions.map(entry => String(exactUnsigned(entry.amount_sompi, 'contribution amount')));
-        if (status) status.textContent = 'Generating and locally verifying Groth16 proof...';
-        const proof = JSON.parse(zk_crowdfund_prove(pk, vk, JSON.stringify(amounts)));
-        if (proof.verified !== true) throw new Error('Local Groth16 proof verification failed');
-        if (exactUnsigned(proof.total_sompi, 'proof total') !== refreshed.total) {
-            throw new Error('Proof total does not match the fetched contribution total');
-        }
+        const proof = proveSweep(refreshed, pk, vk, status);
         if (status) status.textContent = 'Broadcasting campaign-constrained sweep...';
         const txid = await create_crowdfund_sweep(
             JSON.stringify(contributionList(crowdfundState.contributions)),
@@ -93,10 +125,7 @@ export async function sweepCrowdfund() {
             refreshed.wsUrl,
         );
         if (status) status.textContent = `Sweep broadcast: ${txid}`;
-        const txNode = byId('cov-result-txid');
-        const wrap = byId('cov-result-txid-wrap');
-        if (txNode) txNode.textContent = txid;
-        if (wrap) wrap.style.display = '';
+        showSweepTxid(txid);
         toast('Crowdfunding sweep broadcast', 'ok', 4000);
     } catch (error) {
         if (status) status.textContent = '';

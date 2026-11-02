@@ -67,34 +67,54 @@ RULES = (
 )
 
 
+def _blank_span(out: list[str], start: int, end: int) -> None:
+    for position in range(start, end):
+        if out[position] != "\n":
+            out[position] = " "
+
+
+def _skip_block_comment(text: str, out: list[str], start: int) -> int:
+    close = text.find("*/", start + 2)
+    end = len(text) if close < 0 else close + 2
+    _blank_span(out, start, end)
+    return end
+
+
+def _skip_line_comment(text: str, out: list[str], start: int) -> int:
+    newline = text.find("\n", start)
+    end = len(text) if newline < 0 else newline
+    _blank_span(out, start, end)
+    return end
+
+
+def _skip_string_literal(text: str, out: list[str], start: int) -> int:
+    end = start + 1
+    escaped = False
+    while end < len(text):
+        ch = text[end]
+        end += 1
+        if escaped:
+            escaped = False
+        elif ch == "\\":
+            escaped = True
+        elif ch == '"':
+            break
+    _blank_span(out, start, end)
+    return end
+
+
 def lexical_mask(text: str) -> str:
     out = list(text)
     i = 0
-    block = False
-    string = False
-    escaped = False
     while i < len(text):
-        if block:
-            if text.startswith("*/", i):
-                out[i:i + 2] = "  "; i += 2; block = False
-            else:
-                if out[i] != "\n": out[i] = " "
-                i += 1
-            continue
-        if string:
-            ch = text[i]
-            if escaped: escaped = False
-            elif ch == "\\": escaped = True
-            elif ch == '"': string = False
-            if out[i] != "\n": out[i] = " "
+        if text.startswith("/*", i):
+            i = _skip_block_comment(text, out, i)
+        elif text.startswith("//", i):
+            i = _skip_line_comment(text, out, i)
+        elif text[i] == '"':
+            i = _skip_string_literal(text, out, i)
+        else:
             i += 1
-            continue
-        if text.startswith("//", i):
-            while i < len(text) and text[i] != "\n": out[i] = " "; i += 1
-            continue
-        if text.startswith("/*", i): out[i:i + 2] = "  "; i += 2; block = True; continue
-        if text[i] == '"': string = True; out[i] = " "; i += 1; continue
-        i += 1
     return "".join(out)
 
 
@@ -292,29 +312,31 @@ def architecture() -> subprocess.CompletedProcess[str]:
     return run([sys.executable, str(ARCH)], 180)
 
 
-def main() -> int:
-    mutants, files = discover()
-    if not files or not mutants:
-        print("ERROR: iOS full-scope mutation discovery found no production files/mutants.")
-        return 1
+class _MutantInfrastructureError(Exception):
+    """Raised when the mutation harness itself times out; the message is printed by main."""
+
+
+def _skip_without_toolchain(files: list[Path], mutants: list[Mutant]) -> int | None:
     if not shutil.which("swift"):
         print("SKIP: Swift toolchain unavailable for iOS mutation execution.")
         return SKIP
-    if not shutil.which("xcodebuild"):
-        base = architecture()
-        if base.returncode:
-            print(base.stdout, end="")
-            return base.returncode
-        print(f"iOS mutation scope: {len(files)} live native security/weather files scanned; {len(mutants)} semantic mutation sites discovered.")
-        print("SKIP: full iOS mutation execution requires Xcode; source architecture/parse baseline is green.")
-        return SKIP
+    if shutil.which("xcodebuild"):
+        return None
+    base = architecture()
+    if base.returncode:
+        print(base.stdout, end="")
+        return base.returncode
+    print(f"iOS mutation scope: {len(files)} live native security/weather files scanned; {len(mutants)} semantic mutation sites discovered.")
+    print("SKIP: full iOS mutation execution requires Xcode; source architecture/parse baseline is green.")
+    return SKIP
 
+
+def _run_baseline() -> int | None:
     runtime = prepare_runtime()
     if runtime.returncode:
         print("ERROR: iOS mutation baseline failed: Companion runtime sync")
         print(runtime.stdout, end="")
         return 1
-
     for label, result in (
         ("architecture", architecture()),
         ("XCTest", xcode_unit_tests(timeout=BASELINE_TIMEOUT_SECONDS)),
@@ -323,29 +345,37 @@ def main() -> int:
             print(f"ERROR: iOS mutation baseline failed: {label}")
             print(result.stdout, end="")
             return 1
+    return None
 
+
+def _mutant_survives(index: int, total: int) -> bool:
+    contract = architecture()
+    if contract.returncode == 124:
+        print(contract.stdout, end="")
+        raise _MutantInfrastructureError(f"ERROR: iOS mutation infrastructure timed out during architecture check for mutant {index}/{total}.")
+    if contract.returncode:
+        return False
+    tests = xcode_unit_tests(timeout=MUTANT_TIMEOUT_SECONDS, stop_on_verdict=True)
+    if tests.returncode == 124:
+        print(tests.stdout, end="")
+        raise _MutantInfrastructureError(f"ERROR: iOS mutation infrastructure timed out during XCTest for mutant {index}/{total}; mutant was not counted as killed.")
+    return tests.returncode == 0
+
+
+def _check_mutant(mutant: Mutant, index: int, total: int) -> bool:
+    original = mutant.path.read_text(encoding="utf-8")
+    mutant.path.write_text(original[:mutant.start] + mutant.after + original[mutant.end:], encoding="utf-8")
+    try:
+        return _mutant_survives(index, total)
+    finally:
+        mutant.path.write_text(original, encoding="utf-8")
+
+
+def _run_mutants(mutants: list[Mutant]) -> tuple[int, list[Mutant]]:
     killed = 0
     survivors: list[Mutant] = []
     for index, mutant in enumerate(mutants, 1):
-        original = mutant.path.read_text(encoding="utf-8")
-        mutant.path.write_text(original[:mutant.start] + mutant.after + original[mutant.end:], encoding="utf-8")
-        try:
-            contract = architecture()
-            if contract.returncode == 124:
-                print(contract.stdout, end="")
-                print(f"ERROR: iOS mutation infrastructure timed out during architecture check for mutant {index}/{len(mutants)}.")
-                return 1
-            if contract.returncode:
-                survives = False
-            else:
-                tests = xcode_unit_tests(timeout=MUTANT_TIMEOUT_SECONDS, stop_on_verdict=True)
-                if tests.returncode == 124:
-                    print(tests.stdout, end="")
-                    print(f"ERROR: iOS mutation infrastructure timed out during XCTest for mutant {index}/{len(mutants)}; mutant was not counted as killed.")
-                    return 1
-                survives = tests.returncode == 0
-        finally:
-            mutant.path.write_text(original, encoding="utf-8")
+        survives = _check_mutant(mutant, index, len(mutants))
         label = f"{mutant.path.relative_to(ROOT)}:{mutant.line} {mutant.rule.name}"
         if survives:
             survivors.append(mutant)
@@ -353,12 +383,35 @@ def main() -> int:
         else:
             killed += 1
             print(f"PASS mutant {index}/{len(mutants)} killed: {label}")
-    score = killed * 100.0 / len(mutants)
+    return killed, survivors
+
+
+def _report_score(killed: int, total: int, survivors: list[Mutant]) -> int:
+    score = killed * 100.0 / total
     if score < MINIMUM_SCORE_PERCENT or survivors:
-        print(f"ERROR: iOS full-scope mutation score {killed}/{len(mutants)} ({score:.2f}%); 100% required.")
+        print(f"ERROR: iOS full-scope mutation score {killed}/{total} ({score:.2f}%); 100% required.")
         return 1
-    print(f"PASS: iOS live native security/weather mutation gate ({killed}/{len(mutants)} killed; {score:.2f}%).")
+    print(f"PASS: iOS live native security/weather mutation gate ({killed}/{total} killed; {score:.2f}%).")
     return 0
+
+
+def main() -> int:
+    mutants, files = discover()
+    if not files or not mutants:
+        print("ERROR: iOS full-scope mutation discovery found no production files/mutants.")
+        return 1
+    skipped = _skip_without_toolchain(files, mutants)
+    if skipped is not None:
+        return skipped
+    failed = _run_baseline()
+    if failed is not None:
+        return failed
+    try:
+        killed, survivors = _run_mutants(mutants)
+    except _MutantInfrastructureError as error:
+        print(error)
+        return 1
+    return _report_score(killed, len(mutants), survivors)
 
 
 if __name__ == "__main__":

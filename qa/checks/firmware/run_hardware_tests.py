@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import glob
 import os
 from pathlib import Path
 import queue
@@ -15,6 +16,7 @@ import sys
 import threading
 import time
 from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import TextIO
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -203,6 +205,35 @@ def preserved_terminal():
             pass
 
 
+def _descriptor_targets(fd_dir: Path, target: Path) -> bool:
+    try:
+        descriptors = tuple(fd_dir.iterdir())
+    except OSError:
+        return False
+    for descriptor in descriptors:
+        try:
+            if descriptor.resolve(strict=True) == target:
+                return True
+        except OSError:
+            continue
+    return False
+
+
+def _process_label(process_dir: Path) -> str:
+    command = ""
+    try:
+        raw = (process_dir / "cmdline").read_bytes().replace(b"\0", b" ").strip()
+        command = raw.decode(errors="replace")
+    except OSError:
+        pass
+    if not command:
+        try:
+            command = (process_dir / "comm").read_text(errors="replace").strip()
+        except OSError:
+            command = "unknown"
+    return command or "unknown"
+
+
 def serial_port_owners(port: str | None) -> tuple[tuple[int, str], ...]:
     """Return Linux processes that currently hold an fd to *port*.
 
@@ -221,38 +252,12 @@ def serial_port_owners(port: str | None) -> tuple[tuple[int, str], ...]:
     except OSError:
         return ()
     owners: list[tuple[int, str]] = []
-    proc = Path("/proc")
-    for process_dir in proc.iterdir():
+    for process_dir in Path("/proc").iterdir():
         if not process_dir.name.isdigit():
             continue
-        fd_dir = process_dir / "fd"
-        try:
-            descriptors = tuple(fd_dir.iterdir())
-        except OSError:
+        if not _descriptor_targets(process_dir / "fd", target):
             continue
-        owns_port = False
-        for descriptor in descriptors:
-            try:
-                if descriptor.resolve(strict=True) == target:
-                    owns_port = True
-                    break
-            except OSError:
-                continue
-        if not owns_port:
-            continue
-        pid = int(process_dir.name)
-        command = ""
-        try:
-            raw = (process_dir / "cmdline").read_bytes().replace(b"\0", b" ").strip()
-            command = raw.decode(errors="replace")
-        except OSError:
-            pass
-        if not command:
-            try:
-                command = (process_dir / "comm").read_text(errors="replace").strip()
-            except OSError:
-                command = "unknown"
-        owners.append((pid, command or "unknown"))
+        owners.append((int(process_dir.name), _process_label(process_dir)))
     return tuple(sorted(owners))
 
 
@@ -312,8 +317,8 @@ def _looks_like_managed_kaskold_espflash(command: str) -> bool:
     )
 
 
-def _reclaim_stale_managed_owner(pid: int, command: str, port: str) -> bool:
-    """Reap an orphaned monitor from an earlier KasKold connected run only."""
+def _is_reclaimable_orphan(pid: int, command: str) -> bool:
+    """Return True only for a managed or legacy orphaned KasKold espflash monitor."""
     if os.name == "nt" or not sys.platform.startswith("linux"):
         return False
     if not _looks_like_managed_kaskold_espflash(command):
@@ -326,7 +331,21 @@ def _reclaim_stale_managed_owner(pid: int, command: str, port: str) -> bool:
     # command that can already be stranded on a developer
     # machine, reclaim only when it has become a true orphan (PPID 1). Never
     # kill a manually launched lookalike that is still owned by an interactive shell.
-    if not managed_marker and parent not in (0, 1):
+    return managed_marker or parent in (0, 1)
+
+
+def _wait_until_port_released(pid: int, port: str, seconds: float) -> bool:
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        if all(owner_pid != pid for owner_pid, _ in serial_port_owners(port)):
+            return True
+        time.sleep(0.05)
+    return False
+
+
+def _reclaim_stale_managed_owner(pid: int, command: str, port: str) -> bool:
+    """Reap an orphaned monitor from an earlier KasKold connected run only."""
+    if not _is_reclaimable_orphan(pid, command):
         return False
     try:
         if os.getpgid(pid) != pid:
@@ -342,21 +361,13 @@ def _reclaim_stale_managed_owner(pid: int, command: str, port: str) -> bool:
         os.killpg(pid, signal.SIGTERM)
     except ProcessLookupError:
         return True
-    deadline = time.monotonic() + 2.0
-    while time.monotonic() < deadline:
-        if all(owner_pid != pid for owner_pid, _ in serial_port_owners(port)):
-            return True
-        time.sleep(0.05)
+    if _wait_until_port_released(pid, port, 2.0):
+        return True
     try:
         os.killpg(pid, signal.SIGKILL)
     except ProcessLookupError:
         return True
-    deadline = time.monotonic() + 1.0
-    while time.monotonic() < deadline:
-        if all(owner_pid != pid for owner_pid, _ in serial_port_owners(port)):
-            return True
-        time.sleep(0.05)
-    return False
+    return _wait_until_port_released(pid, port, 1.0)
 
 
 def ensure_serial_port_available(port: str | None) -> None:
@@ -489,6 +500,446 @@ def print_failure_context(output: list[str], prefixes: tuple[str, ...] | None) -
         print(f"    {line}", file=sys.stderr)
 
 
+@dataclass(frozen=True)
+class _MonitorConfig:
+    """Immutable settings for one supervised flash or monitor attempt."""
+
+    timeout: int
+    monitor_only: bool
+    pass_marker: str
+    fail_marker: str
+    success_label: str
+    status_interval: int | None
+    repeat_abort_marker: str | None
+    repeat_abort_arm_marker: str | None
+    phase_start_marker: str | None
+    phase_end_marker: str | None
+    phase_timeout: int | None
+    deadline_extension_marker: str | None
+    deadline_extension_seconds: int | None
+    required_markers: tuple[str, ...]
+    ordered_markers: tuple[str, ...] | None
+    failure_context_prefixes: tuple[str, ...] | None
+    operation_start_prefix: str | None
+    operation_end_prefix: str | None
+    operation_timeout: int | None
+    operation_timeouts: dict[str, int] | None
+    runtime_state_prefix: str | None
+    required_runtime_states: tuple[str, ...]
+    uart_log: TextIO | None
+
+
+@dataclass
+class _MonitorTimers:
+    """Mutable deadlines for one attempt; None means the deadline is not armed."""
+
+    transport_deadline: float
+    test_started: float | None
+    deadline: float | None
+    next_status: float | None
+    phase_deadline: float | None = None
+    operation_deadline: float | None = None
+    operation_name: str | None = None
+    active_operation_timeout: int | None = None
+    panic_diagnostic_deadline: float | None = None
+
+
+_Outcome = tuple[int, bool, bool, bool]
+_PANIC_MARKERS = (
+    "====================== PANIC",
+    "panicked at ",
+    "Guru Meditation Error",
+)
+
+
+def _new_timers(config: _MonitorConfig) -> _MonitorTimers:
+    started = time.monotonic()
+    return _MonitorTimers(
+        transport_deadline=started + FLASH_TRANSPORT_TIMEOUT_SECONDS,
+        test_started=started if config.monitor_only else None,
+        deadline=started + config.timeout if config.monitor_only else None,
+        next_status=(
+            started + config.status_interval
+            if config.monitor_only and config.status_interval
+            else None
+        ),
+    )
+
+
+def _monitor_environment() -> dict[str, str]:
+    process_env = os.environ.copy()
+    process_env["KASKOLD_MANAGED_SERIAL_MONITOR"] = "1"
+    return process_env
+
+
+def _report_missing(header: str, missing: list[str], item_label: str, limit: int) -> None:
+    print(header, file=sys.stderr)
+    for item in missing[:limit]:
+        print(f"  {item_label}: {item}", file=sys.stderr)
+    if len(missing) > limit:
+        print(f"  ... and {len(missing) - limit} more", file=sys.stderr)
+
+
+class _FlashMonitorAttempt:
+    """Supervises one serial-monitor process and classifies its output."""
+
+    _timers: _MonitorTimers
+
+    def __init__(
+        self,
+        config: _MonitorConfig,
+        *,
+        seen_markers: set[str],
+        ordered_progress: list[int],
+        seen_runtime_states: set[str],
+    ) -> None:
+        self._config = config
+        self._seen_markers = seen_markers
+        self._ordered_progress = ordered_progress
+        self._seen_runtime_states = seen_runtime_states
+        self._output: list[str] = []
+        self._flash_complete = config.monitor_only
+
+    def supervise(self, process: subprocess.Popen[str]) -> _Outcome:
+        assert process.stdout is not None
+        lines: queue.Queue[str | None] = queue.Queue()
+        thread = threading.Thread(target=reader, args=(process.stdout, lines), daemon=True)
+        thread.start()
+        self._timers = _new_timers(self._config)
+        while True:
+            outcome = self._step(process, lines)
+            if outcome is not None:
+                return outcome
+
+    def _terminal_failure(self) -> _Outcome:
+        return 1, False, self._flash_complete, True
+
+    def _step(self, process: subprocess.Popen[str], lines: queue.Queue[str | None]) -> _Outcome | None:
+        now = time.monotonic()
+        timers = self._timers
+        if timers.panic_diagnostic_deadline is not None and now >= timers.panic_diagnostic_deadline:
+            print(
+                f"FAIL: connected ESP device panicked during {self._config.success_label}; "
+                "diagnostic tail captured",
+                file=sys.stderr,
+            )
+            return self._terminal_failure()
+        active_deadline = timers.deadline if timers.deadline is not None else timers.transport_deadline
+        remaining = active_deadline - now
+        if remaining <= 0:
+            return self._timed_out(now)
+        try:
+            line = lines.get(timeout=min(0.25, remaining))
+        except queue.Empty:
+            return self._on_idle(process)
+        if line is None:
+            return self._on_stream_closed(process)
+        return self._handle_line(line)
+
+    def _timed_out(self, now: float) -> _Outcome:
+        timers = self._timers
+        if timers.deadline is None:
+            print(
+                "ERROR: espflash transport did not reach flash completion within "
+                f"{FLASH_TRANSPORT_TIMEOUT_SECONDS}s",
+                file=sys.stderr,
+            )
+            return 124, not self._flash_complete, self._flash_complete, False
+        assert timers.test_started is not None
+        print(
+            f"ERROR: {self._config.success_label} timed out after {int(now - timers.test_started)}s",
+            file=sys.stderr,
+        )
+        return 124, False, self._flash_complete, True
+
+    def _exit_outcome(self, process: subprocess.Popen[str], description: str) -> _Outcome:
+        code = process.returncode or 1
+        retryable = retryable_transport_failure(self._output, self._flash_complete)
+        print(
+            f"ERROR: {description} with code {process.returncode} before a result marker",
+            file=sys.stderr,
+        )
+        return code, (self._config.monitor_only or retryable), self._flash_complete, False
+
+    def _on_idle(self, process: subprocess.Popen[str]) -> _Outcome | None:
+        if process.poll() is not None:
+            return self._exit_outcome(process, "espflash exited")
+        now = time.monotonic()
+        timers = self._timers
+        label = self._config.success_label
+        if timers.phase_deadline is not None and now >= timers.phase_deadline:
+            print(
+                f"ERROR: {label} stalled after {self._config.phase_start_marker!r}; "
+                f"did not reach {self._config.phase_end_marker!r} within {self._config.phase_timeout}s",
+                file=sys.stderr,
+            )
+            return 124, False, self._flash_complete, True
+        if timers.operation_deadline is not None and now >= timers.operation_deadline:
+            print(
+                f"ERROR: {label} runtime action {timers.operation_name!r} exceeded "
+                f"the {timers.active_operation_timeout}s production-liveness budget",
+                file=sys.stderr,
+            )
+            return 124, False, self._flash_complete, True
+        self._maybe_report_status(now)
+        return None
+
+    def _maybe_report_status(self, now: float) -> None:
+        timers = self._timers
+        if timers.next_status is None or now < timers.next_status:
+            return
+        assert timers.test_started is not None and timers.deadline is not None
+        elapsed = int(now - timers.test_started)
+        remaining_seconds = max(0, int(timers.deadline - now))
+        print(
+            f"  [monitor] device test still running: {elapsed}s elapsed, "
+            f"{remaining_seconds}s until timeout",
+            flush=True,
+        )
+        assert self._config.status_interval is not None
+        timers.next_status = now + self._config.status_interval
+
+    def _on_stream_closed(self, process: subprocess.Popen[str]) -> _Outcome | None:
+        if process.poll() is not None:
+            return self._exit_outcome(process, "serial monitor closed")
+        return None
+
+    def _handle_line(self, line: str) -> _Outcome | None:
+        self._record_line(line)
+        self._record_runtime_state(line)
+        self._mark_flash_complete(line)
+        self._track_operation_start(line)
+        self._track_operation_end(line)
+        self._record_required_markers(line)
+        outcome = self._check_ordered_markers(line)
+        if outcome is not None:
+            return outcome
+        # Fake monitor tests and future espflash formatting changes can
+        # emit the firmware result before the informational flash line.
+        # A terminal device marker wins only after every required runtime
+        # evidence marker has actually been observed across reconnects.
+        if self._config.pass_marker in line:
+            return self._terminal_pass()
+        if self._config.fail_marker in line:
+            print_failure_context(self._output, self._config.failure_context_prefixes)
+            print(
+                f"FAIL: connected ESP device reported {self._config.success_label} failure",
+                file=sys.stderr,
+            )
+            return self._terminal_failure()
+        self._extend_deadline(line)
+        self._track_phase(line)
+        outcome = self._check_repeat_abort(line)
+        if outcome is not None:
+            return outcome
+        self._track_panic(line)
+        return None
+
+    def _record_line(self, line: str) -> None:
+        self._output.append(line)
+        if self._config.uart_log is not None:
+            self._config.uart_log.write(line)
+            self._config.uart_log.flush()
+        print(line, end="", flush=True)
+
+    def _record_runtime_state(self, line: str) -> None:
+        prefix = self._config.runtime_state_prefix
+        if not prefix or prefix not in line:
+            return
+        raw_state = line.split(prefix, 1)[1].strip()
+        match = re.match(r"([A-Za-z][A-Za-z0-9_]*)", raw_state)
+        if match:
+            self._seen_runtime_states.add(match.group(1))
+
+    def _mark_flash_complete(self, line: str) -> None:
+        if FLASH_COMPLETE_MARKER not in line or self._flash_complete:
+            return
+        self._flash_complete = True
+        config = self._config
+        timers = self._timers
+        timers.test_started = time.monotonic()
+        timers.deadline = timers.test_started + config.timeout
+        timers.next_status = (
+            timers.test_started + config.status_interval if config.status_interval else None
+        )
+        print(
+            f"  [monitor] flash complete; starting the {config.timeout}s device-test deadline now",
+            flush=True,
+        )
+
+    def _track_operation_start(self, line: str) -> None:
+        prefix = self._config.operation_start_prefix
+        if not prefix or prefix not in line:
+            return
+        timers = self._timers
+        timers.operation_name = line.split(prefix, 1)[1].strip()
+        timers.active_operation_timeout = (self._config.operation_timeouts or {}).get(
+            timers.operation_name, self._config.operation_timeout
+        )
+        if timers.active_operation_timeout:
+            timers.operation_deadline = time.monotonic() + timers.active_operation_timeout
+            print(
+                f"  [monitor] runtime action {timers.operation_name!r} must complete within "
+                f"{timers.active_operation_timeout}s",
+                flush=True,
+            )
+        else:
+            timers.operation_deadline = None
+
+    def _track_operation_end(self, line: str) -> None:
+        prefix = self._config.operation_end_prefix
+        if not prefix or prefix not in line:
+            return
+        timers = self._timers
+        ended = line.split(prefix, 1)[1].strip()
+        if timers.operation_name is None or ended == timers.operation_name:
+            timers.operation_deadline = None
+            timers.operation_name = None
+            timers.active_operation_timeout = None
+
+    def _record_required_markers(self, line: str) -> None:
+        for marker in self._config.required_markers:
+            if marker in line:
+                self._seen_markers.add(marker)
+
+    def _check_ordered_markers(self, line: str) -> _Outcome | None:
+        ordered = self._config.ordered_markers
+        progress = self._ordered_progress
+        if not ordered or progress[0] >= len(ordered):
+            return None
+        pending = ordered[progress[0]:]
+        matched_offset = next((index for index, marker in enumerate(pending) if marker in line), None)
+        if matched_offset is None:
+            return None
+        if matched_offset != 0:
+            print(
+                f"FAIL: {self._config.success_label} runtime evidence arrived out of order; "
+                f"expected {pending[0]!r} before {pending[matched_offset]!r}",
+                file=sys.stderr,
+            )
+            return self._terminal_failure()
+        progress[0] += 1
+        return None
+
+    def _terminal_pass(self) -> _Outcome:
+        blocked = self._pass_blocker()
+        if blocked is not None:
+            return blocked
+        print(f"PASS: connected ESP device completed {self._config.success_label}")
+        return 0, False, self._flash_complete, True
+
+    def _pass_blocker(self) -> _Outcome | None:
+        config = self._config
+        missing = [marker for marker in config.required_markers if marker not in self._seen_markers]
+        if missing:
+            _report_missing(
+                "FAIL: connected ESP device emitted the terminal pass marker but "
+                f"{len(missing)} required runtime evidence marker(s) were never observed",
+                missing,
+                "missing",
+                20,
+            )
+            return self._terminal_failure()
+        missing_states = [
+            state for state in config.required_runtime_states
+            if state not in self._seen_runtime_states
+        ]
+        if missing_states:
+            _report_missing(
+                "FAIL: connected ESP device emitted the terminal pass marker but "
+                f"{len(missing_states)} graph-derived stable screen(s) were never physically rendered",
+                missing_states,
+                "missing render",
+                30,
+            )
+            return self._terminal_failure()
+        ordered = config.ordered_markers
+        if ordered and self._ordered_progress[0] != len(ordered):
+            expected = ordered[self._ordered_progress[0]]
+            print(
+                "FAIL: connected ESP device emitted the terminal pass marker before "
+                f"ordered runtime evidence {expected!r}",
+                file=sys.stderr,
+            )
+            return self._terminal_failure()
+        return None
+
+    def _extend_deadline(self, line: str) -> None:
+        marker = self._config.deadline_extension_marker
+        seconds = self._config.deadline_extension_seconds
+        timers = self._timers
+        if timers.deadline is None or not marker or marker not in line or not seconds or seconds <= 0:
+            return
+        extended = time.monotonic() + seconds
+        if extended > timers.deadline:
+            timers.deadline = extended
+            print(
+                "  [monitor] long-running device operation detected; "
+                f"deadline extended by up to {seconds}s from now",
+                flush=True,
+            )
+
+    def _track_phase(self, line: str) -> None:
+        config = self._config
+        timers = self._timers
+        if config.phase_start_marker and config.phase_start_marker in line and config.phase_timeout:
+            timers.phase_deadline = time.monotonic() + config.phase_timeout
+            print(
+                f"  [monitor] phase handoff must reach {config.phase_end_marker!r} "
+                f"within {config.phase_timeout}s",
+                flush=True,
+            )
+        if config.phase_end_marker and config.phase_end_marker in line:
+            timers.phase_deadline = None
+
+    def _check_repeat_abort(self, line: str) -> _Outcome | None:
+        config = self._config
+        marker = config.repeat_abort_marker
+        if not marker or not self._flash_complete:
+            return None
+        arm_marker = config.repeat_abort_arm_marker
+        repeat_key = f"__repeat_abort__:{marker}"
+        repeat_arm_key = f"__repeat_abort_armed__:{marker}"
+        if arm_marker and arm_marker in line:
+            # The arm marker proves the first boot advanced beyond the BEGIN line.
+            # This deliberately tolerates a duplicate/replayed BEGIN emitted by the
+            # espflash monitor before the immediately-following PREBOARD marker.
+            self._seen_markers.add(repeat_key)
+            self._seen_markers.add(repeat_arm_key)
+        if marker not in line:
+            return None
+        if repeat_key not in self._seen_markers:
+            self._seen_markers.add(repeat_key)
+            return None
+        armed = arm_marker is None or repeat_arm_key in self._seen_markers
+        if armed:
+            print(
+                f"FAIL: connected ESP device rebooted before {config.success_label} completed "
+                f"({marker!r} appeared again after the first boot advanced "
+                f"past {arm_marker!r})",
+                file=sys.stderr,
+            )
+            return self._terminal_failure()
+        print(
+            f"  [monitor] duplicate/replayed {marker!r} before "
+            f"{arm_marker!r}; ignoring",
+            flush=True,
+        )
+        return None
+
+    def _track_panic(self, line: str) -> None:
+        if not any(marker in line for marker in _PANIC_MARKERS):
+            return
+        timers = self._timers
+        if timers.panic_diagnostic_deadline is not None:
+            return
+        timers.panic_diagnostic_deadline = time.monotonic() + 1.5
+        print(
+            "  [monitor] panic detected; capturing the diagnostic tail before aborting",
+            flush=True,
+        )
+
+
 def _run_flash_monitor_attempt(
     command: list[str],
     timeout: int,
@@ -520,22 +971,43 @@ def _run_flash_monitor_attempt(
     uart_log: TextIO | None = None,
 ) -> tuple[int, bool, bool, bool]:
     """Run one supervised process; return code/retry/flash-complete/terminal-result."""
-    output: list[str] = []
-    if seen_markers is None:
-        seen_markers = set()
-    if ordered_progress is None:
-        ordered_progress = [0]
-    if seen_runtime_states is None:
-        seen_runtime_states = set()
-    flash_complete = monitor_only
+    config = _MonitorConfig(
+        timeout=timeout,
+        monitor_only=monitor_only,
+        pass_marker=pass_marker,
+        fail_marker=fail_marker,
+        success_label=success_label,
+        status_interval=status_interval,
+        repeat_abort_marker=repeat_abort_marker,
+        repeat_abort_arm_marker=repeat_abort_arm_marker,
+        phase_start_marker=phase_start_marker,
+        phase_end_marker=phase_end_marker,
+        phase_timeout=phase_timeout,
+        deadline_extension_marker=deadline_extension_marker,
+        deadline_extension_seconds=deadline_extension_seconds,
+        required_markers=required_markers or (),
+        ordered_markers=ordered_markers,
+        failure_context_prefixes=failure_context_prefixes,
+        operation_start_prefix=operation_start_prefix,
+        operation_end_prefix=operation_end_prefix,
+        operation_timeout=operation_timeout,
+        operation_timeouts=operation_timeouts,
+        runtime_state_prefix=runtime_state_prefix,
+        required_runtime_states=required_runtime_states or (),
+        uart_log=uart_log,
+    )
+    monitor = _FlashMonitorAttempt(
+        config,
+        seen_markers=set() if seen_markers is None else seen_markers,
+        ordered_progress=[0] if ordered_progress is None else ordered_progress,
+        seen_runtime_states=set() if seen_runtime_states is None else seen_runtime_states,
+    )
     try:
         with preserved_terminal(), private_monitor_input() as monitor_stdin:
-            process_env = os.environ.copy()
-            process_env["KASKOLD_MANAGED_SERIAL_MONITOR"] = "1"
             process = subprocess.Popen(
                 command,
                 cwd=FIRMWARE,
-                env=process_env,
+                env=_monitor_environment(),
                 stdin=monitor_stdin,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -543,269 +1015,8 @@ def _run_flash_monitor_attempt(
                 bufsize=1,
                 start_new_session=(os.name != "nt"),
             )
-            assert process.stdout is not None
-            lines: queue.Queue[str | None] = queue.Queue()
-            thread = threading.Thread(target=reader, args=(process.stdout, lines), daemon=True)
-            thread.start()
-            transport_started = time.monotonic()
-            transport_deadline = transport_started + FLASH_TRANSPORT_TIMEOUT_SECONDS
-            test_started: float | None = transport_started if monitor_only else None
-            deadline: float | None = transport_started + timeout if monitor_only else None
-            next_status: float | None = (
-                transport_started + status_interval
-                if monitor_only and status_interval
-                else None
-            )
-            phase_deadline: float | None = None
-            operation_deadline: float | None = None
-            operation_name: str | None = None
-            active_operation_timeout: int | None = None
-            panic_diagnostic_deadline: float | None = None
-
             try:
-                while True:
-                    now = time.monotonic()
-                    if panic_diagnostic_deadline is not None and now >= panic_diagnostic_deadline:
-                        print(
-                            f"FAIL: connected ESP device panicked during {success_label}; "
-                            "diagnostic tail captured",
-                            file=sys.stderr,
-                        )
-                        return 1, False, flash_complete, True
-                    active_deadline = deadline if deadline is not None else transport_deadline
-                    remaining = active_deadline - now
-                    if remaining <= 0:
-                        if deadline is None:
-                            print(
-                                f"ERROR: espflash transport did not reach flash completion within "
-                                f"{FLASH_TRANSPORT_TIMEOUT_SECONDS}s",
-                                file=sys.stderr,
-                            )
-                            return 124, not flash_complete, flash_complete, False
-                        assert test_started is not None
-                        print(
-                            f"ERROR: {success_label} timed out after {int(now - test_started)}s",
-                            file=sys.stderr,
-                        )
-                        return 124, False, flash_complete, True
-                    try:
-                        line = lines.get(timeout=min(0.25, remaining))
-                    except queue.Empty:
-                        if process.poll() is not None:
-                            code = process.returncode or 1
-                            retryable = retryable_transport_failure(output, flash_complete)
-                            print(
-                                f"ERROR: espflash exited with code {process.returncode} before a result marker",
-                                file=sys.stderr,
-                            )
-                            return code, (monitor_only or retryable), flash_complete, False
-                        now = time.monotonic()
-                        if phase_deadline is not None and now >= phase_deadline:
-                            print(
-                                f"ERROR: {success_label} stalled after {phase_start_marker!r}; "
-                                f"did not reach {phase_end_marker!r} within {phase_timeout}s",
-                                file=sys.stderr,
-                            )
-                            return 124, False, flash_complete, True
-                        if operation_deadline is not None and now >= operation_deadline:
-                            print(
-                                f"ERROR: {success_label} runtime action {operation_name!r} exceeded "
-                                f"the {active_operation_timeout}s production-liveness budget",
-                                file=sys.stderr,
-                            )
-                            return 124, False, flash_complete, True
-                        if next_status is not None and now >= next_status:
-                            assert test_started is not None and deadline is not None
-                            elapsed = int(now - test_started)
-                            remaining_seconds = max(0, int(deadline - now))
-                            print(
-                                f"  [monitor] device test still running: {elapsed}s elapsed, "
-                                f"{remaining_seconds}s until timeout",
-                                flush=True,
-                            )
-                            assert status_interval is not None
-                            next_status = now + status_interval
-                        continue
-                    if line is None:
-                        if process.poll() is not None:
-                            code = process.returncode or 1
-                            retryable = retryable_transport_failure(output, flash_complete)
-                            print(
-                                f"ERROR: serial monitor closed with code {process.returncode} before a result marker",
-                                file=sys.stderr,
-                            )
-                            return code, (monitor_only or retryable), flash_complete, False
-                        continue
-                    output.append(line)
-                    if uart_log is not None:
-                        uart_log.write(line)
-                        uart_log.flush()
-                    print(line, end="", flush=True)
-                    if runtime_state_prefix and runtime_state_prefix in line:
-                        raw_state = line.split(runtime_state_prefix, 1)[1].strip()
-                        match = re.match(r"([A-Za-z][A-Za-z0-9_]*)", raw_state)
-                        if match:
-                            seen_runtime_states.add(match.group(1))
-                    if FLASH_COMPLETE_MARKER in line and not flash_complete:
-                        flash_complete = True
-                        test_started = time.monotonic()
-                        deadline = test_started + timeout
-                        next_status = test_started + status_interval if status_interval else None
-                        print(
-                            f"  [monitor] flash complete; starting the {timeout}s device-test deadline now",
-                            flush=True,
-                        )
-                    if operation_start_prefix and operation_start_prefix in line:
-                        operation_name = line.split(operation_start_prefix, 1)[1].strip()
-                        active_operation_timeout = (operation_timeouts or {}).get(
-                            operation_name, operation_timeout
-                        )
-                        if active_operation_timeout:
-                            operation_deadline = time.monotonic() + active_operation_timeout
-                            print(
-                                f"  [monitor] runtime action {operation_name!r} must complete within "
-                                f"{active_operation_timeout}s", flush=True,
-                            )
-                        else:
-                            operation_deadline = None
-                    if operation_end_prefix and operation_end_prefix in line:
-                        ended = line.split(operation_end_prefix, 1)[1].strip()
-                        if operation_name is None or ended == operation_name:
-                            operation_deadline = None
-                            operation_name = None
-                            active_operation_timeout = None
-                    if required_markers:
-                        for marker in required_markers:
-                            if marker in line:
-                                seen_markers.add(marker)
-                    if ordered_markers and ordered_progress[0] < len(ordered_markers):
-                        pending = ordered_markers[ordered_progress[0]:]
-                        matched_offset = next(
-                            (index for index, marker in enumerate(pending) if marker in line),
-                            None,
-                        )
-                        if matched_offset is not None:
-                            if matched_offset != 0:
-                                expected = pending[0]
-                                observed = pending[matched_offset]
-                                print(
-                                    f"FAIL: {success_label} runtime evidence arrived out of order; "
-                                    f"expected {expected!r} before {observed!r}",
-                                    file=sys.stderr,
-                                )
-                                return 1, False, flash_complete, True
-                            ordered_progress[0] += 1
-                    # Fake monitor tests and future espflash formatting changes can
-                    # emit the firmware result before the informational flash line.
-                    # A terminal device marker wins only after every required runtime
-                    # evidence marker has actually been observed across reconnects.
-                    if pass_marker in line:
-                        missing = [
-                            marker for marker in (required_markers or ())
-                            if marker not in seen_markers
-                        ]
-                        if missing:
-                            print(
-                                f"FAIL: connected ESP device emitted the terminal pass marker but "
-                                f"{len(missing)} required runtime evidence marker(s) were never observed",
-                                file=sys.stderr,
-                            )
-                            for marker in missing[:20]:
-                                print(f"  missing: {marker}", file=sys.stderr)
-                            if len(missing) > 20:
-                                print(f"  ... and {len(missing) - 20} more", file=sys.stderr)
-                            return 1, False, flash_complete, True
-                        missing_states = [
-                            state for state in (required_runtime_states or ())
-                            if state not in seen_runtime_states
-                        ]
-                        if missing_states:
-                            print(
-                                f"FAIL: connected ESP device emitted the terminal pass marker but "
-                                f"{len(missing_states)} graph-derived stable screen(s) were never physically rendered",
-                                file=sys.stderr,
-                            )
-                            for state in missing_states[:30]:
-                                print(f"  missing render: {state}", file=sys.stderr)
-                            if len(missing_states) > 30:
-                                print(f"  ... and {len(missing_states) - 30} more", file=sys.stderr)
-                            return 1, False, flash_complete, True
-                        if ordered_markers and ordered_progress[0] != len(ordered_markers):
-                            expected = ordered_markers[ordered_progress[0]]
-                            print(
-                                f"FAIL: connected ESP device emitted the terminal pass marker before "
-                                f"ordered runtime evidence {expected!r}",
-                                file=sys.stderr,
-                            )
-                            return 1, False, flash_complete, True
-                        print(f"PASS: connected ESP device completed {success_label}")
-                        return 0, False, flash_complete, True
-                    if fail_marker in line:
-                        print_failure_context(output, failure_context_prefixes)
-                        print(f"FAIL: connected ESP device reported {success_label} failure", file=sys.stderr)
-                        return 1, False, flash_complete, True
-                    if (
-                        deadline is not None
-                        and deadline_extension_marker
-                        and deadline_extension_marker in line
-                        and deadline_extension_seconds
-                        and deadline_extension_seconds > 0
-                    ):
-                        extended = time.monotonic() + deadline_extension_seconds
-                        if extended > deadline:
-                            deadline = extended
-                            print(
-                                f"  [monitor] long-running device operation detected; "
-                                f"deadline extended by up to {deadline_extension_seconds}s from now",
-                                flush=True,
-                            )
-                    if phase_start_marker and phase_start_marker in line and phase_timeout:
-                        phase_deadline = time.monotonic() + phase_timeout
-                        print(
-                            f"  [monitor] phase handoff must reach {phase_end_marker!r} "
-                            f"within {phase_timeout}s",
-                            flush=True,
-                        )
-                    if phase_end_marker and phase_end_marker in line:
-                        phase_deadline = None
-                    if repeat_abort_marker and flash_complete:
-                        repeat_key = f"__repeat_abort__:{repeat_abort_marker}"
-                        repeat_arm_key = f"__repeat_abort_armed__:{repeat_abort_marker}"
-                        if repeat_abort_arm_marker and repeat_abort_arm_marker in line:
-                            # The arm marker proves the first boot advanced beyond the BEGIN line.
-                            # This deliberately tolerates a duplicate/replayed BEGIN emitted by the
-                            # espflash monitor before the immediately-following PREBOARD marker.
-                            seen_markers.add(repeat_key)
-                            seen_markers.add(repeat_arm_key)
-                        if repeat_abort_marker in line:
-                            if repeat_key in seen_markers:
-                                armed = repeat_abort_arm_marker is None or repeat_arm_key in seen_markers
-                                if armed:
-                                    print(
-                                        f"FAIL: connected ESP device rebooted before {success_label} completed "
-                                        f"({repeat_abort_marker!r} appeared again after the first boot advanced "
-                                        f"past {repeat_abort_arm_marker!r})",
-                                        file=sys.stderr,
-                                    )
-                                    return 1, False, flash_complete, True
-                                print(
-                                    f"  [monitor] duplicate/replayed {repeat_abort_marker!r} before "
-                                    f"{repeat_abort_arm_marker!r}; ignoring",
-                                    flush=True,
-                                )
-                            else:
-                                seen_markers.add(repeat_key)
-                    if any(marker in line for marker in (
-                        "====================== PANIC",
-                        "panicked at ",
-                        "Guru Meditation Error",
-                    )):
-                        if panic_diagnostic_deadline is None:
-                            panic_diagnostic_deadline = time.monotonic() + 1.5
-                            print(
-                                "  [monitor] panic detected; capturing the diagnostic tail before aborting",
-                                flush=True,
-                            )
+                return monitor.supervise(process)
             finally:
                 stop_process(process)
     finally:
@@ -919,6 +1130,45 @@ def reconnect_monitor(
     return code
 
 
+def _resolve_flash_port(port: str | None) -> tuple[str | None, int]:
+    try:
+        resolved = resolve_serial_port(port)
+        ensure_serial_port_available(resolved)
+    except RuntimeError as error:
+        print(f"ERROR: {error}", file=sys.stderr)
+        return port, 1
+    return resolved, 0
+
+
+def _print_flash_banner(base_command: list[str], timeout: int) -> None:
+    print("  +", " ".join(base_command), flush=True)
+    print(
+        f"  Transport may retry up to {FLASH_CONNECT_ATTEMPTS} times; the {timeout}s "
+        "device-test deadline starts only after flashing completes.",
+        flush=True,
+    )
+    if os.name == "posix":
+        print("  Supervised monitor uses a private pseudo-terminal; your keyboard is not attached.", flush=True)
+    else:
+        print("  Supervised monitor reserves the console only while the pinned espflash monitor is active.", flush=True)
+
+
+def _announce_flash_attempt(board: str, attempt: int, reset_strategy: str) -> None:
+    if attempt > 1:
+        print(
+            f"  [transport] retry {attempt}/{FLASH_CONNECT_ATTEMPTS} after ESP connection failure...",
+            flush=True,
+        )
+        time.sleep(min(0.75 * (attempt - 1), 1.5))
+    if board in {"m5stack", "m5stack-lite"}:
+        suffix = " (sync-only; preserve prior ROM-download state)" if reset_strategy == "no-reset" else ""
+        print(
+            f"  [transport] CoreS3 reset strategy {attempt}/{FLASH_CONNECT_ATTEMPTS}: "
+            f"{reset_strategy}{suffix}",
+            flush=True,
+        )
+
+
 def flash_and_monitor(
     board: str,
     image: Path,
@@ -952,12 +1202,9 @@ def flash_and_monitor(
     seen_runtime_states: set[str] = set()
     ordered_progress = [0]
     if connected_transport:
-        try:
-            port = resolve_serial_port(port)
-            ensure_serial_port_available(port)
-        except RuntimeError as error:
-            print(f"ERROR: {error}", file=sys.stderr)
-            return 1
+        port, status = _resolve_flash_port(port)
+        if status:
+            return status
     layout = layout_for(board)
     validate_layout(layout)
     base_command = [
@@ -966,37 +1213,14 @@ def flash_and_monitor(
         "--monitor",
         *layout.espflash_connection_args(),
         *layout.espflash_args(),
+        *(("--port", port) if port else ()),
+        str(image),
     ]
-    if port:
-        base_command.extend(("--port", port))
-    base_command.append(str(image))
-
-    print("  +", " ".join(base_command), flush=True)
-    print(
-        f"  Transport may retry up to {FLASH_CONNECT_ATTEMPTS} times; the {timeout}s "
-        "device-test deadline starts only after flashing completes.",
-        flush=True,
-    )
-    if os.name == "posix":
-        print("  Supervised monitor uses a private pseudo-terminal; your keyboard is not attached.", flush=True)
-    else:
-        print("  Supervised monitor reserves the console only while the pinned espflash monitor is active.", flush=True)
+    _print_flash_banner(base_command, timeout)
 
     for attempt in range(1, FLASH_CONNECT_ATTEMPTS + 1):
         attempt_command, reset_strategy = flash_attempt_command(base_command, board, attempt)
-        if attempt > 1:
-            print(
-                f"  [transport] retry {attempt}/{FLASH_CONNECT_ATTEMPTS} after ESP connection failure...",
-                flush=True,
-            )
-            time.sleep(min(0.75 * (attempt - 1), 1.5))
-        if board in {"m5stack", "m5stack-lite"}:
-            suffix = " (sync-only; preserve prior ROM-download state)" if reset_strategy == "no-reset" else ""
-            print(
-                f"  [transport] CoreS3 reset strategy {attempt}/{FLASH_CONNECT_ATTEMPTS}: "
-                f"{reset_strategy}{suffix}",
-                flush=True,
-            )
+        _announce_flash_attempt(board, attempt, reset_strategy)
         try:
             wait_for_explicit_port(port)
             command = prepare_serial_command(attempt_command, port)

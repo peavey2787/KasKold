@@ -62,16 +62,21 @@ SUPPORT_MODULES = {
     "core/sdk/workspace.py",
     "firmware/__init__.py",
     "firmware/camera_contract.py",
+    "firmware/firmware_display_hardware.py",
     "firmware/firmware_settings_state.py",
     "firmware/guards/__init__.py",
+    "firmware/guards/remediation_ownership.py",
     "firmware/subsystems/__init__.py",
+    "firmware/subsystems/firmware_cores3_spi.py",
     "protocols/__init__.py",
     "protocols/compact_protocols.py",
+    "protocols/compact_protocols_checks.py",
     "protocols/online_business.py",
     "tooling/__init__.py",
     "web/__init__.py",
     "web/web_contracts.py",
     "web/web_infrastructure.py",
+    "web/web_wasm_api.py",
 }
 EXPECTED_GROUPS = {"core", "firmware", "protocols", "tooling", "web"}
 MAX_ARCHITECTURE_FUNCTION_LINES = 150
@@ -209,12 +214,8 @@ def _warning_contract_errors(package_root: Path) -> list[str]:
         errors.append("explicit production import-boundary enforcement is missing")
     return errors
 
-def check(root: Path) -> list[str]:
-    errors: list[str] = []
-    entrypoint = root / "qa/checks/check_architecture.py"
-    package_root = root / "qa/checks/architecture"
-    entrypoint_source = entrypoint.read_text(errors="ignore")
 
+def _check_package_layout(entrypoint_source: str, package_root: Path, errors: list[str]) -> None:
     if len(entrypoint_source.splitlines()) > 80:
         errors.append("architecture checker entry point exceeds 80 lines")
 
@@ -234,6 +235,8 @@ def check(root: Path) -> list[str]:
             f"architecture checks must be grouped; root Python files are {sorted(direct_python)}"
         )
 
+
+def _check_module_inventory(package_root: Path, errors: list[str]) -> None:
     actual_modules = {
         path.relative_to(package_root).as_posix()
         for path in package_root.rglob("*.py")
@@ -246,6 +249,8 @@ def check(root: Path) -> list[str]:
             f"{sorted(expected_modules)}, got {sorted(actual_modules)}"
         )
 
+
+def _check_registration(entrypoint_source: str, errors: list[str]) -> None:
     expected_checks = {Path(name).stem for name in CHECK_MODULES}
     expected_warnings = {Path(name).stem for name in WARNING_MODULES}
     imported, registered_checks, registered_warnings = registered_modules(entrypoint_source)
@@ -269,6 +274,8 @@ def check(root: Path) -> list[str]:
     if not warning_exit_is_nonfatal(entrypoint_source):
         errors.append("advisory architecture warnings must not control a nonzero exit status")
 
+
+def _check_quality_thresholds(package_root: Path, errors: list[str]) -> None:
     source_quality = (package_root / "core/source_quality.py").read_text(errors="ignore")
     if "MAX_FUNCTION_LINES = 200" not in source_quality:
         errors.append("blocking production-function threshold must remain 200 lines")
@@ -276,6 +283,8 @@ def check(root: Path) -> list[str]:
         errors.append("blocking executable-module threshold must remain 450 lines")
     errors.extend(_warning_contract_errors(package_root))
 
+
+def _check_rust_parsers(errors: list[str]) -> None:
     rust_parser_probe = r"""
 fn array_signature<'a, 'b>(zones: &'a [TouchZone; 4], nested: Option<Result<[u8; 8], &'b ()>>) {
     let raw = r#"} not the function end"#;
@@ -297,36 +306,52 @@ fn following() {
     if _orphaned_outer_attribute_lines(attribute_probe) != [6, 8]:
         errors.append("Rust orphaned outer-attribute scanner regression")
 
-    for module_name in CHECK_MODULES | WARNING_MODULES:
-        source = (package_root / module_name).read_text(errors="ignore")
-        line_count = len(source.splitlines())
-        if line_count > 400:
+
+def _check_module_size_and_contract(module_name: str, source: str, errors: list[str]) -> None:
+    line_count = len(source.splitlines())
+    if line_count > 400:
+        errors.append(
+            f"architecture checker module exceeds 400 lines: "
+            f"{module_name} ({line_count} lines)"
+        )
+    if "def check(root: Path) -> list[str]:" not in source:
+        errors.append(f"architecture checker module lacks check() contract: {module_name}")
+
+
+def _check_function_lengths(module_name: str, source: str, errors: list[str]) -> None:
+    tree = ast.parse(source)
+    for function in (
+        node for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    ):
+        function_lines = function.end_lineno - function.lineno + 1
+        if function_lines > MAX_ARCHITECTURE_FUNCTION_LINES:
             errors.append(
-                f"architecture checker module exceeds 400 lines: "
-                f"{module_name} ({line_count} lines)"
-            )
-        if "def check(root: Path) -> list[str]:" not in source:
-            errors.append(f"architecture checker module lacks check() contract: {module_name}")
-        tree = ast.parse(source)
-        for function in (
-            node for node in ast.walk(tree)
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-        ):
-            function_lines = function.end_lineno - function.lineno + 1
-            if function_lines > MAX_ARCHITECTURE_FUNCTION_LINES:
-                errors.append(
-                    f"architecture checker function exceeds "
-                    f"{MAX_ARCHITECTURE_FUNCTION_LINES} lines: "
-                    f"{module_name}::{function.name} ({function_lines} lines)"
-                )
-        if module_name != "core/checker_structure.py" and (
-            "sys.exit" in source or re.search(r"(?m)^\s*print\(", source)
-        ):
-            errors.append(
-                f"architecture check module performs process I/O instead of returning findings: "
-                f"{module_name}"
+                f"architecture checker function exceeds "
+                f"{MAX_ARCHITECTURE_FUNCTION_LINES} lines: "
+                f"{module_name}::{function.name} ({function_lines} lines)"
             )
 
+
+def _check_process_io(module_name: str, source: str, errors: list[str]) -> None:
+    if module_name != "core/checker_structure.py" and (
+        "sys.exit" in source or re.search(r"(?m)^\s*print\(", source)
+    ):
+        errors.append(
+            f"architecture check module performs process I/O instead of returning findings: "
+            f"{module_name}"
+        )
+
+
+def _check_module_files(package_root: Path, errors: list[str]) -> None:
+    for module_name in CHECK_MODULES | WARNING_MODULES:
+        source = (package_root / module_name).read_text(errors="ignore")
+        _check_module_size_and_contract(module_name, source, errors)
+        _check_function_lengths(module_name, source, errors)
+        _check_process_io(module_name, source, errors)
+
+
+def _check_hash_enforcement(entrypoint: Path, package_root: Path, errors: list[str]) -> None:
     checker_sources = "\n".join(
         path.read_text(errors="ignore")
         for path in [entrypoint, *sorted(package_root.rglob("*.py"))]
@@ -343,5 +368,18 @@ fn following() {
     if re.search(r"sha256\s*\([^)]*\.read_bytes\s*\(", checker_sources, re.S):
         errors.append("architecture checker must not hash complete file bytes")
 
+
+def check(root: Path) -> list[str]:
+    errors: list[str] = []
+    entrypoint = root / "qa/checks/check_architecture.py"
+    package_root = root / "qa/checks/architecture"
+    entrypoint_source = entrypoint.read_text(errors="ignore")
+    _check_package_layout(entrypoint_source, package_root, errors)
+    _check_module_inventory(package_root, errors)
+    _check_registration(entrypoint_source, errors)
+    _check_quality_thresholds(package_root, errors)
+    _check_rust_parsers(errors)
+    _check_module_files(package_root, errors)
+    _check_hash_enforcement(entrypoint, package_root, errors)
     errors.extend(_orphaned_rust_doc_comments(root))
     return errors

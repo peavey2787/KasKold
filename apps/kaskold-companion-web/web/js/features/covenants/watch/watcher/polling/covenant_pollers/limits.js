@@ -6,6 +6,7 @@ import { formatDaaDuration } from '../../../../../../core/format.js';
 import { sompiToKasFixed, sompiToKasString } from '../../../../../../core/amounts.js';
 import { pickThread } from '../../../../spending/standard/spend_paths.js';
 import { covWatcherStop } from '../lifecycle.js';
+import { isFundsSpent } from './status_text.js';
 
 function governedThreadState(utxos) {
     const picked = pickThread(
@@ -27,12 +28,73 @@ function externalFundsNote(sompi, disposition) {
 }
 
 function readyLabel(canDrain, governedKas, maxStr) {
-    return span('u-text-teal', canDrain ? `\u2705 Ready to drain all ${governedKas} KAS` : `\u2705 Ready to withdraw${maxStr}`);
+    return span('u-text-teal', canDrain ? `✅ Ready to drain all ${governedKas} KAS` : `✅ Ready to withdraw${maxStr}`);
 }
 
 function withdrawalLimitLabel(maxSompi, canDrain) {
     if (canDrain) return ' (full drain)';
     return maxSompi > 0n ? ` (max ${sompiToKasString(maxSompi)} KAS)` : '';
+}
+
+function hasCooldownClock(cooldown, currentDaa) {
+    return cooldown > 0n && currentDaa > 0n;
+}
+
+function notFundedStatus() {
+    return '👁 0 KAS | Not funded';
+}
+
+function watchingStatus(governedKas, maxStr) {
+    return `👁 ${governedKas} KAS | Watching...${maxStr}`;
+}
+
+function cooldownStatus({ threadDaa, cooldown, currentDaa, readyCanDrain, governedKas, maxStr }) {
+    const remaining = threadDaa + cooldown - currentDaa;
+    return remaining <= 0n
+        ? readyLabel(readyCanDrain, governedKas, maxStr)
+        : `👁 ~${formatDaaDuration(remaining)} until next withdraw${maxStr}`;
+}
+
+function isMatureThread(picked, cooldown, currentDaa, threadDaa) {
+    return !!picked.thread && (cooldown === 0n || currentDaa === 0n || currentDaa >= threadDaa + cooldown);
+}
+
+function spendingLimitStatus(ctx) {
+    const { threadSompi, matureSompi, canDrain, governedKas, maxStr, cooldown, currentDaa, threadDaa } = ctx;
+    if (threadSompi === 0n) return notFundedStatus();
+    if (matureSompi > 0n) return readyLabel(canDrain, governedKas, maxStr);
+    if (hasCooldownClock(cooldown, currentDaa)) {
+        return cooldownStatus({ threadDaa, cooldown, currentDaa, readyCanDrain: false, governedKas, maxStr });
+    }
+    return watchingStatus(governedKas, maxStr);
+}
+
+function allowanceStatus(ctx) {
+    const { threadSompi, iAmOwner, startDaa, currentDaa, cooldown, threadDaa, canDrain, governedKas, maxStr } = ctx;
+    if (threadSompi === 0n) return notFundedStatus();
+    if (iAmOwner) return `👁 ${governedKas} KAS | Owner can reclaim anytime`;
+    if (startDaa > 0n && currentDaa > 0n && currentDaa < startDaa) {
+        return `👁 ${governedKas} KAS | Locked, ~${formatDaaDuration(startDaa - currentDaa)} until start`;
+    }
+    if (hasCooldownClock(cooldown, currentDaa)) {
+        return cooldownStatus({ threadDaa, cooldown, currentDaa, readyCanDrain: canDrain, governedKas, maxStr });
+    }
+    return watchingStatus(governedKas, maxStr);
+}
+
+function spentFundsStatus(spender) {
+    if (spender === 'heir') return span('u-text-teal', '✅ Beneficiary withdrew.');
+    if (spender === 'owner') return span('u-text-warning', '⚠ Owner reclaimed all funds.');
+    return null;
+}
+
+function reportFundsSpent(st) {
+    const spender = covenantWatcherState._covWatcherSpendPath || 'unknown';
+    const status = spentFundsStatus(spender);
+    if (status) setContent(st, status);
+    else st.textContent = '👁 Funds spent (0 KAS)';
+    covWatcherStop();
+    if (st) st.style.display = '';
 }
 
 export async function pollGlobalSpendingLimit(state) {
@@ -41,7 +103,7 @@ export async function pollGlobalSpendingLimit(state) {
     const cooldown = exactUnsigned(covenantState.lastCovenantResult.cooldown_daa ?? 0n, 'cooldown DAA');
     const maxSompi = exactUnsigned(covenantState.lastCovenantResult.max_withdraw_sompi ?? 0n, 'withdrawal limit');
     const { picked, threadSompi, threadDaa } = governedThreadState(utxos);
-    const mature = !!picked.thread && (cooldown === 0n || currentDaa === 0n || currentDaa >= threadDaa + cooldown);
+    const mature = isMatureThread(picked, cooldown, currentDaa, threadDaa);
     const matureSompi = mature ? threadSompi : 0n;
     const canDrain = maxSompi > 0n && matureSompi > 0n && matureSompi <= maxSompi;
     const maxStr = withdrawalLimitLabel(maxSompi, canDrain);
@@ -49,18 +111,10 @@ export async function pollGlobalSpendingLimit(state) {
     const governedKas = sompiToKasFixed(threadSompi, 2);
 
     st.style.color = '';
-    if (threadSompi === 0n) {
-        setContent(st, '\uD83D\uDC41 0 KAS | Not funded', extNote);
-    } else if (matureSompi > 0n) {
-        setContent(st, readyLabel(canDrain, governedKas, maxStr), extNote);
-    } else if (cooldown > 0n && currentDaa > 0n) {
-        const remaining = threadDaa + cooldown - currentDaa;
-        setContent(st, remaining <= 0n
-            ? readyLabel(false, governedKas, maxStr)
-            : `\uD83D\uDC41 ~${formatDaaDuration(remaining)} until next withdraw${maxStr}`, extNote);
-    } else {
-        setContent(st, `\uD83D\uDC41 ${governedKas} KAS | Watching...${maxStr}`, extNote);
-    }
+    const text = spendingLimitStatus({
+        threadSompi, matureSompi, canDrain, governedKas, maxStr, cooldown, currentDaa, threadDaa,
+    });
+    setContent(st, text, extNote);
     return false;
 }
 
@@ -78,30 +132,15 @@ export async function pollGlobalAllowance(state) {
     const extNote = externalFundsNote(picked.externalSompi, 'owner-reclaimable');
     const governedKas = sompiToKasFixed(threadSompi, 2);
 
-    if (total === 0n && covenantWatcherState._covWatcherLastBalance !== null && covenantWatcherState._covWatcherLastBalance > 0n) {
-        const spender = covenantWatcherState._covWatcherSpendPath || 'unknown';
-        if (spender === 'heir') setContent(st, span('u-text-teal', '\u2705 Beneficiary withdrew.'));
-        else if (spender === 'owner') setContent(st, span('u-text-warning', '\u26a0 Owner reclaimed all funds.'));
-        else st.textContent = '\uD83D\uDC41 Funds spent (0 KAS)';
-        covWatcherStop();
-        if (st) st.style.display = '';
+    if (isFundsSpent(total)) {
+        reportFundsSpent(st);
         return true;
     }
 
     st.style.color = '';
-    if (threadSompi === 0n) {
-        setContent(st, '\uD83D\uDC41 0 KAS | Not funded', extNote);
-    } else if (iAmOwner) {
-        setContent(st, `\uD83D\uDC41 ${governedKas} KAS | Owner can reclaim anytime`, extNote);
-    } else if (startDaa > 0n && currentDaa > 0n && currentDaa < startDaa) {
-        setContent(st, `\uD83D\uDC41 ${governedKas} KAS | Locked, ~${formatDaaDuration(startDaa - currentDaa)} until start`, extNote);
-    } else if (cooldown > 0n && currentDaa > 0n) {
-        const remaining = threadDaa + cooldown - currentDaa;
-        setContent(st, remaining <= 0n
-            ? readyLabel(canDrain, governedKas, maxStr)
-            : `\uD83D\uDC41 ~${formatDaaDuration(remaining)} until next withdraw${maxStr}`, extNote);
-    } else {
-        setContent(st, `\uD83D\uDC41 ${governedKas} KAS | Watching...${maxStr}`, extNote);
-    }
+    const text = allowanceStatus({
+        threadSompi, iAmOwner, startDaa, currentDaa, cooldown, threadDaa, canDrain, governedKas, maxStr,
+    });
+    setContent(st, text, extNote);
     return false;
 }

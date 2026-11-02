@@ -4,31 +4,45 @@ import { parseKas, usdToMicro, microToUsd, formatKas } from './exact_money.js';
 const TYPES = new Set(['Buy', 'Sell', 'Transfer In', 'Transfer Out']);
 const HEADER = ['type', 'kas_amount', 'kas_price_usd', 'fee_usd', 'timestamp', 'notes', 'source_tx_id'];
 
+function pushNonBlankRecord(records, row) {
+    if (row.some(value => value.trim())) records.push(row);
+}
+
+function endCsvRow(state) {
+    state.row.push(state.cell);
+    pushNonBlankRecord(state.records, state.row);
+    state.row = [];
+    state.cell = '';
+}
+
+// Returns how many extra source characters the quote handling consumed.
+function consumeQuote(state, source, index) {
+    if (state.quoted && source[index + 1] === '"') { state.cell += '"'; return 1; }
+    state.quoted = !state.quoted;
+    return 0;
+}
+
+// Returns how many extra source characters the line break consumed (CRLF pairs).
+function consumeLineBreak(state, source, index) {
+    const pairedCrLf = source[index] === '\r' && source[index + 1] === '\n';
+    endCsvRow(state);
+    return pairedCrLf ? 1 : 0;
+}
+
 function parseRecords(text) {
-    const records = [];
-    let row = [];
-    let cell = '';
-    let quoted = false;
+    const state = { records: [], row: [], cell: '', quoted: false };
     const source = String(text ?? '');
     for (let index = 0; index < source.length; index += 1) {
         const char = source[index];
-        if (char === '"' && quoted && source[index + 1] === '"') { cell += '"'; index += 1; continue; }
-        if (char === '"') { quoted = !quoted; continue; }
-        if (char === ',' && !quoted) { row.push(cell); cell = ''; continue; }
-        if ((char === '\n' || char === '\r') && !quoted) {
-            if (char === '\r' && source[index + 1] === '\n') index += 1;
-            row.push(cell);
-            if (row.some(value => value.trim())) records.push(row);
-            row = [];
-            cell = '';
-            continue;
-        }
-        cell += char;
+        if (char === '"') { index += consumeQuote(state, source, index); continue; }
+        if (state.quoted) { state.cell += char; continue; }
+        if (char === ',') { state.row.push(state.cell); state.cell = ''; continue; }
+        if (char === '\n' || char === '\r') { index += consumeLineBreak(state, source, index); continue; }
+        state.cell += char;
     }
-    if (quoted) throw new Error('CSV contains an unterminated quoted field');
-    row.push(cell);
-    if (row.some(value => value.trim())) records.push(row);
-    return records;
+    if (state.quoted) throw new Error('CSV contains an unterminated quoted field');
+    endCsvRow(state);
+    return state.records;
 }
 
 function csvEscape(value) {

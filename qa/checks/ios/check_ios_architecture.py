@@ -2,7 +2,7 @@
 """Fail-closed source/architecture contracts for the iOS Companion shell."""
 from __future__ import annotations
 from pathlib import Path
-import re, shutil, subprocess, sys
+import re, shutil, subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 APP = ROOT / "apps/kaskold-companion-ios"
@@ -41,16 +41,32 @@ def check_structure(errors):
 
 
 def check_live_shell(errors):
+    check_live_shell_files(errors)
+    root=ROOT_VIEW.read_text(encoding="utf-8")
+    web=WEB_VIEW.read_text(encoding="utf-8")
+    loopback=LOOPBACK.read_text(encoding="utf-8")
+    check_root_view_contract(errors, root)
+    check_web_view_contract(errors, web)
+    check_loopback_contract(errors, loopback)
+    app=APP_ENTRY.read_text(encoding="utf-8")
+    check_app_entry_contract(errors, app)
+    check_retired_wallet_references(errors)
+
+
+def check_live_shell_files(errors):
     required=(APP_ENTRY, ROOT_VIEW, WEB_VIEW, LOOPBACK, SOURCE / "Features/Settings/SecuritySettingsView.swift",
               SOURCE / "Features/Cover/Components/WeatherCoverView.swift", SOURCE / "Features/Cover/Components/WeatherCoverModel.swift",
               SOURCE / "Infrastructure/Persistence/AppPreferences.swift", SOURCE / "Infrastructure/Security/AppLockService.swift")
     for path in required:
         if not path.is_file(): add(errors, f"live iOS shell responsibility missing: {path.relative_to(ROOT)}")
-    root=ROOT_VIEW.read_text(encoding="utf-8")
-    web=WEB_VIEW.read_text(encoding="utf-8")
-    loopback=LOOPBACK.read_text(encoding="utf-8")
+
+
+def check_root_view_contract(errors, root):
     for token in ("CompanionWebView(", "CompanionLoopbackServer", "SecuritySettingsView", "loadFailure"):
         if token not in root: add(errors, f"iOS thin RootView contract missing: {token}")
+
+
+def check_web_view_contract(errors, web):
     for token in (
         "WKWebView",
         "allowsContentJavaScript = true",
@@ -62,6 +78,9 @@ def check_live_shell(errors):
         if token not in web: add(errors, f"iOS CompanionWebView contract missing: {token}")
     for forbidden in ("mobileViewportBootstrap", "webView.pageZoom", "scrollView.minimumZoomScale", "scrollView.maximumZoomScale"):
         if forbidden in web: add(errors, f"iOS CompanionWebView must rely on the canonical page viewport instead of native zoom mutation: {forbidden}")
+
+
+def check_loopback_contract(errors, loopback):
     for token in (
         "NWListener",
         "127.0.0.1",
@@ -76,9 +95,14 @@ def check_live_shell(errors):
         if token not in loopback: add(errors, f"iOS loopback server contract missing: {token}")
     if '"",\n            "",' not in loopback:
         add(errors, "iOS loopback HTTP responses must terminate headers with CRLF CRLF")
-    app=APP_ENTRY.read_text(encoding="utf-8")
+
+
+def check_app_entry_contract(errors, app):
     for token in ("AppPreferences()", "AppLockService()", "AppSecurityContainer", "WeatherCoverView"):
         if token not in app: add(errors, f"iOS native shell dependency missing: {token}")
+
+
+def check_retired_wallet_references(errors):
     combined="\n".join(p.read_text(errors="ignore") for p in SOURCE.rglob("*.swift"))
     for token in (
         "WalletStore", "KasKoldEngine", "WalletSyncService", "KaspaLiveRPCService", "UTXOCoinControlStore",

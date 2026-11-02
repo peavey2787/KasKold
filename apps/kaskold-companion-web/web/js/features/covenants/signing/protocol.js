@@ -152,7 +152,7 @@ function encodeRequest({
     if (script.length > MAX_SCRIPT || contextBytes.length > MAX_CONTEXT) {
         throw new Error('Covenant request field exceeds protocol limit');
     }
-    validateShape(kind, scheme, binding, sessionId, hostCommitment, keyId, bindingToken, commitment, script, contextBytes);
+    validateShape({ kind, scheme, binding, sessionId, hostCommitment, keyId, bindingToken, commitment, script, reviewContext: contextBytes });
     const out = new Uint8Array(REQUEST_HEADER + script.length + contextBytes.length);
     out.set(REQUEST_MAGIC, 0); out[4] = VERSION; out[5] = kind; out[6] = scheme; out[7] = binding;
     out.set(sessionId, 8); out.set(hostCommitment, 24); out.set(keyId, 56); out.set(bindingToken, 88); out.set(commitment, 120);
@@ -162,38 +162,51 @@ function encodeRequest({
     return bytesToHex(out);
 }
 
-function validateShape(kind, scheme, binding, sessionId, hostCommitment, keyId, bindingToken, commitment, script, reviewContext) {
-    const zeroSession = allZero(sessionId); const zeroHost = allZero(hostCommitment);
-    const zeroKey = allZero(keyId); const zeroBinding = allZero(bindingToken); const zeroCommitment = allZero(commitment);
-    if (kind === CovenantRequestKind.KEY_INFO) {
-        if (scheme !== 0 || binding !== 0 || !zeroSession || !zeroHost || !zeroKey || !zeroBinding || !zeroCommitment || script.length || reviewContext.length) {
-            throw new Error('Invalid key request');
-        }
-        return;
+const REQUEST_VALIDATORS = new Map([
+    [CovenantRequestKind.KEY_INFO, validateKeyRequest],
+    [CovenantRequestKind.BIND, validateBindRequest],
+    [CovenantRequestKind.KNOWN, validateKnownRequest],
+    [CovenantRequestKind.OPAQUE, validateOpaqueRequest],
+]);
+
+function validateShape(request) {
+    const validate = REQUEST_VALIDATORS.get(request.kind);
+    if (!validate) throw new Error('Unknown covenant request kind');
+    validate(request);
+}
+
+function validateKeyRequest({ scheme, binding, sessionId, hostCommitment, keyId, bindingToken, commitment, script, reviewContext }) {
+    const allFieldsZero = [sessionId, hostCommitment, keyId, bindingToken, commitment].every(allZero);
+    if (scheme !== CovenantKnownScheme.NONE || binding !== CovenantBinding.NONE || !allFieldsZero || script.length || reviewContext.length) {
+        throw new Error('Invalid key request');
     }
-    if (kind === CovenantRequestKind.BIND) {
-        const known = scheme !== CovenantKnownScheme.NONE;
-        const bindingShape = known
-            ? binding === knownBinding(scheme) && reviewContext.length > 0
-            : (binding === CovenantBinding.NONE || binding === CovenantBinding.KEY_PRESENT) && zeroCommitment && reviewContext.length === 0;
-        if (!zeroSession || !zeroHost || zeroKey || !zeroBinding || !script.length || !bindingShape) {
-            throw new Error('Invalid covenant binding request');
-        }
-        return;
+}
+
+function validateBindRequest({ scheme, binding, sessionId, hostCommitment, keyId, bindingToken, commitment, script, reviewContext }) {
+    const bindingShape = scheme !== CovenantKnownScheme.NONE
+        ? binding === knownBinding(scheme) && reviewContext.length > 0
+        : isDirectBinding(binding) && allZero(commitment) && reviewContext.length === 0;
+    if (!allZero(sessionId) || !allZero(hostCommitment) || allZero(keyId) || !allZero(bindingToken) || !script.length || !bindingShape) {
+        throw new Error('Invalid covenant binding request');
     }
-    if (kind === CovenantRequestKind.KNOWN) {
-        if (scheme === 0 || binding !== knownBinding(scheme) || zeroSession || zeroHost || zeroKey || zeroBinding || !script.length || !reviewContext.length) {
-            throw new Error('Invalid known covenant request');
-        }
-        return;
+}
+
+function validateKnownRequest({ scheme, binding, sessionId, hostCommitment, keyId, bindingToken, script, reviewContext }) {
+    if (scheme === CovenantKnownScheme.NONE || binding !== knownBinding(scheme)
+        || anyZero(sessionId, hostCommitment, keyId, bindingToken) || !script.length || !reviewContext.length) {
+        throw new Error('Invalid known covenant request');
     }
-    if (kind === CovenantRequestKind.OPAQUE) {
-        if (scheme !== 0 || (binding !== CovenantBinding.NONE && binding !== CovenantBinding.KEY_PRESENT) || zeroSession || zeroHost || zeroKey || zeroBinding || !script.length || reviewContext.length) {
-            throw new Error('Invalid opaque covenant request');
-        }
-        return;
+}
+
+function validateOpaqueRequest({ scheme, binding, sessionId, hostCommitment, keyId, bindingToken, script, reviewContext }) {
+    if (scheme !== CovenantKnownScheme.NONE || !isDirectBinding(binding)
+        || anyZero(sessionId, hostCommitment, keyId, bindingToken) || !script.length || reviewContext.length) {
+        throw new Error('Invalid opaque covenant request');
     }
-    throw new Error('Unknown covenant request kind');
+}
+
+function isDirectBinding(binding) {
+    return binding === CovenantBinding.NONE || binding === CovenantBinding.KEY_PRESENT;
 }
 
 function knownBinding(scheme) {
@@ -202,22 +215,36 @@ function knownBinding(scheme) {
 }
 
 function validateResponse(response) {
-    if (/^0+$/.test(response.keyId) || /^0+$/.test(response.pubkey)) throw new Error('Invalid covenant response key');
-    const zeroSession = /^0+$/.test(response.sessionId); const zeroBinding = /^0+$/.test(response.bindingToken);
-    const zeroCommitment = /^0+$/.test(response.commitment); const zeroNonce = /^0+$/.test(response.noncePoint);
-    const zeroSignature = /^0+$/.test(response.signature);
-    if (response.kind === 'key') {
-        if (!zeroSession || !zeroBinding || !zeroCommitment || !zeroNonce || !zeroSignature) throw new Error('Malformed covenant key response');
-        return;
-    }
-    if (response.kind === 'binding') {
-        if (!zeroSession || zeroBinding || zeroCommitment || !zeroNonce || !zeroSignature) throw new Error('Malformed covenant binding response');
-        return;
-    }
-    if (zeroSession || zeroBinding || !response.noncePoint.startsWith('02')) throw new Error('Malformed covenant nonce transcript');
-    if (response.kind === 'nonce' && !zeroSignature) throw new Error('Nonce response must not contain a final signature');
-    if (response.kind === 'signature' && zeroSignature) throw new Error('Final covenant response is missing its signature');
+    if (isZeroHex(response.keyId) || isZeroHex(response.pubkey)) throw new Error('Invalid covenant response key');
+    const zero = zeroFieldsOf(response);
+    if (response.kind === 'key') return validateKeyResponse(zero);
+    if (response.kind === 'binding') return validateBindingResponse(zero);
+    validateTranscriptResponse(response, zero);
 }
+
+function zeroFieldsOf(response) {
+    return {
+        session: isZeroHex(response.sessionId), binding: isZeroHex(response.bindingToken),
+        commitment: isZeroHex(response.commitment), nonce: isZeroHex(response.noncePoint),
+        signature: isZeroHex(response.signature),
+    };
+}
+
+function validateKeyResponse(zero) {
+    if (!zero.session || !zero.binding || !zero.commitment || !zero.nonce || !zero.signature) throw new Error('Malformed covenant key response');
+}
+
+function validateBindingResponse(zero) {
+    if (!zero.session || zero.binding || zero.commitment || !zero.nonce || !zero.signature) throw new Error('Malformed covenant binding response');
+}
+
+function validateTranscriptResponse(response, zero) {
+    if (zero.session || zero.binding || !response.noncePoint.startsWith('02')) throw new Error('Malformed covenant nonce transcript');
+    if (response.kind === 'nonce' && !zero.signature) throw new Error('Nonce response must not contain a final signature');
+    if (response.kind === 'signature' && zero.signature) throw new Error('Final covenant response is missing its signature');
+}
+
+function isZeroHex(hex) { return /^0+$/.test(hex); }
 
 function fixedHex(value, length, label) {
     const bytes = hexToBytes(String(value || '').trim());
@@ -231,6 +258,7 @@ function randomNonzeroBytes(length) {
     const bytes = new Uint8Array(length); crypto.getRandomValues(bytes); if (allZero(bytes)) bytes[length - 1] = 1; return bytes;
 }
 function allZero(bytes) { return bytes.every(byte => byte === 0); }
+function anyZero(...fields) { return fields.some(allZero); }
 function normalizeResponseBytes(raw) {
     const bytes = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
     if (equalPrefix(bytes, RESPONSE_MAGIC)) return bytes;

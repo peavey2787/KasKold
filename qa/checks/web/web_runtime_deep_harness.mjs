@@ -157,20 +157,24 @@ export async function setupDeepHarness() {
   });
 
   const originalGet = document.getElementById.bind(document);
+  // Ordered rules: the first pattern matching the element id supplies its default value.
+  const defaultValueRules = [
+    [/addr|address|dest|recipient/, () => ADDRESS],
+    [/kpub/, () => wallet.kpub],
+    [/pub|key/, () => PK2],
+    [/script|redeem/, () => '51'],
+    [/txid|hash|secret|preimage|commit/, () => PK3],
+    [/amount|fee|limit|cap|threshold|goal|target|price|kas/, () => '1'],
+    [/daa|lock|delay|duration|timeout|deadline|cltv|period|seq|start/, () => '1200'],
+    [/count|min-input|min-output|depth|index/, () => '2'],
+    [/name|label|campaign|product/, () => 'Runtime deep coverage'],
+    [/json|payload|properties/, () => '{}'],
+    [/network/, () => 'mainnet'],
+    [/mode/, () => 'spend'],
+  ];
   function defaultValue(id) {
-    if (/addr|address|dest|recipient/.test(id)) return ADDRESS;
-    if (/kpub/.test(id)) return wallet.kpub;
-    if (/pub|key/.test(id)) return PK2;
-    if (/script|redeem/.test(id)) return '51';
-    if (/txid|hash|secret|preimage|commit/.test(id)) return PK3;
-    if (/amount|fee|limit|cap|threshold|goal|target|price|kas/.test(id)) return '1';
-    if (/daa|lock|delay|duration|timeout|deadline|cltv|period|seq|start/.test(id)) return '1200';
-    if (/count|min-input|min-output|depth|index/.test(id)) return '2';
-    if (/name|label|campaign|product/.test(id)) return 'Runtime deep coverage';
-    if (/json|payload|properties/.test(id)) return '{}';
-    if (/network/.test(id)) return 'mainnet';
-    if (/mode/.test(id)) return 'spend';
-    return '';
+    const rule = defaultValueRules.find(([pattern]) => pattern.test(id));
+    return rule ? rule[1]() : '';
   }
   document.getElementById = id => {
     const node = originalGet(id);

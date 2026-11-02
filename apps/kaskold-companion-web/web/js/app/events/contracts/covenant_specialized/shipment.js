@@ -3,18 +3,28 @@ import { covScanAddress, covScanPubkey } from '../../../../features/covenants/sc
 import { handleShipEscrowSpend } from '../../../../features/covenants/spending/standard/shipment.js';
 import { byId } from '../../../../core/dom.js';
 
+const spendClick = (spendKind) => () => handleShipEscrowSpend(spendKind);
+const scanPubkeyClick = (inputId, label) => () => covScanPubkey(inputId, label);
+
+// Shipment-escrow operate + create scan buttons, bound in this order.
+const SHIPMENT_CLICK_BINDINGS = [
+    ['btn-cov-ship-back', () => covShowPanel('result')],
+    ['btn-cov-ship-pickup', spendClick('pickup')],
+    ['btn-cov-ship-s0-arb', spendClick('state0-arb-refund')],
+    ['btn-cov-ship-s0-timeout', spendClick('state0-timeout')],
+    ['btn-cov-ship-delivery', spendClick('delivery')],
+    ['btn-cov-ship-s1-award', spendClick('state1-arb-award')],
+    ['btn-cov-ship-s1-arb-refund', spendClick('state1-arb-refund')],
+    ['btn-cov-ship-s1-timeout', spendClick('state1-timeout')],
+    ['btn-cov-scan-ship-seller', scanPubkeyClick('cov-ship-seller-pk', 'Scan seller pubkey')],
+    ['btn-cov-scan-ship-deliverer', scanPubkeyClick('cov-ship-deliverer-pk', 'Scan deliverer pubkey')],
+    ['btn-cov-scan-ship-arbiter', scanPubkeyClick('cov-ship-arbiter-pk', 'Scan arbiter pubkey')],
+    ['btn-cov-scan-ship-addr', () => covScanAddress('cov-ship-addr', 'Scan covenant address')],
+];
+
 export function bindShipmentEscrowEvents() {
-    // Shipment-escrow operate + create scan buttons
-    if (byId('btn-cov-ship-back')) byId('btn-cov-ship-back').onclick = () => covShowPanel('result');
-    if (byId('btn-cov-ship-pickup')) byId('btn-cov-ship-pickup').onclick = () => handleShipEscrowSpend('pickup');
-    if (byId('btn-cov-ship-s0-arb')) byId('btn-cov-ship-s0-arb').onclick = () => handleShipEscrowSpend('state0-arb-refund');
-    if (byId('btn-cov-ship-s0-timeout')) byId('btn-cov-ship-s0-timeout').onclick = () => handleShipEscrowSpend('state0-timeout');
-    if (byId('btn-cov-ship-delivery')) byId('btn-cov-ship-delivery').onclick = () => handleShipEscrowSpend('delivery');
-    if (byId('btn-cov-ship-s1-award')) byId('btn-cov-ship-s1-award').onclick = () => handleShipEscrowSpend('state1-arb-award');
-    if (byId('btn-cov-ship-s1-arb-refund')) byId('btn-cov-ship-s1-arb-refund').onclick = () => handleShipEscrowSpend('state1-arb-refund');
-    if (byId('btn-cov-ship-s1-timeout')) byId('btn-cov-ship-s1-timeout').onclick = () => handleShipEscrowSpend('state1-timeout');
-    if (byId('btn-cov-scan-ship-seller')) byId('btn-cov-scan-ship-seller').onclick = () => covScanPubkey('cov-ship-seller-pk', 'Scan seller pubkey');
-    if (byId('btn-cov-scan-ship-deliverer')) byId('btn-cov-scan-ship-deliverer').onclick = () => covScanPubkey('cov-ship-deliverer-pk', 'Scan deliverer pubkey');
-    if (byId('btn-cov-scan-ship-arbiter')) byId('btn-cov-scan-ship-arbiter').onclick = () => covScanPubkey('cov-ship-arbiter-pk', 'Scan arbiter pubkey');
-    if (byId('btn-cov-scan-ship-addr')) byId('btn-cov-scan-ship-addr').onclick = () => covScanAddress('cov-ship-addr', 'Scan covenant address');
+    for (const [buttonId, onClick] of SHIPMENT_CLICK_BINDINGS) {
+        const button = byId(buttonId);
+        if (button) button.onclick = onClick;
+    }
 }

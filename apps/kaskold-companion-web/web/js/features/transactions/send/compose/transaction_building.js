@@ -16,49 +16,77 @@ import { planTransaction } from './planners/index.js';
 
 
 
-export function assertStandardSendIntent(summary, walletJson, destination, amountSompi, feeSompi) {
-    let wallet;
-    try { wallet = JSON.parse(walletJson); } catch (_) { throw new Error('Wallet state could not be verified'); }
-    const outputs = summary?.outputs || [];
-    const amount = exactUnsigned(amountSompi, 'send amount');
-    const fee = exactUnsigned(feeSompi, 'send fee');
-    const totalIn = exactUnsigned(summary?.total_in_sompi, 'transaction input total');
-    const summaryFee = exactUnsigned(summary?.fee_sompi, 'transaction fee');
-    if (summaryFee !== fee) throw new Error('Built transaction fee does not match the requested fee');
+function parseWalletForSendIntent(walletJson) {
+    try { return JSON.parse(walletJson); } catch (_) { throw new Error('Wallet state could not be verified'); }
+}
 
-    const destinationOutputs = outputs.filter(output => {
-        const branch = output.derivation_branch === null || output.derivation_branch === undefined
-            ? null : Number(output.derivation_branch);
-        return output.address === destination
-            && exactUnsigned(output.amount_sompi, 'destination amount') === amount
-            && branch !== 1;
-    });
+function readSendFigures(summary, amountSompi, feeSompi) {
+    const figures = {
+        amount: exactUnsigned(amountSompi, 'send amount'),
+        fee: exactUnsigned(feeSompi, 'send fee'),
+        totalIn: exactUnsigned(summary?.total_in_sompi, 'transaction input total'),
+        summaryFee: exactUnsigned(summary?.fee_sompi, 'transaction fee'),
+    };
+    if (figures.summaryFee !== figures.fee) throw new Error('Built transaction fee does not match the requested fee');
+    return figures;
+}
+
+function outputBranch(output) {
+    return output.derivation_branch === null || output.derivation_branch === undefined
+        ? null : Number(output.derivation_branch);
+}
+
+function isDestinationPayment(output, destination, amount) {
+    return output.address === destination
+        && exactUnsigned(output.amount_sompi, 'destination amount') === amount
+        && outputBranch(output) !== 1;
+}
+
+function assertDestinationPayment(outputs, destination, amount) {
+    const destinationOutputs = outputs.filter(output => isDestinationPayment(output, destination, amount));
     if (destinationOutputs.length !== 1) {
         throw new Error('Built transaction does not contain the exact requested destination payment');
     }
+}
 
-    const expectedChange = totalIn - amount - fee;
-    if (expectedChange < 0n) throw new Error('Built transaction spends more than its inputs');
+function assertNoChangeOutputs(outputs, changeOutputs) {
+    if (changeOutputs.length !== 0 || outputs.length !== 1) {
+        throw new Error('Built transaction contains an unexpected change output');
+    }
+}
+
+function isExactChangeOutput(output, changeIndex, changeAddress, expectedChange) {
+    return Number(output.derivation_index) === changeIndex
+        && output.address === changeAddress
+        && exactUnsigned(output.amount_sompi, 'change amount') === expectedChange;
+}
+
+function assertExactChangeOutput(outputs, changeOutputs, wallet, expectedChange) {
     const changeIndex = Number(wallet?.next_change_index);
     const changeAddress = wallet?.change_addresses?.[changeIndex];
-    const changeOutputs = outputs.filter(output => Number(output.derivation_branch) === 1);
-    if (expectedChange === 0n) {
-        if (changeOutputs.length !== 0 || outputs.length !== 1) {
-            throw new Error('Built transaction contains an unexpected change output');
-        }
-        return;
-    }
     if (!Number.isSafeInteger(changeIndex) || changeIndex < 0 || !changeAddress) {
         throw new Error('Expected change address is unavailable');
     }
     const exactChange = changeOutputs.filter(output =>
-        Number(output.derivation_index) === changeIndex
-        && output.address === changeAddress
-        && exactUnsigned(output.amount_sompi, 'change amount') === expectedChange
-    );
+        isExactChangeOutput(output, changeIndex, changeAddress, expectedChange));
     if (exactChange.length !== 1 || changeOutputs.length !== 1 || outputs.length !== 2) {
         throw new Error('Built transaction change does not match the reserved wallet address');
     }
+}
+
+export function assertStandardSendIntent(summary, walletJson, destination, amountSompi, feeSompi) {
+    const wallet = parseWalletForSendIntent(walletJson);
+    const outputs = summary?.outputs || [];
+    const { amount, fee, totalIn } = readSendFigures(summary, amountSompi, feeSompi);
+    assertDestinationPayment(outputs, destination, amount);
+    const expectedChange = totalIn - amount - fee;
+    if (expectedChange < 0n) throw new Error('Built transaction spends more than its inputs');
+    const changeOutputs = outputs.filter(output => Number(output.derivation_branch) === 1);
+    if (expectedChange === 0n) {
+        assertNoChangeOutputs(outputs, changeOutputs);
+        return;
+    }
+    assertExactChangeOutput(outputs, changeOutputs, wallet, expectedChange);
 }
 
 // ─── Destination QR scan ───
@@ -80,42 +108,99 @@ export function handleDestScan(data) {
 }
 // Number / Math.round(x*1e8) loses a sompi on many decimals and all precision
 // above ~2^53 sompi. wasm-bindgen marshals the returned BigInt to a Rust u64.
+function clearPendingPskt() {
+    transactionState._psktReviewHex = null;
+    transactionState._lastPsktSummary = null;
+    showScreen('send');
+}
+
+function resolveSendDestination(rawDest) {
+    let dest = rawDest;
+    // KNS resolution: if ends with .kas, look up address
+    if (dest.endsWith('.kas')) {
+        const resolved = KNS_LOOKUP[dest.toLowerCase()];
+        if (!resolved) {
+            toast('Unknown .kas domain: ' + dest, 'error');
+            return null;
+        }
+        dest = resolved;
+        toast('Resolved ' + rawDest + ' → address', 'ok', 2000);
+    }
+    const expectedPrefix = addressPrefix(networkState.network);
+    if (!dest || !dest.startsWith(expectedPrefix)) {
+        toast('Enter a valid ' + expectedPrefix + ' address or .kas domain', 'error');
+        return null;
+    }
+    return dest;
+}
+
+function parseSendAmount(amountStr) {
+    let amountSompi;
+    try { amountSompi = kasToSompi(amountStr); } catch (_) {
+        toast('Enter a valid amount with at most 8 decimal places', 'error');
+        return null;
+    }
+    if (amountSompi <= 0n) {
+        toast('Enter an amount > 0', 'error');
+        return null;
+    }
+    return amountSompi;
+}
+
+function resolveSendFee() {
+    let requestedFee;
+    try { requestedFee = readFeeSompi(); } catch (_) {
+        toast('Enter a valid fee in the selected unit', 'error');
+        return null;
+    }
+    const fee = requestedFee < 300000n ? 300000n : requestedFee;
+    if (fee !== requestedFee) setFeeSompi(fee);
+    return fee;
+}
+
+function assertStandardPlanSafe(summary, freshWallet, dest, amountSompi, fee) {
+    try {
+        assertStandardSendIntent(summary, freshWallet, dest, amountSompi, fee);
+    } catch (error) {
+        clearPendingPskt();
+        throw new Error(`Transaction safety check failed: ${error.message || error}`);
+    }
+}
+
+function reserveStandardChangeOrClear(summary, freshWallet, amountSompi, fee) {
+    transactionState._standardChangeReservationIndex = reserveStandardChangeFromSummary(
+        freshWallet, summary,
+    );
+    const needsChange = exactUnsigned(summary.total_in_sompi, 'transaction input total')
+        - amountSompi - fee > 0n;
+    if (needsChange && !Number.isSafeInteger(transactionState._standardChangeReservationIndex)) {
+        clearPendingPskt();
+        throw new Error('Transaction safety check failed: change could not be reserved');
+    }
+}
+
+function reviewStandardPlan(plan, summary, freshWallet, dest, amountSompi, fee) {
+    if (plan.kind !== 'standard' || !summary) return;
+    assertStandardPlanSafe(summary, freshWallet, dest, amountSompi, fee);
+    reserveStandardChangeOrClear(summary, freshWallet, amountSompi, fee);
+}
+
+// Number / Math.round(x*1e8) loses a sompi on many decimals and all precision
+// above ~2^53 sompi. wasm-bindgen marshals the returned BigInt to a Rust u64.
 export async function handleCreateTx() {
-    let dest = byId('input-dest').value.trim();
+    const rawDest = byId('input-dest').value.trim();
     // Thread-covenant deposit: amount field is hidden; ensure it reflects the
     // selected UTXO total before the >0 check (also covers any picker desync).
     syncThreadDepositAmount();
     const amountStr = byId('input-amount').value.trim();
 
-    // KNS resolution: if ends with .kas, look up address
-    if (dest.endsWith('.kas')) {
-        const resolved = KNS_LOOKUP[dest.toLowerCase()];
-        if (resolved) {
-            dest = resolved;
-            toast('Resolved ' + byId('input-dest').value.trim() + ' → address', 'ok', 2000);
-        } else {
-            toast('Unknown .kas domain: ' + dest, 'error'); return;
-        }
-    }
+    const dest = resolveSendDestination(rawDest);
+    if (dest === null) return;
+    const amountSompi = parseSendAmount(amountStr);
+    if (amountSompi === null) return;
+    const fee = resolveSendFee();
+    if (fee === null) return;
 
-    const expectedPrefix = addressPrefix(networkState.network);
-    if (!dest || !dest.startsWith(expectedPrefix)) {
-        toast('Enter a valid ' + expectedPrefix + ' address or .kas domain', 'error'); return;
-    }
-    let amountSompi;
-    try { amountSompi = kasToSompi(amountStr); } catch (_) {
-        toast('Enter a valid amount with at most 8 decimal places', 'error'); return;
-    }
-    if (amountSompi <= 0n) {
-        toast('Enter an amount > 0', 'error'); return;
-    }
-
-    let requestedFee;
-    try { requestedFee = readFeeSompi(); } catch (_) {
-        toast('Enter a valid fee in the selected unit', 'error'); return;
-    }
-    const fee = requestedFee < 300000n ? 300000n : requestedFee;
-    if (fee !== requestedFee) setFeeSompi(fee);
     showLoading('Creating transaction...');
     try {
         const freshWallet = walletWithFreshIndices();
@@ -135,28 +220,7 @@ export async function handleCreateTx() {
         // multisig: Review → Relay (standard PSKB or compact KSPT v1
         // for KasKold) → Finalize & Broadcast.
         const summary = openPsktReview(pskbHex);
-        if (plan.kind === 'standard' && summary) {
-            try {
-                assertStandardSendIntent(summary, freshWallet, dest, amountSompi, fee);
-            } catch (error) {
-                transactionState._psktReviewHex = null;
-                transactionState._lastPsktSummary = null;
-                showScreen('send');
-                throw new Error(`Transaction safety check failed: ${error.message || error}`);
-            }
-            transactionState._standardChangeReservationIndex = reserveStandardChangeFromSummary(
-                freshWallet, summary,
-            );
-            if (exactUnsigned(summary.total_in_sompi, 'transaction input total')
-                - amountSompi - fee > 0n
-                && !Number.isSafeInteger(transactionState._standardChangeReservationIndex)) {
-                transactionState._psktReviewHex = null;
-                transactionState._lastPsktSummary = null;
-                showScreen('send');
-                throw new Error('Transaction safety check failed: change could not be reserved');
-            }
-        }
-
+        reviewStandardPlan(plan, summary, freshWallet, dest, amountSompi, fee);
     } catch (e) {
         hideLoading();
         toast('TX creation failed: ' + e, 'error', 5000);

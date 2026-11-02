@@ -17,89 +17,68 @@ import { resolveNodeUrl } from '../core/node/resolver.js';
 
 // ─── Init ───
 
-function loadingPresentation(message) {
-    const raw = String(message || '').trim() || 'Loading…';
-    const text = raw.toLowerCase();
+const isTransactionBuild = text => text.includes('building') || text.includes('consolidat');
+const presentDetail = (title, note) => (_text, raw) => ({ title, detail: raw, note });
+const PREPARING_NOTE = 'Preparing the unsigned transaction. Nothing is broadcast yet.';
+const PREPARING_TRANSACTION = presentDetail('Preparing transaction', PREPARING_NOTE);
+const FETCHING_UTXOS = presentDetail('Fetching UTXOs', 'Reading UTXO data using the current node connection.');
+const DEFAULT_LOADING_PRESENTER = presentDetail('Please wait', 'Companion is completing the requested operation.');
 
-    if (text.includes('connecting') || text.includes('kaspa node')) {
-        return {
+// Ordered rules: the first matching entry wins.
+const LOADING_PRESENTERS = [
+    {
+        matches: text => text.includes('connecting') || text.includes('kaspa node'),
+        present: (text, raw) => ({
             title: 'Connecting to a Kaspa node',
             detail: text.includes('attempt')
                 ? raw
                 : 'Please wait while Companion establishes the node connection.',
             note: 'Network features will be available as soon as the connection is ready.',
-        };
-    }
-    if (text.includes('transaction history') || text.includes('wallet history') || text.includes('wallet activity')) {
-        return {
-            title: 'Loading wallet history',
-            detail: raw,
-            note: 'Reading wallet activity using the current node connection.',
-        };
-    }
-    if (text.includes('wallet')) {
-        return {
-            title: 'Loading wallet',
-            detail: raw,
-            note: 'Preparing the selected watch-only wallet and its latest data.',
-        };
-    }
-    if (text.includes('utxo')) {
-        return {
-            title: text.includes('building') || text.includes('consolidat') ? 'Preparing transaction' : 'Fetching UTXOs',
-            detail: raw,
-            note: text.includes('building') || text.includes('consolidat')
-                ? 'Preparing the unsigned transaction. Nothing is broadcast yet.'
-                : 'Reading UTXO data using the current node connection.',
-        };
-    }
-    if (text.includes('fetching balance') || text.includes('checking balance')) {
-        return {
-            title: 'Refreshing balance',
-            detail: raw,
-            note: 'Reading the latest balance using the current node connection.',
-        };
-    }
-    if (text.includes('fetching tx')) {
-        return {
-            title: 'Fetching transaction',
-            detail: raw,
-            note: 'Reading transaction data using the current node connection.',
-        };
-    }
-    if (text.includes('token') || text.includes('nft')) {
-        return {
-            title: 'Loading assets',
-            detail: raw,
-            note: 'Reading asset data for the loaded watch-only wallet.',
-        };
-    }
-    if (text.includes('broadcast')) {
-        return {
-            title: 'Broadcasting transaction',
-            detail: raw,
-            note: 'Submitting the signed transaction through the current Kaspa node connection.',
-        };
-    }
-    if (text.includes('building') || text.includes('creating transaction') || text.includes('computing') || text.includes('consolidat')) {
-        return {
-            title: 'Preparing transaction',
-            detail: raw,
-            note: 'Preparing the unsigned transaction. Nothing is broadcast yet.',
-        };
-    }
-    if (text.includes('scanning')) {
-        return {
-            title: 'Scanning',
-            detail: raw,
-            note: 'Please wait while Companion completes the requested scan.',
-        };
-    }
-    return {
-        title: 'Please wait',
-        detail: raw,
-        note: 'Companion is completing the requested operation.',
-    };
+        }),
+    },
+    {
+        matches: text => text.includes('transaction history') || text.includes('wallet history') || text.includes('wallet activity'),
+        present: presentDetail('Loading wallet history', 'Reading wallet activity using the current node connection.'),
+    },
+    {
+        matches: text => text.includes('wallet'),
+        present: presentDetail('Loading wallet', 'Preparing the selected watch-only wallet and its latest data.'),
+    },
+    {
+        matches: text => text.includes('utxo'),
+        present: (text, raw) => (isTransactionBuild(text) ? PREPARING_TRANSACTION : FETCHING_UTXOS)(text, raw),
+    },
+    {
+        matches: text => text.includes('fetching balance') || text.includes('checking balance'),
+        present: presentDetail('Refreshing balance', 'Reading the latest balance using the current node connection.'),
+    },
+    {
+        matches: text => text.includes('fetching tx'),
+        present: presentDetail('Fetching transaction', 'Reading transaction data using the current node connection.'),
+    },
+    {
+        matches: text => text.includes('token') || text.includes('nft'),
+        present: presentDetail('Loading assets', 'Reading asset data for the loaded watch-only wallet.'),
+    },
+    {
+        matches: text => text.includes('broadcast'),
+        present: presentDetail('Broadcasting transaction', 'Submitting the signed transaction through the current Kaspa node connection.'),
+    },
+    {
+        matches: text => isTransactionBuild(text) || text.includes('creating transaction') || text.includes('computing'),
+        present: PREPARING_TRANSACTION,
+    },
+    {
+        matches: text => text.includes('scanning'),
+        present: presentDetail('Scanning', 'Please wait while Companion completes the requested scan.'),
+    },
+];
+
+function loadingPresentation(message) {
+    const raw = String(message || '').trim() || 'Loading…';
+    const text = raw.toLowerCase();
+    const entry = LOADING_PRESENTERS.find(candidate => candidate.matches(text));
+    return (entry ? entry.present : DEFAULT_LOADING_PRESENTER)(text, raw);
 }
 function sleep(milliseconds) {
     return new Promise(resolve => setTimeout(resolve, milliseconds));

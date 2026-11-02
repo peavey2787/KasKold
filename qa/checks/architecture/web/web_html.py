@@ -8,7 +8,6 @@ import hashlib
 import re
 
 from tools.build.web.build_web_index import (
-    MANIFEST,
     OUTPUT,
     SOURCE_ROOT,
     manifest_entries,
@@ -102,71 +101,76 @@ EXPECTED_FRAGMENTS = (
 )
 
 
-def check_composition(root: Path) -> tuple[list[str], str | None]:
-    errors: list[str] = []
-    screens_root = SOURCE_ROOT / "screens"
-    expected_screen_groups = {"system", "wallet", "transactions", "privacy", "covenant"}
-    actual_screen_groups = {
-        path.name for path in screens_root.iterdir() if path.is_dir()
-    } if screens_root.exists() else set()
-    if actual_screen_groups != expected_screen_groups:
-        errors.append(
-            f"web HTML screen groups changed: expected {sorted(expected_screen_groups)}, "
-            f"got {sorted(actual_screen_groups)}"
-        )
-    direct_screen_fragments = sorted(path.name for path in screens_root.glob("*.html"))
-    if direct_screen_fragments:
-        errors.append(
-            f"web HTML screen fragments must be grouped by domain: {direct_screen_fragments}"
-        )
+def _child_dirs(directory: Path) -> set[str]:
+    if not directory.exists():
+        return set()
+    return {path.name for path in directory.iterdir() if path.is_dir()}
+
+
+def _html_names(directory: Path) -> set[str]:
+    if not directory.exists():
+        return set()
+    return {path.name for path in directory.glob("*.html")}
+
+
+def _group_errors(actual: set[str], expected: set[str], message: str) -> list[str]:
+    if actual == expected:
+        return []
+    return [f"{message}: expected {sorted(expected)}, got {sorted(actual)}"]
+
+
+def _loose_html_errors(directory: Path, message: str) -> list[str]:
+    names = sorted(path.name for path in directory.glob("*.html"))
+    return [f"{message}: {names}"] if names else []
+
+
+def _screen_layout_errors(screens_root: Path) -> list[str]:
+    return [
+        *_group_errors(
+            _child_dirs(screens_root),
+            {"system", "wallet", "transactions", "privacy", "covenant"},
+            "web HTML screen groups changed",
+        ),
+        *_loose_html_errors(
+            screens_root, "web HTML screen fragments must be grouped by domain"
+        ),
+    ]
+
+
+def _covenant_layout_errors(screens_root: Path) -> list[str]:
     covenant_root = screens_root / "covenant"
-    expected_covenant_groups = {"create", "spend", "recovery", "proofs"}
-    actual_covenant_groups = {
-        path.name for path in covenant_root.iterdir() if path.is_dir()
-    } if covenant_root.exists() else set()
-    if actual_covenant_groups != expected_covenant_groups:
-        errors.append(
-            f"covenant HTML groups changed: expected {sorted(expected_covenant_groups)}, "
-            f"got {sorted(actual_covenant_groups)}"
-        )
-    direct_covenant_fragments = sorted(path.name for path in covenant_root.glob("*.html"))
-    if direct_covenant_fragments:
-        errors.append(
-            f"covenant HTML fragments must be grouped by workflow: {direct_covenant_fragments}"
-        )
     create_root = covenant_root / "create"
     form_root = create_root / "form"
-    expected_form_groups = {"advanced", "automation", "basic", "escrow", "limits", "savings"}
-    actual_form_groups = {
-        path.name for path in form_root.iterdir() if path.is_dir()
-    } if form_root.exists() else set()
-    if actual_form_groups != expected_form_groups:
-        errors.append(
-            f"covenant creation form groups changed: expected {sorted(expected_form_groups)}, "
-            f"got {sorted(actual_form_groups)}"
-        )
-    expected_form_root_files = {"open.html", "close.html"}
-    actual_form_root_files = {
-        path.name for path in form_root.glob("*.html")
-    } if form_root.exists() else set()
-    if actual_form_root_files != expected_form_root_files:
-        errors.append(
-            f"covenant creation form shell changed: expected {sorted(expected_form_root_files)}, "
-            f"got {sorted(actual_form_root_files)}"
-        )
+    errors = _group_errors(
+        _child_dirs(covenant_root),
+        {"create", "spend", "recovery", "proofs"},
+        "covenant HTML groups changed",
+    )
+    errors += _loose_html_errors(
+        covenant_root, "covenant HTML fragments must be grouped by workflow"
+    )
+    errors += _group_errors(
+        _child_dirs(form_root),
+        {"advanced", "automation", "basic", "escrow", "limits", "savings"},
+        "covenant creation form groups changed",
+    )
+    errors += _group_errors(
+        _html_names(form_root),
+        {"open.html", "close.html"},
+        "covenant creation form shell changed",
+    )
     if (create_root / "create.html").exists():
         errors.append("monolithic covenant creation HTML must not return")
-    try:
-        entries = manifest_entries()
-    except ValueError as error:
-        return [str(error)], None
+    return errors
 
+
+def _manifest_errors(entries: list[str]) -> list[str]:
+    errors: list[str] = []
     if tuple(entries) != EXPECTED_FRAGMENTS:
         errors.append(
             "web HTML fragment inventory/order changed: expected "
             f"{list(EXPECTED_FRAGMENTS)}, got {entries}"
         )
-
     actual_fragments = {
         path.relative_to(SOURCE_ROOT).as_posix()
         for path in SOURCE_ROOT.rglob("*.html")
@@ -177,22 +181,36 @@ def check_composition(root: Path) -> tuple[list[str], str | None]:
             f"unlisted={sorted(actual_fragments - set(entries))}, "
             f"missing={sorted(set(entries) - actual_fragments)}"
         )
+    return errors
 
+
+def _fragment_errors(entry: str) -> list[str]:
+    fragment_source = (SOURCE_ROOT / entry).read_text(errors="ignore")
+    errors: list[str] = []
+    line_count = len(fragment_source.splitlines())
+    if line_count > 600:
+        errors.append(
+            f"web HTML source fragment exceeds 600 lines: {entry} ({line_count})"
+        )
+    if re.search(r"\sstyle=[\"']", fragment_source):
+        errors.append(f"authored HTML contains inline styling: {entry}")
+    if re.search(r"<style\b", fragment_source, re.I):
+        errors.append(f"authored HTML contains an inline style block: {entry}")
+    if "data:image" in fragment_source:
+        errors.append(f"authored HTML contains an embedded image asset: {entry}")
+    return errors
+
+
+def check_composition(root: Path) -> tuple[list[str], str | None]:
+    screens_root = SOURCE_ROOT / "screens"
+    errors = _screen_layout_errors(screens_root) + _covenant_layout_errors(screens_root)
+    try:
+        entries = manifest_entries()
+    except ValueError as error:
+        return [str(error)], None
+    errors += _manifest_errors(entries)
     for entry in entries:
-        source = SOURCE_ROOT / entry
-        fragment_source = source.read_text(errors="ignore")
-        line_count = len(fragment_source.splitlines())
-        if line_count > 600:
-            errors.append(
-                f"web HTML source fragment exceeds 600 lines: {entry} ({line_count})"
-            )
-        if re.search(r"\sstyle=[\"']", fragment_source):
-            errors.append(f"authored HTML contains inline styling: {entry}")
-        if re.search(r"<style\b", fragment_source, re.I):
-            errors.append(f"authored HTML contains an inline style block: {entry}")
-        if "data:image" in fragment_source:
-            errors.append(f"authored HTML contains an embedded image asset: {entry}")
-
+        errors += _fragment_errors(entry)
     generated = render(entries)
     if not OUTPUT.is_file() or OUTPUT.read_text() != generated:
         errors.append(
@@ -201,30 +219,32 @@ def check_composition(root: Path) -> tuple[list[str], str | None]:
     return errors, generated
 
 
-def check(root: Path) -> list[str]:
-    errors, generated = check_composition(root)
+def _runtime_builder_errors(root: Path) -> list[str]:
     build_script = root / "tools/build/web/build_companion_runtime.py"
     if not build_script.is_file():
-        errors.append("Canonical Companion runtime builder is missing: tools/build/web/build_companion_runtime.py")
-    else:
-        build_source = build_script.read_text(errors="ignore")
-        shared = (root / "tools/build/web/wasm_runtime.py").read_text(errors="ignore")
-        if shared.find("runtime.authored_generators") > shared.find("_compile_wasm(runtime, toolchain"):
-            errors.append("Shared WASM runtime builder must generate authored assets before the WASM cargo build")
-        for builder in (
-            "tools/build/web/build_web_index.py",
-            "tools/build/web/build_app_css.py",
-        ):
-            if builder not in build_source:
-                errors.append(f"Canonical Companion runtime builder must run {builder} before the WASM cargo build")
-    index_path = root / "apps/kaskold-companion-web/web/index.html"
-    if not index_path.is_file():
-        return [*errors, "Companion web/index.html is missing"]
+        return [
+            "Canonical Companion runtime builder is missing: tools/build/web/build_companion_runtime.py"
+        ]
+    errors: list[str] = []
+    build_source = build_script.read_text(errors="ignore")
+    shared = (root / "tools/build/web/wasm_runtime.py").read_text(errors="ignore")
+    if shared.find("runtime.authored_generators") > shared.find("_compile_wasm(runtime, toolchain"):
+        errors.append(
+            "Shared WASM runtime builder must generate authored assets before the WASM cargo build"
+        )
+    for builder in (
+        "tools/build/web/build_web_index.py",
+        "tools/build/web/build_app_css.py",
+    ):
+        if builder not in build_source:
+            errors.append(
+                f"Canonical Companion runtime builder must run {builder} before the WASM cargo build"
+            )
+    return errors
 
-    source = index_path.read_text(errors="ignore")
-    if generated is not None and source != generated:
-        return errors
 
+def _dom_contract_errors(source: str) -> list[str]:
+    errors: list[str] = []
     id_tags = [
         (match.group(3), match.group(1).lower())
         for match in re.finditer(
@@ -262,7 +282,11 @@ def check(root: Path) -> list[str]:
             f"web screen inventory changed: expected {sorted(EXPECTED_SCREEN_IDS)}, "
             f"got {sorted(screen_ids)}"
         )
+    return errors
 
+
+def _resource_contract_errors(source: str) -> list[str]:
+    errors: list[str] = []
     if len(re.findall(r'href=["\']css/app\.css(?:\?[^"\']*)?["\']', source)) != 1:
         errors.append("web/index.html must load css/app.css exactly once")
     if len(re.findall(
@@ -281,5 +305,16 @@ def check(root: Path) -> list[str]:
     inline_handlers = sorted(set(re.findall(r"\s(on[A-Za-z]+)\s*=", source)))
     if inline_handlers:
         errors.append(f"web/index.html contains inline event handlers: {inline_handlers}")
-
     return errors
+
+
+def check(root: Path) -> list[str]:
+    errors, generated = check_composition(root)
+    errors += _runtime_builder_errors(root)
+    index_path = root / "apps/kaskold-companion-web/web/index.html"
+    if not index_path.is_file():
+        return [*errors, "Companion web/index.html is missing"]
+    source = index_path.read_text(errors="ignore")
+    if generated is not None and source != generated:
+        return errors
+    return [*errors, *_dom_contract_errors(source), *_resource_contract_errors(source)]

@@ -65,18 +65,8 @@ def check_inventory(
     return errors, combined
 
 
-def check(root: Path) -> list[str]:
+def _check_qr_facade(qr_facade: str) -> list[str]:
     errors: list[str] = []
-    firmware = root / "apps/kaskold-hardware/src"
-
-    legacy_qr = firmware / "qr/encoder.rs"
-    qr_root = firmware / "qr/encoder"
-    if legacy_qr.exists():
-        errors.append("legacy monolithic qr/encoder.rs must not exist")
-    qr_errors, qr_source = check_inventory(root, qr_root, QR_MODULE_LIMITS, "QR encoder")
-    errors.extend(qr_errors)
-
-    qr_facade = (qr_root / "mod.rs").read_text(errors="ignore") if qr_root.exists() else ""
     for contract in (
         "pub use modes::byte_mode::encode;",
         "pub use matrix::matrix::QrCode;",
@@ -87,14 +77,37 @@ def check(root: Path) -> list[str]:
 
     if "pub use matrix::version::select_version;" in qr_facade:
         errors.append("QR encoder façade leaks the internal version selector")
+    return errors
 
+
+def _check_qr_ecc_pipeline(qr_root: Path, qr_source: str) -> list[str]:
+    errors: list[str] = []
     if qr_source.count("fn interleave_with_error_correction") != 1:
         errors.append("QR encoder must contain exactly one ECC interleaving pipeline")
     if "reed_solomon::encode" in (qr_root / "modes/byte_mode.rs").read_text(errors="ignore"):
         errors.append("byte mode bypasses the shared QR ECC pipeline")
     if "reed_solomon::encode" in (qr_root / "modes/numeric_mode.rs").read_text(errors="ignore"):
         errors.append("numeric mode bypasses the shared QR ECC pipeline")
+    return errors
 
+
+def _check_qr_encoder(root: Path, firmware: Path) -> list[str]:
+    errors: list[str] = []
+    legacy_qr = firmware / "qr/encoder.rs"
+    qr_root = firmware / "qr/encoder"
+    if legacy_qr.exists():
+        errors.append("legacy monolithic qr/encoder.rs must not exist")
+    qr_errors, qr_source = check_inventory(root, qr_root, QR_MODULE_LIMITS, "QR encoder")
+    errors.extend(qr_errors)
+
+    qr_facade = (qr_root / "mod.rs").read_text(errors="ignore") if qr_root.exists() else ""
+    errors.extend(_check_qr_facade(qr_facade))
+    errors.extend(_check_qr_ecc_pipeline(qr_root, qr_source))
+    return errors
+
+
+def _check_gc0308_driver(root: Path, firmware: Path) -> tuple[list[str], str]:
+    errors: list[str] = []
     legacy_camera = firmware / "hw/camera/camera_gc0308.rs"
     camera_root = firmware / "hw/m5stack/cameras/gc0308"
     if legacy_camera.exists():
@@ -115,12 +128,19 @@ def check(root: Path) -> list[str]:
     ):
         if symbol not in camera_facade:
             errors.append(f"GC0308 façade is missing required export: {symbol}")
+    return errors, camera_source
 
+
+def _check_m5stack_camera_tree(firmware: Path) -> list[str]:
     m5stack_mod = (firmware / "hw/m5stack/mod.rs").read_text(errors="ignore")
     m5stack_cameras = (firmware / "hw/m5stack/cameras/mod.rs").read_text(errors="ignore")
     if 'pub(crate) mod cameras;' not in m5stack_mod or 'pub(crate) mod gc0308;' not in m5stack_cameras:
-        errors.append("M5Stack camera façade does not use the standard cameras/gc0308 module tree")
+        return ["M5Stack camera façade does not use the standard cameras/gc0308 module tree"]
+    return []
 
+
+def _check_camera_source_boundaries(camera_source: str) -> list[str]:
+    errors: list[str] = []
     for forbidden in ("crate::ui", "crate::services"):
         if forbidden in camera_source:
             errors.append(f"GC0308 hardware driver depends upward on {forbidden}")
@@ -134,13 +154,24 @@ def check(root: Path) -> list[str]:
             errors.append(
                 f"GC0308 must leave LCD_CAM/GPIO/IO_MUX ownership to ESP-HAL: {forbidden}"
             )
+    return errors
 
+
+def _check_camera_boot_order(firmware: Path) -> list[str]:
     m5stack_boot = (firmware / "boot/m5stack/mod.rs").read_text(errors="ignore")
     if m5stack_boot.find(".with_master_clock($peripherals.GPIO2)") > m5stack_boot.find(
         "camera::initialize_sensor("
     ):
-        errors.append("CoreS3 GC0308 sensor init must occur after HAL master-clock ownership")
+        return ["CoreS3 GC0308 sensor init must occur after HAL master-clock ownership"]
+    return []
 
 
-
+def check(root: Path) -> list[str]:
+    firmware = root / "apps/kaskold-hardware/src"
+    errors = _check_qr_encoder(root, firmware)
+    camera_errors, camera_source = _check_gc0308_driver(root, firmware)
+    errors.extend(camera_errors)
+    errors.extend(_check_m5stack_camera_tree(firmware))
+    errors.extend(_check_camera_source_boundaries(camera_source))
+    errors.extend(_check_camera_boot_order(firmware))
     return errors

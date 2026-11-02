@@ -5,6 +5,7 @@ import { formatDaaDuration } from '../../../../../../core/format.js';
 import { sompiToKasString } from '../../../../../../core/amounts.js';
 import { covWatcherStop } from '../lifecycle.js';
 import { pollTimedBalance } from './timed.js';
+import { isFundsSpent, setPlainStatus } from './status_text.js';
 
 export async function pollTimelockedSavings(state) {
     return pollTimedBalance(state, {
@@ -19,48 +20,87 @@ export async function pollTimelockedSavings(state) {
     });
 }
 
+function reportDmsSpent(st) {
+    const spender = covenantWatcherState._covWatcherSpendPath || 'unknown';
+    if (spender === 'heir') {
+        setContent(st, span('u-text-warning', '⚠ Heir claimed the funds.'));
+        covWatcherStop();
+        if (st) st.style.display = '';
+    } else if (spender === 'owner') {
+        setContent(st, span('u-text-text-muted', '⏳ Owner spent. Checking...'));
+    } else {
+        st.textContent = '👁 Funds spent (0 KAS)';
+    }
+}
+
+function newestUtxoDaa(utxos) {
+    let newest = 0n;
+    for (const utxo of utxos) {
+        const daa = exactUnsigned(utxo.block_daa_score ?? 0n, 'UTXO DAA score');
+        if (daa > newest) newest = daa;
+    }
+    return newest;
+}
+
+function renderInactivityStatus(st, kas, remaining) {
+    if (remaining <= -300n) {
+        setContent(st, span('u-text-warning', `⚠ Inactivity period passed. Heir can claim. ${kas} KAS`));
+    } else if (remaining <= 0n) {
+        setContent(st, span('u-text-warning', `⏳ Inactivity period ending... Heir claim available shortly. ${kas} KAS`));
+    } else {
+        setPlainStatus(st, `👁 ${kas} KAS | ~${formatDaaDuration(remaining)} until heir can claim`);
+    }
+}
+
 export async function pollDms(state) {
     const { total, kas, st, currentDaa, utxos } = state;
     const inactivity = exactUnsigned(covenantState.lastCovenantResult.inactivity_daa ?? 0n, 'inactivity DAA');
-    if (total === 0n && covenantWatcherState._covWatcherLastBalance !== null && covenantWatcherState._covWatcherLastBalance > 0n) {
-        const spender = covenantWatcherState._covWatcherSpendPath || 'unknown';
-        if (spender === 'heir') {
-            setContent(st, span('u-text-warning', '\u26a0 Heir claimed the funds.'));
-            covWatcherStop();
-            if (st) st.style.display = '';
-            return true;
-        }
-        if (spender === 'owner') {
-            setContent(st, span('u-text-text-muted', '\u23f3 Owner spent. Checking...'));
-            return true;
-        }
-        st.textContent = '\uD83D\uDC41 Funds spent (0 KAS)';
+    if (isFundsSpent(total)) {
+        reportDmsSpent(st);
         return true;
     }
-
     if (total === 0n) {
-        st.textContent = '\uD83D\uDC41 0 KAS | Not funded';
-        st.style.color = '';
+        setPlainStatus(st, '👁 0 KAS | Not funded');
     } else if (inactivity > 0n && currentDaa > 0n) {
-        let newestDaa = 0n;
-        for (const utxo of utxos) {
-            const daa = exactUnsigned(utxo.block_daa_score ?? 0n, 'UTXO DAA score');
-            if (daa > newestDaa) newestDaa = daa;
-        }
-        const remaining = newestDaa + inactivity - currentDaa;
-        if (remaining <= -300n) {
-            setContent(st, span('u-text-warning', `\u26a0 Inactivity period passed. Heir can claim. ${kas} KAS`));
-        } else if (remaining <= 0n) {
-            setContent(st, span('u-text-warning', `\u23f3 Inactivity period ending... Heir claim available shortly. ${kas} KAS`));
-        } else {
-            st.textContent = `\uD83D\uDC41 ${kas} KAS | ~${formatDaaDuration(remaining)} until heir can claim`;
-            st.style.color = '';
-        }
+        renderInactivityStatus(st, kas, newestUtxoDaa(utxos) + inactivity - currentDaa);
     } else {
-        st.textContent = `\uD83D\uDC41 ${kas} KAS | Watching...`;
-        st.style.color = '';
+        setPlainStatus(st, `👁 ${kas} KAS | Watching...`);
     }
     return false;
+}
+
+function reportPiggyBroken(st) {
+    setContent(st, span('u-text-teal', '✅ Piggy bank broken! Funds withdrawn.'));
+    covWatcherStop();
+    if (st) st.style.display = '';
+}
+
+function thresholdParts(total, threshold, kas) {
+    if (!(threshold > 0n)) return [`${kas} KAS`];
+    const roundedPercent = (total * 100n + threshold / 2n) / threshold;
+    const percent = roundedPercent > 100n ? 100n : roundedPercent;
+    const parts = [`${kas} / ${sompiToKasString(threshold)} KAS (${percent}%)`];
+    if (total >= threshold) parts.push('✅ Goal reached!');
+    return parts;
+}
+
+function deadlineParts(currentDaa, deadlineDaa) {
+    if (!(deadlineDaa > 0n && currentDaa > 0n)) return [];
+    if (currentDaa >= deadlineDaa) return ['⏰ Deadline passed'];
+    return [`~${formatDaaDuration(deadlineDaa - currentDaa)} until deadline`];
+}
+
+function isPiggyBreakable({ total, threshold, deadlineDaa, currentDaa }) {
+    const canBreakGoal = threshold > 0n && total >= threshold;
+    const canBreakTime = deadlineDaa > 0n && currentDaa > 0n && currentDaa >= deadlineDaa;
+    const noConditions = threshold === 0n && deadlineDaa === 0n;
+    return canBreakGoal || canBreakTime || noConditions;
+}
+
+function renderAdditiveStatus(st, parts, breakable) {
+    const text = parts.join(' | ');
+    if (breakable) setContent(st, span('u-text-teal', `👁 ${text}`));
+    else setPlainStatus(st, `👁 ${text}`);
 }
 
 export async function pollAdditive(state) {
@@ -69,42 +109,16 @@ export async function pollAdditive(state) {
     const threshold = exactUnsigned(result.threshold_sompi ?? 0n, 'savings threshold');
     const deadlineDaa = exactUnsigned(result.deadline_daa ?? 0n, 'deadline DAA');
 
-    if (total === 0n && covenantWatcherState._covWatcherLastBalance !== null && covenantWatcherState._covWatcherLastBalance > 0n) {
-        setContent(st, span('u-text-teal', '\u2705 Piggy bank broken! Funds withdrawn.'));
-        covWatcherStop();
-        if (st) st.style.display = '';
+    if (isFundsSpent(total)) {
+        reportPiggyBroken(st);
         return true;
     }
-
     if (total === 0n) {
-        st.textContent = '\uD83D\uDC41 0 KAS | Not funded';
-        st.style.color = '';
+        setPlainStatus(st, '👁 0 KAS | Not funded');
         return false;
     }
 
-    const statusParts = [];
-    if (threshold > 0n) {
-        const roundedPercent = (total * 100n + threshold / 2n) / threshold;
-        const percent = roundedPercent > 100n ? 100n : roundedPercent;
-        statusParts.push(`${kas} / ${sompiToKasString(threshold)} KAS (${percent}%)`);
-        if (total >= threshold) statusParts.push('\u2705 Goal reached!');
-    } else {
-        statusParts.push(`${kas} KAS`);
-    }
-
-    if (deadlineDaa > 0n && currentDaa > 0n) {
-        if (currentDaa >= deadlineDaa) statusParts.push('\u23F0 Deadline passed');
-        else statusParts.push(`~${formatDaaDuration(deadlineDaa - currentDaa)} until deadline`);
-    }
-
-    const canBreakGoal = threshold > 0n && total >= threshold;
-    const canBreakTime = deadlineDaa > 0n && currentDaa > 0n && currentDaa >= deadlineDaa;
-    const noConditions = threshold === 0n && deadlineDaa === 0n;
-    if (canBreakGoal || canBreakTime || noConditions) {
-        setContent(st, span('u-text-teal', `\uD83D\uDC41 ${statusParts.join(' | ')}`));
-    } else {
-        st.textContent = `\uD83D\uDC41 ${statusParts.join(' | ')}`;
-        st.style.color = '';
-    }
+    const parts = [...thresholdParts(total, threshold, kas), ...deadlineParts(currentDaa, deadlineDaa)];
+    renderAdditiveStatus(st, parts, isPiggyBreakable({ total, threshold, deadlineDaa, currentDaa }));
     return false;
 }

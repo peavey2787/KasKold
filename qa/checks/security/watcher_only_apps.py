@@ -44,6 +44,46 @@ RETIRED_DIRECT_VAULT_CALLS = (
     "split_vault_spend(",
 )
 
+WATCHER_SIGNER_DEFINITIONS = ("fn bip340_sign", "fn create_adaptor_sig", "fn generate_signing_keypair")
+
+MOBILE_APP_ROOTS = ("apps/kaskold-companion-ios", "apps/kaskold-companion-android")
+MOBILE_SOURCE_SUFFIXES = {".swift", ".kt", ".kts", ".java"}
+MOBILE_CUSTODY_SURFACES = ("PersistentHotWallet", "persistentHotWallet", "kasKoldHotWallet", "kaskold_hot_wallet")
+
+# Historical raw-signature adaptor-v1 modules must stay physically absent.
+# Private Swap v2 is permitted only through its transaction-sighash-bound
+# public verifier and hardware-signing protocol; watcher code remains keyless.
+RETIRED_RAW_SIGNATURE_PATHS = (
+    "apps/kaskold-companion-web/web/js/app/events/contracts/adaptor_swap.js",
+    "apps/kaskold-companion-web/web/js/app/events/contracts/adaptor_swap",
+    "apps/kaskold-companion-web/web/js/app/state/covenants/adaptor_state.js",
+    "apps/kaskold-companion-web/web/js/features/covenants/payload/adaptor_policy.js",
+    "apps/kaskold-companion-web/web/js/features/covenants/payload/adaptor_session_repository.js",
+    "apps/kaskold-companion-web/web/js/features/covenants/payload/adaptor_watcher.js",
+    "apps/kaskold-companion-web/web/js/features/covenants/payload/adaptor_watcher",
+    "apps/kaskold-companion-web/web/js/features/covenants/recovery/scanner/historical_payload.js",
+    "apps/kaskold-companion-web/web/js/features/covenants/recovery/scanner/primary/adaptor_swap.js",
+    "apps/kaskold-companion-web/web/html/screens/covenant/create/adaptor_swap.html",
+    "crates/online-watcher/src/privacy/adaptor",
+    "crates/online-watcher/src/wasm_api/privacy/adaptor",
+)
+
+REQUIRED_EVIDENCE = (
+    ("apps/kaskold-companion-web/web/js/app/events/contracts/tagged_vault/online.js", (
+        "tagged_vault_genesis_pskb", "tagged_vault_spend_pskb", "split_vault_genesis_pskb",
+        "split_vault_spend_pskb", "openPsktReview", "walletSession",
+    )),
+    ("crates/online-watcher/src/transaction_builder/covenant/vault/spend.rs", (
+        "PskbInputPlan::covenant", "encode_wire", "exactly one covenant UTXO",
+    )),
+    ("crates/online-watcher/src/wasm_api/contracts/vault/spend.rs", (
+        "crate::transaction_builder::covenant::vault::spend",
+    )),
+    ("crates/online-watcher/src/wasm_api/contracts/vault/unit_tests/mod.rs", (
+        "partialSigs", "watcher must not synthesize a wallet signature",
+    )),
+)
+
 BROWSER_PRIVATE_IDENTIFIERS = re.compile(
     r"\b(?:privateKey|private_key|secretKey|secret_key|signingKey|signing_key|"
     r"walletSecret|wallet_secret|xprv|mnemonic|mySecretKey|secretKeyHex|secret_key_hex|sk)\b"
@@ -54,7 +94,6 @@ RUST_PRIVATE_IDENTIFIERS = re.compile(
 MOBILE_PRIVATE_IDENTIFIERS = re.compile(
     r"\b(?:SigningKey|SecretKey|PrivateKey|privateKey|secretKey|signingKey|xprv|mnemonic)\b"
 )
-
 
 
 def source_files(root: Path, suffixes: set[str]) -> list[Path]:
@@ -77,15 +116,14 @@ def require_contains(errors: list[str], path: str, terms: tuple[str, ...]) -> No
             errors.append(f"{path} missing watcher-only evidence {term!r}")
 
 
-def audit() -> list[str]:
-    errors: list[str] = []
-
+def _retired_tombstone_errors(errors: list[str]) -> None:
     for relative in RETIRED_TOMBSTONES:
         if (ROOT / relative).exists():
             errors.append(f"retired dead tombstone returned: {relative}")
 
-    companion_manifest = ROOT / "apps/kaskold-companion-web/Cargo.toml"
-    manifest_source = companion_manifest.read_text(errors="replace")
+
+def _companion_web_errors(errors: list[str]) -> None:
+    manifest_source = (ROOT / "apps/kaskold-companion-web/Cargo.toml").read_text(errors="replace")
     for forbidden_dependency in ("hot-wallet", "vault-runtime", "offline-signer"):
         if forbidden_dependency in manifest_source:
             errors.append(f"Companion Web must not depend on signer custody crate {forbidden_dependency!r}")
@@ -96,89 +134,94 @@ def audit() -> list[str]:
     if (ROOT / BROWSER_ROOT / "features/wallet/hot_wallet").exists():
         errors.append("Companion Web hot-wallet feature directory must not exist")
 
-    browser_files = source_files(ROOT / BROWSER_ROOT, {".js"})
-    for path in browser_files:
-        source = path.read_text(errors="replace")
-        relative = str(path.relative_to(ROOT))
-        for api in RETIRED_HOT_APIS:
-            if api in source:
-                errors.append(f"{relative} reintroduces retired hot-wallet API {api!r}")
-        for surface in RETIRED_HOT_SURFACES:
-            if surface in source:
-                errors.append(f"{relative} reintroduces retired Companion custody surface {surface!r}")
-        for call in RETIRED_DIRECT_VAULT_CALLS:
-            if call in source:
-                errors.append(f"{relative} reintroduces direct browser vault signer {call!r}")
-        match = BROWSER_PRIVATE_IDENTIFIERS.search(source)
-        if match:
-            errors.append(
-                f"{relative} contains forbidden watcher private-key identifier {match.group(0)!r}"
-            )
 
+def _browser_file_errors(path: Path) -> list[str]:
+    source = path.read_text(errors="replace")
+    relative = str(path.relative_to(ROOT))
+    errors = [f"{relative} reintroduces retired hot-wallet API {api!r}" for api in RETIRED_HOT_APIS if api in source]
+    errors += [
+        f"{relative} reintroduces retired Companion custody surface {surface!r}"
+        for surface in RETIRED_HOT_SURFACES if surface in source
+    ]
+    errors += [
+        f"{relative} reintroduces direct browser vault signer {call!r}"
+        for call in RETIRED_DIRECT_VAULT_CALLS if call in source
+    ]
+    match = BROWSER_PRIVATE_IDENTIFIERS.search(source)
+    if match:
+        errors.append(f"{relative} contains forbidden watcher private-key identifier {match.group(0)!r}")
+    return errors
+
+
+def _browser_source_errors(errors: list[str]) -> None:
+    for path in source_files(ROOT / BROWSER_ROOT, {".js"}):
+        errors.extend(_browser_file_errors(path))
+
+
+def _watcher_file_errors(path: Path) -> list[str]:
+    relative = str(path.relative_to(ROOT))
+    source = path.read_text(errors="replace")
+    errors: list[str] = []
+    match = RUST_PRIVATE_IDENTIFIERS.search(source)
+    if match:
+        errors.append(f"{relative} contains forbidden watcher wallet-key identifier {match.group(0)!r}")
+    errors += [
+        f"{relative} contains watcher-side signing implementation {signer!r}"
+        for signer in WATCHER_SIGNER_DEFINITIONS if signer in source
+    ]
+    return errors
+
+
+def _watcher_source_errors(errors: list[str]) -> None:
     # Production online-watcher source may perform public verification and
     # protocol-secret arithmetic, but it must not contain wallet-key signing
     # implementations. Unit-test fixtures are excluded from the shipped surface.
-    watcher_root = ROOT / "crates/online-watcher/src"
-    for path in source_files(watcher_root, {".rs"}):
-        relative = str(path.relative_to(ROOT))
-        if "unit_tests" in path.parts:
-            continue
-        source = path.read_text(errors="replace")
-        match = RUST_PRIVATE_IDENTIFIERS.search(source)
-        if match:
-            errors.append(
-                f"{relative} contains forbidden watcher wallet-key identifier {match.group(0)!r}"
-            )
-        for signer in ("fn bip340_sign", "fn create_adaptor_sig", "fn generate_signing_keypair"):
-            if signer in source:
-                errors.append(f"{relative} contains watcher-side signing implementation {signer!r}")
+    for path in source_files(ROOT / "crates/online-watcher/src", {".rs"}):
+        if "unit_tests" not in path.parts:
+            errors.extend(_watcher_file_errors(path))
 
+
+def _mobile_file_errors(path: Path) -> list[str]:
+    relative = str(path.relative_to(ROOT))
+    source = path.read_text(errors="replace")
+    errors: list[str] = []
+    match = MOBILE_PRIVATE_IDENTIFIERS.search(source)
+    if match:
+        errors.append(f"{relative} contains forbidden mobile private-key identifier {match.group(0)!r}")
+    errors += [
+        f"{relative} contains forbidden Companion custody surface {forbidden!r}"
+        for forbidden in MOBILE_CUSTODY_SURFACES if forbidden in source
+    ]
+    return errors
+
+
+def _mobile_source_errors(errors: list[str]) -> None:
     # Mobile companions are also strictly watch-only.
-    for app_root in ("apps/kaskold-companion-ios", "apps/kaskold-companion-android"):
-        for path in source_files(ROOT / app_root, {".swift", ".kt", ".kts", ".java"}):
-            source = path.read_text(errors="replace")
-            match = MOBILE_PRIVATE_IDENTIFIERS.search(source)
-            if match:
-                errors.append(
-                    f"{path.relative_to(ROOT)} contains forbidden mobile private-key identifier {match.group(0)!r}"
-                )
-            for forbidden in ("PersistentHotWallet", "persistentHotWallet", "kasKoldHotWallet", "kaskold_hot_wallet"):
-                if forbidden in source:
-                    errors.append(f"{path.relative_to(ROOT)} contains forbidden Companion custody surface {forbidden!r}")
+    for app_root in MOBILE_APP_ROOTS:
+        for path in source_files(ROOT / app_root, MOBILE_SOURCE_SUFFIXES):
+            errors.extend(_mobile_file_errors(path))
 
-    # Historical raw-signature adaptor-v1 modules must stay physically absent.
-    # Private Swap v2 is permitted only through its transaction-sighash-bound
-    # public verifier and hardware-signing protocol; watcher code remains keyless.
-    for retired in (
-        "apps/kaskold-companion-web/web/js/app/events/contracts/adaptor_swap.js",
-        "apps/kaskold-companion-web/web/js/app/events/contracts/adaptor_swap",
-        "apps/kaskold-companion-web/web/js/app/state/covenants/adaptor_state.js",
-        "apps/kaskold-companion-web/web/js/features/covenants/payload/adaptor_policy.js",
-        "apps/kaskold-companion-web/web/js/features/covenants/payload/adaptor_session_repository.js",
-        "apps/kaskold-companion-web/web/js/features/covenants/payload/adaptor_watcher.js",
-        "apps/kaskold-companion-web/web/js/features/covenants/payload/adaptor_watcher",
-        "apps/kaskold-companion-web/web/js/features/covenants/recovery/scanner/historical_payload.js",
-        "apps/kaskold-companion-web/web/js/features/covenants/recovery/scanner/primary/adaptor_swap.js",
-        "apps/kaskold-companion-web/web/html/screens/covenant/create/adaptor_swap.html",
-        "crates/online-watcher/src/privacy/adaptor",
-        "crates/online-watcher/src/wasm_api/privacy/adaptor",
-    ):
+
+def _retired_raw_signature_errors(errors: list[str]) -> None:
+    for retired in RETIRED_RAW_SIGNATURE_PATHS:
         if (ROOT / retired).exists():
             errors.append(f"retired raw-signature implementation returned: {retired}")
-    require_contains(errors, "apps/kaskold-companion-web/web/js/app/events/contracts/tagged_vault/online.js", (
-        "tagged_vault_genesis_pskb", "tagged_vault_spend_pskb", "split_vault_genesis_pskb",
-        "split_vault_spend_pskb", "openPsktReview", "walletSession",
-    ))
-    require_contains(errors, "crates/online-watcher/src/transaction_builder/covenant/vault/spend.rs", (
-        "PskbInputPlan::covenant", "encode_wire", "exactly one covenant UTXO",
-    ))
-    require_contains(errors, "crates/online-watcher/src/wasm_api/contracts/vault/spend.rs", (
-        "crate::transaction_builder::covenant::vault::spend",
-    ))
-    require_contains(errors, "crates/online-watcher/src/wasm_api/contracts/vault/unit_tests/mod.rs", (
-        "partialSigs", "watcher must not synthesize a wallet signature",
-    ))
 
+
+def _required_evidence_errors(errors: list[str]) -> None:
+    for path, terms in REQUIRED_EVIDENCE:
+        require_contains(errors, path, terms)
+
+
+def audit() -> list[str]:
+    errors: list[str] = []
+    _retired_tombstone_errors(errors)
+    _companion_web_errors(errors)
+    _browser_source_errors(errors)
+    _watcher_source_errors(errors)
+    _mobile_source_errors(errors)
+    _retired_raw_signature_errors(errors)
+    _required_evidence_errors(errors)
     return errors
 
 

@@ -84,18 +84,26 @@ export function campaignFromResult(result) {
     });
 }
 
-export function normalizeCampaign(value) {
+function assertCampaignHeader(value) {
     if (!value || value.t !== 'crowdfund-campaign' || value.v !== 2) throw new Error('Not a current crowdfunding campaign invite');
+}
+
+function assertCampaignParameters({ goal, daa, organizer, vk, id }) {
+    if (goal === 0n) throw new Error('Crowdfunding goal must be greater than zero');
+    if (daa === 0n) throw new Error('Crowdfunding refund DAA is missing');
+    if (!organizer.includes(':')) throw new Error('Crowdfunding organizer destination is invalid');
+    if (!/^[0-9a-f]+$/.test(vk) || vk.length < 2 || vk.length > 32768) throw new Error('Crowdfunding verifying key is invalid');
+    if (!HEX64.test(id)) throw new Error('Crowdfunding campaign ID is invalid');
+}
+
+export function normalizeCampaign(value) {
+    assertCampaignHeader(value);
     const goal = exactUnsigned(value.goal, 'crowdfunding goal');
     const daa = exactUnsigned(value.daa, 'crowdfunding locktime DAA');
     const vk = String(value.vk || '').trim().toLowerCase();
     const id = String(value.id || '').trim().toLowerCase();
     const organizer = String(value.organizer || '').trim();
     const name = String(value.name || '').trim().slice(0, 64);
-    if (goal === 0n) throw new Error('Crowdfunding goal must be greater than zero');
-    if (daa === 0n) throw new Error('Crowdfunding refund DAA is missing');
-    if (!organizer.includes(':')) throw new Error('Crowdfunding organizer destination is invalid');
-    if (!/^[0-9a-f]+$/.test(vk) || vk.length < 2 || vk.length > 32768) throw new Error('Crowdfunding verifying key is invalid');
-    if (!HEX64.test(id)) throw new Error('Crowdfunding campaign ID is invalid');
+    assertCampaignParameters({ goal, daa, organizer, vk, id });
     return Object.freeze({ v: 2, t: 'crowdfund-campaign', name, goal, daa, organizer, vk, id, date: String(value.date || '') });
 }

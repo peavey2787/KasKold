@@ -2,7 +2,9 @@
 """Regression contracts for the public make test / make qa orchestration."""
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 from pathlib import Path
 import subprocess
@@ -335,9 +337,24 @@ class QaOrchestrationCatalogTests(unittest.TestCase):
 
     def test_windows_runner_prints_exact_resume_command_and_python_qa_log(self) -> None:
         source = (ROOT / "qa/windows/runner/run_all.py").read_text(encoding="utf-8")
-        self.assertIn('Resume with: make qa RESUME_FROM={i} FUZZ_PASSES={ns.fuzz_passes}', source)
-        self.assertIn('target/qa/repository-python-qa/shared.log', source)
         self.assertIn('os.environ["PYTHONUNBUFFERED"] = "1"', source)
+        spec = importlib.util.spec_from_file_location(
+            "kaskold_windows_resume_test", ROOT / "qa/windows/runner/run_all.py"
+        )
+        assert spec and spec.loader
+        runner = importlib.util.module_from_spec(spec)
+        with mock.patch.dict(sys.modules, {spec.name: runner}):
+            spec.loader.exec_module(runner)
+            printed = io.StringIO()
+            with contextlib.redirect_stderr(printed):
+                runner._report_step_failure(
+                    "unit.repository-python-qa", 3, runner.argparse.Namespace(fuzz_passes=42)
+                )
+        self.assertIn(
+            "Resume with: make qa RESUME_FROM=unit.repository-python-qa FUZZ_PASSES=42",
+            printed.getvalue(),
+        )
+        self.assertIn("shared.log", printed.getvalue())
 
     def test_windows_reproducible_build_module_skip_is_not_an_import_failure(self) -> None:
         runner_path = ROOT / "qa/checks/workspace/run_repository_python_qa.py"
@@ -399,7 +416,18 @@ class QaOrchestrationCatalogTests(unittest.TestCase):
         self.assertIn("windows-qemu-master.log", source)
         self.assertIn("windows-qemu-powershell.log", source)
         self.assertIn("Replaying every persisted Windows QEMU diagnostic log now", source)
-        self.assertIn('elif step_id=="emulation.signer-firmware-qemu": run_qemu_emulation', source)
+        spec = importlib.util.spec_from_file_location(
+            "kaskold_windows_qemu_step_test", ROOT / "qa/windows/runner/run_all.py"
+        )
+        assert spec and spec.loader
+        runner = importlib.util.module_from_spec(spec)
+        with mock.patch.dict(sys.modules, {spec.name: runner}):
+            spec.loader.exec_module(runner)
+            with mock.patch.object(runner, "run_qemu_emulation") as emulation:
+                runner.run_step(
+                    "emulation.signer-firmware-qemu", runner.argparse.Namespace(dry_run=True)
+                )
+        emulation.assert_called_once_with(dry=True)
 
 if __name__ == "__main__":
     unittest.main()

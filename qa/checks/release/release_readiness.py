@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 _RELEASE_DIR = Path(__file__).resolve().parent
 if str(_RELEASE_DIR) not in sys.path:
@@ -44,52 +44,77 @@ def generic_report_errors(evidence_dir: Path, name: str, document: dict[str, Any
     return errors
 
 
-def domain_errors(name: str, document: dict[str, Any]) -> list[str]:
+def _independent_audit_errors(name: str, document: dict[str, Any]) -> list[str]:
     errors: list[str] = []
-    if name == "independent_security_audit.json":
-        if not isinstance(document.get("independent_organization"), str) or not document.get("independent_organization", "").strip():
-            errors.append(f"{name}: independent_organization must be non-empty")
-        if document.get("self_review") is not False:
-            errors.append(f"{name}: self_review must be false")
-        for severity in ("unresolved_critical", "unresolved_high"):
-            if document.get(severity) != 0:
-                errors.append(f"{name}: {severity} must be zero")
-    elif name == "signing_key_custody.json":
-        if document.get("dual_control") is not True:
-            errors.append(f"{name}: dual_control must be true")
-        if document.get("key_exportable") is not False:
-            errors.append(f"{name}: key_exportable must be false")
-        if document.get("storage") not in {"offline-hsm", "offline-hardware-token", "airgapped-dual-control"}:
-            errors.append(f"{name}: storage must use an accepted offline/dual-control class")
-    elif name == "m5stack_owner_authority.json":
-        expected = {
-            "vendor_digest_slot": 0,
-            "owner_digest_slot": 1,
-            "unused_digest_slot": 2,
-            "unused_digest_revoked": True,
-            "trusted_revoke_write_protected": True,
-            "development_efuse_writes": False,
-            "enrollment_before_pop_it": "pass",
-            "enrollment_after_pop_it_rejected": "pass",
-            "vendor_firmware_boot": "pass",
-            "owner_firmware_boot": "pass",
-            "unrelated_owner_key_rejected": "pass",
-            "owner_downgrade_rejected": "pass",
-            "failed_owner_install_preserves_previous_ota": "pass",
-            "pop_it_without_owner_closes_enrollment": "pass",
-        }
-        for field, expected_value in expected.items():
-            if document.get(field) != expected_value:
-                errors.append(f"{name}: {field} must be {expected_value!r}")
-    elif name == "ios_release_build.json":
-        errors.extend(mobile.verify_release_build(name, document, "ios"))
-    elif name == "android_release_build.json":
-        errors.extend(mobile.verify_release_build(name, document, "android"))
-    elif name == "ios_hil_smoke.json":
-        errors.extend(mobile.verify_hil_smoke(name, document, "ios"))
-    elif name == "android_hil_smoke.json":
-        errors.extend(mobile.verify_hil_smoke(name, document, "android"))
+    if not isinstance(document.get("independent_organization"), str) or not document.get("independent_organization", "").strip():
+        errors.append(f"{name}: independent_organization must be non-empty")
+    if document.get("self_review") is not False:
+        errors.append(f"{name}: self_review must be false")
+    for severity in ("unresolved_critical", "unresolved_high"):
+        if document.get(severity) != 0:
+            errors.append(f"{name}: {severity} must be zero")
     return errors
+
+
+def _signing_key_errors(name: str, document: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    if document.get("dual_control") is not True:
+        errors.append(f"{name}: dual_control must be true")
+    if document.get("key_exportable") is not False:
+        errors.append(f"{name}: key_exportable must be false")
+    if document.get("storage") not in {"offline-hsm", "offline-hardware-token", "airgapped-dual-control"}:
+        errors.append(f"{name}: storage must use an accepted offline/dual-control class")
+    return errors
+
+
+_M5STACK_EXPECTED_FIELDS: dict[str, Any] = {
+    "vendor_digest_slot": 0,
+    "owner_digest_slot": 1,
+    "unused_digest_slot": 2,
+    "unused_digest_revoked": True,
+    "trusted_revoke_write_protected": True,
+    "development_efuse_writes": False,
+    "enrollment_before_pop_it": "pass",
+    "enrollment_after_pop_it_rejected": "pass",
+    "vendor_firmware_boot": "pass",
+    "owner_firmware_boot": "pass",
+    "unrelated_owner_key_rejected": "pass",
+    "owner_downgrade_rejected": "pass",
+    "failed_owner_install_preserves_previous_ota": "pass",
+    "pop_it_without_owner_closes_enrollment": "pass",
+}
+
+
+def _m5stack_owner_errors(name: str, document: dict[str, Any]) -> list[str]:
+    return [
+        f"{name}: {field} must be {expected_value!r}"
+        for field, expected_value in _M5STACK_EXPECTED_FIELDS.items()
+        if document.get(field) != expected_value
+    ]
+
+
+def _mobile_release_errors(platform: str) -> Callable[[str, dict[str, Any]], list[str]]:
+    return lambda name, document: mobile.verify_release_build(name, document, platform)
+
+
+def _mobile_hil_errors(platform: str) -> Callable[[str, dict[str, Any]], list[str]]:
+    return lambda name, document: mobile.verify_hil_smoke(name, document, platform)
+
+
+_DOMAIN_CHECKS: dict[str, Callable[[str, dict[str, Any]], list[str]]] = {
+    "independent_security_audit.json": _independent_audit_errors,
+    "signing_key_custody.json": _signing_key_errors,
+    "m5stack_owner_authority.json": _m5stack_owner_errors,
+    "ios_release_build.json": _mobile_release_errors("ios"),
+    "android_release_build.json": _mobile_release_errors("android"),
+    "ios_hil_smoke.json": _mobile_hil_errors("ios"),
+    "android_hil_smoke.json": _mobile_hil_errors("android"),
+}
+
+
+def domain_errors(name: str, document: dict[str, Any]) -> list[str]:
+    check = _DOMAIN_CHECKS.get(name)
+    return check(name, document) if check is not None else []
 
 
 def load_signed_evidence(

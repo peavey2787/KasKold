@@ -399,14 +399,23 @@ test('primary and extended covenant reconstruction covers current formats', asyn
         redeem_script_hex: '51', crowdfund_salt_hex: '32'.repeat(8),
     }]);
     const vhex = value => le16(value.length / 2) + value;
-    const makeCrowdfundParams = (overrides = {}) => storedScript(script,
-        (overrides.contributor ?? '31'.repeat(32))
-        + vhex(overrides.salt ?? '32'.repeat(8))
-        + le64(overrides.goal ?? 1000) + le64(overrides.deadline ?? 2000)
-        + vstr(overrides.organizer ?? 'kaspa:organizer') + vstr(overrides.name ?? 'Campaign')
-        + vhex(overrides.vk ?? '33'.repeat(8)) + vhex(overrides.pk ?? '34'.repeat(8))
-        + (overrides.campaignId ?? '77'.repeat(32)) + vstr(overrides.role ?? 'organizer')
-        + vstr(overrides.contributions ?? crowdfundContribution) + vstr(overrides.date ?? '2026-08-15'));
+    const crowdfundDefaults = {
+        contributor: '31'.repeat(32), salt: '32'.repeat(8), goal: 1000, deadline: 2000,
+        organizer: 'kaspa:organizer', name: 'Campaign', vk: '33'.repeat(8), pk: '34'.repeat(8),
+        campaignId: '77'.repeat(32), role: 'organizer', contributions: crowdfundContribution, date: '2026-08-15',
+    };
+    const withDefaults = (overrides, defaults) => Object.fromEntries(
+        Object.entries(defaults).map(([key, fallback]) => [key, overrides[key] ?? fallback]));
+    const makeCrowdfundParams = (overrides = {}) => {
+        const fields = withDefaults(overrides, crowdfundDefaults);
+        return storedScript(script,
+            fields.contributor + vhex(fields.salt)
+            + le64(fields.goal) + le64(fields.deadline)
+            + vstr(fields.organizer) + vstr(fields.name)
+            + vhex(fields.vk) + vhex(fields.pk)
+            + fields.campaignId + vstr(fields.role)
+            + vstr(fields.contributions) + vstr(fields.date));
+    };
     const crowdfundParams = makeCrowdfundParams();
     const recoveredCrowdfund = crowdfund.rebuildCrowdfund('crowdfund', crowdfundParams);
     assert.equal(recoveredCrowdfund.campaign_id, '77'.repeat(32));

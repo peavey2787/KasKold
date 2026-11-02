@@ -116,90 +116,102 @@ def _read_partitions(path: Path) -> list[tuple[str, str, str, int, int]]:
     return rows
 
 
+_CORES3_BOARDS = frozenset({"m5stack", "m5stack-lite"})
+_CORES3_PARTITION_NAMES = frozenset({
+    "nvs", "otadata", "phy_init", "ota_0", "ota_1", "owner_stage",
+    "kaskold_bootctl", "kaskold_qa", "kaskold_state",
+})
+_CORES3_FIXED_PARTITIONS = (
+    (("nvs", "data", "nvs", 0x9000, 0x4000), "NVS layout"),
+    (("otadata", "data", "ota", 0xD000, 0x2000), "OTA data layout"),
+    (("phy_init", "data", "phy", 0xF000, 0x1000), "PHY layout"),
+    (("ota_1", "app", "ota_1", 0x210000, 0x200000), "secondary OTA slot"),
+    (("owner_stage", "data", "undefined", 0x410000, 0x200000), "owner firmware staging partition"),
+    (("kaskold_bootctl", "data", "undefined", 0x610000, 0x1000), "boot-control partition"),
+)
+_PartitionRow = tuple[str, str, str, int, int]
+
+
+def _require(condition: bool, board: str, message: str) -> None:
+    if not condition:
+        raise ValueError(f"{board}: {message}")
+
+
+def _validate_partition_placement(layout: BoardLayout, rows: list[_PartitionRow]) -> None:
+    board = layout.board
+    previous_end = PARTITION_TABLE_OFFSET + PARTITION_TABLE_SIZE
+    for name, kind, _subtype, offset, size in sorted(rows, key=lambda row: row[3]):
+        aligned = offset % SECTOR_SIZE == 0 and size > 0 and size % SECTOR_SIZE == 0
+        _require(aligned, board, f"{name} must be non-empty and 4-KiB aligned")
+        _require(kind != "app" or offset % APP_ALIGNMENT == 0, board, f"app partition {name} must be 64-KiB aligned")
+        _require(offset >= previous_end, board, f"partition {name} overlaps a previous partition")
+        end = offset + size
+        _require(end <= layout.flash_size_bytes, board, f"partition {name} exceeds physical flash capacity")
+        previous_end = end
+
+
+def _validate_cores3_contract(board: str, rows: list[_PartitionRow], by_name: dict[str, _PartitionRow]) -> None:
+    _require(
+        set(by_name) == _CORES3_PARTITION_NAMES,
+        board,
+        f"partition names must be exactly {sorted(_CORES3_PARTITION_NAMES)}",
+    )
+    for expected, description in _CORES3_FIXED_PARTITIONS:
+        _require(by_name[expected[0]] == expected, board, f"{description} drifted from the CoreS3 contract")
+    rollback_safe = not any(row[1] == "app" and row[2] in {"factory", "test"} for row in rows)
+    _require(rollback_safe, board, "anti-rollback forbids factory/test app partitions")
+
+
+def _validate_target_app(layout: BoardLayout, by_name: dict[str, _PartitionRow]) -> _PartitionRow:
+    board = layout.board
+    app_name = layout.target_app_partition
+    _require(app_name is not None and app_name in by_name, board, "configured target app partition is missing")
+    app = by_name[app_name]
+    _require(app[1:3] == ("app", "ota_0"), board, f"{app_name} must be an app/ota_0 partition")
+    _require(
+        app[3] == layout.app_offset and app[4] == layout.app_size,
+        board,
+        f"{app_name} must remain at 0x{layout.app_offset:08X} with size 0x{layout.app_size:X}",
+    )
+    return app
+
+
+def _validate_state_reservation(layout: BoardLayout, app: _PartitionRow, by_name: dict[str, _PartitionRow]) -> None:
+    board = layout.board
+    state = by_name.get("kaskold_state")
+    _require(state is not None, board, "kaskold_state reservation is missing")
+    _require(
+        state[3] == layout.state_offset and state[4] == layout.state_size,
+        board,
+        f"kaskold_state must remain at 0x{layout.state_offset:08X} with size 0x{layout.state_size:X}",
+    )
+    _require(state[3] + state[4] == layout.flash_size_bytes, board, "kaskold_state must terminate at the end of flash")
+    _require(state[1:3] == ("data", "undefined"), board, "kaskold_state must remain a data/undefined reservation")
+    _require(app[3] + app[4] <= state[3], board, "application partition overlaps persistent-wallet storage")
+
+
 def validate_layout(layout: BoardLayout) -> None:
     path = layout.partition_path()
     if path is None:
         return
-    if not path.is_file():
-        raise ValueError(f"{layout.board}: partition table not found: {path}")
-    if layout.flash_size_bytes is None:
-        raise ValueError(f"{layout.board}: custom partition table requires flash_size_bytes")
+    board = layout.board
+    _require(path.is_file(), board, f"partition table not found: {path}")
+    _require(layout.flash_size_bytes is not None, board, "custom partition table requires flash_size_bytes")
 
     rows = _read_partitions(path)
-    if not rows:
-        raise ValueError(f"{layout.board}: partition table is empty")
-    names = [row[0] for row in rows]
-    if len(names) != len(set(names)):
-        raise ValueError(f"{layout.board}: duplicate partition names are forbidden")
-
-    ordered = sorted(rows, key=lambda row: row[3])
-    previous_end = PARTITION_TABLE_OFFSET + PARTITION_TABLE_SIZE
-    for name, kind, _subtype, offset, size in ordered:
-        if offset % SECTOR_SIZE != 0 or size <= 0 or size % SECTOR_SIZE != 0:
-            raise ValueError(f"{layout.board}: {name} must be non-empty and 4-KiB aligned")
-        if kind == "app" and offset % APP_ALIGNMENT != 0:
-            raise ValueError(f"{layout.board}: app partition {name} must be 64-KiB aligned")
-        end = offset + size
-        if offset < previous_end:
-            raise ValueError(f"{layout.board}: partition {name} overlaps a previous partition")
-        if end > layout.flash_size_bytes:
-            raise ValueError(f"{layout.board}: partition {name} exceeds physical flash capacity")
-        previous_end = end
-
+    _require(bool(rows), board, "partition table is empty")
     by_name = {row[0]: row for row in rows}
-    if layout.board in {"m5stack", "m5stack-lite"}:
-        expected_names = {"nvs", "otadata", "phy_init", "ota_0", "ota_1", "owner_stage", "kaskold_bootctl", "kaskold_qa", "kaskold_state"}
-        if set(by_name) != expected_names:
-            raise ValueError(
-                f"{layout.board}: partition names must be exactly {sorted(expected_names)}"
-            )
-        if by_name["nvs"] != ("nvs", "data", "nvs", 0x9000, 0x4000):
-            raise ValueError(f"{layout.board}: NVS layout drifted from the CoreS3 contract")
-        if by_name["otadata"] != ("otadata", "data", "ota", 0xD000, 0x2000):
-            raise ValueError(f"{layout.board}: OTA data layout drifted from the CoreS3 contract")
-        if by_name["phy_init"] != ("phy_init", "data", "phy", 0xF000, 0x1000):
-            raise ValueError(f"{layout.board}: PHY layout drifted from the CoreS3 contract")
-        if by_name["ota_1"] != ("ota_1", "app", "ota_1", 0x210000, 0x200000):
-            raise ValueError(f"{layout.board}: secondary OTA slot drifted from the CoreS3 contract")
-        if by_name["owner_stage"] != ("owner_stage", "data", "undefined", 0x410000, 0x200000):
-            raise ValueError(f"{layout.board}: owner firmware staging partition drifted from the CoreS3 contract")
-        if by_name["kaskold_bootctl"] != ("kaskold_bootctl", "data", "undefined", 0x610000, 0x1000):
-            raise ValueError(f"{layout.board}: boot-control partition drifted from the CoreS3 contract")
-        if any(row[1] == "app" and row[2] in {"factory", "test"} for row in rows):
-            raise ValueError(f"{layout.board}: anti-rollback forbids factory/test app partitions")
+    _require(len(rows) == len(by_name), board, "duplicate partition names are forbidden")
+    _validate_partition_placement(layout, rows)
 
-    app_name = layout.target_app_partition
-    if app_name is None or app_name not in by_name:
-        raise ValueError(f"{layout.board}: configured target app partition is missing")
-    app = by_name[app_name]
-    expected_subtype = "ota_0"
-    if app[1:3] != ("app", expected_subtype):
-        raise ValueError(f"{layout.board}: {app_name} must be an app/{expected_subtype} partition")
-    if app[3] != layout.app_offset or app[4] != layout.app_size:
-        raise ValueError(
-            f"{layout.board}: {app_name} must remain at 0x{layout.app_offset:08X} "
-            f"with size 0x{layout.app_size:X}"
-        )
-
-    if layout.board in {"m5stack", "m5stack-lite"}:
+    cores3 = board in _CORES3_BOARDS
+    if cores3:
+        _validate_cores3_contract(board, rows, by_name)
+    app = _validate_target_app(layout, by_name)
+    if cores3:
         qa = by_name.get("kaskold_qa")
-        if qa != ("kaskold_qa", "data", "undefined", 0xFF8000, 0x4000):
-            raise ValueError(f"{layout.board}: kaskold_qa must reserve 16 KiB at 0x00FF8000")
-
-    state = by_name.get("kaskold_state")
-    if state is None:
-        raise ValueError(f"{layout.board}: kaskold_state reservation is missing")
-    if state[3] != layout.state_offset or state[4] != layout.state_size:
-        raise ValueError(
-            f"{layout.board}: kaskold_state must remain at 0x{layout.state_offset:08X} "
-            f"with size 0x{layout.state_size:X}"
-        )
-    if state[3] + state[4] != layout.flash_size_bytes:
-        raise ValueError(f"{layout.board}: kaskold_state must terminate at the end of flash")
-    if state[1:3] != ("data", "undefined"):
-        raise ValueError(f"{layout.board}: kaskold_state must remain a data/undefined reservation")
-    if app[3] + app[4] > state[3]:
-        raise ValueError(f"{layout.board}: application partition overlaps persistent-wallet storage")
+        _require(qa == ("kaskold_qa", "data", "undefined", 0xFF8000, 0x4000), board, "kaskold_qa must reserve 16 KiB at 0x00FF8000")
+    _validate_state_reservation(layout, app, by_name)
 
 
 def partition_sha256(layout: BoardLayout) -> str | None:

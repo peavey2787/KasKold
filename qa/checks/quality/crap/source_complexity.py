@@ -114,11 +114,136 @@ def _monitored_records(
     return source, function_decisions(source, relative)
 
 
+def _records_over(
+    records: list[FunctionDecisionCount],
+    level: int,
+) -> list[FunctionDecisionCount]:
+    return [record for record in records if record.decisions > level]
+
+
+def _production_errors(
+    records: list[FunctionDecisionCount],
+    maximum: int,
+    maximum_warnings: int,
+    warnings: list[FunctionDecisionCount],
+) -> list[str]:
+    errors: list[str] = []
+    for record in _records_over(records, maximum):
+        errors.append(
+            "production function exceeds the source-decision limit: "
+            f"{record.path}:{record.line} {record.name} "
+            f"({record.decisions} > {maximum})"
+        )
+    if len(warnings) > maximum_warnings:
+        errors.append(
+            "production source-decision warning count regressed: "
+            f"{len(warnings)} > {maximum_warnings}"
+        )
+    return errors
+
+
+def _helper_limit_errors(
+    relative: str,
+    records: list[FunctionDecisionCount],
+    monitored_maximum: int,
+) -> list[str]:
+    return [
+        "monitored helper exceeds the source-decision limit: "
+        f"{relative}:{record.line} {record.name} "
+        f"({record.decisions} > {monitored_maximum})"
+        for record in _records_over(records, monitored_maximum)
+    ]
+
+
+def _monitored_errors(
+    root: Path,
+    monitored_paths: list,
+    monitored_maximum: int,
+    errors: list[str],
+) -> tuple[dict[str, str], dict[str, list[FunctionDecisionCount]]]:
+    records_by_path: dict[str, list[FunctionDecisionCount]] = {}
+    source_by_path: dict[str, str] = {}
+    for relative in monitored_paths:
+        if not isinstance(relative, str):
+            errors.append("monitored source path is invalid")
+            continue
+        source, path_records = _monitored_records(root, relative, errors)
+        source_by_path[relative] = source
+        records_by_path[relative] = path_records
+        errors.extend(_helper_limit_errors(relative, path_records, monitored_maximum))
+    return source_by_path, records_by_path
+
+
+def _unique_record(
+    records: list[FunctionDecisionCount],
+    name: str,
+) -> FunctionDecisionCount | None:
+    matches = [record for record in records if record.name == name]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _target_record_errors(
+    target: dict,
+    record: FunctionDecisionCount,
+    relative: str,
+    name: str,
+    source: str,
+) -> list[str]:
+    errors: list[str] = []
+    previous = target.get("previous_complexity")
+    fragments = target.get("required_fragments")
+    if not isinstance(previous, int) or record.decisions >= previous:
+        errors.append(
+            "decomposition target did not remain below its original complexity: "
+            f"{relative}::{name} ({record.decisions} vs original CC {previous})"
+        )
+    if not isinstance(fragments, list) or any(
+        not isinstance(fragment, str) or fragment not in source
+        for fragment in fragments
+    ):
+        errors.append(f"decomposition contract is incomplete: {relative}::{name}")
+    return errors
+
+
+def _target_errors(
+    targets: list,
+    records_by_path: dict[str, list[FunctionDecisionCount]],
+    source_by_path: dict[str, str],
+    errors: list[str],
+) -> list[int]:
+    target_counts: list[int] = []
+    for target in targets:
+        if not isinstance(target, dict):
+            errors.append("decomposition target is invalid")
+            continue
+        relative = target.get("path")
+        name = target.get("function")
+        if not isinstance(relative, str) or not isinstance(name, str):
+            errors.append("decomposition target identity is invalid")
+            continue
+        record = _unique_record(records_by_path.get(relative, []), name)
+        if record is None:
+            errors.append(
+                f"decomposition target must have one implementation: {relative}::{name}"
+            )
+            continue
+        target_counts.append(record.decisions)
+        errors.extend(
+            _target_record_errors(
+                target,
+                record,
+                relative,
+                name,
+                source_by_path.get(relative, ""),
+            )
+        )
+    return target_counts
+
+
 def check_source_policy(
     root: Path,
     policy: dict[str, Any],
 ) -> tuple[list[str], dict[str, int]]:
-    errors: list[str] = []
     maximum = policy.get("maximum_production_source_decisions")
     warning_level = policy.get("warning_source_decisions")
     maximum_warnings = policy.get("maximum_warning_functions")
@@ -136,72 +261,15 @@ def check_source_policy(
         return ["source-complexity contracts are incomplete"], {}
 
     records = production_records(root)
-    excessive = [record for record in records if record.decisions > maximum]
-    warnings = [record for record in records if record.decisions > warning_level]
-    for record in excessive:
-        errors.append(
-            "production function exceeds the source-decision limit: "
-            f"{record.path}:{record.line} {record.name} "
-            f"({record.decisions} > {maximum})"
-        )
-    if len(warnings) > maximum_warnings:
-        errors.append(
-            "production source-decision warning count regressed: "
-            f"{len(warnings)} > {maximum_warnings}"
-        )
-
-    records_by_path: dict[str, list[FunctionDecisionCount]] = {}
-    source_by_path: dict[str, str] = {}
-    for relative in monitored_paths:
-        if not isinstance(relative, str):
-            errors.append("monitored source path is invalid")
-            continue
-        source, path_records = _monitored_records(root, relative, errors)
-        source_by_path[relative] = source
-        records_by_path[relative] = path_records
-        for record in path_records:
-            if record.decisions > monitored_maximum:
-                errors.append(
-                    "monitored helper exceeds the source-decision limit: "
-                    f"{relative}:{record.line} {record.name} "
-                    f"({record.decisions} > {monitored_maximum})"
-                )
-
-    target_counts: list[int] = []
-    for target in targets:
-        if not isinstance(target, dict):
-            errors.append("decomposition target is invalid")
-            continue
-        relative = target.get("path")
-        name = target.get("function")
-        previous = target.get("previous_complexity")
-        fragments = target.get("required_fragments")
-        if not isinstance(relative, str) or not isinstance(name, str):
-            errors.append("decomposition target identity is invalid")
-            continue
-        matches = [
-            record for record in records_by_path.get(relative, [])
-            if record.name == name
-        ]
-        if len(matches) != 1:
-            errors.append(
-                f"decomposition target must have one implementation: {relative}::{name}"
-            )
-            continue
-        record = matches[0]
-        target_counts.append(record.decisions)
-        if not isinstance(previous, int) or record.decisions >= previous:
-            errors.append(
-                "decomposition target did not remain below its original complexity: "
-                f"{relative}::{name} ({record.decisions} vs original CC {previous})"
-            )
-        source = source_by_path.get(relative, "")
-        if not isinstance(fragments, list) or any(
-            not isinstance(fragment, str) or fragment not in source
-            for fragment in fragments
-        ):
-            errors.append(f"decomposition contract is incomplete: {relative}::{name}")
-
+    warnings = _records_over(records, warning_level)
+    errors = _production_errors(records, maximum, maximum_warnings, warnings)
+    source_by_path, records_by_path = _monitored_errors(
+        root,
+        monitored_paths,
+        monitored_maximum,
+        errors,
+    )
+    target_counts = _target_errors(targets, records_by_path, source_by_path, errors)
     return errors, {
         "production_functions": len(records),
         "warning_functions": len(warnings),

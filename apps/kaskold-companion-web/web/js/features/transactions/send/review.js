@@ -208,9 +208,43 @@ export function hideQrFrameHexDisplay() {
     resetQrFrameHexDisplay();
 }
 
-export function displayKsptQr(ksptHex, title, options = {}) {
-    // Clear any stale QR cycle from a previous display
+function clearStaleQrCycle() {
     if (scannerState.qrCycleTimer) { clearInterval(scannerState.qrCycleTimer); scannerState.qrCycleTimer = null; }
+}
+
+function isRelayDisplay(mode, title) {
+    return mode === 'relay' || (mode === 'standard' && Boolean(title) && title.includes('Relay'));
+}
+
+function configureQrScanControls(options, isRelay, antiKleptoStep) {
+    const nextSignatureButton = byId('btn-scan-next-sig');
+    const primaryScanButton = byId('btn-qr-scan-signed');
+    const instruction = byId('qr-display-instruction');
+    nextSignatureButton.style.display = antiKleptoStep ? 'none' : (isRelay ? 'block' : 'none');
+    nextSignatureButton.textContent = 'Scan Next Signature';
+    primaryScanButton.style.display = '';
+    primaryScanButton.textContent = options.primaryScanLabel || 'Scan Signed QR';
+    primaryScanButton.dataset.scanTitle = options.scannerTitle || 'Scan signed QR';
+    instruction.textContent = options.instruction || '';
+    instruction.style.display = options.instruction ? '' : 'none';
+}
+
+function renderQrFrames(frames) {
+    if (frames.length === 1) {
+        showQrSvg(byId('qr-container'), frames[0].svg, 'Signing request QR');
+        byId('qr-frame-info').replaceChildren();
+        return;
+    }
+    setContent(byId('qr-frame-info'), frameControls(frames.length));
+    renderQrFrame(0);
+    startQrCycle();
+    bindClick('btn-frame-prev', () => { stepQrFrame(-1); restartRunningQrCycle(); });
+    bindClick('btn-frame-next', () => { stepQrFrame(1); restartRunningQrCycle(); });
+    bindClick('btn-frame-pause', toggleQrCycle);
+}
+
+export function displayKsptQr(ksptHex, title, options = {}) {
+    clearStaleQrCycle();
     // Render TX verification info below QR
     renderQrTxInfo();
     try {
@@ -221,32 +255,11 @@ export function displayKsptQr(ksptHex, title, options = {}) {
         byId('qr-display-title').textContent = title || 'Scan QR Code';
 
         const mode = options.mode || 'standard';
-        const isRelay = mode === 'relay' || (mode === 'standard' && title && title.includes('Relay'));
         const antiKleptoStep = mode === 'anti-klepto-request' || mode === 'anti-klepto-reveal';
-        const nextSignatureButton = byId('btn-scan-next-sig');
-        const primaryScanButton = byId('btn-qr-scan-signed');
-        const instruction = byId('qr-display-instruction');
-        nextSignatureButton.style.display = antiKleptoStep ? 'none' : (isRelay ? 'block' : 'none');
-        nextSignatureButton.textContent = 'Scan Next Signature';
-        primaryScanButton.style.display = '';
-        primaryScanButton.textContent = options.primaryScanLabel || 'Scan Signed QR';
-        primaryScanButton.dataset.scanTitle = options.scannerTitle || 'Scan signed QR';
-        instruction.textContent = options.instruction || '';
-        instruction.style.display = options.instruction ? '' : 'none';
+        configureQrScanControls(options, isRelayDisplay(mode, title), antiKleptoStep);
         byId('btn-copy-kspt').style.display = 'none'; // hidden until advanced tab
         transactionState._currentKsptHex = ksptHex;
-
-        if (frames.length === 1) {
-            showQrSvg(byId('qr-container'), frames[0].svg, 'Signing request QR');
-            byId('qr-frame-info').replaceChildren();
-        } else {
-            setContent(byId('qr-frame-info'), frameControls(frames.length));
-            renderQrFrame(0);
-            startQrCycle();
-            bindClick('btn-frame-prev', () => { stepQrFrame(-1); restartRunningQrCycle(); });
-            bindClick('btn-frame-next', () => { stepQrFrame(1); restartRunningQrCycle(); });
-            bindClick('btn-frame-pause', toggleQrCycle);
-        }
+        renderQrFrames(frames);
         showScreen('qr-display');
     } catch (e) {
         toast('QR generation failed: ' + e, 'error', 5000);

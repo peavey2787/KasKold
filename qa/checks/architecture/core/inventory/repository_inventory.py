@@ -179,6 +179,39 @@ def check(root: Path) -> list[str]:
     return errors
 
 
+def _drop_covered(updated: set[str], relative: Path) -> set[str]:
+    return {candidate for candidate in updated if not _covered(_parts(candidate)[1], [relative])}
+
+
+def _adopt_covered(updated: set[str], added: tuple[str, ...], relative: Path) -> set[str]:
+    return updated | {candidate for candidate in added if _covered(_parts(candidate)[1], [relative])}
+
+
+def _resolve_entries(
+    entries: tuple[str, ...],
+    label: str,
+    decide: Decision,
+    updated: set[str],
+    apply: Callable[[set[str], Path], set[str]],
+) -> tuple[set[str], bool, list[str]]:
+    """Ask for a decision on each entry; return (updated, changed, errors)."""
+    changed = False
+    handled: list[Path] = []
+    for entry in _ordered(entries):
+        kind, relative = _parts(entry)
+        if _covered(relative, handled):
+            continue
+        decision = decide(label, _describe(entry))
+        if decision == 0:
+            updated = apply(updated, relative)
+            changed = True
+        elif decision != 1:
+            return updated, changed, [f"invalid repository inventory decision for {_describe(entry)}"]
+        if kind == "D":
+            handled.append(relative)
+    return updated, changed, []
+
+
 def reconcile(root: Path, decide: Decision) -> list[str]:
     forbidden = _forbidden_errors(root)
     if forbidden:
@@ -187,43 +220,18 @@ def reconcile(root: Path, decide: Decision) -> list[str]:
     if not inventory_path.is_file():
         return [f"repository inventory baseline is missing: {INVENTORY_RELATIVE.as_posix()}"]
 
-    updated = set(expected)
-    changed = False
-    handled_missing: list[Path] = []
-    for entry in _ordered(missing):
-        kind, relative = _parts(entry)
-        if _covered(relative, handled_missing):
-            continue
-        decision = decide("missing", _describe(entry))
-        if decision == 0:
-            updated = {
-                candidate for candidate in updated
-                if not _covered(_parts(candidate)[1], [relative])
-            }
-            changed = True
-        elif decision != 1:
-            return [f"invalid repository inventory decision for {_describe(entry)}"]
-        if kind == "D":
-            handled_missing.append(relative)
+    updated, missing_changed, errors = _resolve_entries(
+        missing, "missing", decide, set(expected), _drop_covered
+    )
+    if errors:
+        return errors
+    updated, added_changed, errors = _resolve_entries(
+        added, "new", decide, updated,
+        lambda current, relative: _adopt_covered(current, added, relative),
+    )
+    if errors:
+        return errors
 
-    handled_added: list[Path] = []
-    added_set = set(added)
-    for entry in _ordered(added):
-        kind, relative = _parts(entry)
-        if _covered(relative, handled_added):
-            continue
-        decision = decide("new", _describe(entry))
-        if decision == 0:
-            updated.update(
-                candidate for candidate in added_set
-                if _covered(_parts(candidate)[1], [relative])
-            )
-            changed = True
-        elif decision != 1:
-            return [f"invalid repository inventory decision for {_describe(entry)}"]
-        if kind == "D":
-            handled_added.append(relative)
-
-    if changed:
+    if missing_changed or added_changed:
         inventory_path.write_text("\n".join(sorted(updated)) + "\n")
     return []

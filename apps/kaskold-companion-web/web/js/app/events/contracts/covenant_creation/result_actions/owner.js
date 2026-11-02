@@ -71,16 +71,30 @@ function configureOwnerHelp(covenantType) {
     help.style.display = '';
 }
 
+const ALWAYS_SWEEP_OWNER_TYPES = new Set(['additive', 'global-allowance', 'dms', 'oracle-v1']);
+const OWNER_CREATE_LABELS = new Map([
+    ['dms', 'Create Heartbeat TX'],
+    ['additive', 'Break Piggy Bank'],
+    ['oracle-v1', 'Create Timeout Refund TX'],
+]);
+const OWNER_RECEIVE_PREFILL_TYPES = new Set(['additive', 'global-allowance']);
+
+function ownerAmountPlaceholder(covenantType) {
+    const maxSompi = covenantState.lastCovenantResult?.max_withdraw_sompi;
+    if (covenantType === 'global-spending-limit' && maxSompi) {
+        return `Max ${sompiToKasString(maxSompi)} KAS, empty = sweep all`;
+    }
+    return 'Empty = sweep all';
+}
+
 function configureOwnerAmount(covenantType) {
     const amount = byId('cov-owner-amount');
     const label = amount?.previousElementSibling;
-    const alwaysSweep = covenantType === 'additive' || covenantType === 'global-allowance' || covenantType === 'dms' || covenantType === 'oracle-v1';
+    const alwaysSweep = ALWAYS_SWEEP_OWNER_TYPES.has(covenantType);
     if (amount) {
         amount.style.display = alwaysSweep ? 'none' : '';
         if (alwaysSweep) amount.value = '';
-        amount.placeholder = covenantType === 'global-spending-limit' && covenantState.lastCovenantResult?.max_withdraw_sompi
-            ? `Max ${sompiToKasString(covenantState.lastCovenantResult.max_withdraw_sompi)} KAS, empty = sweep all`
-            : 'Empty = sweep all';
+        amount.placeholder = ownerAmountPlaceholder(covenantType);
     }
     if (label?.tagName === 'LABEL') {
         label.style.display = alwaysSweep ? 'none' : '';
@@ -88,30 +102,33 @@ function configureOwnerAmount(covenantType) {
     }
 }
 
-function configureOwnerControls(covenantType) {
-    const create = byId('btn-cov-owner-create');
-    if (create) create.textContent = covenantType === 'dms'
-        ? 'Create Heartbeat TX'
-        : covenantType === 'additive' ? 'Break Piggy Bank'
-            : covenantType === 'oracle-v1' ? 'Create Timeout Refund TX' : 'Create Owner Spend TX';
-    const panel = byId('cov-owner-panel');
-    if (panel) panel.dataset.covOwnerMode = covenantType === 'dms' ? 'heartbeat' : '';
+function configureOwnerConsolidate(covenantType) {
     const consolidate = byId('btn-cov-owner-consolidate');
-    if (consolidate) {
-        consolidate.style.display = covenantType === 'dms' ? '' : 'none';
-        if (covenantType === 'dms') consolidate.textContent = 'Consolidate UTXOs (batched heartbeat)';
-    }
+    if (!consolidate) return;
+    consolidate.style.display = covenantType === 'dms' ? '' : 'none';
+    if (covenantType === 'dms') consolidate.textContent = 'Consolidate UTXOs (batched heartbeat)';
+}
+
+function configureOwnerDestination(covenantType) {
     const destination = byId('cov-owner-dest');
     if (covenantType === 'dms') {
         destination.value = covenantState.lastCovenantResult.address || '';
         destination.readOnly = true;
-    } else {
-        destination.readOnly = false;
-        if (covenantType === 'additive' || covenantType === 'global-allowance') {
-            const ownAddress = ownerReceiveAddr();
-            if (ownAddress) destination.value = ownAddress;
-        }
+        return;
     }
+    destination.readOnly = false;
+    if (!OWNER_RECEIVE_PREFILL_TYPES.has(covenantType)) return;
+    const ownAddress = ownerReceiveAddr();
+    if (ownAddress) destination.value = ownAddress;
+}
+
+function configureOwnerControls(covenantType) {
+    const create = byId('btn-cov-owner-create');
+    if (create) create.textContent = OWNER_CREATE_LABELS.get(covenantType) ?? 'Create Owner Spend TX';
+    const panel = byId('cov-owner-panel');
+    if (panel) panel.dataset.covOwnerMode = covenantType === 'dms' ? 'heartbeat' : '';
+    configureOwnerConsolidate(covenantType);
+    configureOwnerDestination(covenantType);
 }
 
 function openOwnerPanel(covenantType) {

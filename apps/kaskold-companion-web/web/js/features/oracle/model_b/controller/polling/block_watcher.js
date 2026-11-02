@@ -5,28 +5,42 @@ import { covenant_oracle_mb } from '../../../../../wasm/api.js';
 import { ORACLE_MB_PROTOCOL } from '../../config.js';
 import { oracleMbIdentity } from '../../state.js';
 
-function processBlockNotification(setRoot, data, oracleMbRenderState) {
-    if (data.length < 50) return;
+function isOracleBlockPayload(data) {
+    if (data.length < 50) return false;
     const start = data[0] === 0x01 ? 9 : 1;
-    if (start >= data.length || data[start] !== 0xFF || data[start + 2] !== 0x3C) return;
+    return start < data.length && data[start] === 0xFF && data[start + 2] === 0x3C;
+}
 
+function findOracleRecord(data, setRoot) {
     for (let offset = 17; offset + 32 <= data.length; offset += 1) {
-        if (!matchesSetRoot(data, offset, setRoot) || data[offset - 17] !== 0x30) continue;
-        const price = readLittleEndianU64(data, offset - 16);
-        const timestamp = readLittleEndianU64(data, offset - 8);
-        if (oracleState._oracleMbState?.price === price && oracleState._oracleMbState?.t === timestamp) return;
-        const rollTxid = oracleState._oracleMbState?.rollTxid || '';
-        oracleState._oracleMbState = {
-            price,
-            t: timestamp,
-            rollTxid,
-            addr: deriveOracleAddress(price, timestamp),
-        };
-        oracleState._oracleMbPriceTs = Date.now();
-        oracleMbRenderState();
-        console.log('[oracle-mb] block-stream update: price', price.toString(), 'T', timestamp.toString());
-        return;
+        if (matchesSetRoot(data, offset, setRoot) && data[offset - 17] === 0x30) {
+            return {
+                price: readLittleEndianU64(data, offset - 16),
+                timestamp: readLittleEndianU64(data, offset - 8),
+            };
+        }
     }
+    return null;
+}
+
+function applyOracleRecord({ price, timestamp }, oracleMbRenderState) {
+    if (oracleState._oracleMbState?.price === price && oracleState._oracleMbState?.t === timestamp) return;
+    const rollTxid = oracleState._oracleMbState?.rollTxid || '';
+    oracleState._oracleMbState = {
+        price,
+        t: timestamp,
+        rollTxid,
+        addr: deriveOracleAddress(price, timestamp),
+    };
+    oracleState._oracleMbPriceTs = Date.now();
+    oracleMbRenderState();
+    console.log('[oracle-mb] block-stream update: price', price.toString(), 'T', timestamp.toString());
+}
+
+function processBlockNotification(setRoot, data, oracleMbRenderState) {
+    if (!isOracleBlockPayload(data)) return;
+    const record = findOracleRecord(data, setRoot);
+    if (record) applyOracleRecord(record, oracleMbRenderState);
 }
 
 function matchesSetRoot(data, offset, setRoot) {

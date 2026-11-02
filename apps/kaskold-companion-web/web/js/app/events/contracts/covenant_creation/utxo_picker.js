@@ -10,6 +10,47 @@ import { byId } from '../../../../core/dom.js';
 import { sortUtxosLargestFirst } from '../../../../core/utxo.js';
 import { sompiToKasFixed } from '../../../../core/amounts.js';
 import { exactJsonStringify } from '../../../../core/exact.js';
+const PIGGY_BREAK_LABELS = {
+    title: 'Break Piggy Bank',
+    desc: 'Sweep the piggy to your address. All UTXOs are selected. Deselect some to break in smaller batches if the QR is too large for your KasKold. Owner signature required.',
+};
+const STANDARD_PICKER_LABELS = {
+    title: 'Select UTXOs',
+    desc: 'Select UTXOs to consolidate or withdraw. Owner signature required.',
+};
+
+function applyPickerLabels(isPiggyBreak) {
+    const labels = isPiggyBreak ? PIGGY_BREAK_LABELS : STANDARD_PICKER_LABELS;
+    const titleEl = byId('cov-consol-title');
+    const descEl = byId('cov-consol-desc');
+    if (titleEl) titleEl.textContent = labels.title;
+    if (descEl) descEl.textContent = labels.desc;
+}
+
+function buildUtxoRow(utxo, idx) {
+    const kas = sompiToKasFixed(utxo.amount, 4);
+    const txShort = utxo.tx_id.substring(0, 8) + '...' + utxo.tx_id.substring(utxo.tx_id.length - 6);
+    const row = document.createElement('label');
+    row.classList.add('covenant-utxo-option');
+    row.append(
+        el('input', { className: 'covenant-utxo-checkbox', attrs: { type: 'checkbox' }, checked: true, dataset: { utxoIdx: idx } }),
+        el('div', { className: 'u-grow' },
+            el('div', { className: 'covenant-utxo-amount' }, `${kas} KAS`),
+            el('div', { className: 'covenant-utxo-outpoint' }, `${txShort}:${utxo.index}`)));
+    return row;
+}
+
+function renderUtxoRows(listEl, utxos) {
+    utxos.forEach((utxo, idx) => listEl.appendChild(buildUtxoRow(utxo, idx)));
+}
+
+function bindSummaryOnce(listEl) {
+    // Reopening the picker must not stack another summary listener.
+    if (listEl.dataset.summaryBound) return;
+    listEl.dataset.summaryBound = 'true';
+    listEl.addEventListener('change', () => updateConsolSummary());
+}
+
 export async function openUtxoPicker(defaultDest, beneClaim = null) {
         if (!covenantState.lastCovenantResult) { toast('No covenant loaded', 'error'); return; }
         covenantState._pickerBeneClaim = beneClaim || null; // beneficiary timeout claim vs owner sweep
@@ -21,15 +62,7 @@ export async function openUtxoPicker(defaultDest, beneClaim = null) {
         // consolidation. Default-select all, and explain that deselecting lets you
         // break in smaller batches if a full sweep makes too large a QR for KasKold.
         const _isPiggyBreak = (covenantState.lastCovenantResult.type === 'additive') && defaultDest && defaultDest !== covAddr;
-        const _titleEl = byId('cov-consol-title');
-        const _descEl = byId('cov-consol-desc');
-        if (_isPiggyBreak) {
-            if (_titleEl) _titleEl.textContent = 'Break Piggy Bank';
-            if (_descEl) _descEl.textContent = 'Sweep the piggy to your address. All UTXOs are selected. Deselect some to break in smaller batches if the QR is too large for your KasKold. Owner signature required.';
-        } else {
-            if (_titleEl) _titleEl.textContent = 'Select UTXOs';
-            if (_descEl) _descEl.textContent = 'Select UTXOs to consolidate or withdraw. Owner signature required.';
-        }
+        applyPickerLabels(_isPiggyBreak);
         covShowPanel('consolidate');
         try {
             const wsUrl = await resolveNodeUrl();
@@ -38,25 +71,10 @@ export async function openUtxoPicker(defaultDest, beneClaim = null) {
             if (utxos.length < 1) { toast('No UTXOs at covenant address', 'error'); covShowPanel('result'); return; }
             listEl.replaceChildren();
             sortUtxosLargestFirst(utxos);
-            utxos.forEach((u, i) => {
-                const kas = sompiToKasFixed(u.amount, 4);
-                const txShort = u.tx_id.substring(0, 8) + '...' + u.tx_id.substring(u.tx_id.length - 6);
-                const row = document.createElement('label');
-                row.classList.add('covenant-utxo-option');
-                row.append(
-                    el('input', { className: 'covenant-utxo-checkbox', attrs: { type: 'checkbox' }, checked: true, dataset: { utxoIdx: i } }),
-                    el('div', { className: 'u-grow' },
-                        el('div', { className: 'covenant-utxo-amount' }, `${kas} KAS`),
-                        el('div', { className: 'covenant-utxo-outpoint' }, `${txShort}:${u.index}`)));
-                listEl.appendChild(row);
-            });
+            renderUtxoRows(listEl, utxos);
             listEl.dataset.utxos = exactJsonStringify(utxos);
             updateConsolSummary();
-            if (!listEl.dataset.summaryBound) {
-                // Reopening the picker must not stack another summary listener.
-                listEl.dataset.summaryBound = 'true';
-                listEl.addEventListener('change', () => updateConsolSummary());
-            }
+            bindSummaryOnce(listEl);
         } catch (e) {
             toast('Error loading UTXOs: ' + e, 'error');
             covShowPanel('result');

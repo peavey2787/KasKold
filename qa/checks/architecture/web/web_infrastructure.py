@@ -23,6 +23,18 @@ def check_scoped_context(web_js_root: Path) -> list[str]:
 
 
 def check_shared_browser_infrastructure(web_js_root: Path) -> list[str]:
+    return [
+        *_check_subscription_and_parser_sources(web_js_root),
+        *_check_shared_block_added_transport(web_js_root),
+        *_check_retired_raw_signature_paths(web_js_root),
+        *_check_whole_buffer_hex_conversions(web_js_root),
+        *_check_stealth_catch_up(web_js_root),
+        *_check_krc20_balances(web_js_root),
+        *_check_covenant_result_inventory(web_js_root),
+    ]
+
+
+def _check_subscription_and_parser_sources(web_js_root: Path) -> list[str]:
     errors: list[str] = []
     subscription_source = (
         web_js_root / "features/covenants/watch/watcher/subscription.js"
@@ -42,7 +54,11 @@ def check_shared_browser_infrastructure(web_js_root: Path) -> list[str]:
     ).read_text(errors="ignore")
     if "core/bytes.js" not in outpoint_source or re.search(r"function\s+hexToBytes\b", outpoint_source):
         errors.append("covenant outpoint parsing must use the shared hexadecimal decoder")
+    return errors
 
+
+def _check_shared_block_added_transport(web_js_root: Path) -> list[str]:
+    errors: list[str] = []
     transport = web_js_root / "core/node/block_added_transport.js"
     if not transport.exists():
         errors.append("shared BlockAdded transport is missing")
@@ -60,7 +76,11 @@ def check_shared_browser_infrastructure(web_js_root: Path) -> list[str]:
     ).read_text(errors="ignore")
     if "createBlockAddedTransport" not in oracle_source or "hexToBytes" not in oracle_source:
         errors.append("oracle block watcher must use shared BlockAdded and hexadecimal infrastructure")
+    return errors
 
+
+def _check_retired_raw_signature_paths(web_js_root: Path) -> list[str]:
+    errors: list[str] = []
     for retired_raw_signature_path in (
         web_js_root / "app/events/contracts/adaptor_swap.js",
         web_js_root / "app/events/contracts/adaptor_swap",
@@ -74,7 +94,11 @@ def check_shared_browser_infrastructure(web_js_root: Path) -> list[str]:
                 "retired raw-signature browser implementation must remain absent: "
                 + retired_raw_signature_path.relative_to(web_js_root).as_posix()
             )
+    return errors
 
+
+def _check_whole_buffer_hex_conversions(web_js_root: Path) -> list[str]:
+    errors: list[str] = []
     whole_buffer_patterns = (
         re.compile(r"Array\.from\([\s\S]{0,180}?toString\(16\)\.padStart\(2[\s\S]{0,80}?\.join\("),
         re.compile(r"match\(/\.\{(?:1,)?2\}/g\)[\s\S]{0,100}?(?:Number\.)?parseInt\("),
@@ -88,7 +112,11 @@ def check_shared_browser_infrastructure(web_js_root: Path) -> list[str]:
             errors.append(
                 f"whole-buffer hexadecimal conversion bypasses core/bytes.js: {path.relative_to(web_js_root)}"
             )
+    return errors
 
+
+def _check_stealth_catch_up(web_js_root: Path) -> list[str]:
+    errors: list[str] = []
     stealth_catch_up = (
         web_js_root / "features/stealth/index/scanning/catch_up.js"
     ).read_text(errors="ignore")
@@ -98,7 +126,11 @@ def check_shared_browser_infrastructure(web_js_root: Path) -> list[str]:
         errors.append("consensus blueScore must never route through JavaScript Number")
     if '"gte":${gte.toString()}' not in stealth_catch_up or '"lt":${lt.toString()}' not in stealth_catch_up:
         errors.append("stealth blue-score search bounds must serialize directly from BigInt decimal strings")
+    return errors
 
+
+def _check_krc20_balances(web_js_root: Path) -> list[str]:
+    errors: list[str] = []
     assets_client = (web_js_root / "features/assets/client.js").read_text(errors="ignore")
     for required in (
         "exactUnsigned(token.balance",
@@ -120,7 +152,10 @@ def check_shared_browser_infrastructure(web_js_root: Path) -> list[str]:
         errors.append("KRC20 rendering must preserve balance as an exact integer")
     if re.search(r"token\.balance\s*/|Number\(token\.balance", assets_render):
         errors.append("KRC20 rendering must not convert exact balances to Number")
+    return errors
 
+
+def _check_covenant_result_inventory(web_js_root: Path) -> list[str]:
     expected_result_modules = {
         "primary_advanced/commit_reveal.js",
         "primary_advanced/crowdfund.js",
@@ -137,9 +172,9 @@ def check_shared_browser_infrastructure(web_js_root: Path) -> list[str]:
         for path in result_root.rglob("*.js")
         if path.parent.name in {"primary_advanced", "auxiliary"}
     }
-    if actual_result_modules != expected_result_modules:
-        errors.append(
-            f"covenant family result-action inventory changed: expected {sorted(expected_result_modules)}, "
-            f"got {sorted(actual_result_modules)}"
-        )
-    return errors
+    if actual_result_modules == expected_result_modules:
+        return []
+    return [
+        f"covenant family result-action inventory changed: expected {sorted(expected_result_modules)}, "
+        f"got {sorted(actual_result_modules)}"
+    ]

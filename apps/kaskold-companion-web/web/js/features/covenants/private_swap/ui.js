@@ -26,20 +26,24 @@ export function renderPrivateSwapUi(state, pendingDeviceAction) {
     if (pendingDeviceAction) byId('btn-private-swap-scan-device')?.classList.remove('hidden');
 }
 
+// Each rule reveals its buttons when its predicate holds. Order is preserved from the original chain.
+const ACTION_RULES = [
+    [state => state.role === 'alice' && state.stage === 'alice-offer-ready', ['btn-private-swap-share-offer', 'btn-private-swap-scan-response']],
+    [state => state.role === 'bob' && state.stage === 'bob-response-ready', ['btn-private-swap-share-response', 'btn-private-swap-scan-final']],
+    [state => state.stage === 'alice-needs-binding' || state.stage === 'bob-needs-binding', ['btn-private-swap-bind']],
+    [state => state.role === 'alice' && state.stage === 'alice-bound', ['btn-private-swap-share-final', 'btn-private-swap-fund']],
+    [state => state.role === 'bob' && state.myBindingToken && !state.myPreSignature, ['btn-private-swap-presign']],
+    [state => state.role === 'bob' && state.myPreSignature, ['btn-private-swap-fund', 'btn-private-swap-scan-presig']],
+    [state => state.role === 'alice' && state.myBindingToken && state.myAddress && !state.myPreSignature, ['btn-private-swap-fund', 'btn-private-swap-presign']],
+    [state => state.role === 'alice' && state.myPreSignature && !state.readyAckHash, ['btn-private-swap-share-presig', 'btn-private-swap-scan-ready']],
+    [state => state.role === 'bob' && state.myPreSignature && state.counterPreSignature, ['btn-private-swap-share-ready']],
+    [state => state.role === 'alice' && state.readyAckHash && !state.completed, ['btn-private-swap-complete']],
+    [state => state.role === 'bob' && state.counterCompletedSignature && !state.completed, ['btn-private-swap-bob-claim']],
+    [state => Boolean(state.myAddress) && !state.completed, ['btn-private-swap-refund']],
+];
+
 function actionIds(state) {
-    const ids = [];
-    if (state.role === 'alice' && state.stage === 'alice-offer-ready') ids.push('btn-private-swap-share-offer', 'btn-private-swap-scan-response');
-    if (state.role === 'bob' && state.stage === 'bob-response-ready') ids.push('btn-private-swap-share-response', 'btn-private-swap-scan-final');
-    if (state.stage === 'alice-needs-binding' || state.stage === 'bob-needs-binding') ids.push('btn-private-swap-bind');
-    if (state.role === 'alice' && state.stage === 'alice-bound') ids.push('btn-private-swap-share-final', 'btn-private-swap-fund');
-    if (state.role === 'bob' && state.myBindingToken && !state.myPreSignature) ids.push('btn-private-swap-presign');
-    if (state.role === 'bob' && state.myPreSignature) ids.push('btn-private-swap-fund', 'btn-private-swap-scan-presig');
-    if (state.role === 'alice' && state.myBindingToken && state.myAddress && !state.myPreSignature) ids.push('btn-private-swap-fund', 'btn-private-swap-presign');
-    if (state.role === 'alice' && state.myPreSignature && !state.readyAckHash) ids.push('btn-private-swap-share-presig', 'btn-private-swap-scan-ready');
-    if (state.role === 'bob' && state.myPreSignature && state.counterPreSignature) ids.push('btn-private-swap-share-ready');
-    if (state.role === 'alice' && state.readyAckHash && !state.completed) ids.push('btn-private-swap-complete');
-    if (state.role === 'bob' && state.counterCompletedSignature && !state.completed) ids.push('btn-private-swap-bob-claim');
-    if (state.myAddress && !state.completed) ids.push('btn-private-swap-refund');
+    const ids = ACTION_RULES.filter(([when]) => when(state)).flatMap(([, buttons]) => buttons);
     return [...new Set(ids)];
 }
 

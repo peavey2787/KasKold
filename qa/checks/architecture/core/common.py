@@ -95,72 +95,164 @@ def _rust_raw_string_start(source: str, index: int) -> tuple[int, int] | None:
         return cursor, cursor - hash_start
     return None
 
-def _rust_body_opening(source: str, start: int) -> int | None:
-    """Find a Rust function body without treating `[T; N]` as a declaration end."""
-    parens = brackets = 0
-    mode = "code"
-    escaped = False
-    block_depth = 0
-    raw_hashes = 0
+class _ScanState:
+    """Mutable cursor state shared by the Rust and brace-body source scanners."""
+
+    def __init__(self) -> None:
+        self.mode = "code"
+        self.close = ""
+        self.escaped = False
+        self.block_depth = 0
+        self.raw_hashes = 0
+        self.depth = 0
+        self.parens = 0
+        self.brackets = 0
+        self.done = False
+        self.result: int | None = None
+
+def _next_char(source: str, index: int) -> str:
+    return source[index + 1] if index + 1 < len(source) else ""
+
+def _enter_quoted(state: _ScanState, close: str) -> None:
+    state.mode = "quoted"
+    state.close = close
+
+def _enter_comment(source: str, index: int, state: _ScanState) -> int | None:
+    char = source[index]
+    following = _next_char(source, index)
+    if char == "/" and following == "/":
+        state.mode = "line_comment"
+        return index + 1
+    if char == "/" and following == "*":
+        state.mode = "block_comment"
+        state.block_depth = 1
+        return index + 1
+    return None
+
+def _enter_literal(
+    source: str,
+    index: int,
+    state: _ScanState,
+    *,
+    javascript: bool,
+    rust: bool,
+) -> int | None:
+    """Enter a string, char, raw string or comment; return the index to resume from."""
+    raw = _rust_raw_string_start(source, index) if rust else None
+    if raw is not None:
+        opening_quote, state.raw_hashes = raw
+        state.mode = "raw_string"
+        return opening_quote
+    char = source[index]
+    if char == '"':
+        _enter_quoted(state, '"')
+        return index
+    if char == "'" and (javascript or (rust and _rust_char_literal_end(source, index) is not None)):
+        _enter_quoted(state, "'")
+        return index
+    if javascript and char == "`":
+        _enter_quoted(state, "`")
+        return index
+    return _enter_comment(source, index, state)
+
+def _quoted_step(char: str, state: _ScanState) -> None:
+    if state.escaped:
+        state.escaped = False
+    elif char == "\\":
+        state.escaped = True
+    elif char == state.close:
+        state.mode = "code"
+
+def _raw_string_step(source: str, index: int, state: _ScanState) -> int:
+    terminator = '"' + "#" * state.raw_hashes
+    if source.startswith(terminator, index):
+        state.mode = "code"
+        return index + len(terminator) - 1
+    return index
+
+def _block_comment_step(source: str, index: int, state: _ScanState) -> int:
+    char = source[index]
+    following = _next_char(source, index)
+    if char == "/" and following == "*":
+        state.block_depth += 1
+        return index + 1
+    if char == "*" and following == "/":
+        state.block_depth -= 1
+        if state.block_depth == 0:
+            state.mode = "code"
+        return index + 1
+    return index
+
+def _scan_literal_step(source: str, index: int, state: _ScanState) -> int:
+    """Advance one character inside a string, raw string or comment."""
+    char = source[index]
+    if state.mode == "quoted":
+        _quoted_step(char, state)
+    elif state.mode == "raw_string":
+        return _raw_string_step(source, index, state)
+    elif state.mode == "line_comment":
+        if char == "\n":
+            state.mode = "code"
+    else:
+        return _block_comment_step(source, index, state)
+    return index
+
+def _run_scan(source: str, start: int, code_step) -> int | None:
+    """Scan from `start` until `code_step` records a result; None when the source ends first."""
+    state = _ScanState()
     index = start
     while index < len(source):
-        char = source[index]
-        following = source[index + 1] if index + 1 < len(source) else ""
-        if mode == "code":
-            raw = _rust_raw_string_start(source, index)
-            if raw is not None:
-                opening_quote, raw_hashes = raw
-                mode = "raw_string"
-                index = opening_quote
-            elif char == '"':
-                mode = "string"
-            elif char == "'" and _rust_char_literal_end(source, index) is not None:
-                mode = "char"
-            elif char == "/" and following == "/":
-                mode = "line_comment"
-                index += 1
-            elif char == "/" and following == "*":
-                mode = "block_comment"
-                block_depth = 1
-                index += 1
-            elif char == "(":
-                parens += 1
-            elif char == ")":
-                parens = max(0, parens - 1)
-            elif char == "[":
-                brackets += 1
-            elif char == "]":
-                brackets = max(0, brackets - 1)
-            elif char == "{" and parens == 0 and brackets == 0:
-                return index
-            elif char == ";" and parens == 0 and brackets == 0:
-                return None
-        elif mode in {"string", "char"}:
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif (mode == "string" and char == '"') or (mode == "char" and char == "'"):
-                mode = "code"
-        elif mode == "raw_string":
-            terminator = '"' + "#" * raw_hashes
-            if source.startswith(terminator, index):
-                index += len(terminator) - 1
-                mode = "code"
-        elif mode == "line_comment":
-            if char == "\n":
-                mode = "code"
-        elif mode == "block_comment":
-            if char == "/" and following == "*":
-                block_depth += 1
-                index += 1
-            elif char == "*" and following == "/":
-                block_depth -= 1
-                index += 1
-                if block_depth == 0:
-                    mode = "code"
+        if state.mode == "code":
+            index = code_step(source, index, state)
+        else:
+            index = _scan_literal_step(source, index, state)
+        if state.done:
+            return state.result
         index += 1
     return None
+
+def _rust_declaration_code_step(source: str, index: int, state: _ScanState) -> int:
+    opened = _enter_literal(source, index, state, javascript=False, rust=True)
+    if opened is not None:
+        return opened
+    char = source[index]
+    if char == "(":
+        state.parens += 1
+    elif char == ")":
+        state.parens = max(0, state.parens - 1)
+    elif char == "[":
+        state.brackets += 1
+    elif char == "]":
+        state.brackets = max(0, state.brackets - 1)
+    elif char == "{" and state.parens == 0 and state.brackets == 0:
+        state.done, state.result = True, index
+    elif char == ";" and state.parens == 0 and state.brackets == 0:
+        state.done, state.result = True, None
+    return index
+
+def _balanced_code_step(
+    source: str,
+    index: int,
+    state: _ScanState,
+    *,
+    javascript: bool,
+    rust: bool,
+) -> int:
+    opened = _enter_literal(source, index, state, javascript=javascript, rust=rust)
+    if opened is not None:
+        return opened
+    char = source[index]
+    if char == "{":
+        state.depth += 1
+    elif char == "}":
+        state.depth -= 1
+        if state.depth == 0:
+            state.done, state.result = True, index
+    return index
+
+def _rust_body_opening(source: str, start: int) -> int | None:
+    """Find a Rust function body without treating `[T; N]` as a declaration end."""
+    return _run_scan(source, start, _rust_declaration_code_step)
 
 def balanced_body_closing(
     source: str,
@@ -170,141 +262,95 @@ def balanced_body_closing(
     rust: bool = False,
 ) -> int | None:
     """Return a balanced body's closing brace for supported source languages."""
-    depth = 0
-    mode = "code"
-    escaped = False
-    block_depth = 0
-    raw_hashes = 0
-    index = opening
-    while index < len(source):
-        char = source[index]
-        following = source[index + 1] if index + 1 < len(source) else ""
-        if mode == "code":
-            raw = _rust_raw_string_start(source, index) if rust else None
-            if raw is not None:
-                opening_quote, raw_hashes = raw
-                mode = "raw_string"
-                index = opening_quote
-            elif char == '"':
-                mode = "double"
-            elif char == "'" and (javascript or (rust and _rust_char_literal_end(source, index) is not None)):
-                mode = "single"
-            elif javascript and char == "`":
-                mode = "template"
-            elif char == "/" and following == "/":
-                mode = "line_comment"
-                index += 1
-            elif char == "/" and following == "*":
-                mode = "block_comment"
-                block_depth = 1
-                index += 1
-            elif char == "{":
-                depth += 1
-            elif char == "}":
-                depth -= 1
-                if depth == 0:
-                    return index
-        elif mode in {"double", "single", "template"}:
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif (
-                (mode == "double" and char == '"')
-                or (mode == "single" and char == "'")
-                or (mode == "template" and char == "`")
-            ):
-                mode = "code"
-        elif mode == "raw_string":
-            terminator = '"' + "#" * raw_hashes
-            if source.startswith(terminator, index):
-                index += len(terminator) - 1
-                mode = "code"
-        elif mode == "line_comment":
-            if char == "\n":
-                mode = "code"
-        elif mode == "block_comment":
-            if char == "/" and following == "*":
-                block_depth += 1
-                index += 1
-            elif char == "*" and following == "/":
-                block_depth -= 1
-                index += 1
-                if block_depth == 0:
-                    mode = "code"
-        index += 1
-    return None
+    return _run_scan(
+        source,
+        opening,
+        lambda text, index, state: _balanced_code_step(
+            text, index, state, javascript=javascript, rust=rust
+        ),
+    )
+
+def _blank(output: list[str], start: int, stop: int) -> None:
+    for cursor in range(start, stop):
+        output[cursor] = " "
+
+def _mask_code_step(source: str, index: int, output: list[str], state: _ScanState) -> int:
+    raw = _rust_raw_string_start(source, index)
+    if raw is not None:
+        opening_quote, state.raw_hashes = raw
+        _blank(output, index, opening_quote + 1)
+        state.mode = "raw_string"
+        return opening_quote
+    char = source[index]
+    following = _next_char(source, index)
+    if char == '"':
+        _blank(output, index, index + 1)
+        _enter_quoted(state, '"')
+    elif char == "'" and _rust_char_literal_end(source, index) is not None:
+        _blank(output, index, index + 1)
+        _enter_quoted(state, "'")
+    elif char == "/" and following == "/":
+        _blank(output, index, index + 2)
+        state.mode = "line_comment"
+        return index + 1
+    elif char == "/" and following == "*":
+        _blank(output, index, index + 2)
+        state.mode = "block_comment"
+        state.block_depth = 1
+        return index + 1
+    return index
+
+def _mask_raw_string_step(source: str, index: int, output: list[str], state: _ScanState) -> int:
+    if source[index] != "\n":
+        output[index] = " "
+    terminator = '"' + "#" * state.raw_hashes
+    if source.startswith(terminator, index):
+        _blank(output, index, min(len(source), index + len(terminator)))
+        state.mode = "code"
+        return index + len(terminator) - 1
+    return index
+
+def _mask_block_comment_step(source: str, index: int, output: list[str], state: _ScanState) -> int:
+    char = source[index]
+    following = _next_char(source, index)
+    if char != "\n":
+        output[index] = " "
+    if char == "/" and following == "*":
+        output[index + 1] = " "
+        state.block_depth += 1
+        return index + 1
+    if char == "*" and following == "/":
+        output[index + 1] = " "
+        state.block_depth -= 1
+        if state.block_depth == 0:
+            state.mode = "code"
+        return index + 1
+    return index
+
+def _mask_literal_step(source: str, index: int, output: list[str], state: _ScanState) -> int:
+    char = source[index]
+    if state.mode == "raw_string":
+        return _mask_raw_string_step(source, index, output, state)
+    if state.mode == "block_comment":
+        return _mask_block_comment_step(source, index, output, state)
+    if char != "\n":
+        output[index] = " "
+    if state.mode == "quoted":
+        _quoted_step(char, state)
+    elif char == "\n":
+        state.mode = "code"
+    return index
 
 def rust_code_only(source: str) -> str:
     """Mask Rust comments and literals while preserving code positions and lines."""
     output = list(source)
-    mode = "code"
-    escaped = False
-    block_depth = 0
-    raw_hashes = 0
+    state = _ScanState()
     index = 0
     while index < len(source):
-        char = source[index]
-        following = source[index + 1] if index + 1 < len(source) else ""
-        if mode == "code":
-            raw = _rust_raw_string_start(source, index)
-            if raw is not None:
-                opening_quote, raw_hashes = raw
-                for cursor in range(index, opening_quote + 1):
-                    output[cursor] = " "
-                index = opening_quote
-                mode = "raw_string"
-            elif char == '"':
-                output[index] = " "
-                mode = "string"
-            elif char == "'" and _rust_char_literal_end(source, index) is not None:
-                output[index] = " "
-                mode = "char"
-            elif char == "/" and following == "/":
-                output[index] = output[index + 1] = " "
-                index += 1
-                mode = "line_comment"
-            elif char == "/" and following == "*":
-                output[index] = output[index + 1] = " "
-                index += 1
-                block_depth = 1
-                mode = "block_comment"
-        elif mode in {"string", "char"}:
-            if char != "\n":
-                output[index] = " "
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif (mode == "string" and char == '"') or (mode == "char" and char == "'"):
-                mode = "code"
-        elif mode == "raw_string":
-            terminator = '"' + "#" * raw_hashes
-            if char != "\n":
-                output[index] = " "
-            if source.startswith(terminator, index):
-                for cursor in range(index, min(len(source), index + len(terminator))):
-                    output[cursor] = " "
-                index += len(terminator) - 1
-                mode = "code"
-        elif mode == "line_comment":
-            if char == "\n":
-                mode = "code"
-            else:
-                output[index] = " "
-        elif mode == "block_comment":
-            if char != "\n":
-                output[index] = " "
-            if char == "/" and following == "*":
-                output[index + 1] = " "
-                index += 1
-                block_depth += 1
-            elif char == "*" and following == "/":
-                output[index + 1] = " "
-                index += 1
-                block_depth -= 1
-                if block_depth == 0:
-                    mode = "code"
+        if state.mode == "code":
+            index = _mask_code_step(source, index, output, state)
+        else:
+            index = _mask_literal_step(source, index, output, state)
         index += 1
     return "".join(output)
 

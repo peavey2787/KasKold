@@ -37,7 +37,7 @@ def _check_contract_inventory(root: Path) -> list[str]:
     errors: list[str] = []
     online_root = ROOT / "crates/online-watcher/src"
     wasm_boundary_root = online_root / "wasm_api"
-    infrastructure_root = online_root / "infrastructure"
+    online_root / "infrastructure"
     required_contract_family_paths = (
         wasm_boundary_root / "contracts/covenant/global_thread/mod.rs",
         wasm_boundary_root / "contracts/covenant/global_thread/planning.rs",
@@ -112,8 +112,8 @@ def _check_browser_boundary_placement(root: Path) -> list[str]:
     ROOT = root
     errors: list[str] = []
     online_root = ROOT / "crates/online-watcher/src"
-    wasm_boundary_root = online_root / "wasm_api"
-    infrastructure_root = online_root / "infrastructure"
+    online_root / "wasm_api"
+    online_root / "infrastructure"
     for legacy_api in (
         online_root / "contracts/covenant/api.rs",
         online_root / "contracts/oracle/api.rs",
@@ -145,10 +145,28 @@ def _check_browser_boundary_placement(root: Path) -> list[str]:
     return errors
 
 def _check_rpc_subsystem(root: Path) -> list[str]:
-    ROOT = root
-    errors: list[str] = []
-    online_root = ROOT / "crates/online-watcher/src"
+    online_root = root / "crates/online-watcher/src"
     network_root = online_root / "network"
+    network_production_files = [
+        path for path in network_root.rglob("*.rs") if "unit_tests" not in path.parts
+    ]
+    network_source = "\n".join(path.read_text(errors="ignore") for path in network_production_files)
+    online_source = "\n".join(
+        path.read_text(errors="ignore")
+        for path in online_root.rglob("*.rs")
+        if "unit_tests" not in path.parts
+    )
+    return (
+        _check_rpc_layout(root, online_root, network_root)
+        + _check_network_size_limits(root, network_production_files)
+        + _check_network_forbidden_tokens(network_source)
+        + _check_online_rpc_patterns(online_source, network_root)
+        + _check_retired_sighash_and_oracle(online_source)
+    )
+
+
+def _check_rpc_layout(root: Path, online_root: Path, network_root: Path) -> list[str]:
+    errors: list[str] = []
     # The wRPC codec, browser transport and submission encoder are Kaspa
     # Portal's. The Companion keeps only URL-addressed query helpers over them.
     if (network_root / "rpc.rs").exists():
@@ -166,32 +184,30 @@ def _check_rpc_subsystem(root: Path) -> list[str]:
     )
     for required in required_rpc_paths:
         if not required.exists():
-            errors.append(f"required RPC module is missing: {required.relative_to(ROOT)}")
+            errors.append(f"required RPC module is missing: {required.relative_to(root)}")
+    return errors
 
-    network_production_files = [
-        path for path in network_root.rglob("*.rs") if "unit_tests" not in path.parts
-    ]
-    network_source = "\n".join(path.read_text(errors="ignore") for path in network_production_files)
-    online_source = "\n".join(
-        path.read_text(errors="ignore")
-        for path in online_root.rglob("*.rs")
-        if "unit_tests" not in path.parts
-    )
 
+def _check_network_size_limits(root: Path, network_production_files: list[Path]) -> list[str]:
+    errors: list[str] = []
     for path in network_production_files:
         line_count = len(path.read_text().splitlines())
         if line_count > 500:
             errors.append(
                 f"network module exceeds 500-line SRP limit: "
-                f"{path.relative_to(ROOT)} ({line_count} lines)"
+                f"{path.relative_to(root)} ({line_count} lines)"
             )
         for function_name, line_count in rust_function_lengths(path.read_text()):
             if line_count > 120:
                 errors.append(
                     f"network function exceeds 120-line SRP limit: "
-                    f"{path.relative_to(ROOT)}::{function_name} ({line_count} lines)"
+                    f"{path.relative_to(root)}::{function_name} ({line_count} lines)"
                 )
+    return errors
 
+
+def _check_network_forbidden_tokens(network_source: str) -> list[str]:
+    errors: list[str] = []
     for forbidden in (
         "wasm_bindgen",
         "JsValue",
@@ -203,7 +219,11 @@ def _check_rpc_subsystem(root: Path) -> list[str]:
     ):
         if forbidden in network_source:
             errors.append(f"network subsystem contains forbidden concern: {forbidden}")
+    return errors
 
+
+def _check_online_rpc_patterns(online_source: str, network_root: Path) -> list[str]:
+    errors: list[str] = []
     for forbidden_pattern, description in (
         (r"\bcrate::rpc\b", "crate::rpc reference"),
         (r"\brpc::", "rpc compatibility path"),
@@ -220,7 +240,11 @@ def _check_rpc_subsystem(root: Path) -> list[str]:
         errors.append("Companion network layer must import Kaspa Portal's wRPC stack")
     if "broadcast::submit(" not in (network_root / "submission.rs").read_text(errors="ignore"):
         errors.append("Companion submission must use Kaspa Portal's broadcast encoder")
+    return errors
 
+
+def _check_retired_sighash_and_oracle(online_source: str) -> list[str]:
+    errors: list[str] = []
     if re.search(r"\bfn\s+compute_sighash\b", online_source):
         errors.append("retired simple sighash implementation must not return")
     # Consensus sighash and signed-KSPT decoding are Kaspa Portal's.
@@ -230,7 +254,6 @@ def _check_rpc_subsystem(root: Path) -> list[str]:
         errors.append("online watcher must not fork Kaspa Portal's signed KSPT decoder")
     if "create_oracle_mb_heartbeat_roll" in online_source:
         errors.append("obsolete standalone Oracle heartbeat-roll API must not return")
-
     return errors
 
 def _check_wasm_exports(root: Path) -> list[str]:
@@ -238,7 +261,7 @@ def _check_wasm_exports(root: Path) -> list[str]:
     errors: list[str] = []
     online_root = ROOT / "crates/online-watcher/src"
     wasm_boundary_root = online_root / "wasm_api"
-    infrastructure_root = online_root / "infrastructure"
+    online_root / "infrastructure"
     # Preserve the existing JavaScript/WASM contract while internals move.
     wasm_boundary_source = "\n".join(
         path.read_text(errors="ignore")

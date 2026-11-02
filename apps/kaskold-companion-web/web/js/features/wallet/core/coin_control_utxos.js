@@ -34,24 +34,45 @@ function restScriptHex(entry) {
     return value.toLowerCase();
 }
 
-function restUtxo(entry, requested) {
+function restAddress(entry, requested) {
     const address = String(entry?.address || '');
     if (!requested.has(address)) throw new Error('REST UTXO belongs to an unrequested address');
+    return address;
+}
+
+function restTxId(entry) {
     const txId = String(entry?.outpoint?.transactionId || '');
     if (!TXID_RE.test(txId)) throw new Error('REST UTXO transactionId must be 32-byte hex');
+    return txId.toLowerCase();
+}
+
+function restOutputIndex(entry) {
     const index = Number(entry?.outpoint?.index);
     if (!Number.isSafeInteger(index) || index < 0 || index > 0xffff_ffff) {
         throw new Error('REST UTXO index must fit u32');
     }
+    return index;
+}
+
+function restConsensusIntegers(entry) {
     const amountValue = entry?.utxoEntry?.amount;
     const daaValue = entry?.utxoEntry?.blockDaaScore;
     if (typeof amountValue !== 'string' || typeof daaValue !== 'string') {
         throw new Error('REST UTXO consensus integers must be decimal strings');
     }
-    const amount = exactUnsigned(amountValue, 'REST UTXO amount').toString();
-    const blockDaaScore = exactUnsigned(daaValue, 'REST UTXO DAA score').toString();
     return {
-        tx_id: txId.toLowerCase(),
+        amount: exactUnsigned(amountValue, 'REST UTXO amount').toString(),
+        blockDaaScore: exactUnsigned(daaValue, 'REST UTXO DAA score').toString(),
+    };
+}
+
+function restUtxo(entry, requested) {
+    const address = restAddress(entry, requested);
+    const tx_id = restTxId(entry);
+    const index = restOutputIndex(entry);
+    const { amount, blockDaaScore } = restConsensusIntegers(entry);
+    return {
+        tx_id,
         index,
         amount,
         script_public_key: restScriptHex(entry),

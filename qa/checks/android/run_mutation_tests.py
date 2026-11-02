@@ -178,50 +178,56 @@ RULES = (
 )
 
 
+def _blank(out: list[str], index: int) -> None:
+    if out[index] != "\n": out[index] = " "
+
+
+def _skip_line_comment(text: str, out: list[str], start: int) -> int:
+    i = start
+    while i < len(text) and text[i] != "\n":
+        _blank(out, i)
+        i += 1
+    return i
+
+
+def _skip_block_comment(text: str, out: list[str], start: int) -> int:
+    end = text.find("*/", start + 2)
+    stop = len(text) if end == -1 else end + 2
+    for index in range(start, stop):
+        _blank(out, index)
+    return stop
+
+
+def _skip_string(text: str, out: list[str], start: int) -> int:
+    quote = text[start]
+    escaped = False
+    i = start
+    while i < len(text):
+        ch = text[i]
+        _blank(out, i)
+        i += 1
+        if escaped:
+            escaped = False
+        elif ch == "\\":
+            escaped = True
+        elif ch == quote and i - 1 != start:
+            break
+    return i
+
+
+def _skip_masked_token(text: str, out: list[str], i: int) -> int:
+    if text.startswith("//", i): return _skip_line_comment(text, out, i)
+    if text.startswith("/*", i): return _skip_block_comment(text, out, i)
+    if text[i] in ('"', "'"): return _skip_string(text, out, i)
+    return i + 1
+
+
 def lexical_mask(text: str) -> str:
     """Preserve offsets while blanking Kotlin strings and comments."""
     out = list(text)
     i = 0
-    block = False
-    string: str | None = None
-    escaped = False
     while i < len(text):
-        if block:
-            if text.startswith("*/", i):
-                out[i:i + 2] = "  "
-                i += 2
-                block = False
-            else:
-                if out[i] != "\n": out[i] = " "
-                i += 1
-            continue
-        if string is not None:
-            ch = text[i]
-            if escaped:
-                escaped = False
-            elif ch == "\\":
-                escaped = True
-            elif ch == string:
-                string = None
-            if out[i] != "\n": out[i] = " "
-            i += 1
-            continue
-        if text.startswith("//", i):
-            while i < len(text) and text[i] != "\n":
-                out[i] = " "
-                i += 1
-            continue
-        if text.startswith("/*", i):
-            out[i:i + 2] = "  "
-            i += 2
-            block = True
-            continue
-        if text[i] in ('"', "'"):
-            string = text[i]
-            out[i] = " "
-            i += 1
-            continue
-        i += 1
+        i = _skip_masked_token(text, out, i)
     return "".join(out)
 
 
@@ -537,58 +543,78 @@ def mutant_survives(mutant: Mutant, command: list[str]) -> bool:
         mutant.path.write_text(original, encoding="utf-8")
 
 
-def main() -> int:
-    mutants, files = discover()
+def _scope_error(files, mutants) -> str | None:
     if not files or not mutants:
-        print("ERROR: Android full-scope mutation discovery found no production files/mutants.")
-        return 1
+        return "ERROR: Android full-scope mutation discovery found no production files/mutants."
     roots_seen = {part for path in files for part in ("domain", "infrastructure") if part in path.parts}
     if roots_seen != {"domain", "infrastructure"}:
-        print("ERROR: Android mutation scope must include both domain/ and infrastructure/.")
-        return 1
-    print(f"Android mutation scope: {len(files)} files scanned; {len(mutants)} semantic mutation sites discovered.")
-    command = gradle_command()
-    if command is None:
-        sdk = android_sdk_root()
-        gradle = gradle_binary()
-        if sdk is None:
-            print("SKIP: Android mutation execution requires an Android SDK containing API 37; checked project local.properties, environment variables, and standard SDK locations.")
-        elif gradle is None:
-            print("SKIP: Android mutation execution requires pinned Gradle from PATH/GRADLE_BIN or the KasKold Gradle cache; API 37 SDK was found.")
-        elif not configure_gradle_java():
-            required = _required_gradle_java_major()
-            print(f"SKIP: Android mutation execution requires the repository-pinned Gradle JVM JDK {required or 'unknown'}; run the normal Android QA build bootstrap first.")
-        elif not configure_gradle_python():
-            print("SKIP: Android mutation execution requires Python 3.11+ with stdlib tomllib for Companion runtime synchronization.")
-        else:
-            print("SKIP: Android mutation Gradle command could not be prepared from the discovered API-37 toolchain.")
-        return SKIP
-    if not baseline(command):
-        return 1
+        return "ERROR: Android mutation scope must include both domain/ and infrastructure/."
+    return None
 
+
+def _skip_reason() -> str:
+    sdk = android_sdk_root()
+    gradle = gradle_binary()
+    if sdk is None:
+        return "SKIP: Android mutation execution requires an Android SDK containing API 37; checked project local.properties, environment variables, and standard SDK locations."
+    if gradle is None:
+        return "SKIP: Android mutation execution requires pinned Gradle from PATH/GRADLE_BIN or the KasKold Gradle cache; API 37 SDK was found."
+    if not configure_gradle_java():
+        required = _required_gradle_java_major()
+        return f"SKIP: Android mutation execution requires the repository-pinned Gradle JVM JDK {required or 'unknown'}; run the normal Android QA build bootstrap first."
+    if not configure_gradle_python():
+        return "SKIP: Android mutation execution requires Python 3.11+ with stdlib tomllib for Companion runtime synchronization."
+    return "SKIP: Android mutation Gradle command could not be prepared from the discovered API-37 toolchain."
+
+
+def _mutant_label(mutant: Mutant) -> str:
+    return f"{mutant.path.relative_to(ROOT)}:{mutant.line} {mutant.rule.name}"
+
+
+def _run_mutant_gate(mutants, command) -> tuple[int, list[Mutant]]:
     killed = 0
     survivors: list[Mutant] = []
     for index, mutant in enumerate(mutants, 1):
+        label = _mutant_label(mutant)
         try:
             survives = mutant_survives(mutant, command)
         except subprocess.TimeoutExpired:
             killed += 1
-            label = f"{mutant.path.relative_to(ROOT)}:{mutant.line} {mutant.rule.name}"
             print(f"PASS mutant {index}/{len(mutants)} killed by timeout: {label}")
             continue
-        label = f"{mutant.path.relative_to(ROOT)}:{mutant.line} {mutant.rule.name}"
         if survives:
             survivors.append(mutant)
             print(f"FAIL mutant {index}/{len(mutants)} survived: {label}")
         else:
             killed += 1
             print(f"PASS mutant {index}/{len(mutants)} killed: {label}")
-    score = killed * 100.0 / len(mutants)
+    return killed, survivors
+
+
+def _report_score(killed: int, total: int, survivors) -> int:
+    score = killed * 100.0 / total
     if score < MINIMUM_SCORE_PERCENT or survivors:
-        print(f"ERROR: Android full-scope mutation score {killed}/{len(mutants)} ({score:.2f}%); 100% required.")
+        print(f"ERROR: Android full-scope mutation score {killed}/{total} ({score:.2f}%); 100% required.")
         return 1
-    print(f"PASS: Android full domain/infrastructure mutation gate ({killed}/{len(mutants)} killed; {score:.2f}%).")
+    print(f"PASS: Android full domain/infrastructure mutation gate ({killed}/{total} killed; {score:.2f}%).")
     return 0
+
+
+def main() -> int:
+    mutants, files = discover()
+    scope_error = _scope_error(files, mutants)
+    if scope_error is not None:
+        print(scope_error)
+        return 1
+    print(f"Android mutation scope: {len(files)} files scanned; {len(mutants)} semantic mutation sites discovered.")
+    command = gradle_command()
+    if command is None:
+        print(_skip_reason())
+        return SKIP
+    if not baseline(command):
+        return 1
+    killed, survivors = _run_mutant_gate(mutants, command)
+    return _report_score(killed, len(mutants), survivors)
 
 
 if __name__ == "__main__":

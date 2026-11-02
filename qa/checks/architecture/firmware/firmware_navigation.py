@@ -17,25 +17,27 @@ def _read(root: Path, relative: str) -> str:
     return (root / relative).read_text(encoding="utf-8", errors="ignore")
 
 
-def check(root: Path) -> list[str]:
-    errors: list[str] = []
-    firmware = root / "apps/kaskold-hardware/src"
+def _check_source_file(relative: str, source: str, errors: list[str]) -> None:
+    if relative != KERNEL and DIRECT_WRITE_RE.search(source):
+        errors.append(f"navigation tuple mutation is outside the stage-2 kernel: {relative}")
+    if relative != EVENT and "UiRoute::new" in source:
+        errors.append(f"UiRoute construction bypasses route macros: {relative}")
+    if relative not in {EVENT, "apps/kaskold-hardware/src/runtime/navigation/mod.rs"} and "ContinuationRoute::new" in source:
+        errors.append(f"ContinuationRoute construction bypasses continuation macros: {relative}")
+    if "route_dynamic!" in source:
+        errors.append(f"retired stage-2 dynamic-route adapter remains in {relative}")
+    for token in FORBIDDEN_APIS:
+        if token in source:
+            errors.append(f"retired navigation escape hatch remains in {relative}: {token}")
 
+
+def _check_source_tree(root: Path, firmware: Path, errors: list[str]) -> None:
     for path in firmware.rglob("*.rs"):
         relative = path.relative_to(root).as_posix()
-        source = path.read_text(encoding="utf-8", errors="ignore")
-        if relative != KERNEL and DIRECT_WRITE_RE.search(source):
-            errors.append(f"navigation tuple mutation is outside the stage-2 kernel: {relative}")
-        if relative != EVENT and "UiRoute::new" in source:
-            errors.append(f"UiRoute construction bypasses route macros: {relative}")
-        if relative not in {EVENT, "apps/kaskold-hardware/src/runtime/navigation/mod.rs"} and "ContinuationRoute::new" in source:
-            errors.append(f"ContinuationRoute construction bypasses continuation macros: {relative}")
-        if "route_dynamic!" in source:
-            errors.append(f"retired stage-2 dynamic-route adapter remains in {relative}")
-        for token in FORBIDDEN_APIS:
-            if token in source:
-                errors.append(f"retired navigation escape hatch remains in {relative}: {token}")
+        _check_source_file(relative, path.read_text(encoding="utf-8", errors="ignore"), errors)
 
+
+def _check_navigation_contracts(root: Path, errors: list[str]) -> None:
     effects = _read(root, EFFECTS)
     for required in ("UiEvent", "menu_select", "return_to", "route(ad"):
         if required not in effects:
@@ -50,15 +52,19 @@ def check(root: Path) -> list[str]:
         if required not in kernel:
             errors.append(f"stage-2 navigation kernel contract missing: {required}")
 
+
+def _check_export_return_state(root: Path, errors: list[str]) -> None:
     export_state = _read(root, EXPORT_STATE)
     for retired in ("seed_backup_return", "address_return", "kpub_export_return"):
         if retired in export_state:
             errors.append(f"legacy export return-state field remains after stage 2: {retired}")
 
-    # Stage 7 retires raw `AppState` continuation storage. AppState remains valid
-    # for the authoritative current-state discriminator and bounded navigation
-    # history, but domain workflow destinations must be opaque ContinuationRoute
-    # tokens so only the navigation package can unwrap and commit them.
+
+# Stage 7 retires raw `AppState` continuation storage. AppState remains valid
+# for the authoritative current-state discriminator and bounded navigation
+# history, but domain workflow destinations must be opaque ContinuationRoute
+# tokens so only the navigation package can unwrap and commit them.
+def _check_continuation_storage(root: Path, firmware: Path, errors: list[str]) -> None:
     continuation_state_files = (
         firmware / "runtime/data/storage.rs",
         firmware / "runtime/data/pop_it.rs",
@@ -80,6 +86,8 @@ def check(root: Path) -> list[str]:
                 + path.relative_to(root).as_posix()
             )
 
+
+def _check_dynamic_conversion(root: Path, firmware: Path, errors: list[str]) -> None:
     allowed_dynamic_conversion = {
         "apps/kaskold-hardware/src/runtime/navigation/mod.rs",
         "apps/kaskold-hardware/src/runtime/power_state.rs",
@@ -95,4 +103,13 @@ def check(root: Path) -> list[str]:
         if "continuation_from_state(" in path.read_text(encoding="utf-8", errors="ignore"):
             errors.append(f"unscoped AppState-to-continuation conversion remains in {relative}")
 
+
+def check(root: Path) -> list[str]:
+    errors: list[str] = []
+    firmware = root / "apps/kaskold-hardware/src"
+    _check_source_tree(root, firmware, errors)
+    _check_navigation_contracts(root, errors)
+    _check_export_return_state(root, errors)
+    _check_continuation_storage(root, firmware, errors)
+    _check_dynamic_conversion(root, firmware, errors)
     return errors

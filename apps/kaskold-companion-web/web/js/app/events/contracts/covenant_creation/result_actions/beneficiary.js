@@ -99,23 +99,27 @@ function showTimelockedSavingsClaim(result) {
     if (create) create.textContent = 'Claim Funds';
 }
 
+function dmsClaimHelpText(result) {
+    const inactivityDaa = exactUnsigned(result.inactivity_daa ?? 0n, 'inactivity DAA');
+    return 'Claim inheritance. The inactivity period (' +
+        (inactivityDaa > 0n ? formatDaaDuration(inactivityDaa) : 'unknown') +
+        ') must have elapsed since the last owner heartbeat. Requires heir signature from your KasKold.';
+}
+
+function setStandardClaimHelp(result, isDms) {
+    const help = byId('cov-bene-help');
+    if (!help) return;
+    help.textContent = isDms ? dmsClaimHelpText(result) : '';
+    help.style.display = isDms ? '' : 'none';
+}
+
 function showStandardBeneficiaryClaim(result) {
     populateBeneficiaryPanel(result, '');
     const isDms = result.type === 'dms';
     byId('cov-bene-locktime-wrap').style.display = isDms ? 'none' : '';
     byId('cov-bene-locktime').value = isDms ? '0' : String(result.locktime_daa || '');
     byId('cov-bene-amount-wrap').style.display = 'none';
-
-    const help = byId('cov-bene-help');
-    if (help) {
-        const inactivityDaa = exactUnsigned(result.inactivity_daa ?? 0n, 'inactivity DAA');
-        help.textContent = isDms
-            ? 'Claim inheritance. The inactivity period (' +
-                (inactivityDaa > 0n ? formatDaaDuration(inactivityDaa) : 'unknown') +
-                ') must have elapsed since the last owner heartbeat. Requires heir signature from your KasKold.'
-            : '';
-        help.style.display = isDms ? '' : 'none';
-    }
+    setStandardClaimHelp(result, isDms);
     const create = byId('btn-cov-bene-create');
     if (create) create.textContent = isDms ? 'Claim Inheritance' : 'Create Release TX';
     byId('btn-cov-bene-pick')?.style.setProperty('display', isDms ? '' : 'none');

@@ -21,25 +21,30 @@ function exportedParams(fn) {
   if (!m) return [];
   return m[1].split(',').map(x => x.trim().replace(/=.*$/, '').replace(/^\.\.\./, '')).filter(Boolean);
 }
+// Ordered rules over the lowercased param name; the first matching pattern supplies the argument.
+const ARG_RULES = [
+  [/event|evt|e$/, () => ({ target: element('runtime-boundary-event'), key: 'Enter', preventDefault() {}, stopPropagation() {}, dataTransfer: { files: [] } })],
+  [/wallet|session/, (_n, variant) => (variant ? JSON.stringify(wallet) : wallet)],
+  [/utxo|entry|input/, (n, variant) => (/json/.test(n) ? JSON.stringify([utxo]) : variant ? [utxo] : utxo)],
+  [/covenant|record|result|contract/, () => covenant],
+  [/address|addr|dest|recipient|source/, () => ADDRESS],
+  [/pskb|pskt/, () => PSKB],
+  [/kspt|signed/, () => KSPT],
+  [/script|redeem|payload|preimage|commitment|proof/, (_n, variant) => (variant ? '51' : HEX32)],
+  [/pub|key|hash|txid|tx_id|id_hex|secret/, () => HEX32],
+  [/signature|sig/, () => HEX64],
+  [/network/, (_n, variant) => (variant ? 'testnet-10' : 'mainnet')],
+  [/branch/, (_n, variant) => (variant ? 'buyer-release' : 'owner')],
+  [/type|kind/, (_n, variant) => (variant ? 'escrow' : 'savings')],
+  [/json|properties|metadata|context|request|options|params|state/, (_n, variant) => (variant ? JSON.stringify({}) : {})],
+  [/amount|fee|sompi|daa|score|limit|count|index|idx|time|lock|threshold|goal|value|mass|rate/, (_n, variant) => (variant ? 1n : '1')],
+  [/bytes|data|frame|raw/, (_n, variant) => (variant ? new Uint8Array([1, 2, 3]) : '010203')],
+  [/enabled|active|partial|manual|force|flag/, (_n, variant) => variant === 0],
+];
 function argFor(name, variant = 0) {
   const n = name.toLowerCase();
-  if (/event|evt|e$/.test(n)) return { target: element('runtime-boundary-event'), key: 'Enter', preventDefault() {}, stopPropagation() {}, dataTransfer: { files: [] } };
-  if (/wallet|session/.test(n)) return variant ? JSON.stringify(wallet) : wallet;
-  if (/utxo|entry|input/.test(n)) return /json/.test(n) ? JSON.stringify([utxo]) : variant ? [utxo] : utxo;
-  if (/covenant|record|result|contract/.test(n)) return covenant;
-  if (/address|addr|dest|recipient|source/.test(n)) return ADDRESS;
-  if (/pskb|pskt/.test(n)) return PSKB;
-  if (/kspt|signed/.test(n)) return KSPT;
-  if (/script|redeem|payload|preimage|commitment|proof/.test(n)) return variant ? '51' : HEX32;
-  if (/pub|key|hash|txid|tx_id|id_hex|secret/.test(n)) return HEX32;
-  if (/signature|sig/.test(n)) return HEX64;
-  if (/network/.test(n)) return variant ? 'testnet-10' : 'mainnet';
-  if (/branch/.test(n)) return variant ? 'buyer-release' : 'owner';
-  if (/type|kind/.test(n)) return variant ? 'escrow' : 'savings';
-  if (/json|properties|metadata|context|request|options|params|state/.test(n)) return variant ? JSON.stringify({}) : {};
-  if (/amount|fee|sompi|daa|score|limit|count|index|idx|time|lock|threshold|goal|value|mass|rate/.test(n)) return variant ? 1n : '1';
-  if (/bytes|data|frame|raw/.test(n)) return variant ? new Uint8Array([1,2,3]) : '010203';
-  if (/enabled|active|partial|manual|force|flag/.test(n)) return variant === 0;
+  const rule = ARG_RULES.find(([pattern]) => pattern.test(n));
+  if (rule) return rule[1](n, variant);
   if (/callback|handler|fn|on[A-Z_]/.test(name)) return () => {};
   return variant ? '1' : {};
 }

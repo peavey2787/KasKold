@@ -11,6 +11,8 @@ from portal_source import kaskold_source, resolve_path  # noqa: E402
 from pathlib import Path
 import re
 
+from . import remediation_ownership
+
 
 HEX_HELPER = re.compile(
     r"(?m)^\s*(?:pub(?:\([^)]*\))?\s+)?(?:const\s+)?fn\s+"
@@ -284,90 +286,7 @@ def _check_ci_firmware_matrix(root: Path) -> list[str]:
 
 
 def _check_remediation_ownership(root: Path) -> list[str]:
-    errors: list[str] = []
-    firmware = root / "apps/kaskold-hardware/src"
-    interactions = firmware / "runtime/interactions"
-    controller_sources = {
-        path: _source(path) for path in interactions.rglob("*.rs")
-    }
-
-    redraw_owners = sorted(
-        path.relative_to(root)
-        for path, source in controller_sources.items()
-        if re.search(r"\bstruct\s+RedrawFlag\b", source)
-    )
-    expected_redraw_owner = [Path("apps/kaskold-hardware/src/runtime/interactions/support/feedback.rs")]
-    if redraw_owners != expected_redraw_owner:
-        errors.append(
-            f"interaction redraw accumulator must be owned only by feedback.rs: {redraw_owners}"
-        )
-    invalid_redraw_calls = sorted(
-        path.relative_to(root)
-        for path, source in controller_sources.items()
-        if re.search(r"(?:ad|self)\.runtime\.needs_redraw\s*\.\s*set\s*\(", source)
-    )
-    if invalid_redraw_calls:
-        errors.append(f"plain runtime redraw bool is used as a wrapper: {invalid_redraw_calls}")
-
-    camera = interactions / "camera_loop"
-    camera_sources = {path: _source(path) for path in camera.rglob("*.rs")}
-    combined_camera = "\n".join(camera_sources.values())
-    if len(re.findall(r"\bfn\s+route_camera_back\s*\(", combined_camera)) != 1:
-        errors.append("camera back navigation must have exactly one policy owner")
-    touch_input_source = camera_sources.get(camera / "touch_input.rs", "")
-    capture_source = camera_sources.get(camera / "dvp_capture.rs", "")
-    event_dispatch = _source(firmware / "runtime/event_loop/dispatch.rs")
-    if "pub(crate) fn route_camera_back" not in touch_input_source:
-        errors.append("camera back navigation policy must remain owned by touch_input.rs")
-    if "runtime::interactions::camera_loop::route_camera_back($ad)" not in event_dispatch:
-        errors.append("event-loop touch owner must dispatch camera Back through the shared policy")
-    for token in ("touch_service::", "read_touch(", "route_camera_back(ad)"):
-        if token in capture_source:
-            errors.append(f"camera capture must not own touch/back dispatch: {token}")
-
-    navigation = firmware / "ui/screens/navigation"
-    menu_source = _source(navigation / "menu.rs")
-    secondary_source = _source(navigation / "secondary.rs")
-    if menu_source.count("fn draw_navigation_card") != 1:
-        errors.append("navigation card presentation must have exactly one rendering owner")
-    if menu_source.count("draw_navigation_card(") < 2:
-        errors.append("primary navigation menu bypasses shared card rendering")
-    if "RoundedRectangle::new" in secondary_source:
-        errors.append("secondary navigation menu duplicates card presentation details")
-
-    feedback_owner = interactions / "support/feedback.rs"
-    direct_feedback = sorted(
-        path.relative_to(root)
-        for path, source in controller_sources.items()
-        if path != feedback_owner
-        and re.search(r"\.draw_(?:rejected|success)_screen\s*\(", source)
-    )
-    if direct_feedback:
-        errors.append(
-            f"interaction transient feedback bypasses feedback.rs: {direct_feedback}"
-        )
-
-    menu_selection_owner = interactions / "support/menu_selection.rs"
-    direct_menu_mapping = sorted(
-        path.relative_to(root)
-        for path, source in controller_sources.items()
-        if path != menu_selection_owner
-        and re.search(
-            r"\.(?:visible_to_absolute|can_page_up|can_page_down)\s*\(", source
-        )
-    )
-    if direct_menu_mapping:
-        errors.append(
-            f"interaction menu hit-testing bypasses menu_selection.rs: {direct_menu_mapping}"
-        )
-
-    # The pure controller boundary may classify normalized input only. Effectful
-    # hardware adapters deliberately live under runtime/interactions.
-    pure_controller = _source(firmware / "controllers.rs")
-    for token in ("esp_hal", "crate::hw", "crate::services", "crate::ui", "PersistentWallet", "BootDisplay"):
-        if token in pure_controller:
-            errors.append(f"pure controller boundary regained effectful dependency: {token}")
-    return errors
+    return remediation_ownership.check(root, _source)
 
 def check(root: Path) -> list[str]:
     return [

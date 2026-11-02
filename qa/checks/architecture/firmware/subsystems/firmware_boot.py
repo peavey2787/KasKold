@@ -66,19 +66,21 @@ def _check_hardware_roots(root: Path) -> list[str]:
     return errors
 
 
-def check(root: Path) -> list[str]:
-    errors: list[str] = _check_hardware_roots(root)
-    firmware_main = root / "apps/kaskold-hardware/src/main.rs"
-    boot_root = root / "apps/kaskold-hardware/src/boot"
-    runtime_root = root / "apps/kaskold-hardware/src/runtime"
-
+def _check_board_map_absent(root: Path) -> list[str]:
+    errors: list[str] = []
     inactive_board_map = root / "apps/kaskold-hardware/src/hw/board/board.rs"
     hw_mod = root / "apps/kaskold-hardware/src/hw/mod.rs"
     if inactive_board_map.exists():
         errors.append("inactive duplicate board pin map must not return")
     if hw_mod.exists() and re.search(r"(?m)^pub mod board;", hw_mod.read_text(errors="ignore")):
         errors.append("hardware module must not export the inactive board pin map")
+    return errors
 
+
+def _check_required_main_modules(root: Path) -> list[str]:
+    errors: list[str] = []
+    boot_root = root / "apps/kaskold-hardware/src/boot"
+    runtime_root = root / "apps/kaskold-hardware/src/runtime"
     required_main_modules = (
         boot_root / "mod.rs",
         boot_root / "shared/security.rs",
@@ -95,36 +97,64 @@ def check(root: Path) -> list[str]:
     for required in required_main_modules:
         if not required.exists():
             errors.append(f"required staged main module is missing: {required.relative_to(root)}")
+    return errors
 
-    if firmware_main.exists():
-        source = firmware_main.read_text(errors="ignore")
-        if len(source.splitlines()) > 260:
-            errors.append(f"firmware main.rs exceeds completed 260-line limit: {len(source.splitlines())} lines")
-        for required in (
-            "#[main]\nfn main() -> !",
-            "runtime::secret_state::initialize()",
-            "runtime::event_loop::runner::run(",
-            "pub use runtime::power_state::halt_forever;",
-            "boot::m5stack::initialize!(peripherals, delay)",
-        ):
-            if required not in source:
-                errors.append(f"firmware main lost staged boundary: {required}")
-        if "loop {" in source:
-            errors.append("firmware main.rs must delegate the outer loop to runtime::event_loop")
-        for moved in (
-            "init_pmu_m5", "init_sd_card_m5", "touch_zones", "handle_wake", "handle_idle",
-            "continue_without_display", "cam_tune_apply_all", "cam_tune_apply_gc0308",
-        ):
-            if re.search(rf"(?m)^fn\s+{moved}", source):
-                errors.append(f"firmware main retains extracted helper: {moved}")
-        boot_markers = (
-            "ESP32-S3 initialization", "Hardware self-tests", "Verify firmware integrity",
-            "Boot into main application", "Main loop",
-        )
-        positions = [source.find(marker) for marker in boot_markers]
-        if any(position < 0 for position in positions) or positions != sorted(positions):
-            errors.append("firmware main top-level boot and loop order changed")
 
+def _check_main_required_markers(source: str) -> list[str]:
+    errors: list[str] = []
+    for required in (
+        "#[main]\nfn main() -> !",
+        "runtime::secret_state::initialize()",
+        "runtime::event_loop::runner::run(",
+        "pub use runtime::power_state::halt_forever;",
+        "boot::m5stack::initialize!(peripherals, delay)",
+    ):
+        if required not in source:
+            errors.append(f"firmware main lost staged boundary: {required}")
+    return errors
+
+
+def _check_main_extracted_helpers(source: str) -> list[str]:
+    errors: list[str] = []
+    for moved in (
+        "init_pmu_m5", "init_sd_card_m5", "touch_zones", "handle_wake", "handle_idle",
+        "continue_without_display", "cam_tune_apply_all", "cam_tune_apply_gc0308",
+    ):
+        if re.search(rf"(?m)^fn\s+{moved}", source):
+            errors.append(f"firmware main retains extracted helper: {moved}")
+    return errors
+
+
+def _check_main_boot_order(source: str) -> list[str]:
+    boot_markers = (
+        "ESP32-S3 initialization", "Hardware self-tests", "Verify firmware integrity",
+        "Boot into main application", "Main loop",
+    )
+    positions = [source.find(marker) for marker in boot_markers]
+    if any(position < 0 for position in positions) or positions != sorted(positions):
+        return ["firmware main top-level boot and loop order changed"]
+    return []
+
+
+def _check_firmware_main(root: Path) -> list[str]:
+    firmware_main = root / "apps/kaskold-hardware/src/main.rs"
+    if not firmware_main.exists():
+        return []
+    source = firmware_main.read_text(errors="ignore")
+    errors: list[str] = []
+    if len(source.splitlines()) > 260:
+        errors.append(f"firmware main.rs exceeds completed 260-line limit: {len(source.splitlines())} lines")
+    errors.extend(_check_main_required_markers(source))
+    if "loop {" in source:
+        errors.append("firmware main.rs must delegate the outer loop to runtime::event_loop")
+    errors.extend(_check_main_extracted_helpers(source))
+    errors.extend(_check_main_boot_order(source))
+    return errors
+
+
+def _check_module_size_limits(root: Path) -> list[str]:
+    runtime_root = root / "apps/kaskold-hardware/src/runtime"
+    boot_root = root / "apps/kaskold-hardware/src/boot"
     limits = {
         boot_root / "mod.rs": 80,
         boot_root / "shared/security.rs": 80,
@@ -138,17 +168,35 @@ def check(root: Path) -> list[str]:
         runtime_root / "touch_dispatch.rs": 100,
         runtime_root / "power_state.rs": 180,
     }
+    errors: list[str] = []
     for path, maximum in limits.items():
         if path.exists() and len(path.read_text(errors="ignore").splitlines()) > maximum:
             errors.append(f"staged main module exceeds SRP limit: {path.relative_to(root)}")
+    return errors
 
-    m5stack_boot = boot_root / "m5stack/mod.rs"
+
+def _check_m5stack_initializer(root: Path) -> list[str]:
+    m5stack_boot = root / "apps/kaskold-hardware/src/boot/m5stack/mod.rs"
     if m5stack_boot.exists():
         boot_source = m5stack_boot.read_text(errors="ignore")
         if len(re.findall(r"macro_rules!\s+initialize", boot_source)) != 1:
-            errors.append("CoreS3 boot must have exactly one ownership-preserving initializer")
+            return ["CoreS3 boot must have exactly one ownership-preserving initializer"]
+    return []
 
-    power_state = runtime_root / "power_state.rs"
+
+def _check_power_state_halt(root: Path) -> list[str]:
+    power_state = root / "apps/kaskold-hardware/src/runtime/power_state.rs"
     if power_state.exists() and not re.search(r"(?m)^pub\s+fn\s+halt_forever\s*\(", power_state.read_text(errors="ignore")):
-        errors.append("runtime power_state must own the public halt implementation")
+        return ["runtime power_state must own the public halt implementation"]
+    return []
+
+
+def check(root: Path) -> list[str]:
+    errors: list[str] = _check_hardware_roots(root)
+    errors.extend(_check_board_map_absent(root))
+    errors.extend(_check_required_main_modules(root))
+    errors.extend(_check_firmware_main(root))
+    errors.extend(_check_module_size_limits(root))
+    errors.extend(_check_m5stack_initializer(root))
+    errors.extend(_check_power_state_halt(root))
     return errors

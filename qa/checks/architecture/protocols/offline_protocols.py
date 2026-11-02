@@ -12,10 +12,17 @@ import re
 from architecture.protocols.compact_protocols import check_kspt, check_pskt
 
 def _check_bip32_and_transaction_models(root: Path) -> list[str]:
-    ROOT = root
-    errors: list[str] = []
-    offline_root = ROOT / "crates/offline-signer/src"
+    offline_root = root / "crates/offline-signer/src"
     offline_lib_source = (offline_root / "lib.rs").read_text(errors="ignore")
+    return (
+        _check_offline_crate_root(offline_lib_source)
+        + _check_offline_facades(offline_lib_source, offline_root)
+        + _check_retired_offline_paths(root)
+    )
+
+
+def _check_offline_crate_root(offline_lib_source: str) -> list[str]:
+    errors: list[str] = []
     for required in ("pub mod derivation", "pub mod crypto", "pub mod transaction"):
         if required not in offline_lib_source:
             errors.append(f"offline signer domain wiring is missing: {required}")
@@ -27,7 +34,11 @@ def _check_bip32_and_transaction_models(root: Path) -> list[str]:
     ):
         if f"pub mod {retired_root};" in offline_lib_source:
             errors.append(f"offline signer crate-root compatibility module must not return: {retired_root}")
+    return errors
 
+
+def _check_offline_facades(offline_lib_source: str, offline_root: Path) -> list[str]:
+    errors: list[str] = []
     # The signing core is Kaspa Portal's. offline-signer exposes it through thin
     # re-export facades and must never regain a local copy that could drift.
     derivation_facade = offline_lib_source.split("pub mod derivation", 1)[-1].split("\n}", 1)[0]
@@ -44,25 +55,31 @@ def _check_bip32_and_transaction_models(root: Path) -> list[str]:
     for copied in ("adaptor", "anti_klepto", "ecies", "message", "password_kdf", "schnorr"):
         if (offline_root / f"crypto/{copied}.rs").exists():
             errors.append(f"offline signer must not carry a local copy of Kaspa Portal crypto: {copied}")
+    return errors
 
+
+def _check_retired_offline_paths(root: Path) -> list[str]:
+    errors: list[str] = []
     retired_path = re.compile(
         r"\boffline_signer::(?:bip32|bip39|bip39_wordlist|bip85|ecies|hmac|kspt|"
         r"pbkdf2|schnorr|sighash|std_pskt|xpub)\b|"
         r"\boffline_signer::transaction::(?:Transaction|TransactionInput|TransactionOutput|"
         r"ScriptPublicKey|ScriptType|SigHashType|MultisigConfig|MultisigStore)\b"
     )
-    for source_root in (ROOT / "apps", ROOT / "crates", ROOT / "tools", ROOT / "qa"):
+    for source_root in (root / "apps", root / "crates", root / "tools", root / "qa"):
         if not source_root.exists():
             continue
         for path in source_root.rglob("*.rs"):
             match = retired_path.search(path.read_text(errors="ignore"))
             if match:
                 errors.append(
-                    f"retired offline-signer crate-root path remains in {path.relative_to(ROOT)}: "
+                    f"retired offline-signer crate-root path remains in {path.relative_to(root)}: "
                     f"{match.group(0)}"
                 )
 
     return errors
+
+
 def _check_xpub_and_sighash(root: Path) -> list[str]:
     errors: list[str] = []
     # xpub and sighash structure, single Base58Check codec and single keyed
@@ -84,7 +101,6 @@ def _check_xpub_and_sighash(root: Path) -> list[str]:
     return errors
 
 def _check_password_kdf_policy(root: Path) -> list[str]:
-    errors: list[str] = []
     offline_root = root / "crates/offline-signer/src"
     password_kdf = kaskold_source("crates/offline-signer/src/crypto/password_kdf.rs")
     password_tests = kaskold_source("crates/offline-signer/src/crypto/unit_tests/password_kdf_tests.rs")
@@ -95,18 +111,33 @@ def _check_password_kdf_policy(root: Path) -> list[str]:
         offline_root / "crypto/legacy_pbkdf2.rs",
         offline_root / "crypto/unit_tests/legacy_pbkdf2_tests.rs",
     )
-
-    for path in (password_kdf, password_tests, bip39):
-        if not path.exists():
-            errors.append(f"password-KDF contract file is missing: {path}")
-    for path in retired:
-        if path.exists():
-            errors.append(f"retired non-BIP39 PBKDF2 implementation returned: {path.relative_to(root)}")
+    errors = _check_password_kdf_files(root, (password_kdf, password_tests, bip39), retired)
     if errors:
         return errors
 
     current = password_kdf.read_text(errors="ignore")
     bip39_source = bip39.read_text(errors="ignore")
+    return (
+        _check_argon2_contract(current)
+        + _check_bip39_kdf_contract(bip39_source)
+        + _check_retired_pbkdf2_sources(root)
+        + _check_current_only_kdf_selectors()
+    )
+
+
+def _check_password_kdf_files(root: Path, required: tuple[Path, ...], retired: tuple[Path, ...]) -> list[str]:
+    errors: list[str] = []
+    for path in required:
+        if not path.exists():
+            errors.append(f"password-KDF contract file is missing: {path}")
+    for path in retired:
+        if path.exists():
+            errors.append(f"retired non-BIP39 PBKDF2 implementation returned: {path.relative_to(root)}")
+    return errors
+
+
+def _check_argon2_contract(current: str) -> list[str]:
+    errors: list[str] = []
     for token in (
         "Algorithm::Argon2id", "Version::V0x13", "PasswordKdfPurpose",
         "try_reserve_exact", "AllocationFailed", "UnsupportedParameters",
@@ -118,7 +149,11 @@ def _check_password_kdf_policy(root: Path) -> list[str]:
     for forbidden in ("derive_legacy_32", "pbkdf2_hmac", "LEGACY_PBKDF2_ROUNDS", "legacy_pbkdf2"):
         if forbidden in current:
             errors.append(f"current Argon2 password-KDF contains retired PBKDF2 logic: {forbidden}")
+    return errors
 
+
+def _check_bip39_kdf_contract(bip39_source: str) -> list[str]:
+    errors: list[str] = []
     for token in (
         "PBKDF2-HMAC-SHA512", "BIP39_PBKDF2_ROUNDS: u16 = 2048",
         "pbkdf2_hmac_sha512", "iterations=2048", "dklen=64",
@@ -128,7 +163,11 @@ def _check_password_kdf_policy(root: Path) -> list[str]:
     for forbidden in ("password_kdf", "Argon2", "legacy_pbkdf2"):
         if forbidden in bip39_source:
             errors.append(f"BIP39 seed derivation must remain outside KasKold password KDFs: {forbidden}")
+    return errors
 
+
+def _check_retired_pbkdf2_sources(root: Path) -> list[str]:
+    errors: list[str] = []
     for source_root in (root / "apps", root / "crates"):
         for path in source_root.rglob("*.rs"):
             relative = path.relative_to(root)
@@ -137,7 +176,11 @@ def _check_password_kdf_policy(root: Path) -> list[str]:
                 errors.append(f"retired PBKDF2 compatibility logic remains: {relative}")
             if re.search(r"\bpbkdf2_hmac(?:_sha256)?\b", text) and relative != Path("crates/offline-signer/src/derivation/bip39/seed.rs"):
                 errors.append(f"generic PBKDF2 implementation is forbidden outside BIP39: {relative}")
+    return errors
 
+
+def _check_current_only_kdf_selectors() -> list[str]:
+    errors: list[str] = []
     current_only = {
         (
             "apps/kaskold-hardware/src/services/backup/container.rs",

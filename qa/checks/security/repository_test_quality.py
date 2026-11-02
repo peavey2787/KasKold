@@ -6,15 +6,16 @@ from __future__ import annotations
 import ast
 import json
 import re
-from pathlib import Path
 import sys
+from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 SECURITY_DIR = Path(__file__).resolve().parent
 if str(SECURITY_DIR) not in sys.path:
     sys.path.insert(0, str(SECURITY_DIR))
-from test_quality import ASSERTION, FUNCTION, extract_tests, trivial_assertions
 import source_text_tests
+from test_quality import ASSERTION, FUNCTION, extract_tests, trivial_assertions
 
 ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_OUTPUT = ROOT / "target/qa/security/repository-test-quality.json"
@@ -137,46 +138,58 @@ def _literal(node: ast.AST) -> object:
 _NO_LITERAL = object()
 
 
+def _is_constant_inequality(left: ast.AST, right: ast.AST) -> bool:
+    left_value = _literal(left)
+    right_value = _literal(right)
+    return left_value is not _NO_LITERAL and right_value is not _NO_LITERAL and left_value != right_value
+
+
+def _constant_is(node: ast.AST, value: object) -> bool:
+    return isinstance(node, ast.Constant) and node.value is value
+
+
+def _assert_statement_findings(test: ast.expr) -> list[str]:
+    if _constant_is(test, True):
+        return ["assert True"]
+    if isinstance(test, ast.Compare) and len(test.ops) == len(test.comparators) == 1:
+        left = test.left
+        right = test.comparators[0]
+        if isinstance(test.ops[0], ast.Eq) and _ast_same(left, right):
+            return ["assert compares an expression with itself"]
+        if isinstance(test.ops[0], ast.NotEq) and _is_constant_inequality(left, right):
+            return ["assert has a constant-only true inequality"]
+    return []
+
+
+def _called_name(function: ast.expr) -> str:
+    if isinstance(function, ast.Attribute):
+        return function.attr
+    if isinstance(function, ast.Name):
+        return function.id
+    return ""
+
+
+def _unittest_call_findings(item: ast.Call) -> list[str]:
+    name = _called_name(item.func)
+    args = item.args
+    if name in {"assertTrue", "assert_true"} and args and _constant_is(args[0], True):
+        return ["assertTrue(True)"]
+    if name in {"assertFalse", "assert_false"} and args and _constant_is(args[0], False):
+        return ["assertFalse(False)"]
+    if name in {"assertEqual", "assert_equal"} and len(args) >= 2 and _ast_same(args[0], args[1]):
+        return ["assertEqual compares an expression with itself"]
+    if name in {"assertNotEqual", "assert_not_equal"} and len(args) >= 2 and _is_constant_inequality(args[0], args[1]):
+        return ["assertNotEqual is a constant-only inequality"]
+    return []
+
+
 def _python_trivial(node: ast.AST) -> list[str]:
     findings: list[str] = []
     for item in ast.walk(node):
         if isinstance(item, ast.Assert):
-            test = item.test
-            if isinstance(test, ast.Constant) and test.value is True:
-                findings.append("assert True")
-            elif isinstance(test, ast.Compare) and len(test.ops) == len(test.comparators) == 1:
-                left = test.left
-                right = test.comparators[0]
-                if isinstance(test.ops[0], ast.Eq) and _ast_same(left, right):
-                    findings.append("assert compares an expression with itself")
-                elif isinstance(test.ops[0], ast.NotEq):
-                    left_value = _literal(left)
-                    right_value = _literal(right)
-                    if left_value is not _NO_LITERAL and right_value is not _NO_LITERAL and left_value != right_value:
-                        findings.append("assert has a constant-only true inequality")
+            findings.extend(_assert_statement_findings(item.test))
         elif isinstance(item, ast.Call):
-            function = item.func
-            name = (
-                function.attr
-                if isinstance(function, ast.Attribute)
-                else function.id
-                if isinstance(function, ast.Name)
-                else ""
-            )
-            if name in {"assertTrue", "assert_true"} and item.args:
-                if isinstance(item.args[0], ast.Constant) and item.args[0].value is True:
-                    findings.append("assertTrue(True)")
-            elif name in {"assertFalse", "assert_false"} and item.args:
-                if isinstance(item.args[0], ast.Constant) and item.args[0].value is False:
-                    findings.append("assertFalse(False)")
-            elif name in {"assertEqual", "assert_equal"} and len(item.args) >= 2:
-                if _ast_same(item.args[0], item.args[1]):
-                    findings.append("assertEqual compares an expression with itself")
-            elif name in {"assertNotEqual", "assert_not_equal"} and len(item.args) >= 2:
-                left_value = _literal(item.args[0])
-                right_value = _literal(item.args[1])
-                if left_value is not _NO_LITERAL and right_value is not _NO_LITERAL and left_value != right_value:
-                    findings.append("assertNotEqual is a constant-only inequality")
+            findings.extend(_unittest_call_findings(item))
     return findings
 
 
@@ -312,6 +325,76 @@ def _brace_block(text: str, opening: int) -> str | None:
     return None
 
 
+def _kotlin_block_trivial(block: str) -> list[str]:
+    trivial: list[str] = []
+    if re.search(r"\b(?:assertTrue|check)\s*\(\s*true\s*\)", block):
+        trivial.append("constant true assertion")
+    if re.search(r"\bassertFalse\s*\(\s*false\s*\)", block):
+        trivial.append("constant false assertion")
+    if re.search(r"\bassertEquals\s*\(\s*([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*,\s*\1\s*\)", block):
+        trivial.append("self equality")
+    if re.search(r"\bassertNotEquals\s*\(\s*1\s*,\s*2\s*\)", block):
+        trivial.append("constant-only inequality")
+    return trivial
+
+
+def _record_kotlin_test(
+    records: list[dict[str, Any]],
+    errors: list[str],
+    *,
+    language: str,
+    label: str,
+    relative: str,
+    name: str,
+    has_evidence: bool,
+    trivial: list[str],
+) -> None:
+    records.append({
+        "language": language,
+        "path": relative,
+        "name": name,
+        "evidence": has_evidence,
+        "trivial_assertions": trivial,
+    })
+    for finding in trivial:
+        errors.append(f"trivial {label} {relative}::{name}: {finding}")
+    if not has_evidence:
+        errors.append(f"assertion-free {label}: {relative}::{name}")
+
+
+def _audit_kotlin_annotated_file(path: Path, source: str, records: list[dict[str, Any]], errors: list[str]) -> None:
+    relative = path.relative_to(ROOT).as_posix()
+    for match in re.finditer(r"@Test\s+fun\s+([A-Za-z_]\w*)\s*\([^)]*\)\s*\{", source):
+        block = _brace_block(source, match.end() - 1) or ""
+        has_evidence = bool(re.search(r"\b(?:assert\w*|check|fail)\s*\(", block) or ".check(" in block)
+        _record_kotlin_test(
+            records,
+            errors,
+            language="kotlin",
+            label="Kotlin test",
+            relative=relative,
+            name=match.group(1),
+            has_evidence=has_evidence,
+            trivial=_kotlin_block_trivial(block),
+        )
+
+
+def _audit_kotlin_portable_file(path: Path, source: str, records: list[dict[str, Any]], errors: list[str]) -> None:
+    relative = path.relative_to(ROOT).as_posix()
+    trivial = ["check(true)"] if re.search(r"\bcheck\s*\(\s*true\s*\)", source) else []
+    has_evidence = bool(re.search(r"\b(?:check|assert\w*|error)\s*\(", source))
+    _record_kotlin_test(
+        records,
+        errors,
+        language="kotlin-portable",
+        label="Kotlin portable test",
+        relative=relative,
+        name="main",
+        has_evidence=has_evidence,
+        trivial=trivial,
+    )
+
+
 def audit_kotlin() -> tuple[list[dict[str, Any]], list[str]]:
     records: list[dict[str, Any]] = []
     errors: list[str] = []
@@ -320,51 +403,12 @@ def audit_kotlin() -> tuple[list[dict[str, Any]], list[str]]:
         if root.is_dir():
             files.update(root.rglob("*.kt"))
     for path in sorted(files):
-        source = path.read_text(errors="replace")
-        for match in re.finditer(r"@Test\s+fun\s+([A-Za-z_]\w*)\s*\([^)]*\)\s*\{", source):
-            block = _brace_block(source, match.end() - 1) or ""
-            name = match.group(1)
-            relative = path.relative_to(ROOT).as_posix()
-            trivial: list[str] = []
-            if re.search(r"\b(?:assertTrue|check)\s*\(\s*true\s*\)", block):
-                trivial.append("constant true assertion")
-            if re.search(r"\bassertFalse\s*\(\s*false\s*\)", block):
-                trivial.append("constant false assertion")
-            if re.search(r"\bassertEquals\s*\(\s*([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*)\s*,\s*\1\s*\)", block):
-                trivial.append("self equality")
-            if re.search(r"\bassertNotEquals\s*\(\s*1\s*,\s*2\s*\)", block):
-                trivial.append("constant-only inequality")
-            has_evidence = bool(re.search(r"\b(?:assert\w*|check|fail)\s*\(", block) or ".check(" in block)
-            records.append({
-                "language": "kotlin",
-                "path": relative,
-                "name": name,
-                "evidence": has_evidence,
-                "trivial_assertions": trivial,
-            })
-            for finding in trivial:
-                errors.append(f"trivial Kotlin test {relative}::{name}: {finding}")
-            if not has_evidence:
-                errors.append(f"assertion-free Kotlin test: {relative}::{name}")
+        _audit_kotlin_annotated_file(path, path.read_text(errors="replace"), records, errors)
     if KOTLIN_PORTABLE.is_dir():
         for path in sorted(KOTLIN_PORTABLE.rglob("*.kt")):
             source = path.read_text(errors="replace")
-            if "fun main(" not in source:
-                continue
-            relative = path.relative_to(ROOT).as_posix()
-            trivial = ["check(true)"] if re.search(r"\bcheck\s*\(\s*true\s*\)", source) else []
-            has_evidence = bool(re.search(r"\b(?:check|assert\w*|error)\s*\(", source))
-            records.append({
-                "language": "kotlin-portable",
-                "path": relative,
-                "name": "main",
-                "evidence": has_evidence,
-                "trivial_assertions": trivial,
-            })
-            for finding in trivial:
-                errors.append(f"trivial Kotlin portable test {relative}::main: {finding}")
-            if not has_evidence:
-                errors.append(f"assertion-free Kotlin portable test: {relative}::main")
+            if "fun main(" in source:
+                _audit_kotlin_portable_file(path, source, records, errors)
     return records, errors
 
 
@@ -404,56 +448,86 @@ def audit_swift() -> tuple[list[dict[str, Any]], list[str]]:
 
 
 
+class _JavaScriptStripper:
+    """Blanks JS strings and comments while preserving code and newline positions."""
+
+    def __init__(self, source: str) -> None:
+        self._source = source
+        self._out = list(source)
+        self._state = "code"
+        self._quote = ""
+        self._escaped = False
+        self._handlers: dict[str, Callable[[int, str, str], int]] = {
+            "code": self._code,
+            "string": self._string,
+            "line-comment": self._line_comment,
+            "block-comment": self._block_comment,
+        }
+
+    def run(self) -> str:
+        index = 0
+        while index < len(self._source):
+            char = self._source[index]
+            nxt = self._source[index + 1] if index + 1 < len(self._source) else ""
+            index += 1 + self._handlers[self._state](index, char, nxt)
+        return "".join(self._out)
+
+    def _blank_pair(self, index: int) -> None:
+        self._out[index] = self._out[index + 1] = " "
+
+    def _blank_non_newline(self, index: int, char: str) -> None:
+        self._out[index] = "\n" if char == "\n" else " "
+
+    def _code(self, index: int, char: str, nxt: str) -> int:
+        if char in {"'", '"', "`"}:
+            self._state = "string"
+            self._quote = char
+            self._out[index] = " "
+            return 0
+        if char == "/" and nxt == "/":
+            self._state = "line-comment"
+            self._blank_pair(index)
+            return 1
+        if char == "/" and nxt == "*":
+            self._state = "block-comment"
+            self._blank_pair(index)
+            return 1
+        return 0
+
+    def _string(self, index: int, char: str, _nxt: str) -> int:
+        if char == "\n" and self._quote != "`":
+            self._state = "code"
+            self._quote = ""
+            return 0
+        self._blank_non_newline(index, char)
+        if self._escaped:
+            self._escaped = False
+        elif char == "\\":
+            self._escaped = True
+        elif char == self._quote:
+            self._state = "code"
+            self._quote = ""
+        return 0
+
+    def _line_comment(self, index: int, char: str, _nxt: str) -> int:
+        if char == "\n":
+            self._state = "code"
+        else:
+            self._out[index] = " "
+        return 0
+
+    def _block_comment(self, index: int, char: str, nxt: str) -> int:
+        if char == "*" and nxt == "/":
+            self._blank_pair(index)
+            self._state = "code"
+            return 1
+        self._blank_non_newline(index, char)
+        return 0
+
+
 def _strip_javascript_strings_and_comments(source: str) -> str:
     """Replace JS strings/comments with spaces while preserving code/newline positions."""
-    out = list(source)
-    index = 0
-    state = "code"
-    quote = ""
-    escaped = False
-    while index < len(source):
-        char = source[index]
-        nxt = source[index + 1] if index + 1 < len(source) else ""
-        if state == "code":
-            if char in {"'", '"', "`"}:
-                state = "string"
-                quote = char
-                out[index] = " "
-            elif char == "/" and nxt == "/":
-                state = "line-comment"
-                out[index] = out[index + 1] = " "
-                index += 1
-            elif char == "/" and nxt == "*":
-                state = "block-comment"
-                out[index] = out[index + 1] = " "
-                index += 1
-        elif state == "string":
-            if char == "\n" and quote != "`":
-                state = "code"
-                quote = ""
-            else:
-                out[index] = "\n" if char == "\n" else " "
-                if escaped:
-                    escaped = False
-                elif char == "\\":
-                    escaped = True
-                elif char == quote:
-                    state = "code"
-                    quote = ""
-        elif state == "line-comment":
-            if char == "\n":
-                state = "code"
-            else:
-                out[index] = " "
-        elif state == "block-comment":
-            if char == "*" and nxt == "/":
-                out[index] = out[index + 1] = " "
-                index += 1
-                state = "code"
-            else:
-                out[index] = "\n" if char == "\n" else " "
-        index += 1
-    return "".join(out)
+    return _JavaScriptStripper(source).run()
 
 
 def _javascript_test_files() -> list[Path]:
@@ -503,7 +577,7 @@ def audit_javascript() -> tuple[list[dict[str, Any]], list[str]]:
         trivial = _javascript_trivial(code)
         has_assert = bool(re.search(r"\bassert\.(?:\w+)\s*\(", code))
         has_conditional_throw = bool(
-            re.search(r"\bif\s*\([^)]*\)\s*(?:\{[^{}]{0,500})?\s*throw\s+new\s+Error\s*\(", code, re.S)
+            re.search(r"\bif\s*\([^)]*\)\s*(?:\{[^{}]{0,500})?\s*throw\s+new\s+Error\s*\(", code, re.DOTALL)
         )
         has_rejection = bool(re.search(r"\bthrow\s+new\s+Error\s*\(", code))
         has_evidence = has_assert or has_conditional_throw or has_rejection

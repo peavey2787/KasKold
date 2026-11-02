@@ -6,7 +6,7 @@ covered (CRAP = CC^2 + CC). This intentionally keeps the same threshold without
 retaining the deleted portable native-wallet package merely to manufacture coverage.
 """
 from __future__ import annotations
-import json, re, sys
+import json, re
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[3]
 SOURCE=ROOT/'apps/kaskold-companion-ios/KasKold'

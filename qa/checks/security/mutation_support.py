@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import argparse
 import hashlib
 import json
 import os
@@ -10,7 +9,6 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
-import tempfile
 import tomllib
 from typing import Any
 import zipfile

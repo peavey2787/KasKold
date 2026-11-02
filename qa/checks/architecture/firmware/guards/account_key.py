@@ -12,17 +12,25 @@ from pathlib import Path
 import re
 
 
+CONSUMERS = {
+    "crates/offline-signer/src/derivation/xpub/kpub.rs": (
+        "wallet::key::account",
+        "encode_account_key_text",
+        "decode_account_key_text",
+    ),
+    "crates/kaskold-protocol/src/account/bip32.rs": (
+        "encode_account_key_text",
+        "decode_kpub_or_xpub",
+    ),
+}
+
+
 def _source(path: Path) -> str:
     return resolve_path(path).read_text(errors="ignore")
 
 
-def check(root: Path) -> list[str]:
+def _check_shared_codec(shared: str) -> list[str]:
     errors: list[str] = []
-    shared_path = kaskold_source("crates/shared-signer/src/account_key.rs")
-    if not shared_path.is_file():
-        return ["shared canonical account-key codec is missing"]
-
-    shared = _source(shared_path)
     for required in (
         "ACCOUNT_KEY_TEXT_PREFIX",
         "validate_account_key_payload",
@@ -31,31 +39,27 @@ def check(root: Path) -> list[str]:
     ):
         if required not in shared:
             errors.append(f"shared account-key contract is missing: {required}")
+    return errors
 
-    consumers = {
-        "crates/offline-signer/src/derivation/xpub/kpub.rs": (
-            "wallet::key::account",
-            "encode_account_key_text",
-            "decode_account_key_text",
-        ),
-        "crates/kaskold-protocol/src/account/bip32.rs": (
-            "encode_account_key_text",
-            "decode_kpub_or_xpub",
-        ),
-    }
-    for relative, required_symbols in consumers.items():
-        source = _source(root / relative)
-        for required in required_symbols:
-            if required not in source:
-                errors.append(
-                    f"account-key consumer bypasses shared codec: {relative} missing {required}"
-                )
-        if re.search(r"\bbs58\b", source, re.IGNORECASE):
-            errors.append(f"account-key consumer implements Base58 directly: {relative}")
-        for retired in ("decode_legacy_kpub", "decode_kpub_compatible", "legacy_account_key"):
-            if retired in source:
-                errors.append(f"account-key consumer reintroduced retired Base58 kpub support: {relative}")
 
+def _check_consumer(root: Path, relative: str, required_symbols: tuple[str, ...]) -> list[str]:
+    errors: list[str] = []
+    source = _source(root / relative)
+    for required in required_symbols:
+        if required not in source:
+            errors.append(
+                f"account-key consumer bypasses shared codec: {relative} missing {required}"
+            )
+    if re.search(r"\bbs58\b", source, re.IGNORECASE):
+        errors.append(f"account-key consumer implements Base58 directly: {relative}")
+    for retired in ("decode_legacy_kpub", "decode_kpub_compatible", "legacy_account_key"):
+        if retired in source:
+            errors.append(f"account-key consumer reintroduced retired Base58 kpub support: {relative}")
+    return errors
+
+
+def _check_online_watcher(root: Path) -> list[str]:
+    errors: list[str] = []
     online_bip32 = _source(root / "crates/online-watcher/src/account/bip32.rs")
     if "kaskold_protocol" not in online_bip32:
         errors.append("online watcher account/BIP32 facade must delegate to kaskold-protocol")
@@ -63,16 +67,33 @@ def check(root: Path) -> list[str]:
     online_manifest = _source(root / "crates/online-watcher/Cargo.toml")
     if re.search(r"(?m)^bs58\s*=", online_manifest):
         errors.append("online watcher still depends on bs58 for account-key import")
+    return errors
 
+
+def _check_conformance(root: Path) -> list[str]:
+    errors: list[str] = []
     conformance = root / "qa/tests/conformance/account_key.rs"
     if not conformance.is_file():
         errors.append("canonical account-key conformance tests are missing")
-    else:
-        source = _source(conformance)
-        for required in (
-            "canonical_account_key_round_trips",
-            "account_key_rejects_noncanonical_metadata_and_text",
-        ):
-            if required not in source:
-                errors.append(f"account-key conformance coverage is missing: {required}")
+        return errors
+    source = _source(conformance)
+    for required in (
+        "canonical_account_key_round_trips",
+        "account_key_rejects_noncanonical_metadata_and_text",
+    ):
+        if required not in source:
+            errors.append(f"account-key conformance coverage is missing: {required}")
+    return errors
+
+
+def check(root: Path) -> list[str]:
+    shared_path = kaskold_source("crates/shared-signer/src/account_key.rs")
+    if not shared_path.is_file():
+        return ["shared canonical account-key codec is missing"]
+
+    errors = _check_shared_codec(_source(shared_path))
+    for relative, required_symbols in CONSUMERS.items():
+        errors.extend(_check_consumer(root, relative, required_symbols))
+    errors.extend(_check_online_watcher(root))
+    errors.extend(_check_conformance(root))
     return errors

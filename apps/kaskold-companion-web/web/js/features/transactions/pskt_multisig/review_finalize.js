@@ -50,6 +50,65 @@ function showOracleBroadcastSuccess(txId) {
   showBroadcastSuccess(String(txId));
 }
 
+async function requestOracleRoll(roll) {
+  const base = (ORACLE_MB_PROTOCOL.proverBase || '').replace(/\/+$/, '');
+  const response = await fetch(base + '/roll', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ tx: transactionState._psktReviewHex, acc: roll.acc, price: roll.price, t: roll.t }),
+    signal: AbortSignal.timeout(900000),
+  });
+  let body = null;
+  try { body = await response.json(); } catch (_) {}
+  return { response, body };
+}
+
+function reportSealedBroadcastFailure(error) {
+  const message = String(error?.message || error);
+  console.warn('[oracle-mb] sealed broadcast failed:', message);
+  const moved = /already spent|orphan|already.*mempool/i.test(message);
+  toast(
+    moved
+      ? 'This roll could not land: the oracle already moved on-chain. Showing the latest price.'
+      : 'Roll could not be broadcast (the oracle may have moved, or your node was unreachable). Showing the latest price.',
+    'error',
+    9000,
+  );
+  returnToOracleCard();
+}
+
+async function broadcastSealedRoll(sealed) {
+  setOracleProvingStage('broadcast');
+  try {
+    const txId = await withNodeRetry(wsUrl => pskt_finalize_and_broadcast(sealed, wsUrl));
+    showOracleBroadcastSuccess(txId);
+  } catch (error) {
+    reportSealedBroadcastFailure(error);
+  }
+}
+
+function reportRejectedRoll(response, body) {
+  hideOracleProvingScreen();
+  if (body?.status === 'lost_race') {
+    toast('Another roll landed first. The oracle is already fresh.', 'info', 9000);
+  } else {
+    toast('Roll rejected: ' + (body?.error || body?.reason || ('HTTP ' + response.status)), 'error', 10000);
+  }
+  returnToOracleCard();
+}
+
+async function dispatchRollResponse(response, body) {
+  if (response.ok && body?.txid) {
+    showOracleBroadcastSuccess(body.txid);
+    return;
+  }
+  if (response.ok && body?.sealed) {
+    await broadcastSealedRoll(body.sealed);
+    return;
+  }
+  reportRejectedRoll(response, body);
+}
+
 async function finalizeOracleRoll() {
   if (!isOracleRoll(transactionState._psktReviewHex)) return false;
   const roll = oracleState._oracleMbRoll;
@@ -59,53 +118,15 @@ async function finalizeOracleRoll() {
     return true;
   }
   showOracleProvingScreen(roll.price);
-  let response;
-  let body = null;
+  let result;
   try {
-    const base = (ORACLE_MB_PROTOCOL.proverBase || '').replace(/\/+$/, '');
-    response = await fetch(base + '/roll', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ tx: transactionState._psktReviewHex, acc: roll.acc, price: roll.price, t: roll.t }),
-      signal: AbortSignal.timeout(900000),
-    });
-    try { body = await response.json(); } catch (_) {}
+    result = await requestOracleRoll(roll);
   } catch (error) {
     hideOracleProvingScreen();
     toast('Roll request failed: ' + (error?.message || error) + '. The roll was not sent.', 'error', 9000);
     return true;
   }
-  if (response.ok && body?.txid) {
-    showOracleBroadcastSuccess(body.txid);
-    return true;
-  }
-  if (response.ok && body?.sealed) {
-    setOracleProvingStage('broadcast');
-    try {
-      const txId = await withNodeRetry(wsUrl => pskt_finalize_and_broadcast(body.sealed, wsUrl));
-      showOracleBroadcastSuccess(txId);
-    } catch (error) {
-      const message = String(error?.message || error);
-      console.warn('[oracle-mb] sealed broadcast failed:', message);
-      const moved = /already spent|orphan|already.*mempool/i.test(message);
-      toast(
-        moved
-          ? 'This roll could not land: the oracle already moved on-chain. Showing the latest price.'
-          : 'Roll could not be broadcast (the oracle may have moved, or your node was unreachable). Showing the latest price.',
-        'error',
-        9000,
-      );
-      returnToOracleCard();
-    }
-    return true;
-  }
-  hideOracleProvingScreen();
-  if (body?.status === 'lost_race') {
-    toast('Another roll landed first. The oracle is already fresh.', 'info', 9000);
-  } else {
-    toast('Roll rejected: ' + (body?.error || body?.reason || ('HTTP ' + response.status)), 'error', 10000);
-  }
-  returnToOracleCard();
+  await dispatchRollResponse(result.response, result.body);
   return true;
 }
 

@@ -1,30 +1,39 @@
 import { setContent, span } from '../../../../../../core/ui/elements.js';
 import { covenantWatcherState } from '../../../../../../app/state/index.js';
 import { formatDaaDuration } from '../../../../../../core/format.js';
+import { isFundsSpent, setPlainStatus } from './status_text.js';
+
+function isClockKnown(locktime, currentDaa) {
+    return locktime > 0n && currentDaa > 0n;
+}
+
+function reportTimedSpent(st, labels) {
+    const spender = covenantWatcherState._covWatcherSpendPath || 'unknown';
+    setContent(st, span('u-text-teal', '✅ ' + labels.spent(spender)));
+    if (labels.onSpent) labels.onSpent();
+    if (st) st.style.display = '';
+}
+
+function renderTimedStatus(st, labels, { kas, locktime, currentDaa }) {
+    if (!isClockKnown(locktime, currentDaa)) {
+        setPlainStatus(st, labels.watching(kas));
+    } else if (currentDaa >= locktime + 300n) {
+        setContent(st, span(labels.availableClass, labels.available(kas)));
+    } else if (currentDaa >= locktime) {
+        setContent(st, span(labels.unlockingClass, labels.unlocking(kas)));
+    } else {
+        setPlainStatus(st, labels.locked(kas, formatDaaDuration(locktime - currentDaa)));
+    }
+}
 
 export async function pollTimedBalance(state, labels) {
-    const { total, kas, st, locktime, currentDaa } = state;
-    if (total === 0n && covenantWatcherState._covWatcherLastBalance !== null && covenantWatcherState._covWatcherLastBalance > 0n) {
-        const spender = covenantWatcherState._covWatcherSpendPath || 'unknown';
-        setContent(st, span('u-text-teal', '✅ ' + labels.spent(spender)));
-        if (labels.onSpent) labels.onSpent();
-        if (st) st.style.display = '';
+    const { total, st } = state;
+    if (isFundsSpent(total)) {
+        reportTimedSpent(st, labels);
         return true;
     }
-    if (total === 0n) {
-        st.textContent = '👁 0 KAS | Not funded';
-        st.style.color = '';
-    } else if (locktime > 0n && currentDaa > 0n && currentDaa >= locktime + 300n) {
-        setContent(st, span(labels.availableClass, labels.available(kas)));
-    } else if (locktime > 0n && currentDaa > 0n && currentDaa >= locktime) {
-        setContent(st, span(labels.unlockingClass, labels.unlocking(kas)));
-    } else if (locktime > 0n && currentDaa > 0n) {
-        st.textContent = labels.locked(kas, formatDaaDuration(locktime - currentDaa));
-        st.style.color = '';
-    } else {
-        st.textContent = labels.watching(kas);
-        st.style.color = '';
-    }
+    if (total === 0n) setPlainStatus(st, '👁 0 KAS | Not funded');
+    else renderTimedStatus(st, labels, state);
     if (st) st.style.display = '';
     return false;
 }

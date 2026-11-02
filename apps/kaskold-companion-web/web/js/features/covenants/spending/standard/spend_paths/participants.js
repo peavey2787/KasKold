@@ -77,21 +77,29 @@ function selectAllowanceThread(utxos) {
     throw new Error('Thread covenant_id unavailable from the node (need version-2 UTXO entries).');
 }
 
+function assertAllowanceStarted(startDaa, currentDaa) {
+    if (startDaa > 0n && currentDaa < startDaa) {
+        const eta = formatDaaDuration(startDaa - currentDaa);
+        throw new Error('Not started yet. Withdrawals begin in ~' + eta + '. An early spend is rejected by the node.');
+    }
+}
+
+function assertAllowanceCooldownElapsed(cooldownDaa, threadDaa, currentDaa) {
+    if (cooldownDaa > 0n && threadDaa > 0n && currentDaa < threadDaa + cooldownDaa) {
+        const eta = formatDaaDuration(threadDaa + cooldownDaa - currentDaa);
+        throw new Error('Cooldown not elapsed. Next withdrawal in ~' + eta + '. An early spend is rejected by the node.');
+    }
+}
+
 async function enforceAllowanceTiming(thread) {
     const startDaa = exactUnsigned(covenantState.lastCovenantResult?.start_daa ?? 0n, 'start DAA');
     const cooldownDaa = exactUnsigned(covenantState.lastCovenantResult?.cooldown_daa ?? 0n, 'cooldown DAA');
     if (startDaa === 0n && cooldownDaa === 0n) return;
     const currentDaa = await fetchCurrentDaa();
     if (currentDaa <= 0n) return;
-    if (startDaa > 0n && currentDaa < startDaa) {
-        const eta = formatDaaDuration(startDaa - currentDaa);
-        throw new Error('Not started yet. Withdrawals begin in ~' + eta + '. An early spend is rejected by the node.');
-    }
+    assertAllowanceStarted(startDaa, currentDaa);
     const threadDaa = exactUnsigned(thread.block_daa_score ?? 0n, 'thread DAA');
-    if (cooldownDaa > 0n && threadDaa > 0n && currentDaa < threadDaa + cooldownDaa) {
-        const eta = formatDaaDuration(threadDaa + cooldownDaa - currentDaa);
-        throw new Error('Cooldown not elapsed. Next withdrawal in ~' + eta + '. An early spend is rejected by the node.');
-    }
+    assertAllowanceCooldownElapsed(cooldownDaa, threadDaa, currentDaa);
 }
 
 function calculateAllowanceWithdrawal(threadAmount) {

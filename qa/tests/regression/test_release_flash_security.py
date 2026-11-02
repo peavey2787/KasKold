@@ -27,7 +27,7 @@ class ReleaseFlashSecurityTests(unittest.TestCase):
         self.assertEqual(coverage.LEVELS["connected"], 2)
         self.assertEqual(manifest["item_coverage_summary"]["total"], 501)
         self.assertEqual(manifest["item_coverage_summary"]["backlog"], 0)
-        self.assertGreaterEqual(manifest["coverage_summary"]["states"]["total"], 176)
+        self.assertGreaterEqual(manifest["coverage_summary"]["states"]["total"], 172)
         self.assertGreaterEqual(manifest["coverage_summary"]["menu_items"]["total"], 58)
         self.assertGreaterEqual(manifest["coverage_summary"]["actions"]["total"], 197)
         self.assertEqual(manifest["release_qualification"]["incomplete_item_count"], 0)

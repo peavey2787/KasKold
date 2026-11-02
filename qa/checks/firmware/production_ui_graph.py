@@ -94,14 +94,23 @@ def _is_state_ref(value: str, state_names: set[str]) -> bool:
     return value in state_names
 
 
-def validate_graph(root: Path) -> list[str]:
+def _state_row_errors(row: dict, state_set: set[str]) -> list[str]:
     errors: list[str] = []
-    graph = parse_graph(root)
-    state_rows = graph["states"]
-    state_names = [row["state"] for row in state_rows]
-    state_set = set(state_names)
-    app_states = set(app_state_names(root))
+    if row["owner"] not in ALLOWED_OWNERS:
+        errors.append(f"{row['state']}: invalid UI owner {row['owner']}")
+    if row["kind"] not in ALLOWED_KINDS:
+        errors.append(f"{row['state']}: invalid UI kind {row['kind']}")
+    entry = row["entry"]
+    if not (_is_state_ref(entry, state_set) or entry.startswith("boot:")):
+        errors.append(f"{row['state']}: invalid canonical entry {entry}")
+    back = row["back"]
+    if not (_is_state_ref(back, state_set) or back in ALLOWED_SPECIAL_BACK or back.startswith("dynamic:")):
+        errors.append(f"{row['state']}: invalid Back metadata {back}")
+    return errors
 
+
+def _state_identity_errors(state_rows: list[dict], state_set: set[str], app_states: set[str]) -> list[str]:
+    errors: list[str] = []
     if len(state_rows) != len(state_set):
         errors.append("production UI graph has duplicate state rows")
     missing = sorted(app_states - state_set)
@@ -110,74 +119,104 @@ def validate_graph(root: Path) -> list[str]:
         errors.append("production AppState missing from UI graph: " + ", ".join(missing))
     if extra:
         errors.append("UI graph contains non-production AppState: " + ", ".join(extra))
+    return errors
 
-    row_by_state = {row["state"]: row for row in state_rows}
-    for row in state_rows:
-        if row["owner"] not in ALLOWED_OWNERS:
-            errors.append(f"{row['state']}: invalid UI owner {row['owner']}")
-        if row["kind"] not in ALLOWED_KINDS:
-            errors.append(f"{row['state']}: invalid UI kind {row['kind']}")
-        entry = row["entry"]
-        if not (_is_state_ref(entry, state_set) or entry.startswith("boot:")):
-            errors.append(f"{row['state']}: invalid canonical entry {entry}")
-        back = row["back"]
-        if not (_is_state_ref(back, state_set) or back in ALLOWED_SPECIAL_BACK or back.startswith("dynamic:")):
-            errors.append(f"{row['state']}: invalid Back metadata {back}")
 
+def _canonical_entry_errors(state: str, row_by_state: dict[str, dict]) -> list[str]:
     # Canonical entry must terminate at an explicit boot/external root, never a cycle.
-    for state in sorted(state_set):
-        seen: set[str] = set()
-        cursor = state
-        while True:
-            if cursor in seen:
-                errors.append(f"{state}: canonical-entry cycle through {cursor}")
-                break
-            seen.add(cursor)
-            entry = row_by_state[cursor]["entry"]
-            if entry.startswith("boot:"):
-                break
-            if entry not in row_by_state:
-                errors.append(f"{state}: canonical-entry target {entry} is not a graph state")
-                break
-            cursor = entry
+    seen: set[str] = set()
+    cursor = state
+    while True:
+        if cursor in seen:
+            return [f"{state}: canonical-entry cycle through {cursor}"]
+        seen.add(cursor)
+        entry = row_by_state[cursor]["entry"]
+        if entry.startswith("boot:"):
+            return []
+        if entry not in row_by_state:
+            return [f"{state}: canonical-entry target {entry} is not a graph state"]
+        cursor = entry
 
-    menus = graph["menus"]
-    spec_by_state = {item["state"]: item for item in graph["menu_specs"]}
-    if set(menus) != set(spec_by_state):
-        missing_specs = sorted(set(menus) - set(spec_by_state))
-        missing_rows = sorted(set(spec_by_state) - set(menus))
-        if missing_specs:
-            errors.append("UI menus missing UiMenuSpec rows: " + ", ".join(missing_specs))
-        if missing_rows:
-            errors.append("UiMenuSpec rows missing ui_menu items: " + ", ".join(missing_rows))
 
+def _menu_spec_errors(menus: dict, spec_by_state: dict[str, dict]) -> list[str]:
+    if set(menus) == set(spec_by_state):
+        return []
+    errors: list[str] = []
+    missing_specs = sorted(set(menus) - set(spec_by_state))
+    missing_rows = sorted(set(spec_by_state) - set(menus))
+    if missing_specs:
+        errors.append("UI menus missing UiMenuSpec rows: " + ", ".join(missing_specs))
+    if missing_rows:
+        errors.append("UiMenuSpec rows missing ui_menu items: " + ", ".join(missing_rows))
+    return errors
+
+
+def _menu_item_errors(menu: str, item: dict, state_set: set[str], actions: set[str]) -> list[str]:
+    errors: list[str] = []
+    if item["action"] in actions:
+        errors.append(f"duplicate production UI action ID: {item['action']}")
+    actions.add(item["action"])
+    if item["destination"] not in state_set:
+        errors.append(f"{menu}[{item['index']}] destination {item['destination']} is not a production state")
+    if not item["guard"]:
+        errors.append(f"{menu}[{item['index']}] has an empty availability guard")
+    operation = item.get("operation")
+    if operation is not None and operation not in ALLOWED_OPERATIONS:
+        errors.append(f"{menu}[{item['index']}] has unknown operation {operation}")
+    return errors
+
+
+def _menu_errors(
+    menu: str,
+    items: list[dict],
+    state_row: dict,
+    spec: dict,
+    state_set: set[str],
+    actions: set[str],
+) -> list[str]:
+    errors: list[str] = []
+    if state_row["kind"] != "Menu":
+        errors.append(f"menu {menu} graph state kind is {state_row['kind']}, expected Menu")
+    if spec.get("back") != state_row["back"]:
+        errors.append(f"menu {menu} Back metadata disagrees between state/menu rows")
+    indexes = [item["index"] for item in items]
+    if indexes != list(range(len(items))):
+        errors.append(f"menu {menu} indexes are not contiguous from zero: {indexes}")
+    for item in items:
+        errors.extend(_menu_item_errors(menu, item, state_set, actions))
+    return errors
+
+
+def _all_menu_errors(
+    menus: dict,
+    row_by_state: dict[str, dict],
+    spec_by_state: dict[str, dict],
+    state_set: set[str],
+) -> list[str]:
+    errors = _menu_spec_errors(menus, spec_by_state)
     actions: set[str] = set()
-    labels: set[str] = set()
     for menu, items in menus.items():
         state_row = row_by_state.get(menu)
         if state_row is None:
             errors.append(f"menu {menu} is not a production UI state")
             continue
-        if state_row["kind"] != "Menu":
-            errors.append(f"menu {menu} graph state kind is {state_row['kind']}, expected Menu")
-        if spec_by_state.get(menu, {}).get("back") != state_row["back"]:
-            errors.append(f"menu {menu} Back metadata disagrees between state/menu rows")
-        indexes = [item["index"] for item in items]
-        if indexes != list(range(len(items))):
-            errors.append(f"menu {menu} indexes are not contiguous from zero: {indexes}")
-        for item in items:
-            if item["action"] in actions:
-                errors.append(f"duplicate production UI action ID: {item['action']}")
-            actions.add(item["action"])
-            labels.add(item["label"])
-            if item["destination"] not in state_set:
-                errors.append(f"{menu}[{item['index']}] destination {item['destination']} is not a production state")
-            if not item["guard"]:
-                errors.append(f"{menu}[{item['index']}] has an empty availability guard")
-            operation = item.get("operation")
-            if operation is not None and operation not in ALLOWED_OPERATIONS:
-                errors.append(f"{menu}[{item['index']}] has unknown operation {operation}")
+        errors.extend(_menu_errors(menu, items, state_row, spec_by_state.get(menu, {}), state_set, actions))
+    return errors
 
+
+def validate_graph(root: Path) -> list[str]:
+    graph = parse_graph(root)
+    state_rows = graph["states"]
+    state_set = {row["state"] for row in state_rows}
+    row_by_state = {row["state"]: row for row in state_rows}
+    spec_by_state = {item["state"]: item for item in graph["menu_specs"]}
+
+    errors = _state_identity_errors(state_rows, state_set, set(app_state_names(root)))
+    for row in state_rows:
+        errors.extend(_state_row_errors(row, state_set))
+    for state in sorted(state_set):
+        errors.extend(_canonical_entry_errors(state, row_by_state))
+    errors.extend(_all_menu_errors(graph["menus"], row_by_state, spec_by_state, state_set))
     return errors
 
 

@@ -24,41 +24,74 @@ export async function buildEscrow(ownerPk) {
     return { resultJson, extra };
 }
 
-export async function buildShipEscrow(ownerPk) {
-    let resultJson;
-    let extra = {};
-    const sellerPk = addressToXOnly(byId('cov-ship-seller-pk').value);
-    const delivPk = addressToXOnly(byId('cov-ship-deliverer-pk').value);
-    const arbPk = addressToXOnly(byId('cov-ship-arbiter-pk').value);
-    if (!ownerPk) { toast('Load wallet first (you are the buyer)', 'error'); return; }
-    if (!/^[0-9a-fA-F]{64}$/.test(sellerPk)) { toast('Enter seller pubkey (64 hex chars)', 'error'); return; }
-    if (!/^[0-9a-fA-F]{64}$/.test(delivPk)) { toast('Enter deliverer pubkey (64 hex chars)', 'error'); return; }
-    if (!/^[0-9a-fA-F]{64}$/.test(arbPk)) { toast('Enter arbiter pubkey (64 hex chars)', 'error'); return; }
+function isHex64(value) {
+    return /^[0-9a-fA-F]{64}$/.test(value);
+}
+
+function validateShipPubkeys(ownerPk, sellerPk, delivPk, arbPk) {
+    if (!ownerPk) { toast('Load wallet first (you are the buyer)', 'error'); return false; }
+    if (!isHex64(sellerPk)) { toast('Enter seller pubkey (64 hex chars)', 'error'); return false; }
+    if (!isHex64(delivPk)) { toast('Enter deliverer pubkey (64 hex chars)', 'error'); return false; }
+    if (!isHex64(arbPk)) { toast('Enter arbiter pubkey (64 hex chars)', 'error'); return false; }
+    return true;
+}
+
+// Reads product price and delivery fee in sompi. Returns null after toasting on failure.
+function readShipAmounts() {
     let productSompi, feeSompi;
-    try { productSompi = kasToSompi(byId('cov-ship-product').value.trim()); } catch (_) { toast('Enter product price in KAS (up to 8 decimals)', 'error'); return; }
-    try { feeSompi = kasToSompi(byId('cov-ship-fee').value.trim()); } catch (_) { toast('Enter delivery fee in KAS (up to 8 decimals)', 'error'); return; }
-    if (productSompi <= 0n) { toast('Enter product price in KAS', 'error'); return; }
-    if (feeSompi <= 0n) { toast('Enter delivery fee in KAS', 'error'); return; }
+    try { productSompi = kasToSompi(byId('cov-ship-product').value.trim()); } catch (_) { toast('Enter product price in KAS (up to 8 decimals)', 'error'); return null; }
+    try { feeSompi = kasToSompi(byId('cov-ship-fee').value.trim()); } catch (_) { toast('Enter delivery fee in KAS (up to 8 decimals)', 'error'); return null; }
+    if (productSompi <= 0n) { toast('Enter product price in KAS', 'error'); return null; }
+    if (feeSompi <= 0n) { toast('Enter delivery fee in KAS', 'error'); return null; }
+    return { productSompi, feeSompi };
+}
+
+// Reads both DAA deadlines. Returns null after toasting when either is unset.
+function readShipDeadlines() {
     const cltv1 = BigInt(byId('cov-ship-cltv1').value.trim() || '0');
     const cltv2 = BigInt(byId('cov-ship-cltv2').value.trim() || '0');
-    if (cltv1 <= 0n || cltv2 <= 0n) { toast('Set both deadlines (DAA score)', 'error'); return; }
-    resultJson = covenant_ship_escrow(JSON.stringify({
-        seller_pubkey_hex: sellerPk,
-        deliverer_pubkey_hex: delivPk,
-        buyer_pubkey_hex: ownerPk,
-        arbiter_pubkey_hex: arbPk,
-        product_sompi: productSompi.toString(),
-        fee_sompi: feeSompi.toString(),
-        cltv1_deadline: cltv1.toString(),
-        cltv2_deadline: cltv2.toString(),
+    if (cltv1 <= 0n || cltv2 <= 0n) { toast('Set both deadlines (DAA score)', 'error'); return null; }
+    return { cltv1, cltv2 };
+}
+
+function buildShipPayload(pubkeys, amounts, deadlines) {
+    return JSON.stringify({
+        seller_pubkey_hex: pubkeys.seller,
+        deliverer_pubkey_hex: pubkeys.deliverer,
+        buyer_pubkey_hex: pubkeys.buyer,
+        arbiter_pubkey_hex: pubkeys.arbiter,
+        product_sompi: amounts.productSompi.toString(),
+        fee_sompi: amounts.feeSompi.toString(),
+        cltv1_deadline: deadlines.cltv1.toString(),
+        cltv2_deadline: deadlines.cltv2.toString(),
         network: networkState.network,
-    }));
-    extra.seller_pk = sellerPk;
-    extra.deliverer_pk = delivPk;
-    extra.buyer_pk = ownerPk;
-    extra.arbiter_pk = arbPk;
-    extra.seller_addr = encode_p2pk_address(sellerPk, networkState.network);
-    extra.deliverer_addr = encode_p2pk_address(delivPk, networkState.network);
-    extra.buyer_addr = encode_p2pk_address(ownerPk, networkState.network);
-    return { resultJson, extra };
+    });
+}
+
+function shipEscrowExtra(pubkeys) {
+    const extra = {};
+    extra.seller_pk = pubkeys.seller;
+    extra.deliverer_pk = pubkeys.deliverer;
+    extra.buyer_pk = pubkeys.buyer;
+    extra.arbiter_pk = pubkeys.arbiter;
+    extra.seller_addr = encode_p2pk_address(pubkeys.seller, networkState.network);
+    extra.deliverer_addr = encode_p2pk_address(pubkeys.deliverer, networkState.network);
+    extra.buyer_addr = encode_p2pk_address(pubkeys.buyer, networkState.network);
+    return extra;
+}
+
+export async function buildShipEscrow(ownerPk) {
+    const pubkeys = {
+        seller: addressToXOnly(byId('cov-ship-seller-pk').value),
+        deliverer: addressToXOnly(byId('cov-ship-deliverer-pk').value),
+        buyer: ownerPk,
+        arbiter: addressToXOnly(byId('cov-ship-arbiter-pk').value),
+    };
+    if (!validateShipPubkeys(ownerPk, pubkeys.seller, pubkeys.deliverer, pubkeys.arbiter)) return;
+    const amounts = readShipAmounts();
+    if (!amounts) return;
+    const deadlines = readShipDeadlines();
+    if (!deadlines) return;
+    const resultJson = covenant_ship_escrow(buildShipPayload(pubkeys, amounts, deadlines));
+    return { resultJson, extra: shipEscrowExtra(pubkeys) };
 }

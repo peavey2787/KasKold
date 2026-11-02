@@ -1,6 +1,15 @@
 // Pure BlockAdded-notification parsing helpers.
 import { hexToBytes } from '../../../core/bytes.js';
 
+function readUint32LE(data, offset) {
+    return (
+        data[offset]
+        | (data[offset + 1] << 8)
+        | (data[offset + 2] << 16)
+        | (data[offset + 3] << 24)
+    ) >>> 0;
+}
+
 function matchesOutpoint(data, offset, txidBytes, outputIndex) {
     if (offset + 41 > data.length) return false;
     if (data[offset] !== 37 || data[offset + 1] !== 0 || data[offset + 2] !== 0 || data[offset + 3] !== 0) return false;
@@ -8,41 +17,45 @@ function matchesOutpoint(data, offset, txidBytes, outputIndex) {
     for (let index = 0; index < txidBytes.length; index++) {
         if (data[offset + 5 + index] !== txidBytes[index]) return false;
     }
-    const indexOffset = offset + 37;
-    const encodedIndex = (
-        data[indexOffset]
-        | (data[indexOffset + 1] << 8)
-        | (data[indexOffset + 2] << 16)
-        | (data[indexOffset + 3] << 24)
-    ) >>> 0;
+    const encodedIndex = readUint32LE(data, offset + 37);
     return encodedIndex === (Number(outputIndex || 0) >>> 0);
 }
 
-export function findSpendingSignatureScript(data, outpoint, bounds) {
-    if (!(data instanceof Uint8Array) || data.length < 4 || !outpoint) return null;
+function hasSpendingEnvelope(data) {
     const envelopeOffset = data[0] === 0x01 ? 9 : 1;
-    if (envelopeOffset + 2 >= data.length || data[envelopeOffset] !== 0xFF) return null;
-    if (data[envelopeOffset + 2] !== 0x3C) return null;
+    return envelopeOffset + 2 < data.length && data[envelopeOffset] === 0xFF && data[envelopeOffset + 2] === 0x3C;
+}
 
+function scriptAtOutpoint(data, offset, txidBytes, outpoint, minLength, maxLength) {
+    if (!matchesOutpoint(data, offset, txidBytes, outpoint.index)) return null;
+    const lengthOffset = offset + 41;
+    if (lengthOffset + 4 > data.length) return null;
+    const scriptLength = readUint32LE(data, lengthOffset);
+    if (scriptLength < minLength || scriptLength > maxLength) return null;
+    const scriptOffset = lengthOffset + 4;
+    if (scriptOffset + scriptLength > data.length) return null;
+    return data.slice(scriptOffset, scriptOffset + scriptLength);
+}
+
+function isSearchableEnvelope(data, outpoint) {
+    return data instanceof Uint8Array && data.length >= 4 && Boolean(outpoint) && hasSpendingEnvelope(data);
+}
+
+function outpointTxidBytes(outpoint) {
     if (typeof outpoint.txid !== 'string' || !/^[0-9a-f]{64}$/i.test(outpoint.txid)) return null;
-    const txidBytes = hexToBytes(outpoint.txid);
+    return hexToBytes(outpoint.txid);
+}
+
+export function findSpendingSignatureScript(data, outpoint, bounds) {
+    if (!isSearchableEnvelope(data, outpoint)) return null;
+    const txidBytes = outpointTxidBytes(outpoint);
+    if (txidBytes === null) return null;
     const minLength = bounds?.minLength ?? 1;
     const maxLength = bounds?.maxLength ?? 2000;
 
     for (let offset = 4; offset + 45 <= data.length; offset++) {
-        if (!matchesOutpoint(data, offset, txidBytes, outpoint.index)) continue;
-        const lengthOffset = offset + 41;
-        if (lengthOffset + 4 > data.length) continue;
-        const scriptLength = (
-            data[lengthOffset]
-            | (data[lengthOffset + 1] << 8)
-            | (data[lengthOffset + 2] << 16)
-            | (data[lengthOffset + 3] << 24)
-        ) >>> 0;
-        if (scriptLength < minLength || scriptLength > maxLength) continue;
-        const scriptOffset = lengthOffset + 4;
-        if (scriptOffset + scriptLength > data.length) continue;
-        return data.slice(scriptOffset, scriptOffset + scriptLength);
+        const script = scriptAtOutpoint(data, offset, txidBytes, outpoint, minLength, maxLength);
+        if (script !== null) return script;
     }
     return null;
 }

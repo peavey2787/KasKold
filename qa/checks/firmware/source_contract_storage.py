@@ -349,7 +349,7 @@ def check_sd_persistence_security_contract(errors: list[str]) -> None:
         "device-bound storage must preflight the read-protected HMAC key before credential setup",
     )
     startup = read("apps/kaskold-hardware/src/services/persistent_wallet/startup.rs")
-    persistent_service = read("apps/kaskold-hardware/src/services/persistent_wallet/mod.rs")
+    read("apps/kaskold-hardware/src/services/persistent_wallet/mod.rs")
     seed_backup = read("apps/kaskold-hardware/src/runtime/interactions/export/seed_backup.rs")
     require(
         errors,
@@ -375,7 +375,7 @@ def check_sd_persistence_security_contract(errors: list[str]) -> None:
         and "ad.export.seed_backup_return = AppState::StorageRecoveryAcknowledgement" not in seed_passphrase,
         "generated mnemonics must use backup acknowledgement while imported mnemonics skip redisplay and proceed through passphrase, naming, and storage choice",
     )
-    event_dispatch = read("apps/kaskold-hardware/src/runtime/event_loop/dispatch.rs")
+    read("apps/kaskold-hardware/src/runtime/event_loop/dispatch.rs")
     navigation = read("apps/kaskold-hardware/src/runtime/interactions/persistence.rs")
     state_navigation = read("apps/kaskold-hardware/src/runtime/navigation/mod.rs")
     require(

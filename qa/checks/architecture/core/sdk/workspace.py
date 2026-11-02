@@ -4,7 +4,7 @@ import sys as _portal_sys
 from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[5] / "qa/checks"))
-from portal_source import kaskold_source, portal_text  # noqa: E402
+from portal_source import portal_text  # noqa: E402
 
 from pathlib import Path
 import tomllib
@@ -75,34 +75,61 @@ def _check_dependency_direction(root: Path) -> list[str]:
 
 
 def _check_protocol_boundaries(root: Path) -> list[str]:
-    errors: list[str] = []
     protocol_root = root / "crates/kaskold-protocol/src"
     source = "\n".join(path.read_text() for path in protocol_root.rglob("*.rs"))
+    return [
+        *_check_protocol_source(source),
+        *_check_pairing_binding(protocol_root),
+        *_check_descriptor_binding(protocol_root),
+        *_check_descriptor_consumers(root),
+        *_check_companion_qr_facade(root),
+    ]
+
+
+def _check_protocol_source(source: str) -> list[str]:
+    errors: list[str] = []
     if "svg:" in source or "qrcode::" in source:
         errors.append("kaskold-protocol QR frames must expose raw payloads, not rendered SVG/UI")
     if "thread_local!" in source:
         errors.append("kaskold-protocol QR/session state must be instance-owned, not thread-global")
     if '_ => "kaspa"' in source:
         errors.append("kaskold-protocol network parsing must never fall back to mainnet")
-    pairing = (protocol_root / "pairing/mod.rs").read_text()
-    for marker in ("nonce", "account_fingerprint", "DerivedAddress"):
-        if marker not in pairing:
-            errors.append(f"privacy pairing binding is missing {marker}")
+    return errors
 
+
+def _check_pairing_binding(protocol_root: Path) -> list[str]:
+    pairing = (protocol_root / "pairing/mod.rs").read_text()
+    return [
+        f"privacy pairing binding is missing {marker}"
+        for marker in ("nonce", "account_fingerprint", "DerivedAddress")
+        if marker not in pairing
+    ]
+
+
+def _check_descriptor_binding(protocol_root: Path) -> list[str]:
     # Portal owns the canonical grammar; KasKold binds it at signer capacity.
     descriptor = (protocol_root / "wire/multisig_descriptor.rs").read_text()
-    for marker in (
-        "kaspa_portal::wallet::multisig::grammar",
-        "pub const MAX_DESCRIPTOR_PARTICIPANTS",
-        "SIGNER_CAPABILITIES.max_multisig_keys",
-        "pub fn parse_multisig_descriptor",
-    ):
-        if marker not in descriptor:
-            errors.append(f"KasKold multisig descriptor binding is missing {marker}")
+    errors = [
+        f"KasKold multisig descriptor binding is missing {marker}"
+        for marker in (
+            "kaspa_portal::wallet::multisig::grammar",
+            "pub const MAX_DESCRIPTOR_PARTICIPANTS",
+            "SIGNER_CAPABILITIES.max_multisig_keys",
+            "pub fn parse_multisig_descriptor",
+        )
+        if marker not in descriptor
+    ]
     grammar = portal_text("wallet/multisig/grammar.rs")
-    for marker in ("multi_hd45(", "multi_hd(", "multi(", "DuplicateParticipant", "fn sort_hd45_by_encoded"):
-        if marker not in grammar:
-            errors.append(f"canonical multisig descriptor grammar is missing {marker}")
+    errors.extend(
+        f"canonical multisig descriptor grammar is missing {marker}"
+        for marker in ("multi_hd45(", "multi_hd(", "multi(", "DuplicateParticipant", "fn sort_hd45_by_encoded")
+        if marker not in grammar
+    )
+    return errors
+
+
+def _check_descriptor_consumers(root: Path) -> list[str]:
+    errors: list[str] = []
     for fork in ("crates/online-watcher/src/multisig/descriptor.rs", "crates/kaskold-protocol/src/wire/multisig_descriptor/"):
         if (root / fork).exists():
             errors.append(f"KasKold must not re-own the canonical descriptor grammar: {fork}")
@@ -115,39 +142,60 @@ def _check_protocol_boundaries(root: Path) -> list[str]:
         errors.append("firmware camera descriptor import must use the canonical kaskold-protocol parser")
     if "kaskold_protocol::wire::multisig_descriptor::parse_multisig_descriptor" not in sd_descriptor:
         errors.append("firmware SD descriptor import must use the canonical kaskold-protocol parser")
-
-    watcher_qr = (root / "crates/online-watcher/src/protocol/qr.rs").read_text()
-    for marker in ("kaskold_protocol::qr::{encode_frames, QrDecoder}", ".accept(&payload)", ".progress()"):
-        if marker not in watcher_qr:
-            errors.append(f"Companion QR facade must delegate to canonical kaskold-protocol QR state: {marker}")
-    for duplicate in (
-        "struct DecoderState",
-        "fn accept_session",
-        "shared_signer::qr_frame::encode_frame",
-        "shared_signer::qr_frame::verify_session",
-        "shared_signer::qr_frame::session_id",
-    ):
-        if duplicate in watcher_qr:
-            errors.append(f"Companion must not re-own canonical QR framing/session logic: {duplicate}")
     return errors
 
 
+def _check_companion_qr_facade(root: Path) -> list[str]:
+    watcher_qr = (root / "crates/online-watcher/src/protocol/qr.rs").read_text()
+    errors = [
+        f"Companion QR facade must delegate to canonical kaskold-protocol QR state: {marker}"
+        for marker in ("kaskold_protocol::qr::{encode_frames, QrDecoder}", ".accept(&payload)", ".progress()")
+        if marker not in watcher_qr
+    ]
+    errors.extend(
+        f"Companion must not re-own canonical QR framing/session logic: {duplicate}"
+        for duplicate in (
+            "struct DecoderState",
+            "fn accept_session",
+            "shared_signer::qr_frame::encode_frame",
+            "shared_signer::qr_frame::verify_session",
+            "shared_signer::qr_frame::session_id",
+        )
+        if duplicate in watcher_qr
+    )
+    return errors
+
 
 def _check_licensing_boundaries(root: Path) -> list[str]:
-    errors: list[str] = []
-    shared_lib = (root / "crates/shared-signer/src/lib.rs").read_text()
-    for retired in ("persistent_credential", "qr_payload"):
-        if f"pub mod {retired};" in shared_lib or (root / f"crates/shared-signer/src/{retired}.rs").exists():
-            errors.append(f"shared-signer must not retain non-shared ownership of {retired}")
+    return [
+        *_check_retired_shared_modules(root),
+        *_check_qr_payload_module(root),
+        *_check_credential_ownership(root),
+        *_check_contributing_policy(root),
+        *_check_account_forks(root),
+    ]
 
+
+def _check_retired_shared_modules(root: Path) -> list[str]:
+    shared_lib = (root / "crates/shared-signer/src/lib.rs").read_text()
+    return [
+        f"shared-signer must not retain non-shared ownership of {retired}"
+        for retired in ("persistent_credential", "qr_payload")
+        if f"pub mod {retired};" in shared_lib or (root / f"crates/shared-signer/src/{retired}.rs").exists()
+    ]
+
+
+def _check_qr_payload_module(root: Path) -> list[str]:
     qr_payload = root / "crates/kaskold-protocol/src/wire/qr_payload.rs"
     if not qr_payload.is_file():
-        errors.append("canonical public raw QR envelope must live in kaskold-protocol::wire::qr_payload")
-    else:
-        text = qr_payload.read_text(errors="ignore")
-        if "GPL-3.0-only" not in text:
-            errors.append("QR payload module must state its GPL-3.0-only license")
+        return ["canonical public raw QR envelope must live in kaskold-protocol::wire::qr_payload"]
+    if "GPL-3.0-only" not in qr_payload.read_text(errors="ignore"):
+        return ["QR payload module must state its GPL-3.0-only license"]
+    return []
 
+
+def _check_credential_ownership(root: Path) -> list[str]:
+    errors: list[str] = []
     credential_meta = root / "crates/offline-signer/src/crypto/credential.rs"
     credential_acceptance = root / "crates/shared-signer/src/credential_policy.rs"
     credential_policy = root / "crates/kaskold-hardware-core/src/security/credential.rs"
@@ -158,25 +206,38 @@ def _check_licensing_boundaries(root: Path) -> list[str]:
     device_policy = credential_policy.read_text(errors="ignore") if credential_policy.is_file() else ""
     if "pub fn retry_delay_millis" not in device_policy or "pub use shared_signer::credential_policy::" not in device_policy:
         errors.append("device retry policy must live in kaskold-hardware-core over the shared acceptance policy")
+    return errors
 
+
+def _check_contributing_policy(root: Path) -> list[str]:
     contributing = (root / "CONTRIBUTING.md").read_text(errors="ignore")
-    for marker in ("shared-signer", "kaskold-protocol", "kaskold-sdk", "GPL-3.0-only", "UPSTREAM_ATTRIBUTION.md"):
-        if marker not in contributing:
-            errors.append(f"contribution licensing policy is missing marker: {marker}")
+    errors = [
+        f"contribution licensing policy is missing marker: {marker}"
+        for marker in ("shared-signer", "kaskold-protocol", "kaskold-sdk", "GPL-3.0-only", "UPSTREAM_ATTRIBUTION.md")
+        if marker not in contributing
+    ]
     if "MIT OR Apache-2.0" in contributing:
         errors.append("first-party KasKold code must not be offered under a permissive license")
+    return errors
 
+
+def _check_account_forks(root: Path) -> list[str]:
     # BIP32 derivation and address encoding are Kaspa Portal's; KasKold must
     # not carry a second copy of either.
     account = root / "crates/kaskold-protocol/src/account"
-    for fork in ("bip32.rs", "address.rs"):
-        if (account / fork).exists():
-            errors.append(f"kaskold-protocol forks Kaspa Portal account code: account/{fork}")
+    errors = [
+        f"kaskold-protocol forks Kaspa Portal account code: account/{fork}"
+        for fork in ("bip32.rs", "address.rs")
+        if (account / fork).exists()
+    ]
     account_mod = (account / "mod.rs").read_text(errors="ignore")
-    for owner in ("kaspa_portal::wallet::account::derivation", "kaspa_portal::primitives::address"):
-        if owner not in account_mod:
-            errors.append(f"kaskold-protocol account model must import {owner}")
+    errors.extend(
+        f"kaskold-protocol account model must import {owner}"
+        for owner in ("kaspa_portal::wallet::account::derivation", "kaspa_portal::primitives::address")
+        if owner not in account_mod
+    )
     return errors
+
 
 def _check_wallet_policy_boundary(root: Path) -> list[str]:
     source = (root / "crates/kaskold-sdk/src/lib.rs").read_text()
@@ -201,25 +262,48 @@ def _check_crate_inventory(root: Path) -> list[str]:
 
 
 def _check_public_release_contract(root: Path) -> list[str]:
-    errors: list[str] = []
     manifests = {name: _manifest(root, name) for name in ("shared-signer", "kaskold-protocol", "kaskold-sdk")}
+    return [
+        *_check_manifest_licenses(root, manifests),
+        *_check_protocol_features(manifests["kaskold-protocol"]),
+        *_check_sdk_features(manifests["kaskold-sdk"]),
+        *_check_wasm_packaging(root),
+        *_check_public_api_surface(root),
+    ]
+
+
+def _check_manifest_licenses(root: Path, manifests: dict[str, dict]) -> list[str]:
+    errors: list[str] = []
     for name, manifest in manifests.items():
         if manifest.get("package", {}).get("license") != "GPL-3.0-only":
             errors.append(f"{name} must be licensed GPL-3.0-only like the upstream project")
         for license_name in ("LICENSE-MIT", "LICENSE-APACHE"):
             if (root / "crates" / name / license_name).exists():
                 errors.append(f"{name} must not ship a permissive {license_name}")
-    protocol = manifests["kaskold-protocol"]
+    return errors
+
+
+def _check_protocol_features(protocol: dict) -> list[str]:
+    errors: list[str] = []
     host_features = set(protocol.get("features", {}).get("host", []))
     if any("wasm-bindgen" in feature or "js-sys" in feature for feature in host_features):
         errors.append("kaskold-protocol host feature must not pull WASM-only dependencies")
     if "wasm" not in protocol.get("features", {}):
         errors.append("kaskold-protocol must expose an explicit wasm feature")
-    sdk = manifests["kaskold-sdk"]
+    return errors
+
+
+def _check_sdk_features(sdk: dict) -> list[str]:
+    errors: list[str] = []
     if "wasm" not in sdk.get("features", {}):
         errors.append("kaskold-sdk must expose an explicit wasm feature")
     if "wasm-bindgen" in sdk.get("dependencies", {}):
         errors.append("kaskold-sdk native dependencies must not unconditionally include wasm-bindgen")
+    return errors
+
+
+def _check_wasm_packaging(root: Path) -> list[str]:
+    errors: list[str] = []
     linux_wasm_build = (root / "scripts/linux/lib/rust-wasm-sdk.sh").read_text()
     windows_wasm_build = (root / "scripts/windows/lib/rust-wasm-sdk.ps1").read_text()
     if (
@@ -234,15 +318,22 @@ def _check_public_release_contract(root: Path) -> list[str]:
         or "'--','--crate-type=cdylib'" in windows_wasm_build
     ):
         errors.append("Windows SDK WASM packaging must pass cdylib to cargo rustc, not directly to rustc")
+    return errors
+
+
+def _check_public_api_surface(root: Path) -> list[str]:
+    errors: list[str] = []
     sdk_source = (root / "crates/kaskold-sdk/src/lib.rs").read_text()
     protocol_errors = (root / "crates/kaskold-protocol/src/error/mod.rs").read_text()
     sdk_errors = (root / "crates/kaskold-sdk/src/error/mod.rs").read_text()
     network = (root / "crates/kaskold-protocol/src/network/mod.rs").read_text()
     if "SdkResult<" not in sdk_source or "SdkErrorKind" not in sdk_errors:
         errors.append("kaskold-sdk public API must expose typed stable errors")
-    for marker in ("WrongNetwork", "TransactionMismatch", "PairingMismatch", "Qr", "Finalization"):
-        if marker not in protocol_errors:
-            errors.append(f"kaskold-protocol public error categories are missing {marker}")
+    errors.extend(
+        f"kaskold-protocol public error categories are missing {marker}"
+        for marker in ("WrongNetwork", "TransactionMismatch", "PairingMismatch", "Qr", "Finalization")
+        if marker not in protocol_errors
+    )
     if "#[non_exhaustive]" not in network:
         errors.append("public Network must remain future-extensible without a major version bump")
     if (root / "crates/offline-signer/src/transaction").exists():

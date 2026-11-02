@@ -20,32 +20,46 @@ function parseWallet(value) {
     throw new TypeError('wallet payload must be a JSON string or object');
 }
 
+const EMPTY_BY_TYPE = { string: '', bigint: 0n, number: 0, boolean: false };
+
+function isScrubbableBinary(value) {
+    return (ArrayBuffer.isView(value) && typeof value.fill === 'function') || value instanceof ArrayBuffer;
+}
+
+function scrubBinary(value) {
+    try {
+        if (ArrayBuffer.isView(value)) value.fill(0);
+        else new Uint8Array(value).fill(0);
+    } catch (_) {}
+}
+
+function scrubProperty(value, key, current) {
+    try {
+        if (Object.hasOwn(EMPTY_BY_TYPE, typeof current)) value[key] = EMPTY_BY_TYPE[typeof current];
+        else if (current && typeof current === 'object') value[key] = null;
+    } catch (_) {}
+}
+
+function scrubObjectProperties(value, seen) {
+    for (const key of Object.keys(value)) {
+        const current = value[key];
+        if (current && typeof current === 'object') bestEffortScrubMutable(current, seen);
+        scrubProperty(value, key, current);
+    }
+}
+
 export function bestEffortScrubMutable(value, seen = new WeakSet()) {
     if (!value || typeof value !== 'object' || seen.has(value)) return;
     seen.add(value);
-    if (ArrayBuffer.isView(value) && typeof value.fill === 'function') {
-        try { value.fill(0); } catch (_) {}
-        return;
-    }
-    if (value instanceof ArrayBuffer) {
-        try { new Uint8Array(value).fill(0); } catch (_) {}
+    if (isScrubbableBinary(value)) {
+        scrubBinary(value);
         return;
     }
     if (value instanceof Set || value instanceof Map) {
         value.clear();
         return;
     }
-    for (const key of Object.keys(value)) {
-        const current = value[key];
-        if (current && typeof current === 'object') bestEffortScrubMutable(current, seen);
-        try {
-            if (typeof current === 'string') value[key] = '';
-            else if (typeof current === 'bigint') value[key] = 0n;
-            else if (typeof current === 'number') value[key] = 0;
-            else if (typeof current === 'boolean') value[key] = false;
-            else if (current && typeof current === 'object') value[key] = null;
-        } catch (_) {}
-    }
+    scrubObjectProperties(value, seen);
     if (Array.isArray(value)) value.length = 0;
 }
 

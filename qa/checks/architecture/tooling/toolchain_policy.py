@@ -78,6 +78,7 @@ def _consumer_requirements() -> dict[str, tuple[str, ...]]:
         ".github/workflows/core.yml": (
             "qa/config/toolchains.env", "KASKOLD_STABLE_RUST",
             "qa/checks/workspace/check_rust_format.py", "make test STRICT_LOCKFILES=1",
+            "KASKOLD_CARGO_AUDIT_VERSION",
         ),
         ".github/workflows/kaskold-companion-ci.yml": (
             "qa/config/toolchains.env", "KASKOLD_STABLE_RUST",
@@ -100,7 +101,6 @@ def _consumer_requirements() -> dict[str, tuple[str, ...]]:
         "qa/checks/security/dependency_advisories.py": (
             "load_toolchains", "KASKOLD_CARGO_AUDIT_VERSION",
         ),
-        ".github/workflows/core.yml": ("KASKOLD_CARGO_AUDIT_VERSION",),
     }
 
 

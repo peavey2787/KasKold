@@ -379,11 +379,38 @@ class PlatformScriptWrapperTests(unittest.TestCase):
         self.assertIn("def ensure_esp_rust_toolchain", runner)
         self.assertIn('scripts/windows/lib/qemu-common.ps1', runner)
         self.assertIn("Install-KasKoldRustupIfMissing; Install-KasKoldEspRustToolchain", runner)
-        cargo_resolution = runner.index('elif step_id=="preflight.cargo-resolution"')
-        esp_bootstrap = runner.index("ensure_esp_rust_toolchain(ns.dry_run)", cargo_resolution)
-        reconciliation = runner.index("reconcile_lock(directory,manifest", cargo_resolution)
-        self.assertLess(esp_bootstrap, reconciliation)
-        self.assertGreaterEqual(runner.count("ensure_esp_rust_toolchain(ns.dry_run)"), 4)
+        spec = importlib.util.spec_from_file_location(
+            "kaskold_windows_esp_bootstrap_test", ROOT / "qa/windows/runner/run_all.py"
+        )
+        assert spec and spec.loader
+        module = importlib.util.module_from_spec(spec)
+        with mock.patch.dict(sys.modules, {spec.name: module}):
+            spec.loader.exec_module(module)
+            order: list[str] = []
+            options = module.argparse.Namespace(dry_run=True, repair_lockfiles=False)
+            with (
+                mock.patch.object(module, "ensure_esp_rust_toolchain", lambda _dry: order.append("esp")),
+                mock.patch.object(
+                    module,
+                    "reconcile_lock",
+                    lambda directory, _manifest, _repair, _dry: order.append(Path(directory).name),
+                ),
+            ):
+                module._step_handlers()["preflight.cargo-resolution"](options)
+            self.assertLess(order.index("esp"), order.index("kaskold-hardware"))
+            order.clear()
+            with (
+                mock.patch.object(module, "ensure_esp_rust_toolchain", lambda _dry: order.append("esp")),
+                mock.patch.object(module, "run", lambda *_args, **_kwargs: order.append("run")),
+            ):
+                for step in (
+                    "unit.signer-firmware",
+                    "integration.signer-firmware-builds",
+                    "integration.signer-firmware-lints",
+                ):
+                    order.clear()
+                    module._step_handlers()[step](options)
+                    self.assertEqual(order[0], "esp", step)
 
         self.assertIn("ESP Rust toolchain is missing; provisioning pinned ESP Rust", helper)
         self.assertIn("KASKOLD_ESPUP_VERSION", helper)

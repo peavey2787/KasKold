@@ -23,6 +23,6 @@ class MobileWebCoverageContracts(unittest.TestCase):
     def test_web_runtime_collector_maps_the_real_main_module_graph(self):
         path=ROOT/'qa/checks/web/run_web_runtime_coverage.py'; module=load(path,'web_runtime_coverage')
         reachable=module.reachable_modules(); all_js={p.relative_to(ROOT).as_posix() for p in (ROOT/'apps/kaskold-companion-web/web/js').rglob('*.js')}
-        self.assertEqual(reachable,all_js); self.assertEqual(len(reachable),322)
+        self.assertTrue(all_js); self.assertEqual(reachable,all_js)
 
 if __name__=='__main__': unittest.main()

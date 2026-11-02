@@ -10,19 +10,21 @@ def _require(errors: list[str], source: str, token: str, message: str) -> None:
         errors.append(f"{message}: {token}")
 
 
-def check(root: Path) -> list[str]:
-    errors: list[str] = []
-    backup_root = root / "apps/kaskold-hardware/src/services/backup"
+def _check_inventory(backup_root: Path) -> list[str]:
     required = {
         "mod.rs", "container.rs", "device.rs", "error.rs",
         "randomness.rs", "seed.rs", "xprv.rs",
     }
     actual = {path.name for path in backup_root.glob("*.rs")} if backup_root.exists() else set()
     if actual != required:
-        errors.append(
+        return [
             f"firmware backup service inventory changed: expected {sorted(required)}, got {sorted(actual)}"
-        )
+        ]
+    return []
 
+
+def _check_module_limits(root: Path, backup_root: Path) -> list[str]:
+    errors: list[str] = []
     limits = {
         "mod.rs": 70,
         "container.rs": 220,
@@ -41,7 +43,11 @@ def check(root: Path) -> list[str]:
             errors.append(
                 f"firmware backup module exceeds SRP limit: {path.relative_to(root)} ({lines} > {limit})"
             )
+    return errors
 
+
+def _check_facade(backup_root: Path) -> list[str]:
+    errors: list[str] = []
     facade = (backup_root / "mod.rs").read_text(errors="ignore")
     for token in (
         "Device-bound removable wallet backups",
@@ -53,9 +59,12 @@ def check(root: Path) -> list[str]:
     for forbidden in ("pbkdf2_key_for_kspt", "legacy.rs", "raw.rs"):
         if forbidden in facade:
             errors.append(f"retired backup facade concern returned: {forbidden}")
+    return errors
 
+
+def _check_container(backup_root: Path, framing: str) -> list[str]:
+    errors: list[str] = []
     container = (backup_root / "container.rs").read_text(errors="ignore")
-    framing = (root / "crates/offline-signer/src/crypto/container_framing.rs").read_text(errors="ignore")
     container_contract = container + "\n" + framing
     for token in (
         'BACKUP_CURRENT_MAGIC: [u8; 8] = *b"KASDB005"',
@@ -75,7 +84,11 @@ def check(root: Path) -> list[str]:
     for forbidden in ("KASDB004", "BackupReaderKdf", "legacy_pbkdf2", "derive_legacy_32"):
         if forbidden in container_contract:
             errors.append(f"retired backup compatibility remains: {forbidden}")
+    return errors
 
+
+def _check_kspt_transport(root: Path, framing: str) -> list[str]:
+    errors: list[str] = []
     kspt = (root / "apps/kaskold-hardware/src/runtime/interactions/sd/exports/kspt_export/crypto.rs").read_text(errors="ignore")
     kspt_contract = kspt + "\n" + framing
     for token in (
@@ -93,13 +106,21 @@ def check(root: Path) -> list[str]:
             errors.append(f"retired encrypted-transport compatibility remains: {forbidden}")
     if "CURRENT_MAGIC" not in kspt.split("fn seal_envelope", 1)[1].split("fn open_envelope", 1)[0]:
         errors.append("new encrypted KSPT writer must emit only the current Argon2 envelope")
+    return errors
 
+
+def _check_device_boundary(root: Path, backup_root: Path) -> list[str]:
+    errors: list[str] = []
     device = (backup_root / "device.rs").read_text(errors="ignore")
     persistent = (root / "apps/kaskold-hardware/src/services/persistent_wallet/mod.rs").read_text(errors="ignore")
     for token in ("BackupDevice", "PersistentWallet", "seal_backup_key", "open_backup_key"):
         if token not in device + persistent:
             errors.append(f"device-bound removable-backup boundary missing: {token}")
+    return errors
 
+
+def _check_backup_outputs(backup_root: Path) -> list[str]:
+    errors: list[str] = []
     for name in ("seed.rs", "xprv.rs"):
         source = (backup_root / name).read_text(errors="ignore")
         if "BackupDevice" not in source or "container::" not in source:
@@ -111,7 +132,11 @@ def check(root: Path) -> list[str]:
         for forbidden in ("Aes256Gcm", "legacy_pbkdf2", "derive_legacy_32"):
             if forbidden in source:
                 errors.append(f"backup facade bypasses centralized container/KDF ownership: {name}: {forbidden}")
+    return errors
 
+
+def _check_security_tests(root: Path) -> list[str]:
+    errors: list[str] = []
     tests = (root / "apps/kaskold-hardware/src/services/unit_tests/backup_tests.rs").read_text(errors="ignore")
     for token in (
         "current_device_bound_backup_uses_argon2_metadata",
@@ -121,7 +146,11 @@ def check(root: Path) -> list[str]:
         "AuthenticationFailed",
     ):
         _require(errors, tests, token, "wallet-backup security regression missing")
+    return errors
 
+
+def _check_policy(root: Path) -> list[str]:
+    errors: list[str] = []
     policy = (root / "SECURITY.md").read_text(errors="ignore")
     for token in (
         "JPEG + password",
@@ -131,5 +160,19 @@ def check(root: Path) -> list[str]:
         _require(errors, policy, token, "recovery/password-KDF policy missing")
     if "separately recorded Portable recovery key" in policy:
         errors.append("security policy still documents the obsolete two-secret Portable workflow")
+    return errors
 
+
+def check(root: Path) -> list[str]:
+    backup_root = root / "apps/kaskold-hardware/src/services/backup"
+    framing = (root / "crates/offline-signer/src/crypto/container_framing.rs").read_text(errors="ignore")
+    errors = _check_inventory(backup_root)
+    errors.extend(_check_module_limits(root, backup_root))
+    errors.extend(_check_facade(backup_root))
+    errors.extend(_check_container(backup_root, framing))
+    errors.extend(_check_kspt_transport(root, framing))
+    errors.extend(_check_device_boundary(root, backup_root))
+    errors.extend(_check_backup_outputs(backup_root))
+    errors.extend(_check_security_tests(root))
+    errors.extend(_check_policy(root))
     return errors

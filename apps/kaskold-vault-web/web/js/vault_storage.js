@@ -67,25 +67,38 @@ async function writeRecord(record) {
   await transaction('readwrite', store => store.put(record, ACTIVE));
 }
 
+function walletIdentityFields(wallet) {
+  const fingerprint = wallet.fingerprint ? String(wallet.fingerprint) : '';
+  const kind = wallet.kind ? String(wallet.kind) : '';
+  return { fingerprint, kind };
+}
+
+function buildSavedWalletEntry(wallet, previous, identity, savedAt) {
+  return {
+    id: previous?.id || walletId(),
+    name: String(wallet.name || previous?.name || 'Wallet'),
+    ciphertext: new Uint8Array(wallet.ciphertext),
+    fingerprint: identity.fingerprint,
+    kind: identity.kind,
+    savedAt,
+  };
+}
+
+function upsertWalletEntry(wallets, entry, matchingIndex) {
+  if (matchingIndex >= 0) wallets[matchingIndex] = entry;
+  else wallets.push(entry);
+}
+
 export async function saveEncryptedWallet(wallet) {
   if (!wallet?.ciphertext) throw new Error('No encrypted wallet is available to save.');
   const current = await loadEncryptedWallet();
   const wallets = current?.wallets ? [...current.wallets] : [];
-  const fingerprint = wallet.fingerprint ? String(wallet.fingerprint) : '';
-  const kind = wallet.kind ? String(wallet.kind) : '';
-  const matchingIndex = wallets.findIndex(saved => identityMatches(saved, fingerprint, kind));
+  const identity = walletIdentityFields(wallet);
+  const matchingIndex = wallets.findIndex(saved => identityMatches(saved, identity.fingerprint, identity.kind));
   const previous = matchingIndex >= 0 ? wallets[matchingIndex] : null;
   const savedAt = Date.now();
-  const entry = {
-    id: previous?.id || walletId(),
-    name: String(wallet.name || previous?.name || 'Wallet'),
-    ciphertext: new Uint8Array(wallet.ciphertext),
-    fingerprint,
-    kind,
-    savedAt,
-  };
-  if (matchingIndex >= 0) wallets[matchingIndex] = entry;
-  else wallets.push(entry);
+  const entry = buildSavedWalletEntry(wallet, previous, identity, savedAt);
+  upsertWalletEntry(wallets, entry, matchingIndex);
   await writeRecord({ schema: 3, wallets, savedAt });
   return entry.id;
 }

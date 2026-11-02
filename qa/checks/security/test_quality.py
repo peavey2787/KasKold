@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import glob
 import sys
 import json
 import re
@@ -23,73 +22,56 @@ SIMPLE_LITERAL = re.compile(
     r"^(?:true|false|None|-?[0-9][0-9_]*(?:[iu](?:8|16|32|64|128|size))?"
     r"|0x[0-9a-fA-F_]+|0b[01_]+|\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)')$"
 )
+_OPENERS = {"(": "paren", "[": "bracket", "{": "brace"}
+_CLOSERS = {")": "paren", "]": "bracket", "}": "brace"}
+
+
+class _SourceScanner:
+    """Track string, char and bracket state while walking Rust source text."""
+
+    def __init__(self) -> None:
+        self.depth = {"paren": 0, "bracket": 0, "brace": 0}
+        self._quote: str | None = None
+        self._escaped = False
+
+    def consume(self, char: str) -> bool:
+        """Advance over one character; return True when it is code outside any literal."""
+        if self._quote is not None:
+            if self._escaped:
+                self._escaped = False
+            elif char == "\\":
+                self._escaped = True
+            elif char == self._quote:
+                self._quote = None
+            return False
+        if char in {'"', "'"}:
+            self._quote = char
+            return False
+        if char in _OPENERS:
+            self.depth[_OPENERS[char]] += 1
+        elif char in _CLOSERS:
+            self.depth[_CLOSERS[char]] -= 1
+        return True
+
+    def at_top_level(self) -> bool:
+        return all(value == 0 for value in self.depth.values())
 
 
 def _balanced_macro_contents(text: str, open_paren: int) -> tuple[str, int] | None:
-    depth = 0
-    in_string = False
-    in_char = False
-    escaped = False
+    scanner = _SourceScanner()
     for index in range(open_paren, len(text)):
         char = text[index]
-        if in_string or in_char:
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif in_string and char == '"':
-                in_string = False
-            elif in_char and char == "'":
-                in_char = False
-            continue
-        if char == '"':
-            in_string = True
-        elif char == "'":
-            in_char = True
-        elif char == "(":
-            depth += 1
-        elif char == ")":
-            depth -= 1
-            if depth == 0:
-                return text[open_paren + 1:index], index + 1
+        if scanner.consume(char) and char == ")" and scanner.depth["paren"] == 0:
+            return text[open_paren + 1:index], index + 1
     return None
 
 
 def _split_top_level_args(contents: str) -> list[str]:
     args: list[str] = []
     start = 0
-    paren = bracket = brace = 0
-    in_string = False
-    in_char = False
-    escaped = False
+    scanner = _SourceScanner()
     for index, char in enumerate(contents):
-        if in_string or in_char:
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif in_string and char == '"':
-                in_string = False
-            elif in_char and char == "'":
-                in_char = False
-            continue
-        if char == '"':
-            in_string = True
-        elif char == "'":
-            in_char = True
-        elif char == "(":
-            paren += 1
-        elif char == ")":
-            paren -= 1
-        elif char == "[":
-            bracket += 1
-        elif char == "]":
-            bracket -= 1
-        elif char == "{":
-            brace += 1
-        elif char == "}":
-            brace -= 1
-        elif char == "," and paren == bracket == brace == 0:
+        if scanner.consume(char) and char == "," and scanner.at_top_level():
             args.append(contents[start:index].strip())
             start = index + 1
     args.append(contents[start:].strip())
@@ -107,41 +89,11 @@ def _normalized_expression(expression: str) -> str:
 
 
 def _top_level_operator(expression: str, operator: str) -> tuple[str, str] | None:
-    paren = bracket = brace = 0
-    in_string = False
-    in_char = False
-    escaped = False
+    scanner = _SourceScanner()
     index = 0
     while index <= len(expression) - len(operator):
         char = expression[index]
-        if in_string or in_char:
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif in_string and char == '"':
-                in_string = False
-            elif in_char and char == "'":
-                in_char = False
-            index += 1
-            continue
-        if char == '"':
-            in_string = True
-        elif char == "'":
-            in_char = True
-        elif char == "(":
-            paren += 1
-        elif char == ")":
-            paren -= 1
-        elif char == "[":
-            bracket += 1
-        elif char == "]":
-            bracket -= 1
-        elif char == "{":
-            brace += 1
-        elif char == "}":
-            brace -= 1
-        elif paren == bracket == brace == 0 and expression.startswith(operator, index):
+        if scanner.consume(char) and scanner.at_top_level() and expression.startswith(operator, index):
             return expression[:index], expression[index + len(operator):]
         index += 1
     return None
@@ -152,43 +104,51 @@ def _simple_literal(expression: str) -> str | None:
     return value if SIMPLE_LITERAL.fullmatch(value) else None
 
 
+def _boolean_assert_findings(macro: str, args: list[str]) -> list[str]:
+    expression = _normalized_expression(args[0])
+    if expression in {"true", "!false"}:
+        return [f"{macro}! has constant true condition"]
+    equality = _top_level_operator(args[0], "==")
+    if equality and _normalized_expression(equality[0]) == _normalized_expression(equality[1]):
+        return [f"{macro}! compares an expression with itself"]
+    inequality = _top_level_operator(args[0], "!=")
+    if inequality:
+        left = _simple_literal(inequality[0])
+        right = _simple_literal(inequality[1])
+        if left is not None and right is not None and left != right:
+            return [f"{macro}! has a constant-only true inequality"]
+    return []
+
+
+def _equality_macro_findings(macro: str, args: list[str]) -> list[str]:
+    if macro == "assert_eq" and _normalized_expression(args[0]) == _normalized_expression(args[1]):
+        return ["assert_eq! compares an expression with itself"]
+    left_literal = _simple_literal(args[0])
+    right_literal = _simple_literal(args[1])
+    if left_literal is not None and right_literal is not None:
+        if macro == "assert_eq" and left_literal == right_literal:
+            return ["assert_eq! is a constant-only equality"]
+        if macro == "assert_ne" and left_literal != right_literal:
+            return ["assert_ne! is a constant-only inequality"]
+    return []
+
+
+def _assertion_findings(macro: str, args: list[str]) -> list[str]:
+    if macro in {"assert", "debug_assert"} and args:
+        return _boolean_assert_findings(macro, args)
+    if macro in {"assert_eq", "assert_ne"} and len(args) >= 2:
+        return _equality_macro_findings(macro, args)
+    return []
+
+
 def trivial_assertions(body: str) -> list[str]:
     """Return obvious tautological or constant-only passing assertions."""
     findings: list[str] = []
     for match in ASSERTION.finditer(body):
-        macro = match.group(1)
         parsed = _balanced_macro_contents(body, match.end() - 1)
         if parsed is None:
             continue
-        args = _split_top_level_args(parsed[0])
-        if macro in {"assert", "debug_assert"} and args:
-            expression = _normalized_expression(args[0])
-            if expression in {"true", "!false"}:
-                findings.append(f"{macro}! has constant true condition")
-                continue
-            equality = _top_level_operator(args[0], "==")
-            if equality and _normalized_expression(equality[0]) == _normalized_expression(equality[1]):
-                findings.append(f"{macro}! compares an expression with itself")
-                continue
-            inequality = _top_level_operator(args[0], "!=")
-            if inequality:
-                left = _simple_literal(inequality[0])
-                right = _simple_literal(inequality[1])
-                if left is not None and right is not None and left != right:
-                    findings.append(f"{macro}! has a constant-only true inequality")
-        elif macro in {"assert_eq", "assert_ne"} and len(args) >= 2:
-            left = _normalized_expression(args[0])
-            right = _normalized_expression(args[1])
-            if macro == "assert_eq" and left == right:
-                findings.append("assert_eq! compares an expression with itself")
-                continue
-            left_literal = _simple_literal(args[0])
-            right_literal = _simple_literal(args[1])
-            if left_literal is not None and right_literal is not None:
-                if macro == "assert_eq" and left_literal == right_literal:
-                    findings.append("assert_eq! is a constant-only equality")
-                elif macro == "assert_ne" and left_literal != right_literal:
-                    findings.append("assert_ne! is a constant-only inequality")
+        findings.extend(_assertion_findings(match.group(1), _split_top_level_args(parsed[0])))
     return findings
 
 
@@ -199,43 +159,44 @@ def load_policy(path: Path) -> dict[str, Any]:
     return document
 
 
+def _brace_block_end(text: str, start: int) -> int | None:
+    depth = 0
+    in_string = False
+    escaped = False
+    for index in range(start, len(text)):
+        char = text[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return index + 1
+    return None
+
+
 def extract_tests(text: str) -> list[tuple[str, str]]:
     tests: list[tuple[str, str]] = []
     for header in TEST_HEADER.finditer(text):
         function = FUNCTION.search(text, header.end())
         if function is None:
             continue
-        start = function.end() - 1
-        depth = 0
-        in_string = False
-        escaped = False
-        end = None
-        for index in range(start, len(text)):
-            char = text[index]
-            if in_string:
-                if escaped:
-                    escaped = False
-                elif char == "\\":
-                    escaped = True
-                elif char == '"':
-                    in_string = False
-                continue
-            if char == '"':
-                in_string = True
-            elif char == "{":
-                depth += 1
-            elif char == "}":
-                depth -= 1
-                if depth == 0:
-                    end = index + 1
-                    break
+        end = _brace_block_end(text, function.end() - 1)
         if end is not None:
             tests.append((function.group(1), text[function.start():end]))
     return tests
 
 
-def audit(policy_path: Path = POLICY) -> tuple[list[str], dict[str, Any]]:
-    policy = load_policy(policy_path)["test_quality"]
+def _critical_test_files(policy: dict[str, Any]) -> list[Path]:
     files: list[Path] = []
     for root in policy.get("critical_test_roots", []):
         path = ROOT / root
@@ -243,61 +204,85 @@ def audit(policy_path: Path = POLICY) -> tuple[list[str], dict[str, Any]]:
             files.append(path)
         elif path.is_dir():
             files.extend(path.rglob("*.rs"))
-    files = sorted(set(files))
+    return sorted(set(files))
 
+
+def _test_record(path: Path, name: str, body: str) -> dict[str, Any]:
+    return {
+        "path": str(path.relative_to(ROOT)),
+        "name": name,
+        "assertions": len(ASSERTION.findall(body)),
+        "negative_path": bool(re.search(r"\b(?:Err\s*\(|is_err\s*\(|reject|invalid|malformed|corrupt|truncat|fail)", body, re.I)),
+        "round_trip": bool(re.search(r"round.?trip|reparse|re-?encode|restor", body, re.I)),
+        "state_transition": bool(re.search(r"state|transition|advance|reset|authorize", body, re.I)),
+        "exact_error": bool(re.search(r"(?:assert_eq!|matches!)\s*\([\s\S]*?Err\s*\(", body)),
+        "has_assertion": bool(ASSERTION.search(body)) or "#[should_panic" in body,
+        "trivial_assertions": trivial_assertions(body),
+    }
+
+
+def _scan_tests(files: list[Path]) -> tuple[list[dict[str, Any]], list[str], list[dict[str, Any]]]:
     test_records: list[dict[str, Any]] = []
     assertion_free: list[str] = []
     trivial_assertion_tests: list[dict[str, Any]] = []
     for path in files:
         text = path.read_text(errors="replace")
         for name, body in extract_tests(text):
-            has_assertion = bool(ASSERTION.search(body)) or "#[should_panic" in body
-            trivial = trivial_assertions(body)
-            record = {
-                "path": str(path.relative_to(ROOT)),
-                "name": name,
-                "assertions": len(ASSERTION.findall(body)),
-                "negative_path": bool(re.search(r"\b(?:Err\s*\(|is_err\s*\(|reject|invalid|malformed|corrupt|truncat|fail)", body, re.I)),
-                "round_trip": bool(re.search(r"round.?trip|reparse|re-?encode|restor", body, re.I)),
-                "state_transition": bool(re.search(r"state|transition|advance|reset|authorize", body, re.I)),
-                "exact_error": bool(re.search(r"(?:assert_eq!|matches!)\s*\([\s\S]*?Err\s*\(", body)),
-                "has_assertion": has_assertion,
-                "trivial_assertions": trivial,
-            }
+            record = _test_record(path, name, body)
             test_records.append(record)
-            if not has_assertion:
-                assertion_free.append(f"{record['path']}::{name}")
-            if trivial:
+            test_id = f"{record['path']}::{name}"
+            if not record["has_assertion"]:
+                assertion_free.append(test_id)
+            if record["trivial_assertions"]:
                 trivial_assertion_tests.append({
-                    "test": f"{record['path']}::{name}",
-                    "findings": trivial,
+                    "test": test_id,
+                    "findings": record["trivial_assertions"],
                 })
+    return test_records, assertion_free, trivial_assertion_tests
 
+
+def _evidence_contents(requirement: dict[str, Any]) -> tuple[list[str], list[str]]:
+    resolved: list[str] = []
+    contents: list[str] = []
+    for pattern in requirement.get("files", []):
+        for path in kaskold_glob(pattern):
+            if path.is_file():
+                resolved.append(display_path(path))
+                contents.append(path.read_text(errors="replace"))
+    return resolved, contents
+
+
+def _evidence_requirement_result(requirement: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
+    resolved, contents = _evidence_contents(requirement)
+    combined = "\n".join(contents).lower()
+    missing = [term for term in requirement.get("terms", []) if term.lower() not in combined]
+    if not resolved:
+        missing.append("<no files resolved>")
+    result = {
+        "id": requirement.get("id"),
+        "files": sorted(set(resolved)),
+        "required_terms": requirement.get("terms", []),
+        "missing_terms": missing,
+        "met": not missing,
+    }
+    return result, missing
+
+
+def _check_required_evidence(policy: dict[str, Any]) -> tuple[list[dict[str, Any]], list[str]]:
     evidence_results: list[dict[str, Any]] = []
     missing_evidence: list[str] = []
     for requirement in policy.get("required_evidence", []):
-        contents = []
-        resolved = []
-        for pattern in requirement.get("files", []):
-            for path in kaskold_glob(pattern):
-                if path.is_file():
-                    resolved.append(display_path(path))
-                    contents.append(path.read_text(errors="replace"))
-        combined = "\n".join(contents).lower()
-        missing = [term for term in requirement.get("terms", []) if term.lower() not in combined]
-        if not resolved:
-            missing.append("<no files resolved>")
-        evidence_results.append(
-            {
-                "id": requirement.get("id"),
-                "files": sorted(set(resolved)),
-                "required_terms": requirement.get("terms", []),
-                "missing_terms": missing,
-                "met": not missing,
-            }
-        )
-        for term in missing:
-            missing_evidence.append(f"{requirement.get('id')}: missing {term!r}")
+        result, missing = _evidence_requirement_result(requirement)
+        evidence_results.append(result)
+        missing_evidence.extend(f"{requirement.get('id')}: missing {term!r}" for term in missing)
+    return evidence_results, missing_evidence
+
+
+def audit(policy_path: Path = POLICY) -> tuple[list[str], dict[str, Any]]:
+    policy = load_policy(policy_path)["test_quality"]
+    files = _critical_test_files(policy)
+    test_records, assertion_free, trivial_assertion_tests = _scan_tests(files)
+    evidence_results, missing_evidence = _check_required_evidence(policy)
 
     errors = [f"assertion-free critical test: {value}" for value in assertion_free]
     errors.extend(

@@ -75,47 +75,60 @@ export function clearStandardChangeReservations() {
     standardChangeReservations().clear();
 }
 
-export function expandAddressesIfNeeded() {
-    if (!walletSession.hasWallet()) return false;
-    const wallet = walletSession.current();
+function receiveSkipSet() {
+    return new Set([...(walletState.fundedReceiveIndices || []), ...(walletState.usedReceiveIndices || [])]);
+}
 
-    const rcvSkip = new Set([...(walletState.fundedReceiveIndices || []), ...(walletState.usedReceiveIndices || [])]);
-    const chgSkip = new Set([
+function changeSkipSet() {
+    return new Set([
         ...(walletState.fundedChangeIndices || []),
         ...(walletState.usedChangeIndices || []),
         ...reservedChangeIndices(),
     ]);
+}
 
-    let needReceive = true;
-    for (let i = 0; i < wallet.receive_addresses.length; i++) {
-        if (!rcvSkip.has(i)) { needReceive = false; break; }
+// First index in the address list that is not skipped, or -1 when all are skipped.
+function firstUnskippedIndex(addresses, skipSet) {
+    for (let i = 0; i < addresses.length; i++) {
+        if (!skipSet.has(i)) return i;
     }
+    return -1;
+}
 
-    let needChange = true;
-    for (let i = 0; i < wallet.change_addresses.length; i++) {
-        if (!chgSkip.has(i)) { needChange = false; break; }
+function nextUnusedIndex(addresses, skipSet) {
+    const i = firstUnskippedIndex(addresses, skipSet);
+    return i === -1 ? addresses.length - 1 : i;
+}
+
+function addressListGrew(addresses, before, extra) {
+    return extra === 0 || addresses.length >= before + extra;
+}
+
+function applyAddressExpansion(beforeReceive, beforeChange, extraRcv, extraChg) {
+    walletSession.replace(extend_addresses(walletSession.json(), extraRcv, extraChg, networkState.network));
+    const expandedWallet = walletSession.current();
+    const complete = addressListGrew(expandedWallet.receive_addresses, beforeReceive, extraRcv)
+        && addressListGrew(expandedWallet.change_addresses, beforeChange, extraChg);
+    if (!complete) {
+        console.warn('[Companion] Address expansion returned unchanged or incomplete address lists');
+        return false;
     }
+    console.log(`[Companion] Gap expanded: +${extraRcv} receive, +${extraChg} change`);
+    return true;
+}
 
+export function expandAddressesIfNeeded() {
+    if (!walletSession.hasWallet()) return false;
+    const wallet = walletSession.current();
+    const needReceive = firstUnskippedIndex(wallet.receive_addresses, receiveSkipSet()) === -1;
+    const needChange = firstUnskippedIndex(wallet.change_addresses, changeSkipSet()) === -1;
     if (!needReceive && !needChange) return false;
 
     const extraRcv = needReceive ? GAP_EXPAND_RECEIVE : 0;
     const extraChg = needChange ? GAP_EXPAND_CHANGE : 0;
-
     try {
-        const beforeReceive = wallet.receive_addresses.length;
-        const beforeChange = wallet.change_addresses.length;
-        walletSession.replace(extend_addresses(walletSession.json(), extraRcv, extraChg, networkState.network));
-        const expandedWallet = walletSession.current();
-        const receiveExpanded = extraRcv === 0
-            || expandedWallet.receive_addresses.length >= beforeReceive + extraRcv;
-        const changeExpanded = extraChg === 0
-            || expandedWallet.change_addresses.length >= beforeChange + extraChg;
-        if (!receiveExpanded || !changeExpanded) {
-            console.warn('[Companion] Address expansion returned unchanged or incomplete address lists');
-            return false;
-        }
-        console.log(`[Companion] Gap expanded: +${extraRcv} receive, +${extraChg} change`);
-        return true;
+        return applyAddressExpansion(
+            wallet.receive_addresses.length, wallet.change_addresses.length, extraRcv, extraChg);
     } catch (e) {
         console.error('[Companion] Address expansion failed:', e);
         return false;
@@ -126,26 +139,14 @@ function getNextChangeIndex() {
     if (!walletSession.hasWallet()) return 0;
     expandAddressesIfNeeded();
     const wallet = walletSession.current();
-    const skipSet = new Set([
-        ...(walletState.fundedChangeIndices || []),
-        ...(walletState.usedChangeIndices || []),
-        ...reservedChangeIndices(),
-    ]);
-    for (let i = 0; i < wallet.change_addresses.length; i++) {
-        if (!skipSet.has(i)) return i;
-    }
-    return wallet.change_addresses.length - 1;
+    return nextUnusedIndex(wallet.change_addresses, changeSkipSet());
 }
 
 export function getNextReceiveIndex() {
     if (!walletSession.hasWallet()) return 0;
     expandAddressesIfNeeded();
     const wallet = walletSession.current();
-    const skipSet = new Set([...(walletState.fundedReceiveIndices || []), ...(walletState.usedReceiveIndices || [])]);
-    for (let i = 0; i < wallet.receive_addresses.length; i++) {
-        if (!skipSet.has(i)) return i;
-    }
-    return wallet.receive_addresses.length - 1;
+    return nextUnusedIndex(wallet.receive_addresses, receiveSkipSet());
 }
 
 export function walletWithFreshIndices() {

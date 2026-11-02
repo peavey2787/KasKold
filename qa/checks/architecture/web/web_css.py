@@ -31,50 +31,59 @@ REQUIRED_CSS_MODULES = [
 ]
 
 
+def _block_end(region: str, cursor: int) -> int | None:
+    depth = 1
+    index = cursor + 1
+    quote = ""
+    while index < len(region) and depth:
+        char = region[index]
+        if quote:
+            if char == "\\":
+                index += 2
+                continue
+            if char == quote:
+                quote = ""
+        elif char in ("'", '"'):
+            quote = char
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+        index += 1
+    return None if depth else index
+
+
+def _block_rules(header: str, body: str, errors: list[str]) -> list[tuple[tuple[str, ...], str]]:
+    if header.startswith(("@media", "@supports")):
+        return _parse_region(body, errors)
+    if header.startswith("@") or not header:
+        return []
+    selectors = tuple(" ".join(selector.split()) for selector in header.split(","))
+    return [(selectors, " ".join(body.split()))]
+
+
+def _parse_region(region: str, errors: list[str]) -> list[tuple[tuple[str, ...], str]]:
+    rules: list[tuple[tuple[str, ...], str]] = []
+    cursor = 0
+    header_start = 0
+    while cursor < len(region):
+        if region[cursor] != "{":
+            cursor += 1
+            continue
+        end = _block_end(region, cursor)
+        if end is None:
+            errors.append("generated app.css contains an unclosed block")
+            return rules
+        header = region[header_start:cursor].strip()
+        rules.extend(_block_rules(header, region[cursor + 1:end - 1], errors))
+        header_start = end
+        cursor = end
+    return rules
+
+
 def _css_rules(source: str, errors: list[str]) -> list[tuple[tuple[str, ...], str]]:
     source = re.sub(r"/\*.*?\*/", "", source, flags=re.S)
-
-    def parse_region(region: str) -> list[tuple[tuple[str, ...], str]]:
-        rules: list[tuple[tuple[str, ...], str]] = []
-        cursor = 0
-        header_start = 0
-        while cursor < len(region):
-            if region[cursor] != "{":
-                cursor += 1
-                continue
-            header = region[header_start:cursor].strip()
-            depth = 1
-            index = cursor + 1
-            quote = ""
-            while index < len(region) and depth:
-                char = region[index]
-                if quote:
-                    if char == "\\":
-                        index += 2
-                        continue
-                    if char == quote:
-                        quote = ""
-                elif char in ("'", '"'):
-                    quote = char
-                elif char == "{":
-                    depth += 1
-                elif char == "}":
-                    depth -= 1
-                index += 1
-            if depth:
-                errors.append("generated app.css contains an unclosed block")
-                return rules
-            body = region[cursor + 1:index - 1]
-            if header.startswith(("@media", "@supports")):
-                rules.extend(parse_region(body))
-            elif not header.startswith("@") and header:
-                selectors = tuple(" ".join(selector.split()) for selector in header.split(","))
-                rules.append((selectors, " ".join(body.split())))
-            header_start = index
-            cursor = index
-        return rules
-
-    return parse_region(source)
+    return _parse_region(source, errors)
 
 
 def _check_css_composition(root: Path) -> tuple[list[str], str]:

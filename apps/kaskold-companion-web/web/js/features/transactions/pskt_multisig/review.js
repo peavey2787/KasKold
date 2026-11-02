@@ -67,17 +67,23 @@ function resolveReviewContext(summary, requestedContext) {
     return null;
 }
 
-function classifyWalletOutput(output, reviewContext) {
-    const address = output?.address || '';
-    if (reviewContext?.kind === 'multisig-send') {
-        if (address && address === reviewContext.destinationAddress) return 'DESTINATION';
-        return 'MULTISIG CHANGE';
-    }
+function classifyMultisigOutput(address, reviewContext) {
+    if (address && address === reviewContext.destinationAddress) return 'DESTINATION';
+    return 'MULTISIG CHANGE';
+}
+
+function classifyOrdinaryWalletOutput(address) {
     if (!address || !walletSession.hasWallet()) return 'DESTINATION';
     const wallet = walletSession.current();
     if (wallet.change_addresses?.includes(address)) return 'CHANGE';
     if (wallet.receive_addresses?.includes(address)) return 'OWN RECEIVE';
     return 'DESTINATION';
+}
+
+function classifyWalletOutput(output, reviewContext) {
+    const address = output?.address || '';
+    if (reviewContext?.kind === 'multisig-send') return classifyMultisigOutput(address, reviewContext);
+    return classifyOrdinaryWalletOutput(address);
 }
 
 function reviewOwnershipTotals(outputs, reviewContext) {
@@ -94,34 +100,35 @@ function reviewOwnershipTotals(outputs, reviewContext) {
     return { external, change, ownReceive };
 }
 
-export function openPsktReview(wireHex, requestedContext = null) {
+function primePsktReviewState(wireHex) {
     transactionState._psktReviewHex = wireHex;
     // A newly opened canonical PSKT/PSKB has no device-returned relay payload yet.
     // The signed-scan merge path sets this immediately after a successful merge.
     transactionState._lastKasKoldKsptHex = null;
     oracleState._oracleMbRollActive = false;   // cleared on every load; the oracle path re-arms it right after this call
     oracleState._oracleMbReturn = false;       // clear any stale "return to oracle card" flag; only a roll's success path re-sets it
+}
 
-    let summary;
+function parsePsktSummary(wireHex) {
     try {
-        summary = JSON.parse(pskt_summary(wireHex, networkState.network));
+        return JSON.parse(pskt_summary(wireHex, networkState.network));
     } catch (e) {
         console.error('[Companion] PSKT parse error:', e);
         toast('Could not parse PSKT: ' + e, 'error', 5000);
-        return;
+        return null;
     }
+}
 
-    console.log('[Companion] PSKT summary:', summary);
+function releaseStaleStandardChangeReservation(summary) {
     const reservedIndex = transactionState._standardChangeReservationIndex;
     if (Number.isSafeInteger(reservedIndex)
         && !standardChangeReservationMatchesSummary(reservedIndex, summary)) {
         releasePendingStandardChange(reservedIndex);
         transactionState._standardChangeReservationIndex = null;
     }
-    transactionState._lastPsktSummary = summary;
-    const reviewContext = resolveReviewContext(summary, requestedContext);
+}
 
-    // Render header
+function renderPsktHeader(summary) {
     byId('pskt-format').textContent = summary.format.toUpperCase();
     byId('pskt-tx-version').textContent = summary.tx_version;
     byId('pskt-in-count').textContent = summary.input_count;
@@ -129,21 +136,26 @@ export function openPsktReview(wireHex, requestedContext = null) {
     byId('pskt-fee').textContent = sompiToKasString(summary.fee_sompi);
     byId('pskt-total-in').textContent = sompiToKasString(summary.total_in_sompi);
     byId('pskt-total-out').textContent = sompiToKasString(summary.total_out_sompi);
-    const outputs = summary.outputs || [];
+}
+
+function renderOwnershipTotals(outputs, reviewContext) {
     const ownershipTotals = reviewOwnershipTotals(outputs, reviewContext);
     byId('pskt-send-total').textContent = sompiToKasString(ownershipTotals.external);
     byId('pskt-change-total').textContent = sompiToKasString(ownershipTotals.change);
+}
 
+function externalDestinationText(externalOutputs) {
+    if (externalOutputs.length === 1 && externalOutputs[0].address) return externalOutputs[0].address;
+    if (externalOutputs.length > 1) return `${externalOutputs.length} destinations — Inspect to view`;
+    return 'No external address — Inspect to view';
+}
+
+function renderPsktToAddress(outputs, reviewContext) {
     const externalOutputs = outputs.filter(output => classifyWalletOutput(output, reviewContext) === 'DESTINATION');
-    const toAddressEl = byId('pskt-to-address');
-    if (externalOutputs.length === 1 && externalOutputs[0].address) {
-        toAddressEl.textContent = externalOutputs[0].address;
-    } else if (externalOutputs.length > 1) {
-        toAddressEl.textContent = `${externalOutputs.length} destinations — Inspect to view`;
-    } else {
-        toAddressEl.textContent = 'No external address — Inspect to view';
-    }
+    byId('pskt-to-address').textContent = externalDestinationText(externalOutputs);
+}
 
+function wireInspectToggle() {
     const inspectButton = byId('btn-pskt-inspect');
     const inspectDetails = byId('pskt-inspect-details');
     inspectDetails.classList.add('hidden');
@@ -155,43 +167,47 @@ export function openPsktReview(wireHex, requestedContext = null) {
         inspectButton.textContent = opening ? 'Hide details' : 'Inspect';
         inspectButton.setAttribute('aria-expanded', opening ? 'true' : 'false');
     };
+}
 
-    // Payload verification hash: if covenant payload exists, show SHA-256[..8]
-    // User compares this with KasKold's "PL xxxxxxxx" on its review screen.
+// Payload verification hash: if covenant payload exists, show SHA-256[..8]
+// User compares this with KasKold's "PL xxxxxxxx" on its review screen.
+function renderPayloadHash() {
     const plHashEl = byId('pskt-payload-hash');
-    if (plHashEl) {
-        if (covenantState._covPayloadHex && covenantState._covPayloadHex.length > 0) {
-            const plBytes = hexToBytes(covenantState._covPayloadHex);
-            crypto.subtle.digest('SHA-256', plBytes.buffer).then(hashBuf => {
-                const h = bytesToHex(new Uint8Array(hashBuf).slice(0, 8));
-                plHashEl.textContent = 'PL ' + h;
-                plHashEl.style.display = '';
-            });
-        } else {
-            plHashEl.textContent = '';
-            plHashEl.style.display = 'none';
-        }
+    if (!plHashEl) return;
+    if (covenantState._covPayloadHex && covenantState._covPayloadHex.length > 0) {
+        const plBytes = hexToBytes(covenantState._covPayloadHex);
+        crypto.subtle.digest('SHA-256', plBytes.buffer).then(hashBuf => {
+            const h = bytesToHex(new Uint8Array(hashBuf).slice(0, 8));
+            plHashEl.textContent = 'PL ' + h;
+            plHashEl.style.display = '';
+        });
+    } else {
+        plHashEl.textContent = '';
+        plHashEl.style.display = 'none';
     }
+}
 
-    byId('pskt-inputs').replaceChildren(...summary.inputs.map(inputRow));
-    byId('pskt-outputs').replaceChildren(...summary.outputs.map((out, index) => outputRow(out, index, reviewContext)));
+function inputNeedsSignature(input) {
+    const required = input.multisig_m !== null && input.multisig_m !== undefined
+        ? Number(input.multisig_m)
+        : 1;
+    return Number(input.sigs_present || 0) < required;
+}
 
-    // Present one clear next action. An unsigned ordinary PSKB needs to be sent
-    // to a signer; a partially signed multisig envelope needs to be relayed to
-    // its next signer. Once ready, the signing action disappears and broadcast
-    // becomes the primary action.
-    const inputs = summary.inputs || [];
-    const missingInputs = inputs.filter(input => {
-        const required = input.multisig_m !== null && input.multisig_m !== undefined
-            ? Number(input.multisig_m)
-            : 1;
-        return Number(input.sigs_present || 0) < required;
-    });
-    const needsMultisigRelay = missingInputs.some(input =>
-        input.multisig_m !== null
+function inputIsMultisigRelay(input) {
+    return input.multisig_m !== null
         && input.multisig_m !== undefined
-        && Number(input.multisig_n || 0) > 1
-    );
+        && Number(input.multisig_n || 0) > 1;
+}
+
+// Present one clear next action. An unsigned ordinary PSKB needs to be sent
+// to a signer; a partially signed multisig envelope needs to be relayed to
+// its next signer. Once ready, the signing action disappears and broadcast
+// becomes the primary action.
+function renderPsktNextAction(summary) {
+    const needsMultisigRelay = (summary.inputs || [])
+        .filter(inputNeedsSignature)
+        .some(inputIsMultisigRelay);
     const btnFinalize = byId('btn-pskt-finalize');
     const relayButton = byId('btn-pskt-relay');
     btnFinalize.disabled = false;
@@ -202,6 +218,29 @@ export function openPsktReview(wireHex, requestedContext = null) {
     relayButton.classList.toggle('hidden', summary.finalize_ready);
 
     if (summary.finalize_ready) closeRelayModal();
+}
+
+export function openPsktReview(wireHex, requestedContext = null) {
+    primePsktReviewState(wireHex);
+    const summary = parsePsktSummary(wireHex);
+    if (!summary) return;
+
+    console.log('[Companion] PSKT summary:', summary);
+    releaseStaleStandardChangeReservation(summary);
+    transactionState._lastPsktSummary = summary;
+    const reviewContext = resolveReviewContext(summary, requestedContext);
+
+    renderPsktHeader(summary);
+    const outputs = summary.outputs || [];
+    renderOwnershipTotals(outputs, reviewContext);
+    renderPsktToAddress(outputs, reviewContext);
+    wireInspectToggle();
+    renderPayloadHash();
+
+    byId('pskt-inputs').replaceChildren(...summary.inputs.map(inputRow));
+    byId('pskt-outputs').replaceChildren(...summary.outputs.map((out, index) => outputRow(out, index, reviewContext)));
+
+    renderPsktNextAction(summary);
 
     showScreen('pskt-review');
     return summary;

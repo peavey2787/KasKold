@@ -208,11 +208,12 @@ function inputField(label, name, value = '', type = 'text') {
     return wrap;
 }
 
-export function renderEditor(entry) {
-    const card = el('form', 'card portfolio-editor');
-    card.dataset.action = 'transaction-form';
-    card.dataset.transactionId = entry?.id || '';
-    card.appendChild(el('div', 'portfolio-section-title', entry ? 'Edit Transaction' : 'New Transaction'));
+function editorTimestamp(entry) {
+    const source = entry ? new Date(entry.timestampMs) : new Date();
+    return source.toISOString().slice(0, 16);
+}
+
+function typeSelectField(entry) {
     const selectWrap = el('label', 'portfolio-field');
     selectWrap.appendChild(el('span', 'input-label', 'Type'));
     const typeSelect = el('select', 'input'); typeSelect.name = 'type';
@@ -220,17 +221,33 @@ export function renderEditor(entry) {
         const option = el('option', '', type); option.value = type; option.selected = type === (entry?.type || 'Buy'); typeSelect.appendChild(option);
     }
     selectWrap.appendChild(typeSelect);
-    const timestamp = entry ? new Date(entry.timestampMs).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16);
-    card.append(selectWrap,
+    return selectWrap;
+}
+
+function editorFields(entry) {
+    return [
+        typeSelectField(entry),
         inputField('KAS Amount', 'kasAmount', entry ? formatKas(entry.kasSompi) : '', 'text'),
         inputField('KAS Price (USD)', 'priceUsd', entry ? microToUsd(entry.priceMicroUsd, 6) : '', 'text'),
         inputField('Fee (USD)', 'feeUsd', entry ? microToUsd(entry.feeMicroUsd || '0', 6) : '0', 'text'),
-        inputField('Date / Time', 'timestamp', timestamp, 'datetime-local'),
-        inputField('Notes', 'notes', entry?.notes || '', 'text'));
+        inputField('Date / Time', 'timestamp', editorTimestamp(entry), 'datetime-local'),
+        inputField('Notes', 'notes', entry?.notes || '', 'text'),
+    ];
+}
+
+function editorActions() {
     const actions = el('div', 'portfolio-actions');
     const save = button('Save', 'submit-transaction', 'btn btn-primary'); save.type = 'submit';
     actions.append(save, button('Cancel', 'cancel-editor', 'btn btn-link'));
-    card.appendChild(actions);
+    return actions;
+}
+
+export function renderEditor(entry) {
+    const card = el('form', 'card portfolio-editor');
+    card.dataset.action = 'transaction-form';
+    card.dataset.transactionId = entry?.id || '';
+    card.appendChild(el('div', 'portfolio-section-title', entry ? 'Edit Transaction' : 'New Transaction'));
+    card.append(...editorFields(entry), editorActions());
     return card;
 }
 

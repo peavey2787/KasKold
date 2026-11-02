@@ -12,28 +12,53 @@ function configurePrimaryResultActions(state) {
     }
 }
 
+const HIDDEN_RESULT_PANEL_IDS = [
+    'btn-cov-res-oracle-v1-attest',
+    'btn-cov-res-oracle-v1-bind',
+    'btn-cov-res-oracle-v1-scan-binding',
+    'crowdfund-result-panel',
+];
+
+const TIMELOCK_RESULT_TYPES = ['dms', 'escrow', 'timelocked-escrow', 'global-allowance'];
+
+function hideStaleResultPanels() {
+    for (const id of HIDDEN_RESULT_PANEL_IDS) {
+        byId(id)?.classList.add('hidden');
+    }
+}
+
+function resetResultButtonVisibility({ beneBtn, ownerBtn, consolBtn, fundBtn }) {
+    if (fundBtn) fundBtn.style.display = '';
+    beneBtn.style.display = '';
+    ownerBtn.style.display = '';
+    if (consolBtn) consolBtn.style.display = 'none';
+}
+
+function readLastCovenantResultContext() {
+    const lastResult = covenantState.lastCovenantResult;
+    const isLoaded = lastResult && lastResult.loaded;
+    const covRole = lastResult && lastResult.role;
+    const isBeneficiary = isLoaded && covRole === 'beneficiary';
+    return { isLoaded, covRole, isBeneficiary };
+}
+
+function hideOwnerFundingForBeneficiary({ ownerBtn, fundBtn }) {
+    ownerBtn.style.display = 'none';
+    if (fundBtn) fundBtn.style.display = 'none';
+}
+
 export function covUpdateResultButtons(type) {
     const beneBtn = byId('btn-cov-res-bene');
     const ownerBtn = byId('btn-cov-res-owner');
     const consolBtn = byId('btn-cov-res-consolidate');
     const fundBtn = byId('btn-cov-fund');
     if (!beneBtn) return;
-    byId('btn-cov-res-oracle-v1-attest')?.classList.add('hidden');
-    byId('btn-cov-res-oracle-v1-bind')?.classList.add('hidden');
-    byId('btn-cov-res-oracle-v1-scan-binding')?.classList.add('hidden');
-    byId('crowdfund-result-panel')?.classList.add('hidden');
-    if (fundBtn) fundBtn.style.display = '';
-    beneBtn.style.display = '';
-    ownerBtn.style.display = '';
-    if (consolBtn) consolBtn.style.display = 'none';
+    hideStaleResultPanels();
+    resetResultButtonVisibility({ beneBtn, ownerBtn, consolBtn, fundBtn });
 
-    const isLoaded = covenantState.lastCovenantResult && covenantState.lastCovenantResult.loaded;
-    const covRole = covenantState.lastCovenantResult && covenantState.lastCovenantResult.role;
-    const isBeneficiary = isLoaded && covRole === 'beneficiary';
-    const hasTimelockType = ['dms', 'escrow', 'timelocked-escrow', 'global-allowance'].includes(type);
-    if (isBeneficiary && hasTimelockType) {
-        ownerBtn.style.display = 'none';
-        if (fundBtn) fundBtn.style.display = 'none';
+    const { isLoaded, covRole, isBeneficiary } = readLastCovenantResultContext();
+    if (isBeneficiary && TIMELOCK_RESULT_TYPES.includes(type)) {
+        hideOwnerFundingForBeneficiary({ ownerBtn, fundBtn });
     }
 
     const state = { type, beneBtn, ownerBtn, consolBtn, fundBtn, isLoaded, covRole, isBeneficiary };

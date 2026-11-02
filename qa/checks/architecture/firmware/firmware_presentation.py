@@ -4,7 +4,6 @@ from pathlib import Path
 
 
 def check(root: Path) -> list[str]:
-    errors: list[str] = []
     firmware = root / "apps/kaskold-hardware/src"
     state = _read(root / "crates/kaskold-hardware-core/src/screen_flow/state.rs")
     graph_states = _read(firmware / "runtime/navigation/ui_graph/states.rs")
@@ -23,11 +22,37 @@ def check(root: Path) -> list[str]:
     workflow_signing_adapter = _read(firmware / "runtime/signing/workflow_test.rs")
     workflow_signing_result = _read(firmware / "runtime/workflow_tests/connected/signing/result.rs")
     redraw = _read(firmware / "ui/redraw.rs")
+    password_kdf = _read(firmware / "services/memory/password_kdf.rs")
+    shared_core = _read(firmware / "hw/shared/core.rs")
+    return [
+        *_retired_state_errors(state, graph_states),
+        *_presentation_model_errors(firmware, presentation_data, operation_state, operation_kind),
+        *_operation_surface_errors(graph_menus, redraw, presentation_redraw),
+        *_signing_lifecycle_errors(workflow_signing_adapter, workflow_signing_result),
+        *_event_loop_order_errors(event_loop),
+        *_single_owner_errors(operation_engine, kpub_driver, signing_driver, credential_driver),
+        *_dispatch_policy_errors(operation_kind, operation_engine),
+        *_credential_persistence_errors(credential_interaction, credential_driver),
+        *_credential_lifecycle_errors(presentation, operation_engine, credential_driver, event_loop, operation_kind),
+        *_pin_flow_marker_errors(presentation),
+        *_foreground_kdf_errors(password_kdf, shared_core),
+        *_retired_worker_errors(credential_driver, operation_engine, event_loop),
+        *_check_error_and_reset_boundaries(root, firmware, presentation, credential_driver),
+        *_check_liveness(root, firmware, operation_state + operation_kind, presentation, operation_engine),
+        *_check_hardware_evidence(root, firmware),
+    ]
 
+
+def _retired_state_errors(state: str, graph_states: str) -> list[str]:
+    errors: list[str] = []
     for retired in ("ConnectCompanionLoading", "MultisigKpubLoading", "Signing { input_idx"):
         if retired in state or retired in graph_states:
             errors.append(f"long-running operation remains encoded as stable AppState: {retired}")
+    return errors
 
+
+def _presentation_model_errors(firmware: Path, presentation_data: str, operation_state: str, operation_kind: str) -> list[str]:
+    errors: list[str] = []
     for token in ("pub enum OperationKind", "enum OperationExecution", "pub enum OperationPhase", "pub enum ModalState", "pub struct PresentationState"):
         if token not in operation_kind + operation_state + presentation_data:
             errors.append(f"presentation architecture is missing {token}")
@@ -37,17 +62,25 @@ def check(root: Path) -> list[str]:
     retired_credential_machine = firmware / "runtime/data/presentation/credential.rs"
     if retired_credential_machine.exists() or "credential:" in presentation_data:
         errors.append("credential flow must not own a second presentation state machine")
+    return errors
 
+
+def _operation_surface_errors(graph_menus: str, redraw: str, presentation_redraw: str) -> list[str]:
+    errors: list[str] = []
     for operation in ("ConnectCompanion", "DeriveMultisigKpub", "SignTransaction"):
         if operation not in graph_menus:
             errors.append(f"production UI graph is missing operation effect: {operation}")
-
     if "presentation::redraw(ad, boot_display)" not in redraw:
         errors.append("operation/modal presentation must render before the stable AppState screen")
     if "if ad.presentation.operation.phase() == OperationPhase::Queued" not in presentation_redraw:
         errors.append("operation redraw must mark Presented only from the one-shot Queued phase")
     if presentation_redraw.count("mark_operation_presented(ad)") != 1:
         errors.append("operation redraw must own exactly one guarded Presented transition call site")
+    return errors
+
+
+def _signing_lifecycle_errors(workflow_signing_adapter: str, workflow_signing_result: str) -> list[str]:
+    errors: list[str] = []
     for token in (
         "OperationPhase::Running | OperationPhase::Progress(_)",
         "presentation::set_progress(ad, progress.min(100) as u8)",
@@ -62,6 +95,11 @@ def check(root: Path) -> list[str]:
     ):
         if token not in workflow_signing_result:
             errors.append(f"two-input signing lifecycle redraw regression is missing {token}")
+    return errors
+
+
+def _event_loop_order_errors(event_loop: str) -> list[str]:
+    errors: list[str] = []
     priority_pos = event_loop.find("navigation_dispatch::render_priority_operation")
     engine_pos = event_loop.rfind("operation_engine::service")
     if priority_pos < 0 or engine_pos < 0 or priority_pos >= engine_pos:
@@ -70,13 +108,22 @@ def check(root: Path) -> list[str]:
     first_hardware_pos = event_loop.find("event_loop::audio::service")
     if exclusive_guard_pos < 0 or first_hardware_pos < 0 or exclusive_guard_pos >= first_hardware_pos:
         errors.append("foreground-exclusive operation guard must run before ordinary hardware service")
+    return errors
 
+
+def _single_owner_errors(operation_engine: str, kpub_driver: str, signing_driver: str, credential_driver: str) -> list[str]:
+    errors: list[str] = []
     # One lifecycle owner: only the operation engine may cross Presented -> Running.
     if operation_engine.count("take_ready_operation(ad)") != 1:
         errors.append("operation engine must be the single Presented-to-Running transition owner")
     for name, source in (("kpub", kpub_driver), ("signing", signing_driver), ("credential", credential_driver)):
         if "take_ready_operation(" in source:
             errors.append(f"{name} driver starts its own operation instead of using the unified engine")
+    return errors
+
+
+def _dispatch_policy_errors(operation_kind: str, operation_engine: str) -> list[str]:
+    errors: list[str] = []
     for kind in (
         "SaveWalletPin", "SaveWalletPassword", "UnlockWalletPin", "UnlockWalletPassword",
         "ConnectCompanion", "DeriveMultisigKpub", "SignTransaction",
@@ -86,7 +133,11 @@ def check(root: Path) -> list[str]:
     for token in ("ForegroundExclusive", "Stepped", "execution(self)", "kind.stepped()", "fn asynchronous"):
         if token not in operation_kind + operation_engine:
             errors.append(f"operation execution policy is missing {token}")
+    return errors
 
+
+def _credential_persistence_errors(credential_interaction: str, credential_driver: str) -> list[str]:
+    errors: list[str] = []
     # Controllers/interactions queue work only; persistence/KDF lives in the operation driver.
     for forbidden in ("save_with_credential(", "unlock_saved("):
         if forbidden in credential_interaction:
@@ -94,7 +145,11 @@ def check(root: Path) -> list[str]:
         # Foreground-exclusive credentials still use split begin/finish persistence rather than legacy blocking APIs.
         if forbidden in credential_driver:
             errors.append(f"credential driver must not call legacy blocking persistence API: {forbidden}")
+    return errors
 
+
+def _credential_lifecycle_errors(presentation: str, operation_engine: str, credential_driver: str, event_loop: str, operation_kind: str) -> list[str]:
+    errors: list[str] = []
     for token in (
         "start_credential_operation", "mark_operation_presented", "take_ready_operation",
         "execution_done", "credential_result_committed", "OP-ORDER-01",
@@ -104,6 +159,11 @@ def check(root: Path) -> list[str]:
     for token in ("owns_exclusive_frame", "ForegroundExclusive", "Credential foreground-exclusive lane ARMED"):
         if token not in credential_driver + operation_engine + event_loop + operation_kind:
             errors.append(f"credential foreground-exclusive lane is missing {token}")
+    return errors
+
+
+def _pin_flow_marker_errors(presentation: str) -> list[str]:
+    errors: list[str] = []
     for marker in (
         "KASKOLD_PIN_FLOW: PIN SUBMIT",
         "KASKOLD_PIN_FLOW: LOADING COMMITTED",
@@ -114,9 +174,11 @@ def check(root: Path) -> list[str]:
     ):
         if marker not in presentation:
             errors.append(f"credential operation ordering marker is missing: {marker}")
+    return errors
 
-    password_kdf = _read(firmware / "services/memory/password_kdf.rs")
-    shared_core = _read(firmware / "hw/shared/core.rs")
+
+def _foreground_kdf_errors(password_kdf: str, shared_core: str) -> list[str]:
+    errors: list[str] = []
     for forbidden in ("with_primary_core_exclusive", "park_core", "unpark_core", "CPU_CTRL::steal"):
         if forbidden in password_kdf:
             errors.append(f"foreground Argon2 must not hard-stall the peer core: {forbidden}")
@@ -126,18 +188,18 @@ def check(root: Path) -> list[str]:
     for token in ("with_other_core_parked", "park_core", "unpark_core"):
         if token not in shared_core:
             errors.append(f"flash-only peer-core coordination is missing {token}")
+    return errors
+
+
+def _retired_worker_errors(credential_driver: str, operation_engine: str, event_loop: str) -> list[str]:
+    errors: list[str] = []
     for retired in ("credential_kdf_worker", "process_if_ready()", "WorkerDriven"):
         if retired in credential_driver + operation_engine + event_loop:
             errors.append(f"retired credential Core1 worker path remains reachable: {retired}")
-
-    errors.extend(_check_error_and_reset_boundaries(root, firmware, presentation, credential_driver))
-    errors.extend(_check_liveness(root, firmware, operation_state + operation_kind, presentation, operation_engine))
-    errors.extend(_check_hardware_evidence(root, firmware))
     return errors
 
 
 def _check_error_and_reset_boundaries(root: Path, firmware: Path, presentation: str, credential_driver: str) -> list[str]:
-    errors: list[str] = []
     error_catalog = _read(firmware / "runtime/presentation/errors.rs")
     camera_cycle = _read(firmware / "runtime/interactions/camera_loop/cycle.rs")
     signing = _read(firmware / "runtime/signing/workflow.rs")
@@ -150,6 +212,19 @@ def _check_error_and_reset_boundaries(root: Path, firmware: Path, presentation: 
         firmware / "runtime/interactions/camera_loop/dispatch/covenant_sign.rs",
         firmware / "runtime/interactions/camera_loop/dispatch/private_swap.rs",
     )
+    layout = _read(firmware / "ui/layout.rs")
+    return [
+        *_fault_and_signing_errors(error_catalog, camera_cycle, signing),
+        *_qr_frame_and_persistence_errors(qr, frame, persistence),
+        *_protocol_adapter_errors(root, protocol_paths),
+        *_recovery_navigation_errors(presentation, nav_kernel),
+        *_error_dismiss_errors(layout, presentation),
+        *_software_reset_errors(firmware, presentation, credential_driver),
+    ]
+
+
+def _fault_and_signing_errors(error_catalog: str, camera_cycle: str, signing: str) -> list[str]:
+    errors: list[str] = []
     for code in ("CAM-01", "SD-WRITE-01", "STORE-SYNC-01", "QR-FRAME-01", "SIGN-INPUT-01", "UI-NAV-01"):
         if code not in error_catalog:
             errors.append(f"recoverable error catalog is missing {code}")
@@ -162,22 +237,45 @@ def _check_error_and_reset_boundaries(root: Path, firmware: Path, presentation: 
     for token in ("SIGN_ENTROPY", "SIGN_INPUT", "SIGN_KEY", "SIGN_POLICY", "SIGN_REVIEW"):
         if token not in signing:
             errors.append(f"transaction signing failure is missing diagnostic category {token}")
+    return errors
+
+
+def _qr_frame_and_persistence_errors(qr: str, frame: str, persistence: str) -> list[str]:
+    errors: list[str] = []
     if "draw_rejected_screen" in qr or "QR_FRAME" not in qr:
         errors.append("QR frame failure must use the recoverable QR_FRAME modal")
     if "draw_rejected_screen" in frame or "SD_WRITE" not in frame:
         errors.append("post-frame SD write failure must use the recoverable SD_WRITE modal")
     if "draw_rejected_screen" in persistence or "STORAGE_SYNC" not in persistence or "POLICY_SAVE" not in persistence:
         errors.append("wallet/policy persistence failures must use recoverable presentation")
-    for path in protocol_paths:
-        if "draw_tx_error_screen" in _read(path):
-            errors.append(f"protocol adapter owns an ad-hoc error screen: {path.relative_to(root)}")
+    return errors
+
+
+def _protocol_adapter_errors(root: Path, protocol_paths: tuple[Path, ...]) -> list[str]:
+    return [
+        f"protocol adapter owns an ad-hoc error screen: {path.relative_to(root)}"
+        for path in protocol_paths
+        if "draw_tx_error_screen" in _read(path)
+    ]
+
+
+def _recovery_navigation_errors(presentation: str, nav_kernel: str) -> list[str]:
+    errors: list[str] = []
     if "return_from_error" not in presentation or "HistoryEffect::PopTo(target)" not in nav_kernel:
         errors.append("recoverable modal OK must return through bounded navigation history")
     if "presentation::NAVIGATION" not in nav_kernel:
         errors.append("navigation recovery must surface a recoverable diagnostic modal")
-    layout = _read(firmware / "ui/layout.rs")
+    return errors
+
+
+def _error_dismiss_errors(layout: str, presentation: str) -> list[str]:
     if "ERROR_OK_ZONE" not in layout or "ERROR_OK_ZONE.contains(x, y)" not in presentation:
-        errors.append("recoverable errors must share the rendered OK-dismiss geometry")
+        return ["recoverable errors must share the rendered OK-dismiss geometry"]
+    return []
+
+
+def _software_reset_errors(firmware: Path, presentation: str, credential_driver: str) -> list[str]:
+    errors: list[str] = []
     if "software_reset" in presentation:
         errors.append("presentation layer must never reset the MCU")
     if (

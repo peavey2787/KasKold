@@ -40,6 +40,29 @@ ITEM_RE = re.compile(
 )
 
 
+_HIL_DEAD_CODE_ALLOW = '#![cfg_attr(feature = "hardware-tests", allow(dead_code))]'
+_SCOPED_HIL_MODULES = (
+    "boot/mod.rs", "controllers.rs", "crypto/mod.rs", "hw/mod.rs",
+    "runtime/mod.rs", "services/mod.rs", "ui/mod.rs", "wallet/mod.rs",
+)
+_REQUIRED_FEATURE_SETS = (
+    '"m5stack"',
+    '"m5stack,silent"',
+    '"m5stack,production"',
+    '"m5stack-lite"',
+    '"m5stack-lite,silent"',
+    '"qemu"',
+    '"qemu-tests"',
+)
+_ENFORCED_LINTS = (
+    '"unused_imports"',
+    '"clippy::too_many_lines"',
+    '"clippy::cognitive_complexity"',
+    '"clippy::struct_excessive_bools"',
+)
+_SHARED_RUNNER_IMPORT = "from tools.build.firmware.matrix_runner import run_firmware_matrix"
+
+
 @dataclass(frozen=True)
 class ExceptionEntry:
     path: str
@@ -138,100 +161,97 @@ def scan_exceptions(root: Path = ROOT) -> tuple[list[ExceptionEntry], list[str]]
     return entries, errors
 
 
-def check_policy(root: Path = ROOT) -> list[str]:
-    entries, errors = scan_exceptions(root)
-    main_source = (root / "apps/kaskold-hardware/src/main.rs").read_text(errors="ignore")
+def _check_main_source(main_source: str, errors: list[str]) -> None:
     if "#![deny(unused_imports)]" not in main_source:
         errors.append("firmware crate must deny unused_imports in every feature set")
     if "#![warn(dead_code)]" not in main_source:
         errors.append("firmware crate must retain dead-code diagnostics in every feature set")
-    hil_dead_code_allow = '#![cfg_attr(feature = "hardware-tests", allow(dead_code))]'
-    if hil_dead_code_allow in main_source:
+
+
+def _check_hil_dead_code_scope(root: Path, main_source: str, errors: list[str]) -> None:
+    if _HIL_DEAD_CODE_ALLOW in main_source:
         errors.append("hardware-tests dead-code suppression must not be crate-wide")
-    scoped_hil_modules = (
-        "boot/mod.rs", "controllers.rs", "crypto/mod.rs", "hw/mod.rs",
-        "runtime/mod.rs", "services/mod.rs", "ui/mod.rs", "wallet/mod.rs",
-    )
     firmware_src = root / "apps/kaskold-hardware/src"
-    for relative in scoped_hil_modules:
+    for relative in _SCOPED_HIL_MODULES:
         module_source = (firmware_src / relative).read_text(errors="ignore")
-        if hil_dead_code_allow not in module_source:
+        if _HIL_DEAD_CODE_ALLOW not in module_source:
             errors.append(f"hardware-tests dead-code suppression is missing from root module {relative}")
+
+
+def _check_crate_allows(main_source: str, errors: list[str]) -> None:
     if re.search(r"#!\s*\[.*allow\s*\(\s*dead_code\s*\).*\]", main_source):
         errors.append("firmware crate must not allow dead_code at crate scope")
     if "allow(unused_imports)" in main_source:
         errors.append("firmware crate must never allow unused_imports")
 
+
+def _check_clippy_config(root: Path, errors: list[str]) -> None:
     clippy_config = root / "apps/kaskold-hardware/clippy.toml"
     if not clippy_config.exists():
         errors.append("firmware clippy.toml is missing")
-    else:
-        clippy_source = clippy_config.read_text(errors="ignore")
-        for required in (
-            "too-many-lines-threshold = 300",
-            "cognitive-complexity-threshold = 80",
-        ):
-            if required not in clippy_source:
-                errors.append(f"firmware clippy policy changed: missing {required}")
+        return
+    clippy_source = clippy_config.read_text(errors="ignore")
+    for required in (
+        "too-many-lines-threshold = 300",
+        "cognitive-complexity-threshold = 80",
+    ):
+        if required not in clippy_source:
+            errors.append(f"firmware clippy policy changed: missing {required}")
 
+
+def _check_build_matrix(root: Path, errors: list[str]) -> None:
     matrix_path = root / "tools/build/firmware/build_matrix.py"
-    required_features = (
-        '"m5stack"',
-        '"m5stack,silent"',
-        '"m5stack,production"',
-        '"m5stack-lite"',
-        '"m5stack-lite,silent"',
-        '"qemu"',
-        '"qemu-tests"',
-    )
     if not matrix_path.exists():
         errors.append("canonical firmware build matrix is missing")
-    else:
-        matrix_source = matrix_path.read_text(errors="ignore")
-        for feature_set in required_features:
-            if feature_set not in matrix_source:
-                errors.append(f"firmware build matrix lost {feature_set}")
+        return
+    matrix_source = matrix_path.read_text(errors="ignore")
+    for feature_set in _REQUIRED_FEATURE_SETS:
+        if feature_set not in matrix_source:
+            errors.append(f"firmware build matrix lost {feature_set}")
 
+
+def _check_build_runner(root: Path, errors: list[str]) -> None:
     build_runner = root / "qa/checks/firmware/check_firmware_builds.py"
     if not build_runner.exists():
         errors.append("firmware cargo-check matrix runner is missing")
-    else:
-        runner_source = build_runner.read_text(errors="ignore")
-        if "from tools.build.firmware.matrix_runner import run_firmware_matrix" not in runner_source:
-            errors.append("firmware build runner must reuse the shared matrix runner")
-        if 'run_firmware_matrix(\n        "check"' not in runner_source:
-            errors.append("firmware build matrix runner must invoke cargo check")
+        return
+    runner_source = build_runner.read_text(errors="ignore")
+    if _SHARED_RUNNER_IMPORT not in runner_source:
+        errors.append("firmware build runner must reuse the shared matrix runner")
+    if 'run_firmware_matrix(\n        "check"' not in runner_source:
+        errors.append("firmware build matrix runner must invoke cargo check")
 
+
+def _check_lint_runner(root: Path, errors: list[str]) -> None:
     lint_runner = root / "qa/checks/firmware/check_firmware_lints.py"
     if not lint_runner.exists():
         errors.append("firmware lint matrix runner is missing")
-    else:
-        runner_source = lint_runner.read_text(errors="ignore")
-        if "from tools.build.firmware.matrix_runner import run_firmware_matrix" not in runner_source:
-            errors.append("firmware lint runner must reuse the shared matrix runner")
-        for enforced_lint in (
-            '"unused_imports"',
-            '"clippy::too_many_lines"',
-            '"clippy::cognitive_complexity"',
-            '"clippy::struct_excessive_bools"',
-        ):
-            if enforced_lint not in runner_source:
-                errors.append(f"firmware lint runner no longer enforces {enforced_lint}")
+        return
+    runner_source = lint_runner.read_text(errors="ignore")
+    if _SHARED_RUNNER_IMPORT not in runner_source:
+        errors.append("firmware lint runner must reuse the shared matrix runner")
+    for enforced_lint in _ENFORCED_LINTS:
+        if enforced_lint not in runner_source:
+            errors.append(f"firmware lint runner no longer enforces {enforced_lint}")
 
+
+def _check_shared_runner(root: Path, errors: list[str]) -> None:
     shared_runner = root / "tools/build/firmware/matrix_runner.py"
     if not shared_runner.exists():
         errors.append("shared firmware matrix runner is missing")
-    else:
-        shared_source = shared_runner.read_text(errors="ignore")
-        if "from .build_matrix import FEATURE_MATRIX" not in shared_source:
-            errors.append("shared firmware runner must use the canonical build matrix")
-        if '"cargo",\n            operation' not in shared_source:
-            errors.append("shared firmware runner must invoke the selected cargo operation")
+        return
+    shared_source = shared_runner.read_text(errors="ignore")
+    if "from .build_matrix import FEATURE_MATRIX" not in shared_source:
+        errors.append("shared firmware runner must use the canonical build matrix")
+    if '"cargo",\n            operation' not in shared_source:
+        errors.append("shared firmware runner must invoke the selected cargo operation")
 
+
+def _check_exception_registry(root: Path, entries, errors: list[str]) -> None:
     registry_path = root / "qa/checks/firmware/firmware_lint_exceptions.json"
     if not registry_path.exists():
         errors.append("firmware lint exception registry is missing")
-        return errors
+        return
 
     registry_data = json.loads(registry_path.read_text())
     expected = {
@@ -253,6 +273,19 @@ def check_policy(root: Path = ROOT) -> list[str]:
     if len(actual) != len(entries):
         errors.append("firmware lint registry contains duplicate exception records")
 
+
+def check_policy(root: Path = ROOT) -> list[str]:
+    entries, errors = scan_exceptions(root)
+    main_source = (root / "apps/kaskold-hardware/src/main.rs").read_text(errors="ignore")
+    _check_main_source(main_source, errors)
+    _check_hil_dead_code_scope(root, main_source, errors)
+    _check_crate_allows(main_source, errors)
+    _check_clippy_config(root, errors)
+    _check_build_matrix(root, errors)
+    _check_build_runner(root, errors)
+    _check_lint_runner(root, errors)
+    _check_shared_runner(root, errors)
+    _check_exception_registry(root, entries, errors)
     return errors
 
 

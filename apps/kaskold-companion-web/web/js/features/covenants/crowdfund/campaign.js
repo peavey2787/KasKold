@@ -106,24 +106,40 @@ export async function buildCrowdfund(ownerPk) {
     };
 }
 
+function hasUsableSetup(setup) {
+    return Boolean(setup?.pk_hex && setup?.vk_hex && /^[0-9a-f]{64}$/.test(setup.vk_hash_hex || ''));
+}
+
+function readGoalFromForm() {
+    let goal;
+    try { goal = kasToSompi(byId('cov-crowdfund-goal').value.trim()); }
+    catch (_) { toast('Enter a valid crowdfunding goal with at most 8 decimals', 'error'); return null; }
+    if (goal === 0n) { toast('Crowdfunding goal must be greater than zero', 'error'); return null; }
+    return goal;
+}
+
+async function resolveRefundDaa(date) {
+    let daa;
+    try { daa = exactUnsigned((await resolveFutureDaa(date)).daa, 'crowdfunding refund DAA'); }
+    catch (error) { toast(error.message, 'error'); return null; }
+    if (daa === 0n) { toast('Refund deadline must be in the future', 'error'); return null; }
+    return daa;
+}
+
 async function organizerCampaignFromForm() {
     const setup = crowdfundState.setup;
-    if (!setup?.pk_hex || !setup?.vk_hex || !/^[0-9a-f]{64}$/.test(setup.vk_hash_hex || '')) {
+    if (!hasUsableSetup(setup)) {
         toast('Run ZK Trusted Setup first', 'error'); return null;
     }
     const name = byId('cov-crowdfund-name').value.trim();
     const organizer = byId('cov-crowdfund-organizer-address').value.trim();
     const date = byId('cov-crowdfund-datetime').value;
-    let goal;
-    try { goal = kasToSompi(byId('cov-crowdfund-goal').value.trim()); }
-    catch (_) { toast('Enter a valid crowdfunding goal with at most 8 decimals', 'error'); return null; }
-    if (goal === 0n) { toast('Crowdfunding goal must be greater than zero', 'error'); return null; }
+    const goal = readGoalFromForm();
+    if (goal === null) return null;
     if (!organizer.includes(':')) { toast('Enter a valid organizer destination', 'error'); return null; }
     if (!date) { toast('Choose a contributor refund deadline', 'error'); return null; }
-    let daa;
-    try { daa = exactUnsigned((await resolveFutureDaa(date)).daa, 'crowdfunding refund DAA'); }
-    catch (error) { toast(error.message, 'error'); return null; }
-    if (daa === 0n) { toast('Refund deadline must be in the future', 'error'); return null; }
+    const daa = await resolveRefundDaa(date);
+    if (daa === null) return null;
     byId('cov-crowdfund-locktime').value = String(daa);
     const campaignId = crowdfund_campaign_id(organizer, goal, daa, setup.vk_hex);
     return normalizeCampaign({

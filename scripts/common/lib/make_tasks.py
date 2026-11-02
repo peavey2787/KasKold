@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Callable
 LIB_DIR = Path(__file__).resolve().parent
 if str(LIB_DIR) not in sys.path:
     sys.path.insert(0, str(LIB_DIR))
@@ -334,7 +335,7 @@ def clean() -> int:
 HELP = Path(__file__).with_name("make_help.txt").read_text(encoding="utf-8")
 
 
-def main(argv: list[str] | None = None) -> int:
+def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -405,42 +406,41 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("clean")
     sub.add_parser("help")
+    return parser
 
-    args = parser.parse_args(argv)
-    if args.command == "entrypoint":
-        return platform(args.name, args.args)
-    if args.command == "firmware":
-        return firmware(args.board)
-    if args.command == "owner-firmware":
-        return owner_firmware(args.output_dir, args.owner_key)
-    if args.command == "flash":
-        return flash_firmware(args.board, args.port)
-    if args.command == "flash-release":
-        return flash_release(args.board, args.port, args.release_dir)
-    if args.command == "secure-release":
-        return secure_release(args.mode, args.output_dir, args.secure_boot_key, args.signing_key)
-    if args.command == "workflow-e2e":
-        return workflow_e2e(args.board, args.port, args.timeout, args.resume_from)
-    if args.command == "workflow-hil":
-        return workflow_hil(args.board, args.port, args.timeout, args.resume_from)
-    if args.command == "test":
-        return normal_test(args.strict_lockfiles)
-    if args.command == "qa":
-        return specialist_qa(args.fuzz_passes, args.strict_lockfiles, args.resume_from)
-    if args.command == "ios":
-        return ios_action(args.action, args.product)
-    if args.command == "android":
-        return android_action(args.action, args.product)
-    if args.command == "test-hardware":
-        return test_hardware(platform, args.board, args.port, args.timeout, args.strict_lockfiles)
-    if args.command == "release":
-        return release_build(platform, IS_WINDOWS, args.output_dir, args.signing_key, args.refresh_inputs)
-    if args.command == "clean":
-        return clean()
-    if args.command == "help":
-        print(HELP, end="")
-        return 0
-    raise AssertionError(args.command)
+
+def _show_help(_args: argparse.Namespace) -> int:
+    print(HELP, end="")
+    return 0
+
+
+def _command_handlers() -> dict[str, Callable[[argparse.Namespace], int]]:
+    return {
+        "entrypoint": lambda args: platform(args.name, args.args),
+        "firmware": lambda args: firmware(args.board),
+        "owner-firmware": lambda args: owner_firmware(args.output_dir, args.owner_key),
+        "flash": lambda args: flash_firmware(args.board, args.port),
+        "flash-release": lambda args: flash_release(args.board, args.port, args.release_dir),
+        "secure-release": lambda args: secure_release(args.mode, args.output_dir, args.secure_boot_key, args.signing_key),
+        "workflow-e2e": lambda args: workflow_e2e(args.board, args.port, args.timeout, args.resume_from),
+        "workflow-hil": lambda args: workflow_hil(args.board, args.port, args.timeout, args.resume_from),
+        "test": lambda args: normal_test(args.strict_lockfiles),
+        "qa": lambda args: specialist_qa(args.fuzz_passes, args.strict_lockfiles, args.resume_from),
+        "ios": lambda args: ios_action(args.action, args.product),
+        "android": lambda args: android_action(args.action, args.product),
+        "test-hardware": lambda args: test_hardware(platform, args.board, args.port, args.timeout, args.strict_lockfiles),
+        "release": lambda args: release_build(platform, IS_WINDOWS, args.output_dir, args.signing_key, args.refresh_inputs),
+        "clean": lambda _args: clean(),
+        "help": _show_help,
+    }
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _build_parser().parse_args(argv)
+    handler = _command_handlers().get(args.command)
+    if handler is None:
+        raise AssertionError(args.command)
+    return handler(args)
 
 
 if __name__ == "__main__":

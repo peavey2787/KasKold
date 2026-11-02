@@ -71,7 +71,7 @@ def check_security_integration_contract(root: Path, errors: list[str]) -> None:
     m5_imu_hw = read("apps/kaskold-hardware/src/hw/m5stack/imu.rs")
     firmware_manifest = read("apps/kaskold-hardware/Cargo.toml")
     firmware_lock = read("apps/kaskold-hardware/Cargo.lock")
-    event_loop = read("apps/kaskold-hardware/src/runtime/event_loop/mod.rs")
+    read("apps/kaskold-hardware/src/runtime/event_loop/mod.rs")
     event_touch = read("apps/kaskold-hardware/src/runtime/event_loop/touch.rs")
     m5stack_boot = "\n".join(
         read(f"apps/kaskold-hardware/src/boot/m5stack/{name}")

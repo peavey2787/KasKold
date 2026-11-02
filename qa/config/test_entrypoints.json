@@ -826,6 +826,14 @@
       "commands": [
         "make qa"
       ],
+      "path": "qa/checks/web/web_device_frame_scanning.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
       "path": "qa/checks/web/web_stealth_success_paths.test.mjs",
       "role": "test",
       "step": "preflight.crap-check"

@@ -66,7 +66,7 @@ def _check_signing_and_bip85(root: Path) -> list[str]:
         errors.append(
             f"signing-menu module inventory changed: expected {sorted(expected_signing)}, got {sorted(actual_signing)}"
         )
-    signing_source = "\n".join(
+    "\n".join(
         path.read_text(errors="ignore") for path in [signing_facade, *sorted(signing_root.glob("*.rs"))]
         if path.exists()
     )

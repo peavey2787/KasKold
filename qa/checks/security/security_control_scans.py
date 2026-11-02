@@ -77,6 +77,32 @@ def collect_text(relative_path: str) -> tuple[list[str], str]:
     return [], ""
 
 
+def _macro_call_end(text: str, open_index: int) -> int | None:
+    """Return the index of the parenthesis closing the call opened at ``open_index``."""
+    depth = 0
+    in_string = False
+    escaped = False
+    for cursor in range(open_index, len(text)):
+        char = text[cursor]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            depth -= 1
+            if depth == 0:
+                return cursor
+    return None
+
+
 def extract_macro_calls(text: str, macro: str) -> list[str]:
     marker = f"{macro}!"
     calls: list[str] = []
@@ -88,32 +114,38 @@ def extract_macro_calls(text: str, macro: str) -> list[str]:
         open_index = text.find("(", index + len(marker))
         if open_index < 0:
             break
-        depth = 0
-        quote = False
-        escaped = False
-        for cursor in range(open_index, len(text)):
-            char = text[cursor]
-            if quote:
-                if escaped:
-                    escaped = False
-                elif char == "\\":
-                    escaped = True
-                elif char == '"':
-                    quote = False
-                continue
-            if char == '"':
-                quote = True
-            elif char == "(":
-                depth += 1
-            elif char == ")":
-                depth -= 1
-                if depth == 0:
-                    calls.append(text[index : cursor + 1])
-                    start = cursor + 1
-                    break
-        else:
+        close_index = _macro_call_end(text, open_index)
+        if close_index is None:
             break
+        calls.append(text[index : close_index + 1])
+        start = close_index + 1
     return calls
+
+
+def _cfg_test_block_end(text: str, brace: int) -> int | None:
+    """Return the index just past the brace block opening at ``brace``, or None if unbalanced."""
+    depth = 0
+    quote: str | None = None
+    escaped = False
+    for index in range(brace, len(text)):
+        char = text[index]
+        if quote:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == quote:
+                quote = None
+            continue
+        if char == '"':
+            quote = char
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return index + 1
+    return None
 
 
 def strip_cfg_test_regions(text: str) -> str:
@@ -124,33 +156,10 @@ def strip_cfg_test_regions(text: str) -> str:
         brace = text.find("{", mod_index if mod_index >= 0 else match.end())
         if mod_index < 0 or brace < 0:
             continue
-        depth = 0
-        quote = None
-        escaped = False
-        end = None
-        for i in range(brace, len(text)):
-            ch = text[i]
-            if quote:
-                if escaped:
-                    escaped = False
-                elif ch == "\\":
-                    escaped = True
-                elif ch == quote:
-                    quote = None
-                continue
-            if ch == '"':
-                quote = ch
-            elif ch == "{":
-                depth += 1
-            elif ch == "}":
-                depth -= 1
-                if depth == 0:
-                    end = i + 1
-                    break
+        end = _cfg_test_block_end(text, brace)
         if end is not None:
-            for i in range(match.start(), end):
-                if chars[i] != "\n":
-                    chars[i] = " "
+            for index in range(match.start(), end):
+                _blank(chars, index)
     return "".join(chars)
 
 
@@ -205,59 +214,78 @@ def reviewed_sites(pattern: re.Pattern[str], manifest_path: Path) -> tuple[list[
 
 
 
-def strip_comment_only_evidence(text: str, suffix: str) -> str:
-    """Blank comments while preserving strings and line numbers for evidence probes."""
-    if suffix == ".rs":
-        chars = list(text)
-        i = 0
-        block_depth = 0
-        quote: str | None = None
-        escaped = False
-        while i < len(text):
-            ch = text[i]
-            nxt = text[i + 1] if i + 1 < len(text) else ""
-            if block_depth:
-                if ch == "/" and nxt == "*":
-                    block_depth += 1
-                    if chars[i] != "\n": chars[i] = " "
-                    if chars[i + 1] != "\n": chars[i + 1] = " "
-                    i += 2
-                    continue
-                if ch == "*" and nxt == "/":
-                    block_depth -= 1
-                    if chars[i] != "\n": chars[i] = " "
-                    if chars[i + 1] != "\n": chars[i + 1] = " "
-                    i += 2
-                    continue
-                if ch != "\n": chars[i] = " "
-                i += 1
-                continue
-            if quote:
-                if escaped:
-                    escaped = False
-                elif ch == "\\":
-                    escaped = True
-                elif ch == quote:
-                    quote = None
-                i += 1
-                continue
-            if ch == '"':
-                quote = ch
-                i += 1
-                continue
-            if ch == "/" and nxt == "/":
-                while i < len(text) and text[i] != "\n":
-                    chars[i] = " "
-                    i += 1
-                continue
-            if ch == "/" and nxt == "*":
-                block_depth = 1
-                chars[i] = chars[i + 1] = " "
-                i += 2
-                continue
-            i += 1
-        return "".join(chars)
-    lines = []
+def _blank(chars: list[str], index: int) -> None:
+    if chars[index] != "\n":
+        chars[index] = " "
+
+
+def _blank_pair(chars: list[str], index: int) -> None:
+    _blank(chars, index)
+    _blank(chars, index + 1)
+
+
+def _blank_line_comment(text: str, chars: list[str], index: int) -> int:
+    while index < len(text) and text[index] != "\n":
+        chars[index] = " "
+        index += 1
+    return index
+
+
+def _blank_block_comment_step(text: str, chars: list[str], index: int, depth: int) -> tuple[int, int]:
+    """Blank one character inside a nested block comment; return the next index and depth."""
+    char = text[index]
+    nxt = text[index + 1] if index + 1 < len(text) else ""
+    if char == "/" and nxt == "*":
+        _blank_pair(chars, index)
+        return index + 2, depth + 1
+    if char == "*" and nxt == "/":
+        _blank_pair(chars, index)
+        return index + 2, depth - 1
+    _blank(chars, index)
+    return index + 1, depth
+
+
+def _advance_string_state(char: str, escaped: bool) -> tuple[bool, bool]:
+    """Return (escaped, in_string) after one character inside a string literal."""
+    if escaped:
+        return False, True
+    if char == "\\":
+        return True, True
+    return False, char != '"'
+
+
+def _blank_rust_comments(text: str) -> str:
+    chars = list(text)
+    index = 0
+    block_depth = 0
+    in_string = False
+    escaped = False
+    while index < len(text):
+        char = text[index]
+        nxt = text[index + 1] if index + 1 < len(text) else ""
+        if block_depth:
+            index, block_depth = _blank_block_comment_step(text, chars, index, block_depth)
+            continue
+        if in_string:
+            escaped, in_string = _advance_string_state(char, escaped)
+            index += 1
+            continue
+        if char == '"':
+            in_string = True
+            index += 1
+        elif char == "/" and nxt == "/":
+            index = _blank_line_comment(text, chars, index)
+        elif char == "/" and nxt == "*":
+            _blank_pair(chars, index)
+            block_depth = 1
+            index += 2
+        else:
+            index += 1
+    return "".join(chars)
+
+
+def _strip_non_rust_comment_lines(text: str, suffix: str) -> str:
+    lines: list[str] = []
     for line in text.splitlines(keepends=True):
         stripped = line.lstrip()
         if (suffix in {".sh", ".ps1", ".py"} and stripped.startswith("#")) or stripped.startswith("<!--"):
@@ -265,6 +293,13 @@ def strip_comment_only_evidence(text: str, suffix: str) -> str:
         else:
             lines.append(line)
     return "".join(lines)
+
+
+def strip_comment_only_evidence(text: str, suffix: str) -> str:
+    """Blank comments while preserving strings and line numbers for evidence probes."""
+    if suffix == ".rs":
+        return _blank_rust_comments(text)
+    return _strip_non_rust_comment_lines(text, suffix)
 
 
 def evidence_matches(relative_path: str, term: str) -> list[dict[str, Any]]:

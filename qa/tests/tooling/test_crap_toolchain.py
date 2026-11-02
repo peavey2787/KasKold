@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 import zipfile
 
 from qa.tests.tooling.crap_check_test_support import CrapCheckTestCase, ROOT
@@ -90,7 +91,8 @@ class CrapToolchainTests(CrapCheckTestCase):
         self.assertIsNotNone(spec)
         self.assertIsNotNone(spec.loader)
         module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        with mock.patch.dict(sys.modules, {spec.name: module}):
+            spec.loader.exec_module(module)
 
         self.assertEqual(module.ROOT, ROOT)
         self.assertTrue((module.ROOT / "qa/checks/quality/crap/coverage_manifest.py").is_file())
@@ -331,7 +333,7 @@ exit 2
 
             rustup = fake_bin / "rustup"
             rustup.write_text(
-                f"""#!/usr/bin/env sh
+                """#!/usr/bin/env sh
 if [ "$1 $3" = "run rustc" ]; then
   echo "rustc 1.99.0-nightly"
   exit 0

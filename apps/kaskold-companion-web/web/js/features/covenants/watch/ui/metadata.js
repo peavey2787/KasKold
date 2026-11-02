@@ -15,46 +15,88 @@ import { formatDaaDuration, formatStartDate } from '../../../../core/format.js';
 // covMetaLine(c): pure function -> string. Timed fields go through
 // formatStartDate (exact date if *_date_iso present, else ~estimate from
 // covenantState._lastKnownDaa, else raw 'DAA N').
+
+function refundText(c) {
+    return formatStartDate({ locktime_daa: c.locktime_daa, start_date_iso: c.locktime_date_iso }, covenantState._lastKnownDaa);
+}
+
+function dmsMetaLine(c) {
+    if (!c.inactivity_daa) return null;
+    return `Type: Dead Man's Switch | Inactivity: ${formatDaaDuration(exactUnsigned(c.inactivity_daa, 'inactivity DAA'))}`;
+}
+
+function spendingLimitLabel(t) {
+    return t === 'global-spending-limit' ? 'Global Spending Limit | Limit' : 'Global Allowance | Max';
+}
+
+function spendingLimitCooldownText(cd) {
+    return cd > 0n ? ` | Cooldown: ${formatDaaDuration(cd)}` : '';
+}
+
+function spendingLimitStartText(t, c) {
+    return t === 'global-allowance' && c.start_date_iso
+        ? ` | Start: ${formatStartDate(c, covenantState._lastKnownDaa)}`
+        : '';
+}
+
+function spendingLimitMetaLine(c, t) {
+    const mw = exactUnsigned(c.max_withdraw_sompi ?? 0n, 'withdrawal limit');
+    const cd = exactUnsigned(c.cooldown_daa ?? 0n, 'cooldown DAA');
+    if (!(mw > 0n)) return null;
+    const cdStr = spendingLimitCooldownText(cd);
+    const startStr = spendingLimitStartText(t, c);
+    return `Type: ${spendingLimitLabel(t)}: ${sompiToKasString(mw)} KAS/spend${cdStr}${startStr}`;
+}
+
+function piggyBankMetaLine(c) {
+    const threshold = exactUnsigned(c.threshold_sompi ?? 0n, 'savings threshold');
+    const deadline = exactUnsigned(c.deadline_daa ?? 0n, 'deadline DAA');
+    let line = 'Type: Piggy Bank';
+    if (threshold > 0n) line += ` | Goal: ${sompiToKasString(threshold)} KAS`;
+    if (deadline > 0n && c.deadline_date_iso) {
+        line += ' | Deadline: ' + formatStartDate({ start_date_iso: c.deadline_date_iso, start_daa: deadline }, covenantState._lastKnownDaa);
+    }
+    if (threshold === 0n && deadline === 0n) line += ' | No conditions (break anytime)';
+    return line;
+}
+
+function merkleAddressCount(json) {
+    try { return JSON.parse(json || '[]').length; } catch (_) { return 0; }
+}
+
+function merkleWhitelistMetaLine(c) {
+    return 'Type: Merkle Whitelist | ' + merkleAddressCount(c.merkle_addresses_json) + ' addresses | Refund: ' + refundText(c);
+}
+
+function crowdfundMetaLine(c) {
+    const roleLabel = c.crowdfund_role === 'organizer' ? 'Organizer' : 'Contributor';
+    return `Type: ZK Crowdfunding | Goal: ${sompiToKasString(c.goal_sompi ?? 0n)} KAS | ${roleLabel} | Refund: ${refundText(c)}`;
+}
+
+// Types with a bespoke summary. A builder returns null when the covenant does
+// not qualify for its summary, in which case the generic line is used.
+const META_LINE_BUILDERS = new Map([
+    ['dms', dmsMetaLine],
+    ['global-spending-limit', spendingLimitMetaLine],
+    ['global-allowance', spendingLimitMetaLine],
+    ['additive', piggyBankMetaLine],
+    ['merkle-whitelist', merkleWhitelistMetaLine],
+    ['payjoin', (c) => 'Type: PayJoin | Refund timeout: ' + refundText(c)],
+    ['commit-reveal', (c) => 'Type: Commit-Reveal | Refund timeout: ' + refundText(c)],
+    ['oracle-v1', (c) => 'Type: Oracle | Attestation-bound release | Owner refund: ' + refundText(c)],
+    ['crowdfund', crowdfundMetaLine],
+    ['private-swap', () => 'Type: Private Swap (adaptor signature)'],
+]);
+
+function genericMetaLine(t, c) {
+    return 'Type: ' + t + (c.locktime_daa ? ' | Locktime: ' + refundText(c) : '');
+}
+
 export function covMetaLine(c) {
     const t = (c && c.type) || '';
-    const refund = () => formatStartDate({ locktime_daa: c.locktime_daa, start_date_iso: c.locktime_date_iso }, covenantState._lastKnownDaa);
-    if (t === 'dms' && c.inactivity_daa) {
-        return `Type: Dead Man's Switch | Inactivity: ${formatDaaDuration(exactUnsigned(c.inactivity_daa, 'inactivity DAA'))}`;
-    }
-    if (t === 'global-spending-limit' || t === 'global-allowance') {
-        const mw = exactUnsigned(c.max_withdraw_sompi ?? 0n, 'withdrawal limit');
-        const cd = exactUnsigned(c.cooldown_daa ?? 0n, 'cooldown DAA');
-        if (mw > 0n) {
-            const cdStr = cd > 0n ? ` | Cooldown: ${formatDaaDuration(cd)}` : '';
-            const label = t === 'global-spending-limit' ? 'Global Spending Limit | Limit' : 'Global Allowance | Max';
-            const startStr = t === 'global-allowance' && c.start_date_iso
-                ? ` | Start: ${formatStartDate(c, covenantState._lastKnownDaa)}`
-                : '';
-            return `Type: ${label}: ${sompiToKasString(mw)} KAS/spend${cdStr}${startStr}`;
-        }
-    }
-    if (t === 'additive') {
-        const threshold = exactUnsigned(c.threshold_sompi ?? 0n, 'savings threshold');
-        const deadline = exactUnsigned(c.deadline_daa ?? 0n, 'deadline DAA');
-        let line = 'Type: Piggy Bank';
-        if (threshold > 0n) line += ` | Goal: ${sompiToKasString(threshold)} KAS`;
-        if (deadline > 0n && c.deadline_date_iso) {
-            line += ' | Deadline: ' + formatStartDate({ start_date_iso: c.deadline_date_iso, start_daa: deadline }, covenantState._lastKnownDaa);
-        }
-        if (threshold === 0n && deadline === 0n) line += ' | No conditions (break anytime)';
-        return line;
-    }
-    if (t === 'merkle-whitelist') {
-        let n = 0;
-        try { n = JSON.parse(c.merkle_addresses_json || '[]').length; } catch (_) {}
-        return 'Type: Merkle Whitelist | ' + n + ' addresses | Refund: ' + refund();
-    }
-    if (t === 'payjoin') return 'Type: PayJoin | Refund timeout: ' + refund();
-    if (t === 'commit-reveal') return 'Type: Commit-Reveal | Refund timeout: ' + refund();
-    if (t === 'oracle-v1') return 'Type: Oracle | Attestation-bound release | Owner refund: ' + refund();
-    if (t === 'crowdfund') return `Type: ZK Crowdfunding | Goal: ${sompiToKasString(c.goal_sompi ?? 0n)} KAS | ${c.crowdfund_role === 'organizer' ? 'Organizer' : 'Contributor'} | Refund: ${refund()}`;
-    if (t === 'private-swap') return 'Type: Private Swap (adaptor signature)';
-    return 'Type: ' + t + (c.locktime_daa ? ' | Locktime: ' + refund() : '');
+    const builder = META_LINE_BUILDERS.get(t);
+    const line = builder ? builder(c, t) : null;
+    return line ?? genericMetaLine(t, c);
 }
 // field could only resolve to a raw DAA (no *_date_iso and no cached DAA),
 // fetch the current DAA once and re-render so it shows an estimated date.

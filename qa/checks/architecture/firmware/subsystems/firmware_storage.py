@@ -1,6 +1,7 @@
 from __future__ import annotations
 from pathlib import Path
 import re
+from .firmware_cores3_spi import check_cores3_spi_ownership
 def _roots(root: Path) -> tuple[Path, Path]:
     firmware = root / "apps/kaskold-hardware/src/hw"
     return (
@@ -37,9 +38,17 @@ def _sdcard_limits(root: Path, m5_root: Path, fat32_root: Path) -> dict[Path, in
     }
 
 
-def _check_sdcard_layout(root: Path) -> list[str]:
-    errors: list[str] = []
-    m5_root, fat32_root = _roots(root)
+def _read_fat32_sources(fat32_root: Path) -> tuple[str, str]:
+    top_level = "\n".join(
+        path.read_text(errors="ignore") for path in fat32_root.glob("*.rs")
+    ) if fat32_root.exists() else ""
+    recursive = "\n".join(
+        path.read_text(errors="ignore") for path in fat32_root.rglob("*.rs")
+    ) if fat32_root.exists() else ""
+    return top_level, recursive
+
+
+def _check_required_sdcard_paths(root: Path, m5_root: Path, fat32_root: Path) -> list[str]:
     required = (
         m5_root / "mod.rs",
         m5_root / "transport/mod.rs",
@@ -66,45 +75,53 @@ def _check_sdcard_layout(root: Path) -> list[str]:
         fat32_root / "lfn/scanner.rs",
         fat32_root / "format.rs",
     )
-    for path in required:
-        if not path.exists():
-            errors.append(f"required firmware SD-card module is missing: {path.relative_to(root)}")
+    return [
+        f"required firmware SD-card module is missing: {path.relative_to(root)}"
+        for path in required
+        if not path.exists()
+    ]
 
-    for facade in (m5_root / "mod.rs",):
-        if not facade.exists():
-            continue
-        source = facade.read_text(errors="ignore")
-        if len(source.splitlines()) > 100:
-            errors.append(f"SD-card facade exceeds 100 lines: {facade.relative_to(root)}")
-        if "mod transport;" not in source:
-            errors.append(f"SD-card facade lost board transport ownership: {facade.relative_to(root)}")
-        if "pub use crate::hw::shared::storage::fat32::{" not in source:
-            errors.append(f"SD-card facade no longer consumes shared FAT32: {facade.relative_to(root)}")
-        if "include!(" in source:
-            errors.append(f"SD-card facade must use real Rust modules: {facade.relative_to(root)}")
 
-    limits = _sdcard_limits(root, m5_root, fat32_root)
-    for path, maximum in limits.items():
-        if path.exists() and len(path.read_text(errors="ignore").splitlines()) > maximum:
-            errors.append(
-                f"firmware SD-card module exceeds SRP limit: {path.relative_to(root)}"
-            )
+def _check_sdcard_facade(root: Path, m5_root: Path) -> list[str]:
+    facade = m5_root / "mod.rs"
+    if not facade.exists():
+        return []
+    source = facade.read_text(errors="ignore")
+    errors: list[str] = []
+    if len(source.splitlines()) > 100:
+        errors.append(f"SD-card facade exceeds 100 lines: {facade.relative_to(root)}")
+    if "mod transport;" not in source:
+        errors.append(f"SD-card facade lost board transport ownership: {facade.relative_to(root)}")
+    if "pub use crate::hw::shared::storage::fat32::{" not in source:
+        errors.append(f"SD-card facade no longer consumes shared FAT32: {facade.relative_to(root)}")
+    if "include!(" in source:
+        errors.append(f"SD-card facade must use real Rust modules: {facade.relative_to(root)}")
+    return errors
 
-    fat32_source = "\n".join(
-        path.read_text(errors="ignore") for path in fat32_root.glob("*.rs")
-    ) if fat32_root.exists() else ""
-    fat32_all_source = "\n".join(
-        path.read_text(errors="ignore") for path in fat32_root.rglob("*.rs")
-    ) if fat32_root.exists() else ""
-    for forbidden in (
-        "SDHOST_", "SPI2_", "GPIO_OUT", "GPIO_ENABLE", "IO_MUX", "reg_write(",
-        "bb_transfer", "sdhost_send_cmd", "restore_display_state", "restore_spi_state",
-    ):
-        if forbidden in fat32_all_source:
-            errors.append(f"shared FAT32 contains platform transport concern: {forbidden}")
+
+def _check_sdcard_module_limits(root: Path, m5_root: Path, fat32_root: Path) -> list[str]:
+    return [
+        f"firmware SD-card module exceeds SRP limit: {path.relative_to(root)}"
+        for path, maximum in _sdcard_limits(root, m5_root, fat32_root).items()
+        if path.exists() and len(path.read_text(errors="ignore").splitlines()) > maximum
+    ]
+
+
+def _check_fat32_platform_isolation(fat32_all_source: str) -> list[str]:
+    errors = [
+        f"shared FAT32 contains platform transport concern: {forbidden}"
+        for forbidden in (
+            "SDHOST_", "SPI2_", "GPIO_OUT", "GPIO_ENABLE", "IO_MUX", "reg_write(",
+            "bb_transfer", "sdhost_send_cmd", "restore_display_state", "restore_spi_state",
+        )
+        if forbidden in fat32_all_source
+    ]
     if re.search(r"\b(?:struct|impl)\s+BmpInfo\b", fat32_all_source):
         errors.append("unused FAT32 BmpInfo type must not return")
+    return errors
 
+
+def _check_lfn_decomposition(root: Path, fat32_root: Path) -> list[str]:
     lfn_helpers = {
         root / "crates/kaskold-hardware-core/src/storage/fat32_lfn.rs": (
             "struct LfnAccumulator", "fn record", "fn display_name", "fn map_latin1",
@@ -114,6 +131,7 @@ def _check_sdcard_layout(root: Path) -> list[str]:
             "enum ScanControl", "fn scan_cluster", "fn process_entry",
         ),
     }
+    errors: list[str] = []
     for module_path, symbols in lfn_helpers.items():
         if not module_path.is_file():
             errors.append(
@@ -121,12 +139,15 @@ def _check_sdcard_layout(root: Path) -> list[str]:
             )
             continue
         source = module_path.read_text(errors="ignore")
-        for symbol in symbols:
-            if symbol not in source:
-                errors.append(
-                    f"FAT32 LFN decomposition lost {symbol} in {module_path.relative_to(root)}"
-                )
+        errors.extend(
+            f"FAT32 LFN decomposition lost {symbol} in {module_path.relative_to(root)}"
+            for symbol in symbols
+            if symbol not in source
+        )
+    return errors
 
+
+def _check_fat32_inventory(fat32_source: str) -> list[str]:
     expected_functions = {
         "from_boot_sector", "cluster_to_sector", "cluster_bytes", "from_bytes",
         "first_cluster", "is_dir", "matches", "to_83_name",
@@ -141,12 +162,25 @@ def _check_sdcard_layout(root: Path) -> list[str]:
         r"(?m)^\s*(?:pub(?:\([^)]*\))?\s+)?fn\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:<|\()",
         fat32_source,
     ))
-    if actual_functions != expected_functions:
-        errors.append(
-            "shared FAT32 responsibility inventory changed: expected "
-            f"{sorted(expected_functions)}, got {sorted(actual_functions)}"
-        )
-    return errors
+    if actual_functions == expected_functions:
+        return []
+    return [
+        "shared FAT32 responsibility inventory changed: expected "
+        f"{sorted(expected_functions)}, got {sorted(actual_functions)}"
+    ]
+
+
+def _check_sdcard_layout(root: Path) -> list[str]:
+    m5_root, fat32_root = _roots(root)
+    fat32_source, fat32_all_source = _read_fat32_sources(fat32_root)
+    return [
+        *_check_required_sdcard_paths(root, m5_root, fat32_root),
+        *_check_sdcard_facade(root, m5_root),
+        *_check_sdcard_module_limits(root, m5_root, fat32_root),
+        *_check_fat32_platform_isolation(fat32_all_source),
+        *_check_lfn_decomposition(root, fat32_root),
+        *_check_fat32_inventory(fat32_source),
+    ]
 
 
 def _check_shared_fat32_policy(root: Path) -> list[str]:
@@ -247,111 +281,11 @@ def _check_transport_owner_imports(root: Path) -> list[str]:
     return errors
 
 
-
-def _check_cores3_spi_ownership(root: Path) -> list[str]:
-    errors: list[str] = []
-    firmware = root / "apps/kaskold-hardware/src"
-    m5 = firmware / "hw/m5stack"
-    spi_root = m5 / "spi_bus"
-    boot = (firmware / "boot/m5stack/mod.rs").read_text(errors="ignore")
-    display = (m5 / "display.rs").read_text(errors="ignore")
-    state = (spi_root / "state.rs").read_text(errors="ignore")
-    config = (spi_root / "config.rs").read_text(errors="ignore")
-    gpio35 = (spi_root / "gpio35.rs").read_text(errors="ignore")
-
-    hw_selector = (firmware / "hw/mod.rs").read_text(errors="ignore")
-    protocol_root = m5 / "storage/transport/protocol"
-    protocol_mod = (protocol_root / "mod.rs").read_text(errors="ignore")
-    protocol_init = (protocol_root / "initialization.rs").read_text(errors="ignore")
-    protocol_wire = (protocol_root / "wire.rs").read_text(errors="ignore")
-
-    if "pub(crate) use m5stack::spi_bus::initialize as initialize_cores3_spi;" not in hw_selector:
-        errors.append("CoreS3 SPI2 initializer must be exposed through the hw board-selection facade")
-    if "$crate::hw::m5stack::" in boot:
-        errors.append("CoreS3 boot macro must not expand through the private hw::m5stack module")
-
-    transport_visibility = "pub(in crate::hw::m5stack::storage::transport)"
-    if "pub(super) use initialization::initialize_card;" not in protocol_mod:
-        errors.append("CoreS3 SD protocol facade lost initialize_card re-export")
-    if f"{transport_visibility} fn initialize_card" not in protocol_init:
-        errors.append("CoreS3 SD initialize_card visibility must be scoped to the transport ancestor")
-    for helper in (
-        "command_data", "finish_transaction", "read_exact",
-        "require_success", "transfer_byte", "write_all",
-    ):
-        if f"{transport_visibility} fn {helper}" not in protocol_wire:
-            errors.append(
-                f"CoreS3 SD protocol helper visibility must reach transport siblings: {helper}"
-            )
-
-    if boot.count("Spi::new(") != 1 or "$peripherals.SPI2" not in boot:
-        errors.append("CoreS3 boot must construct exactly one HAL-owned SPI2 bus")
-    for marker in (
-        ".with_sck($peripherals.GPIO36)",
-        ".with_mosi($peripherals.GPIO37)",
-        ".with_miso($peripherals.GPIO35)",
-        "initialize_cores3_spi(spi, sd_cs)",
-    ):
-        if marker not in boot:
-            errors.append(f"CoreS3 shared SPI2 boot contract missing: {marker}")
-    owner_at = boot.find("initialize_cores3_spi(spi, sd_cs)")
-    sd_at = boot.find("m5stack::sd::initialize")
-    display_at = boot.find("m5stack::display::initialize")
-    if min(owner_at, sd_at, display_at) < 0 or not (owner_at < sd_at < display_at):
-        errors.append("CoreS3 SPI2 owner must initialize before SD and display clients")
-
-    if "lcd_device(cs_pin)?" not in display:
-        errors.append("CoreS3 display must be a client of the shared SPI2 owner")
-    for marker in (
-        "StaticCell<SharedBus>", "AtomicPtr<SharedBus>", "try_borrow_mut()",
-        "CoreS3 SPI2 bus re-entry", "frequency_hz: Cell<u32>",
-    ):
-        if marker not in state:
-            errors.append(f"CoreS3 SPI2 serialization contract missing: {marker}")
-    for marker in ("ensure_frequency", "apply_config", "current_hz.get() == frequency_hz"):
-        if marker not in config:
-            errors.append(f"CoreS3 SPI2 configuration contract missing: {marker}")
-    if "critical_section::with" in state:
-        errors.append("CoreS3 SPI2 transfers must not mask interrupts for whole SD/LCD transactions")
-    for marker in ("select_lcd_dc", "select_sd_miso", "GPIO_ENABLE1_W1TC"):
-        if marker not in gpio35:
-            errors.append(f"CoreS3 GPIO35 ownership contract missing: {marker}")
-
-    retired = (
-        m5 / "storage/transport/registers.rs",
-        m5 / "storage/transport/gpio.rs",
-        m5 / "storage/transport/bitbang",
-    )
-    for path in retired:
-        if path.exists():
-            errors.append(f"retired CoreS3 SPI2-reclaim path returned: {path.relative_to(root)}")
-
-    for path in m5.rglob("*.rs"):
-        source = path.read_text(errors="ignore")
-        if path.is_relative_to(spi_root):
-            continue
-        for forbidden in (
-            "SPI2_CLOCK_REG", "SPI2_USER_REG", "save_and_reclaim",
-            "restore_spi_state", "0x6002_400C", "0x6002_4010",
-        ):
-            if forbidden in source:
-                errors.append(
-                    f"CoreS3 module bypasses shared SPI2 ownership with {forbidden}: "
-                    f"{path.relative_to(root)}"
-                )
-
-    for path in firmware.rglob("*.rs"):
-        source = path.read_text(errors="ignore")
-        if "spi_bus" in source and ("#[handler]" in source or "#[esp_hal::handler]" in source):
-            errors.append(f"interrupt handler must not access CoreS3 shared SPI2: {path.relative_to(root)}")
-    return errors
-
-
 def check(root: Path) -> list[str]:
     return [
         *_check_sdcard_layout(root),
         *_check_shared_fat32_policy(root),
         *_check_real_module_boundaries(root),
         *_check_transport_owner_imports(root),
-        *_check_cores3_spi_ownership(root),
+        *check_cores3_spi_ownership(root),
     ]

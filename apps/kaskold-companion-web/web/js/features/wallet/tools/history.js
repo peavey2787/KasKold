@@ -24,6 +24,78 @@ export function showHistory() {
     });
 }
 
+async function fetchAddressTransactions(apiBase, addr) {
+    const r = await fetch(
+        `${apiBase}/addresses/${addr}/full-transactions?resolve_previous_outpoints=light`,
+        { signal: AbortSignal.timeout(10000) }
+    );
+    if (!r.ok) return null;
+    const txs = await r.json();
+    return Array.isArray(txs) ? txs : null;
+}
+
+function sumInputs(inputs, myAddressSet) {
+    let fromUs = 0n;
+    let total = 0n;
+    const senders = [];
+    for (const inp of inputs) {
+        const amt = exactUnsigned(inp.previous_outpoint_amount ?? 0n, 'history input sompi');
+        total += amt;
+        const addr = inp.previous_outpoint_address;
+        if (!addr) continue;
+        if (myAddressSet.has(addr)) fromUs += amt;
+        else senders.push(addr);
+    }
+    return { fromUs, total, senders };
+}
+
+function sumOutputs(outputs, myAddressSet) {
+    let toUs = 0n;
+    let total = 0n;
+    const recipients = [];
+    for (const out of outputs) {
+        const amt = exactUnsigned(out.amount ?? 0n, 'history output sompi');
+        total += amt;
+        const addr = out.script_public_key_address;
+        if (!addr) continue;
+        if (myAddressSet.has(addr)) toUs += amt;
+        else recipients.push(addr);
+    }
+    return { toUs, total, recipients };
+}
+
+// Direction: if we funded inputs, it's outgoing; otherwise incoming
+function describeDirection(ins, outs) {
+    if (ins.fromUs > 0n) {
+        // We spent — outgoing. Amount = what left our wallet (excluding change back to us)
+        return { type: 'out', amount: ins.fromUs - outs.toUs, counterparty: outs.recipients[0] ?? null };
+    }
+    return { type: 'in', amount: outs.toUs, counterparty: ins.senders[0] ?? null };
+}
+
+function buildTxEntry(tx, myAddressSet) {
+    const ins = sumInputs(tx.inputs || [], myAddressSet);
+    const outs = sumOutputs(tx.outputs || [], myAddressSet);
+    const fee = ins.total > 0n ? ins.total - outs.total : 0n;
+    const { type, amount, counterparty } = describeDirection(ins, outs);
+    return {
+        type,
+        amount,
+        fee,
+        tx_id: tx.transaction_id,
+        time: tx.block_time || tx.accepting_block_time || 0,
+        counterparty,
+        is_accepted: tx.is_accepted !== false,
+    };
+}
+
+function recordAddressTransactions(txs, myAddressSet, txMap) {
+    for (const tx of txs) {
+        if (txMap.has(tx.transaction_id)) continue;
+        txMap.set(tx.transaction_id, buildTxEntry(tx, myAddressSet));
+    }
+}
+
 async function fetchArchivalHistory() {
     if (!walletSession.hasWallet()) return;
     const wallet = walletSession.current();
@@ -37,70 +109,8 @@ async function fetchArchivalHistory() {
     // Fetch full-transactions for each address in parallel
     const fetches = allAddresses.map(async (addr) => {
         try {
-            const r = await fetch(
-                `${apiBase}/addresses/${addr}/full-transactions?resolve_previous_outpoints=light`,
-                { signal: AbortSignal.timeout(10000) }
-            );
-            if (!r.ok) return;
-            const txs = await r.json();
-            if (!Array.isArray(txs)) return;
-
-            for (const tx of txs) {
-                if (txMap.has(tx.transaction_id)) continue;
-
-                // Classify: sum inputs from our addresses vs outputs to our addresses
-                let inputFromUs = 0n;
-                let inputTotal = 0n;
-                const senders = [];
-                for (const inp of (tx.inputs || [])) {
-                    const amt = exactUnsigned(inp.previous_outpoint_amount ?? 0n, 'history input sompi');
-                    inputTotal += amt;
-                    if (inp.previous_outpoint_address && myAddressSet.has(inp.previous_outpoint_address)) {
-                        inputFromUs += amt;
-                    } else if (inp.previous_outpoint_address) {
-                        senders.push(inp.previous_outpoint_address);
-                    }
-                }
-
-                let outputToUs = 0n;
-                let outputTotal = 0n;
-                const recipients = [];
-                for (const out of (tx.outputs || [])) {
-                    const amt = exactUnsigned(out.amount ?? 0n, 'history output sompi');
-                    outputTotal += amt;
-                    if (out.script_public_key_address && myAddressSet.has(out.script_public_key_address)) {
-                        outputToUs += amt;
-                    } else if (out.script_public_key_address) {
-                        recipients.push(out.script_public_key_address);
-                    }
-                }
-
-                const fee = inputTotal > 0n ? inputTotal - outputTotal : 0n;
-
-                // Direction: if we funded inputs, it's outgoing; otherwise incoming
-                let type, amount, counterparty;
-                if (inputFromUs > 0n) {
-                    // We spent — outgoing. Amount = what left our wallet (excluding change back to us)
-                    amount = inputFromUs - outputToUs;
-                    type = 'out';
-                    counterparty = recipients.length > 0 ? recipients[0] : null;
-                } else {
-                    // We received
-                    amount = outputToUs;
-                    type = 'in';
-                    counterparty = senders.length > 0 ? senders[0] : null;
-                }
-
-                txMap.set(tx.transaction_id, {
-                    type,
-                    amount,
-                    fee,
-                    tx_id: tx.transaction_id,
-                    time: tx.block_time || tx.accepting_block_time || 0,
-                    counterparty,
-                    is_accepted: tx.is_accepted !== false,
-                });
-            }
+            const txs = await fetchAddressTransactions(apiBase, addr);
+            if (txs) recordAddressTransactions(txs, myAddressSet, txMap);
         } catch (_) {}
     });
 

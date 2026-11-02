@@ -46,101 +46,155 @@ def _is_character_literal(source: str, offset: int) -> bool:
     return cursor < len(source) and source[cursor] == "'"
 
 
-def _delimiter_error(source: str) -> tuple[str, int, int] | None:
-    stack: list[tuple[str, int]] = []
-    offset = 0
-    block_comment_depth = 0
-    state = "code"
-    raw_hashes = 0
+_ScanError = tuple[str, int, int] | None
 
-    while offset < len(source):
-        char = source[offset]
-        if state == "line-comment":
-            if char == "\n":
-                state = "code"
-            offset += 1
-            continue
-        if state == "block-comment":
-            if source.startswith("/*", offset):
-                block_comment_depth += 1
-                offset += 2
-            elif source.startswith("*/", offset):
-                block_comment_depth -= 1
-                offset += 2
-                if block_comment_depth == 0:
-                    state = "code"
-            else:
-                offset += 1
-            continue
-        if state in {"string", "character"}:
-            terminator = '"' if state == "string" else "'"
-            if char == "\\":
-                offset += 2
-            else:
-                if char == terminator:
-                    state = "code"
-                offset += 1
-            continue
-        if state == "raw-string":
-            terminator = '"' + "#" * raw_hashes
-            closing = source.find(terminator, offset)
-            if closing < 0:
-                line, column = _location(source, offset)
-                return "unclosed raw string", line, column
-            offset = closing + len(terminator)
-            state = "code"
-            continue
 
-        if source.startswith("//", offset):
-            state = "line-comment"
-            offset += 2
-            continue
-        if source.startswith("/*", offset):
-            state = "block-comment"
-            block_comment_depth = 1
-            offset += 2
-            continue
-        raw_start = _raw_string_start(source, offset)
-        if raw_start is not None:
-            quote_offset, raw_hashes = raw_start
-            state = "raw-string"
-            offset = quote_offset + 1
-            continue
-        if char == '"':
-            state = "string"
-            offset += 1
-            continue
-        if char == "'" and _is_character_literal(source, offset):
-            state = "character"
-            offset += 1
-            continue
-        if char in OPEN_DELIMITERS:
-            stack.append((char, offset))
-        elif char in DELIMITER_PAIRS:
-            if not stack:
-                line, column = _location(source, offset)
-                return f"unmatched {char}", line, column
-            opening, opening_offset = stack.pop()
-            if opening != DELIMITER_PAIRS[char]:
-                line, column = _location(source, opening_offset)
-                return f"mismatched {opening} and {char}", line, column
-        offset += 1
+class _ScanState:
+    """Mutable cursor shared by the Rust delimiter scanner steps."""
 
-    if state == "block-comment":
-        line, column = _location(source, max(0, len(source) - 1))
-        return "unclosed block comment", line, column
-    if state == "string":
-        line, column = _location(source, max(0, len(source) - 1))
-        return "unclosed string literal", line, column
-    if state == "character":
-        line, column = _location(source, max(0, len(source) - 1))
-        return "unclosed character literal", line, column
-    if stack:
-        opening, opening_offset = stack[-1]
-        line, column = _location(source, opening_offset)
+    def __init__(self, source: str) -> None:
+        self.source = source
+        self.offset = 0
+        self.state = "code"
+        self.stack: list[tuple[str, int]] = []
+        self.block_comment_depth = 0
+        self.raw_hashes = 0
+
+
+_UNCLOSED_MESSAGES = {
+    "block-comment": "unclosed block comment",
+    "string": "unclosed string literal",
+    "character": "unclosed character literal",
+}
+
+
+def _step_line_comment(scan: _ScanState) -> _ScanError:
+    if scan.source[scan.offset] == "\n":
+        scan.state = "code"
+    scan.offset += 1
+
+
+def _step_block_comment(scan: _ScanState) -> _ScanError:
+    if scan.source.startswith("/*", scan.offset):
+        scan.block_comment_depth += 1
+        scan.offset += 2
+    elif scan.source.startswith("*/", scan.offset):
+        scan.block_comment_depth -= 1
+        scan.offset += 2
+        if scan.block_comment_depth == 0:
+            scan.state = "code"
+    else:
+        scan.offset += 1
+    return None
+
+
+def _step_literal(scan: _ScanState) -> _ScanError:
+    """Advance through a string or character literal body."""
+    char = scan.source[scan.offset]
+    if char == "\\":
+        scan.offset += 2
+        return None
+    terminator = '"' if scan.state == "string" else "'"
+    if char == terminator:
+        scan.state = "code"
+    scan.offset += 1
+    return None
+
+
+def _step_raw_string(scan: _ScanState) -> _ScanError:
+    terminator = '"' + "#" * scan.raw_hashes
+    closing = scan.source.find(terminator, scan.offset)
+    if closing < 0:
+        line, column = _location(scan.source, scan.offset)
+        return "unclosed raw string", line, column
+    scan.offset = closing + len(terminator)
+    scan.state = "code"
+    return None
+
+
+def _open_code_token(scan: _ScanState) -> bool:
+    """Enter a comment or literal state when one starts at the cursor."""
+    source, offset = scan.source, scan.offset
+    if source.startswith("//", offset):
+        scan.state = "line-comment"
+        scan.offset += 2
+        return True
+    if source.startswith("/*", offset):
+        scan.state = "block-comment"
+        scan.block_comment_depth = 1
+        scan.offset += 2
+        return True
+    raw_start = _raw_string_start(source, offset)
+    if raw_start is not None:
+        quote_offset, scan.raw_hashes = raw_start
+        scan.state = "raw-string"
+        scan.offset = quote_offset + 1
+        return True
+    char = source[offset]
+    if char == '"':
+        scan.state = "string"
+    elif char == "'" and _is_character_literal(source, offset):
+        scan.state = "character"
+    else:
+        return False
+    scan.offset += 1
+    return True
+
+
+def _step_delimiter(scan: _ScanState) -> _ScanError:
+    """Push an opener or pop and pair-check a closer at the cursor."""
+    char = scan.source[scan.offset]
+    if char in OPEN_DELIMITERS:
+        scan.stack.append((char, scan.offset))
+        return None
+    if char not in DELIMITER_PAIRS:
+        return None
+    if not scan.stack:
+        line, column = _location(scan.source, scan.offset)
+        return f"unmatched {char}", line, column
+    opening, opening_offset = scan.stack.pop()
+    if opening != DELIMITER_PAIRS[char]:
+        line, column = _location(scan.source, opening_offset)
+        return f"mismatched {opening} and {char}", line, column
+    return None
+
+
+def _step_code(scan: _ScanState) -> _ScanError:
+    if _open_code_token(scan):
+        return None
+    error = _step_delimiter(scan)
+    scan.offset += 1
+    return error
+
+
+_STATE_STEPS = {
+    "line-comment": _step_line_comment,
+    "block-comment": _step_block_comment,
+    "string": _step_literal,
+    "character": _step_literal,
+    "raw-string": _step_raw_string,
+    "code": _step_code,
+}
+
+
+def _end_of_scan_error(scan: _ScanState) -> _ScanError:
+    if scan.state in _UNCLOSED_MESSAGES:
+        line, column = _location(scan.source, max(0, len(scan.source) - 1))
+        return _UNCLOSED_MESSAGES[scan.state], line, column
+    if scan.stack:
+        opening, opening_offset = scan.stack[-1]
+        line, column = _location(scan.source, opening_offset)
         return f"unclosed {opening}", line, column
     return None
 
+
+def _delimiter_error(source: str) -> _ScanError:
+    scan = _ScanState(source)
+    while scan.offset < len(source):
+        error = _STATE_STEPS[scan.state](scan)
+        if error is not None:
+            return error
+    return _end_of_scan_error(scan)
 
 
 def _function_declaration_errors(path: Path, source: str, root: Path) -> list[str]:

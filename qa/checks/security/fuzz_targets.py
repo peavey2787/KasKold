@@ -26,11 +26,7 @@ def registered_targets(manifest: Path = MANIFEST) -> tuple[str, ...]:
     return tuple(names)
 
 
-def validate_targets() -> list[str]:
-    errors: list[str] = []
-    targets = registered_targets()
-    if not targets:
-        return ["qa/fuzz/Cargo.toml registers no fuzz targets"]
+def _collect_fuzz_sources(targets: tuple[str, ...], errors: list[str]) -> dict[str, str]:
     sources: dict[str, str] = {}
     for target in targets:
         source = FUZZ_ROOT / f"{target}.rs"
@@ -39,36 +35,64 @@ def validate_targets() -> list[str]:
             errors.append(f"fuzz target source is missing: {source.relative_to(ROOT)}")
         else:
             sources[target] = source.read_text(errors="replace")
-        if not corpus.is_dir():
-            errors.append(f"fuzz seed corpus is missing: {corpus.relative_to(ROOT)}")
-        elif not any(path.is_file() for path in corpus.iterdir()):
-            errors.append(f"fuzz seed corpus is empty: {corpus.relative_to(ROOT)}")
+        _check_seed_corpus(corpus, errors)
+    return sources
 
+
+def _check_seed_corpus(corpus: Path, errors: list[str]) -> None:
+    if not corpus.is_dir():
+        errors.append(f"fuzz seed corpus is missing: {corpus.relative_to(ROOT)}")
+    elif not any(path.is_file() for path in corpus.iterdir()):
+        errors.append(f"fuzz seed corpus is empty: {corpus.relative_to(ROOT)}")
+
+
+def _load_surface_registry(errors: list[str]) -> list | None:
     if not SURFACE_REGISTRY.is_file():
         errors.append("external-input fuzz surface registry is missing")
-        return errors
+        return None
     try:
         registry = json.loads(SURFACE_REGISTRY.read_text())
     except (OSError, json.JSONDecodeError) as exc:
         errors.append(f"external-input fuzz surface registry is invalid: {exc}")
+        return None
+    return registry.get("surfaces", [])
+
+
+def _check_surface(
+    surface: dict,
+    targets: tuple[str, ...],
+    sources: dict[str, str],
+    names: set[str],
+    errors: list[str],
+) -> None:
+    name = surface.get("name")
+    target = surface.get("target")
+    token = surface.get("token")
+    if not all(isinstance(value, str) and value for value in (name, target, token)):
+        errors.append("external-input fuzz surface entry has missing name/target/token")
+        return
+    if name in names:
+        errors.append(f"duplicate external-input fuzz surface: {name}")
+    names.add(name)
+    if target not in targets:
+        errors.append(f"external-input surface {name} references unregistered target {target}")
+        return
+    if token not in sources.get(target, ""):
+        errors.append(f"external-input surface {name} token {token!r} is absent from {target}.rs")
+
+
+def validate_targets() -> list[str]:
+    errors: list[str] = []
+    targets = registered_targets()
+    if not targets:
+        return ["qa/fuzz/Cargo.toml registers no fuzz targets"]
+    sources = _collect_fuzz_sources(targets, errors)
+    surfaces = _load_surface_registry(errors)
+    if surfaces is None:
         return errors
-    surfaces = registry.get("surfaces", [])
     names: set[str] = set()
     for surface in surfaces:
-        name = surface.get("name")
-        target = surface.get("target")
-        token = surface.get("token")
-        if not all(isinstance(value, str) and value for value in (name, target, token)):
-            errors.append("external-input fuzz surface entry has missing name/target/token")
-            continue
-        if name in names:
-            errors.append(f"duplicate external-input fuzz surface: {name}")
-        names.add(name)
-        if target not in targets:
-            errors.append(f"external-input surface {name} references unregistered target {target}")
-            continue
-        if token not in sources.get(target, ""):
-            errors.append(f"external-input surface {name} token {token!r} is absent from {target}.rs")
+        _check_surface(surface, targets, sources, names, errors)
     if len(surfaces) < 20:
         errors.append("external-input fuzz surface registry is unexpectedly incomplete (<20 surfaces)")
     return errors

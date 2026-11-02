@@ -28,26 +28,28 @@ export function resetSignedFrameHexImportSession() {
     if (status) status.textContent = '';
 }
 
-export function handleSignedFrameHex() {
-    const input = byId('input-signed-frame-hex');
-    const status = byId('broadcast-frame-status');
-    const value = input?.value.trim() || '';
+function parseSignedFrameInput(value) {
     if (!value) {
         toast('Paste one QR Frame Hex value first', 'error', 2500);
-        return false;
+        return null;
     }
-    let frames;
     try {
-        frames = hexFrameBatchToBytes(value);
+        const frames = hexFrameBatchToBytes(value);
         if (!frames.length) throw new Error('QR Frame Hex is empty');
+        return frames;
     } catch (error) {
         toast(`Invalid QR Frame Hex: ${error.message || error}`, 'error', 3500);
-        return false;
+        return null;
     }
-    if (!signedFrameHexSessionActive) {
-        try { reset_qr_decoder(); } catch (_) {}
-        signedFrameHexSessionActive = true;
-    }
+}
+
+function ensureSignedFrameSession() {
+    if (signedFrameHexSessionActive) return;
+    try { reset_qr_decoder(); } catch (_) {}
+    signedFrameHexSessionActive = true;
+}
+
+function consumeSignedFrames(frames) {
     let result = false;
     let accepted = 0;
     for (const bytes of frames) {
@@ -59,13 +61,26 @@ export function handleSignedFrameHex() {
         accepted += 1;
         if (result !== false) break;
     }
+    return { result, accepted };
+}
+
+function reportSignedFrameProgress(status, accepted) {
+    if (!status || status.textContent.trim()) return;
+    status.textContent = accepted > 1
+        ? `${accepted} frames accepted. Paste any remaining QR Frame Hex values.`
+        : 'Frame accepted. Paste the next QR Frame Hex.';
+}
+
+export function handleSignedFrameHex() {
+    const input = byId('input-signed-frame-hex');
+    const status = byId('broadcast-frame-status');
+    const frames = parseSignedFrameInput(input?.value.trim() || '');
+    if (!frames) return false;
+    ensureSignedFrameSession();
+    const { result, accepted } = consumeSignedFrames(frames);
     input.value = '';
     if (result === false) {
-        if (status && !status.textContent.trim()) {
-            status.textContent = accepted > 1
-                ? `${accepted} frames accepted. Paste any remaining QR Frame Hex values.`
-                : 'Frame accepted. Paste the next QR Frame Hex.';
-        }
+        reportSignedFrameProgress(status, accepted);
         input.focus();
     } else {
         signedFrameHexSessionActive = false;
@@ -163,96 +178,115 @@ export function showBroadcastError(err) {
     byId('link-view-explorer')?.classList.add('hidden');
 }
 
+function scanProgressTarget(options) {
+    return byId(options.progressTargetId || 'scanner-status');
+}
+
+function reportSignedDecodeError(error, options) {
+    const progressTarget = scanProgressTarget(options);
+    if (progressTarget) progressTarget.textContent = 'QR decode failed';
+    if (options.showDecodeErrors === true) {
+        toast('Signed QR decode failed: ' + error, 'error', 5000);
+    } else {
+        console.error('Decode error:', error);
+    }
+}
+
+// Runs the anti-klepto gate. Returns a status: 'keep-scanning', 'done',
+// 'failed', or 'continue' carrying the accepted payload.
+function resolveSignedScanAntiKlepto(decoded, options, progressTarget) {
+    try {
+        const accepted = processAntiKleptoResponse(decoded);
+        if (accepted === ANTI_KLEPTO_KEEP_SCANNING) {
+            try { reset_qr_decoder(); } catch (_) {}
+            if (progressTarget) progressTarget.textContent = 'Commitment already received — waiting for final KasKold QR';
+            return { status: 'keep-scanning' };
+        }
+        if (options.stopCamera !== false) stopScanner();
+        if (accepted === null) return { status: 'done' };
+        return { status: 'continue', payload: accepted };
+    } catch (error) {
+        if (options.stopCamera !== false) stopScanner();
+        console.error('[Companion] anti-klepto response rejected:', error);
+        toast('Anti-klepto verification failed — transaction rejected: ' + error, 'error', 6000);
+        return { status: 'failed' };
+    }
+}
+
+function mergeKsptReturn(keptPayload) {
+    console.log('[Companion] KSPT v1 return with canonical PSKB held — merging');
+    try {
+        const signed = JSON.parse(kaskold_sdk_complete(
+            transactionState._psktReviewHex,
+            keptPayload,
+            networkState.network,
+        ));
+        const mergedSummary = openPsktReview(signed.psktHex);
+        // Preserve the exact compact KSPT emitted by the signer. For the
+        // next KasKold cosigner, relay these exact bytes instead of
+        // rebuilding a compact transaction from the merged PSKB. This
+        // keeps every firmware-authored partial-signature field and
+        // trailer byte intact across signer handoff.
+        transactionState._lastKasKoldKsptHex = keptPayload;
+        if (mergedSummary?.finalize_ready) {
+            toast('Final signature verified — ready to Finalize + broadcast', 'ok', 3500);
+        } else {
+            toast('Signature verified and merged — another signer is still required', 'ok', 3500);
+        }
+        return true;
+    } catch (e) {
+        console.error('[Companion] merge failed:', e);
+        toast('Merge failed: ' + e, 'error', 5000);
+        return null;
+    }
+}
+
+function routeDecodedKspt(kspt) {
+    // A PSKT or PSKB envelope opens review. Compact KSPT is handled below.
+    const psktFormat = pskt_detect(kspt);
+    if (psktFormat === 'pskb' || psktFormat === 'pskt') {
+        console.log('[Companion] ' + psktFormat.toUpperCase() + ' detected — opening review');
+        openPsktReview(kspt);
+        return true;
+    }
+    const sigStatus = kspt_signature_status(kspt);
+    // Compact-relay return path: a canonical PSKB is held from the
+    // handlePsktRelayCompact send, so merge the returned partial signatures.
+    if ((sigStatus === 'partial' || sigStatus === 'signed') && transactionState._psktReviewHex) {
+        return mergeKsptReturn(kspt);
+    }
+    if (sigStatus === 'partial') {
+        console.log('[Companion] Partial signature — relay to next signer');
+        toast('Partial signature — scan with next device', 'info', 3000);
+        displayKsptQr(kspt, 'Relay to next signer');
+    } else {
+        byId('input-signed-hex').value = kspt;
+        showScreen('broadcast');
+    }
+    return true;
+}
+
+function handleDecodedSignedFrame(decoded, options) {
+    signedFrameHexSessionActive = false;
+    const progressTarget = scanProgressTarget(options);
+    if (progressTarget) progressTarget.textContent = '';
+    console.log('[Companion] Scan complete: ' + decoded.length / 2 + ' bytes');
+    const gate = resolveSignedScanAntiKlepto(decoded, options, progressTarget);
+    if (gate.status === 'keep-scanning') return false;
+    if (gate.status === 'done') return true;
+    if (gate.status === 'failed') return null;
+    return routeDecodedKspt(gate.payload);
+}
+
 export function handleSignedScan(data, options = {}) {
     const hexStr = bytesToHex(new Uint8Array(data));
     try {
-        let result = decode_qr_frame(hexStr);
-        if (result && result.length > 0) {
-            signedFrameHexSessionActive = false;
-            const progressTarget = byId(options.progressTargetId || 'scanner-status');
-            if (progressTarget) progressTarget.textContent = '';
-            console.log('[Companion] Scan complete: ' + result.length / 2 + ' bytes');
-
-            try {
-                result = processAntiKleptoResponse(result);
-                if (result === ANTI_KLEPTO_KEEP_SCANNING) {
-                    try { reset_qr_decoder(); } catch (_) {}
-                    if (progressTarget) progressTarget.textContent = 'Commitment already received — waiting for final KasKold QR';
-                    return false;
-                }
-                if (options.stopCamera !== false) stopScanner();
-                if (result === null) return true;
-            } catch (error) {
-                if (options.stopCamera !== false) stopScanner();
-                console.error('[Companion] anti-klepto response rejected:', error);
-                toast('Anti-klepto verification failed — transaction rejected: ' + error, 'error', 6000);
-                return null;
-            }
-
-            // First, check for a PSKT or PSKB envelope. Compact KSPT is
-            // handled separately below.
-            const psktFormat = pskt_detect(result);
-            if (psktFormat === 'pskb' || psktFormat === 'pskt') {
-                console.log('[Companion] ' + psktFormat.toUpperCase() + ' detected — opening review');
-                openPsktReview(result);
-                return true;
-            }
-
-            const sigStatus = kspt_signature_status(result);
-
-            // Compact-relay return path: if we sent a KSPT v1 to the
-            // device via handlePsktRelayCompact, _psktReviewHex still
-            // holds the canonical PSKB. Merge the new partial sigs
-            // from the KSPT v1 back into the PSKB and re-open review.
-            if ((sigStatus === 'partial' || sigStatus === 'signed') && transactionState._psktReviewHex) {
-                console.log('[Companion] KSPT v1 return with canonical PSKB held — merging');
-                try {
-                    const signed = JSON.parse(kaskold_sdk_complete(
-                        transactionState._psktReviewHex,
-                        result,
-                        networkState.network,
-                    ));
-                    const mergedSummary = openPsktReview(signed.psktHex);
-                    // Preserve the exact compact KSPT emitted by the signer. For the
-                    // next KasKold cosigner, relay these exact bytes instead of
-                    // rebuilding a compact transaction from the merged PSKB. This
-                    // keeps every firmware-authored partial-signature field and
-                    // trailer byte intact across signer handoff.
-                    transactionState._lastKasKoldKsptHex = result;
-                    if (mergedSummary?.finalize_ready) {
-                        toast('Final signature verified — ready to Finalize + broadcast', 'ok', 3500);
-                    } else {
-                        toast('Signature verified and merged — another signer is still required', 'ok', 3500);
-                    }
-                    return true;
-                } catch (e) {
-                    console.error('[Companion] merge failed:', e);
-                    toast('Merge failed: ' + e, 'error', 5000);
-                    return null;
-                }
-            }
-
-            if (sigStatus === 'partial') {
-                console.log('[Companion] Partial signature — relay to next signer');
-                toast('Partial signature — scan with next device', 'info', 3000);
-                displayKsptQr(result, 'Relay to next signer');
-            } else {
-                byId('input-signed-hex').value = result;
-                showScreen('broadcast');
-            }
-            return true;
-        } else {
-            renderScanProgress(byId(options.progressTargetId || 'scanner-status'), JSON.parse(decoder_progress()));
-            return false;
-        }
+        const decoded = decode_qr_frame(hexStr);
+        if (decoded && decoded.length > 0) return handleDecodedSignedFrame(decoded, options);
+        renderScanProgress(scanProgressTarget(options), JSON.parse(decoder_progress()));
+        return false;
     } catch (e) {
-        const progressTarget = byId(options.progressTargetId || 'scanner-status');
-        if (progressTarget) progressTarget.textContent = 'QR decode failed';
-        if (options.showDecodeErrors === true) {
-            toast('Signed QR decode failed: ' + e, 'error', 5000);
-        } else {
-            console.error('Decode error:', e);
-        }
+        reportSignedDecodeError(e, options);
         return null;
     }
 }

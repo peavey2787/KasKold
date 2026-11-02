@@ -506,6 +506,11 @@ def build(
     return image
 
 
+def _enter_phase(evidence: HilEvidence | None, phase: str) -> None:
+    if evidence is not None:
+        evidence.set_phase(phase)
+
+
 @reportable_interruptions()
 def main() -> int:
     args = parse_args()
@@ -531,8 +536,7 @@ def main() -> int:
         print("[workflow-e2e 0/4] Preparing ESP build environment...", flush=True)
         build_env = prepare_esp_build_environment()
         validate_host_contracts()
-        if evidence is not None:
-            evidence.set_phase("firmware-build")
+        _enter_phase(evidence, "firmware-build")
         image = build(
             args.board,
             args.hil,

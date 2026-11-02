@@ -351,6 +351,40 @@ export function saveManagedKpub() {
     }
 }
 
+function confirmWalletSwitch(entry) {
+    const current = walletSession.profile()?.name || 'the current wallet';
+    return confirm(`Switch from ${current} to ${entry.name}? Any in-progress unsigned transaction will be discarded.`);
+}
+
+function syncNetworkForEntry(entry) {
+    if (networkState.network === entry.network) return;
+    networkState.network = entry.network;
+    renderBrowserConnectivity();
+}
+
+function activateSavedKpub(entry, options) {
+    const derived = deriveKpubWallet(entry.kpub, entry.network);
+    clearForWalletSwitch();
+    syncNetworkForEntry(entry);
+    activateKpubWallet(derived.walletData, {
+        profile: entry,
+        successScreen: 'dashboard',
+    });
+    if (!options.startup) toast(`${entry.name} loaded`, 'ok', 1800);
+    return true;
+}
+
+function recoverFromLoadFailure(entry, options, error) {
+    hideLoading();
+    if (options.startup) {
+        renderWelcomeKpubs();
+        showScreen('welcome');
+    } else {
+        showKpubManager('welcome');
+        toast(`Unable to load ${entry.name}: ${error}`, 'error', 5000);
+    }
+}
+
 export function loadSavedKpub(id, options = {}) {
     const entry = kpubRepository.get(id);
     if (!entry) {
@@ -361,36 +395,13 @@ export function loadSavedKpub(id, options = {}) {
         showScreen('dashboard');
         return true;
     }
-    if (!options.startup && walletSession.hasWallet()) {
-        const current = walletSession.profile()?.name || 'the current wallet';
-        if (!confirm(`Switch from ${current} to ${entry.name}? Any in-progress unsigned transaction will be discarded.`)) {
-            return false;
-        }
-    }
+    if (!options.startup && walletSession.hasWallet() && !confirmWalletSwitch(entry)) return false;
 
     showLoading(`Loading wallet “${entry.name}”…`);
     try {
-        const derived = deriveKpubWallet(entry.kpub, entry.network);
-        clearForWalletSwitch();
-        if (networkState.network !== entry.network) {
-            networkState.network = entry.network;
-            renderBrowserConnectivity();
-        }
-        activateKpubWallet(derived.walletData, {
-            profile: entry,
-            successScreen: 'dashboard',
-        });
-        if (!options.startup) toast(`${entry.name} loaded`, 'ok', 1800);
-        return true;
+        return activateSavedKpub(entry, options);
     } catch (error) {
-        hideLoading();
-        if (options.startup) {
-            renderWelcomeKpubs();
-            showScreen('welcome');
-        } else {
-            showKpubManager('welcome');
-        }
-        if (!options.startup) toast(`Unable to load ${entry.name}: ${error}`, 'error', 5000);
+        recoverFromLoadFailure(entry, options, error);
         return false;
     }
 }

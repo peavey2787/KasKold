@@ -102,89 +102,75 @@ export async function handleConsolidateSelected() {
     }
 }
 
+function utxoKey(u) {
+    return u.tx_id + ':' + u.index;
+}
+
+function makeHistoryEntry(type, u, now) {
+    return { type, amount: u.amount, tx_id: u.tx_id, index: u.index, time: now };
+}
+
+function trimHistoryEntries() {
+    if (walletState.historyEntries.length > 100) walletState.historyEntries.length = 100;
+}
+
+function scriptMatchesAddress(address, spkJson) {
+    try {
+        const decoded = JSON.parse(decode_address(address));
+        // P2PK script: [0x20, ...32 bytes..., 0xAC]
+        const spk = [0x20, ...Array.from(hexToBytes(decoded.payload)), 0xAC];
+        return JSON.stringify(spk) === spkJson;
+    } catch (_) {
+        return false;
+    }
+}
+
+function markSpentAddressUsed(wallet, u) {
+    const spkJson = JSON.stringify(u.script_public_key);
+    const receiveIdx = wallet.receive_addresses.findIndex(addr => scriptMatchesAddress(addr, spkJson));
+    if (receiveIdx >= 0) walletState.usedReceiveIndices.add(receiveIdx);
+    const changeIdx = wallet.change_addresses.findIndex(addr => scriptMatchesAddress(addr, spkJson));
+    if (changeIdx >= 0) walletState.usedChangeIndices.add(changeIdx);
+}
+
+function recordFirstSnapshot(currentUtxos, now) {
+    // First snapshot — record all existing UTXOs as initial balance
+    for (const u of currentUtxos) {
+        walletState.historyEntries.push(makeHistoryEntry('in', u, now));
+    }
+}
+
+function recordIncoming(currentUtxos, prevKeys, now) {
+    for (const u of currentUtxos) {
+        if (!prevKeys.has(utxoKey(u))) {
+            walletState.historyEntries.unshift(makeHistoryEntry('in', u, now));
+        }
+    }
+}
+
+function recordSpent(prevUtxos, currKeys, now, wallet) {
+    // Gone UTXOs = spent (outgoing) — also mark the address as "used"
+    for (const u of prevUtxos) {
+        if (!currKeys.has(utxoKey(u))) {
+            walletState.historyEntries.unshift(makeHistoryEntry('out', u, now));
+            if (wallet) markSpentAddressUsed(wallet, u);
+        }
+    }
+}
+
 export function trackUtxoChangesAndUsed(currentUtxos) {
     const now = Date.now();
 
     if (!networkState.utxoSnapshot) {
-        // First snapshot — record all existing UTXOs as initial balance
-        for (const u of currentUtxos) {
-            walletState.historyEntries.push({
-                type: 'in',
-                amount: u.amount,
-                tx_id: u.tx_id,
-                index: u.index,
-                time: now,
-            });
-        }
-        if (walletState.historyEntries.length > 100) walletState.historyEntries.length = 100;
-        networkState.utxoSnapshot = currentUtxos;
-        return;
-    }
-
-    const prevKeys = new Set(networkState.utxoSnapshot.map(u => u.tx_id + ':' + u.index));
-    const currKeys = new Set(currentUtxos.map(u => u.tx_id + ':' + u.index));
-
-    // New UTXOs = incoming
-    for (const u of currentUtxos) {
-        const key = u.tx_id + ':' + u.index;
-        if (!prevKeys.has(key)) {
-            walletState.historyEntries.unshift({
-                type: 'in',
-                amount: u.amount,
-                tx_id: u.tx_id,
-                index: u.index,
-                time: now,
-            });
-        }
-    }
-
-    // Gone UTXOs = spent (outgoing) — also mark the address as "used"
-    if (walletSession.hasWallet()) {
-        const wallet = walletSession.current();
-        for (const u of networkState.utxoSnapshot) {
-            const key = u.tx_id + ':' + u.index;
-            if (!currKeys.has(key)) {
-                walletState.historyEntries.unshift({
-                    type: 'out',
-                    amount: u.amount,
-                    tx_id: u.tx_id,
-                    index: u.index,
-                    time: now,
-                });
-                // Match spent UTXO script to an address index
-                const spkJson = JSON.stringify(u.script_public_key);
-                for (let i = 0; i < wallet.receive_addresses.length; i++) {
-                    try {
-                        const decoded = JSON.parse(decode_address(wallet.receive_addresses[i]));
-                        // P2PK script: [0x20, ...32 bytes..., 0xAC]
-                        const spk = [0x20, ...Array.from(hexToBytes(decoded.payload)), 0xAC];
-                        if (JSON.stringify(spk) === spkJson) { walletState.usedReceiveIndices.add(i); break; }
-                    } catch (_) {}
-                }
-                for (let i = 0; i < wallet.change_addresses.length; i++) {
-                    try {
-                        const decoded = JSON.parse(decode_address(wallet.change_addresses[i]));
-                        const spk = [0x20, ...Array.from(hexToBytes(decoded.payload)), 0xAC];
-                        if (JSON.stringify(spk) === spkJson) { walletState.usedChangeIndices.add(i); break; }
-                    } catch (_) {}
-                }
-            }
-        }
+        recordFirstSnapshot(currentUtxos, now);
     } else {
-        for (const u of networkState.utxoSnapshot) {
-            const key = u.tx_id + ':' + u.index;
-            if (!currKeys.has(key)) {
-                walletState.historyEntries.unshift({
-                    type: 'out',
-                    amount: u.amount,
-                    tx_id: u.tx_id,
-                    index: u.index,
-                    time: now,
-                });
-            }
-        }
+        const prevKeys = new Set(networkState.utxoSnapshot.map(utxoKey));
+        const currKeys = new Set(currentUtxos.map(utxoKey));
+        recordIncoming(currentUtxos, prevKeys, now);
+        const wallet = walletSession.hasWallet() ? walletSession.current() : null;
+        recordSpent(networkState.utxoSnapshot, currKeys, now, wallet);
     }
 
-    if (walletState.historyEntries.length > 100) walletState.historyEntries.length = 100;
+    trimHistoryEntries();
     networkState.utxoSnapshot = currentUtxos;
 }

@@ -5,7 +5,6 @@ _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/
 
 from pathlib import Path
 import importlib.util
-import os
 import unittest
 import urllib.request
 from unittest import mock

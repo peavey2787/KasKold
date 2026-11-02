@@ -3,7 +3,7 @@
 from __future__ import annotations
 from pathlib import Path
 import re
-import shutil, subprocess, sys, xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[3]
 APP = ROOT / "apps/kaskold-companion-android"
@@ -47,7 +47,12 @@ def check_structure(errors):
             add(errors, f"crowded Android source folder: {directory.relative_to(ROOT)}")
 
 
-def check_live_shell(errors):
+def require_tokens(errors, text, tokens, prefix):
+    for token in tokens:
+        if token not in text: add(errors, f"{prefix}: {token}")
+
+
+def check_live_shell_files(errors):
     required = (
         MAIN, WEB_HOST, MOBILE_BRIDGE, CONTAINER, SOURCE / "features/root/MobileOverlayScreen.kt",
         SOURCE / "features/settings/SecuritySettingsScreen.kt",
@@ -60,37 +65,38 @@ def check_live_shell(errors):
     )
     for path in required:
         if not path.is_file(): add(errors, f"live Android shell responsibility missing: {path.relative_to(ROOT)}")
+
+
+def check_live_shell(errors):
+    check_live_shell_files(errors)
     main = MAIN.read_text(encoding="utf-8")
     host = WEB_HOST.read_text(encoding="utf-8")
     bridge = MOBILE_BRIDGE.read_text(encoding="utf-8")
-    for token in ("CompanionWebViewHost(", "MobileOverlayScreen("):
-        if token not in main: add(errors, f"Android thin Activity contract missing: {token}")
-    for token in (
+    require_tokens(errors, main, ("CompanionWebViewHost(", "MobileOverlayScreen("), "Android thin Activity contract missing")
+    require_tokens(errors, host, (
         'COMPANION_URL = "https://$ASSET_HOST/assets/companion/index.html"', "WebViewAssetLoader.Builder()",
         "settings.javaScriptEnabled = true", "settings.allowFileAccess = false", "settings.allowContentAccess = false",
         "WebSettings.MIXED_CONTENT_NEVER_ALLOW", "shouldOverrideUrlLoading", 'addJavascriptInterface(',
         '"KasKoldMobile"', "import('./js/mobile/native_adaptations.js')",
-    ):
-        if token not in host: add(errors, f"Android CompanionWebViewHost contract missing: {token}")
-    for token in ("@JavascriptInterface", "openMobileSettings", "resetWalletSurface"):
-        if token not in bridge: add(errors, f"Android native JS bridge contract missing: {token}")
+    ), "Android CompanionWebViewHost contract missing")
+    require_tokens(errors, bridge, ("@JavascriptInterface", "openMobileSettings", "resetWalletSurface"), "Android native JS bridge contract missing")
     container = CONTAINER.read_text(encoding="utf-8")
-    for token in ("AppPreferences", "WeatherCoverPreferences", "WeatherCoverFacade", "AppLockService"):
-        if token not in container: add(errors, f"Android native shell dependency missing: {token}")
+    require_tokens(errors, container, ("AppPreferences", "WeatherCoverPreferences", "WeatherCoverFacade", "AppLockService"), "Android native shell dependency missing")
+    check_retired_wallet_dependencies(errors)
+
+
+def check_retired_wallet_dependencies(errors):
     combined = "\n".join(p.read_text(errors="ignore") for p in SOURCE.rglob("*.kt"))
     for token in ("KasKoldEngine", "WalletStore", "WalletSyncService", "QrEngineFacade", "PendingSigningStore",
                   "PersistentHotWalletStore", "persistentHotWallet", "kaskold_hot_wallet"):
-
         if re.search(rf"(?<![A-Za-z0-9_]){re.escape(token)}(?![A-Za-z0-9_])", combined):
             add(errors, f"retired Android native wallet dependency remains: {token}")
 
 
 def check_platform(errors):
     build = BUILD.read_text(encoding="utf-8")
-    for token in ("compileSdk = 37", "targetSdk = 37", 'versionName = "2.0.0"', "JavaVersion.VERSION_17", "isMinifyEnabled = true", "isShrinkResources = true"):
-        if token not in build: add(errors, f"Android build contract missing: {token}")
-    for token in ('into("companion")', 'addGeneratedSourceDirectory(', 'syncCompanionWebUi', 'target/kaskold-companion-web/site', 'build_companion_runtime.py'):
-        if token not in build: add(errors, f"Android complete Companion UI asset contract missing: {token}")
+    require_tokens(errors, build, ("compileSdk = 37", "targetSdk = 37", 'versionName = "2.0.0"', "JavaVersion.VERSION_17", "isMinifyEnabled = true", "isShrinkResources = true"), "Android build contract missing")
+    require_tokens(errors, build, ('into("companion")', 'addGeneratedSourceDirectory(', 'syncCompanionWebUi', 'target/kaskold-companion-web/site', 'build_companion_runtime.py'), "Android complete Companion UI asset contract missing")
     if 'commandLine("bash"' in build or '"bash", "-lc"' in build:
         add(errors, "Android Gradle runtime build must not require bash; use the canonical cross-platform runtime builder")
     if 'src/main/assets/web' in build:
@@ -98,8 +104,7 @@ def check_platform(errors):
     for token in ("androidx.camera:", "com.google.mlkit:barcode-scanning", "com.google.zxing:core"):
         if token in build: add(errors, f"retired native scanner dependency remains: {token}")
     manifest = MANIFEST.read_text(encoding="utf-8")
-    for token in ('android:allowBackup="false"', 'android:usesCleartextTraffic="false"', "android.permission.INTERNET", "android.permission.CAMERA"):
-        if token not in manifest: add(errors, f"Android manifest contract missing: {token}")
+    require_tokens(errors, manifest, ('android:allowBackup="false"', 'android:usesCleartextTraffic="false"', "android.permission.INTERNET", "android.permission.CAMERA"), "Android manifest contract missing")
     try: ET.parse(MANIFEST)
     except Exception as exc: add(errors, f"AndroidManifest.xml is not well formed: {exc}")
     sync = (ROOT / "scripts/linux/build/android-runtime-sync.sh").read_text(encoding="utf-8")

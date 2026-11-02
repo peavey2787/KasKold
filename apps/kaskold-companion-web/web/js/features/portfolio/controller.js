@@ -102,14 +102,24 @@ function startEditor(transactionId = '') {
     rerender();
 }
 
-function parseForm(form) {
-    const data = new FormData(form);
+function parseFormTimestamp(data) {
     const timestampMs = Date.parse(String(data.get('timestamp') || ''));
     if (!Number.isFinite(timestampMs)) throw new Error('Choose a valid date and time');
+    return timestampMs;
+}
+
+function parseFormPriceMicroUsd(data, timestampMs) {
     const priceText = String(data.get('priceUsd') || '').trim();
     const autoPrice = historicalPriceAt(state.historicalPrices, timestampMs);
     const price = priceText ? usdToMicro(priceText, 'KAS price') : autoPrice;
     if (price <= 0n) throw new Error('Enter a KAS price or refresh historical prices');
+    return price;
+}
+
+function parseForm(form) {
+    const data = new FormData(form);
+    const timestampMs = parseFormTimestamp(data);
+    const price = parseFormPriceMicroUsd(data, timestampMs);
     return {
         id: form.dataset.transactionId || newId(),
         portfolioId: state.selectedAccountId,
@@ -122,6 +132,43 @@ function parseForm(form) {
         sourceTxId: state.editingEntry?.sourceTxId || null,
         createdAt: state.editingEntry?.createdAt || Date.now(),
     };
+}
+
+function findCsvSourceEntry(entry) {
+    if (!entry.sourceTxId) return null;
+    return state.store.transactions.find(candidate =>
+        candidate.portfolioId === state.selectedAccountId && candidate.sourceTxId === entry.sourceTxId) || null;
+}
+
+function enrichExistingTransaction(existing, entry) {
+    if (entry.notes) existing.notes = entry.notes;
+    if (BigInt(entry.priceMicroUsd || '0') > 0n) existing.priceMicroUsd = entry.priceMicroUsd;
+    if (BigInt(entry.feeMicroUsd || '0') > 0n) existing.feeMicroUsd = entry.feeMicroUsd;
+}
+
+function mergeCsvEntries(entries) {
+    let added = 0;
+    let enriched = 0;
+    for (const entry of entries) {
+        const existing = findCsvSourceEntry(entry);
+        if (existing) { enrichExistingTransaction(existing, entry); enriched += 1; }
+        else { state.store.transactions.push(entry); added += 1; }
+    }
+    return { added, enriched };
+}
+
+function csvImportSummary({ added, enriched }) {
+    const addedText = `Imported ${added} CSV transaction${added === 1 ? '' : 's'}`;
+    if (!enriched) return addedText;
+    return `${addedText}; enriched ${enriched} on-chain transaction${enriched === 1 ? '' : 's'}`;
+}
+
+async function importCsvFile(file) {
+    const entries = parsePortfolioCsv(await file.text(), state.selectedAccountId);
+    const counts = mergeCsvEntries(entries);
+    savePortfolioStore(state.store);
+    rerender();
+    toast(csvImportSummary(counts), 'ok');
 }
 
 function saveTransactionFromForm(form) {
@@ -187,23 +234,7 @@ function pickCsv() {
         const [file] = input.files || [];
         if (!file) return;
         try {
-            const entries = parsePortfolioCsv(await file.text(), state.selectedAccountId);
-            let added = 0;
-            let enriched = 0;
-            for (const entry of entries) {
-                const existing = entry.sourceTxId
-                    ? state.store.transactions.find(candidate =>
-                        candidate.portfolioId === state.selectedAccountId && candidate.sourceTxId === entry.sourceTxId)
-                    : null;
-                if (!existing) { state.store.transactions.push(entry); added += 1; continue; }
-                if (entry.notes) existing.notes = entry.notes;
-                if (BigInt(entry.priceMicroUsd || '0') > 0n) existing.priceMicroUsd = entry.priceMicroUsd;
-                if (BigInt(entry.feeMicroUsd || '0') > 0n) existing.feeMicroUsd = entry.feeMicroUsd;
-                enriched += 1;
-            }
-            savePortfolioStore(state.store);
-            rerender();
-            toast(`Imported ${added} CSV transaction${added === 1 ? '' : 's'}${enriched ? `; enriched ${enriched} on-chain transaction${enriched === 1 ? '' : 's'}` : ''}`, 'ok');
+            await importCsvFile(file);
         } catch (error) {
             toast(`CSV import failed: ${error.message}`, 'error', 5000);
         }
@@ -257,6 +288,22 @@ function cancelInlineAction() {
     rerender();
 }
 
+const SIMPLE_ACTION_HANDLERS = new Map([
+    ['new-account', () => openAccountEditor('new')],
+    ['rename-account', () => openAccountEditor('rename')],
+    ['delete-account', () => requestAccountDelete()],
+    ['confirm-account-delete', () => confirmAccountDelete()],
+    ['confirm-transaction-delete', () => confirmTransactionDelete()],
+    ['cancel-inline-action', () => cancelInlineAction()],
+    ['new-transaction', () => startEditor()],
+    ['cancel-editor', () => { state.editorOpen = false; state.editingEntry = null; rerender(); }],
+    ['refresh-price', () => refreshPrices()],
+    ['import-wallet-history', () => pickCsv()],
+    ['fetch-wallet-history', () => fetchHistory()],
+    ['import-csv', () => pickCsv()],
+    ['export-csv', () => exportCsv()],
+]);
+
 async function handleButton(action) {
     const mode = actionValue(action, 'mode');
     if (mode) { state.mode = mode; rerender(); return; }
@@ -266,19 +313,8 @@ async function handleButton(action) {
     if (edit) { startEditor(edit); return; }
     const remove = actionValue(action, 'delete');
     if (remove) { requestTransactionDelete(remove); return; }
-    if (action === 'new-account') openAccountEditor('new');
-    else if (action === 'rename-account') openAccountEditor('rename');
-    else if (action === 'delete-account') requestAccountDelete();
-    else if (action === 'confirm-account-delete') confirmAccountDelete();
-    else if (action === 'confirm-transaction-delete') confirmTransactionDelete();
-    else if (action === 'cancel-inline-action') cancelInlineAction();
-    else if (action === 'new-transaction') startEditor();
-    else if (action === 'cancel-editor') { state.editorOpen = false; state.editingEntry = null; rerender(); }
-    else if (action === 'refresh-price') await refreshPrices();
-    else if (action === 'import-wallet-history') pickCsv();
-    else if (action === 'fetch-wallet-history') await fetchHistory();
-    else if (action === 'import-csv') pickCsv();
-    else if (action === 'export-csv') exportCsv();
+    const handler = SIMPLE_ACTION_HANDLERS.get(action);
+    if (handler) await handler();
 }
 
 export function bindPortfolioEvents() {

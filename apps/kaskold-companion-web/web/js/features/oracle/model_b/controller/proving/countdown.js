@@ -1,32 +1,44 @@
 import { oracleState } from '../../../../../app/state/index.js';
 // Oracle roll review countdown.
 
-function updateCountdown() {
-  const awaiting = oracleState._oracleMbPreSignAwaiting || oracleState._oracleMbAutoBroadcast;
+function isOnPsktReview() {
   const review = document.getElementById('pskt-review');
-  const onReview = review && !review.classList.contains('hidden') && review.style.display !== 'none';
-  let box = document.getElementById('oracle-mb-countdown');
-  if (!awaiting || !onReview) {
-    if (box) box.style.display = 'none';
-    return;
-  }
-  if (!box) {
-    const button = document.getElementById('btn-pskt-finalize');
-    if (!button || !button.parentNode) return;
-    box = document.createElement('div');
-    box.id = 'oracle-mb-countdown';
-    box.classList.add('oracle-proof-countdown');
-    button.parentNode.insertBefore(box, button.nextSibling);
-  }
-  box.style.display = 'block';
+  return Boolean(review && !review.classList.contains('hidden') && review.style.display !== 'none');
+}
+
+function ensureCountdownBox() {
+  const existing = document.getElementById('oracle-mb-countdown');
+  if (existing) return existing;
+  const button = document.getElementById('btn-pskt-finalize');
+  if (!button || !button.parentNode) return null;
+  const box = document.createElement('div');
+  box.id = 'oracle-mb-countdown';
+  box.classList.add('oracle-proof-countdown');
+  button.parentNode.insertBefore(box, button.nextSibling);
+  return box;
+}
+
+function countdownMessage() {
   const remainingMs = (oracleState._oracleMbProveDeadline || 0) - Date.now();
   if (!oracleState._oracleMbProveDeadline || remainingMs <= 0) {
-    box.textContent = 'Proof finishing — it will broadcast automatically any moment…';
-    return;
+    return 'Proof finishing — it will broadcast automatically any moment…';
   }
   const seconds = Math.ceil(remainingMs / 1000);
-  box.textContent = (oracleState._oracleMbAutoBroadcast ? 'Signed. ' : '')
+  return (oracleState._oracleMbAutoBroadcast ? 'Signed. ' : '')
     + 'Proof proving — auto-broadcast in ~' + seconds + 's';
+}
+
+function updateCountdown() {
+  const awaiting = oracleState._oracleMbPreSignAwaiting || oracleState._oracleMbAutoBroadcast;
+  const existing = document.getElementById('oracle-mb-countdown');
+  if (!awaiting || !isOnPsktReview()) {
+    if (existing) existing.style.display = 'none';
+    return;
+  }
+  const box = ensureCountdownBox();
+  if (!box) return;
+  box.style.display = 'block';
+  box.textContent = countdownMessage();
 }
 
 let countdownTimer = null;

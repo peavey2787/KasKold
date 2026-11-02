@@ -194,50 +194,65 @@ def check(root: Path = ROOT) -> list[str]:
         relative = path.relative_to(root).as_posix()
         if _is_legal_history(relative):
             continue
-
-        lower_name = relative.lower()
-        for token in ("kassigner", "kassee", "kas-see", "inkaswerust", "waveshare"):
-            if token in lower_name:
-                errors.append(f"stale product/board name in path: {relative}")
-                break
-
-        try:
-            data = path.read_bytes()
-        except OSError as exc:
-            errors.append(f"branding audit could not read {relative}: {exc}")
-            continue
-        if b"\0" in data:
-            continue
-        try:
-            text = data.decode("utf-8")
-        except UnicodeDecodeError:
-            continue
-
-        for line_number, line in enumerate(text.splitlines(), 1):
-            if _is_upstream_copyright(line) or _is_upstream_attribution(line):
-                continue
-            forbidden = [token for token in _FORBIDDEN_ALWAYS if token in line]
-            if forbidden:
-                errors.append(
-                    f"{relative}:{line_number}: stale brand identifier {forbidden[0]!r}"
-                )
-                continue
-
-            if "KasSigner" in line or "kassigner" in line:
-                if not (
-                    _has_compatibility_marker(line)
-                    or _has_compatibility_doc_marker(relative, line)
-                ):
-                    errors.append(
-                        f"{relative}:{line_number}: unexpected KasSigner/kassigner branding"
-                    )
-
-            if "Waveshare" in line or "waveshare" in line:
-                errors.append(
-                    f"{relative}:{line_number}: retired Waveshare board reference"
-                )
+        _check_stale_path_name(relative, errors)
+        text = _read_scannable_text(path, relative, errors)
+        if text is not None:
+            _check_text_lines(relative, text, errors)
 
     return errors
+
+
+def _check_stale_path_name(relative: str, errors: list[str]) -> None:
+    lower_name = relative.lower()
+    for token in ("kassigner", "kassee", "kas-see", "inkaswerust", "waveshare"):
+        if token in lower_name:
+            errors.append(f"stale product/board name in path: {relative}")
+            return
+
+
+def _read_scannable_text(path: Path, relative: str, errors: list[str]) -> str | None:
+    try:
+        data = path.read_bytes()
+    except OSError as exc:
+        errors.append(f"branding audit could not read {relative}: {exc}")
+        return None
+    if b"\0" in data:
+        return None
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+
+
+def _check_text_lines(relative: str, text: str, errors: list[str]) -> None:
+    for line_number, line in enumerate(text.splitlines(), 1):
+        if _is_upstream_copyright(line) or _is_upstream_attribution(line):
+            continue
+        forbidden = [token for token in _FORBIDDEN_ALWAYS if token in line]
+        if forbidden:
+            errors.append(
+                f"{relative}:{line_number}: stale brand identifier {forbidden[0]!r}"
+            )
+            continue
+        _check_kassigner_line(relative, line_number, line, errors)
+        if "Waveshare" in line or "waveshare" in line:
+            errors.append(
+                f"{relative}:{line_number}: retired Waveshare board reference"
+            )
+
+
+def _check_kassigner_line(
+    relative: str, line_number: int, line: str, errors: list[str]
+) -> None:
+    if "KasSigner" not in line and "kassigner" not in line:
+        return
+    if not (
+        _has_compatibility_marker(line)
+        or _has_compatibility_doc_marker(relative, line)
+    ):
+        errors.append(
+            f"{relative}:{line_number}: unexpected KasSigner/kassigner branding"
+        )
 
 
 def main() -> int:

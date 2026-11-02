@@ -25,6 +25,29 @@ async function currentDaa() {
     }
 }
 
+function deadlineEta(deadline, daa) {
+    return daa > 0n && deadline > daa ? formatDaaDuration(deadline - daa) : 'the deadline';
+}
+
+function unmetSpendError(threshold, deadline, have, eta) {
+    if (threshold > 0n && deadline > 0n) {
+        return new CovenantSpendPolicyError(
+            `This selection is ${have} KAS, below the goal of ${sompiToKasString(threshold)} KAS, and the deadline has not passed (~${eta}). Select enough UTXOs to reach the goal, or wait for the deadline.`,
+            7500,
+        );
+    }
+    if (threshold > 0n) {
+        return new CovenantSpendPolicyError(
+            `This selection is ${have} KAS, below the goal of ${sompiToKasString(threshold)} KAS. Select enough UTXOs to reach the goal.`,
+            7500,
+        );
+    }
+    return new CovenantSpendPolicyError(
+        `The deadline has not passed (~${eta}). A deadline-only piggy cannot be broken until then.`,
+        7500,
+    );
+}
+
 export async function ownerSpendBranch({ isConsolidate, selected, fee }) {
     const result = covenantState.lastCovenantResult;
     if (isConsolidate || result.type !== 'additive') return '';
@@ -35,31 +58,10 @@ export async function ownerSpendBranch({ isConsolidate, selected, fee }) {
 
     const total = selected.reduce((sum, utxo) => sum + BigInt(utxo.amount), 0n);
     const daa = await currentDaa();
-    const goalMet = threshold > 0n && total - fee >= threshold;
-    const deadlinePassed = deadline > 0n && daa > 0n && daa >= deadline;
-    if (goalMet) return '';
-    if (deadlinePassed) return 'owner-time';
+    if (threshold > 0n && total - fee >= threshold) return '';
+    if (deadline > 0n && daa > 0n && daa >= deadline) return 'owner-time';
 
-    const have = sompiToKasFixed(total, 4);
-    const eta = daa > 0n && deadline > daa
-        ? formatDaaDuration(deadline - daa)
-        : 'the deadline';
-    if (threshold > 0n && deadline > 0n) {
-        throw new CovenantSpendPolicyError(
-            `This selection is ${have} KAS, below the goal of ${sompiToKasString(threshold)} KAS, and the deadline has not passed (~${eta}). Select enough UTXOs to reach the goal, or wait for the deadline.`,
-            7500,
-        );
-    }
-    if (threshold > 0n) {
-        throw new CovenantSpendPolicyError(
-            `This selection is ${have} KAS, below the goal of ${sompiToKasString(threshold)} KAS. Select enough UTXOs to reach the goal.`,
-            7500,
-        );
-    }
-    throw new CovenantSpendPolicyError(
-        `The deadline has not passed (~${eta}). A deadline-only piggy cannot be broken until then.`,
-        7500,
-    );
+    throw unmetSpendError(threshold, deadline, sompiToKasFixed(total, 4), deadlineEta(deadline, daa));
 }
 
 export function beneficiaryClaim() {
