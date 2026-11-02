@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState } from '../../boundary.js';
 // KasKold Companion Web — covenant result-button façade.
 import { byId } from '../../../../core/dom.js';

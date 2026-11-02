@@ -1,3 +1,4 @@
+// @ts-check
 export { navigationState } from './core/navigation_state.js';
 export { networkState } from './core/network_state.js';
 export { transactionState } from './core/transaction_state.js';

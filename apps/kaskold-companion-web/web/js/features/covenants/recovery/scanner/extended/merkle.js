@@ -1,3 +1,4 @@
+// @ts-check
 import { hexToBytes } from '../../../../../core/bytes.js';
 import { readLen, readU64, readVstr } from '../payload_reader.js';
 import { recoveredFromRedeem } from './common.js';

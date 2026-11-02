@@ -1,14 +1,18 @@
+// @ts-check
 // Parsed wallet session. JSON serialization is confined to WASM and persistence boundaries.
+/** @type {any} */
 let walletJson = null;
+/** @type {any} */
 let walletSnapshot = null;
+/** @type {any} */
 let walletProfile = null;
 
-function cloneWallet(value) {
+function cloneWallet(/** @type {any} */ value) {
     if (typeof structuredClone === 'function') return structuredClone(value);
     return JSON.parse(JSON.stringify(value));
 }
 
-function parseWallet(value) {
+function parseWallet(/** @type {any} */ value) {
     if (typeof value === 'string') {
         const snapshot = JSON.parse(value);
         return { json: value, snapshot: cloneWallet(snapshot) };
@@ -20,27 +24,28 @@ function parseWallet(value) {
     throw new TypeError('wallet payload must be a JSON string or object');
 }
 
+/** @type {Record<string, any>} */
 const EMPTY_BY_TYPE = { string: '', bigint: 0n, number: 0, boolean: false };
 
-function isScrubbableBinary(value) {
-    return (ArrayBuffer.isView(value) && typeof value.fill === 'function') || value instanceof ArrayBuffer;
+function isScrubbableBinary(/** @type {any} */ value) {
+    return (ArrayBuffer.isView(value) && typeof /** @type {any} */ (value).fill === 'function') || value instanceof ArrayBuffer;
 }
 
-function scrubBinary(value) {
+function scrubBinary(/** @type {any} */ value) {
     try {
-        if (ArrayBuffer.isView(value)) value.fill(0);
+        if (ArrayBuffer.isView(value)) /** @type {Uint8Array} */ (value).fill(0);
         else new Uint8Array(value).fill(0);
     } catch { /* A detached or frozen buffer holds nothing further to scrub. */ }
 }
 
-function scrubProperty(value, key, current) {
+function scrubProperty(/** @type {any} */ value, /** @type {any} */ key, /** @type {any} */ current) {
     try {
         if (Object.hasOwn(EMPTY_BY_TYPE, typeof current)) value[key] = EMPTY_BY_TYPE[typeof current];
         else if (current && typeof current === 'object') value[key] = null;
     } catch { /* A read-only property holds nothing further to scrub. */ }
 }
 
-function scrubObjectProperties(value, seen) {
+function scrubObjectProperties(/** @type {any} */ value, /** @type {any} */ seen) {
     for (const key of Object.keys(value)) {
         const current = value[key];
         if (current && typeof current === 'object') bestEffortScrubMutable(current, seen);
@@ -48,7 +53,7 @@ function scrubObjectProperties(value, seen) {
     }
 }
 
-export function bestEffortScrubMutable(value, seen = new WeakSet()) {
+export function bestEffortScrubMutable(/** @type {any} */ value, seen = new WeakSet()) {
     if (!value || typeof value !== 'object' || seen.has(value)) return;
     seen.add(value);
     if (isScrubbableBinary(value)) {
@@ -77,7 +82,7 @@ export const walletSession = Object.freeze({
     kpub() {
         return walletSnapshot?.kpub || '';
     },
-    replace(value) {
+    replace(/** @type {any} */ value) {
         const parsed = parseWallet(value);
         walletJson = parsed.json;
         walletSnapshot = parsed.snapshot;
@@ -86,7 +91,7 @@ export const walletSession = Object.freeze({
     profile() {
         return walletProfile === null ? null : { ...walletProfile };
     },
-    setProfile(profile) {
+    setProfile(/** @type {any} */ profile) {
         if (profile === null || profile === undefined) {
             walletProfile = null;
             return null;

@@ -1,3 +1,4 @@
+// @ts-check
 import {
     networkState,
     transactionState,
@@ -16,14 +17,14 @@ import { openSendScreenWithSelectedUtxos } from '../../transactions/send/compose
 import { utxoId } from '../../transactions/shared/utxo_selection.js';
 
 import { hexToBytes } from '../../../core/bytes.js';
-import { byId } from '../../../core/dom.js';
+import { elementById } from '../../../core/dom.js';
 import { exactUnsigned } from '../../../core/exact.js';
 transactionState.consolidateSelection = new Set();
 export function updateConsolidateButtons(totalCount) {
     const n = transactionState.consolidateSelection.size;
-    const btnAll = byId('btn-consolidate');
-    const btnSel = byId('btn-consolidate-selected');
-    const btnSend = byId('btn-send-selected-utxos');
+    const btnAll = elementById('btn-consolidate');
+    const btnSel = elementById('btn-consolidate-selected');
+    const btnSend = elementById('btn-send-selected-utxos');
     btnSend.style.display = totalCount >= 1 ? 'block' : 'none';
     btnSend.textContent = n >= 1 ? `Send with ${n} Selected` : 'Select UTXOs for Send';
     if (totalCount <= 1) {

@@ -1,3 +1,4 @@
+// @ts-check
 import { kaspaRestApiBase } from '../../../../../core/config/network.js';
 export async function fetchCommitRevealTransaction(txid, network) {
     const apiBase = kaspaRestApiBase(network);

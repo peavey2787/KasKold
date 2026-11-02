@@ -1,4 +1,5 @@
-import { byId } from '../../../../core/dom.js';
+// @ts-check
+import { byId, elementById } from '../../../../core/dom.js';
 import { oracleMbAmbientStop, oracleMbCardOpen } from '../../../oracle/model_b/controller.js';
 import { covActiveWatcherStart, covActiveWatcherStop, covFetchBalances } from '../../recovery/active.js';
 import { renderPrivateSwap } from '../../private_swap/controller.js';
@@ -32,7 +33,7 @@ export function showCovenantPanel(panel) {
     stopPanelServices();
     const panelId = PANEL_IDS[panel];
     if (!panelId) throw new Error(`Unknown covenant panel: ${panel}`);
-    byId(panelId).classList.remove('hidden');
+    elementById(panelId).classList.remove('hidden');
     enterPanel(panel);
 }
 

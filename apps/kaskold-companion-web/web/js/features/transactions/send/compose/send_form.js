@@ -1,3 +1,4 @@
+// @ts-check
 import {
     covenantState,
     navigationState,
@@ -11,7 +12,7 @@ import { resolveNodeUrl } from '../../../../core/node/resolver.js';
 import { toast } from '../../../../core/ui/toast.js';
 import { fetchCoinControlUtxos } from '../../../wallet/core/coin_control_utxos.js';
 // KasKold Companion Web — features/transactions/send/compose/send_form
-import { byId } from '../../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../../core/dom.js';
 
 import { formatSeconds } from '../../../../core/format.js';
 import { exactUnsigned } from '../../../../core/exact.js';
@@ -64,21 +65,21 @@ function updateFeeUnitChrome() {
 
 export function setFeeSompi(sompi) {
     const exact = exactUnsigned(sompi, 'fee');
-    byId('input-fee').value = exact.toString();
-    const display = byId('input-fee-display');
+    inputById('input-fee').value = exact.toString();
+    const display = inputById('input-fee-display');
     if (display) display.value = formatFeeForDisplay(exact);
     updateFeeUnitChrome();
     return exact;
 }
 
 export function readFeeSompi() {
-    const display = byId('input-fee-display');
+    const display = inputById('input-fee-display');
     const text = display ? display.value.trim() : '';
-    if (!text) return exactUnsigned(byId('input-fee').value || '0', 'fee');
+    if (!text) return exactUnsigned(inputById('input-fee').value || '0', 'fee');
     const exact = feeDisplayUnit === 'kas'
         ? kasToSompi(text)
         : exactUnsigned(text, 'fee');
-    byId('input-fee').value = exact.toString();
+    inputById('input-fee').value = exact.toString();
     return exact;
 }
 
@@ -134,19 +135,19 @@ export function limitKasAmountPrecision(input) {
 
 
 function resetSendFormFields() {
-    const utxoList = byId('send-utxo-list');
+    const utxoList = elementById('send-utxo-list');
     utxoList.replaceChildren();
-    byId('send-utxo-advanced').classList.add('hidden');
-    byId('btn-toggle-utxos').textContent = 'Select UTXOs manually ▸';
+    elementById('send-utxo-advanced').classList.add('hidden');
+    elementById('btn-toggle-utxos').textContent = 'Select UTXOs manually ▸';
     const maxInputs = signerMaxInputs();
-    const limitInput = byId('send-utxo-limit');
+    const limitInput = inputById('send-utxo-limit');
     limitInput.max = String(maxInputs);
     transactionState.utxoSelectionLimit = normalizeUtxoSelectionLimit(transactionState.utxoSelectionLimit || DEFAULT_UTXO_SELECTION_LIMIT);
     limitInput.value = String(transactionState.utxoSelectionLimit);
     transactionState.utxoSort = normalizeUtxoSortMode(transactionState.utxoSort);
-    byId('send-utxo-sort').value = transactionState.utxoSort;
-    byId('input-dest').value = '';
-    byId('input-amount').value = '';
+    inputById('send-utxo-sort').value = transactionState.utxoSort;
+    inputById('input-dest').value = '';
+    inputById('input-amount').value = '';
     resetFeeDisplayUnit();
     // Shared screen: always restore the amount field by default. Thread-covenant
     // deposits hide it again (handleCovFund), since they full-spend the chosen UTXOs.
@@ -156,8 +157,8 @@ function resetSendFormFields() {
 
 function showAvailableBalanceRef() {
     // Show the exact dashboard balance in a compact KAS presentation.
-    const balanceRaw = byId('balance-kas').dataset.balanceSompi;
-    const ref = byId('send-balance-ref');
+    const balanceRaw = elementById('balance-kas').dataset.balanceSompi;
+    const ref = elementById('send-balance-ref');
     if (balanceRaw) {
         ref.textContent = `Available: ${sompiToKasRoundedGrouped(exactUnsigned(balanceRaw, 'wallet balance'), 2)} KAS`;
     } else {
@@ -184,7 +185,7 @@ async function applySuggestedFee(wsUrl) {
     updateFeeCardAmounts();
     // Reset to Normal active
     document.querySelectorAll('.fee-card').forEach(c => c.classList.remove('fee-card-active'));
-    byId('btn-fee-normal').classList.add('fee-card-active');
+    elementById('btn-fee-normal').classList.add('fee-card-active');
 }
 
 function pruneSelectedUtxos() {
@@ -209,6 +210,7 @@ async function loadFreshSendUtxos(wsUrl) {
     if (ref2) ref2.textContent = `Available: ${sompiToKasRoundedGrouped(freshTotal, 2)} KAS`;
 }
 
+/** @param {{ selectedUtxoIds?: string[] | null, revealCoinControl?: boolean }} [options] */
 async function openSendScreenWithOptions({ selectedUtxoIds = null, revealCoinControl = false } = {}) {
     transactionState.selectedUtxoIds = selectedUtxoIds?.length ? [...selectedUtxoIds] : null;
     networkState.cachedUtxos = null;
@@ -217,7 +219,7 @@ async function openSendScreenWithOptions({ selectedUtxoIds = null, revealCoinCon
     resetSendFormFields();
     showAvailableBalanceRef();
     // Update placeholder for current network
-    byId('input-dest').placeholder = addressPrefix(networkState.network) + '...';
+    inputById('input-dest').placeholder = addressPrefix(networkState.network) + '...';
     showScreen('send');
     try {
         await waitForRecentBroadcast();
@@ -256,23 +258,23 @@ export function syncThreadDepositAmount() {
     if (_aw && _aw.style.display !== 'none') return; // visible => genesis, leave the typed amount
     const selected = selectedUtxos(networkState.cachedUtxos, transactionState.selectedUtxoIds);
     const sum = selected.reduce((total, utxo) => total + utxo.amount, 0n);
-    const amtEl = byId('input-amount');
+    const amtEl = inputById('input-amount');
     if (amtEl) amtEl.value = sum > 0n ? sompiToKasString(sum) : '';
     updateFeeCardAmounts();
 }
 export function toggleSendUtxos() {
-    const panel = byId('send-utxo-advanced');
+    const panel = elementById('send-utxo-advanced');
     if (!panel.classList.contains('hidden')) {
         panel.classList.add('hidden');
-        byId('btn-toggle-utxos').textContent = 'Select UTXOs manually ▸';
+        elementById('btn-toggle-utxos').textContent = 'Select UTXOs manually ▸';
         return;
     }
     if (!networkState.cachedUtxos?.length) { toast('No UTXOs available', 'error'); return; }
     panel.classList.remove('hidden');
-    byId('btn-toggle-utxos').textContent = 'Select UTXOs manually ▾';
+    elementById('btn-toggle-utxos').textContent = 'Select UTXOs manually ▾';
 
     const refresh = () => {
-        const limitInput = byId('send-utxo-limit');
+        const limitInput = inputById('send-utxo-limit');
         const maximum = signerMaxInputs();
         const parsedLimit = Number.parseInt(limitInput.value, 10);
         const validLimit = Number.isSafeInteger(parsedLimit) && parsedLimit >= 1 && parsedLimit <= maximum;
@@ -281,14 +283,14 @@ export function toggleSendUtxos() {
             limitInput.value = String(DEFAULT_UTXO_SELECTION_LIMIT);
             toast(`UTXO limit must be between 1 and ${maximum} for this KasKold`, 'error', 2600);
         }
-        transactionState.utxoSort = normalizeUtxoSortMode(byId('send-utxo-sort').value);
+        transactionState.utxoSort = normalizeUtxoSortMode(inputById('send-utxo-sort').value);
         const selected = selectedUtxos(networkState.cachedUtxos, transactionState.selectedUtxoIds);
         if (selected.length > transactionState.utxoSelectionLimit) {
             transactionState.selectedUtxoIds = selected.slice(0, transactionState.utxoSelectionLimit).map(utxo => `${utxo.tx_id}:${utxo.index}`);
         }
         const current = selectedUtxos(networkState.cachedUtxos, transactionState.selectedUtxoIds);
         const total = current.reduce((sum, utxo) => sum + utxo.amount, 0n);
-        byId('send-utxo-summary').textContent = current.length > 0
+        elementById('send-utxo-summary').textContent = current.length > 0
             ? `${current.length} manually selected / ${networkState.cachedUtxos.length} available · ${sompiToKasString(total)} KAS`
             : `0 manually selected / ${networkState.cachedUtxos.length} available · automatic selection will be used`;
         renderUtxoSelector(
@@ -297,8 +299,8 @@ export function toggleSendUtxos() {
             ids => { transactionState.selectedUtxoIds = ids; syncThreadDepositAmount(); refresh(); },
         );
     };
-    byId('send-utxo-limit').onchange = refresh;
-    byId('send-utxo-sort').onchange = refresh;
+    elementById('send-utxo-limit').onchange = refresh;
+    elementById('send-utxo-sort').onchange = refresh;
     refresh();
 }
 export function setFeeLevel(level) {
@@ -320,7 +322,7 @@ export function setFeeLevel(level) {
 
     // Update active card visual
     document.querySelectorAll('.fee-card').forEach(c => c.classList.remove('fee-card-active'));
-    byId('btn-fee-' + level).classList.add('fee-card-active');
+    elementById('btn-fee-' + level).classList.add('fee-card-active');
 }
 export function updateFeeCardAmounts() {
     if (!networkState.lastFeeEstimate) return;
@@ -329,9 +331,9 @@ export function updateFeeCardAmounts() {
     const low = roundFeeFromRate(networkState.lastFeeEstimate.low_sompi_per_gram, mass, isCovDeposit ? 400000n : 2500n);
     const normal = roundFeeFromRate(networkState.lastFeeEstimate.normal_sompi_per_gram, mass, isCovDeposit ? 400000n : 5000n);
     const priority = roundFeeFromRate(networkState.lastFeeEstimate.priority_sompi_per_gram, mass, isCovDeposit ? 500000n : 300000n);
-    byId('fee-low-amount').textContent = formatFeeCard(low);
-    byId('fee-normal-amount').textContent = formatFeeCard(normal);
-    byId('fee-priority-amount').textContent = formatFeeCard(priority);
+    elementById('fee-low-amount').textContent = formatFeeCard(low);
+    elementById('fee-normal-amount').textContent = formatFeeCard(normal);
+    elementById('fee-priority-amount').textContent = formatFeeCard(priority);
 
     // Show estimated time if available from node
     const lowTime = byId('fee-low-time');
@@ -365,12 +367,12 @@ export function handleSendMax() {
             selected.length,
             feeSompi,
         );
-        byId('input-amount').value = sompiToKasString(maximumSompi);
+        inputById('input-amount').value = sompiToKasString(maximumSompi);
         return;
     }
 
-    const balanceRaw = byId('balance-kas').dataset.balanceSompi;
+    const balanceRaw = elementById('balance-kas').dataset.balanceSompi;
     if (!balanceRaw) { toast('Refresh balance first', 'info'); return; }
     const exactBalance = exactUnsigned(balanceRaw, 'wallet balance');
-    byId('input-amount').value = balanceSendMaximumKas(sompiToKasString(exactBalance), feeSompi);
+    inputById('input-amount').value = balanceSendMaximumKas(sompiToKasString(exactBalance), feeSompi);
 }

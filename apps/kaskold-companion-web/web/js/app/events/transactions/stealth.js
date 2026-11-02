@@ -1,3 +1,4 @@
+// @ts-check
 import { bytesToHex } from '../../../core/bytes.js';
 import { handleStealthScanResultQR, handleStealthShowScanQR } from '../../../features/stealth/index/scanning/live.js';
 import { navigateBack, showScreen } from '../../navigation.js';
@@ -8,7 +9,7 @@ import { handleStealthMeta, handleStealthSendGenerate, handleStealthSendPay, ste
 // KasKold Companion Web — app/events/transactions/stealth
 // Binds stealth-address generation, scanning, and payment events.
 
-import { bindClick, byId } from '../../../core/dom.js';
+import { bindClick, byId, inputById } from '../../../core/dom.js';
 
 
 export function bindStealthEvents() {
@@ -30,7 +31,7 @@ export function bindStealthEvents() {
     bindClick('btn-stealth-scan', () => stealthShowPanel('scan'));
     bindClick('btn-stealth-scan-back', () => stealthShowPanel('menu'));
     bindClick('btn-stealth-fetch-announcements', async () => {
-        const button = byId('btn-stealth-fetch-announcements');
+        const button = inputById('btn-stealth-fetch-announcements');
         if (!button || button.disabled) return;
         const originalText = button.textContent.trim() || '1. Fetch Announcements';
         button.disabled = true;
@@ -57,7 +58,7 @@ export function bindStealthEvents() {
         }
         if (/^[0-9a-fA-F]{128}$/.test(text)) {
             stopScanner();
-            const input = byId('stealth-send-meta');
+            const input = inputById('stealth-send-meta');
             if (input) input.value = text;
             showScreen('stealth');
             stealthShowPanel('send');

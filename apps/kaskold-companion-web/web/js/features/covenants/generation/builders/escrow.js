@@ -1,3 +1,4 @@
+// @ts-check
 import {
     networkState,
     walletSession,
@@ -8,14 +9,14 @@ import {
 import { toast } from '../../../../core/ui/toast.js';
 // escrow covenant builders.
 
-import { byId } from '../../../../core/dom.js';
+import { inputById } from '../../../../core/dom.js';
 import { addressToXOnly } from '../../../../core/address.js';
 import { kasToSompi } from '../../../../core/amounts.js';
 export async function buildEscrow(ownerPk) {
     let resultJson;
     let extra = {};
-    const theirPk = addressToXOnly(byId('cov-escrow-pk').value);
-    const arbiterPk = addressToXOnly(byId('cov-escrow-arbiter-pk').value);
+    const theirPk = addressToXOnly(inputById('cov-escrow-pk').value);
+    const arbiterPk = addressToXOnly(inputById('cov-escrow-arbiter-pk').value);
     if (!ownerPk) { toast('Load wallet first', 'error'); return; }
     if (!theirPk || theirPk.length !== 64) { toast('Enter seller pubkey (64 hex chars)', 'error'); return; }
     if (!arbiterPk || arbiterPk.length !== 64) { toast('Enter arbiter pubkey (64 hex chars)', 'error'); return; }
@@ -44,8 +45,8 @@ function validateShipPubkeys(ownerPk, sellerPk, delivPk, arbPk) {
 // Reads product price and delivery fee in sompi. Returns null after toasting on failure.
 function readShipAmounts() {
     let productSompi, feeSompi;
-    try { productSompi = kasToSompi(byId('cov-ship-product').value.trim()); } catch { toast('Enter product price in KAS (up to 8 decimals)', 'error'); return null; }
-    try { feeSompi = kasToSompi(byId('cov-ship-fee').value.trim()); } catch { toast('Enter delivery fee in KAS (up to 8 decimals)', 'error'); return null; }
+    try { productSompi = kasToSompi(inputById('cov-ship-product').value.trim()); } catch { toast('Enter product price in KAS (up to 8 decimals)', 'error'); return null; }
+    try { feeSompi = kasToSompi(inputById('cov-ship-fee').value.trim()); } catch { toast('Enter delivery fee in KAS (up to 8 decimals)', 'error'); return null; }
     if (productSompi <= 0n) { toast('Enter product price in KAS', 'error'); return null; }
     if (feeSompi <= 0n) { toast('Enter delivery fee in KAS', 'error'); return null; }
     return { productSompi, feeSompi };
@@ -53,8 +54,8 @@ function readShipAmounts() {
 
 // Reads both DAA deadlines. Returns null after toasting when either is unset.
 function readShipDeadlines() {
-    const cltv1 = BigInt(byId('cov-ship-cltv1').value.trim() || '0');
-    const cltv2 = BigInt(byId('cov-ship-cltv2').value.trim() || '0');
+    const cltv1 = BigInt(inputById('cov-ship-cltv1').value.trim() || '0');
+    const cltv2 = BigInt(inputById('cov-ship-cltv2').value.trim() || '0');
     if (cltv1 <= 0n || cltv2 <= 0n) { toast('Set both deadlines (DAA score)', 'error'); return null; }
     return { cltv1, cltv2 };
 }
@@ -87,10 +88,10 @@ function shipEscrowExtra(pubkeys) {
 
 export async function buildShipEscrow(ownerPk) {
     const pubkeys = {
-        seller: addressToXOnly(byId('cov-ship-seller-pk').value),
-        deliverer: addressToXOnly(byId('cov-ship-deliverer-pk').value),
+        seller: addressToXOnly(inputById('cov-ship-seller-pk').value),
+        deliverer: addressToXOnly(inputById('cov-ship-deliverer-pk').value),
         buyer: ownerPk,
-        arbiter: addressToXOnly(byId('cov-ship-arbiter-pk').value),
+        arbiter: addressToXOnly(inputById('cov-ship-arbiter-pk').value),
     };
     if (!validateShipPubkeys(ownerPk, pubkeys.seller, pubkeys.deliverer, pubkeys.arbiter)) return;
     const amounts = readShipAmounts();

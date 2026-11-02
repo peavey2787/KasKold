@@ -1,3 +1,4 @@
+// @ts-check
 import { toast } from '../../../../core/ui/toast.js';
 
 export function downloadCovenantExport(covenant, payload) {

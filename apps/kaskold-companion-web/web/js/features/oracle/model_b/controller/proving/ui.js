@@ -1,9 +1,10 @@
+// @ts-check
 import { oracleState } from '../../../boundary.js';
-import { byId } from '../../../../../core/dom.js';
+import { byId, inputById } from '../../../../../core/dom.js';
 
 export function createOracleAskUi() {
     const status = byId('oracle-mb-ask-status');
-    const button = byId('btn-oracle-mb-ask');
+    const button = inputById('btn-oracle-mb-ask');
     return {
         show(message, color = 'var(--teal)') {
             if (!status) return;

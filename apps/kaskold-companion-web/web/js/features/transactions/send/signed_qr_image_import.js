@@ -1,3 +1,4 @@
+// @ts-check
 import { decodeQrImageFile } from '../../../core/qr/image_file.js';
 import { byId } from '../../../core/dom.js';
 import { toast } from '../../../core/ui/toast.js';

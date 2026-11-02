@@ -1,3 +1,4 @@
+// @ts-check
 import { networkState, covenant_script_terms } from '../boundary.js';
 import { parseCovenantJson } from './exact_fields.js';
 

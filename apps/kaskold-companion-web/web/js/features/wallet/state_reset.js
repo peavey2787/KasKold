@@ -1,3 +1,4 @@
+// @ts-check
 import {
     commitRevealState,
     covenantRecoveryState,
@@ -163,7 +164,7 @@ function clearTransientDom() {
     for (const id of screenIds) {
         const screen = document.getElementById(id);
         if (!screen) continue;
-        for (const element of screen.querySelectorAll('input, textarea')) {
+        for (const element of /** @type {NodeListOf<HTMLInputElement>} */ (screen.querySelectorAll('input, textarea'))) {
             if (element.type === 'checkbox' || element.type === 'radio') element.checked = false;
             else element.value = '';
         }

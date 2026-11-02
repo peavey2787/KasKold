@@ -1,3 +1,4 @@
+// @ts-check
 import { resolveNodeUrl } from '../../../../../core/node/resolver.js';
 import { utxoTransactionId } from '../../../../../core/utxo.js';
 import { fetch_utxos_for_address_js } from '../../../boundary.js';

@@ -1,3 +1,4 @@
+// @ts-check
 // The Rust boundary and application state the covenants domain uses.
 export {
     build_covenant_payload,

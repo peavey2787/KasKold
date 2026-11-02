@@ -1,3 +1,4 @@
+// @ts-check
 // Pure BlockAdded-notification parsing helpers.
 import { hexToBytes } from '../../../core/bytes.js';
 

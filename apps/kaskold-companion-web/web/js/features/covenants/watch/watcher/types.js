@@ -1,3 +1,4 @@
+// @ts-check
 // Covenant families supported by the generic live watcher.
 
 const WATCHED_COVENANT_TYPES = Object.freeze([

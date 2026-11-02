@@ -1,3 +1,4 @@
+// @ts-check
 // Covenant polling registry façade.
 
 import { pollTimelockedSavings, pollDms, pollAdditive } from './covenant_pollers/savings.js';

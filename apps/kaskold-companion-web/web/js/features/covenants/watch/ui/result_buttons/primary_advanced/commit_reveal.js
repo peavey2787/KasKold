@@ -1,7 +1,8 @@
+// @ts-check
 import { commitRevealState, covenantState } from '../../../../boundary.js';
 import { hexToBytes } from '../../../../../../core/bytes.js';
 import { toast } from '../../../../../../core/ui/toast.js';
-import { byId } from '../../../../../../core/dom.js';
+import { inputById } from '../../../../../../core/dom.js';
 import { covShowPanel } from '../../../../generation/panel_keys.js';
 
 export function configureCommitRevealActions({ beneBtn, ownerBtn, fundBtn }) {
@@ -17,8 +18,8 @@ export function configureCommitRevealActions({ beneBtn, ownerBtn, fundBtn }) {
             toast('No ciphertext found. Recover from backup file first.', 'error', 4000);
             return;
         }
-        byId('cov-cr-addr').value = result.address || '';
-        byId('cov-cr-script').value = result.redeem_script_hex || '';
+        inputById('cov-cr-addr').value = result.address || '';
+        inputById('cov-cr-script').value = result.redeem_script_hex || '';
         commitRevealState._crDecryptCtBytes = hexToBytes(ciphertext);
         covShowPanel('cr-reveal');
     };

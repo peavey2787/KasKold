@@ -1,3 +1,4 @@
+// @ts-check
 import { exactJsonStringify, exactUnsigned } from '../../../core/exact.js';
 
 export const EXACT_COVENANT_FIELDS = Object.freeze([

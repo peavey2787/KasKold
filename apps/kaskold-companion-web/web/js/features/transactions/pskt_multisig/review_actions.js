@@ -1,3 +1,4 @@
+// @ts-check
 import { createPsktFinalizer } from './review_finalize.js';
 import { createPsktRelayActions } from './review_relay.js';
 

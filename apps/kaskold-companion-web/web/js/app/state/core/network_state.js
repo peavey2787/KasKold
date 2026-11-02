@@ -1,3 +1,4 @@
+// @ts-check
 // Explicit networkState shape. Complex behavior belongs in domain facades; this object holds simple session state.
 /** @type {Record<string, any>} */
 export const networkState = Object.seal({

@@ -1,3 +1,4 @@
+// @ts-check
 import {
     commitRevealState,
     covenantState,
@@ -12,7 +13,7 @@ import { resolveNodeUrl } from '../../../core/node/resolver.js';
 import { toast } from '../../../core/ui/toast.js';
 import { openPsktReview } from '../../transactions/pskt_multisig/review.js';
 // KasKold Companion Web — features/covenants/spending/advanced
-import { byId } from '../../../core/dom.js';
+import { elementById, inputById } from '../../../core/dom.js';
 
 import { kasToSompi, sompiToKasString } from '../../../core/amounts.js';
 import { sortUtxosLargestFirst } from '../../../core/utxo.js';
@@ -29,7 +30,7 @@ import { sortUtxosLargestFirst } from '../../../core/utxo.js';
 // cap at the 4 largest UTXOs, depth-aware mass fee, 300k floor. Returns sompi or null.
 // NOTE: the fee formula MUST stay in sync with create_merkle_whitelist_spend in lib.rs.
 export async function mwMaxSompi() {
-    const covAddr = byId('cov-mw-addr').value.trim();
+    const covAddr = inputById('cov-mw-addr').value.trim();
     if (!covAddr) return null;
     const wsUrl = await resolveNodeUrl();
     const utxos = JSON.parse(await fetch_utxos_for_address_js(covAddr, wsUrl));
@@ -37,7 +38,7 @@ export async function mwMaxSompi() {
     sortUtxosLargestFirst(utxos);
     const capped = utxos.slice(0, 4); // MAX_COV_INPUTS
     const total = capped.reduce((s, u) => s + BigInt(u.amount), 0n);
-    const addrCount = byId('cov-mw-spend-addresses').value.trim().split('\n').filter(a => a.trim()).length;
+    const addrCount = inputById('cov-mw-spend-addresses').value.trim().split('\n').filter(a => a.trim()).length;
     const depth = Math.max(1, Math.ceil(Math.log2(Math.max(2, addrCount))));
     const perInput = 270n + 40n * BigInt(depth) + 1000n;
     const computeMass = 46n + BigInt(capped.length) * perInput + 43n + 2n * 340n;
@@ -47,17 +48,17 @@ export async function mwMaxSompi() {
     return maxSompi > 0n ? maxSompi : null;
 }
 export async function handleCovMwSpend() {
-    const covAddr = byId('cov-mw-addr').value.trim();
-    const redeemHex = byId('cov-mw-script').value.trim();
-    const destAddr = byId('cov-mw-dest').value.trim();
-    const addrText = byId('cov-mw-spend-addresses').value.trim();
+    const covAddr = inputById('cov-mw-addr').value.trim();
+    const redeemHex = inputById('cov-mw-script').value.trim();
+    const destAddr = inputById('cov-mw-dest').value.trim();
+    const addrText = inputById('cov-mw-spend-addresses').value.trim();
 
     if (!covAddr) { toast('Enter covenant address', 'error'); return; }
     if (!redeemHex) { toast('Enter redeem script hex', 'error'); return; }
     if (!destAddr) { toast('Enter destination (must be in whitelist)', 'error'); return; }
     if (!addrText) { toast('Enter the same whitelist used for creation', 'error'); return; }
     let sendSompi;
-    try { sendSompi = kasToSompi(byId('cov-mw-amount').value); } catch { toast('Enter amount to send', 'error'); return; }
+    try { sendSompi = kasToSompi(inputById('cov-mw-amount').value); } catch { toast('Enter amount to send', 'error'); return; }
     if (sendSompi === 0n) { toast('Enter amount to send', 'error'); return; }
     const addresses = addrText.split('\n').map(a => a.trim()).filter(a => a.length > 0);
 
@@ -101,9 +102,9 @@ export async function handleCovMwSpend() {
 // ─── Commit-Reveal Handlers ───
 
 export async function handleCovCrReveal() {
-    const covAddr = byId('cov-cr-addr').value.trim();
-    const redeemHex = byId('cov-cr-script').value.trim();
-    const destAddr = byId('cov-cr-dest').value.trim();
+    const covAddr = inputById('cov-cr-addr').value.trim();
+    const redeemHex = inputById('cov-cr-script').value.trim();
+    const destAddr = inputById('cov-cr-dest').value.trim();
 
     if (!covAddr) { toast('Enter covenant address', 'error'); return; }
     if (!redeemHex) { toast('Enter redeem script hex', 'error'); return; }
@@ -159,7 +160,7 @@ export async function handleCovCrReveal() {
 
 
 export async function handleCovCheckBalance() {
-    const covAddr = byId('cov-balance-addr').value.trim();
+    const covAddr = inputById('cov-balance-addr').value.trim();
     if (!covAddr) { toast('Enter covenant P2SH address', 'error'); return; }
 
     showLoading('Checking balance...');
@@ -172,9 +173,9 @@ export async function handleCovCheckBalance() {
         const total = utxos.reduce((s, u) => s + BigInt(u.amount), 0n);
         const kasStr = sompiToKasString(total);
 
-        byId('cov-balance-kas').textContent = kasStr + ' KAS';
-        byId('cov-balance-utxos').textContent = utxos.length + ' UTXO' + (utxos.length !== 1 ? 's' : '') + ' · ' + total.toString() + ' sompi';
-        byId('cov-balance-result').classList.remove('hidden');
+        elementById('cov-balance-kas').textContent = kasStr + ' KAS';
+        elementById('cov-balance-utxos').textContent = utxos.length + ' UTXO' + (utxos.length !== 1 ? 's' : '') + ' · ' + total.toString() + ' sompi';
+        elementById('cov-balance-result').classList.remove('hidden');
 
         if (utxos.length === 0) {
             toast('No UTXOs at this address', 'info', 2000);

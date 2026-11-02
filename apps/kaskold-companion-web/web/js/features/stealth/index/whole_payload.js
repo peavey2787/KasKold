@@ -1,4 +1,5 @@
-import { byId } from '../../../core/dom.js';
+// @ts-check
+import { byId, elementById } from '../../../core/dom.js';
 import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
 import { renderScanProgress } from '../../../core/ui/scan_progress.js';
 import { decode_qr_frame, decoder_progress } from '../boundary.js';
@@ -14,7 +15,7 @@ function frameResult(bytes) {
     try {
         return decode_qr_frame(bytesToHex(bytes));
     } catch (error) {
-        byId('scanner-status').textContent = `Unreadable QR frame: ${error.message || error}`;
+        elementById('scanner-status').textContent = `Unreadable QR frame: ${error.message || error}`;
         return '';
     }
 }

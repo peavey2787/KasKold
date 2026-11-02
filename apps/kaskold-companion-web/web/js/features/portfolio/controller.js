@@ -1,5 +1,6 @@
+// @ts-check
 import { hideLoading, showLoading, showScreen } from '../../app/navigation.js';
-import { byId } from '../../core/dom.js';
+import { elementById } from '../../core/dom.js';
 import { toast } from '../../core/ui/toast.js';
 import { parseKas, usdToMicro } from './exact_money.js';
 import { exportPortfolioCsv, parsePortfolioCsv } from './csv.js';
@@ -17,6 +18,7 @@ import {
 import { renderPortfolio } from './render.js';
 import { fetchWalletHistory, walletHistoryFetchMode } from './wallet_history.js';
 
+/** @type {Record<string, any>} */
 const state = {
     store: loadPortfolioStore(),
     selectedAccountId: '',
@@ -36,7 +38,7 @@ const state = {
     },
 };
 
-function root() { return byId('portfolio-root'); }
+function root() { return elementById('portfolio-root'); }
 function rerender() { renderPortfolio(root(), state); }
 
 async function refreshPrices() {
@@ -320,7 +322,7 @@ async function handleButton(action) {
 export function bindPortfolioEvents() {
     const container = root();
     container.addEventListener('click', event => {
-        const target = event.target.closest('[data-action]');
+        const target = /** @type {HTMLButtonElement | null} */ (/** @type {HTMLElement} */ (event.target).closest('[data-action]'));
         if (!target || target.tagName === 'SELECT' || target.tagName === 'FORM') return;
         if (target.type === 'submit') {
             if (handleSubmitButton(target)) event.preventDefault();
@@ -330,8 +332,9 @@ export function bindPortfolioEvents() {
         void handleButton(target.dataset.action || '');
     });
     container.addEventListener('change', event => {
-        if (event.target.dataset.action !== 'select-account') return;
-        state.selectedAccountId = event.target.value;
+        const field = /** @type {HTMLInputElement} */ (event.target);
+        if (field.dataset.action !== 'select-account') return;
+        state.selectedAccountId = field.value;
         state.editorOpen = false;
         state.editingEntry = null;
         state.accountEditorMode = null;
@@ -341,7 +344,8 @@ export function bindPortfolioEvents() {
     });
     container.addEventListener('submit', event => {
         event.preventDefault();
-        if (event.target.dataset.action === 'transaction-form') saveTransactionFromForm(event.target);
-        else if (event.target.dataset.action === 'account-form') saveAccount(event.target);
+        const form = /** @type {HTMLElement} */ (event.target);
+        if (form.dataset.action === 'transaction-form') saveTransactionFromForm(form);
+        else if (form.dataset.action === 'account-form') saveAccount(form);
     });
 }

@@ -1,3 +1,4 @@
+// @ts-check
 import { variableHex } from './primitives.js';
 import { standardSerializers } from './standard.js';
 import { advancedSerializers } from './advanced.js';

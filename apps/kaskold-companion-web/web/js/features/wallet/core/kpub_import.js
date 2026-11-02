@@ -1,3 +1,4 @@
+// @ts-check
 import {
     networkState,
     scannerState,

@@ -1,3 +1,4 @@
+// @ts-check
 import { newId } from './repository.js';
 import { parseKas, usdToMicro, microToUsd, formatKas } from './exact_money.js';
 
@@ -30,6 +31,7 @@ function consumeLineBreak(state, source, index) {
 }
 
 function parseRecords(text) {
+    /** @type {{ records: string[][], row: string[], cell: string, quoted: boolean }} */
     const state = { records: [], row: [], cell: '', quoted: false };
     const source = String(text ?? '');
     for (let index = 0; index < source.length; index += 1) {

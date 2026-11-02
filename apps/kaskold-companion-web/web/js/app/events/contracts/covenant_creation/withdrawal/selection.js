@@ -1,17 +1,17 @@
-import { byId } from '../../../../../core/dom.js';
+// @ts-check
+import { checkboxesIn, elementById } from '../../../../../core/dom.js';
 import { exactJsonStringify, exactUnsigned } from '../../../../../core/exact.js';
 
 export function selectedUtxos() {
-    const list = byId('cov-consol-list');
+    const list = elementById('cov-consol-list');
     const utxos = JSON.parse(list.dataset.utxos || '[]');
-    return Array.from(list.querySelectorAll('input[type="checkbox"]'))
+    return Array.from(checkboxesIn(list))
         .filter(checkbox => checkbox.checked)
-        .map(checkbox => utxos[Number.parseInt(checkbox.dataset.utxoIdx, 10)]);
+        .map(checkbox => utxos[Number.parseInt(String(checkbox.dataset.utxoIdx), 10)]);
 }
 
 export function setAllSelected(selected) {
-    byId('cov-consol-list')
-        .querySelectorAll('input[type="checkbox"]')
+    checkboxesIn(elementById('cov-consol-list'))
         .forEach(checkbox => { checkbox.checked = selected; });
 }
 

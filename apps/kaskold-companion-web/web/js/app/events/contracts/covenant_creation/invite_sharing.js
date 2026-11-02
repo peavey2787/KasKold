@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState } from '../../../state/index.js';
 import { toast } from '../../../../core/ui/toast.js';
 import { showStaticPayloadQr } from '../../../../features/qr_display/static_payload.js';

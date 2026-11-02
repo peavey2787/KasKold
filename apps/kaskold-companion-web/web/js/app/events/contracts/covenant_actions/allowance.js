@@ -1,8 +1,9 @@
+// @ts-check
 import { covenantState } from '../../../state/index.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
 import { toast } from '../../../../core/ui/toast.js';
 import { fetch_utxos_for_address_js, thread_maximum_withdraw } from '../../../../wasm/api.js';
-import { byId } from '../../../../core/dom.js';
+import { byId, inputById } from '../../../../core/dom.js';
 import { durationPartsToSeconds, formatDuration } from '../../../../core/format.js';
 import { sompiToKasString } from '../../../../core/amounts.js';
 const MIN_RETURN = 10_000_000n;
@@ -36,7 +37,7 @@ async function fillMaximumBeneficiaryWithdrawal() {
             return;
         }
         const formatted = sompiToKasString(amount);
-        byId('cov-bene-amount').value = formatted;
+        inputById('cov-bene-amount').value = formatted;
         const closesThread = amount === balance;
         toast(
             closesThread ? `Full drain: ${formatted} KAS (closes the thread)` : `Max: ${formatted} KAS`,
@@ -49,13 +50,13 @@ async function fillMaximumBeneficiaryWithdrawal() {
 }
 
 function bindAllowancePeriod() {
-    const periodSelect = byId('cov-allowance-period');
+    const periodSelect = inputById('cov-allowance-period');
     if (!periodSelect) return;
     const labels = {'3600':'1 hour','21600':'6 hours','43200':'12 hours','86400':'24 hours','604800':'7 days','2592000':'30 days'};
     const updateSummary = () => {
         const value = periodSelect.value;
-        const kas = byId('cov-allowance-max').value || '?';
-        const seconds = parseInt(byId('cov-allowance-seq').value) || 0;
+        const kas = inputById('cov-allowance-max').value || '?';
+        const seconds = parseInt(inputById('cov-allowance-seq').value) || 0;
         const period = value === 'custom'
             ? (seconds > 0 ? formatDuration(seconds) : 'custom period')
             : (labels[value] || value + 's');
@@ -64,18 +65,18 @@ function bindAllowancePeriod() {
     };
     const recalculateSeconds = () => {
         const values = ['years', 'months', 'days', 'hours', 'mins'].map(
-            part => parseInt(byId(`cov-allow-${part}`).value) || 0,
+            part => parseInt(inputById(`cov-allow-${part}`).value) || 0,
         );
         const [years, months, days, hours, minutes] = values;
         const total = durationPartsToSeconds({ years, months, days, hours, minutes });
-        byId('cov-allowance-seq').value = total > 0 ? total : '';
+        inputById('cov-allowance-seq').value = total > 0 ? String(total) : '';
         updateSummary();
     };
     periodSelect.onchange = () => {
         const custom = periodSelect.value === 'custom';
         const customWrap = byId('cov-allowance-custom-wrap');
         if (customWrap) customWrap.classList.toggle('hidden', !custom);
-        if (!custom) byId('cov-allowance-seq').value = periodSelect.value;
+        if (!custom) inputById('cov-allowance-seq').value = periodSelect.value;
         updateSummary();
     };
     ['years', 'months', 'days', 'hours', 'mins'].forEach(part => {

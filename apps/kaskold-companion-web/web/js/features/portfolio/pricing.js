@@ -1,3 +1,4 @@
+// @ts-check
 const COINGECKO_SIMPLE = 'https://api.coingecko.com/api/v3/simple/price?ids=kaspa&vs_currencies=usd';
 const COINGECKO_CHART = 'https://api.coingecko.com/api/v3/coins/kaspa/market_chart?vs_currency=usd';
 const COINPAPRIKA = 'https://api.coinpaprika.com/v1/tickers/kas-kaspa';
@@ -151,6 +152,6 @@ export function historicalPriceAt(points, timestampMs) {
     const interval = BigInt(next.timestampMs - previous.timestampMs);
     if (interval <= 0n) return previous.priceMicroUsd;
     const elapsed = BigInt(timestampMs - previous.timestampMs);
-    const delta = next.priceMicroUsd - previous.priceMicroUsd;
+    const delta = BigInt(next.priceMicroUsd) - BigInt(previous.priceMicroUsd);
     return previous.priceMicroUsd + (delta * elapsed) / interval;
 }

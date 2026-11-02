@@ -1,3 +1,4 @@
+// @ts-check
 const ACCOUNT_KEY_TEXT_RE = /^kpub1:[0-9a-f]{156}$/;
 const BIP32_XPUB_RE = /^xpub[1-9A-HJ-NP-Za-km-z]+$/;
 const COMPACT_ACCOUNT_KEY_LENGTH = 79;

@@ -1,3 +1,4 @@
+// @ts-check
 import {
     navigationState,
     networkState,
@@ -9,7 +10,7 @@ import { navigateBack, showScreen } from '../../app/navigation.js';
 import { renderBrowserConnectivity } from '../../core/ui/connectivity_status.js';
 import { setScreenReturn, takeScreenReturn, visibleScreenName } from '../../core/ui/screen_dom.js';
 import { toast } from '../../core/ui/toast.js';
-import { byId } from '../../core/dom.js';
+import { inputById } from '../../core/dom.js';
 import { hardenedWalletCleanup } from '../wallet/state_reset.js';
 import { renderWelcomeKpubs } from '../wallet/kpub_manager/index.js';
 import { fetchAddressHistory, refreshBalance } from '../wallet/core.js';
@@ -26,11 +27,11 @@ export function showSettings(returnScreen) {
         navigationState.settingsReturnScreen = source;
         setScreenReturn('settings', source);
     }
-    byId('input-node-url').value = networkState.customNodeUrl || '';
-    byId('select-network').value = networkState.network;
-    byId('chk-addr-history').checked = walletState.addressHistoryEnabled;
-    byId('input-rest-url').value = networkState.customRestUrl || '';
-    byId('chk-stealth-indexer').checked = stealthState.stealthIndexerEnabled;
+    inputById('input-node-url').value = networkState.customNodeUrl || '';
+    inputById('select-network').value = networkState.network;
+    inputById('chk-addr-history').checked = walletState.addressHistoryEnabled;
+    inputById('input-rest-url').value = networkState.customRestUrl || '';
+    inputById('chk-stealth-indexer').checked = stealthState.stealthIndexerEnabled;
     showScreen('settings');
 }
 
@@ -41,22 +42,22 @@ export function clearCustomNode() {
 
 
 export function saveSettings() {
-    const nodeUrl = byId('input-node-url').value.trim();
+    const nodeUrl = inputById('input-node-url').value.trim();
     networkState.customNodeUrl = nodeUrl || null;
     const wasHistoryEnabled = walletState.addressHistoryEnabled;
-    walletState.addressHistoryEnabled = byId('chk-addr-history').checked;
-    networkState.customRestUrl = byId('input-rest-url').value.trim() || null;
+    walletState.addressHistoryEnabled = inputById('chk-addr-history').checked;
+    networkState.customRestUrl = inputById('input-rest-url').value.trim() || null;
     if (walletState.addressHistoryEnabled && !networkState.customRestUrl) {
         walletState.addressHistoryEnabled = false;
-        byId('chk-addr-history').checked = false;
+        inputById('chk-addr-history').checked = false;
         toast('Address history requires a REST URL', 'info', 2500);
     } else if (walletState.addressHistoryEnabled && !wasHistoryEnabled) {
         fetchAddressHistory();
     }
-    stealthState.stealthIndexerEnabled = byId('chk-stealth-indexer').checked;
+    stealthState.stealthIndexerEnabled = inputById('chk-stealth-indexer').checked;
     localStorage.setItem('companion-stealth-indexer', stealthState.stealthIndexerEnabled ? '1' : '0');
 
-    const newNetwork = byId('select-network').value;
+    const newNetwork = inputById('select-network').value;
     if (newNetwork !== networkState.network) {
         networkState.network = newNetwork;
         hardenedWalletCleanup();

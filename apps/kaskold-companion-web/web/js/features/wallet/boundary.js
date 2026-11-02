@@ -1,3 +1,4 @@
+// @ts-check
 // The Rust boundary and application state the wallet domain uses.
 export {
     create_consolidate_pskb,

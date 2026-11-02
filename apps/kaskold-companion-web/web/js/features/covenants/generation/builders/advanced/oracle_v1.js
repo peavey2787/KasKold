@@ -1,16 +1,17 @@
+// @ts-check
 import { networkState, covenant_oracle_v1 } from '../../../boundary.js';
 import { addressToXOnly } from '../../../../../core/address.js';
-import { byId } from '../../../../../core/dom.js';
+import { inputById } from '../../../../../core/dom.js';
 import { exactUnsigned } from '../../../../../core/exact.js';
 import { resolveFutureDaa } from '../../../../../core/node/future_daa.js';
 import { toast } from '../../../../../core/ui/toast.js';
 
 export async function buildOracleV1(ownerPk) {
-    const beneficiaryPk = addressToXOnly(byId('cov-oracle-v1-bene').value);
-    const oraclePk = byId('cov-oracle-v1-pubkey').value.trim().toLowerCase();
-    const oracleKeyId = byId('cov-oracle-v1-key-id').value.trim().toLowerCase();
-    const statement = byId('cov-oracle-v1-statement').value.trim();
-    const date = byId('cov-oracle-v1-datetime').value;
+    const beneficiaryPk = addressToXOnly(inputById('cov-oracle-v1-bene').value);
+    const oraclePk = inputById('cov-oracle-v1-pubkey').value.trim().toLowerCase();
+    const oracleKeyId = inputById('cov-oracle-v1-key-id').value.trim().toLowerCase();
+    const statement = inputById('cov-oracle-v1-statement').value.trim();
+    const date = inputById('cov-oracle-v1-datetime').value;
     if (!beneficiaryPk || beneficiaryPk.length !== 64) {
         toast('Enter or scan the beneficiary address', 'error'); return;
     }
@@ -26,7 +27,7 @@ export async function buildOracleV1(ownerPk) {
         toast(error.message, 'error'); return;
     }
     if (locktimeDaa === 0n) { toast('Refund date must be in the future', 'error'); return; }
-    byId('cov-oracle-v1-locktime').value = String(locktimeDaa);
+    inputById('cov-oracle-v1-locktime').value = String(locktimeDaa);
     const resultJson = covenant_oracle_v1(
         ownerPk, beneficiaryPk, oraclePk, oracleKeyId, statement, locktimeDaa, networkState.network,
     );

@@ -1,3 +1,4 @@
+// @ts-check
 import { networkState } from '../../boundary.js';
 import { decodeCommitReveal } from './extended/commit_reveal.js';
 import { decodeGeneric } from './extended/generic.js';

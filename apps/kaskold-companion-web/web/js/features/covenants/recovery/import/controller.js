@@ -1,3 +1,4 @@
+// @ts-check
 import { scannerState, walletSession } from '../../boundary.js';
 import { toast } from '../../../../core/ui/toast.js';
 import { stopScanner } from '../../../stealth/index/camera.js';

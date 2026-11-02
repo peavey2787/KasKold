@@ -1,3 +1,4 @@
+// @ts-check
 // Pure covenant payload readers.
 
 // Helper: read 8-byte LE u64 from hex at offset (in hex chars)

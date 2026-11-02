@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState } from '../../../../../../boundary.js';
 import { covSaveActive } from '../../../../../../recovery/active.js';
 

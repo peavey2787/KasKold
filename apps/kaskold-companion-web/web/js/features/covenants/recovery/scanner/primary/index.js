@@ -1,3 +1,4 @@
+// @ts-check
 import { rebuildAdditive, rebuildDms, rebuildGlobalAllowance, rebuildGlobalSpendingLimit } from './basic.js';
 import { rebuildEscrow, rebuildTimelockedSavings } from './participants.js';
 import { rebuildOracleV1 } from './oracle.js';

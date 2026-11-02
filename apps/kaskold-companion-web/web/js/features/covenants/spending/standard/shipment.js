@@ -1,3 +1,4 @@
+// @ts-check
 import { applyScriptTerms } from '../../model/script_terms.js';
 import { el, setContent, span } from '../../../../core/ui/elements.js';
 import {
@@ -14,7 +15,7 @@ import { getCovFee } from '../../payload/state.js';
 import { openPsktReview } from '../../../transactions/pskt_multisig/review.js';
 import { encodeCovenantSpend } from './spend_document.js';
 // KasKold Companion Web — features/covenants/spending/standard/shipment
-import { byId } from '../../../../core/dom.js';
+import { byId, inputById } from '../../../../core/dom.js';
 import { exactUnsigned } from '../../../../core/exact.js';
 import { sompiToKasString } from '../../../../core/amounts.js';
 
@@ -60,7 +61,7 @@ function setStateText(stateEl, text) {
 // ── Panel refresh ──
 
 function fillIfBlank(id, value) {
-    const input = byId(id);
+    const input = inputById(id);
     if (input && !input.value.trim()) input.value = value;
 }
 
@@ -72,8 +73,8 @@ function prefillShipFields() {
 }
 
 function readShipPanelInputs() {
-    const addrEl = byId('cov-ship-addr');
-    const scriptEl = byId('cov-ship-script');
+    const addrEl = inputById('cov-ship-addr');
+    const scriptEl = inputById('cov-ship-script');
     return {
         covAddr: addrEl ? addrEl.value.trim() : '',
         redeemHex: scriptEl ? scriptEl.value.trim() : '',
@@ -183,6 +184,7 @@ function planRefund({ P, inAmt, txfee }, branch) {
     };
 }
 
+/** @type {Map<string, (ctx: any, branch: string) => any>} */
 const SHIP_BRANCH_PLANNERS = new Map([
     ['pickup', planPickup],
     ['delivery', planDelivery],
@@ -210,8 +212,8 @@ export async function buildShipSpendPskb(covAddr, branch, P, redeemHex) {
 }
 
 export async function handleShipEscrowSpend(branch) {
-    const covAddr = byId('cov-ship-addr').value.trim();
-    const redeemHex = byId('cov-ship-script').value.trim();
+    const covAddr = inputById('cov-ship-addr').value.trim();
+    const redeemHex = inputById('cov-ship-script').value.trim();
     const P = readShipSpendParams(covAddr, redeemHex);
     if (!P) return;
 

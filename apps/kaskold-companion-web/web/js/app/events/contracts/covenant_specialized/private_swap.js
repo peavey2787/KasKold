@@ -1,3 +1,4 @@
+// @ts-check
 import { byId } from '../../../../core/dom.js';
 import { covShowPanel } from '../../../../features/covenants/generation/panel_keys.js';
 import {

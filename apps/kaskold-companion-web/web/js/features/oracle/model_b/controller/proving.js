@@ -1,3 +1,4 @@
+// @ts-check
 import { oracleState } from '../../boundary.js';
 import { toast } from '../../../../core/ui/toast.js';
 import { u64ToLittleEndianHex } from '../../../../core/bytes.js';

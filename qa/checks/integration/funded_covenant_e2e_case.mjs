@@ -15,6 +15,7 @@ const FEE = 1_000_000n;
 const FUNDING = 3n * KAS;
 const POLL_MS = 2_000;
 const COIN_TIMEOUT_MS = 120_000;
+const CASE_TIMEOUT_MS = 300_000;
 /** DAA scores between "now" and a lock: long enough to fund before it passes. */
 const LOCK_MARGIN = 60n;
 const ROLE_KEYS = 3;
@@ -42,6 +43,19 @@ async function sign(kspt) {
 }
 
 const pause = ms => new Promise(resolve => { setTimeout(resolve, ms); });
+
+async function report(line) {
+    await fetch('/__qa_funded_progress__', { method: 'POST', body: line });
+}
+
+/** A node call that never answers fails its case instead of the whole run. */
+function withinCaseLimit(spend) {
+    return Promise.race([
+        spend(),
+        pause(CASE_TIMEOUT_MS).then(() => { throw new Error(`no result within ${CASE_TIMEOUT_MS} ms`); }),
+    ]);
+}
+
 const node = operation => withNodeRetry(operation);
 const key = index => JSON.parse(wasm.decode_address(wallet.receive_addresses[index])).payload;
 const daa = async () => BigInt(await node(wsUrl => wasm.get_virtual_daa_score(wsUrl)));
@@ -155,23 +169,14 @@ function savingsCases() {
 
 function escrowCases() {
     const terms = { alice_address: wallet.receive_addresses[3], bob_address: wallet.receive_addresses[4] };
-    const covenant = () => parsed(wasm.covenant_escrow(key(0), key(1), key(2), terms.alice_address, terms.bob_address, network));
-    const spend = async branch => {
-        const { address, redeem_script_hex: redeem } = covenant();
-        const paidTo = resolveEscrowDestination(branch, address, terms);
-        return spendAndSee(await buildEscrowSpendPskb(branch, address, redeem, paidTo), paidTo);
-    };
+    // Every escrow is salted, so one covenant must serve both the funding and the spend.
     const cases = {};
-    for (const branch of ESCROW_DISPUTES) {
+    for (const branch of [...ESCROW_DISPUTES, ...ESCROW_PAYOUTS]) {
         cases[`escrow ${branch}`] = async () => {
-            await fund(covenant().address, 'escrow');
-            return spend(branch);
-        };
-    }
-    for (const branch of ESCROW_PAYOUTS) {
-        cases[`escrow ${branch}`] = async () => {
-            await fund(covenant().address, 'escrow');
-            return spend(branch);
+            const covenant = parsed(wasm.covenant_escrow(key(0), key(1), key(2), terms.alice_address, terms.bob_address, network));
+            await fund(covenant.address, 'escrow');
+            const paidTo = resolveEscrowDestination(branch, covenant.address, terms);
+            return spendAndSee(await buildEscrowSpendPskb(branch, covenant.address, covenant.redeem_script_hex, paidTo), paidTo);
         };
     }
     return cases;
@@ -247,10 +252,12 @@ async function run() {
     for (const [name, spend] of Object.entries(cases)) {
         if (input.only && !name.includes(input.only)) continue;
         try {
-            spends.push({ name, txid: await spend() });
+            spends.push({ name, txid: await withinCaseLimit(spend) });
         } catch (error) {
             spends.push({ name, error: error instanceof Error ? error.message : String(error) });
         }
+        const last = spends[spends.length - 1];
+        await report(`${last.txid ? 'OK  ' : 'FAIL'} ${name} :: ${last.txid ?? last.error}`);
     }
     await finish('pass', { phase: 'covenants', network, spends });
 }

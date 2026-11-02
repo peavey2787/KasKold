@@ -1,3 +1,4 @@
+// @ts-check
 import { toast } from '../../../../../core/ui/toast.js';
 const TYPE_LABELS = {
     dms: 'DMS',

@@ -1,3 +1,4 @@
+// @ts-check
 import { networkState, walletSession, walletState } from '../boundary.js';
 import { kaspaRestApiBase } from '../../../core/config/network.js';
 

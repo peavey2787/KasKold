@@ -1,3 +1,4 @@
+// @ts-check
 export function configureAdditive({ beneBtn, ownerBtn, consolBtn, fundBtn }) {
     if (fundBtn) fundBtn.textContent = 'Covenant Deposit';
     beneBtn.style.display = 'none';

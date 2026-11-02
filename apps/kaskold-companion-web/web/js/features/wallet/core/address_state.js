@@ -1,3 +1,4 @@
+// @ts-check
 import { networkState, walletSession, walletState, extend_addresses } from '../boundary.js';
 import { GAP_EXPAND_CHANGE, GAP_EXPAND_RECEIVE } from '../../../core/config/network.js';
 

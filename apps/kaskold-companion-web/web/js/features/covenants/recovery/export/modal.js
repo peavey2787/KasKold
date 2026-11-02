@@ -1,3 +1,4 @@
+// @ts-check
 import { toast } from '../../../../core/ui/toast.js';
 import { downloadCovenantExport } from './file_download.js';
 import { presentExportQr } from './qr_presenter.js';

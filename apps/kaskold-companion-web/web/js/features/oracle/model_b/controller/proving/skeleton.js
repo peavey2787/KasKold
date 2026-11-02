@@ -1,3 +1,4 @@
+// @ts-check
 import { oracleState, walletSession } from '../../../boundary.js';
 import { kasToSompi } from '../../../../../core/amounts.js';
 import { openPsktReview } from '../../../../transactions/pskt_multisig/review.js';

@@ -1,3 +1,4 @@
+// @ts-check
 // Oracle Model B formatting utilities.
 export function formatPrice(mantissa) {
     const value = Number(mantissa) / 1e8;

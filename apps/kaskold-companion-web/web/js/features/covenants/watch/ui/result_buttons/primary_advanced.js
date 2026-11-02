@@ -1,3 +1,4 @@
+// @ts-check
 import { configureCommitRevealActions } from './primary_advanced/commit_reveal.js';
 import { configureDefaultActions } from './primary_advanced/defaults.js';
 import { configureMerkleActions } from './primary_advanced/merkle.js';

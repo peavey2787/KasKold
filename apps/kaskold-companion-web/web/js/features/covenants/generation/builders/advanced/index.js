@@ -1,3 +1,4 @@
+// @ts-check
 import { buildPayjoin } from './payjoin.js';
 import { buildCommitReveal } from './commit_reveal.js';
 import { buildMerkleWhitelist } from './merkle_whitelist.js';

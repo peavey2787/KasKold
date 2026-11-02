@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState, crowdfundState } from '../boundary.js';
 import { covSaveActive } from '../recovery/active.js';
 import { contributionJson, contributionList } from './model.js';

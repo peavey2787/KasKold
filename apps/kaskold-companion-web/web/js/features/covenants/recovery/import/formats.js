@@ -1,3 +1,4 @@
+// @ts-check
 import { bytesToHex } from '../../../../core/bytes.js';
 
 const COVB_HEX = '434f5642';

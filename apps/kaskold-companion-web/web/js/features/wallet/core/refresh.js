@@ -1,3 +1,4 @@
+// @ts-check
 import { navigationState, scannerState, uiState, walletSession } from '../boundary.js';
 import { AUTO_REFRESH_INTERVAL } from '../../../core/config/network.js';
 import { refreshBalance } from './balance.js';

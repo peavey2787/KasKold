@@ -1,3 +1,4 @@
+// @ts-check
 import { networkState, covenant_dms } from '../../../boundary.js';
 import { readU64 } from '../payload_reader.js';
 import { baseRecoveredRecord, normalizedCovenantId, readStoredScript } from './common.js';

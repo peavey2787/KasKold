@@ -1,3 +1,4 @@
+// @ts-check
 import { networkState, walletSession, fetch_utxos_complete } from '../boundary.js';
 import { kaspaRestApiBase } from '../../../core/config/network.js';
 import { exactUnsigned } from '../../../core/exact.js';

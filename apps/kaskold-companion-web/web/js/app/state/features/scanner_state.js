@@ -1,4 +1,6 @@
+// @ts-check
 // Explicit scannerState shape. Complex behavior belongs in domain facades; this object holds simple session state.
+/** @type {Record<string, any>} */
 export const scannerState = Object.seal({
     '_covbFrames': null,
     '_covbImporting': false,

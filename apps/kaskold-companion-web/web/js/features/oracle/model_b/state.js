@@ -1,3 +1,5 @@
+// @ts-check
+/** @type {Record<string, any>} */
 export const oracleMbIdentity = {
     heartbeatAddress: null,
     heartbeatCovIdH: null,

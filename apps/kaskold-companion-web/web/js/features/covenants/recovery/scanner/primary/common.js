@@ -1,3 +1,4 @@
+// @ts-check
 import { networkState, redeem_script_address } from '../../../boundary.js';
 import { readLen } from '../payload_reader.js';
 

@@ -1,3 +1,4 @@
+// @ts-check
 // The Rust boundary and application state the transactions domain uses.
 export {
     anti_klepto_accept_commitment,

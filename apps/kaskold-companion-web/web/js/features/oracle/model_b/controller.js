@@ -1,3 +1,4 @@
+// @ts-check
 import { oracleState } from '../boundary.js';
 import { ORACLE_MB_DEPLOY } from './config.js';
 import { applyDeployedOracleIdentity } from './state.js';

@@ -1,3 +1,4 @@
+// @ts-check
 import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
 
 const REQUEST_MAGIC = new TextEncoder().encode('CVSG');
@@ -45,7 +46,7 @@ export function covenantKeyRequestHex() {
  */
 export function covenantBindRequestHex({
     keyIdHex, scriptHex, context = new Uint8Array(), commitmentHex = '00'.repeat(32),
-    scheme = CovenantKnownScheme.NONE, verifyDirectKeyBinding = false,
+    scheme = /** @type {number} */ (CovenantKnownScheme.NONE), verifyDirectKeyBinding = false,
 }) {
     const binding = scheme === CovenantKnownScheme.NONE
         ? (verifyDirectKeyBinding ? CovenantBinding.KEY_PRESENT : CovenantBinding.NONE)
@@ -60,7 +61,7 @@ export function covenantBindRequestHex({
 
 export function covenantKnownRequestHex({
     sessionIdHex, hostCommitmentHex, keyIdHex, bindingTokenHex, commitmentHex, scriptHex, context,
-    scheme = CovenantKnownScheme.SHA256_PREIMAGE,
+    scheme = /** @type {number} */ (CovenantKnownScheme.SHA256_PREIMAGE),
 }) {
     return encodeRequest({
         kind: CovenantRequestKind.KNOWN, scheme, binding: knownBinding(scheme),
@@ -131,7 +132,7 @@ export function covenantSignatureResponseHex({
 
 export async function sha256Commitment(data) {
     const bytes = data instanceof Uint8Array ? data : new TextEncoder().encode(String(data));
-    return bytesToHex(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)));
+    return bytesToHex(new Uint8Array(await crypto.subtle.digest('SHA-256', /** @type {Uint8Array<ArrayBuffer>} */ (bytes))));
 }
 
 export async function covenantScriptFingerprint(scriptHex) {

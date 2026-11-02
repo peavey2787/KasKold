@@ -1,3 +1,4 @@
+// @ts-check
 // Stable covenant_creation event composition.
 import { registerCreationNavigation } from './covenant_creation/creation_navigation.js';
 import { registerClaimSharing } from './covenant_creation/claim_sharing.js';

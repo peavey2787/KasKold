@@ -1,3 +1,4 @@
+// @ts-check
 import {
     crowdfundState,
     networkState,
@@ -7,7 +8,7 @@ import {
     zk_crowdfund_setup,
 } from '../boundary.js';
 import { kasToSompi, sompiToKasString } from '../../../core/amounts.js';
-import { byId } from '../../../core/dom.js';
+import { byId, inputById } from '../../../core/dom.js';
 import { exactUnsigned } from '../../../core/exact.js';
 import { resolveFutureDaa } from '../../../core/node/future_daa.js';
 import { toast } from '../../../core/ui/toast.js';
@@ -27,7 +28,7 @@ export function setCrowdfundRole(role) {
 }
 
 export function populateOrganizerDestination() {
-    const input = byId('cov-crowdfund-organizer-address');
+    const input = inputById('cov-crowdfund-organizer-address');
     if (!input || input.value.trim() || !walletSession.hasWallet()) return;
     const addresses = walletSession.current().receive_addresses || [];
     if (addresses[0]) input.value = addresses[0];
@@ -118,7 +119,7 @@ function hasUsableSetup(setup) {
 
 function readGoalFromForm() {
     let goal;
-    try { goal = kasToSompi(byId('cov-crowdfund-goal').value.trim()); }
+    try { goal = kasToSompi(inputById('cov-crowdfund-goal').value.trim()); }
     catch { toast('Enter a valid crowdfunding goal with at most 8 decimals', 'error'); return null; }
     if (goal === 0n) { toast('Crowdfunding goal must be greater than zero', 'error'); return null; }
     return goal;
@@ -137,16 +138,16 @@ async function organizerCampaignFromForm() {
     if (!hasUsableSetup(setup)) {
         toast('Run ZK Trusted Setup first', 'error'); return null;
     }
-    const name = byId('cov-crowdfund-name').value.trim();
-    const organizer = byId('cov-crowdfund-organizer-address').value.trim();
-    const date = byId('cov-crowdfund-datetime').value;
+    const name = inputById('cov-crowdfund-name').value.trim();
+    const organizer = inputById('cov-crowdfund-organizer-address').value.trim();
+    const date = inputById('cov-crowdfund-datetime').value;
     const goal = readGoalFromForm();
     if (goal === null) return null;
     if (!organizer.includes(':')) { toast('Enter a valid organizer destination', 'error'); return null; }
     if (!date) { toast('Choose a contributor refund deadline', 'error'); return null; }
     const daa = await resolveRefundDaa(date);
     if (daa === null) return null;
-    byId('cov-crowdfund-locktime').value = String(daa);
+    inputById('cov-crowdfund-locktime').value = String(daa);
     const campaignId = crowdfund_campaign_id(organizer, goal, daa, setup.vk_hex);
     return normalizeCampaign({
         v: 2, t: 'crowdfund-campaign', name, goal: String(goal), daa: String(daa),

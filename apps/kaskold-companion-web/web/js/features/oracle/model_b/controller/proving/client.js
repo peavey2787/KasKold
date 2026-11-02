@@ -1,3 +1,4 @@
+// @ts-check
 export function createOracleProverClient(baseUrl) {
     const base = (baseUrl || '').replace(/\/+$/, '');
     return async function get(path) {

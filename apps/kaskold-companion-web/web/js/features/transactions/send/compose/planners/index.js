@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState, navigationState, transactionState } from '../../../boundary.js';
 import { planCovenant } from './covenant.js';
 import { planAutomatic, planSelected } from './standard.js';

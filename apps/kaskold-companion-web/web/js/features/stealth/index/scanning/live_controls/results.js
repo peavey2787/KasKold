@@ -1,3 +1,4 @@
+// @ts-check
 import { el, setContent, span } from '../../../../../core/ui/elements.js';
 import {
     networkState,
@@ -8,7 +9,7 @@ import {
 } from '../../../boundary.js';
 import { showScreen } from '../../../../../app/navigation.js';
 import { bytesToHex } from '../../../../../core/bytes.js';
-import { byId } from '../../../../../core/dom.js';
+import { byId, elementById } from '../../../../../core/dom.js';
 import { detectWalletNetwork } from '../../../../../core/network.js';
 import { resolveNodeUrl } from '../../../../../core/node/resolver.js';
 import { toast } from '../../../../../core/ui/toast.js';
@@ -58,6 +59,7 @@ const STEALTH_FEE_LEVELS = [
     { level: 'priority', label: 'Priority', amount: '10,000' },
 ];
 
+/** @param {{ level: string, label: string, amount: string, active?: boolean }} option */
 function feeCard({ level, label, amount, active }) {
     return el('button', { className: `fee-card${active ? ' fee-card-active' : ''}`, id: `btn-spf-${level}` },
         el('div', { className: 'fee-card-label' }, label),
@@ -81,7 +83,7 @@ function uncheckedNotice(unchecked) {
 }
 
 function renderFundedResults({ funded, unchecked }) {
-    const list = byId('stealth-found-list');
+    const list = elementById('stealth-found-list');
     if (funded.length === 0) {
         list.textContent = unchecked > 0 ? uncheckedNotice(unchecked) : 'No funded payments for this wallet.';
         return;
@@ -105,12 +107,12 @@ export async function processStealthResult(raw) {
     clearStealthQrTimer();
     showScreen('stealth');
     stealthShowPanel('scan');
-    byId('stealth-found-list').textContent = 'Checking balances...';
-    byId('stealth-scan-results').classList.remove('hidden');
+    elementById('stealth-found-list').textContent = 'Checking balances...';
+    elementById('stealth-scan-results').classList.remove('hidden');
     try {
         renderFundedResults(await findFundedResults());
     } catch {
-        byId('stealth-found-list').textContent = 'Node unavailable, cannot check balances.';
+        elementById('stealth-found-list').textContent = 'Node unavailable, cannot check balances.';
     }
 
     stealthState._stealthBatchStart = (stealthState._stealthBatchStart || 0) + count;

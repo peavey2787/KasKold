@@ -1,9 +1,10 @@
+// @ts-check
 import { networkState, walletSession, walletState } from '../boundary.js';
 import { kaspaRestApiBase } from '../../../core/config/network.js';
 import { hideLoading, showLoading, showScreen } from '../../../app/navigation.js';
 
 import { timeAgo } from '../../../core/time.js';
-import { byId } from '../../../core/dom.js';
+import { byId, elementById } from '../../../core/dom.js';
 import { formatTransactionTime } from '../../../core/format.js';
 import { explorerTransactionUrl } from '../../../core/explorer.js';
 import { exactUnsigned } from '../../../core/exact.js';
@@ -132,11 +133,11 @@ async function fetchArchivalHistory() {
 }
 
 function renderHistory() {
-    const list = byId('history-list');
+    const list = elementById('history-list');
     list.replaceChildren();
     byId('screen-history')?.classList.toggle('history-compact', walletState.historyEntries.length <= 4);
     if (walletState.historyEntries.length === 0) {
-        byId('history-summary').textContent = 'No transactions found';
+        elementById('history-summary').textContent = 'No transactions found';
         const empty = document.createElement('div');
         empty.className = 'u-align-text-center-text-text-muted-padding-20px';
         empty.textContent = 'No transaction history available';
@@ -144,7 +145,7 @@ function renderHistory() {
         return;
     }
 
-    byId('history-summary').textContent = walletState.historyEntries.length + ' transaction' + (walletState.historyEntries.length !== 1 ? 's' : '');
+    elementById('history-summary').textContent = walletState.historyEntries.length + ' transaction' + (walletState.historyEntries.length !== 1 ? 's' : '');
     walletState.historyEntries.forEach(h => {
         const kas = sompiToKasFixed(exactUnsigned(h.amount ?? 0n, 'history amount sompi'), 8);
         const incoming = h.type === 'in';

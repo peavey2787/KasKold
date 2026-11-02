@@ -1,5 +1,6 @@
+// @ts-check
 import { covenantState, networkState, walletSession } from '../boundary.js';
-import { byId } from '../../../core/dom.js';
+import { inputById } from '../../../core/dom.js';
 import { ceilFeeFromRate } from '../../../core/fee_math.js';
 // KasKold Companion Web — features/covenants/payload/state
 
@@ -38,5 +39,5 @@ export function ownerReceiveAddr() {
 
 // A savings covenant is claimable by either key; the script needs to know which.
 export function savingsClaimKeyPosition() {
-    return Number(byId('cov-bene-savings-key').value);
+    return Number(inputById('cov-bene-savings-key').value);
 }

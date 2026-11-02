@@ -1,3 +1,4 @@
+// @ts-check
 import { ORACLE_MB_PROTOCOL } from './config.js';
 import { oracleMbIdentity } from './state.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';

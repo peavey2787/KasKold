@@ -1,6 +1,7 @@
+// @ts-check
 import { networkState, walletSession } from '../../../state/index.js';
 import { kasToSompi } from '../../../../core/amounts.js';
-import { byId } from '../../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../../core/dom.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
 import { toast } from '../../../../core/ui/toast.js';
 import { covShowPanel } from '../../../../features/covenants/generation/panel_keys.js';
@@ -46,9 +47,9 @@ function bindWatchOnlyIdentity(state, log) {
     button.onclick = () => {
         try {
             const identity = requireWatchOnlyOwner(state);
-            byId('tv-eph-address').textContent = identity.address;
-            byId('tv-eph-pubkey').textContent = identity.ownerPubkey;
-            byId('tv-keygen-result').classList.remove('hidden');
+            elementById('tv-eph-address').textContent = identity.address;
+            elementById('tv-eph-pubkey').textContent = identity.ownerPubkey;
+            elementById('tv-keygen-result').classList.remove('hidden');
             log(`Watch-only owner loaded: ${identity.address}`);
             toast('Using kpub/xpub watch-only account. Signing stays on KasKold.', 'ok', 3500);
         } catch (error) {
@@ -100,9 +101,9 @@ function bindSpend(state, log) {
                 networkState.network, await resolveNodeUrl(),
             ));
             log(`Continuation PSKB ready; covenant ID remains ${result.covenant_id_hex}`);
-            byId('tv-spend-covid').textContent = result.covenant_id_hex;
-            byId('tv-spend-txid').textContent = 'Pending KasKold signature';
-            byId('tv-spend-result').classList.remove('hidden');
+            elementById('tv-spend-covid').textContent = result.covenant_id_hex;
+            elementById('tv-spend-txid').textContent = 'Pending KasKold signature';
+            elementById('tv-spend-result').classList.remove('hidden');
             openPsktReview(result.pskb_hex);
             toast('Continuation PSKB ready. Sign it on KasKold.', 'ok', 4000);
         } catch (error) {
@@ -147,7 +148,7 @@ function bindSplit(state, log) {
 }
 
 function readAmount(inputId) {
-    const input = byId(inputId).value.trim();
+    const input = inputById(inputId).value.trim();
     try {
         const sompi = kasToSompi(input);
         if (sompi < 10_000_000n) throw new Error('below minimum');
@@ -159,17 +160,17 @@ function readAmount(inputId) {
 }
 
 function renderGenesis(result) {
-    byId('tv-genesis-txid').textContent = 'Pending KasKold signature';
-    byId('tv-covenant-id').textContent = result.covenant_id_hex;
-    byId('tv-covenant-addr').textContent = result.covenant_address;
-    byId('tv-genesis-result').classList.remove('hidden');
+    elementById('tv-genesis-txid').textContent = 'Pending KasKold signature';
+    elementById('tv-covenant-id').textContent = result.covenant_id_hex;
+    elementById('tv-covenant-addr').textContent = result.covenant_address;
+    elementById('tv-genesis-result').classList.remove('hidden');
 }
 
 function renderSplit(result) {
-    byId('tv-split-txid').textContent = 'Pending KasKold signature';
-    byId('tv-split-covid').textContent = result.covenant_id_hex;
-    byId('tv-split-amounts').textContent = `${result.amount_a} / ${result.amount_b} sompi`;
-    byId('tv-split-result').classList.remove('hidden');
+    elementById('tv-split-txid').textContent = 'Pending KasKold signature';
+    elementById('tv-split-covid').textContent = result.covenant_id_hex;
+    elementById('tv-split-amounts').textContent = `${result.amount_a} / ${result.amount_b} sompi`;
+    elementById('tv-split-result').classList.remove('hidden');
 }
 
 function reportFailure(operation, error, log) {

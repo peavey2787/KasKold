@@ -1,3 +1,4 @@
+// @ts-check
 import { el } from '../../../core/ui/elements.js';
 
 const STEP_CLASS = 'mbpv-step u-display-flex-direction-column-align-center-gap-7px';
@@ -31,7 +32,7 @@ export function showOracleProvingScreen(priceRaw) {
     el('div', { className: 'price-proof-metrics' }, provingStep(1, 'Prove', true), provingStep(2, 'Broadcast', false))));
   document.body.appendChild(overlay);
   const startedAt = Date.now();
-  overlay._timer = setInterval(() => {
+  /** @type {any} */ (overlay)._timer = setInterval(() => {
     const elapsed = Math.floor((Date.now() - startedAt) / 1000);
     const timer = document.getElementById('mb-prove-timer');
     if (timer) timer.textContent = Math.floor(elapsed / 60) + ':' + String(elapsed % 60).padStart(2, '0') + ' elapsed';
@@ -55,6 +56,6 @@ export function setOracleProvingStage(stage) {
 export function hideOracleProvingScreen() {
   const overlay = document.getElementById('mb-prove');
   if (!overlay) return;
-  if (overlay._timer) clearInterval(overlay._timer);
+  if (/** @type {any} */ (overlay)._timer) clearInterval(/** @type {any} */ (overlay)._timer);
   overlay.remove();
 }

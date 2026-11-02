@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState, covenantWatcherState } from '../../boundary.js';
 import { createBlockAddedSubscription } from '../../blockchain/block_added_subscription.js';
 import { isWatchedCovenantType } from './types.js';

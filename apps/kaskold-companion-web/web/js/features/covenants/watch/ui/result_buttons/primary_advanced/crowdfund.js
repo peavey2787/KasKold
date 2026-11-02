@@ -1,3 +1,4 @@
+// @ts-check
 import { byId } from '../../../../../../core/dom.js';
 import { renderCrowdfundResult } from '../../../../crowdfund/sweep.js';
 

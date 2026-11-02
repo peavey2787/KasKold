@@ -1,4 +1,6 @@
+// @ts-check
 // Transaction composition and review session state.
+/** @type {Record<string, any>} */
 export const transactionState = Object.seal({
     '_currentKsptHex': undefined,
     '_psktReviewHex': undefined,

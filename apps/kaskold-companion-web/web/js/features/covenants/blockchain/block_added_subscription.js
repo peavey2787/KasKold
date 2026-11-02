@@ -1,3 +1,4 @@
+// @ts-check
 import { createBlockAddedTransport } from '../../../core/node/block_added_transport.js';
 import { findSpendingSignatureScript } from './outpoint_parser.js';
 

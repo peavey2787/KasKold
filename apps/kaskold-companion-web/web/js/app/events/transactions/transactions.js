@@ -1,3 +1,4 @@
+// @ts-check
 import { transactionState, walletSession } from '../../state/index.js';
 import { closeRelayModal, handlePsktFinalize, handlePsktRelay, handlePsktRelayKasKoldStandard, handlePsktRelayCompact, openRelayModal } from '../../../features/transactions/pskt_multisig/review.js';
 import { navigateBack } from '../../navigation.js';
@@ -15,53 +16,53 @@ import { refreshBalance, refreshBalanceAfterBroadcast, releasePendingStandardCha
 // KasKold Companion Web — app/events/transactions/transactions
 // Binds transaction creation, review, relay, broadcast, and receive events.
 
-import { byId } from '../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../core/dom.js';
 import { returnFromTransaction, showTransactionReturnScreen, takeTransactionReturnScreen, walletAwareDefaultScreen } from './return_routing.js';
 
 
 export function bindTransactionsEvents() {
 
-    byId('btn-refresh').onclick = () => refreshBalance();
-    byId('btn-balance-unit-toggle').onclick = () => toggleBalanceDisplayUnit();
-    byId('btn-reset-wallet').onclick = () => resetWallet();
-    byId('btn-create-tx').onclick = () => handleCreateTx();
-    byId('input-amount').oninput = event => limitKasAmountPrecision(event.currentTarget);
-    byId('btn-send-max').onclick = () => handleSendMax();
-    byId('input-fee-display').oninput = () => syncFeeInputFromDisplay();
-    byId('btn-fee-unit-toggle').onclick = () => toggleFeeDisplayUnit();
-    byId('btn-scan-dest').onclick = () => startScanner('Scan address QR', handleDestScan);
-    byId('btn-toggle-utxos').onclick = () => toggleSendUtxos();
-    byId('btn-fee-low').onclick = () => setFeeLevel('low');
-    byId('btn-fee-normal').onclick = () => setFeeLevel('normal');
-    byId('btn-fee-priority').onclick = () => setFeeLevel('priority');
-    byId('btn-send-back').onclick = () => returnFromTransaction();
-    byId('btn-qr-back').onclick = () => {
+    elementById('btn-refresh').onclick = () => refreshBalance();
+    elementById('btn-balance-unit-toggle').onclick = () => toggleBalanceDisplayUnit();
+    elementById('btn-reset-wallet').onclick = () => resetWallet();
+    elementById('btn-create-tx').onclick = () => handleCreateTx();
+    elementById('input-amount').oninput = event => limitKasAmountPrecision(event.currentTarget);
+    elementById('btn-send-max').onclick = () => handleSendMax();
+    elementById('input-fee-display').oninput = () => syncFeeInputFromDisplay();
+    elementById('btn-fee-unit-toggle').onclick = () => toggleFeeDisplayUnit();
+    elementById('btn-scan-dest').onclick = () => startScanner('Scan address QR', handleDestScan);
+    elementById('btn-toggle-utxos').onclick = () => toggleSendUtxos();
+    elementById('btn-fee-low').onclick = () => setFeeLevel('low');
+    elementById('btn-fee-normal').onclick = () => setFeeLevel('normal');
+    elementById('btn-fee-priority').onclick = () => setFeeLevel('priority');
+    elementById('btn-send-back').onclick = () => returnFromTransaction();
+    elementById('btn-qr-back').onclick = () => {
         stopQrCycle();
         clearAntiKleptoSession();
         // Restore QR screen buttons (may have been hidden by piggy share)
-        if (byId('btn-qr-scan-signed')) byId('btn-qr-scan-signed').style.display = '';
-        if (byId('btn-scan-next-sig')) byId('btn-scan-next-sig').style.display = '';
+        if (byId('btn-qr-scan-signed')) elementById('btn-qr-scan-signed').style.display = '';
+        if (byId('btn-scan-next-sig')) elementById('btn-scan-next-sig').style.display = '';
         returnFromTransaction();
     };
-    byId('btn-scan-next-sig').onclick = () => { pauseQrCycle(); resetSignedQrImageImportSession(); startScanner('Scan next signature', handleSignedScan, undefined, { allowFrameHex: true }); };
-    byId('btn-toggle-qr-frame-hex').onclick = () => toggleQrFrameHex();
-    byId('btn-copy-all-qr-frame-hex').onclick = () => { void copyAllQrFrameHex(); };
-    byId('btn-qr-scan-signed').onclick = event => {
+    elementById('btn-scan-next-sig').onclick = () => { pauseQrCycle(); resetSignedQrImageImportSession(); startScanner('Scan next signature', handleSignedScan, undefined, { allowFrameHex: true }); };
+    elementById('btn-toggle-qr-frame-hex').onclick = () => toggleQrFrameHex();
+    elementById('btn-copy-all-qr-frame-hex').onclick = () => { void copyAllQrFrameHex(); };
+    elementById('btn-qr-scan-signed').onclick = event => {
         pauseQrCycle();
         resetSignedQrImageImportSession();
-        const title = event.currentTarget.dataset.scanTitle || 'Scan signed QR';
+        const title = /** @type {HTMLElement} */ (event.currentTarget).dataset.scanTitle || 'Scan signed QR';
         startScanner(title, handleSignedScan, undefined, { allowFrameHex: true });
     };
-    byId('btn-copy-kspt').onclick = () => { if (transactionState._currentKsptHex) { navigator.clipboard.writeText(transactionState._currentKsptHex); toast('KSPT hex copied — share with next signer', 'ok', 2000); } };
-    byId('btn-scanner-cancel').onclick = () => stopScanner();
-    byId('btn-copy-address').onclick = () => copyAddress();
-    byId('btn-receive-advanced').onclick = () => toggleReceiveAdvanced();
-    byId('btn-receive-apply').onclick = () => applyReceiveAdvanced();
-    byId('btn-receive-back').onclick = () => navigateBack('dashboard');
-    byId('btn-scan-signed').onclick = () => { resetSignedQrImageImportSession(); resetSignedFrameHexImportSession(); startScanner('Scan signed KasKold QR', handleSignedScan, undefined, { allowFrameHex: true }); };
-    byId('btn-load-signed-qr-image').onclick = () => { resetSignedFrameHexImportSession(); byId('input-signed-qr-image').click(); };
-    byId('input-signed-qr-image').onchange = async event => {
-        const input = event.currentTarget;
+    elementById('btn-copy-kspt').onclick = () => { if (transactionState._currentKsptHex) { navigator.clipboard.writeText(transactionState._currentKsptHex); toast('KSPT hex copied — share with next signer', 'ok', 2000); } };
+    elementById('btn-scanner-cancel').onclick = () => stopScanner();
+    elementById('btn-copy-address').onclick = () => copyAddress();
+    elementById('btn-receive-advanced').onclick = () => toggleReceiveAdvanced();
+    elementById('btn-receive-apply').onclick = () => applyReceiveAdvanced();
+    elementById('btn-receive-back').onclick = () => navigateBack('dashboard');
+    elementById('btn-scan-signed').onclick = () => { resetSignedQrImageImportSession(); resetSignedFrameHexImportSession(); startScanner('Scan signed KasKold QR', handleSignedScan, undefined, { allowFrameHex: true }); };
+    elementById('btn-load-signed-qr-image').onclick = () => { resetSignedFrameHexImportSession(); elementById('input-signed-qr-image').click(); };
+    elementById('input-signed-qr-image').onchange = async event => {
+        const input = /** @type {HTMLInputElement} */ (event.currentTarget);
         const files = Array.from(input.files || []);
         input.value = '';
         for (const file of files) {
@@ -69,7 +70,7 @@ export function bindTransactionsEvents() {
             if (complete !== false) break;
         }
     };
-    const signedFrameHexInput = byId('input-signed-frame-hex');
+    const signedFrameHexInput = inputById('input-signed-frame-hex');
     signedFrameHexInput.onpaste = event => {
         const pasted = event.clipboardData?.getData('text')?.trim() || '';
         if (!pasted) return;
@@ -82,9 +83,9 @@ export function bindTransactionsEvents() {
         event.preventDefault();
         handleSignedFrameHex();
     };
-    byId('btn-broadcast-hex').onclick = () => handleBroadcastHex();
-    byId('btn-broadcast-back').onclick = () => { clearAntiKleptoSession(); resetSignedQrImageImportSession(); resetSignedFrameHexImportSession(); returnFromTransaction({ defaultScreen: walletAwareDefaultScreen() }); };
-    byId('btn-pskt-back').onclick = () => {
+    elementById('btn-broadcast-hex').onclick = () => handleBroadcastHex();
+    elementById('btn-broadcast-back').onclick = () => { clearAntiKleptoSession(); resetSignedQrImageImportSession(); resetSignedFrameHexImportSession(); returnFromTransaction({ defaultScreen: walletAwareDefaultScreen() }); };
+    elementById('btn-pskt-back').onclick = () => {
         clearAntiKleptoSession();
         const reservedIndex = transactionState._standardChangeReservationIndex;
         if (Number.isSafeInteger(reservedIndex)) releasePendingStandardChange(reservedIndex);
@@ -92,20 +93,20 @@ export function bindTransactionsEvents() {
         transactionState._psktReviewHex = null;
         returnFromTransaction();
     };
-    byId('btn-pskt-relay').onclick = () => openRelayModal();
-    byId('btn-relay-standard').onclick = () => { closeRelayModal(); handlePsktRelay(); };
-    byId('btn-relay-kaskold-standard').onclick = () => { closeRelayModal(); handlePsktRelayKasKoldStandard(); };
-    byId('btn-relay-compact').onclick = () => { closeRelayModal(); handlePsktRelayCompact(); };
-    byId('btn-relay-cancel').onclick = () => closeRelayModal();
-    byId('btn-pskt-finalize').onclick = () => handlePsktFinalize();
-    byId('btn-broadcast-done').onclick = () => {
+    elementById('btn-pskt-relay').onclick = () => openRelayModal();
+    elementById('btn-relay-standard').onclick = () => { closeRelayModal(); handlePsktRelay(); };
+    elementById('btn-relay-kaskold-standard').onclick = () => { closeRelayModal(); handlePsktRelayKasKoldStandard(); };
+    elementById('btn-relay-compact').onclick = () => { closeRelayModal(); handlePsktRelayCompact(); };
+    elementById('btn-relay-cancel').onclick = () => closeRelayModal();
+    elementById('btn-pskt-finalize').onclick = () => handlePsktFinalize();
+    elementById('btn-broadcast-done').onclick = () => {
         hideBroadcastResult();
         const returnScreen = takeTransactionReturnScreen() || walletAwareDefaultScreen();
         showTransactionReturnScreen(returnScreen);
         if (walletSession.hasWallet()) void refreshBalanceAfterBroadcast();
     };
-    byId('btn-copy-txid').onclick = () => {
-        const txid = byId('broadcast-result-txid').textContent.trim();
+    elementById('btn-copy-txid').onclick = () => {
+        const txid = elementById('broadcast-result-txid').textContent.trim();
         navigator.clipboard.writeText(txid);
         toast('TX ID copied', 'ok', 1500);
     };

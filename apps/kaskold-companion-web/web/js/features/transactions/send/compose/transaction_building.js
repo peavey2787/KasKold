@@ -1,3 +1,4 @@
+// @ts-check
 import { networkState, transactionState } from '../../boundary.js';
 import { KNS_LOOKUP } from '../../../../core/config/services.js';
 import { hideLoading, showLoading, showScreen } from '../../../../app/navigation.js';
@@ -7,7 +8,7 @@ import { openPsktReview } from '../../pskt_multisig/review.js';
 import { readFeeSompi, setFeeSompi, syncThreadDepositAmount } from './send_form.js';
 import { reserveStandardChangeFromSummary, walletWithFreshIndices } from '../../../wallet/core.js';
 // KasKold Companion Web — features/transactions/send/compose/transaction_building
-import { byId } from '../../../../core/dom.js';
+import { inputById } from '../../../../core/dom.js';
 import { kasToSompi } from '../../../../core/amounts.js';
 import { exactUnsigned } from '../../../../core/exact.js';
 import { addressPrefix } from '../../../../core/network.js';
@@ -97,7 +98,7 @@ export function handleDestScan(data) {
     const expectedPrefix = addressPrefix(networkState.network);
     if ((expectedPrefix && addr.startsWith(expectedPrefix)) || addr.endsWith('.kas')) {
         stopScanner();
-        byId('input-dest').value = addr;
+        inputById('input-dest').value = addr;
         showScreen('send');
         toast('Address scanned', 'ok', 1500);
         return;
@@ -188,11 +189,11 @@ function reviewStandardPlan(plan, summary, freshWallet, dest, amountSompi, fee) 
 // Number / Math.round(x*1e8) loses a sompi on many decimals and all precision
 // above ~2^53 sompi. wasm-bindgen marshals the returned BigInt to a Rust u64.
 export async function handleCreateTx() {
-    const rawDest = byId('input-dest').value.trim();
+    const rawDest = inputById('input-dest').value.trim();
     // Thread-covenant deposit: amount field is hidden; ensure it reflects the
     // selected UTXO total before the >0 check (also covers any picker desync).
     syncThreadDepositAmount();
-    const amountStr = byId('input-amount').value.trim();
+    const amountStr = inputById('input-amount').value.trim();
 
     const dest = resolveSendDestination(rawDest);
     if (dest === null) return;

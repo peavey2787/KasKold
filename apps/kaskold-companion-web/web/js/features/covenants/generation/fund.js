@@ -1,3 +1,4 @@
+// @ts-check
 import {
     covenantState,
     navigationState,
@@ -8,7 +9,7 @@ import { resolveNodeUrl } from '../../../core/node/resolver.js';
 import { toast } from '../../../core/ui/toast.js';
 import { openSendScreen, setFeeLevel, toggleSendUtxos, updateFeeCardAmounts } from '../../transactions/send/compose/send_form.js';
 // KasKold Companion Web — features/covenants/generation/fund
-import { byId } from '../../../core/dom.js';
+import { byId, inputById } from '../../../core/dom.js';
 
 const THREAD_TYPES = ['global-allowance', 'global-spending-limit'];
 const DEPOSIT_TYPES = ['additive', 'timelocked-savings', 'dms'];
@@ -63,7 +64,7 @@ async function prepareSendScreen(result) {
     // multi-UTXO piggy fine, so Add Funds falls through to openSendScreen.
     navigationState._broadcastReturnScreen = 'covenant';
     await openSendScreen();
-    byId('input-dest').value = result.address;
+    inputById('input-dest').value = result.address;
     updateFeeCardAmounts();
     setFeeLevel('normal');
 }

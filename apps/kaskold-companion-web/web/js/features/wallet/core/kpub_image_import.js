@@ -1,3 +1,4 @@
+// @ts-check
 import { decodeQrImageFile } from '../../../core/qr/image_file.js';
 import { classifyKpubQrCode } from './kpub_qr_payload.js';
 

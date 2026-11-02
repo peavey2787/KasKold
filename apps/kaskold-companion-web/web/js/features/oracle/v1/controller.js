@@ -1,3 +1,4 @@
+// @ts-check
 import {
     covenantState,
     walletSession,
@@ -7,7 +8,7 @@ import {
     verify_covenant_anti_klepto,
 } from '../boundary.js';
 import { showScreen } from '../../../app/navigation.js';
-import { byId } from '../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../core/dom.js';
 import { bytesToHex } from '../../../core/bytes.js';
 import { toast } from '../../../core/ui/toast.js';
 import { covShowPanel } from '../../covenants/generation/panel_keys.js';
@@ -49,8 +50,8 @@ function showProtocolQr(payloadHex, title, info, returnScreen = 'covenant') {
 }
 
 export function showOracleV1KeyRequest() {
-    byId('cov-oracle-v1-key-id').value = '';
-    byId('cov-oracle-v1-pubkey').value = '';
+    inputById('cov-oracle-v1-key-id').value = '';
+    inputById('cov-oracle-v1-pubkey').value = '';
     const request = covenantKeyRequestHex();
     showProtocolQr(request, 'Allocate Oracle Covenant Key', 'Oracle scans: Single Signature → Covenant Sign. KasKold chooses a fresh covenant instance ID.');
 }
@@ -60,8 +61,8 @@ export function scanOracleV1KeyResponse() {
         try {
             const response = parseCovenantResponse(raw);
             if (response.kind !== 'key') throw new Error('Expected covenant-key response');
-            byId('cov-oracle-v1-key-id').value = response.keyId;
-            byId('cov-oracle-v1-pubkey').value = response.pubkey;
+            inputById('cov-oracle-v1-key-id').value = response.keyId;
+            inputById('cov-oracle-v1-pubkey').value = response.pubkey;
             stopScanner(); showScreen('covenant'); covShowPanel('create');
             toast('Fresh isolated oracle covenant key loaded', 'ok', 1800);
         } catch (error) { toast(String(error.message || error), 'error', 4000); }
@@ -140,15 +141,15 @@ async function acceptScannedAttestation(raw, textField, statusField) {
 export function openOracleV1Claim() {
     const result = currentOracle();
     covShowPanel('oracle-v1-claim');
-    byId('cov-oracle-v1-claim-addr').value = result.address || '';
-    byId('cov-oracle-v1-claim-script').value = result.redeem_script_hex || '';
-    byId('cov-oracle-v1-claim-dest').value = ownerReceiveAddr() || '';
-    byId('cov-oracle-v1-claim-text').value = result.attestation_statement || '';
+    inputById('cov-oracle-v1-claim-addr').value = result.address || '';
+    inputById('cov-oracle-v1-claim-script').value = result.redeem_script_hex || '';
+    inputById('cov-oracle-v1-claim-dest').value = ownerReceiveAddr() || '';
+    inputById('cov-oracle-v1-claim-text').value = result.attestation_statement || '';
     const savedSignature = result.oracle_attestation_signature || '';
     const savedCommitment = result.oracle_attestation_commitment || '';
-    byId('cov-oracle-v1-claim-sig').value = savedSignature;
-    byId('cov-oracle-v1-claim-commitment').value = savedCommitment;
-    byId('cov-oracle-v1-claim-status').textContent = savedSignature
+    inputById('cov-oracle-v1-claim-sig').value = savedSignature;
+    inputById('cov-oracle-v1-claim-commitment').value = savedCommitment;
+    elementById('cov-oracle-v1-claim-status').textContent = savedSignature
         ? 'Saved oracle beacon found. It will be verified again before claim creation.'
         : 'Scan the oracle COVENANT SIGN response, or wait for an on-chain oracle beacon.';
     state.signature = savedSignature;
@@ -163,10 +164,10 @@ export function openOracleV1Attest() {
     const result = currentOracle();
     state.hostSecret = ''; state.sessionId = ''; state.noncePoint = '';
     covShowPanel('oracle-v1-attest');
-    byId('cov-oracle-v1-attest-text').value = result.attestation_statement || '';
-    byId('cov-oracle-v1-attest-status').textContent = 'Show the COVENANT SIGN request, review it on KasKold, then complete the nonce/reveal QR exchange.';
-    byId('btn-cov-oracle-v1-beacon').classList.add('hidden');
-    byId('btn-cov-oracle-v1-share').classList.add('hidden');
+    inputById('cov-oracle-v1-attest-text').value = result.attestation_statement || '';
+    elementById('cov-oracle-v1-attest-status').textContent = 'Show the COVENANT SIGN request, review it on KasKold, then complete the nonce/reveal QR exchange.';
+    elementById('btn-cov-oracle-v1-beacon').classList.add('hidden');
+    elementById('btn-cov-oracle-v1-share').classList.add('hidden');
     setAttestation({ signature: '', commitment: '', keyId: result.oracle_covenant_key_id_hex || '', pubkey: result.oracle_pubkey_hex || '', bindingToken: result.oracle_covenant_binding_token_hex || '' }, '');
 }
 
@@ -196,8 +197,8 @@ export function scanOracleV1ClaimAttestation() {
         try {
             const textField = byId('cov-oracle-v1-claim-text');
             const parsed = await acceptScannedAttestation(raw, textField, byId('cov-oracle-v1-claim-status'));
-            byId('cov-oracle-v1-claim-sig').value = parsed.signature;
-            byId('cov-oracle-v1-claim-commitment').value = parsed.commitment;
+            inputById('cov-oracle-v1-claim-sig').value = parsed.signature;
+            inputById('cov-oracle-v1-claim-commitment').value = parsed.commitment;
             stopScanner(); showScreen('covenant'); covShowPanel('oracle-v1-claim');
             toast('Oracle covenant signature verified', 'ok', 1800);
         } catch (error) { toast(String(error.message || error), 'error', 4500); }
@@ -220,7 +221,7 @@ export function scanOracleV1CovenantSignResponse() {
                     commitment: response.commitment, hostSecret: state.hostSecret,
                 });
                 stopScanner();
-                byId('cov-oracle-v1-attest-status').textContent = 'Nonce committed. Scan the reveal on KasKold, then scan its final response.';
+                elementById('cov-oracle-v1-attest-status').textContent = 'Nonce committed. Scan the reveal on KasKold, then scan its final response.';
                 showProtocolQr(reveal, 'Covenant Nonce Reveal', 'Oracle scans this reveal to complete anti-klepto signing.');
                 return;
             }
@@ -230,11 +231,11 @@ export function scanOracleV1CovenantSignResponse() {
                 response.sessionId, state.hostSecret,
             );
             if (!antiKleptoOk) throw new Error('Covenant signature failed host nonce verification');
-            const textField = byId('cov-oracle-v1-attest-text');
+            const textField = inputById('cov-oracle-v1-attest-text');
             const parsed = await acceptScannedAttestation(raw, textField, byId('cov-oracle-v1-attest-status'));
             stopScanner(); showScreen('covenant'); covShowPanel('oracle-v1-attest');
-            byId('btn-cov-oracle-v1-beacon').classList.remove('hidden');
-            byId('btn-cov-oracle-v1-share').classList.remove('hidden');
+            elementById('btn-cov-oracle-v1-beacon').classList.remove('hidden');
+            elementById('btn-cov-oracle-v1-share').classList.remove('hidden');
             setAttestation(parsed, textField.value);
             toast('Covenant commitment signature + host nonce verified', 'ok', 2200);
         } catch (error) { toast(String(error.message || error), 'error', 4500); }
@@ -256,15 +257,15 @@ function transcriptIdentityRules(response, result) {
 
 function validateOracleTranscriptIdentity(response, result) {
     const failed = transcriptIdentityRules(response, result).find(([mismatch]) => mismatch);
-    if (failed) throw new Error(failed[1]);
+    if (failed) throw new Error(String(failed[1]));
 }
 
 export async function buildOracleV1Claim() {
     const result = currentOracle();
-    const statement = byId('cov-oracle-v1-claim-text').value;
-    const signature = byId('cov-oracle-v1-claim-sig').value || state.signature;
-    const commitment = byId('cov-oracle-v1-claim-commitment').value || state.commitment;
-    const destination = byId('cov-oracle-v1-claim-dest').value.trim();
+    const statement = inputById('cov-oracle-v1-claim-text').value;
+    const signature = inputById('cov-oracle-v1-claim-sig').value || state.signature;
+    const commitment = inputById('cov-oracle-v1-claim-commitment').value || state.commitment;
+    const destination = inputById('cov-oracle-v1-claim-dest').value.trim();
     if (!destination) { toast('Enter a claim destination', 'error'); return; }
     try {
         await verifyOracleV1Attestation({ signature, commitment }, statement);

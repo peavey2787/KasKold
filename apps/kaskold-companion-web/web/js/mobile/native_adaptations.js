@@ -1,3 +1,4 @@
+// @ts-check
 // Shared Companion mobile adaptations. Native shells provide only tiny bridge callbacks.
 const STYLE_ID = 'kaskold-mobile-adaptations';
 const MOBILE_TAB_ID = 'gear-tab-mobile';

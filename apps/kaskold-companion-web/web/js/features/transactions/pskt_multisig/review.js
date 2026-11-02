@@ -1,3 +1,4 @@
+// @ts-check
 import { el, span } from '../../../core/ui/elements.js';
 import {
     covenantState,
@@ -13,7 +14,7 @@ import { sompiToKasString } from '../../../core/amounts.js';
 import { exactUnsigned } from '../../../core/exact.js';
 // KasKold Companion Web — features/transactions/pskt_multisig/review
 import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
-import { byId } from '../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../core/dom.js';
 import { createPsktReviewActions } from './review_actions.js';
 import { releasePendingStandardChange, standardChangeReservationMatchesSummary } from '../../wallet/core.js';
 
@@ -135,19 +136,19 @@ function releaseStaleStandardChangeReservation(summary) {
 }
 
 function renderPsktHeader(summary) {
-    byId('pskt-format').textContent = summary.format.toUpperCase();
-    byId('pskt-tx-version').textContent = summary.tx_version;
-    byId('pskt-in-count').textContent = summary.input_count;
-    byId('pskt-out-count').textContent = summary.output_count;
-    byId('pskt-fee').textContent = sompiToKasString(summary.fee_sompi);
-    byId('pskt-total-in').textContent = sompiToKasString(summary.total_in_sompi);
-    byId('pskt-total-out').textContent = sompiToKasString(summary.total_out_sompi);
+    elementById('pskt-format').textContent = summary.format.toUpperCase();
+    elementById('pskt-tx-version').textContent = summary.tx_version;
+    elementById('pskt-in-count').textContent = summary.input_count;
+    elementById('pskt-out-count').textContent = summary.output_count;
+    elementById('pskt-fee').textContent = sompiToKasString(summary.fee_sompi);
+    elementById('pskt-total-in').textContent = sompiToKasString(summary.total_in_sompi);
+    elementById('pskt-total-out').textContent = sompiToKasString(summary.total_out_sompi);
 }
 
 function renderOwnershipTotals(outputs, reviewContext) {
     const ownershipTotals = reviewOwnershipTotals(outputs, reviewContext);
-    byId('pskt-send-total').textContent = sompiToKasString(ownershipTotals.external);
-    byId('pskt-change-total').textContent = sompiToKasString(ownershipTotals.change);
+    elementById('pskt-send-total').textContent = sompiToKasString(ownershipTotals.external);
+    elementById('pskt-change-total').textContent = sompiToKasString(ownershipTotals.change);
 }
 
 function externalDestinationText(externalOutputs) {
@@ -158,12 +159,12 @@ function externalDestinationText(externalOutputs) {
 
 function renderPsktToAddress(outputs, reviewContext) {
     const externalOutputs = outputs.filter(output => classifyWalletOutput(output, reviewContext) === 'DESTINATION');
-    byId('pskt-to-address').textContent = externalDestinationText(externalOutputs);
+    elementById('pskt-to-address').textContent = externalDestinationText(externalOutputs);
 }
 
 function wireInspectToggle() {
-    const inspectButton = byId('btn-pskt-inspect');
-    const inspectDetails = byId('pskt-inspect-details');
+    const inspectButton = elementById('btn-pskt-inspect');
+    const inspectDetails = elementById('pskt-inspect-details');
     inspectDetails.classList.add('hidden');
     inspectButton.textContent = 'Inspect';
     inspectButton.setAttribute('aria-expanded', 'false');
@@ -214,8 +215,8 @@ function renderPsktNextAction(summary) {
     const needsMultisigRelay = (summary.inputs || [])
         .filter(inputNeedsSignature)
         .some(inputIsMultisigRelay);
-    const btnFinalize = byId('btn-pskt-finalize');
-    const relayButton = byId('btn-pskt-relay');
+    const btnFinalize = inputById('btn-pskt-finalize');
+    const relayButton = elementById('btn-pskt-relay');
     btnFinalize.disabled = false;
     btnFinalize.textContent = 'Finalize + broadcast';
     btnFinalize.classList.toggle('hidden', !summary.finalize_ready);
@@ -226,6 +227,7 @@ function renderPsktNextAction(summary) {
     if (summary.finalize_ready) closeRelayModal();
 }
 
+/** @param {string} wireHex @param {Record<string, any> | null} [requestedContext] */
 export function openPsktReview(wireHex, requestedContext = null) {
     primePsktReviewState(wireHex);
     const summary = parsePsktSummary(wireHex);
@@ -243,8 +245,8 @@ export function openPsktReview(wireHex, requestedContext = null) {
     wireInspectToggle();
     renderPayloadHash();
 
-    byId('pskt-inputs').replaceChildren(...summary.inputs.map(inputRow));
-    byId('pskt-outputs').replaceChildren(...summary.outputs.map((out, index) => outputRow(out, index, reviewContext)));
+    elementById('pskt-inputs').replaceChildren(...summary.inputs.map(inputRow));
+    elementById('pskt-outputs').replaceChildren(...summary.outputs.map((out, index) => outputRow(out, index, reviewContext)));
 
     renderPsktNextAction(summary);
 

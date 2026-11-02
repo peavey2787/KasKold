@@ -1,3 +1,4 @@
+// @ts-check
 import { el, setContent } from '../../../core/ui/elements.js';
 import { toast } from '../../../core/ui/toast.js';
 import { sompiToKasFixed } from '../../../core/amounts.js';

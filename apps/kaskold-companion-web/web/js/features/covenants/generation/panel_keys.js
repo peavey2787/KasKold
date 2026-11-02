@@ -1,7 +1,8 @@
+// @ts-check
 import { walletSession, decode_address, parse_kpub } from '../boundary.js';
 // KasKold Companion Web — features/covenants/generation/panel_keys
 import { showCovenantPanel } from './panels/router.js';
-import { byId } from '../../../core/dom.js';
+import { elementById, inputById } from '../../../core/dom.js';
 
 
 // Covenant type -> the dedicated field panel it reveals. Types not listed use the simple panel.
@@ -31,13 +32,13 @@ const OPTIONAL_PANEL_IDS = new Set([
 ]);
 
 function setPanelVisible(id, visible) {
-    const panel = byId(id);
+    const panel = elementById(id);
     if (!panel && OPTIONAL_PANEL_IDS.has(id)) return;
     panel.classList.toggle('hidden', !visible);
 }
 
 export function covTypeChanged() {
-    const selected = byId('cov-type').value;
+    const selected = inputById('cov-type').value;
     setPanelVisible('cov-fields-simple', !PANEL_BY_TYPE.has(selected));
     for (const [type, panelId] of PANEL_BY_TYPE) {
         setPanelVisible(panelId, type === selected);

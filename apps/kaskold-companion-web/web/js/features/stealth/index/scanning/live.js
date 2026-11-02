@@ -1,7 +1,8 @@
+// @ts-check
 import { stealthState, build_vcc_subscribe_request } from '../../boundary.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
 // KasKold Companion Web — features/stealth/index/scanning/live
-import { byId } from '../../../../core/dom.js';
+import { elementById } from '../../../../core/dom.js';
 import { runHistoricalCatchUp } from './live/catch_up_session.js';
 import { startLiveSocket } from './live/socket.js';
 import { createStealthScanControls } from './live_controls.js';
@@ -24,7 +25,7 @@ export async function handleStealthFetchAnnouncements() {
         startLiveSocket(wsUrl, request);
         await runHistoricalCatchUp();
     } catch (error) {
-        byId('stealth-scan-status').textContent = 'Error: ' + error;
+        elementById('stealth-scan-status').textContent = 'Error: ' + error;
     }
 }
 
@@ -34,6 +35,6 @@ function resetScanSession() {
     stealthState.stealthAnnouncementsR = [];
     stealthState._stealthBatchStart = 0;
     stealthState._stealthResults = [];
-    byId('stealth-scan-status').textContent =
+    elementById('stealth-scan-status').textContent =
         'Connecting to node for on-chain stealth scan...';
 }

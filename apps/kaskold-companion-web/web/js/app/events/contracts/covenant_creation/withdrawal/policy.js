@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState } from '../../../../state/index.js';
 import { formatDaaDuration } from '../../../../../core/format.js';
 import { sompiToKasFixed, sompiToKasString } from '../../../../../core/amounts.js';

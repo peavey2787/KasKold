@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantRecoveryState, covenantState } from '../../../state/index.js';
 import { toast } from '../../../../core/ui/toast.js';
 import { covShowPanel } from '../../../../features/covenants/generation/panel_keys.js';
@@ -6,7 +7,7 @@ import { inferCovenantRole } from '../../../../features/covenants/recovery/impor
 import { SCRIPT_TERM_TYPES, verifiedCovenantTerms } from '../../../../features/covenants/model/script_terms.js';
 import { covRenderMetaLine } from '../../../../features/covenants/watch/ui/metadata.js';
 import { covUpdateResultButtons } from '../../../../features/covenants/watch/ui/result_buttons.js';
-import { byId } from '../../../../core/dom.js';
+import { elementById, inputById } from '../../../../core/dom.js';
 
 // A loaded covenant of a known family shows only what its script proves;
 // other types keep the address and script the user entered.
@@ -24,10 +25,10 @@ function takeInviteDate(result) {
 }
 
 export function bindLoadSubmissionAction() {
-    byId('btn-cov-load-submit').onclick = () => {
-        const addr = byId('cov-load-addr').value.trim();
-        const script = byId('cov-load-script').value.trim();
-        const type = byId('cov-load-type').value;
+    elementById('btn-cov-load-submit').onclick = () => {
+        const addr = inputById('cov-load-addr').value.trim();
+        const script = inputById('cov-load-script').value.trim();
+        const type = inputById('cov-load-type').value;
         if (!addr) { toast('Enter covenant address', 'error'); return; }
         if (!script) { toast('Enter redeem script hex', 'error'); return; }
         let result;
@@ -43,10 +44,10 @@ export function bindLoadSubmissionAction() {
         covAddActive(type, result);
         covShowPanel('result');
         covUpdateResultButtons(type);
-        byId('cov-result-addr').textContent = result.address;
-        byId('cov-result-script').textContent = result.redeem_script_hex;
+        elementById('cov-result-addr').textContent = result.address;
+        elementById('cov-result-script').textContent = result.redeem_script_hex;
         covRenderMetaLine(result);
-        byId('cov-result-balance').style.display = 'none';
+        elementById('cov-result-balance').style.display = 'none';
         toast('Covenant loaded', 'ok', 2000);
     };
 }

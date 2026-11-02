@@ -1,3 +1,4 @@
+// @ts-check
 import { readLen, readU64 } from '../payload_reader.js';
 import { readOptionalDate } from '../optional_date.js';
 import { recoveredFromRedeem } from './common.js';
@@ -17,6 +18,6 @@ export function decodePayjoin(params, network) {
         min_outputs: Number(minimumOutputs),
         role: 'owner',
     });
-    if (result && date) result.locktime_date_iso = date;
+    if (result && date) /** @type {Record<string, any>} */ (result).locktime_date_iso = date;
     return result;
 }

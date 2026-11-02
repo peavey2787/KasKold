@@ -1,3 +1,4 @@
+// @ts-check
 import {
     networkState,
     transactionState,
@@ -6,7 +7,7 @@ import {
 } from '../boundary.js';
 import { toast } from '../../../core/ui/toast.js';
 import { displayKsptQr } from '../send/review.js';
-import { byId } from '../../../core/dom.js';
+import { byId, elementById } from '../../../core/dom.js';
 import { beginAntiKlepto, clearAntiKleptoSession } from '../anti_klepto/session.js';
 
 export function createPsktRelayActions() {
@@ -29,7 +30,7 @@ export function createPsktRelayActions() {
   }
 
   function closeRelayModal() {
-    byId('relay-choice-modal').classList.add('hidden');
+    elementById('relay-choice-modal').classList.add('hidden');
   }
 
   function handlePsktRelay() {

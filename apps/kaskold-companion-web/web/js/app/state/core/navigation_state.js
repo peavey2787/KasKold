@@ -1,4 +1,6 @@
+// @ts-check
 // Screen navigation state shared by top-level application routing.
+/** @type {Record<string, any>} */
 export const navigationState = Object.seal({
     'currentScreenName': undefined,
     'screenHistory': [],

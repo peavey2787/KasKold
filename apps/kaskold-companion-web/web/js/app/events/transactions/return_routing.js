@@ -1,3 +1,4 @@
+// @ts-check
 import { navigationState, walletSession } from '../../state/index.js';
 import { showScreen } from '../../navigation.js';
 import { covReturnAfterBroadcast } from '../../../features/covenants/scanning.js';

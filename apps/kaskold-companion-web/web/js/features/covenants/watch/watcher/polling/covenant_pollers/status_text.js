@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantWatcherState } from '../../../../boundary.js';
 
 export function isFundsSpent(total) {

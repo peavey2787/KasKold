@@ -1,3 +1,4 @@
+// @ts-check
 import {
     walletSession,
     build_covenant_payload,

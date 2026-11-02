@@ -28,7 +28,7 @@ PYTHON_ROOTS = ("qa", "scripts", "apps", "tools")
 TYPED_PYTHON_ROOTS = ("qa", "scripts", "tools")
 JAVASCRIPT_ROOTS = ("apps", "qa")
 # Every module below these roots must opt in to the type checker; the list only grows.
-TYPED_JAVASCRIPT_ROOTS = ("apps/kaskold-companion-web/web/js/core",)
+TYPED_JAVASCRIPT_ROOTS = ("apps/kaskold-companion-web/web/js",)
 TS_CHECK_DIRECTIVE = "// @ts-check"
 COMPLEXITY_BRANCHES = range(13)
 PYTHON_TOO_COMPLEX = "def canary(value):\n" + "".join(
@@ -112,7 +112,10 @@ def run_javascript_lints(tool_root: Path, node: str) -> None:
     )
     run([node, str(eslint), "--config", str(config), "--no-warn-ignored", "--max-warnings", "0", *JAVASCRIPT_ROOTS])
     tsc = tool_root / "node_modules/typescript/bin/tsc"
-    run([node, str(tsc), "--project", str(LINT_CONFIG / "tsconfig.json")])
+    # Core stays fully strict; the rest of the tree is checked for nulls, types and
+    # calls, with implicit-any parameters still allowed.
+    for project in ("tsconfig.json", "tsconfig.app.json"):
+        run([node, str(tsc), "--project", str(LINT_CONFIG / project)])
 
 
 def javascript_modules(directory: Path) -> Iterable[Path]:

@@ -1,3 +1,4 @@
+// @ts-check
 import { KASPLEX_API, KNS_LOOKUP, KRC721_API } from '../../core/config/services.js';
 import { exactUnsigned } from '../../core/exact.js';
 

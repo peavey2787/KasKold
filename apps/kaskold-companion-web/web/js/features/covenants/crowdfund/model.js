@@ -1,3 +1,4 @@
+// @ts-check
 import { crowdfundState } from '../boundary.js';
 import { exactDecimalString, exactUnsigned } from '../../../core/exact.js';
 

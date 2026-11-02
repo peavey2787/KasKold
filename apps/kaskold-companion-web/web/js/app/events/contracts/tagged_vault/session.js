@@ -1,3 +1,4 @@
+// @ts-check
 import { byId } from '../../../../core/dom.js';
 
 export function createTaggedVaultSession() {

@@ -1,4 +1,6 @@
+// @ts-check
 // Explicit oracleState shape. Complex behavior belongs in domain facades; this object holds simple session state.
+/** @type {Record<string, any>} */
 export const oracleState = Object.seal({
     '_oracleMbAgeTimer': undefined,
     '_oracleMbAskBusy': undefined,

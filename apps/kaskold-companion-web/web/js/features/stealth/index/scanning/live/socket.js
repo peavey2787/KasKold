@@ -1,7 +1,8 @@
+// @ts-check
 import { stealthState } from '../../../boundary.js';
 import { STEALTH_MAX_R } from '../../config.js';
 import { bytesToHex } from '../../../../../core/bytes.js';
-import { byId } from '../../../../../core/dom.js';
+import { byId, elementById } from '../../../../../core/dom.js';
 const RECONNECT_DELAY_MS = 3000;
 const KSTL_PAYLOAD_LENGTH = 0x22;
 
@@ -23,7 +24,7 @@ function handleOpen(socket, subscribeRequest) {
     const status = liveStatusElement();
     status.style.color = 'var(--accent, #4caf50)';
     status.textContent = 'LIVE scan: connected — watching new blocks.';
-    byId('stealth-scan-status').textContent =
+    elementById('stealth-scan-status').textContent =
         'Live scan running. Watching new blocks for stealth payments... (' +
         stealthState.stealthAnnouncementsR.length + ' R found)';
 }
@@ -35,7 +36,7 @@ function handleMessage(event) {
     const added = appendCandidates(candidates);
     if (added === 0) return;
 
-    byId('stealth-scan-status').textContent =
+    elementById('stealth-scan-status').textContent =
         'Live scan running. ' + stealthState.stealthAnnouncementsR.length +
         ' candidate R found. Tap "Show Scan QR" to check on your device.';
     updateCandidateControls();
@@ -105,7 +106,7 @@ function appendCandidates(candidates) {
     for (const candidate of candidates) {
         if (stealthState.stealthAnnouncementsR.includes(candidate)) continue;
         if (stealthState.stealthAnnouncementsR.length >= STEALTH_MAX_R) {
-            byId('stealth-scan-status').textContent =
+            elementById('stealth-scan-status').textContent =
                 'R list full (' + STEALTH_MAX_R +
                 '). New payments are NOT being recorded — process the current batch first.';
             break;
@@ -119,5 +120,5 @@ function appendCandidates(candidates) {
 function updateCandidateControls() {
     const list = byId('stealth-r-list');
     if (list) list.textContent = stealthState.stealthAnnouncementsR.length + ' R value(s) loaded';
-    byId('btn-stealth-show-scan-qr').classList.remove('hidden');
+    elementById('btn-stealth-show-scan-qr').classList.remove('hidden');
 }

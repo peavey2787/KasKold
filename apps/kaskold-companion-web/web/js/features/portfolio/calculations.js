@@ -1,3 +1,4 @@
+// @ts-check
 import { exactUnsigned } from '../../core/exact.js';
 import { kasValueMicro, proportionalCost } from './exact_money.js';
 

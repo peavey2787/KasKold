@@ -1,3 +1,4 @@
+// @ts-check
 export const ORACLE_MB_PROTOCOL = Object.freeze({
     imageIdHex: '0f3756c052ff1749fbbe0d4b28010a42c989e227130752e7188047498ba124aa',
     controlIdHex: '7a8f24092c34ed3eb81b3d0a0b796c588c615d3488ef9e61c21dbd1e4b83ea6e',

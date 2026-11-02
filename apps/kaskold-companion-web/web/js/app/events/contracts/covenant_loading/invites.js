@@ -1,16 +1,17 @@
+// @ts-check
 import { covenantRecoveryState } from '../../../state/index.js';
 import { showScreen } from '../../../navigation.js';
 import { toast } from '../../../../core/ui/toast.js';
 import { covShowPanel } from '../../../../features/covenants/generation/panel_keys.js';
 import { handleCovbScan } from '../../../../features/covenants/recovery/import.js';
 import { startScanner, stopScanner } from '../../../../features/stealth/index/camera.js';
-import { byId } from '../../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../../core/dom.js';
 
 export function bindInviteLoadingActions() {
-    byId('btn-cov-load-back').onclick = () => covShowPanel('menu');
+    elementById('btn-cov-load-back').onclick = () => covShowPanel('menu');
     // Scan covenant invite QR on Load Existing panel
     if (byId('btn-cov-load-scan')) {
-        byId('btn-cov-load-scan').onclick = () => {
+        elementById('btn-cov-load-scan').onclick = () => {
             startScanner('Scan Covenant Invite QR', async (raw) => {
                 try {
                     const text = new TextDecoder().decode(raw);
@@ -19,9 +20,9 @@ export function bindInviteLoadingActions() {
                         toast('Not a covenant invite QR', 'error'); return;
                     }
                     // Fill the load form
-                    if (invite.addr) byId('cov-load-addr').value = invite.addr;
-                    if (invite.rs) byId('cov-load-script').value = invite.rs;
-                    if (invite.ct) byId('cov-load-type').value = invite.ct;
+                    if (invite.addr) inputById('cov-load-addr').value = invite.addr;
+                    if (invite.rs) inputById('cov-load-script').value = invite.rs;
+                    if (invite.ct) inputById('cov-load-type').value = invite.ct;
                     stopScanner();
 
 
@@ -37,9 +38,10 @@ export function bindInviteLoadingActions() {
     }
     // Load covenant from backup file (.covb or .cov)
     if (byId('btn-cov-load-file')) {
-        byId('btn-cov-load-file').onclick = () => byId('cov-load-file-input').click();
-        byId('cov-load-file-input').onchange = async (e) => {
-            const file = e.target.files[0];
+        elementById('btn-cov-load-file').onclick = () => elementById('cov-load-file-input').click();
+        elementById('cov-load-file-input').onchange = async (e) => {
+            const input = /** @type {HTMLInputElement} */ (e.target);
+            const file = input.files?.[0];
             if (!file) return;
             try {
                 const buf = await file.arrayBuffer();
@@ -48,7 +50,7 @@ export function bindInviteLoadingActions() {
             } catch (err) {
                 toast('File import failed: ' + (err.message || err), 'error');
             }
-            e.target.value = ''; // reset so same file can be re-imported
+            input.value = ''; // reset so same file can be re-imported
         };
     }
 }

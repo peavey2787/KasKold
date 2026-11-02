@@ -1,3 +1,4 @@
+// @ts-check
 import { exactJsonStringify } from '../../../../core/exact.js';
 import { covenant_spend_document } from '../../boundary.js';
 

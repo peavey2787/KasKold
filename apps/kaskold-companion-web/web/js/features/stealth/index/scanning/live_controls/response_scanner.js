@@ -1,3 +1,4 @@
+// @ts-check
 import { el, setContent } from '../../../../../core/ui/elements.js';
 import { scannerState } from '../../../boundary.js';
 import { byId } from '../../../../../core/dom.js';

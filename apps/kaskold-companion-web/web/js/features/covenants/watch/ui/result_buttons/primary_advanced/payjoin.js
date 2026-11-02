@@ -1,5 +1,6 @@
+// @ts-check
 import { covenantState, walletSession } from '../../../../boundary.js';
-import { byId } from '../../../../../../core/dom.js';
+import { inputById } from '../../../../../../core/dom.js';
 import { covShowPanel } from '../../../../generation/panel_keys.js';
 
 export function configurePayjoinActions({ beneBtn, ownerBtn, fundBtn, isBeneficiary }) {
@@ -12,11 +13,11 @@ export function configurePayjoinActions({ beneBtn, ownerBtn, fundBtn, isBenefici
     beneBtn.onclick = () => {
         const result = covenantState.lastCovenantResult;
         if (result) {
-            byId('cov-payjoin-claim-addr').value = result.address || '';
-            byId('cov-payjoin-claim-script').value = result.redeem_script_hex || '';
+            inputById('cov-payjoin-claim-addr').value = result.address || '';
+            inputById('cov-payjoin-claim-script').value = result.redeem_script_hex || '';
         }
         const address = walletSession.primaryReceiveAddress();
-        if (address) byId('cov-payjoin-claim-mix-addr').value = address;
+        if (address) inputById('cov-payjoin-claim-mix-addr').value = address;
         covShowPanel('payjoin-claim');
     };
 }

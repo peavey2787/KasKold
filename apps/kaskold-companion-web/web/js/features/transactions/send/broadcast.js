@@ -1,3 +1,4 @@
+// @ts-check
 import { renderScanProgress } from '../../../core/ui/scan_progress.js';
 import { bytesToHex, hexFrameBatchToBytes } from '../../../core/bytes.js';
 import {
@@ -22,7 +23,7 @@ import { openPsktReview } from '../pskt_multisig/review.js';
 import { displayKsptQr } from './review.js';
 import { markStandardChangeBroadcast, refreshBalanceAfterBroadcast, withNodeRetry } from '../../wallet/core.js';
 // KasKold Companion Web — features/transactions/send/broadcast
-import { byId } from '../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../core/dom.js';
 import { ANTI_KLEPTO_KEEP_SCANNING, processAntiKleptoResponse } from '../anti_klepto/response.js';
 
 
@@ -33,7 +34,7 @@ let signedFrameHexSessionActive = false;
 export function resetSignedFrameHexImportSession() {
     signedFrameHexSessionActive = false;
     try { reset_qr_decoder(); } catch { /* A decoder that never started has nothing to reset. */ }
-    const input = byId('input-signed-frame-hex');
+    const input = inputById('input-signed-frame-hex');
     const status = byId('broadcast-frame-status');
     if (input) input.value = '';
     if (status) status.textContent = '';
@@ -61,6 +62,7 @@ function ensureSignedFrameSession() {
 }
 
 function consumeSignedFrames(frames) {
+    /** @type {boolean | null} */
     let result = false;
     let accepted = 0;
     for (const bytes of frames) {
@@ -83,7 +85,7 @@ function reportSignedFrameProgress(status, accepted) {
 }
 
 export function handleSignedFrameHex() {
-    const input = byId('input-signed-frame-hex');
+    const input = inputById('input-signed-frame-hex');
     const status = byId('broadcast-frame-status');
     const frames = parseSignedFrameInput(input?.value.trim() || '');
     if (!frames) return false;
@@ -100,18 +102,18 @@ export function handleSignedFrameHex() {
 }
 
 export function hideBroadcastResult() {
-    const card = byId('broadcast-result');
+    const card = elementById('broadcast-result');
     card.classList.add('hidden');
     card.className = 'result-card hidden';
-    byId('input-signed-hex').value = '';
+    inputById('input-signed-hex').value = '';
     byId('broadcast-instruction')?.classList.remove('hidden');
-    const explorer = byId('link-view-explorer');
+    const explorer = /** @type {HTMLAnchorElement} */ (elementById('link-view-explorer'));
     if (explorer) {
         explorer.classList.add('hidden');
         explorer.href = '#';
     }
     // Re-show the form card
-    const formCard = document.querySelector('#screen-broadcast .card');
+    const formCard = /** @type {HTMLElement | null} */ (document.querySelector('#screen-broadcast .card'));
     if (formCard) formCard.style.display = '';
 }
 export function showBroadcastSuccess(txId) {
@@ -123,16 +125,16 @@ export function showBroadcastSuccess(txId) {
     oracleState._oracleMbRollActive = false;
     oracleState._oracleMbPreSignAwaiting = false;
     oracleState._oracleMbAutoBroadcast = false;
-    const card = byId('broadcast-result');
+    const card = elementById('broadcast-result');
     card.className = 'result-card success';
     card.classList.remove('hidden');
-    byId('broadcast-result-icon').textContent = '';
-    byId('broadcast-result-msg').textContent = 'Transaction broadcast!';
-    byId('broadcast-result-txid').textContent = txId;
-    byId('btn-copy-txid').style.display = 'block';
-    byId('btn-broadcast-done').style.display = 'block';
+    elementById('broadcast-result-icon').textContent = '';
+    elementById('broadcast-result-msg').textContent = 'Transaction broadcast!';
+    elementById('broadcast-result-txid').textContent = txId;
+    elementById('btn-copy-txid').style.display = 'block';
+    elementById('btn-broadcast-done').style.display = 'block';
     byId('broadcast-instruction')?.classList.add('hidden');
-    const explorer = byId('link-view-explorer');
+    const explorer = /** @type {HTMLAnchorElement} */ (elementById('link-view-explorer'));
     if (explorer) {
         explorer.href = `https://kaspa.stream/transactions/${encodeURIComponent(txId)}`;
         explorer.classList.remove('hidden');
@@ -142,7 +144,7 @@ export function showBroadcastSuccess(txId) {
     // output, so keep refreshing in the background while the success card is visible.
     void refreshBalanceAfterBroadcast();
     // Hide the form card
-    const formCard = document.querySelector('#screen-broadcast .card');
+    const formCard = /** @type {HTMLElement | null} */ (document.querySelector('#screen-broadcast .card'));
     if (formCard) formCard.style.display = 'none';
 
     // Path C post-broadcast hook: capture tx_id and trigger TX2
@@ -162,30 +164,30 @@ export function showBroadcastError(err) {
     if (oracleState._oracleMbRollActive && /already spent|orphan|disallow|already .*mempool/i.test(es)) {
         oracleState._oracleMbRollActive = false;
         showScreen('broadcast');   // the finalize error path does not navigate; make the card visible
-        const c = byId('broadcast-result');
+        const c = elementById('broadcast-result');
         c.className = 'result-card success';
         c.classList.remove('hidden');
-        byId('broadcast-result-icon').textContent = '';
-        byId('broadcast-result-msg').textContent = 'Someone rolled it first';
-        byId('broadcast-result-txid').textContent = "You're now on the fresh price. No fee charged.";
-        byId('btn-copy-txid').style.display = 'none';
-        byId('btn-broadcast-done').style.display = 'block';
+        elementById('broadcast-result-icon').textContent = '';
+        elementById('broadcast-result-msg').textContent = 'Someone rolled it first';
+        elementById('broadcast-result-txid').textContent = "You're now on the fresh price. No fee charged.";
+        elementById('btn-copy-txid').style.display = 'none';
+        elementById('btn-broadcast-done').style.display = 'block';
         byId('broadcast-instruction')?.classList.add('hidden');
         byId('link-view-explorer')?.classList.add('hidden');
-        const formCard = document.querySelector('#screen-broadcast .card');
+        const formCard = /** @type {HTMLElement | null} */ (document.querySelector('#screen-broadcast .card'));
         if (formCard) formCard.style.display = 'none';
         try { oracleMbCardRefresh(); } catch { /* The card refreshes again on its next poll. */ }
         return;
     }
     oracleState._oracleMbRollActive = false;
-    const card = byId('broadcast-result');
+    const card = elementById('broadcast-result');
     card.className = 'result-card error';
     card.classList.remove('hidden');
-    byId('broadcast-result-icon').textContent = '';
-    byId('broadcast-result-msg').textContent = 'Broadcast failed';
-    byId('broadcast-result-txid').textContent = es;
-    byId('btn-copy-txid').style.display = 'none';
-    byId('btn-broadcast-done').style.display = 'block';
+    elementById('broadcast-result-icon').textContent = '';
+    elementById('broadcast-result-msg').textContent = 'Broadcast failed';
+    elementById('broadcast-result-txid').textContent = es;
+    elementById('btn-copy-txid').style.display = 'none';
+    elementById('btn-broadcast-done').style.display = 'block';
     byId('link-view-explorer')?.classList.add('hidden');
 }
 
@@ -271,7 +273,7 @@ function routeDecodedKspt(kspt) {
         toast('Partial signature — scan with next device', 'info', 3000);
         displayKsptQr(kspt, 'Relay to next signer');
     } else {
-        byId('input-signed-hex').value = kspt;
+        inputById('input-signed-hex').value = kspt;
         showScreen('broadcast');
     }
     return true;
@@ -302,7 +304,7 @@ export function handleSignedScan(data, options = {}) {
     }
 }
 export async function handleBroadcastHex() {
-    let hex = byId('input-signed-hex').value.trim();
+    let hex = inputById('input-signed-hex').value.trim();
     if (!hex) { toast('Paste a signed KSPT hex string', 'error'); return; }
 
     try {

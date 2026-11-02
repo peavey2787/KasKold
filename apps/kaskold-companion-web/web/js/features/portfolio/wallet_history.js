@@ -1,3 +1,4 @@
+// @ts-check
 import { networkState, walletSession, extend_addresses } from './boundary.js';
 import { kaspaRestApiBase } from '../../core/config/network.js';
 import { exactUnsigned, exactUnsignedJsonField } from '../../core/exact.js';
@@ -78,6 +79,7 @@ function retainedAddressCount(highestUsed, length) {
     return highestUsed < 0 ? Math.min(DISCOVERY_GAP, length) : Math.min(highestUsed + DISCOVERY_GAP + 1, length);
 }
 
+/** @param {any} apiBase @param {any} walletJson @param {any} chain @param {{ addressCount: number, usedIndices: number[] } | null} [previous] */
 async function discoverChain(apiBase, walletJson, chain, previous = null) {
     const priorCount = Math.min(MAX_ADDRESSES_PER_CHAIN, previous?.addressCount || 0);
     const usedIndices = new Set(previous?.usedIndices || []);
@@ -138,6 +140,7 @@ export async function discoverHistoricalWalletAddresses(previousSync = null) {
     return { apiBase, receive, change, binding };
 }
 
+/** @param {any} apiBase @param {any} address @param {Set<string> | null} [stopTxIds] */
 async function fetchAddressTransactions(apiBase, address, stopTxIds = null) {
     const transactions = [];
     let before = null;

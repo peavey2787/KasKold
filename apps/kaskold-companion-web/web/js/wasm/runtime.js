@@ -1,3 +1,4 @@
+// @ts-check
 let runtimeState = 'loading';
 let runtimeError = '';
 

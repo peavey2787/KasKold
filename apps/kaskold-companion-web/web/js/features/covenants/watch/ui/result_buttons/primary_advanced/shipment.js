@@ -1,5 +1,6 @@
+// @ts-check
 import { covenantState } from '../../../../boundary.js';
-import { byId } from '../../../../../../core/dom.js';
+import { byId, inputById } from '../../../../../../core/dom.js';
 import { covShowPanel } from '../../../../generation/panel_keys.js';
 
 function shipmentButton() {
@@ -10,7 +11,7 @@ function shipmentButton() {
     button.className = 'btn btn-outline shipment-result-action';
     button.textContent = 'Operate Shipment Escrow';
     const backButton = byId('btn-cov-result-back');
-    if (backButton) backButton.parentElement.insertBefore(button, backButton);
+    if (backButton) backButton.parentElement?.insertBefore(button, backButton);
     return button;
 }
 
@@ -27,8 +28,8 @@ export function configureShipmentActions({ beneBtn, ownerBtn, fundBtn, isLoaded 
     button.onclick = () => {
         const result = covenantState.lastCovenantResult;
         if (result) {
-            byId('cov-ship-addr').value = result.address || '';
-            byId('cov-ship-script').value = result.redeem_script_hex || '';
+            inputById('cov-ship-addr').value = result.address || '';
+            inputById('cov-ship-script').value = result.redeem_script_hex || '';
         }
         covShowPanel('ship');
     };

@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState } from '../../../../state/index.js';
 import { fetchCurrentDaa } from '../../../../../core/node/daa.js';
 // KasKold Companion Web — focused covenant result action registration.

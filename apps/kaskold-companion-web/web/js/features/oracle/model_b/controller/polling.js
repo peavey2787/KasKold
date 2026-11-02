@@ -1,3 +1,4 @@
+// @ts-check
 // Oracle Model B polling facade.
 import { createOracleRendering } from './polling/render.js';
 import { createOracleBlockWatcher } from './polling/block_watcher.js';

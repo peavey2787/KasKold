@@ -1,3 +1,4 @@
+// @ts-check
 import { hexToBytes } from '../../../../../core/bytes.js';
 import { buildCanonicalCovenant, assertCovenantMatches } from '../../../private_swap/protocol.js';
 import { readVstr } from '../payload_reader.js';

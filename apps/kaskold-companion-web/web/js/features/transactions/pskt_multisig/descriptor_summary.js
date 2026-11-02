@@ -1,3 +1,4 @@
+// @ts-check
 import { multisig_descriptor_summary } from '../boundary.js';
 
 // Kind, threshold and participant count of a descriptor KasKold can

@@ -1,3 +1,4 @@
+// @ts-check
 import { bytesToHex } from '../../../../core/bytes.js';
 
 export const pubkeyHex = (value) => (value || '').padEnd(64, '0').substring(0, 64);

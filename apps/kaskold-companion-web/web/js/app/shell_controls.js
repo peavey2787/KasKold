@@ -1,3 +1,4 @@
+// @ts-check
 import { bindBrowserConnectivity } from '../core/ui/connectivity_status.js';
 import { setScreenReturn, takeScreenReturn, visibleScreenName } from '../core/ui/screen_dom.js';
 import { navigateHome, showScreen } from './navigation.js';

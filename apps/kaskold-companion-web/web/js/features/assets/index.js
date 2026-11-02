@@ -1,3 +1,4 @@
+// @ts-check
 import { networkState, walletSession } from './boundary.js';
 import { hideLoading, showLoading, showScreen } from '../../app/navigation.js';
 import { toast } from '../../core/ui/toast.js';

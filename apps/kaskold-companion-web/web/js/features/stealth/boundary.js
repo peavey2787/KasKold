@@ -1,3 +1,4 @@
+// @ts-check
 // The Rust boundary and application state the stealth domain uses.
 export {
     build_vcc_subscribe_request,

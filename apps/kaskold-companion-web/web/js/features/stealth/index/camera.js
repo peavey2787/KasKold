@@ -1,9 +1,10 @@
+// @ts-check
 import { navigationState, scannerState, walletSession, reset_qr_decoder } from '../boundary.js';
 import { showScreen } from '../../../app/navigation.js';
 import { covShowPanel } from '../../covenants/generation/panel_keys.js';
 import { resumeQrCycleIfPossible } from '../../transactions/send/review.js';
 // KasKold Companion Web — features/stealth/index/camera
-import { byId } from '../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../core/dom.js';
 import { hexFrameBatchToBytes } from '../../../core/bytes.js';
 
 
@@ -84,9 +85,9 @@ function resetFallbackUi() {
     byId('scanner-viewport')?.classList.remove('hidden');
     byId('scanner-camera-fallback')?.classList.add('hidden');
     byId('scanner-frame-hex-panel')?.classList.add('hidden');
-    const capture = byId('scanner-capture-input');
-    const image = byId('scanner-image-input');
-    const frameHex = byId('scanner-frame-hex');
+    const capture = inputById('scanner-capture-input');
+    const image = inputById('scanner-image-input');
+    const frameHex = inputById('scanner-frame-hex');
     if (capture) capture.value = '';
     if (image) image.value = '';
     if (frameHex) frameHex.value = '';
@@ -94,7 +95,7 @@ function resetFallbackUi() {
 
 function bindFrameHexControls(generation, allowFrameHex) {
     const panel = byId('scanner-frame-hex-panel');
-    const input = byId('scanner-frame-hex');
+    const input = inputById('scanner-frame-hex');
     panel?.classList.toggle('hidden', !allowFrameHex);
     if (!input) return;
 
@@ -102,7 +103,7 @@ function bindFrameHexControls(generation, allowFrameHex) {
         if (!allowFrameHex || generation !== scannerGeneration) return;
         const value = input.value.trim();
         if (!value) {
-            byId('scanner-status').textContent = 'Paste one QR Frame Hex value first.';
+            elementById('scanner-status').textContent = 'Paste one QR Frame Hex value first.';
             return;
         }
         let frames;
@@ -110,7 +111,7 @@ function bindFrameHexControls(generation, allowFrameHex) {
             frames = hexFrameBatchToBytes(value);
             if (!frames.length) throw new Error('QR Frame Hex is empty');
         } catch (error) {
-            byId('scanner-status').textContent = `Invalid QR Frame Hex: ${error.message || error}`;
+            elementById('scanner-status').textContent = `Invalid QR Frame Hex: ${error.message || error}`;
             return;
         }
         input.value = '';
@@ -142,7 +143,7 @@ function showCameraFallback(message) {
     byId('scanner-camera-fallback')?.classList.remove('hidden');
     const fallbackMessage = byId('scanner-camera-fallback-message');
     if (fallbackMessage) fallbackMessage.textContent = message;
-    byId('scanner-status').textContent = 'Use the device camera or choose an existing QR image.';
+    elementById('scanner-status').textContent = 'Use the device camera or choose an existing QR image.';
 }
 
 function attachCameraStream(video, stream) {
@@ -192,7 +193,7 @@ function loadImageFile(file) {
 }
 
 async function scanImageFile(file, canvas, ctx, generation) {
-    byId('scanner-status').textContent = 'Reading QR image…';
+    elementById('scanner-status').textContent = 'Reading QR image…';
     const loaded = await loadImageFile(file);
     try {
         if (generation !== scannerGeneration) return;
@@ -206,10 +207,10 @@ async function scanImageFile(file, canvas, ctx, generation) {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
         if (!code || !code.binaryData || code.binaryData.length === 0) {
-            byId('scanner-status').textContent = 'No QR code found. Try a closer, sharper photo.';
+            elementById('scanner-status').textContent = 'No QR code found. Try a closer, sharper photo.';
             return;
         }
-        byId('scanner-status').textContent = 'QR code found';
+        elementById('scanner-status').textContent = 'QR code found';
         scannerState.scanCallback?.(new Uint8Array(code.binaryData));
     } finally {
         loaded.release();
@@ -226,7 +227,7 @@ function bindFallbackControls(canvas, ctx, generation) {
             await scanImageFile(file, canvas, ctx, generation);
         } catch (error) {
             if (generation === scannerGeneration) {
-                byId('scanner-status').textContent = `Image error: ${error.message || error}`;
+                elementById('scanner-status').textContent = `Image error: ${error.message || error}`;
             }
         } finally {
             if (input) input.value = '';
@@ -250,15 +251,15 @@ export function startScanner(title, callback, returnPanel, options = {}) {
         scannerState._scannerReturnScreen = currentScreen;
     }
     if (returnPanel !== undefined) scannerState._scannerReturnPanel = returnPanel;
-    byId('scanner-title').textContent = title;
-    byId('scanner-status').textContent = 'Starting camera...';
+    elementById('scanner-title').textContent = title;
+    elementById('scanner-status').textContent = 'Starting camera...';
     showScreen('scanner');
     bindFrameHexControls(generation, options.allowFrameHex === true);
     try { reset_qr_decoder(); } catch { /* A decoder that never started has nothing to reset. */ }
 
     lastDecodeAt = 0;
     const video = byId('scanner-video');
-    const canvas = byId('scanner-canvas');
+    const canvas = /** @type {HTMLCanvasElement} */ (elementById('scanner-canvas'));
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     bindFallbackControls(canvas, ctx, generation);
 
@@ -273,7 +274,7 @@ export function startScanner(title, callback, returnPanel, options = {}) {
             stopStream(stream);
             return;
         }
-        byId('scanner-status').textContent = 'Point at QR code';
+        elementById('scanner-status').textContent = 'Point at QR code';
         scanLoop(video, canvas, ctx, performance.now(), generation);
     }).catch(err => {
         if (generation !== scannerGeneration) return;

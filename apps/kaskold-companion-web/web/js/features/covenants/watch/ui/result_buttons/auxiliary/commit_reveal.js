@@ -1,3 +1,4 @@
+// @ts-check
 import { byId } from '../../../../../../core/dom.js';
 import { covShowPanel } from '../../../../generation/panel_keys.js';
 
@@ -9,7 +10,7 @@ export function configureCommitRevealVerification(type) {
         button.className = 'btn btn-outline commit-reveal-result-action';
         button.textContent = 'Verify Revelation';
         const backButton = byId('btn-cov-result-back');
-        if (backButton) backButton.parentElement.insertBefore(button, backButton);
+        if (backButton) backButton.parentElement?.insertBefore(button, backButton);
     }
     if (!button) return;
     button.style.display = type === 'commit-reveal' ? '' : 'none';

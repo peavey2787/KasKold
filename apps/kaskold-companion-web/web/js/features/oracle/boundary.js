@@ -1,3 +1,4 @@
+// @ts-check
 // The Rust boundary and application state the oracle domain uses.
 export {
     covenant_oracle_mb,

@@ -1,3 +1,4 @@
+// @ts-check
 import { walletSession } from '../../state/index.js';
 import { oracleMbAskForNew, oracleMbSetFee } from '../../../features/oracle/model_b/controller.js';
 import { navigateBack, showScreen } from '../../navigation.js';
@@ -11,7 +12,7 @@ import {
 // KasKold Companion Web — app/events/contracts/oracle
 // Binds covenant navigation and oracle-model-B controls.
 
-import { byId } from '../../../core/dom.js';
+import { byId, elementById, optionalInput } from '../../../core/dom.js';
 
 
 const ORACLE_MB_CLICK_BINDINGS = [
@@ -53,8 +54,8 @@ function onOracleFeeCustomInput(input) {
 // Oracle roll fee selector: presets (1/2/3 KAS) + a custom amount (min 1). The chosen total is the
 // miner fee plus the 0.3 service fee; a bigger total raises the feerate so the roll clears a busy mempool.
 function bindOracleFeeSelector() {
-    document.querySelectorAll('.omb-fee-btn').forEach(b => {
-        b.onclick = () => { const ci = byId('input-omb-fee-custom'); if (ci) ci.value = ''; oracleMbSetFee(b.getAttribute('data-omb-fee'), false); };
+    /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('.omb-fee-btn')).forEach(b => {
+        b.onclick = () => { const ci = optionalInput('input-omb-fee-custom'); if (ci) ci.value = ''; oracleMbSetFee(b.getAttribute('data-omb-fee'), false); };
     });
     const customInput = byId('input-omb-fee-custom');
     if (customInput) customInput.oninput = () => onOracleFeeCustomInput(customInput);
@@ -63,12 +64,12 @@ function bindOracleFeeSelector() {
 
 export function bindOracleEvents() {
     // ─── Covenant++ handlers ───
-    byId('btn-covenant').onclick = () => {
+    elementById('btn-covenant').onclick = () => {
         document.querySelectorAll('#cov-menu .cov-category').forEach(category => category.classList.add('collapsed'));
         covShowPanel('menu');
         showScreen('covenant');
     };
-    byId('btn-cov-back').onclick = () => navigateBack(walletSession.hasWallet() ? 'dashboard' : 'welcome');
+    elementById('btn-cov-back').onclick = () => navigateBack(walletSession.hasWallet() ? 'dashboard' : 'welcome');
     bindGuardedClicks(ORACLE_MB_CLICK_BINDINGS);
     bindOracleFeeSelector();
     bindGuardedClicks(ORACLE_V1_CLICK_BINDINGS);

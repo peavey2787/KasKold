@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState } from '../../boundary.js';
 import { fetchCurrentDaa } from '../../../../core/node/daa.js';
 // KasKold Companion Web — features/covenants/watch/ui/metadata

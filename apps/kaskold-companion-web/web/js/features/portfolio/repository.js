@@ -1,3 +1,4 @@
+// @ts-check
 const STORAGE_KEY = 'companion-portfolio-v1';
 const EMPTY_STORE = Object.freeze({ schema: 1, accounts: [], transactions: [] });
 

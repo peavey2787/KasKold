@@ -1,3 +1,4 @@
+// @ts-check
 import {
     networkState,
     decode_address,
@@ -10,7 +11,7 @@ import { showScreen } from '../../../app/navigation.js';
 import { toast } from '../../../core/ui/toast.js';
 import { startScanner, stopScanner } from '../../stealth/index/camera.js';
 
-import { byId } from '../../../core/dom.js';
+import { inputById } from '../../../core/dom.js';
 
 function isActiveNetworkAddress(address) {
     const prefix = addressPrefix(networkState.network);
@@ -35,9 +36,9 @@ export function covScanPubkey(fieldId, label, rejectKpub) {
         const finish = (xonly, note) => {
             stopScanner();
             try {
-                byId(fieldId).value = encode_p2pk_address(xonly, networkState.network);
+                inputById(fieldId).value = encode_p2pk_address(xonly, networkState.network);
             } catch {
-                byId(fieldId).value = xonly;
+                inputById(fieldId).value = xonly;
             }
             showScreen('covenant');
             toast(note || 'Address scanned. Verify it matches KasKold.', 'ok', 1800);
@@ -101,7 +102,7 @@ export function covScanAddress(fieldId, label, rejectKpub) {
             return;
         }
         stopScanner();
-        byId(fieldId).value = addr;
+        inputById(fieldId).value = addr;
         showScreen('covenant');
         toast('Address scanned', 'ok', 1500);
     });
@@ -125,7 +126,7 @@ export function covScanAddressAppend(textareaId, label) {
             return;
         }
         stopScanner();
-        const ta = byId(textareaId);
+        const ta = inputById(textareaId);
         const lines = (ta.value || '').split('\n').map(s => s.trim()).filter(Boolean);
         if (lines.includes(addr)) {
             showScreen('covenant');

@@ -1,3 +1,4 @@
+// @ts-check
 import { applyScriptTerms } from '../../../../../../model/script_terms.js';
 import { covenantState, covenantWatcherState } from '../../../../../../boundary.js';
 import { fetchEscrowDispute } from './fetch.js';

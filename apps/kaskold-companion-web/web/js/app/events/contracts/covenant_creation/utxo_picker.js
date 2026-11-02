@@ -1,3 +1,4 @@
+// @ts-check
 import { el, setContent } from '../../../../core/ui/elements.js';
 import { covenantState } from '../../../state/index.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
@@ -6,7 +7,7 @@ import { covShowPanel } from '../../../../features/covenants/generation/panel_ke
 import { fetch_utxos_for_address_js } from '../../../../wasm/api.js';
 // KasKold Companion Web — covenant UTXO picker and selection summary.
 
-import { byId } from '../../../../core/dom.js';
+import { byId, checkboxesIn, elementById, inputById } from '../../../../core/dom.js';
 import { sortUtxosLargestFirst } from '../../../../core/utxo.js';
 import { sompiToKasFixed } from '../../../../core/amounts.js';
 import { exactJsonStringify } from '../../../../core/exact.js';
@@ -51,13 +52,14 @@ function bindSummaryOnce(listEl) {
     listEl.addEventListener('change', () => updateConsolSummary());
 }
 
+/** @param {string} defaultDest @param {Record<string, any> | null} [beneClaim] */
 export async function openUtxoPicker(defaultDest, beneClaim = null) {
         if (!covenantState.lastCovenantResult) { toast('No covenant loaded', 'error'); return; }
         covenantState._pickerBeneClaim = beneClaim || null; // beneficiary timeout claim vs owner sweep
         const covAddr = covenantState.lastCovenantResult.address;
-        const listEl = byId('cov-consol-list');
+        const listEl = elementById('cov-consol-list');
         setContent(listEl, el('div', { className: 'covenant-utxo-loading' }, 'Loading UTXOs...'));
-        byId('cov-consol-dest').value = defaultDest || covAddr;
+        inputById('cov-consol-dest').value = defaultDest || covAddr;
         // Additive piggy break: this is a withdrawal (sweep to your address), not a
         // consolidation. Default-select all, and explain that deselecting lets you
         // break in smaller batches if a full sweep makes too large a QR for KasKold.
@@ -82,17 +84,17 @@ export async function openUtxoPicker(defaultDest, beneClaim = null) {
     }
 
 export function updateConsolSummary(_context) {
-        const listEl = byId('cov-consol-list');
-        const checks = listEl.querySelectorAll('input[type="checkbox"]');
+        const listEl = elementById('cov-consol-list');
+        const checks = checkboxesIn(listEl);
         let count = 0, total = 0n;
         const utxos = JSON.parse(listEl.dataset.utxos || '[]');
         checks.forEach(cb => {
             if (cb.checked) {
                 count++;
-                const idx = parseInt(cb.dataset.utxoIdx);
+                const idx = parseInt(String(cb.dataset.utxoIdx));
                 total += BigInt(utxos[idx].amount);
             }
         });
         const kas = sompiToKasFixed(total, 4);
-        byId('cov-consol-summary').textContent = count + ' UTXO' + (count !== 1 ? 's' : '') + ' selected: ' + kas + ' KAS';
+        elementById('cov-consol-summary').textContent = count + ' UTXO' + (count !== 1 ? 's' : '') + ' selected: ' + kas + ' KAS';
     }

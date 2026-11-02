@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState } from '../../../../state/index.js';
 import {
     create_covenant_beneficiary_spend_selected,

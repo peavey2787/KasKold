@@ -1,3 +1,4 @@
+// @ts-check
 import {
     covenantState,
     networkState,
@@ -12,7 +13,7 @@ import { toast } from '../../../core/ui/toast.js';
 import { sompiToKasString } from '../../../core/amounts.js';
 // KasKold Companion Web — features/transactions/send/review
 import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
-import { bindClick, byId } from '../../../core/dom.js';
+import { bindClick, byId, elementById } from '../../../core/dom.js';
 import { showQrSvg } from '../../../core/qr/svg_image.js';
 import { el, setContent } from '../../../core/ui/elements.js';
 
@@ -224,9 +225,9 @@ function isRelayDisplay(mode, title) {
 }
 
 function configureQrScanControls(options, isRelay, antiKleptoStep) {
-    const nextSignatureButton = byId('btn-scan-next-sig');
-    const primaryScanButton = byId('btn-qr-scan-signed');
-    const instruction = byId('qr-display-instruction');
+    const nextSignatureButton = elementById('btn-scan-next-sig');
+    const primaryScanButton = elementById('btn-qr-scan-signed');
+    const instruction = elementById('qr-display-instruction');
     nextSignatureButton.style.display = antiKleptoStep ? 'none' : (isRelay ? 'block' : 'none');
     nextSignatureButton.textContent = 'Scan Next Signature';
     primaryScanButton.style.display = '';
@@ -239,7 +240,7 @@ function configureQrScanControls(options, isRelay, antiKleptoStep) {
 function renderQrFrames(frames) {
     if (frames.length === 1) {
         showQrSvg(byId('qr-container'), frames[0].svg, 'Signing request QR');
-        byId('qr-frame-info').replaceChildren();
+        elementById('qr-frame-info').replaceChildren();
         return;
     }
     setContent(byId('qr-frame-info'), frameControls(frames.length));
@@ -259,12 +260,12 @@ export function displayKsptQr(ksptHex, title, options = {}) {
         scannerState.qrFrames = frames;
         scannerState.qrFrameIdx = 0;
         prepareQrFrameHexDisplay();
-        byId('qr-display-title').textContent = title || 'Scan QR Code';
+        elementById('qr-display-title').textContent = title || 'Scan QR Code';
 
         const mode = options.mode || 'standard';
         const antiKleptoStep = mode === 'anti-klepto-request' || mode === 'anti-klepto-reveal';
         configureQrScanControls(options, isRelayDisplay(mode, title), antiKleptoStep);
-        byId('btn-copy-kspt').style.display = 'none'; // hidden until advanced tab
+        elementById('btn-copy-kspt').style.display = 'none'; // hidden until advanced tab
         transactionState._currentKsptHex = ksptHex;
         renderQrFrames(frames);
         showScreen('qr-display');
@@ -305,7 +306,7 @@ function restartRunningQrCycle() {
 }
 
 function toggleQrCycle() {
-    const pauseButton = byId('btn-frame-pause');
+    const pauseButton = elementById('btn-frame-pause');
     if (scannerState.qrCycleTimer) {
         clearInterval(scannerState.qrCycleTimer);
         scannerState.qrCycleTimer = null;
@@ -324,7 +325,7 @@ function renderQrFrame(idx) {
         const dot = document.getElementById(`fdot-${i}`);
         if (dot) dot.className = `frame-dot${i === idx ? ' active' : ''}`;
     }
-    const c = byId('qr-container');
+    const c = elementById('qr-container');
     c.style.opacity = '0.7';
     setTimeout(() => { c.style.opacity = '1'; }, 100);
 }

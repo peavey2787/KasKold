@@ -1,3 +1,4 @@
+// @ts-check
 import { COVENANT_TYPE_CODES } from '../../payload/types.js';
 import { buildCovenantParamsHex } from '../../payload/params.js';
 import { build_covenant_payload, derive_covenant_payload_key } from '../../boundary.js';

@@ -1,3 +1,4 @@
+// @ts-check
 export const COVENANT_TYPE_CODES = Object.freeze({
     additive: 0x06,
     escrow: 0x07,

@@ -1,10 +1,11 @@
+// @ts-check
 import { networkState, walletSession, extend_addresses, generate_qr_frames } from '../boundary.js';
 import { showScreen } from '../../../app/navigation.js';
 import { getNextReceiveIndex } from '../../wallet/core.js';
 import { showQrSvg } from '../../../core/qr/svg_image.js';
 // KasKold Companion Web — features/transactions/send/receive
 import { utf8ToHex } from '../../../core/bytes.js';
-import { byId } from '../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../core/dom.js';
 import { toast } from '../../../core/ui/toast.js';
 
 const MAX_MANUAL_ADDRESS_INDEX = 999;
@@ -24,7 +25,7 @@ export function splitReceiveAddressLines(address) {
 }
 
 function renderReceiveAddress(address) {
-    const display = byId('receive-address');
+    const display = elementById('receive-address');
     display.replaceChildren();
     display.dataset.address = address;
     for (const line of splitReceiveAddressLines(address)) {
@@ -57,19 +58,19 @@ function renderAddress(chain, index) {
         const frames = JSON.parse(generate_qr_frames(utf8ToHex(address)));
         showQrSvg(byId('receive-qr'), frames[0].svg, 'Receive address QR');
     } catch {
-        byId('receive-qr').replaceChildren();
+        elementById('receive-qr').replaceChildren();
     }
     renderReceiveAddress(address);
-    byId('receive-chain').value = chain;
-    byId('receive-index').value = String(index);
+    inputById('receive-chain').value = chain;
+    inputById('receive-index').value = String(index);
 }
 
 export function showReceive() {
     if (!walletSession.hasWallet()) return;
     const index = getNextReceiveIndex();
-    const panel = byId('receive-advanced-panel');
+    const panel = elementById('receive-advanced-panel');
     panel.classList.add('hidden');
-    const toggle = byId('btn-receive-advanced');
+    const toggle = elementById('btn-receive-advanced');
     toggle.textContent = 'Advanced ▸';
     toggle.setAttribute('aria-expanded', 'false');
     try {
@@ -82,8 +83,8 @@ export function showReceive() {
 }
 
 export function toggleReceiveAdvanced() {
-    const panel = byId('receive-advanced-panel');
-    const toggle = byId('btn-receive-advanced');
+    const panel = elementById('receive-advanced-panel');
+    const toggle = elementById('btn-receive-advanced');
     const opening = panel.classList.contains('hidden');
     panel.classList.toggle('hidden', !opening);
     toggle.textContent = opening ? 'Advanced ▾' : 'Advanced ▸';
@@ -91,8 +92,8 @@ export function toggleReceiveAdvanced() {
 }
 
 export function applyReceiveAdvanced() {
-    const chain = byId('receive-chain').value === 'change' ? 'change' : 'receive';
-    const raw = byId('receive-index').value.trim();
+    const chain = inputById('receive-chain').value === 'change' ? 'change' : 'receive';
+    const raw = inputById('receive-index').value.trim();
     const index = Number.parseInt(raw, 10);
     if (!Number.isSafeInteger(index) || index < 0 || index > MAX_MANUAL_ADDRESS_INDEX || String(index) !== raw.replace(/^0+(?=\d)/, '')) {
         toast(`Address index must be a whole number from 0 to ${MAX_MANUAL_ADDRESS_INDEX}`, 'error', 3000);
@@ -106,10 +107,10 @@ export function applyReceiveAdvanced() {
 }
 
 export function copyAddress() {
-    const display = byId('receive-address');
+    const display = elementById('receive-address');
     const addr = display.dataset.address || display.textContent.replace(/\s+/g, '');
     navigator.clipboard.writeText(addr).then(() => {
-        byId('btn-copy-address').textContent = 'Copied!';
-        setTimeout(() => { byId('btn-copy-address').textContent = 'Copy Address'; }, 1600);
+        elementById('btn-copy-address').textContent = 'Copied!';
+        setTimeout(() => { elementById('btn-copy-address').textContent = 'Copy Address'; }, 1600);
     });
 }

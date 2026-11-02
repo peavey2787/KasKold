@@ -1,3 +1,4 @@
+// @ts-check
 // Covenant-loading event façade.
 import { bindInviteLoadingActions } from './covenant_loading/invites.js';
 import { bindLoadSubmissionAction } from './covenant_loading/submission.js';

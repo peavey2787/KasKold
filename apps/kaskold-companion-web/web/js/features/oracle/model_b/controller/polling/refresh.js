@@ -1,3 +1,4 @@
+// @ts-check
 import { oracleState, fetch_utxos_for_address_js } from '../../../boundary.js';
 import { ORACLE_MB_DEPLOY } from '../../config.js';
 import { oracleMbIdentity } from '../../state.js';

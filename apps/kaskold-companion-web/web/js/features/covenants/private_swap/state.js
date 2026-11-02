@@ -1,7 +1,9 @@
+// @ts-check
 import { exactJsonStringify } from '../../../core/exact.js';
 
 const STORAGE_KEY = 'companion_private_swap_v2';
 
+/** @type {Record<string, any>} */
 export const privateSwapState = Object.seal({
     role: '', stage: 'idle', swapId: '', network: '',
     myKeyId: '', myClaimPubkey: '', myOwnAdaptorPoint: '', myBindingToken: '',

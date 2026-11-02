@@ -1,3 +1,4 @@
+// @ts-check
 export function configureDefaultActions({ type, beneBtn, ownerBtn, fundBtn }) {
     if (fundBtn) fundBtn.textContent = 'Covenant Deposit';
     if (type === 'global-spending-limit') {

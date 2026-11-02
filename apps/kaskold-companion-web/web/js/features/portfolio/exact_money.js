@@ -1,3 +1,4 @@
+// @ts-check
 import { kasToSompi, SOMPI_PER_KAS, sompiToKasString } from '../../core/amounts.js';
 import { exactUnsigned } from '../../core/exact.js';
 

@@ -1,3 +1,4 @@
+// @ts-check
 // KasKold Companion Web — covenant action event façade.
 
 import { bindAllowanceActions } from './covenant_actions/allowance.js';

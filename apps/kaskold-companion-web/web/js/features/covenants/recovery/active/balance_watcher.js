@@ -1,3 +1,4 @@
+// @ts-check
 import {
     covenantWatcherState,
     navigationState,
@@ -46,7 +47,7 @@ function updateBalanceElement(covenant, index) {
     const balance = document.querySelector(`[data-cov-bal-idx="${index}"]`);
     if (!balance) return;
     balance.textContent = covenant._balText;
-    const row = balance.closest('.cov-active-item');
+    const row = /** @type {HTMLElement | null} */ (balance.closest('.cov-active-item'));
     if (row) row.style.opacity = covenant._empty ? '0.45' : '';
 }
 

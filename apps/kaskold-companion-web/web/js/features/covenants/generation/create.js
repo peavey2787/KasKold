@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState, covenantWatcherState } from '../boundary.js';
 import { toast } from '../../../core/ui/toast.js';
 import { covShowPanel, getAccountPubkeyHex } from './panel_keys.js';
@@ -5,7 +6,7 @@ import { covAddActive } from '../recovery/active.js';
 import { covRenderMetaLine } from '../watch/ui/metadata.js';
 import { covUpdateResultButtons } from '../watch/ui/result_buttons.js';
 // KasKold Companion Web — features/covenants/generation/create
-import { byId } from '../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../core/dom.js';
 import { buildCovenant } from './builders/index.js';
 import { normalizeCovenantExactFields, parseCovenantJson, stringifyCovenantJson } from '../model/exact_fields.js';
 import { contributionFromResult, contributionJson, hydrateCrowdfundState } from '../crowdfund/model.js';
@@ -15,7 +16,7 @@ import { contributionFromResult, contributionJson, hydrateCrowdfundState } from 
 
 
 export async function handleCovGenerate() {
-    const t = byId('cov-type').value;
+    const t = inputById('cov-type').value;
     let ownerPk = getAccountPubkeyHex();
     if (!ownerPk && t !== 'escrow') {
         toast('Load a wallet first (kpub)', 'error'); return;
@@ -62,11 +63,11 @@ export async function handleCovGenerate() {
             'oracle-v1': ['cov-oracle-v1-bene', 'cov-oracle-v1-pubkey', 'cov-oracle-v1-key-id', 'cov-oracle-v1-statement', 'cov-oracle-v1-locktime', 'cov-oracle-v1-datetime'],
             crowdfund: ['cov-crowdfund-name', 'cov-crowdfund-goal', 'cov-crowdfund-organizer-address', 'cov-crowdfund-locktime', 'cov-crowdfund-datetime'],
         };
-        if (formFields[t]) formFields[t].forEach(id => { if (byId(id)) byId(id).value = ''; });
+        if (formFields[t]) formFields[t].forEach(id => { if (byId(id)) inputById(id).value = ''; });
 
 
-        byId('cov-result-addr').textContent = result.address;
-        byId('cov-result-script').textContent = result.redeem_script_hex;
+        elementById('cov-result-addr').textContent = result.address;
+        elementById('cov-result-script').textContent = result.redeem_script_hex;
         covRenderMetaLine(result);
 
         covShowPanel('result');

@@ -1,3 +1,4 @@
+// @ts-check
 import { applyScriptTerms } from '../../../../model/script_terms.js';
 import { setContent, span } from '../../../../../../core/ui/elements.js';
 import { covenantState, covenantWatcherState } from '../../../../boundary.js';

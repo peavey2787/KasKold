@@ -1,3 +1,4 @@
+// @ts-check
 import { chartValues, holdingSummary, portfolioValueMicro } from './calculations.js';
 import { formatKas, formatUsd, microToUsd } from './exact_money.js';
 
@@ -125,10 +126,10 @@ function chartSvg(values) {
     let min = values[0].valueMicroUsd;
     let max = min;
     for (const point of values) { if (point.valueMicroUsd < min) min = point.valueMicroUsd; if (point.valueMicroUsd > max) max = point.valueMicroUsd; }
-    const span = max > min ? max - min : 1n;
+    const span = max > min ? BigInt(max) - BigInt(min) : 1n;
     const points = values.map((point, index) => {
         const x = values.length === 1 ? 0 : Math.round((index * 310) / (values.length - 1)) + 5;
-        const scaled = Number(((point.valueMicroUsd - min) * 1200n) / span) / 10;
+        const scaled = Number(((BigInt(point.valueMicroUsd) - BigInt(min)) * 1200n) / span) / 10;
         return `${x},${135 - scaled}`;
     }).join(' ');
     const polyline = document.createElementNS(SVG_NS, 'polyline');

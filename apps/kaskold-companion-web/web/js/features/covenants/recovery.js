@@ -1,3 +1,4 @@
+// @ts-check
 // Stable recovery feature composition.
 import './recovery/active.js';
 import './recovery/export.js';

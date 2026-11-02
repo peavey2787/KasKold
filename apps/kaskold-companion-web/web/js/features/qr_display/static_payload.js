@@ -1,6 +1,7 @@
+// @ts-check
 import { navigationState, generate_qr_svg_text } from './boundary.js';
 import { showScreen } from '../../app/navigation.js';
-import { byId } from '../../core/dom.js';
+import { byId, elementById } from '../../core/dom.js';
 import { showQrSvg } from '../../core/qr/svg_image.js';
 import { setContent } from '../../core/ui/elements.js';
 import { hideQrFrameHexDisplay, pauseQrCycle } from '../transactions/send/review.js';
@@ -22,7 +23,7 @@ export function showStaticPayloadQr(payload, title, caption = '', returnScreen =
     hideQrFrameHexDisplay();
     showQrSvg(byId('qr-container'), generate_qr_svg_text(payload), title);
     setContent(byId('qr-frame-info'), caption);
-    byId('qr-display-title').textContent = title;
+    elementById('qr-display-title').textContent = title;
     for (const id of SIGNING_ONLY_CONTROLS) byId(id)?.style.setProperty('display', 'none');
     navigationState._broadcastReturnScreen = returnScreen;
     showScreen('qr-display');

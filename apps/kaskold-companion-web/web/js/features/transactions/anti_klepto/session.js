@@ -1,3 +1,4 @@
+// @ts-check
 import {
     anti_klepto_accept_commitment,
     anti_klepto_begin,

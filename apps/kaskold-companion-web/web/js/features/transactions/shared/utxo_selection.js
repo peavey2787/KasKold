@@ -1,3 +1,4 @@
+// @ts-check
 // Canonical identity helpers for send coin control. Selection follows outpoints,
 // never presentation indexes, so sorting/re-rendering cannot change what is spent.
 export function utxoId(utxo) {

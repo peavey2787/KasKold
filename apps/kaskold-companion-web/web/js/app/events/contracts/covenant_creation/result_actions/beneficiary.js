@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState } from '../../../../state/index.js';
 import { toast } from '../../../../../core/ui/toast.js';
 import { covShowPanel } from '../../../../../features/covenants/generation/panel_keys.js';
@@ -6,32 +7,32 @@ import { handleEscrowSpend } from '../../../../../features/covenants/spending/st
 import { openOracleV1Claim } from '../../../../../features/oracle/v1/controller.js';
 // KasKold Companion Web — focused covenant result action registration.
 
-import { byId } from '../../../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../../../core/dom.js';
 import { formatDaaDuration, formatStartDate } from '../../../../../core/format.js';
 import { sompiToKasString } from '../../../../../core/amounts.js';
 import { exactUnsigned } from '../../../../../core/exact.js';
 
 function populateBeneficiaryPanel(result, type) {
     covShowPanel('beneficiary');
-    byId('cov-bene-savings-key-wrap').classList.toggle('u-hidden', type !== 'timelocked-savings');
-    byId('cov-bene-addr').value = result.address || '';
-    byId('cov-bene-script').value = result.redeem_script_hex || '';
-    byId('cov-beneficiary-panel').dataset.covBeneType = type;
+    elementById('cov-bene-savings-key-wrap').classList.toggle('u-hidden', type !== 'timelocked-savings');
+    inputById('cov-bene-addr').value = result.address || '';
+    inputById('cov-bene-script').value = result.redeem_script_hex || '';
+    elementById('cov-beneficiary-panel').dataset.covBeneType = type;
     const destination = ownerReceiveAddr();
-    if (destination) byId('cov-bene-dest').value = destination;
+    if (destination) inputById('cov-bene-dest').value = destination;
 }
 
 function showDmsOwnerWithdrawal(result) {
     covShowPanel('owner');
-    byId('cov-owner-addr').value = result.address || '';
-    byId('cov-owner-script').value = result.redeem_script_hex || '';
+    inputById('cov-owner-addr').value = result.address || '';
+    inputById('cov-owner-script').value = result.redeem_script_hex || '';
     const panel = byId('cov-owner-panel');
     if (panel) {
         panel.dataset.covOwnerType = 'dms';
         panel.dataset.covOwnerMode = 'withdraw';
     }
-    const amount = byId('cov-owner-amount');
-    const label = amount?.previousElementSibling;
+    const amount = inputById('cov-owner-amount');
+    const label = /** @type {HTMLElement | null | undefined} */ (amount?.previousElementSibling);
     if (amount) {
         amount.style.display = '';
         amount.value = '';
@@ -40,8 +41,8 @@ function showDmsOwnerWithdrawal(result) {
         label.style.display = '';
         label.textContent = 'Amount (KAS) — leave empty to sweep all';
     }
-    byId('cov-owner-dest').value = ownerReceiveAddr();
-    byId('cov-owner-dest').readOnly = false;
+    inputById('cov-owner-dest').value = ownerReceiveAddr();
+    inputById('cov-owner-dest').readOnly = false;
     const help = byId('cov-owner-help');
     if (help) {
         help.textContent = 'Withdraw funds from the DMS covenant. Sends to a personal address. Requires owner signature from your KasKold.';
@@ -59,7 +60,7 @@ function showDmsOwnerWithdrawal(result) {
 function showAllowanceWithdrawal(result) {
     populateBeneficiaryPanel(result, 'global-allowance');
     byId('cov-bene-locktime-wrap')?.style.setProperty('display', 'none');
-    byId('cov-bene-locktime').value = '0';
+    inputById('cov-bene-locktime').value = '0';
     byId('cov-bene-amount-wrap')?.style.setProperty('display', '');
     byId('btn-cov-bene-pick')?.style.setProperty('display', 'none');
 
@@ -82,7 +83,7 @@ function showAllowanceWithdrawal(result) {
 function showTimelockedSavingsClaim(result) {
     populateBeneficiaryPanel(result, 'timelocked-savings');
     byId('cov-bene-locktime-wrap')?.style.setProperty('display', 'none');
-    if (result.locktime_daa) byId('cov-bene-locktime').value = String(result.locktime_daa);
+    if (result.locktime_daa) inputById('cov-bene-locktime').value = String(result.locktime_daa);
     byId('cov-bene-amount-wrap')?.style.setProperty('display', 'none');
     byId('btn-cov-bene-pick')?.style.setProperty('display', '');
 
@@ -117,9 +118,9 @@ function setStandardClaimHelp(result, isDms) {
 function showStandardBeneficiaryClaim(result) {
     populateBeneficiaryPanel(result, '');
     const isDms = result.type === 'dms';
-    byId('cov-bene-locktime-wrap').style.display = isDms ? 'none' : '';
-    byId('cov-bene-locktime').value = isDms ? '0' : String(result.locktime_daa || '');
-    byId('cov-bene-amount-wrap').style.display = 'none';
+    elementById('cov-bene-locktime-wrap').style.display = isDms ? 'none' : '';
+    inputById('cov-bene-locktime').value = isDms ? '0' : String(result.locktime_daa || '');
+    elementById('cov-bene-amount-wrap').style.display = 'none';
     setStandardClaimHelp(result, isDms);
     const create = byId('btn-cov-bene-create');
     if (create) create.textContent = isDms ? 'Claim Inheritance' : 'Create Release TX';
@@ -148,5 +149,5 @@ async function openBeneficiaryAction() {
 }
 
 export function registerBeneficiaryAction() {
-    byId('btn-cov-res-bene').onclick = () => openBeneficiaryAction();
+    elementById('btn-cov-res-bene').onclick = () => openBeneficiaryAction();
 }

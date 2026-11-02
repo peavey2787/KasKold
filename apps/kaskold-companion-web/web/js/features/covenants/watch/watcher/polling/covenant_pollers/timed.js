@@ -1,3 +1,4 @@
+// @ts-check
 import { setContent, span } from '../../../../../../core/ui/elements.js';
 import { covenantWatcherState } from '../../../../boundary.js';
 import { formatDaaDuration } from '../../../../../../core/format.js';

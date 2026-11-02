@@ -1,3 +1,4 @@
+// @ts-check
 import { setContent, span } from '../../../../../../core/ui/elements.js';
 import { covenantState, covenantWatcherState } from '../../../../boundary.js';
 import { exactUnsigned } from '../../../../../../core/exact.js';

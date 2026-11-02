@@ -1,3 +1,4 @@
+// @ts-check
 import {
     networkState,
     covenant_global_allowance,
@@ -5,12 +6,12 @@ import {
     decode_address,
 } from '../../boundary.js';
 import { kasToSompi } from '../../../../core/amounts.js';
-import { byId } from '../../../../core/dom.js';
+import { inputById, optionalInput } from '../../../../core/dom.js';
 import { resolveFutureDaa } from '../../../../core/node/future_daa.js';
 import { toast } from '../../../../core/ui/toast.js';
 
 function positiveSeconds(inputId, message) {
-    const text = byId(inputId).value.trim();
+    const text = inputById(inputId).value.trim();
     if (!/^\d+$/.test(text) || BigInt(text) === 0n) {
         toast(message, 'error');
         return null;
@@ -20,7 +21,7 @@ function positiveSeconds(inputId, message) {
 
 function positiveSompi(inputId, message) {
     try {
-        const value = kasToSompi(byId(inputId).value);
+        const value = kasToSompi(inputById(inputId).value);
         if (value === 0n) throw new Error('zero');
         return value;
     } catch {
@@ -67,7 +68,7 @@ function resolveBeneficiaryPkHex(benePk) {
 
 // Reads the allowance cooldown period in seconds. Returns null after toasting on failure.
 function resolveAllowanceCooldownSeconds() {
-    const periodValue = byId('cov-allowance-period').value;
+    const periodValue = inputById('cov-allowance-period').value;
     if (periodValue === 'custom') {
         return positiveSeconds('cov-allowance-seq', 'Set a custom cooldown time');
     }
@@ -90,7 +91,7 @@ async function resolveAllowanceStartDaa(startValue) {
 }
 
 export async function buildGlobalAllowance(ownerPk) {
-    const benePkHex = resolveBeneficiaryPkHex(byId('cov-allowance-bene-pk').value.trim());
+    const benePkHex = resolveBeneficiaryPkHex(inputById('cov-allowance-bene-pk').value.trim());
     if (benePkHex === null) return;
 
     const sompi = positiveSompi('cov-allowance-max', 'Enter max withdrawal in KAS');
@@ -100,7 +101,7 @@ export async function buildGlobalAllowance(ownerPk) {
     if (cooldownSeconds === null) return;
     const cooldownDaa = cooldownSeconds * 10n;
 
-    const startValue = byId('cov-allowance-start')?.value || '';
+    const startValue = optionalInput('cov-allowance-start')?.value || '';
     const startDaa = await resolveAllowanceStartDaa(startValue);
     if (startDaa === null) return;
 

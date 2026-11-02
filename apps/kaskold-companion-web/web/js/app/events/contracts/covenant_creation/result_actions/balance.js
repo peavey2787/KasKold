@@ -1,15 +1,16 @@
+// @ts-check
 import { covenantState } from '../../../../state/index.js';
 import { resolveNodeUrl } from '../../../../../core/node/resolver.js';
 import { toast } from '../../../../../core/ui/toast.js';
 import { fetch_utxos_for_address_js } from '../../../../../wasm/api.js';
 // KasKold Companion Web — focused covenant result action registration.
 
-import { byId } from '../../../../../core/dom.js';
+import { byId, elementById } from '../../../../../core/dom.js';
 import { sompiToKasString } from '../../../../../core/amounts.js';
 export function registerBalanceAction() {
-    byId('btn-cov-res-balance').onclick = async () => {
+    elementById('btn-cov-res-balance').onclick = async () => {
         if (!covenantState.lastCovenantResult) { toast('No covenant loaded', 'error'); return; }
-        const balEl = byId('cov-result-balance');
+        const balEl = elementById('cov-result-balance');
         balEl.style.display = 'block';
         balEl.textContent = 'Loading...';
         try {

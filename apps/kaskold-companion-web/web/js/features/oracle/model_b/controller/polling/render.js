@@ -1,3 +1,4 @@
+// @ts-check
 import { oracleState } from '../../../boundary.js';
 // Oracle Model B card presentation.
 import { byId } from '../../../../../core/dom.js';

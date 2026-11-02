@@ -1,3 +1,4 @@
+// @ts-check
 import { start } from './navigation.js';
 // Ordered application composition.
 import '../features/covenants/payload.js';

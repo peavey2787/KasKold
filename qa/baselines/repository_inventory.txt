@@ -3204,6 +3204,7 @@ F	qa/generated/production_ui_map.md
 F	qa/lint/eslint.config.mjs
 F	qa/lint/package-lock.json
 F	qa/lint/package.json
+F	qa/lint/tsconfig.app.json
 F	qa/lint/tsconfig.json
 F	qa/linux/lib/collect_esptool_security.py
 F	qa/linux/lib/esptool_security_policy.py

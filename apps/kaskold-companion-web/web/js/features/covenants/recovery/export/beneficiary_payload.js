@@ -1,3 +1,4 @@
+// @ts-check
 import { bytesToHex } from '../../../../core/bytes.js';
 
 const HEX_32 = /^[0-9a-f]{64}$/;

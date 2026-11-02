@@ -1,5 +1,6 @@
+// @ts-check
 import { covenantState, navigationState } from '../../../../state/index.js';
-import { byId } from '../../../../../core/dom.js';
+import { byId, elementById, inputById, optionalInput } from '../../../../../core/dom.js';
 import { toast } from '../../../../../core/ui/toast.js';
 import { hideLoading, showLoading, showScreen } from '../../../../navigation.js';
 import { covShowPanel } from '../../../../../features/covenants/generation/panel_keys.js';
@@ -13,7 +14,7 @@ import { CovenantSpendPolicyError, ownerSpendBranch } from './policy.js';
 import { selectedUtxos, setAllSelected } from './selection.js';
 
 function ownerDestination() {
-    return (byId('cov-owner-dest')?.value.trim() || '') || ownerReceiveAddr();
+    return (optionalInput('cov-owner-dest')?.value.trim() || '') || ownerReceiveAddr();
 }
 
 function openResultPanel() {
@@ -43,7 +44,7 @@ async function createSelectedSpend() {
         toast('Select at least 1 UTXO', 'error');
         return;
     }
-    const destination = byId('cov-consol-dest').value.trim();
+    const destination = inputById('cov-consol-dest').value.trim();
     if (!destination) {
         toast('Enter a destination address', 'error');
         return;
@@ -85,8 +86,8 @@ export function registerWithdrawal() {
     const resultConsolidate = byId('btn-cov-res-consolidate');
     if (resultConsolidate) resultConsolidate.onclick = () => openResultActionPicker();
 
-    byId('btn-consol-select-all').onclick = () => { setAllSelected(true); updateConsolSummary(); };
-    byId('btn-consol-select-none').onclick = () => { setAllSelected(false); updateConsolSummary(); };
-    byId('btn-consol-back').onclick = openResultPanel;
-    byId('btn-consol-create').onclick = () => createSelectedSpend();
+    elementById('btn-consol-select-all').onclick = () => { setAllSelected(true); updateConsolSummary(); };
+    elementById('btn-consol-select-none').onclick = () => { setAllSelected(false); updateConsolSummary(); };
+    elementById('btn-consol-back').onclick = openResultPanel;
+    elementById('btn-consol-create').onclick = () => createSelectedSpend();
 }

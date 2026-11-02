@@ -1,4 +1,5 @@
-import { byId } from '../../../../../core/dom.js';
+// @ts-check
+import { byId, elementById, inputById } from '../../../../../core/dom.js';
 
 const RESULT_FIELDS = [
     'cov-cr-verify-preimage',
@@ -15,20 +16,20 @@ export function clearVerificationResult() {
     }
     const result = byId('cov-cr-verify-result');
     if (result) result.style.display = 'none';
-    const txid = byId('cov-cr-verify-txid');
+    const txid = inputById('cov-cr-verify-txid');
     if (txid) txid.value = '';
 }
 
 export function renderVerificationResult(result) {
-    byId('cov-cr-verify-result').style.display = '';
-    byId('cov-cr-verify-preimage').textContent = result.preimageText;
-    byId('cov-cr-verify-hash').textContent = result.committedHash;
-    byId('cov-cr-verify-computed').textContent = result.computedHash;
-    const match = byId('cov-cr-verify-match');
+    elementById('cov-cr-verify-result').style.display = '';
+    elementById('cov-cr-verify-preimage').textContent = result.preimageText;
+    elementById('cov-cr-verify-hash').textContent = result.committedHash;
+    elementById('cov-cr-verify-computed').textContent = result.computedHash;
+    const match = elementById('cov-cr-verify-match');
     match.textContent = result.matches
         ? '✅ HASH MATCH — Commitment verified'
         : '❌ HASH MISMATCH — Invalid revelation';
     match.style.background = result.matches ? 'rgba(78,205,196,0.15)' : 'rgba(255,82,82,0.15)';
     match.style.color = result.matches ? 'var(--teal)' : '#ff5252';
-    byId('cov-cr-verify-time').textContent = result.timestamp;
+    elementById('cov-cr-verify-time').textContent = result.timestamp;
 }

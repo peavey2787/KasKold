@@ -1,3 +1,4 @@
+// @ts-check
 import {
     networkState,
     scannerState,
@@ -16,7 +17,7 @@ import { expandAddressesIfNeeded, reconcileStandardChangeReservations } from './
 import { fetchAddressHistory } from './history.js';
 import { trackUtxoChangesAndUsed } from '../tools.js';
 
-import { byId } from '../../../core/dom.js';
+import { byId, elementById } from '../../../core/dom.js';
 import { exactUnsigned } from '../../../core/exact.js';
 import { formatSompiGrouped, sompiToKasRoundedGrouped } from '../../../core/amounts.js';
 
@@ -65,6 +66,11 @@ function nodeUrlForAttempt(attempt, maxRetries) {
     return resolvePublicNode();
 }
 
+/**
+ * @param {(wsUrl: string) => any} fn
+ * @param {number} [maxRetries]
+ * @param {((retry: { attempt: number, maxRetries: number, error: unknown }) => void) | null} [onRetry]
+ */
 export async function withNodeRetry(fn, maxRetries = 3, onRetry = null) {
     const attempts = Math.max(1, Number(maxRetries) || 1);
     let lastError;
@@ -120,10 +126,10 @@ export function resetBalanceDisplayUnit() {
 
 function renderBalance(result) {
     const totalSompi = exactUnsigned(result.total_sompi, 'wallet total balance');
-    const amount = byId('balance-kas');
+    const amount = elementById('balance-kas');
     amount.dataset.balanceSompi = totalSompi.toString();
     renderStoredBalance();
-    byId('balance-info').textContent =
+    elementById('balance-info').textContent =
         `${result.utxo_count} UTXO${result.utxo_count !== 1 ? 's' : ''} across ${result.funded_addresses} address${result.funded_addresses !== 1 ? 'es' : ''}`;
 }
 
@@ -139,7 +145,7 @@ function showNodeFailureAfterRetries() {
         balance.textContent = 'Unavailable';
         balance.dataset.balanceSompi = '';
     }
-    byId('balance-info').textContent = hasLastKnownBalance
+    elementById('balance-info').textContent = hasLastKnownBalance
         ? `Unable to reconnect after ${BALANCE_RECONNECT_ATTEMPTS} attempts. Last known balance shown.`
         : `Unable to reconnect after ${BALANCE_RECONNECT_ATTEMPTS} attempts.`;
     if (!nodeFailureNotified) {
@@ -211,7 +217,7 @@ export async function refreshBalance() {
         try {
             const daa = await fetchCurrentDaa();
             if (daa > 0 && byId('balance-daa')) {
-                byId('balance-daa').textContent = 'DAA ' + daa.toLocaleString();
+                elementById('balance-daa').textContent = 'DAA ' + daa.toLocaleString();
             }
         } catch { /* The DAA line is optional; the balance above is already shown. */ }
     } catch {

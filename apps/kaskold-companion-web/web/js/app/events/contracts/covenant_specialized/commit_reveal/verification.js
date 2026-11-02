@@ -1,3 +1,4 @@
+// @ts-check
 import { hexToBytes } from '../../../../../core/bytes.js';
 import { read_commit_reveal_reveal } from '../../../../../wasm/api.js';
 

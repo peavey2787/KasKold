@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState } from '../../../../state/index.js';
 import { piggyBreakStatus, piggyStatusBanner } from '../result_actions.js';
 import { fetchCurrentDaa } from '../../../../../core/node/daa.js';
@@ -7,7 +8,7 @@ import { covShowPanel } from '../../../../../features/covenants/generation/panel
 import { getCovFee, ownerReceiveAddr } from '../../../../../features/covenants/payload/state.js';
 import { handleEscrowSpend } from '../../../../../features/covenants/spending/standard/shipment.js';
 import { fetch_utxos_for_address_js } from '../../../../../wasm/api.js';
-import { byId } from '../../../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../../../core/dom.js';
 import { openUtxoPicker } from '../utxo_picker.js';
 
 import { formatDaaDuration } from '../../../../../core/format.js';
@@ -88,8 +89,8 @@ function ownerAmountPlaceholder(covenantType) {
 }
 
 function configureOwnerAmount(covenantType) {
-    const amount = byId('cov-owner-amount');
-    const label = amount?.previousElementSibling;
+    const amount = inputById('cov-owner-amount');
+    const label = /** @type {HTMLElement | null | undefined} */ (amount?.previousElementSibling);
     const alwaysSweep = ALWAYS_SWEEP_OWNER_TYPES.has(covenantType);
     if (amount) {
         amount.style.display = alwaysSweep ? 'none' : '';
@@ -110,7 +111,7 @@ function configureOwnerConsolidate(covenantType) {
 }
 
 function configureOwnerDestination(covenantType) {
-    const destination = byId('cov-owner-dest');
+    const destination = inputById('cov-owner-dest');
     if (covenantType === 'dms') {
         destination.value = covenantState.lastCovenantResult.address || '';
         destination.readOnly = true;
@@ -133,8 +134,8 @@ function configureOwnerControls(covenantType) {
 
 function openOwnerPanel(covenantType) {
     covShowPanel('owner');
-    byId('cov-owner-addr').value = covenantState.lastCovenantResult.address || '';
-    byId('cov-owner-script').value = covenantState.lastCovenantResult.redeem_script_hex || '';
+    inputById('cov-owner-addr').value = covenantState.lastCovenantResult.address || '';
+    inputById('cov-owner-script').value = covenantState.lastCovenantResult.redeem_script_hex || '';
     const panel = byId('cov-owner-panel');
     if (panel) panel.dataset.covOwnerType = covenantType;
     configureOwnerHelp(covenantType);
@@ -181,5 +182,5 @@ async function handleOwnerAction() {
 }
 
 export function registerOwnerAction() {
-    byId('btn-cov-res-owner').onclick = () => handleOwnerAction();
+    elementById('btn-cov-res-owner').onclick = () => handleOwnerAction();
 }

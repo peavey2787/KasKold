@@ -1,3 +1,4 @@
+// @ts-check
 // Focused covenant session state.
 /** @type {Record<string, any>} */
 export const covenantState = Object.seal({

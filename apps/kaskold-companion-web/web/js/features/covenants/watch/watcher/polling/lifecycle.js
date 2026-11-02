@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState, covenantWatcherState } from '../../../boundary.js';
 import { covWatcherPoll } from './poll.js';
 import { covSubscriptionStart, covSubscriptionStop } from '../subscription.js';

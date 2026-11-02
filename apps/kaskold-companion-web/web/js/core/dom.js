@@ -9,6 +9,48 @@ export function byId(id) {
 }
 
 /**
+ * An element the page always contains; a missing one is a broken page.
+ *
+ * @param {string} id
+ * @returns {HTMLElement}
+ */
+export function elementById(id) {
+    const element = byId(id);
+    if (!element) throw new Error(`Missing page element: ${id}`);
+    return element;
+}
+
+/**
+ * A form control the page always contains.
+ *
+ * @param {string} id
+ * @returns {HTMLInputElement}
+ */
+export function inputById(id) {
+    return /** @type {HTMLInputElement} */ (elementById(id));
+}
+
+/**
+ * A form control the page may not be showing.
+ *
+ * @param {string} id
+ * @returns {HTMLInputElement | null}
+ */
+export function optionalInput(id) {
+    return /** @type {HTMLInputElement | null} */ (byId(id));
+}
+
+/**
+ * The checkboxes inside a list.
+ *
+ * @param {ParentNode} container
+ * @returns {NodeListOf<HTMLInputElement>}
+ */
+export function checkboxesIn(container) {
+    return container.querySelectorAll('input[type="checkbox"]');
+}
+
+/**
  * Bind an optional click target without letting removed UI abort sibling bindings.
  *
  * @param {string} id

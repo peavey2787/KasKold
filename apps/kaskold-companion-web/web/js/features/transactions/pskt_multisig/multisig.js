@@ -1,3 +1,4 @@
+// @ts-check
 import { descriptorSummary } from './descriptor_summary.js';
 import { renderScanProgress } from '../../../core/ui/scan_progress.js';
 import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
@@ -20,7 +21,7 @@ import { getCovFee } from '../../covenants/payload/state.js';
 import { stopScanner } from '../../stealth/index/camera.js';
 import { openPsktReview } from './review.js';
 // KasKold Companion Web — features/transactions/pskt_multisig/multisig
-import { byId } from '../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../core/dom.js';
 import { addressPrefix } from '../../../core/network.js';
 
 import { kasToSompi, sompiToKasFixed, sompiToKasString } from '../../../core/amounts.js';
@@ -41,7 +42,7 @@ export function handleDescriptorScan(data) {
             // Convert hex back to ASCII text
             const text = new TextDecoder().decode(hexToBytes(result)).trim();
             if (descriptorSummary(text)) {
-                byId('input-ms-descriptor').value = text;
+                inputById('input-ms-descriptor').value = text;
                 syncCosignerBranch(text);
                 showScreen('multisig-spend');
                 toast('Descriptor scanned', 'ok', 1500);
@@ -65,7 +66,7 @@ function hd45ParticipantCount(descriptor) {
 }
 
 function syncCosignerBranch(descriptor) {
-    const input = byId('input-ms-cosigner');
+    const input = inputById('input-ms-cosigner');
     const count = hd45ParticipantCount(descriptor);
     if (count > 0) input.max = String(count - 1);
     const parsed = Number.parseInt(input.value, 10);
@@ -88,7 +89,7 @@ function selectedBranchSources() {
 }
 
 function renderBranchUtxos(utxos) {
-    const root = byId('ms-branch-utxos');
+    const root = elementById('ms-branch-utxos');
     root.textContent = '';
     transactionState.msBranchSelectedUtxos = [];
     if (!utxos.length) { root.classList.add('hidden'); return; }
@@ -122,7 +123,7 @@ function renderBranchUtxos(utxos) {
 }
 
 function setDiscoveryStatus(message, state = '') {
-    const info = byId('ms-discovery-info');
+    const info = elementById('ms-discovery-info');
     info.textContent = message;
     info.dataset.state = state;
 }
@@ -146,10 +147,10 @@ function renderDiscoveryResult(result, cosigner) {
 }
 
 export async function discoverMultisigBranch() {
-    const descriptor = byId('input-ms-descriptor').value.trim();
+    const descriptor = inputById('input-ms-descriptor').value.trim();
     if (!isHd45Descriptor(descriptor)) { toast("Discovery requires a multi_hd45 descriptor", 'error'); return; }
     const cosigner = syncCosignerBranch(descriptor);
-    const discoverButton = byId('btn-ms-discover');
+    const discoverButton = inputById('btn-ms-discover');
     discoverButton.disabled = true;
     setDiscoveryStatus(`Scanning 45' cosigner branch S${cosigner}…`, 'loading');
     showLoading("Scanning 45' receive/change branch...");
@@ -162,8 +163,8 @@ export async function discoverMultisigBranch() {
         networkState.msBranchScan = result;
         renderDiscoveryResult(result, cosigner);
         renderBranchUtxos(result.utxos || []);
-        if (!byId('input-ms-source').value.trim()) {
-            byId('input-ms-source').value = result.utxos?.[0]?.address || result.next_receive_address || '';
+        if (!inputById('input-ms-source').value.trim()) {
+            inputById('input-ms-source').value = result.utxos?.[0]?.address || result.next_receive_address || '';
         }
         toast('Multisig receive/change addresses discovered', 'ok', 1800);
     } catch (error) {
@@ -176,14 +177,14 @@ export async function discoverMultisigBranch() {
 }
 
 export async function toggleMsUtxos() {
-    const list = byId('ms-utxo-list');
+    const list = elementById('ms-utxo-list');
     if (!list.classList.contains('hidden')) {
         list.classList.add('hidden');
-        byId('btn-toggle-ms-utxos').textContent = 'Select UTXOs manually ▸';
+        elementById('btn-toggle-ms-utxos').textContent = 'Select UTXOs manually ▸';
         transactionState.msSelectedUtxoIds = null;
         return;
     }
-    const sourceAddr = byId('input-ms-source').value.trim();
+    const sourceAddr = inputById('input-ms-source').value.trim();
     if (!sourceAddr) { toast('Enter source address first', 'error'); return; }
 
     try {
@@ -201,17 +202,17 @@ export async function toggleMsUtxos() {
         return;
     }
 
-    byId('btn-toggle-ms-utxos').textContent = 'Select UTXOs manually ▾';
+    elementById('btn-toggle-ms-utxos').textContent = 'Select UTXOs manually ▾';
     transactionState.msSelectedUtxoIds = [];
     renderUtxoSelector(list, networkState.msCachedUtxos, transactionState.msSelectedUtxoIds, { limit: 8, sort: 'desc' }, ids => { transactionState.msSelectedUtxoIds = ids; });
 }
 function readMultisigCreateInput() {
     const input = {
-        descriptor: byId('input-ms-descriptor').value.trim(),
-        sourceAddr: byId('input-ms-source').value.trim(),
-        destAddr: byId('input-ms-dest').value.trim(),
+        descriptor: inputById('input-ms-descriptor').value.trim(),
+        sourceAddr: inputById('input-ms-source').value.trim(),
+        destAddr: inputById('input-ms-dest').value.trim(),
     };
-    const amountStr = byId('input-ms-amount').value.trim();
+    const amountStr = inputById('input-ms-amount').value.trim();
 
     if (!input.descriptor) { toast('Paste the multisig descriptor', 'error'); return null; }
     if (!input.sourceAddr) { toast('Enter the P2SH source address', 'error'); return null; }
@@ -236,7 +237,7 @@ function msChangeIndexHint(descriptor) {
 async function buildMultisigParams(input, resolvedDest) {
     const fee = exactUnsigned(getCovFee(), 'multisig fee');
     const wsUrl = await resolveNodeUrl();
-    const addrIndexEl = byId('input-ms-addr-index');
+    const addrIndexEl = inputById('input-ms-addr-index');
     const addrIndex = addrIndexEl ? parseInt(addrIndexEl.value) || 0 : 0;
     return { ...input, resolvedDest, fee, wsUrl, addrIndex };
 }
@@ -321,7 +322,7 @@ function sumUtxoAmounts(utxos) {
 }
 
 function setMultisigMaximum(total, fee) {
-    byId('input-ms-amount').value = sompiToKasFixed(total > fee ? total - fee : 0n);
+    inputById('input-ms-amount').value = sompiToKasFixed(total > fee ? total - fee : 0n);
 }
 
 function selectedMultisigTotal() {
@@ -342,7 +343,7 @@ async function fetchMultisigBalance(sourceAddr, fee) {
         const utxos = normalizeUtxos(JSON.parse(utxosJson));
         const total = utxos.reduce((s, u) => s + u.amount, 0n);
         setMultisigMaximum(total, fee);
-        byId('ms-balance-info').textContent = 'Balance: ' + sompiToKasString(total) + ' KAS (' + utxos.length + ' UTXOs)';
+        elementById('ms-balance-info').textContent = 'Balance: ' + sompiToKasString(total) + ' KAS (' + utxos.length + ' UTXOs)';
         if (total === 0n && networkState.msBranchScan?.utxo_count === 0) {
             toast('This multisig receive branch is unfunded. Fund its discovered Receive address first.', 'error', 4000);
         }
@@ -353,7 +354,7 @@ async function fetchMultisigBalance(sourceAddr, fee) {
 }
 
 export async function handleMsMax() {
-    const sourceAddr = byId('input-ms-source').value.trim();
+    const sourceAddr = inputById('input-ms-source').value.trim();
     if (!sourceAddr) { toast('Enter source address first', 'error'); return; }
 
     const fee = exactUnsigned(getCovFee(), 'multisig fee');

@@ -1,3 +1,4 @@
+// @ts-check
 import { setContent, span } from '../../../../../../../../core/ui/elements.js';
 import { covenantState } from '../../../../../../boundary.js';
 

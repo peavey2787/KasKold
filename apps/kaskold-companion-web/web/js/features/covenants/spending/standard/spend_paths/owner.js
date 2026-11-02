@@ -1,3 +1,4 @@
+// @ts-check
 import {
     covenantState,
     navigationState,
@@ -17,7 +18,7 @@ import { pickThread } from '../spend_paths.js';
 import { encodeCovenantSpend } from '../spend_document.js';
 import { openPsktReview } from '../../../../transactions/pskt_multisig/review.js';
 
-import { byId } from '../../../../../core/dom.js';
+import { byId, inputById } from '../../../../../core/dom.js';
 import { formatDaaDuration } from '../../../../../core/format.js';
 import { kasToSompi, sompiToKasString } from '../../../../../core/amounts.js';
 import { exactJsonStringify, exactUnsigned } from '../../../../../core/exact.js';
@@ -241,10 +242,10 @@ async function buildPartialOwnerSpend(request) {
 
 function readOwnerSpendInputs() {
     return {
-        covAddr: byId('cov-owner-addr').value.trim(),
-        redeemHex: byId('cov-owner-script').value.trim(),
-        destAddr: byId('cov-owner-dest').value.trim(),
-        amountStr: byId('cov-owner-amount').value.trim(),
+        covAddr: inputById('cov-owner-addr').value.trim(),
+        redeemHex: inputById('cov-owner-script').value.trim(),
+        destAddr: inputById('cov-owner-dest').value.trim(),
+        amountStr: inputById('cov-owner-amount').value.trim(),
     };
 }
 

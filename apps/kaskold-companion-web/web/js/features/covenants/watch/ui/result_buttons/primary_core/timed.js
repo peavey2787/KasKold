@@ -1,3 +1,4 @@
+// @ts-check
 export function configureDeadManSwitch({ beneBtn, ownerBtn, fundBtn, isBeneficiary }) {
     if (fundBtn) fundBtn.textContent = 'Covenant Deposit';
     ownerBtn.textContent = '❤️ Heartbeat (Reset Timer)';

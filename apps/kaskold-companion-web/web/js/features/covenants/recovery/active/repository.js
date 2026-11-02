@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState } from '../../boundary.js';
 import { normalizeCovenantExactFields, stringifyCovenantJson } from '../../model/exact_fields.js';
 

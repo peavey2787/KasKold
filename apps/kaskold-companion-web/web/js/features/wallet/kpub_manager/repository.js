@@ -1,3 +1,4 @@
+// @ts-check
 const STORAGE_KEY = 'companion-kpub-manager-v1';
 const STORE_VERSION = 1;
 const MAX_NAME_LENGTH = 64;

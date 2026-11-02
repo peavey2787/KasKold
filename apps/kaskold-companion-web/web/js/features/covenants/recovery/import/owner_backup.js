@@ -1,3 +1,4 @@
+// @ts-check
 import { showScreen } from '../../../../app/navigation.js';
 import { toast } from '../../../../core/ui/toast.js';
 import { covShowPanel, getAccountPubkeyHex } from '../../generation/panel_keys.js';

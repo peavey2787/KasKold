@@ -1,3 +1,4 @@
+// @ts-check
 import {
     navigationState,
     networkState,
@@ -13,7 +14,7 @@ import { explorerAddressUrl } from '../../../core/explorer.js';
 import { fetchCoinControlUtxos } from '../core/coin_control_utxos.js';
 
 import { utf8ToHex } from '../../../core/bytes.js';
-import { byId } from '../../../core/dom.js';
+import { byId, elementById } from '../../../core/dom.js';
 import { qrImage } from '../../../core/qr/svg_image.js';
 import { el, setContent, span } from '../../../core/ui/elements.js';
 import { sompiToKasFixed } from '../../../core/amounts.js';
@@ -71,10 +72,10 @@ function showVerify(addr, index, isChange) {
     const path = isChange
         ? `m/44'/111111'/0'/1/${index}`
         : `m/44'/111111'/0'/0/${index}`;
-    byId('verify-path').textContent = path;
-    byId('verify-address').textContent = addr;
+    elementById('verify-path').textContent = path;
+    elementById('verify-address').textContent = addr;
 
-    const qr = byId('verify-qr');
+    const qr = elementById('verify-qr');
     try {
         const frames = JSON.parse(generate_qr_frames(utf8ToHex(addr)));
         const svg = String(frames[0]?.svg || '');
@@ -85,7 +86,7 @@ function showVerify(addr, index, isChange) {
     }
 
     // Explorer link
-    const link = byId('btn-verify-explore');
+    const link = /** @type {HTMLAnchorElement} */ (elementById('btn-verify-explore'));
     if (link) {
         link.href = explorerAddressUrl(networkState.network, addr);
     }
@@ -130,13 +131,13 @@ export async function showUtxos() {
         networkState.cachedUtxos = utxos;
 
         const totalSompi = utxos.reduce((s, u) => s + u.amount, 0n);
-        byId('utxo-summary').textContent = `${utxos.length} current UTXO${utxos.length !== 1 ? 's' : ''} · ${sompiToKasFixed(totalSompi)} KAS · ${coinControl.scannedAddresses} addresses scanned · ${coinControl.source}`;
+        elementById('utxo-summary').textContent = `${utxos.length} current UTXO${utxos.length !== 1 ? 's' : ''} · ${sompiToKasFixed(totalSompi)} KAS · ${coinControl.scannedAddresses} addresses scanned · ${coinControl.source}`;
 
         if (utxos.length === 0) {
             setContent(byId('utxo-list'), el('div', { className: 'u-align-text-center-text-text-muted-padding-20px' }, 'No UTXOs found'));
-            byId('btn-consolidate').style.display = 'none';
-            byId('btn-consolidate-selected').style.display = 'none';
-            byId('btn-send-selected-utxos').style.display = 'none';
+            elementById('btn-consolidate').style.display = 'none';
+            elementById('btn-consolidate-selected').style.display = 'none';
+            elementById('btn-send-selected-utxos').style.display = 'none';
         } else {
             sortUtxosLargestFirst(utxos);
             setContent(byId('utxo-list'), utxos.map((utxo, index) => selectableUtxoRow(utxo, index, utxos.length)));

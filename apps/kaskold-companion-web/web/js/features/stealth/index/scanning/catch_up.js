@@ -1,6 +1,7 @@
+// @ts-check
 import { stealthState } from '../../boundary.js';
 // KasKold Companion Web — features/stealth/index/scanning/catch_up
-import { byId } from '../../../../core/dom.js';
+import { byId, elementById } from '../../../../core/dom.js';
 import { exactUnsignedJsonField } from '../../../../core/exact.js';
 import { KSTL_SUBNET_HEX, STEALTH_LOOKBACK_BLUE_SCORE, STEALTH_MAX_WINDOWS } from '../config.js';
 
@@ -145,7 +146,7 @@ async function runOne(state, searchUrl, gte, lt) {
 
 function updateScanStatus(done, total, rCount) {
     try {
-        byId('stealth-scan-status').textContent =
+        elementById('stealth-scan-status').textContent =
             'Scanning lane… ' + done + '/' + total + ' windows, ' + rCount + ' R';
     } catch { /* The status line may not be on screen. */ }
 }

@@ -1,3 +1,4 @@
+// @ts-check
 import { oracleState, covenant_oracle_mb } from '../../../boundary.js';
 import { hexToBytes } from '../../../../../core/bytes.js';
 import { createBlockAddedTransport } from '../../../../../core/node/block_added_transport.js';

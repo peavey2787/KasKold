@@ -1,3 +1,4 @@
+// @ts-check
 
 export function pickThread(utxos, expectedG) {
     const list = Array.isArray(utxos) ? utxos : [];

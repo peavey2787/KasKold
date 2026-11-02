@@ -1,3 +1,4 @@
+// @ts-check
 import { pubkeyHex as pk, u64LeHex as u64, variableHex as vhex, variableString as vstr } from './primitives.js';
 
 export const standardSerializers = Object.freeze({

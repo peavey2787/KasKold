@@ -1,3 +1,4 @@
+// @ts-check
 // Specialized covenant-family event façade.
 import { bindCommitRevealEvents } from './covenant_specialized/commit_reveal.js';
 import { bindMerkleWhitelistEvents } from './covenant_specialized/merkle_whitelist.js';

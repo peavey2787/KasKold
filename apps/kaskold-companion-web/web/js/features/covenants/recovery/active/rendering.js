@@ -1,3 +1,4 @@
+// @ts-check
 import { byId } from '../../../../core/dom.js';
 import { covExportSingle } from '../export.js';
 import { activeCovenants } from './repository.js';
@@ -53,7 +54,8 @@ function createActiveItem(covenant, index, onOpen) {
         deleteButton,
     );
     item.addEventListener('click', (event) => {
-        if (event.target.classList.contains('cov-del') || event.target.classList.contains('cov-export')) return;
+        const target = /** @type {HTMLElement} */ (event.target);
+        if (target.classList.contains('cov-del') || target.classList.contains('cov-export')) return;
         onOpen(covenant);
     });
     return item;

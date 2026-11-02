@@ -1,3 +1,4 @@
+// @ts-check
 import { configureAdditive } from './additive.js';
 import { configureAllowance } from './allowance.js';
 import { configureEscrow } from './escrow.js';

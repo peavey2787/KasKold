@@ -1,3 +1,4 @@
+// @ts-check
 import { bytesToHex } from '../../../core/bytes.js';
 import { exactUnsigned } from '../../../core/exact.js';
 import {

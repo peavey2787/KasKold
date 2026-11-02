@@ -1,3 +1,4 @@
+// @ts-check
 import { navigationState, walletSession } from '../../state/index.js';
 import { navigateBack, showScreen } from '../../navigation.js';
 import { toast } from '../../../core/ui/toast.js';
@@ -18,7 +19,7 @@ import { showPortfolio } from '../../../features/portfolio/index.js';
 // KasKold Companion Web — app/events/settings and wallet
 // Binds settings, wallet-history, address, UTXO, and consolidation events.
 
-import { bindChange, bindClick, bindKeydown, byId } from '../../../core/dom.js';
+import { bindChange, bindClick, bindKeydown, byId, elementById } from '../../../core/dom.js';
 
 
 export function bindWalletSettingsEvents() {
@@ -35,7 +36,7 @@ export function bindWalletSettingsEvents() {
     const managedImageInput = byId('input-managed-kpub-image');
     bindClick('btn-upload-managed-kpub', () => managedImageInput?.click());
     bindChange('input-managed-kpub-image', async event => {
-        const input = event.currentTarget;
+        const input = /** @type {HTMLInputElement} */ (event.currentTarget);
         const [file] = input.files || [];
         await uploadManagedKpubImage(file);
         input.value = '';
@@ -68,7 +69,7 @@ export function bindWalletSettingsEvents() {
     bindClick('btn-tokens-back', () => navigateBack());
     bindClick('btn-tokens-back-top', () => navigateBack());
     bindClick('btn-verify-copy', async () => {
-        const address = byId('verify-address').textContent.trim();
+        const address = elementById('verify-address').textContent.trim();
         if (!address) return;
         try {
             await navigator.clipboard.writeText(address);
@@ -79,7 +80,7 @@ export function bindWalletSettingsEvents() {
     });
     bindClick('btn-verify-back', () => {
         showScreen('addresses');
-        document.querySelector('main').scrollTop = 0;
+        /** @type {HTMLElement} */ (document.querySelector('main')).scrollTop = 0;
     });
     bindClick('btn-utxos-back', () => navigateBack());
     bindClick('btn-utxos-back-top', () => navigateBack());

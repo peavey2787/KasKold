@@ -1,3 +1,4 @@
+// @ts-check
 import { readLen, readU64 } from '../payload_reader.js';
 import { recoveredFromRedeem } from './common.js';
 

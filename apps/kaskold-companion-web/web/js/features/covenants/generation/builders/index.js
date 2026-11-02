@@ -1,3 +1,4 @@
+// @ts-check
 import { buildDms } from './dms.js';
 import { buildEscrow, buildShipEscrow } from './escrow.js';
 import { buildGlobalSpendingLimit, buildGlobalAllowance } from './limits.js';

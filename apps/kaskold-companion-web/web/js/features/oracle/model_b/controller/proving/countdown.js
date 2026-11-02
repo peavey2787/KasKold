@@ -1,3 +1,4 @@
+// @ts-check
 import { oracleState } from '../../../boundary.js';
 // Oracle roll review countdown.
 

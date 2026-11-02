@@ -1,5 +1,5 @@
-// KasKold Companion Web — stable application entry point
-// Copyright (C) 2025-2026 KasSigner Project — GPL-3.0
+// @ts-check
+// KasKold Companion Web entry point. Copyright (C) 2025-2026 KasSigner Project — GPL-3.0
 import './core/diagnostics/install_console_gate.js';
 import { bindShellControls } from './app/shell_controls.js';
 import './mobile/native_adaptations.js';

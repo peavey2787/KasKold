@@ -1,3 +1,4 @@
+// @ts-check
 import { bytesToHex } from '../../../core/bytes.js';
 import {
     private_swap_bind_request,

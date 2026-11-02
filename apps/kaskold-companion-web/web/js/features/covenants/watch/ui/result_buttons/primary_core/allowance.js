@@ -1,3 +1,4 @@
+// @ts-check
 export function configureAllowance({ beneBtn, ownerBtn, consolBtn, fundBtn, isBeneficiary }) {
     if (fundBtn) fundBtn.textContent = 'Covenant Deposit';
     beneBtn.textContent = 'Beneficiary Withdraw';

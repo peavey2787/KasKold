@@ -1,3 +1,4 @@
+// @ts-check
 // Pure fee estimators shared by send and consolidation workflows.
 
 /// Estimate the fee for consolidating P2PK inputs into one P2PK output.

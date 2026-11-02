@@ -1,3 +1,4 @@
+// @ts-check
 import { hexToBytes } from '../../../../core/bytes.js';
 import { readVstr } from './payload_reader.js';
 

@@ -1,3 +1,4 @@
+// @ts-check
 import {
     covenantState,
     navigationState,
@@ -17,7 +18,7 @@ import {
     pskt_relay_to_kspt,
 } from '../boundary.js';
 import { showScreen } from '../../../app/navigation.js';
-import { byId } from '../../../core/dom.js';
+import { inputById, optionalInput } from '../../../core/dom.js';
 import { kasToSompi, sompiToKasString } from '../../../core/amounts.js';
 import { exactJsonStringify, exactUnsigned } from '../../../core/exact.js';
 import { formatDaaDuration } from '../../../core/format.js';
@@ -84,9 +85,9 @@ export function beginPrivateSwapJoin() {
 
 export async function requestAliceSwapKey() {
     try {
-        const amount = kasToSompi(byId('private-swap-create-amount').value.trim());
+        const amount = kasToSompi(inputById('private-swap-create-amount').value.trim());
         if (amount === 0n) throw new Error('Enter an amount');
-        const date = byId('private-swap-create-datetime').value;
+        const date = inputById('private-swap-create-datetime').value;
         if (!date) throw new Error('Choose your refund time');
         const daa = exactUnsigned((await resolveFutureDaa(date)).daa, 'Alice refund DAA');
         privateSwapState.myAmountSompi = amount.toString(); privateSwapState.myTimeoutDaa = daa.toString();
@@ -97,9 +98,9 @@ export async function requestAliceSwapKey() {
 
 export async function requestBobSwapKey() {
     try {
-        const amount = kasToSompi(byId('private-swap-join-amount').value.trim());
+        const amount = kasToSompi(inputById('private-swap-join-amount').value.trim());
         if (amount === 0n) throw new Error('Enter an amount');
-        const date = byId('private-swap-join-datetime').value;
+        const date = inputById('private-swap-join-datetime').value;
         if (!date) throw new Error('Choose your refund time');
         const daa = exactUnsigned((await resolveFutureDaa(date)).daa, 'Bob refund DAA');
         assertRefundOrdering(privateSwapState.counterTimeoutDaa, daa);
@@ -147,7 +148,7 @@ export async function fundPrivateSwapSide() {
         covenantState.lastCovenantResult = result; covAddActive('private-swap', result); covSaveActive(); covRenderActive();
         navigationState._broadcastReturnScreen = 'covenant';
         await handleCovFund();
-        const amountInput = byId('input-amount'); if (amountInput) amountInput.value = sompiToKasString(BigInt(privateSwapState.myAmountSompi));
+        const amountInput = optionalInput('input-amount'); if (amountInput) amountInput.value = sompiToKasString(BigInt(privateSwapState.myAmountSompi));
         toast(`Fund exactly ${sompiToKasString(BigInt(privateSwapState.myAmountSompi))} KAS for this swap side.`, 'info', 5000);
     } catch (error) { toast(error.message || String(error), 'error', 5000); }
 }

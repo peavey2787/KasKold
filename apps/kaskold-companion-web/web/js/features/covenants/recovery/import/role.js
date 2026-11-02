@@ -1,3 +1,4 @@
+// @ts-check
 import { walletMatchesPk } from '../../generation/panel_keys.js';
 
 // The key that makes this wallet the owner of a two-party covenant.

@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState } from '../../boundary.js';
 import { showScreen } from '../../../../app/navigation.js';
 import { hexToBytes } from '../../../../core/bytes.js';

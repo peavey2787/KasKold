@@ -1,3 +1,4 @@
+// @ts-check
 export function configureEscrow({ beneBtn, ownerBtn, consolBtn, fundBtn, isLoaded, covRole, isBeneficiary }) {
     const isArbiter = isLoaded && covRole === 'arbiter';
     if (fundBtn) fundBtn.textContent = 'Covenant Deposit';

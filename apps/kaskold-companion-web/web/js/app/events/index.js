@@ -1,3 +1,4 @@
+// @ts-check
 // KasKold Companion Web — app/events/index
 // Explicit event registration; no shared namespace mutation.
 

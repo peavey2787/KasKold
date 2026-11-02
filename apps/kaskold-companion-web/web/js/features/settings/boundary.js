@@ -1,3 +1,4 @@
+// @ts-check
 // The Rust boundary and application state the settings domain uses.
 export {
     navigationState,

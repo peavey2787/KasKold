@@ -1,6 +1,7 @@
+// @ts-check
 import { showScreen } from '../../../navigation.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { byId } from '../../../../core/dom.js';
+import { byId, inputById } from '../../../../core/dom.js';
 import {
     importCrowdfundCampaign,
     populateOrganizerDestination,
@@ -56,7 +57,7 @@ export function bindCrowdfundEvents() {
     byId('btn-crowdfund-refresh')?.addEventListener('click', () => { void refreshCrowdfundTotals(); });
     byId('btn-crowdfund-sweep')?.addEventListener('click', () => { void sweepCrowdfund(); });
     byId('cov-crowdfund-datetime')?.addEventListener('input', () => {
-        const locktime = byId('cov-crowdfund-locktime');
+        const locktime = inputById('cov-crowdfund-locktime');
         if (locktime) locktime.value = '';
     });
     populateOrganizerDestination();

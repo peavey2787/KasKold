@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState, navigationState, networkState, walletSession } from './state/index.js';
 import { covLoadActive } from '../features/covenants/recovery/active.js';
 import { startAutoRefresh, stopAutoRefresh } from '../features/wallet/core.js';
@@ -7,7 +8,7 @@ import { parseCovenantJson } from '../features/covenants/model/exact_fields.js';
 // KasKold Companion Web — app/navigation
 // Owns application startup, screen navigation, and session restoration.
 
-import { byId } from '../core/dom.js';
+import { byId, elementById } from '../core/dom.js';
 import { activateScreen, visibleScreenName } from '../core/ui/screen_dom.js';
 import { installBackHomeControls } from '../core/ui/navigation_controls.js';
 
@@ -93,7 +94,7 @@ function showStartupNodeAttempt(attempt) {
         ? 'Please wait while Companion establishes the node connection.'
         : `Still connecting… attempt ${attempt}. Please wait.`;
     if (note) note.textContent = 'Companion will open automatically when the connection is ready.';
-    byId('loading').classList.remove('hidden');
+    elementById('loading').classList.remove('hidden');
 }
 
 async function waitForInitialNodeConnection() {
@@ -248,10 +249,10 @@ export function showLoading(msg) {
     if (title) title.textContent = presentation.title;
     if (detail) detail.textContent = presentation.detail;
     if (note) note.textContent = presentation.note;
-    byId('loading').classList.remove('hidden');
+    elementById('loading').classList.remove('hidden');
 }
 export function hideLoading() {
-    byId('loading').classList.add('hidden');
+    elementById('loading').classList.add('hidden');
 }
 export function setStatus(state, label) {
     const dot = document.querySelector('#status-dot .dot');

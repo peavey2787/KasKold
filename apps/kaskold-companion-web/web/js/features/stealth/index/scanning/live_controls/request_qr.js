@@ -1,6 +1,7 @@
+// @ts-check
 import { stealthState, generate_qr_frames } from '../../../boundary.js';
 import { bytesToHex, hexToBytes } from '../../../../../core/bytes.js';
-import { byId } from '../../../../../core/dom.js';
+import { byId, elementById } from '../../../../../core/dom.js';
 import { toast } from '../../../../../core/ui/toast.js';
 import { clearStealthQrTimer } from './lifecycle.js';
 import { qrImage, showQrSvg } from '../../../../../core/qr/svg_image.js';
@@ -35,7 +36,7 @@ function renderQrFrames(frames, qrBox) {
 
 export function showStealthScanQr() {
     if (stealthState._stealthCatchupRunning) {
-        byId('stealth-scan-status').textContent = 'Lane scan still running. Wait for it to finish before scanning to your device, so no payment is missed.';
+        elementById('stealth-scan-status').textContent = 'Lane scan still running. Wait for it to finish before scanning to your device, so no payment is missed.';
         toast('Lane scan still running, please wait', 'error');
         return;
     }
@@ -59,14 +60,14 @@ export function showStealthScanQr() {
         const qrBox = document.createElement('div');
         qrBox.id = 'stealth-scan-qr-display';
         qrBox.classList.add('stealth-scan-qr');
-        byId('stealth-scan-panel').insertBefore(qrBox, byId('btn-stealth-scan-result-qr'));
+        elementById('stealth-scan-panel').insertBefore(qrBox, byId('btn-stealth-scan-result-qr'));
         renderQrFrames(frames, qrBox);
 
         const range = el('strong', {}, `Scanning R ${start + 1}–${start + count} of ${stealthState.stealthAnnouncementsR.length}.`);
         setContent(byId('stealth-scan-status'), range, frames.length <= 1
             ? ' Point the device camera at this QR, then scan the response back.'
             : ` Hold the device camera on this animated QR (${frames.length} frames) until all are captured, then scan the response back.`);
-        byId('btn-stealth-scan-result-qr').classList.remove('hidden');
+        elementById('btn-stealth-scan-result-qr').classList.remove('hidden');
     } catch (error) {
         toast(`QR generation failed: ${error}`, 'error', 3000);
         console.error('[Companion] QR gen error:', error);

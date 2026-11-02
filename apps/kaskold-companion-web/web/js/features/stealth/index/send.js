@@ -1,3 +1,4 @@
+// @ts-check
 import { bytesToHex } from '../../../core/bytes.js';
 import {
     navigationState,
@@ -19,7 +20,7 @@ import { openPsktReview } from '../../transactions/pskt_multisig/review.js';
 import { detectWalletNetwork } from '../../../core/network.js';
 import { showQrSvg } from '../../../core/qr/svg_image.js';
 // KasKold Companion Web — features/stealth/index/send
-import { byId } from '../../../core/dom.js';
+import { byId, elementById, inputById, optionalInput } from '../../../core/dom.js';
 
 import { formatSeconds } from '../../../core/format.js';
 import { kasToSompi } from '../../../core/amounts.js';
@@ -66,14 +67,14 @@ function stealthFeeRenderCards(prefix, ctx) {
 }
 export function stealthFeeSetLevel(prefix, ctx, level) {
     const amt = stealthFeeCompute(level, ctx);
-    if (amt != null) { const inp = byId('input-' + prefix + '-fee'); if (inp) inp.value = amt.toString(); }
+    if (amt != null) { const inp = optionalInput('input-' + prefix + '-fee'); if (inp) inp.value = amt.toString(); }
     ['low', 'normal', 'priority'].forEach(lvl => {
         const b = byId('btn-' + prefix + '-' + lvl);
         if (b) b.classList.toggle('fee-card-active', lvl === level);
     });
 }
 export function stealthFeeValue(prefix, ctx) {
-    const inp = byId('input-' + prefix + '-fee');
+    const inp = inputById('input-' + prefix + '-fee');
     if (inp && inp.value) { try { const v = exactUnsigned(inp.value.trim(), 'stealth fee sompi'); if (v > 0n) return v; } catch { /* A fee that will not parse falls back to the computed one. */ } }
     const amt = stealthFeeCompute('normal', ctx);
     return amt != null ? amt : stealthFeeFloor('normal');
@@ -95,24 +96,24 @@ export function stealthShowPanel(panel) {
     // fresh Fetch (both call stealthScanStop()).
     if (panel !== 'scan') stealthScanPause();
     ['stealth-menu', 'stealth-meta-panel', 'stealth-send-panel', 'stealth-scan-panel'].forEach(id => {
-        byId(id).classList.add('hidden');
+        elementById(id).classList.add('hidden');
     });
-    if (panel === 'menu') byId('stealth-menu').classList.remove('hidden');
-    if (panel === 'meta') byId('stealth-meta-panel').classList.remove('hidden');
-    if (panel === 'send') { byId('stealth-send-panel').classList.remove('hidden'); byId('stealth-send-result').classList.add('hidden'); }
-    if (panel === 'scan') byId('stealth-scan-panel').classList.remove('hidden');
+    if (panel === 'menu') elementById('stealth-menu').classList.remove('hidden');
+    if (panel === 'meta') elementById('stealth-meta-panel').classList.remove('hidden');
+    if (panel === 'send') { elementById('stealth-send-panel').classList.remove('hidden'); elementById('stealth-send-result').classList.add('hidden'); }
+    if (panel === 'scan') elementById('stealth-scan-panel').classList.remove('hidden');
 }
 export function handleStealthMeta() {
     if (!walletSession.hasWallet()) { toast('Load wallet first', 'error'); return; }
     const wallet = walletSession.current();
     try {
         const result = JSON.parse(stealth_meta_from_kpub(wallet.kpub));
-        byId('stealth-meta-hex').textContent = result.meta_address;
+        elementById('stealth-meta-hex').textContent = result.meta_address;
 
         // Generate QR for the meta-address as PLAIN TEXT (the 128-hex string),
         // not the hex-decoded/framed binary form, so the meta scanner decodes it
         // directly via TextDecoder and matches /^[0-9a-fA-F]{128}$/.
-        const qrContainer = byId('stealth-meta-qr');
+        const qrContainer = elementById('stealth-meta-qr');
         qrContainer.replaceChildren();
         try {
             showQrSvg(qrContainer, generate_qr_svg_text(result.meta_address), 'Stealth meta-address QR');
@@ -122,7 +123,7 @@ export function handleStealthMeta() {
 
         // Show announcement address
         const network = detectWalletNetwork(walletSession.json(), networkState.network);
-        byId('stealth-announce-addr').textContent = stealth_announcement_address(network);
+        elementById('stealth-announce-addr').textContent = stealth_announcement_address(network);
 
         stealthShowPanel('meta');
     } catch (e) {
@@ -130,7 +131,7 @@ export function handleStealthMeta() {
     }
 }
 export function handleStealthSendGenerate() {
-    const metaHex = byId('stealth-send-meta').value.trim();
+    const metaHex = inputById('stealth-send-meta').value.trim();
     if (!metaHex || metaHex.length !== 128) { toast('Enter 128-hex stealth meta-address', 'error'); return; }
 
     // Generate 32 bytes of entropy
@@ -141,9 +142,9 @@ export function handleStealthSendGenerate() {
     try {
         const network = detectWalletNetwork(walletSession.json(), networkState.network);
         const result = JSON.parse(stealth_generate_payment(metaHex, entropyHex, network));
-        byId('stealth-send-addr').textContent = result.address;
-        byId('stealth-send-r').textContent = result.ephemeral_r;
-        byId('stealth-send-result').classList.remove('hidden');
+        elementById('stealth-send-addr').textContent = result.address;
+        elementById('stealth-send-r').textContent = result.ephemeral_r;
+        elementById('stealth-send-result').classList.remove('hidden');
         stealthFeePrepare('sf', 'send'); // populate low/normal/priority from the node
 
         // Remember the entropy so "Send Payment" reuses the SAME R that was
@@ -163,10 +164,10 @@ export function handleStealthSendGenerate() {
 // flow. The receiver's live scan picks up R from the payment's payload.
 export async function handleStealthSendPay() {
     if (!walletSession.hasWallet()) { toast('Load wallet first', 'error'); return; }
-    const metaHex = byId('stealth-send-meta').value.trim();
+    const metaHex = inputById('stealth-send-meta').value.trim();
     if (!metaHex || metaHex.length !== 128) { toast('Enter 128-hex stealth meta-address', 'error'); return; }
     let amountSompi;
-    try { amountSompi = kasToSompi(byId('stealth-send-amount').value.trim()); } catch { toast('Enter a valid amount with at most 8 decimal places', 'error'); return; }
+    try { amountSompi = kasToSompi(inputById('stealth-send-amount').value.trim()); } catch { toast('Enter a valid amount with at most 8 decimal places', 'error'); return; }
     if (amountSompi <= 0n) { toast('Enter a valid amount', 'error'); return; }
 
     // Reuse the previewed entropy if it matches this meta-address; else fresh.

@@ -1,7 +1,8 @@
+// @ts-check
 import { showScreen } from '../../../app/navigation.js';
 import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
 import { decodeQrImageFile } from '../../../core/qr/image_file.js';
-import { byId } from '../../../core/dom.js';
+import { elementById, inputById, optionalInput } from '../../../core/dom.js';
 import { toast } from '../../../core/ui/toast.js';
 import { stopScanner } from '../../stealth/index/camera.js';
 import { decode_qr_frame, reset_qr_decoder } from '../boundary.js';
@@ -25,7 +26,7 @@ function descriptorFromBytes(bytes) {
 }
 
 function populateManagedDescriptor(descriptor, message) {
-    byId('input-ms-descriptor-saved').value = descriptor;
+    inputById('input-ms-descriptor-saved').value = descriptor;
     if (message) toast(message, 'ok', 1600);
 }
 
@@ -46,7 +47,7 @@ export function handleSavedDescriptorScan(data) {
 export async function uploadSavedDescriptorQrImage(file) {
     if (!file) return false;
     try {
-        const code = await decodeQrImageFile(file);
+        const code = /** @type {any} */ (await decodeQrImageFile(file));
         let descriptor = normalizedDescriptor(code?.data);
         if (!descriptor && code?.binaryData?.length) {
             try { reset_qr_decoder(); } catch { /* A decoder that never started has nothing to reset. */ }
@@ -78,8 +79,8 @@ function saveAll(items) {
 }
 
 export function renderSavedMultisigSpendOptions() {
-    const select = byId('select-ms-saved-descriptor');
-    const descriptorInput = byId('input-ms-descriptor');
+    const select = inputById('select-ms-saved-descriptor');
+    const descriptorInput = inputById('input-ms-descriptor');
     if (!select || !descriptorInput) return;
 
     const items = loadAll();
@@ -102,18 +103,18 @@ export function renderSavedMultisigSpendOptions() {
 }
 
 export function useSelectedMultisigDescriptor() {
-    const select = byId('select-ms-saved-descriptor');
+    const select = optionalInput('select-ms-saved-descriptor');
     const index = Number.parseInt(select?.value ?? '', 10);
     if (!Number.isInteger(index) || index < 0) return false;
     const item = loadAll()[index];
     if (!item || !descriptorSummary(item.descriptor)) return false;
-    byId('input-ms-descriptor').value = item.descriptor;
+    inputById('input-ms-descriptor').value = item.descriptor;
     toast(`${item.name} loaded`, 'ok', 1500);
     return true;
 }
 
 export function renderSavedMultisigDescriptors() {
-    const root = byId('ms-descriptor-list');
+    const root = elementById('ms-descriptor-list');
     root.replaceChildren();
     const items = loadAll();
     if (items.length === 0) {
@@ -135,7 +136,7 @@ export function renderSavedMultisigDescriptors() {
         use.className = 'btn btn-secondary u-mt-8px';
         use.textContent = 'Use for Spend';
         use.onclick = () => {
-            byId('input-ms-descriptor').value = item.descriptor;
+            inputById('input-ms-descriptor').value = item.descriptor;
             renderSavedMultisigSpendOptions();
             showScreen('multisig-spend');
         };
@@ -155,8 +156,8 @@ export function renderSavedMultisigDescriptors() {
 }
 
 export function saveMultisigDescriptor() {
-    const name = byId('input-ms-descriptor-name').value.trim();
-    const descriptor = byId('input-ms-descriptor-saved').value.trim();
+    const name = inputById('input-ms-descriptor-name').value.trim();
+    const descriptor = inputById('input-ms-descriptor-saved').value.trim();
     if (!name) { toast('Enter a friendly name', 'error'); return; }
     if (!descriptorSummary(descriptor)) { toast('Enter a valid multisig descriptor', 'error'); return; }
     const items = loadAll();
@@ -168,8 +169,8 @@ export function saveMultisigDescriptor() {
         items.push(record);
     }
     saveAll(items);
-    byId('input-ms-descriptor-name').value = '';
-    byId('input-ms-descriptor-saved').value = '';
+    inputById('input-ms-descriptor-name').value = '';
+    inputById('input-ms-descriptor-saved').value = '';
     renderSavedMultisigDescriptors();
     renderSavedMultisigSpendOptions();
     toast('Descriptor saved', 'ok', 1500);

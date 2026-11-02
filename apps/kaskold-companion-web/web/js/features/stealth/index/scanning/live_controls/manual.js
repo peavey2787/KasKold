@@ -1,6 +1,7 @@
+// @ts-check
 import { el } from '../../../../../core/ui/elements.js';
 import { stealthState } from '../../../boundary.js';
-import { byId } from '../../../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../../../core/dom.js';
 import { toast } from '../../../../../core/ui/toast.js';
 
 export function ensureStealthManualRSection() {
@@ -12,7 +13,7 @@ export function ensureStealthManualRSection() {
         className: 'input-text', id: 'stealth-manual-r-input',
         attrs: { type: 'text', placeholder: "64-char hex (sender's ephemeral R)" },
     });
-    input.autocomplete = 'off';
+    input.setAttribute('autocomplete', 'off');
     input.spellcheck = false;
     section.append(
         el('label', { className: 'input-label' }, 'Manual R entry (64 hex — out-of-band fallback)'),
@@ -28,12 +29,12 @@ export function ensureStealthManualRSection() {
     }
     if (anchor && anchor.parentNode === panel) panel.insertBefore(section, anchor);
     else panel.insertBefore(section, null);
-    byId('btn-stealth-add-r').onclick = () => {
+    elementById('btn-stealth-add-r').onclick = () => {
         if (stealthState._stealthCatchupRunning) {
             toast('Lane scan still running, please wait', 'error');
             return;
         }
-        const value = byId('stealth-manual-r-input').value.trim();
+        const value = inputById('stealth-manual-r-input').value.trim();
         if (value.length !== 64 || !/^[0-9a-fA-F]+$/.test(value)) {
             toast('R must be 64 hex chars', 'error');
             return;
@@ -41,8 +42,8 @@ export function ensureStealthManualRSection() {
         if (!stealthState.stealthAnnouncementsR.includes(value)) {
             stealthState.stealthAnnouncementsR.push(value);
         }
-        byId('stealth-manual-r-input').value = '';
-        byId('stealth-r-list').textContent = `${stealthState.stealthAnnouncementsR.length} R value(s) loaded`;
-        byId('btn-stealth-show-scan-qr').classList.remove('hidden');
+        inputById('stealth-manual-r-input').value = '';
+        elementById('stealth-r-list').textContent = `${stealthState.stealthAnnouncementsR.length} R value(s) loaded`;
+        elementById('btn-stealth-show-scan-qr').classList.remove('hidden');
     };
 }

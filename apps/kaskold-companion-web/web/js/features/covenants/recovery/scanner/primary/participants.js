@@ -1,3 +1,4 @@
+// @ts-check
 import { applyScriptTerms } from '../../../model/script_terms.js';
 import { readU64 } from '../payload_reader.js';
 import { baseRecoveredRecord, readStoredScript } from './common.js';
@@ -16,7 +17,7 @@ export function rebuildTimelockedSavings(type, params, ownerPk) {
         locktime_daa: locktimeDaa,
     };
     const dateIso = readOptionalDate(params, offset + 144);
-    if (dateIso) record.locktime_date_iso = dateIso;
+    if (dateIso) /** @type {Record<string, any>} */ (record).locktime_date_iso = dateIso;
     return record;
 }
 

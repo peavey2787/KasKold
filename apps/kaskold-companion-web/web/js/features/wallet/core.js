@@ -1,3 +1,4 @@
+// @ts-check
 // Wallet subsystem façade. Focused modules own their state access and workflows.
 export {
     clearStandardChangeReservations, getNextReceiveIndex, markStandardChangeBroadcast,

@@ -1,3 +1,4 @@
+// @ts-check
 import {
     networkState,
     covenant_additive_address,
@@ -8,13 +9,13 @@ import { resolveFutureDaa } from '../../../../core/node/future_daa.js';
 import { toast } from '../../../../core/ui/toast.js';
 // savings covenant builders.
 
-import { byId } from '../../../../core/dom.js';
+import { byId, inputById } from '../../../../core/dom.js';
 import { kasToSompi } from '../../../../core/amounts.js';
 import { exactUnsigned } from '../../../../core/exact.js';
 export async function buildAdditive(ownerPk) {
     let resultJson;
     let extra = {};
-    const goalStr = byId('cov-piggy-goal').value.trim();
+    const goalStr = inputById('cov-piggy-goal').value.trim();
     let sompi = 0n;
     if (goalStr) {
         try {
@@ -27,7 +28,7 @@ export async function buildAdditive(ownerPk) {
     }
     // Deadline: date picker to DAA
     let deadlineDaa = 0n;
-    const dateVal = byId('cov-piggy-deadline') ? byId('cov-piggy-deadline').value : '';
+    const dateVal = byId('cov-piggy-deadline') ? inputById('cov-piggy-deadline').value : '';
     if (dateVal) {
         try {
             deadlineDaa = (await resolveFutureDaa(dateVal)).daa;
@@ -63,7 +64,7 @@ function parseRecoveryInput(raw) {
 }
 
 function resolveSavingsRecoveryPk(ownerPk) {
-    const field = byId('cov-savings-recovery-pk');
+    const field = inputById('cov-savings-recovery-pk');
     const raw = field ? field.value.trim() : '';
     if (!raw) return checkRecoveryPkLength(ownerPk);
     const pk = parseRecoveryInput(raw);
@@ -74,9 +75,9 @@ function resolveSavingsRecoveryPk(ownerPk) {
 
 // Datetime-to-DAA (10 BPS), same conversion as the vault. Returns BigInt DAA or null.
 async function resolveSavingsLocktimeDaa() {
-    const field = byId('cov-savings-locktime');
+    const field = inputById('cov-savings-locktime');
     let locktime = field ? field.value.trim() : '';
-    const dtEl = byId('cov-savings-datetime');
+    const dtEl = inputById('cov-savings-datetime');
     if (dtEl && dtEl.value && !locktime) {
         try {
             locktime = String((await resolveFutureDaa(dtEl.value)).daa);
@@ -103,7 +104,7 @@ export async function buildTimelockedSavings(ownerPk) {
     if (locktimeDaa === null) return;
     const resultJson = covenant_timelocked_savings(ownerPk, recoveryPk, locktimeDaa, networkState.network);
     const extra = { wallet1_pubkey_hex: ownerPk, wallet2_pubkey_hex: recoveryPk };
-    const sDtEl = byId('cov-savings-datetime');
+    const sDtEl = inputById('cov-savings-datetime');
     const sDtVal = sDtEl ? sDtEl.value : '';
     if (sDtVal) extra.locktime_date_iso = new Date(sDtVal).toISOString();
     return { resultJson, extra };

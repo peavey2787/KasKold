@@ -4,3 +4,8 @@ declare function jsQR(
     height: number,
     options?: { inversionAttempts?: string },
 ): { binaryData?: number[] | Uint8Array } | null;
+
+declare module '*/pkg/companion_web.js' {
+    const generated: any;
+    export = generated;
+}

@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState } from '../../../state/index.js';
 import { fetchCurrentDaa } from '../../../../core/node/daa.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
@@ -9,7 +10,7 @@ import { handleCovBeneficiarySpend } from '../../../../features/covenants/spendi
 import { applyScriptTerms } from '../../../../features/covenants/model/script_terms.js';
 import { fetch_utxos_for_address_js } from '../../../../wasm/api.js';
 // KasKold Companion Web — app/events/contracts/covenant_creation/claim_sharing
-import { byId } from '../../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../../core/dom.js';
 import { bindDurationInputs } from '../../../../core/forms/duration.js';
 import { openUtxoPicker } from './utxo_picker.js';
 import { registerInviteSharingActions } from './invite_sharing.js';
@@ -75,46 +76,46 @@ async function beneficiaryClaimBlock(lt) {
 }
 
 function registerSpendPanelActions() {
-    if (byId('btn-cov-owner-spend')) byId('btn-cov-owner-spend').onclick = () => {
+    if (byId('btn-cov-owner-spend')) elementById('btn-cov-owner-spend').onclick = () => {
         covShowPanel('owner');
         if (covenantState.lastCovenantResult) {
-            byId('cov-owner-addr').value = covenantState.lastCovenantResult.address || '';
-            byId('cov-owner-script').value = covenantState.lastCovenantResult.redeem_script_hex || '';
+            inputById('cov-owner-addr').value = covenantState.lastCovenantResult.address || '';
+            inputById('cov-owner-script').value = covenantState.lastCovenantResult.redeem_script_hex || '';
             // DMS heartbeat: send back to same covenant address to reset CSV timer
             if (covenantState.lastCovenantResult.type === 'dms') {
-                byId('cov-owner-dest').value = covenantState.lastCovenantResult.address || '';
+                inputById('cov-owner-dest').value = covenantState.lastCovenantResult.address || '';
             }
         }
     };
-    byId('btn-cov-owner-back').onclick = () => {
+    elementById('btn-cov-owner-back').onclick = () => {
         covShowPanel(covenantState.lastCovenantResult ? 'result' : 'menu');
     };
-    if (byId('btn-cov-beneficiary-spend')) byId('btn-cov-beneficiary-spend').onclick = () => {
+    if (byId('btn-cov-beneficiary-spend')) elementById('btn-cov-beneficiary-spend').onclick = () => {
         covShowPanel('beneficiary');
         if (covenantState.lastCovenantResult) {
-            byId('cov-bene-addr').value = covenantState.lastCovenantResult.address || '';
-            byId('cov-bene-script').value = covenantState.lastCovenantResult.redeem_script_hex || '';
+            inputById('cov-bene-addr').value = covenantState.lastCovenantResult.address || '';
+            inputById('cov-bene-script').value = covenantState.lastCovenantResult.redeem_script_hex || '';
             if (covenantState.lastCovenantResult.locktime_daa) {
-                byId('cov-bene-locktime').value = covenantState.lastCovenantResult.locktime_daa;
+                inputById('cov-bene-locktime').value = covenantState.lastCovenantResult.locktime_daa;
             }
             // Escrow: the seller claims to the buyer address the script pays to.
             if (covenantState.lastCovenantResult.type === 'escrow') {
                 try {
-                    byId('cov-bene-dest').value = applyScriptTerms(covenantState.lastCovenantResult).alice_address;
+                    inputById('cov-bene-dest').value = applyScriptTerms(covenantState.lastCovenantResult).alice_address;
                 } catch (e) {
                     toast('Escrow script rejected: ' + (e.message || e), 'error');
                 }
             }
         }
     };
-    byId('btn-cov-bene-back').onclick = () => covShowPanel('menu');
-    byId('btn-cov-bene-create').onclick = () => handleCovBeneficiarySpend();
+    elementById('btn-cov-bene-back').onclick = () => covShowPanel('menu');
+    elementById('btn-cov-bene-create').onclick = () => handleCovBeneficiarySpend();
     if (byId('btn-cov-bene-pick')) {
-        byId('btn-cov-bene-pick').onclick = async () => {
+        elementById('btn-cov-bene-pick').onclick = async () => {
             // Claim only the selected UTXOs (batched). Dest is the claiming wallet's
             // address; locktime comes from the claim setup.
-            const dest = (byId('cov-bene-dest') ? byId('cov-bene-dest').value.trim() : '') || ownerReceiveAddr();
-            const lt = byId('cov-bene-locktime') ? (byId('cov-bene-locktime').value.trim() || '0') : '0';
+            const dest = (byId('cov-bene-dest') ? inputById('cov-bene-dest').value.trim() : '') || ownerReceiveAddr();
+            const lt = byId('cov-bene-locktime') ? (inputById('cov-bene-locktime').value.trim() || '0') : '0';
             const block = await beneficiaryClaimBlock(lt);
             if (block) {
                 toast(block.message, 'error', block.ms);
@@ -126,18 +127,18 @@ function registerSpendPanelActions() {
 }
 
 function registerClaimAndPresetActions() {
-    if (byId('btn-cov-scan-dms2-heir')) byId('btn-cov-scan-dms2-heir').onclick = () => covScanAddress('cov-dms2-heir-pk', 'Scan heir address', true);
+    if (byId('btn-cov-scan-dms2-heir')) elementById('btn-cov-scan-dms2-heir').onclick = () => covScanAddress('cov-dms2-heir-pk', 'Scan heir address', true);
     if (byId('cov-dms2-preset')) {
         bindDurationInputs({ prefix: 'cov-dms2', outputId: 'cov-dms2-duration' });
-        byId('cov-dms2-preset').onchange = () => {
-            const v = byId('cov-dms2-preset').value;
+        elementById('cov-dms2-preset').onchange = () => {
+            const v = inputById('cov-dms2-preset').value;
             const customWrap = byId('cov-dms2-custom-wrap');
             if (customWrap) customWrap.classList.toggle('hidden', v !== 'custom');
-            if (v !== 'custom') byId('cov-dms2-duration').value = v;
+            if (v !== 'custom') inputById('cov-dms2-duration').value = v;
         };
         // Custom is default; no duration pre-fill. User picks a preset or opens Custom rolling inputs.
-        if (byId('cov-dms2-preset').value !== 'custom') {
-            byId('cov-dms2-duration').value = byId('cov-dms2-preset').value;
+        if (inputById('cov-dms2-preset').value !== 'custom') {
+            inputById('cov-dms2-duration').value = inputById('cov-dms2-preset').value;
         }
     }
 }

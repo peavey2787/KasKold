@@ -1,7 +1,8 @@
+// @ts-check
 import { navigationState, networkState, walletSession, generate_qr_svg_text } from '../boundary.js';
 import { qrImage } from '../../../core/qr/svg_image.js';
 import { hideLoading, navigateBack, showLoading, showScreen } from '../../../app/navigation.js';
-import { byId } from '../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../core/dom.js';
 import { renderBrowserConnectivity } from '../../../core/ui/connectivity_status.js';
 import { setScreenReturn, takeScreenReturn, visibleScreenName } from '../../../core/ui/screen_dom.js';
 import { toast } from '../../../core/ui/toast.js';
@@ -55,32 +56,32 @@ function clearForWalletSwitch() {
 }
 
 function clearImportForm() {
-    byId('input-kpub-friendly-name').value = '';
-    byId('input-managed-kpub').value = '';
-    byId('chk-new-kpub-auto-load').checked = false;
-    byId('input-managed-kpub-image').value = '';
+    inputById('input-kpub-friendly-name').value = '';
+    inputById('input-managed-kpub').value = '';
+    inputById('chk-new-kpub-auto-load').checked = false;
+    inputById('input-managed-kpub-image').value = '';
 }
 
 function revealImportForm(options = {}) {
     if (options.clear !== false) clearImportForm();
-    byId('kpub-import-form').classList.remove('hidden');
-    if (options.focus !== false) byId('input-managed-kpub').focus();
+    elementById('kpub-import-form').classList.remove('hidden');
+    if (options.focus !== false) elementById('input-managed-kpub').focus();
 }
 
 function concealImportForm() {
-    byId('kpub-import-form').classList.add('hidden');
+    elementById('kpub-import-form').classList.add('hidden');
     clearImportForm();
 }
 
 function populateImportCandidate(derived, message) {
     revealImportForm({ clear: false, focus: false });
-    byId('input-managed-kpub').value = derived.normalizedKpub;
-    byId('input-kpub-friendly-name').focus();
+    inputById('input-managed-kpub').value = derived.normalizedKpub;
+    elementById('input-kpub-friendly-name').focus();
     if (message) toast(message, 'ok', 1800);
 }
 
 function renderCurrentStatus() {
-    const status = byId('kpub-current-status');
+    const status = elementById('kpub-current-status');
     syncWalletUnloadAction();
     if (!walletSession.hasWallet()) {
         status.textContent = 'No wallet is currently loaded.';
@@ -123,8 +124,8 @@ export function showCurrentKpub() {
         toast('Load a wallet before viewing its kpub', 'error', 2500);
         return false;
     }
-    byId('view-kpub-text').textContent = kpub;
-    const qr = byId('view-kpub-qr');
+    elementById('view-kpub-text').textContent = kpub;
+    const qr = elementById('view-kpub-qr');
     qr.replaceChildren(qrImage(generate_qr_svg_text(kpub), 'kpub QR code'));
     showScreen('view-kpub');
     return true;
@@ -227,10 +228,10 @@ function renderEntry(entry, autoLoadId, activeId) {
 
 export function renderKpubManager() {
     const entries = visibleEntriesForSelectedNetwork();
-    const list = byId('kpub-saved-list');
+    const list = elementById('kpub-saved-list');
     const savedSection = byId('kpub-saved-section');
     list.replaceChildren();
-    byId('kpub-saved-count').textContent = String(entries.length);
+    elementById('kpub-saved-count').textContent = String(entries.length);
     renderCurrentStatus();
 
     const autoLoadId = kpubRepository.autoLoadId();
@@ -273,7 +274,7 @@ export function closeKpubImport() {
 }
 
 export function useKpubOnce() {
-    const kpubInput = byId('input-managed-kpub');
+    const kpubInput = inputById('input-managed-kpub');
     let derived;
     try {
         derived = deriveKpubWallet(kpubInput.value, networkState.network);
@@ -319,9 +320,9 @@ export async function uploadManagedKpubImage(file) {
 }
 
 export function saveManagedKpub() {
-    const nameInput = byId('input-kpub-friendly-name');
-    const kpubInput = byId('input-managed-kpub');
-    const autoLoad = byId('chk-new-kpub-auto-load').checked;
+    const nameInput = inputById('input-kpub-friendly-name');
+    const kpubInput = inputById('input-managed-kpub');
+    const autoLoad = inputById('chk-new-kpub-auto-load').checked;
     const friendlyName = nameInput.value.trim();
     showLoading(friendlyName ? `Loading wallet “${friendlyName}”…` : 'Loading wallet…');
     try {

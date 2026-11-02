@@ -1,3 +1,4 @@
+// @ts-check
 import { fetchActiveBalances, startActiveWatcher, stopActiveWatcher } from './active/balance_watcher.js';
 import { openActiveCovenant } from './active/opening.js';
 import {

@@ -1,3 +1,4 @@
+// @ts-check
 const MAX_FRAME_COUNT = 128;
 const MAX_ASSEMBLED_BYTES = 1024 * 1024;
 

@@ -1,3 +1,4 @@
+// @ts-check
 import { bytesToHex } from '../../../core/bytes.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';
 import { fetch_utxos_for_address_js } from '../boundary.js';

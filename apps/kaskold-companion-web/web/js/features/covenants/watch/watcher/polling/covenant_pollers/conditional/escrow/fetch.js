@@ -1,3 +1,4 @@
+// @ts-check
 import { kaspaRestApiBase } from '../../../../../../../../core/config/network.js';
 import { networkState } from '../../../../../../boundary.js';
 

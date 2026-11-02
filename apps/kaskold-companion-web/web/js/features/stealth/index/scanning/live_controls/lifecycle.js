@@ -1,5 +1,6 @@
+// @ts-check
 import { scannerState, stealthState } from '../../../boundary.js';
-import { byId } from '../../../../../core/dom.js';
+import { byId, inputById } from '../../../../../core/dom.js';
 import { stopScanner } from '../../camera.js';
 
 function removeElement(id) {
@@ -42,7 +43,7 @@ export function stopStealthScan() {
     byId('stealth-scan-results')?.classList.add('hidden');
     const rList = byId('stealth-r-list');
     if (rList) rList.textContent = '';
-    const manual = byId('stealth-manual-r-input');
+    const manual = inputById('stealth-manual-r-input');
     if (manual) manual.value = '';
     byId('btn-stealth-show-scan-qr')?.classList.add('hidden');
     byId('btn-stealth-scan-result-qr')?.classList.add('hidden');

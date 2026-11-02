@@ -1,3 +1,4 @@
+// @ts-check
 import {
     covenantState,
     navigationState,
@@ -16,7 +17,7 @@ import { getCovFee, savingsClaimKeyPosition } from '../../../payload/state.js';
 import { pickThread } from '../spend_paths.js';
 import { openPsktReview } from '../../../../transactions/pskt_multisig/review.js';
 
-import { byId } from '../../../../../core/dom.js';
+import { elementById, inputById, optionalInput } from '../../../../../core/dom.js';
 import { formatDaaDuration } from '../../../../../core/format.js';
 import { kasToSompi, sompiToKasString } from '../../../../../core/amounts.js';
 import { exactJsonStringify, exactUnsigned } from '../../../../../core/exact.js';
@@ -24,10 +25,10 @@ import { THREAD_FEE_FLOOR, ceilRateToInteger } from '../../../../../core/fee_mat
 
 function readBeneficiaryFields() {
     const fields = {
-        type: byId('cov-beneficiary-panel').dataset.covBeneType || '',
-        covenantAddress: byId('cov-bene-addr').value.trim(),
-        redeemScriptHex: byId('cov-bene-script').value.trim(),
-        destinationAddress: byId('cov-bene-dest').value.trim(),
+        type: elementById('cov-beneficiary-panel').dataset.covBeneType || '',
+        covenantAddress: inputById('cov-bene-addr').value.trim(),
+        redeemScriptHex: inputById('cov-bene-script').value.trim(),
+        destinationAddress: inputById('cov-bene-dest').value.trim(),
     };
     if (!fields.covenantAddress) throw new Error('Enter covenant P2SH address');
     if (!fields.redeemScriptHex) throw new Error('Enter redeem script hex');
@@ -76,7 +77,7 @@ async function enforceAllowanceTiming(thread) {
 }
 
 function calculateAllowanceWithdrawal(threadAmount) {
-    const amountText = byId('cov-bene-amount')?.value.trim() || '';
+    const amountText = optionalInput('cov-bene-amount')?.value.trim() || '';
     let withdrawSompi = threadAmount;
     if (amountText) {
         withdrawSompi = kasToSompi(amountText);
@@ -158,7 +159,7 @@ async function ensureStandardClaimUnlocked(type, locktime, utxos) {
 }
 
 async function handleStandardBeneficiarySpend(fields) {
-    const locktime = byId('cov-bene-locktime').value.trim();
+    const locktime = inputById('cov-bene-locktime').value.trim();
     const isDms = covenantState.lastCovenantResult?.type === 'dms';
     if (!isDms && (!/^\d+$/.test(locktime) || exactUnsigned(locktime, 'claim locktime DAA') === 0n)) {
         throw new Error('Enter locktime DAA score');

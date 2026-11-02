@@ -1,3 +1,4 @@
+// @ts-check
 import { covShowPanel } from '../../../../features/covenants/generation/panel_keys.js';
 import { covScanAddress, covScanPubkey } from '../../../../features/covenants/scanning.js';
 import { handleShipEscrowSpend } from '../../../../features/covenants/spending/standard/shipment.js';
@@ -7,6 +8,7 @@ const spendClick = (spendKind) => () => handleShipEscrowSpend(spendKind);
 const scanPubkeyClick = (inputId, label) => () => covScanPubkey(inputId, label);
 
 // Shipment-escrow operate + create scan buttons, bound in this order.
+/** @type {[string, () => void][]} */
 const SHIPMENT_CLICK_BINDINGS = [
     ['btn-cov-ship-back', () => covShowPanel('result')],
     ['btn-cov-ship-pickup', spendClick('pickup')],

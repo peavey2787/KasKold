@@ -1,18 +1,19 @@
+// @ts-check
 import { networkState, covenant_payjoin } from '../../../boundary.js';
 import { resolveFutureDaa } from '../../../../../core/node/future_daa.js';
 import { toast } from '../../../../../core/ui/toast.js';
 // payjoin covenant builder.
 
-import { byId } from '../../../../../core/dom.js';
+import { byId, inputById } from '../../../../../core/dom.js';
 import { exactUnsigned } from '../../../../../core/exact.js';
 import { addressToXOnly } from '../../../../../core/address.js';
 
 async function resolvePayjoinLocktime(pjDatetime) {
-    const locktime = byId('cov-payjoin-locktime').value.trim();
+    const locktime = inputById('cov-payjoin-locktime').value.trim();
     if (!pjDatetime || locktime) return locktime;
     try {
         const resolved = String((await resolveFutureDaa(pjDatetime)).daa);
-        byId('cov-payjoin-locktime').value = resolved;
+        inputById('cov-payjoin-locktime').value = resolved;
         return resolved;
     } catch (error) {
         toast(error.message, 'error');
@@ -34,12 +35,12 @@ function payjoinExtra(benePk, minInputs, minOutputs, pjDatetime) {
 }
 
 export async function buildPayjoin(ownerPk) {
-    const benePk = addressToXOnly(byId('cov-payjoin-bene-pk').value);
-    const pjDatetime = byId('cov-payjoin-datetime') ? byId('cov-payjoin-datetime').value : '';
+    const benePk = addressToXOnly(inputById('cov-payjoin-bene-pk').value);
+    const pjDatetime = byId('cov-payjoin-datetime') ? inputById('cov-payjoin-datetime').value : '';
     const locktime = await resolvePayjoinLocktime(pjDatetime);
     if (locktime === null) return;
-    const minInputs = byId('cov-payjoin-min-inputs').value.trim() || '2';
-    const minOutputs = byId('cov-payjoin-min-outputs').value.trim() || '2';
+    const minInputs = inputById('cov-payjoin-min-inputs').value.trim() || '2';
+    const minOutputs = inputById('cov-payjoin-min-outputs').value.trim() || '2';
     if (!ownerPk) { toast('Load wallet first', 'error'); return; }
     if (!benePk || benePk.length !== 64) { toast('Enter beneficiary pubkey (64 hex chars)', 'error'); return; }
     const locktimeDaa = parseLocktimeDaa(locktime);

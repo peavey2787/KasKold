@@ -38,7 +38,7 @@ PKG_JS = SITE / "pkg/companion_web.js"
 PKG_WASM = SITE / "pkg/companion_web_bg.wasm"
 FUNDED_BROWSER_CASE = ROOT / "qa/checks/integration/funded_testnet_e2e_case.mjs"
 FUNDED_COVENANT_CASE = ROOT / "qa/checks/integration/funded_covenant_e2e_case.mjs"
-COVENANT_PHASE_TIMEOUT_SECONDS = 1800
+COVENANT_PHASE_TIMEOUT_SECONDS = 3600
 def funded_state_root() -> Path:
     override = os.environ.get("KASKOLD_FUNDED_E2E_STATE_DIR")
     if override:
@@ -360,9 +360,17 @@ class FundedHandler(LoopbackRequestHandler):
         except SystemExit as error:
             self.send_body(str(error).encode("utf-8", "replace"), "text/plain; charset=utf-8", status=422)
 
+    def print_progress(self) -> None:
+        line = self.rfile.read(int(self.headers.get("Content-Length", "0"))).decode("utf-8", "replace")
+        print(f"  {line}", flush=True)
+        self.send_no_content()
+
     def do_POST(self) -> None:  # noqa: N802 - stdlib handler API
         if self.path.startswith("/__qa_funded_sign__"):
             self.answer_signing_request()
+            return
+        if self.path.startswith("/__qa_funded_progress__"):
+            self.print_progress()
             return
         if not self.path.startswith("/__qa_funded_result__"):
             self.send_error(404)

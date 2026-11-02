@@ -1,3 +1,4 @@
+// @ts-check
 import { oracleState, pskb_append_output } from '../../../boundary.js';
 import { byId } from '../../../../../core/dom.js';
 import { kasToSompi, sompiToKasString } from '../../../../../core/amounts.js';
@@ -12,7 +13,7 @@ export function setOracleFee(totalKas, fromCustom) {
     if (sompi < 100000000n) return;
     const value = sompiToKasString(sompi);
     oracleState._oracleMbFeeTotalKas = value;
-    document.querySelectorAll('.omb-fee-btn').forEach((button) => {
+    /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('.omb-fee-btn')).forEach((button) => {
         const selected = !fromCustom && button.getAttribute('data-omb-fee') === value;
         button.style.background = selected ? 'var(--teal)' : 'var(--bg)';
         button.style.color = selected ? '#0a0a0a' : 'var(--text)';

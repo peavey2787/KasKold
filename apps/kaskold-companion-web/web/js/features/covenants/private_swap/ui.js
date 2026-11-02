@@ -1,4 +1,5 @@
-import { byId } from '../../../core/dom.js';
+// @ts-check
+import { byId, elementById } from '../../../core/dom.js';
 import { showStaticPayloadQr } from '../../qr_display/static_payload.js';
 
 export function showPrivateSwapProtocolQr(payload, title, info) {
@@ -17,16 +18,17 @@ export function showPrivateSwapSection(section) {
 export function renderPrivateSwapUi(state, pendingDeviceAction) {
     byId('btn-private-swap-resume')?.classList.toggle('hidden', !state.role);
     if (!state.role) return;
-    byId('private-swap-role').textContent = state.role === 'alice' ? 'ALICE' : 'BOB';
-    byId('private-swap-my-address').textContent = state.myAddress || 'Not built yet';
-    byId('private-swap-counter-address').textContent = state.counterAddress || 'Not received yet';
-    byId('private-swap-status').textContent = statusText(state);
+    elementById('private-swap-role').textContent = state.role === 'alice' ? 'ALICE' : 'BOB';
+    elementById('private-swap-my-address').textContent = state.myAddress || 'Not built yet';
+    elementById('private-swap-counter-address').textContent = state.counterAddress || 'Not received yet';
+    elementById('private-swap-status').textContent = statusText(state);
     byId('private-swap-actions')?.querySelectorAll('button').forEach(button => button.classList.add('hidden'));
     for (const id of actionIds(state)) byId(id)?.classList.remove('hidden');
     if (pendingDeviceAction) byId('btn-private-swap-scan-device')?.classList.remove('hidden');
 }
 
 // Each rule reveals its buttons when its predicate holds. Order is preserved from the original chain.
+/** @type {[(state: any) => boolean, string[]][]} */
 const ACTION_RULES = [
     [state => state.role === 'alice' && state.stage === 'alice-offer-ready', ['btn-private-swap-share-offer', 'btn-private-swap-scan-response']],
     [state => state.role === 'bob' && state.stage === 'bob-response-ready', ['btn-private-swap-share-response', 'btn-private-swap-scan-final']],

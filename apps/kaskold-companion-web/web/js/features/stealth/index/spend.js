@@ -1,3 +1,4 @@
+// @ts-check
 import { navigationState, networkState, walletSession, create_stealth_spend } from '../boundary.js';
 import { hideLoading, showLoading } from '../../../app/navigation.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';

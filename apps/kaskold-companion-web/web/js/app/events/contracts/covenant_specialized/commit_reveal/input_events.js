@@ -1,3 +1,4 @@
+// @ts-check
 import { commitRevealState } from '../../../../state/index.js';
 import { showScreen } from '../../../../navigation.js';
 import { toast } from '../../../../../core/ui/toast.js';
@@ -7,7 +8,7 @@ import { handleCovCrReveal } from '../../../../../features/covenants/spending/ad
 import { startScanner, stopScanner } from '../../../../../features/stealth/index/camera.js';
 import { generate_qr_svg_text } from '../../../../../wasm/api.js';
 import { bytesToHex } from '../../../../../core/bytes.js';
-import { byId } from '../../../../../core/dom.js';
+import { byId, elementById, inputById } from '../../../../../core/dom.js';
 import { qrImage } from '../../../../../core/qr/svg_image.js';
 import { el } from '../../../../../core/ui/elements.js';
 
@@ -20,7 +21,7 @@ function bindDateInvalidation() {
     for (const [dateId, locktimeId] of pairs) {
         const date = byId(dateId);
         if (date) date.addEventListener('input', () => {
-            const locktime = byId(locktimeId);
+            const locktime = inputById(locktimeId);
             if (locktime) locktime.value = '';
         });
     }
@@ -58,16 +59,16 @@ export function bindCommitRevealInputEvents() {
         }
         stopScanner();
         const hashHex = bytesToHex(bytes.slice(0, 32));
-        byId('cov-cr-hash-display').textContent = 'BLAKE2B: ' + hashHex;
-        byId('cov-cr-ciphertext-hex').value = bytesToHex(bytes.slice(32));
+        elementById('cov-cr-hash-display').textContent = 'BLAKE2B: ' + hashHex;
+        inputById('cov-cr-ciphertext-hex').value = bytesToHex(bytes.slice(32));
         showScreen('covenant');
         toast('Commitment scanned. Hash: ' + hashHex.slice(0, 8) + '...', 'ok', 2000);
     });
     bindDateInvalidation();
     const reveal = byId('btn-cov-cr-reveal');
     if (reveal) reveal.onclick = () => covShowPanel('cr-reveal');
-    byId('btn-cov-cr-reveal-back').onclick = () => { commitRevealState._crDecryptCtBytes = null; covShowPanel('result'); };
-    byId('btn-cov-cr-reveal-create').onclick = () => handleCovCrReveal();
+    elementById('btn-cov-cr-reveal-back').onclick = () => { commitRevealState._crDecryptCtBytes = null; covShowPanel('result'); };
+    elementById('btn-cov-cr-reveal-create').onclick = () => handleCovCrReveal();
     const showQr = byId('btn-cov-cr-show-ct-qr');
     if (showQr) showQr.onclick = showCiphertextQr;
     const scanPreimage = byId('btn-cov-cr-scan-preimage');
@@ -87,5 +88,5 @@ export function bindCommitRevealInputEvents() {
     });
     const scanAddress = byId('btn-cov-scan-cr-addr');
     if (scanAddress) scanAddress.onclick = () => covScanAddress('cov-cr-addr', 'Scan covenant address');
-    byId('btn-cov-scan-cr-dest').onclick = () => covScanAddress('cov-cr-dest', 'Scan destination');
+    elementById('btn-cov-scan-cr-dest').onclick = () => covScanAddress('cov-cr-dest', 'Scan destination');
 }

@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState, walletSession } from '../boundary.js';
 import { toast } from '../../../core/ui/toast.js';
 import { buildBeneficiaryExport } from './export/beneficiary_payload.js';

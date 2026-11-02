@@ -1,3 +1,4 @@
+// @ts-check
 import { applyScriptTerms } from '../model/script_terms.js';
 import { covenantState, covenantWatcherState, oracleState } from '../boundary.js';
 import { toast } from '../../../core/ui/toast.js';
@@ -6,7 +7,7 @@ import { covRenderMetaLine } from '../watch/ui/metadata.js';
 import { covUpdateResultButtons } from '../watch/ui/result_buttons.js';
 import { covWatcherStart, covWatcherStop } from '../watch/watcher/polling/lifecycle.js';
 import { isWatchedCovenantType } from '../watch/watcher/types.js';
-import { byId } from '../../../core/dom.js';
+import { byId, elementById } from '../../../core/dom.js';
 
 function isTxid(value) {
     return Boolean(value) && value.length === 64;
@@ -20,15 +21,15 @@ function rememberBroadcastOutpoint(broadcastTxid, type) {
 }
 
 function setResultTextFields(c) {
-    if (byId('cov-result-addr')) byId('cov-result-addr').textContent = c.address || '';
-    if (byId('cov-result-script')) byId('cov-result-script').textContent = c.redeem_script_hex || '';
+    if (byId('cov-result-addr')) elementById('cov-result-addr').textContent = c.address || '';
+    if (byId('cov-result-script')) elementById('cov-result-script').textContent = c.redeem_script_hex || '';
 }
 
 function setResultTxid(broadcastTxid) {
     if (!byId('cov-result-txid') || !isTxid(broadcastTxid)) return;
-    byId('cov-result-txid').textContent = broadcastTxid;
-    byId('cov-result-txid').onclick = () => { navigator.clipboard.writeText(broadcastTxid); toast('TX ID copied', 'ok'); };
-    if (byId('cov-result-txid-wrap')) byId('cov-result-txid-wrap').style.display = '';
+    elementById('cov-result-txid').textContent = broadcastTxid;
+    elementById('cov-result-txid').onclick = () => { navigator.clipboard.writeText(broadcastTxid); toast('TX ID copied', 'ok'); };
+    if (byId('cov-result-txid-wrap')) elementById('cov-result-txid-wrap').style.display = '';
 }
 
 // Repopulate the result panel fields. Otherwise this leaves them
@@ -41,8 +42,8 @@ function repopulateResultPanel(c, broadcastTxid) {
     setResultTxid(broadcastTxid);
     if (byId('cov-result-extra')) covRenderMetaLine(c);
     if (byId('cov-result-balance')) {
-        byId('cov-result-balance').textContent = 'Loading...';
-        byId('cov-result-balance').style.display = '';
+        elementById('cov-result-balance').textContent = 'Loading...';
+        elementById('cov-result-balance').style.display = '';
     }
 }
 
@@ -63,6 +64,6 @@ export function covReturnAfterBroadcast() {
     covShowPanel('result');
     covUpdateResultButtons(c.type || '');
     repopulateResultPanel(c, broadcastTxid);
-    setTimeout(() => { if (byId('btn-cov-res-balance')) byId('btn-cov-res-balance').click(); }, 500);
+    setTimeout(() => { if (byId('btn-cov-res-balance')) elementById('btn-cov-res-balance').click(); }, 500);
     restartWatcher();
 }

@@ -1,3 +1,4 @@
+// @ts-check
 // KasKold Companion Web — covenant result-action facade.
 import { registerBalanceAction } from './result_actions/balance.js';
 import { registerOwnerAction } from './result_actions/owner.js';

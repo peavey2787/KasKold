@@ -1,3 +1,4 @@
+// @ts-check
 import { parseCovenantResponse, sha256Commitment } from '../../covenants/signing/protocol.js';
 
 const MAX_TEXT_BYTES = 256;

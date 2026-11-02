@@ -1,3 +1,4 @@
+// @ts-check
 // Stable index feature composition.
 import './index/send.js';
 import './index/scanning.js';

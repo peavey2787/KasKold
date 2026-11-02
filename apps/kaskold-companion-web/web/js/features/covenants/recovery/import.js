@@ -1,3 +1,4 @@
+// @ts-check
 import { scannerState } from '../boundary.js';
 // Covenant backup import façade.
 import { handleCovenantScan } from './import/controller.js';

@@ -1,5 +1,6 @@
+// @ts-check
 import { covenantState } from '../../boundary.js';
-import { byId } from '../../../../core/dom.js';
+import { byId, elementById } from '../../../../core/dom.js';
 import { toast } from '../../../../core/ui/toast.js';
 import { covShowPanel } from '../../generation/panel_keys.js';
 import { covRenderMetaLine } from '../../watch/ui/metadata.js';
@@ -64,10 +65,10 @@ function showResultPanel(covenant) {
     }
     covShowPanel('result');
     covUpdateResultButtons(covenant.type);
-    byId('cov-result-addr').textContent = covenant.address;
-    byId('cov-result-script').textContent = covenant.redeem_script_hex;
+    elementById('cov-result-addr').textContent = covenant.address;
+    elementById('cov-result-script').textContent = covenant.redeem_script_hex;
     covRenderMetaLine(covenantState.lastCovenantResult);
-    const balance = byId('cov-result-balance');
+    const balance = elementById('cov-result-balance');
     balance.textContent = 'Loading...';
     balance.style.display = '';
     toast(`Loaded: ${covenant.label} covenant`, 'ok', 1500);

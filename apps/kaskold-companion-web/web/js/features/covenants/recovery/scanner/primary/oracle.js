@@ -1,3 +1,4 @@
+// @ts-check
 import { hexToBytes } from '../../../../../core/bytes.js';
 import { walletMatchesPk } from '../../../generation/panel_keys.js';
 import { readU64, readVstr } from '../payload_reader.js';

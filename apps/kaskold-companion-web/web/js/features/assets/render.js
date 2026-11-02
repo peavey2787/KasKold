@@ -1,4 +1,5 @@
-import { byId } from '../../core/dom.js';
+// @ts-check
+import { byId, elementById } from '../../core/dom.js';
 import { exactUnsigned } from '../../core/exact.js';
 
 export function formatTokenBalance(balance, decimals) {
@@ -62,10 +63,10 @@ function renderDomains(domains) {
 
 export function renderWalletAssets({ tokens, nfts, domains }) {
     const total = tokens.size + nfts.length + domains.length;
-    const list = byId('tokens-list');
+    const list = elementById('tokens-list');
     byId('screen-tokens')?.classList.toggle('tokens-compact', total <= 4);
     if (!total) {
-        byId('tokens-summary').textContent = 'No tokens, NFTs, or domains found';
+        elementById('tokens-summary').textContent = 'No tokens, NFTs, or domains found';
         list.replaceChildren(textElement(
             'div',
             'u-align-text-center-text-text-muted-padding-20px',
@@ -77,6 +78,6 @@ export function renderWalletAssets({ tokens, nfts, domains }) {
     if (tokens.size) summary.push(`${tokens.size} token${tokens.size === 1 ? '' : 's'}`);
     if (nfts.length) summary.push(`${nfts.length} NFT${nfts.length === 1 ? '' : 's'}`);
     if (domains.length) summary.push(`${domains.length} domain${domains.length === 1 ? '' : 's'}`);
-    byId('tokens-summary').textContent = `${summary.join(', ')} found`;
+    elementById('tokens-summary').textContent = `${summary.join(', ')} found`;
     list.replaceChildren(...renderTokens(tokens), ...renderNfts(nfts), ...renderDomains(domains));
 }

@@ -1,15 +1,16 @@
+// @ts-check
 import { toast } from '../../../../../core/ui/toast.js';
 import { getCovFee } from '../../../payload/state.js';
 import { create_covenant_payjoin_claim } from '../../../boundary.js';
 
-import { byId } from '../../../../../core/dom.js';
+import { inputById } from '../../../../../core/dom.js';
 import { runCovenantClaim } from './claim_controller.js';
 
 export async function handleCovPayjoinClaim() {
-    const covAddr = byId('cov-payjoin-claim-addr').value.trim();
-    const redeemHex = byId('cov-payjoin-claim-script').value.trim();
-    const mixAddr = byId('cov-payjoin-claim-mix-addr').value.trim();
-    const destAddr = byId('cov-payjoin-claim-dest').value.trim();
+    const covAddr = inputById('cov-payjoin-claim-addr').value.trim();
+    const redeemHex = inputById('cov-payjoin-claim-script').value.trim();
+    const mixAddr = inputById('cov-payjoin-claim-mix-addr').value.trim();
+    const destAddr = inputById('cov-payjoin-claim-dest').value.trim();
 
     if (!covAddr) { toast('Enter covenant P2SH address', 'error'); return; }
     if (!redeemHex) { toast('Enter redeem script hex', 'error'); return; }

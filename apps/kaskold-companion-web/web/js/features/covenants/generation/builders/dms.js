@@ -1,8 +1,9 @@
+// @ts-check
 import { networkState, covenant_dms, decode_address } from '../../boundary.js';
 import { toast } from '../../../../core/ui/toast.js';
 // dms covenant builders.
 
-import { byId } from '../../../../core/dom.js';
+import { inputById } from '../../../../core/dom.js';
 import { exactJsonStringify, exactUnsigned } from '../../../../core/exact.js';
 
 // Decodes a Kaspa address to its x-only pubkey. Returns null after toasting on failure.
@@ -15,7 +16,7 @@ function decodeHeirAddress(address) {
         if (!decoded.payload || decoded.payload.length !== 64) {
             toast('Could not read pubkey from that address', 'error'); return null;
         }
-        byId('cov-dms2-heir-pk').value = decoded.payload;
+        inputById('cov-dms2-heir-pk').value = decoded.payload;
         return decoded.payload;
     } catch (e) {
         toast('Invalid address: ' + e, 'error'); return null;
@@ -34,7 +35,7 @@ function resolveHeirPk(raw) {
 // Converts an inactivity duration in seconds to DAA units (10 BPS).
 function parseInactivityDaa() {
     let durationSec;
-    try { durationSec = exactUnsigned(byId('cov-dms2-duration').value.trim() || '0', 'inactivity seconds'); }
+    try { durationSec = exactUnsigned(inputById('cov-dms2-duration').value.trim() || '0', 'inactivity seconds'); }
     catch { durationSec = 0n; }
     return durationSec;
 }
@@ -47,7 +48,7 @@ function withInactivityDaa(resultJson, inactivityDaa) {
 }
 
 export async function buildDms(ownerPk) {
-    const heirPk = resolveHeirPk(byId('cov-dms2-heir-pk').value.trim());
+    const heirPk = resolveHeirPk(inputById('cov-dms2-heir-pk').value.trim());
     if (heirPk === null) return;
     const durationSec = parseInactivityDaa();
     if (durationSec <= 0n) { toast('Set an inactivity period', 'error'); return; }
