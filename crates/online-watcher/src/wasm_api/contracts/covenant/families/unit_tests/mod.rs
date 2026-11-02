@@ -2,10 +2,7 @@ use serde_json::{json, Value};
 
 use super::{
     dms::build_dms_json,
-    escrow::{
-        build_escrow_json, build_shipping_escrow_json, build_timelocked_escrow_json,
-        ship_escrow_terms_json,
-    },
+    escrow::{build_escrow_json, build_shipping_escrow_json, ship_escrow_terms_json},
     savings::build_timelocked_savings_json,
 };
 
@@ -52,33 +49,6 @@ fn dms_savings_and_timelocked_escrow_builders_validate_keys_and_addresses() {
             .map(|error| error.to_string())
             .as_deref(),
         Some("Bad wallet2 pubkey hex: Invalid character 'z' at position 0")
-    );
-
-    let escrow = parse(
-        build_timelocked_escrow_json(
-            &key(8),
-            &key(9),
-            &address(8, "kaspa"),
-            &address(9, "kaspa"),
-            300,
-            "mainnet",
-        )
-        .unwrap(),
-    );
-    assert_eq!(escrow["locktime_daa"], "300");
-    assert_eq!(
-        build_timelocked_escrow_json(
-            &key(8),
-            &key(9),
-            "not-an-address",
-            &address(9, "kaspa"),
-            0,
-            "mainnet",
-        )
-        .err()
-        .map(|error| error.to_string())
-        .as_deref(),
-        Some("Unknown address prefix")
     );
 }
 
@@ -208,153 +178,12 @@ fn shipping_escrow_builder_covers_amount_partitioning_and_invalid_requests() {
     );
 }
 
-fn utxo(byte: u8, amount: u64) -> crate::account::utxo::UtxoEntry {
-    crate::account::utxo::UtxoEntry {
-        tx_id: format!("{byte:02x}").repeat(32),
-        index: u32::from(byte),
-        amount,
-        script_public_key: vec![0x51],
-        block_daa_score: 0,
-        covenant_id: None,
-    }
-}
-
-#[test]
-fn allowance_withdrawal_builder_covers_success_balance_and_storage_errors() {
-    use super::allowance::build_allowance_withdrawal;
-
-    let owner = [0x31; 32];
-    let beneficiary = [0x32; 32];
-    let redeem = crate::contracts::covenant::script::build_allowance_script(
-        &owner,
-        &beneficiary,
-        50_000_000,
-        12,
-        0,
-    );
-    let covenant = crate::protocol::script::p2sh::script_to_address(&redeem, "kaspa").unwrap();
-    let destination = address(0x33, "kaspa");
-    let utxos = [utxo(1, 60_000_000), utxo(2, 60_000_000)];
-
-    let withdrawal = build_allowance_withdrawal(
-        &covenant,
-        &destination,
-        &hex::encode(&redeem),
-        40_000_000,
-        1_000_000,
-        &utxos,
-    )
-    .unwrap();
-    assert_eq!(withdrawal.input_count, 2);
-    assert_eq!(withdrawal.total_balance, 120_000_000);
-    assert_eq!(withdrawal.return_amount, 79_000_000);
-    assert_eq!(withdrawal.sequence, 12);
-    assert!(!withdrawal.wire.is_empty());
-    super::allowance::log_withdrawal(&withdrawal, 40_000_000, 1_000_000);
-    let finalized = expect_wasm_string(
-        super::allowance::finalize_withdrawal_result(Ok(withdrawal), 40_000_000, 1_000_000),
-        "finalize allowance withdrawal",
-    );
-    assert!(!finalized.is_empty());
-    assert_eq!(
-        super::allowance::finalize_withdrawal_result(
-            Err("transport failed".to_string()),
-            40_000_000,
-            1_000_000,
-        )
-        .err()
-        .map(|error| format!("{error:?}"))
-        .as_deref(),
-        Some(r#"JsValue(Some("transport failed"))"#)
-    );
-
-    assert_eq!(
-        build_allowance_withdrawal(&covenant, &destination, &hex::encode(&redeem), 1, 1, &[],)
-            .err()
-            .map(|error| error.to_string())
-            .as_deref(),
-        Some("No UTXOs at covenant address")
-    );
-    assert_eq!(
-        build_allowance_withdrawal(
-            &covenant,
-            &destination,
-            &hex::encode(&redeem),
-            121_000_000,
-            0,
-            &utxos,
-        )
-        .err()
-        .map(|error| error.to_string())
-        .as_deref(),
-        Some("Withdraw 121000000 + fee 0 > total balance 120000000")
-    );
-    assert_eq!(build_allowance_withdrawal(
-        &covenant,
-        &destination,
-        &hex::encode(&redeem),
-        110_000_001,
-        0,
-        &utxos,
-    ).err().map(|error| error.to_string()).as_deref(), Some("Return amount 9999999 sompi (0.1000 KAS) is too small. Tiny outputs cause high storage fees. Either withdraw less (leave at least 0.1 KAS) or use Owner Reclaim to sweep everything."));
-    assert_eq!(
-        build_allowance_withdrawal(&covenant, &destination, "zz", 1, 0, &utxos,)
-            .err()
-            .map(|error| error.to_string())
-            .as_deref(),
-        Some("Bad redeem hex: Invalid character 'z' at position 0")
-    );
-    assert_eq!(
-        build_allowance_withdrawal(
-            "bad-address",
-            &destination,
-            &hex::encode(&redeem),
-            1,
-            0,
-            &utxos,
-        )
-        .err()
-        .map(|error| error.to_string())
-        .as_deref(),
-        Some("Unknown address prefix")
-    );
-    assert_eq!(
-        build_allowance_withdrawal(
-            &covenant,
-            &destination,
-            &hex::encode(&redeem),
-            u64::MAX,
-            1,
-            &utxos,
-        )
-        .err()
-        .map(|error| error.to_string())
-        .as_deref(),
-        Some("Withdraw amount plus fee overflows u64")
-    );
-    let overflow = [utxo(1, u64::MAX), utxo(2, 1)];
-    assert_eq!(
-        build_allowance_withdrawal(
-            &covenant,
-            &destination,
-            &hex::encode(&redeem),
-            1,
-            0,
-            &overflow,
-        )
-        .err()
-        .map(|error| error.to_string())
-        .as_deref(),
-        Some("Covenant balance overflows u64")
-    );
-}
-
 #[test]
 fn covenant_wasm_facades_use_valid_host_fixtures_without_crossing_error_abi() {
     use super::{
-        covenant_additive_address, covenant_allowance, covenant_dms, covenant_escrow,
-        covenant_global_allowance, covenant_global_spending_limit, covenant_payjoin,
-        covenant_ship_escrow, covenant_timelocked_escrow, covenant_timelocked_savings,
+        covenant_additive_address, covenant_dms, covenant_escrow, covenant_global_allowance,
+        covenant_global_spending_limit, covenant_payjoin, covenant_ship_escrow,
+        covenant_timelocked_savings,
     };
 
     let owner = key(0x21);
@@ -379,18 +208,6 @@ fn covenant_wasm_facades_use_valid_host_fixtures_without_crossing_error_abi() {
     )
     .contains("locktime_daa"));
     assert!(expect_wasm_string(
-        covenant_timelocked_escrow(
-            &owner,
-            &beneficiary,
-            &alice_address,
-            &bob_address,
-            700,
-            "mainnet",
-        ),
-        "timelocked escrow covenant",
-    )
-    .contains("redeem_script_hex"));
-    assert!(expect_wasm_string(
         covenant_escrow(
             &owner,
             &beneficiary,
@@ -407,11 +224,6 @@ fn covenant_wasm_facades_use_valid_host_fixtures_without_crossing_error_abi() {
         "payjoin covenant",
     )
     .contains("redeem_script_hex"));
-    assert!(expect_wasm_string(
-        covenant_allowance(&owner, &beneficiary, 50_000_000, 10, 0, "mainnet"),
-        "allowance covenant",
-    )
-    .contains("max_withdraw_sompi"));
     assert!(expect_wasm_string(
         covenant_global_allowance(&owner, &beneficiary, 50_000_000, 10, 0, "mainnet"),
         "global allowance covenant",

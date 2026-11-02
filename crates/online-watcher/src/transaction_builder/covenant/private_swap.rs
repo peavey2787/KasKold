@@ -1,5 +1,9 @@
-//! Private-swap claim transaction planning.
+//! Private-swap claim and refund transaction planning.
 
+use super::{
+    execution::{execution_for, SpendPath},
+    redeem::{decode_redeem_script, require_redeem_for_address},
+};
 use crate::transaction_builder::pskb::{
     encode_prepared_sweep, prepare_selected_sweep, PreparedSweep, PskbGlobalPlan, SweepInputPolicy,
 };
@@ -11,7 +15,8 @@ pub(crate) fn prepare_claim(
     selected_utxo_json: &str,
     fee: u64,
 ) -> Result<(PreparedSweep, Vec<u8>), String> {
-    let redeem = hex::decode(redeem_script_hex).map_err(|error| format!("Bad redeem: {error}"))?;
+    let redeem = decode_redeem_script(redeem_script_hex)?;
+    require_redeem_for_address(covenant_address, &redeem)?;
     let prepared = prepare_selected_sweep(
         selected_utxo_json,
         covenant_address,
@@ -40,10 +45,32 @@ pub(crate) fn build_claim(
         selected_utxo_json,
         fee,
     )?;
-    let global = PskbGlobalPlan::standard().with_branch("beneficiary");
     let mut policy =
-        SweepInputPolicy::covenant(&redeem, 0, serde_json::json!({"privateSwapClaim": true}));
-    policy.sig_op_count = 1;
+        SweepInputPolicy::covenant(&redeem, 0, execution_for(&redeem, SpendPath::Key(0))?);
+    policy.proprietaries = serde_json::json!({"privateSwapClaim": true});
+    encode_prepared_sweep(&prepared, PskbGlobalPlan::standard(), &policy)
+}
+
+/// The owner takes an unclaimed swap back with their own signature once the
+/// script's refund lock time has passed.
+pub(crate) fn build_refund(
+    covenant_address: &str,
+    destination_address: &str,
+    redeem_script_hex: &str,
+    selected_utxo_json: &str,
+    fee: u64,
+) -> Result<String, String> {
+    let (prepared, redeem) = prepare_claim(
+        covenant_address,
+        destination_address,
+        redeem_script_hex,
+        selected_utxo_json,
+        fee,
+    )?;
+    let lock_time = crate::protocol::script::extract_cltv_locktime(&redeem)?
+        .ok_or("Private Swap script has no refund lock time")?;
+    let global = PskbGlobalPlan::standard().with_lock_time(lock_time);
+    let policy = SweepInputPolicy::covenant(&redeem, 0, execution_for(&redeem, SpendPath::Key(1))?);
     encode_prepared_sweep(&prepared, global, &policy)
 }
 

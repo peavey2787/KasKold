@@ -47,7 +47,6 @@ def _check_contract_inventory(root: Path) -> list[str]:
         wasm_boundary_root / "contracts/covenant/families/escrow/timelocked.rs",
         wasm_boundary_root / "contracts/covenant/families/escrow/shipping/mod.rs",
         wasm_boundary_root / "contracts/covenant/families/allowance.rs",
-        wasm_boundary_root / "contracts/covenant/families/allowance/local.rs",
         wasm_boundary_root / "contracts/covenant/families/allowance/global.rs",
         wasm_boundary_root / "contracts/covenant/families/spending_limit.rs",
         wasm_boundary_root / "contracts/covenant/families/spending_limit/local.rs",
@@ -56,20 +55,15 @@ def _check_contract_inventory(root: Path) -> list[str]:
         wasm_boundary_root / "contracts/covenant/families/payjoin.rs",
         wasm_boundary_root / "contracts/oracle/genesis.rs",
         wasm_boundary_root / "contracts/oracle/publish.rs",
-        wasm_boundary_root / "contracts/zk/hashes.rs",
         wasm_boundary_root / "contracts/zk/merkle.rs",
         wasm_boundary_root / "contracts/zk/commit_reveal.rs",
         wasm_boundary_root / "privacy/stealth/meta.rs",
         wasm_boundary_root / "privacy/stealth/spend.rs",
         wasm_boundary_root / "privacy/stealth/payment.rs",
         online_root / "transaction_builder/pskb/mod.rs",
-        online_root / "transaction_builder/pskb/model.rs",
-        online_root / "transaction_builder/pskb/global_thread.rs",
         online_root / "transaction_builder/pskb/preparation.rs",
         online_root / "transaction_builder/pskb/thread_input.rs",
         online_root / "transaction_builder/pskb/thread_request.rs",
-        online_root / "transaction_builder/pskb/sweep.rs",
-        online_root / "transaction_builder/pskb/encoder.rs",
     )
     for required in required_contract_family_paths:
         if not required.exists():
@@ -274,8 +268,8 @@ def _check_wasm_exports(root: Path) -> list[str]:
     # spend-path, reveal, shipment-terms and script-address readers replace
     # their JavaScript script parsers; covenant_script_terms verifies invite
     # and loaded-covenant terms against the redeem script.
-    expected_count = 132
-    expected_digest = "b12b983d7e280a9ea1c2731f8e92dca701ee4dc17e181c43b51d81ff6110d1bb"
+    expected_count = 121
+    expected_digest = "ae2b20e6b0e903789665847fc16e7cedba0fccacf9ce47b847f843dbab24bd45"
     export_digest = hashlib.sha256("\n".join(sorted(wasm_exports)).encode()).hexdigest()
     if (
         len(wasm_exports) != expected_count

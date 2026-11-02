@@ -1,5 +1,8 @@
 use crate::wasm_api::JsValue;
 
+mod decode;
+use decode::{decode16, decode32, decode33, decode64, parse_presig};
+
 use crate::wasm_api::utilities::common::js_error;
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
@@ -356,6 +359,24 @@ pub async fn create_private_swap_claim(
     .map_err(js_error)
 }
 
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
+pub fn create_private_swap_refund(
+    covenant_address: &str,
+    destination_address: &str,
+    redeem_script_hex: &str,
+    selected_utxo_json: &str,
+    fee: u64,
+) -> Result<String, JsValue> {
+    crate::transaction_builder::covenant::private_swap::build_refund(
+        covenant_address,
+        destination_address,
+        redeem_script_hex,
+        selected_utxo_json,
+        fee,
+    )
+    .map_err(js_error)
+}
+
 #[cfg(test)]
 use crate::transaction_builder::covenant::private_swap::{
     insert_completed_signature_hex as insert_completed_signature,
@@ -397,41 +418,6 @@ fn encode_request_hex(
     let len = shared_signer::covenant_sign::private_swap::encode_request(request, &mut out)
         .map_err(|_| "Private Swap request encode failed".to_string())?;
     Ok(hex::encode(&out[..len]))
-}
-
-fn decode16(value: &str, label: &str) -> Result<[u8; 16], String> {
-    decode_fixed(value, label)
-}
-fn decode32(value: &str, label: &str) -> Result<[u8; 32], String> {
-    decode_fixed(value, label)
-}
-fn decode33(value: &str, label: &str) -> Result<[u8; 33], String> {
-    decode_fixed(value, label)
-}
-fn decode64(value: &str, label: &str) -> Result<[u8; 64], String> {
-    decode_fixed(value, label)
-}
-
-fn decode_fixed<const N: usize>(value: &str, label: &str) -> Result<[u8; N], String> {
-    let bytes = hex::decode(value).map_err(|error| format!("Bad {label}: {error}"))?;
-    if bytes.len() != N {
-        return Err(format!("{label} must be {N} bytes"));
-    }
-    let mut out = [0u8; N];
-    out.copy_from_slice(&bytes);
-    Ok(out)
-}
-
-fn parse_presig(
-    value: &str,
-    negated: bool,
-) -> Result<crate::protocol::private_swap::adaptor::AdaptorPreSignature, String> {
-    Ok(
-        crate::protocol::private_swap::adaptor::AdaptorPreSignature {
-            bytes: decode64(value, "pre-signature")?,
-            negated,
-        },
-    )
 }
 
 #[cfg(test)]

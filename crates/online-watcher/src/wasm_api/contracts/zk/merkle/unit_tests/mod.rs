@@ -41,10 +41,10 @@ fn merkle_public_builders_cover_success_paths_without_js_errors() {
         "merkle covenant",
     );
     let covenant: serde_json::Value = serde_json::from_str(&covenant_json).expect("covenant json");
-    assert!(covenant["address"]
-        .as_str()
-        .expect("address")
-        .starts_with("kaspa:"));
+    assert_eq!(
+        covenant["address"].as_str().expect("address"),
+        "kaspa:pr2yhyx5hsqtdgly95wteem0epmnd6ggfhn3ydctl2un9s0ghx6g6arvs6nly"
+    );
 }
 
 #[test]
@@ -94,27 +94,35 @@ fn merkle_spend_helpers_cover_limits_fees_amounts_and_encoding() {
     );
     assert!(merkle_spend_fee(1, 1, 1).expect("fee") > 1);
 
+    let redeem = crate::contracts::merkle::script::build_merkle_whitelist_script(
+        &[0x31; 32],
+        &[0x32; 32],
+        0,
+        100,
+    );
+    let redeem_hex = hex::encode(&redeem);
+    let covenant = crate::wasm_api::test_support::covenant_address(&redeem);
     let script =
-        crate::account::address::address_to_script_pubkey(ADDR_A).expect("covenant script");
-    let scripts = decode_merkle_scripts(ADDR_A, ADDR_B, "51").expect("scripts");
+        crate::account::address::address_to_script_pubkey(&covenant).expect("covenant script");
+    let scripts = decode_merkle_scripts(&covenant, ADDR_B, &redeem_hex).expect("scripts");
     assert_eq!(scripts.covenant, script);
-    assert_eq!(scripts.redeem, vec![0x51]);
+    assert_eq!(scripts.redeem, redeem);
     assert_eq!(
-        decode_merkle_scripts("bad", ADDR_B, "51")
+        decode_merkle_scripts("bad", ADDR_B, &redeem_hex)
             .err()
             .map(|error| error.to_string())
             .as_deref(),
         Some("Unknown address prefix")
     );
     assert_eq!(
-        decode_merkle_scripts(ADDR_A, "bad", "51")
+        decode_merkle_scripts(&covenant, "bad", &redeem_hex)
             .err()
             .map(|error| error.to_string())
             .as_deref(),
         Some("Unknown address prefix")
     );
     assert_eq!(
-        decode_merkle_scripts(ADDR_A, ADDR_B, "zz")
+        decode_merkle_scripts(&covenant, ADDR_B, "zz")
             .err()
             .map(|error| error.to_string())
             .as_deref(),
@@ -122,15 +130,15 @@ fn merkle_spend_helpers_cover_limits_fees_amounts_and_encoding() {
     );
 
     let request = MerkleSpendRequest {
-        covenant_address: ADDR_A,
+        covenant_address: &covenant,
         destination_address: ADDR_B,
-        redeem_script_hex: "51",
+        redeem_script_hex: &redeem_hex,
         proof_json: "[]",
         send_amount: 500_000,
         requested_fee: 1,
         utxos: vec![utxo(7, 2_000_000)],
     };
-    let inputs = merkle_inputs(&request, &scripts);
+    let inputs = merkle_inputs(&request, &scripts).expect("merkle inputs");
     assert_eq!(inputs.len(), 1);
     let outputs_with_change = merkle_outputs(500_000, 100, &scripts.destination, &scripts.covenant);
     let outputs_without_change =

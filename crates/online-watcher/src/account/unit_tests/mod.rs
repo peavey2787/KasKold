@@ -104,19 +104,30 @@ fn kpub_import_raw_import_and_extension_preserve_watch_only_state() {
     assert_eq!(wallet.kpub, text);
     assert_eq!(wallet.receive_addresses.len(), 20);
     assert_eq!(wallet.change_addresses.len(), 20);
-    assert!(wallet
-        .receive_addresses
-        .iter()
-        .all(|value| value.starts_with("kaspa:")));
-    assert!(wallet
-        .change_addresses
-        .iter()
-        .all(|value| value.starts_with("kaspa:")));
+    assert_eq!(
+        wallet.receive_addresses[0],
+        "kaspa:qpnh97agnsn05zh5cejkhh5qhkgdng7hvqz8pkf7rz58hmkd2tu973mmdc8t8"
+    );
+    assert_eq!(
+        wallet.receive_addresses[19],
+        "kaspa:qpus5gwc83g0uapjthznpgs2cst95whl5xprhrl36nhs7tgt7ut2wtx456efw"
+    );
+    assert_eq!(
+        wallet.change_addresses[0],
+        "kaspa:qqw6mg2ta3szc8yugkvuzc5luqvtknyt4rg7qqw2ndcrdvrlxvz3vg6rkjspx"
+    );
+    assert_eq!(
+        wallet.change_addresses[19],
+        "kaspa:qzyg8swzr7g5xr0f84ftty758gvlexz8q3canzwmh4tzjfzfh30tghtgnrymm"
+    );
     assert_ne!(wallet.receive_addresses[0], wallet.change_addresses[0]);
 
     let raw = import_kpub_raw(&canonical_account_payload(), "kaspatest").expect("raw import");
     assert_eq!(raw.kpub, text);
-    assert!(raw.receive_addresses[0].starts_with("kaspatest:"));
+    assert_eq!(
+        raw.receive_addresses[0],
+        "kaspatest:qpnh97agnsn05zh5cejkhh5qhkgdng7hvqz8pkf7rz58hmkd2tu97saakhe6r"
+    );
 
     let mut indexed = wallet.clone();
     indexed.next_receive_index = 4;

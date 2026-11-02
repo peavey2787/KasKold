@@ -1,7 +1,6 @@
 export const COVENANT_TYPE_CODES = Object.freeze({
     additive: 0x06,
     escrow: 0x07,
-    'timelocked-escrow': 0x08,
     'oracle-v1': 0x09,
     'private-swap': 0x0B,
     crowdfund: 0x0C,

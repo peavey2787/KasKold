@@ -134,7 +134,19 @@ pub(crate) mod test_support {
         }
     }
 
-    /// Deterministic, curve-valid x-only public key (`seed·G`) for host fixtures.
+    /// The mainnet address a redeem script locks funds at.
+    pub(crate) fn covenant_address(redeem_script: &[u8]) -> String {
+        crate::protocol::script::p2sh::script_to_address(redeem_script, "kaspa")
+            .expect("redeem script address")
+    }
+
+    /// A real two-key covenant: the owner now, the heir after an inactivity delay.
+    pub(crate) fn two_key_covenant() -> (String, String) {
+        let redeem =
+            crate::contracts::covenant::script::build_dms_csv_script(&[0x31; 32], &[0x32; 32], 100);
+        (covenant_address(&redeem), hex::encode(redeem))
+    }
+
     pub(crate) fn xonly_key(seed: u8) -> String {
         use k256::elliptic_curve::sec1::ToSec1Point;
 

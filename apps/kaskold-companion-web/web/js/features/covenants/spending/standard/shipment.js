@@ -6,10 +6,11 @@ import { resolveNodeUrl } from '../../../../core/node/resolver.js';
 import { toast } from '../../../../core/ui/toast.js';
 import { getCovFee } from '../../payload/state.js';
 import { openPsktReview } from '../../../transactions/pskt_multisig/review.js';
-import { address_script_public_key, fetch_utxos_for_address_js, pskb_encode_document, ship_escrow_terms } from '../../../../wasm/api.js';
+import { fetch_utxos_for_address_js, ship_escrow_terms } from '../../../../wasm/api.js';
+import { encodeCovenantSpend } from './spend_document.js';
 // KasKold Companion Web — features/covenants/spending/standard/shipment
 import { byId } from '../../../../core/dom.js';
-import { exactJsonStringify, exactUnsigned } from '../../../../core/exact.js';
+import { exactUnsigned } from '../../../../core/exact.js';
 import { sompiToKasString } from '../../../../core/amounts.js';
 
 
@@ -30,7 +31,7 @@ function shipParams(terms) {
 
 // Prefer in-session metadata (exact, from create); otherwise Kaspa Portal reads
 // the terms back from the redeem, so a second device needs only address + redeem.
-function getShipParams(covAddr, redeemHex) {
+export function getShipParams(covAddr, redeemHex) {
     const L = covenantState.lastCovenantResult;
     if (L && L.type === 'ship-escrow' && L.address === covAddr && L.total_sompi != null) {
         return shipParams(L);
@@ -41,14 +42,6 @@ function getShipParams(covAddr, redeemHex) {
 async function fetchCovenantUtxos(covAddr) {
     const wsUrl = await resolveNodeUrl();
     return JSON.parse(await fetch_utxos_for_address_js(covAddr, wsUrl));
-}
-
-function mkOutput(amount, scriptPublicKey) {
-    return { amount, scriptPublicKey, bip32Derivations: [], proprietaries: [] };
-}
-
-function mkShipOutput(amt, spk) {
-    return mkOutput(exactUnsigned(amt, 'output sompi'), spk);
 }
 
 function setDisplay(element, shown) {
@@ -155,41 +148,34 @@ async function resolveShipUtxo(covAddr, expectAmt, isState0) {
     return { u, inAmt };
 }
 
-function shipScriptPublicKeys(covAddr, P) {
-    return {
-        cov: '0000' + address_script_public_key(covAddr),
-        seller: '0000' + address_script_public_key(P.sellerAddr),
-        deliverer: '0000' + address_script_public_key(P.delivererAddr),
-        buyer: '0000' + address_script_public_key(P.buyerAddr),
-    };
+function shipOutput(amount, address) {
+    return { address, amount: String(amount) };
 }
 
-function shipPlan(outputs, timelock) {
-    return timelock === null
-        ? { outputs, minSig: 1, locktime: 0n }
-        : { outputs, minSig: 0, locktime: timelock };
-}
-
-function planPickup({ P, inAmt, txfee, spk }) {
+function planPickup({ P, inAmt, txfee, covAddr }) {
     const sellerAmt = inAmt - P.rem - txfee;
     if (sellerAmt <= 0n) throw 'Fee too high for pickup';
     // out0 continues @ rem (exact)
-    return shipPlan([mkShipOutput(P.rem, spk.cov), mkShipOutput(sellerAmt, spk.seller)], null);
+    return { outputs: [shipOutput(P.rem, covAddr), shipOutput(sellerAmt, P.sellerAddr)], locktime: 0n };
 }
 
-function planDelivery({ P, inAmt, txfee, spk }, branch) {
+function planDelivery({ P, inAmt, txfee }, branch) {
     const sellerAmt = inAmt - P.fee - txfee;
     if (sellerAmt <= 0n) throw 'Fee too high for delivery';
     // out1 = deliverer fee (exact)
-    const outputs = [mkShipOutput(sellerAmt, spk.seller), mkShipOutput(P.fee, spk.deliverer)];
-    return shipPlan(outputs, branch === 'state1-timeout' ? exactUnsigned(P.cltv2, 'ship escrow CLTV2') : null);
+    return {
+        outputs: [shipOutput(sellerAmt, P.sellerAddr), shipOutput(P.fee, P.delivererAddr)],
+        locktime: branch === 'state1-timeout' ? exactUnsigned(P.cltv2, 'ship escrow CLTV2') : 0n,
+    };
 }
 
-function planRefund({ P, inAmt, txfee, spk }, branch) {
+function planRefund({ P, inAmt, txfee }, branch) {
     const buyerAmt = inAmt - txfee;
     if (buyerAmt <= 0n) throw 'Fee too high for refund';
-    const outputs = [mkShipOutput(buyerAmt, spk.buyer)];
-    return shipPlan(outputs, branch === 'state0-timeout' ? exactUnsigned(P.cltv1, 'ship escrow CLTV1') : null);
+    return {
+        outputs: [shipOutput(buyerAmt, P.buyerAddr)],
+        locktime: branch === 'state0-timeout' ? exactUnsigned(P.cltv1, 'ship escrow CLTV1') : 0n,
+    };
 }
 
 const SHIP_BRANCH_PLANNERS = new Map([
@@ -208,43 +194,13 @@ function planShipBranch(ctx, branch) {
     return planner(ctx, branch);
 }
 
-function buildShipInput(u, inAmt, covSpkHex, redeemHex, minSig) {
-    return {
-        previousOutpoint: { transactionId: u.tx_id, index: u.index },
-        // sigOpCount buys script compute budget on tx v1 (1 sigop = 10
-        // budget units = 100K script units on top of the 9,999 free).
-        // 0 here made every signed branch blow the free allowance:
-        // "script units exceeded ... used=100763, limit=9999".
-        sequence: 0, sigOpCount: minSig,
-        utxoEntry: { amount: inAmt, scriptPublicKey: covSpkHex, blockDaaScore: 0n, isCoinbase: false },
-        redeemScript: redeemHex, partialSigs: {}, minimumSignatures: minSig,
-        bip32Derivations: [], proprietaries: {}, finalScriptSig: null, minTime: 0,
-    };
-}
-
-function buildShipPskt(branch, { outputs, locktime }, inputs) {
-    return {
-        global: {
-            txVersion: 1,
-            fallbackLockTime: locktime > 0n ? locktime : null,
-            inputsModifiableFlag: false, outputsModifiableFlag: false,
-            inputCount: 1, outputCount: outputs.length,
-            bip32Derivations: [],
-            proprietaries: { shipBranch: branch },
-        },
-        inputs, outputs,
-    };
-}
-
-async function buildShipSpendPskb(covAddr, branch, P, redeemHex) {
+export async function buildShipSpendPskb(covAddr, branch, P, redeemHex) {
     const isState0 = SHIP_STATE0_BRANCHES.has(branch);
     const expectAmt = isState0 ? P.total : P.rem;
     const txfee = getCovFee();
     const { u, inAmt } = await resolveShipUtxo(covAddr, expectAmt, isState0);
-    const spk = shipScriptPublicKeys(covAddr, P);
-    const plan = planShipBranch({ P, inAmt, txfee, spk }, branch);
-    const inputs = [buildShipInput(u, inAmt, spk.cov, redeemHex, plan.minSig)];
-    const pskbHex = pskb_encode_document(exactJsonStringify(buildShipPskt(branch, plan, inputs)));
+    const plan = planShipBranch({ P, inAmt, txfee, covAddr }, branch);
+    const pskbHex = encodeCovenantSpend({ covAddr, redeemHex, path: branch, utxos: [u], outputs: plan.outputs, lockTime: plan.locktime });
     return { pskbHex, plan };
 }
 
@@ -258,7 +214,7 @@ export async function handleShipEscrowSpend(branch) {
     try {
         const { pskbHex, plan } = await buildShipSpendPskb(covAddr, branch, P, redeemHex);
         hideLoading();
-        console.log('[Companion] ShipEscrow ' + branch + ' PSKB: ' + pskbHex.length + ' hex chars, minSig=' + plan.minSig + ', locktime=' + plan.locktime);
+        console.log('[Companion] ShipEscrow ' + branch + ' PSKB: ' + pskbHex.length + ' hex chars, locktime=' + plan.locktime);
         covenantState._covPayloadHex = '';
         navigationState._broadcastReturnScreen = 'covenant';
         openPsktReview(pskbHex);
@@ -286,7 +242,7 @@ function readEscrowContext() {
 }
 
 // Payout destinations are the addresses the script itself pays to.
-function resolveEscrowDestination(branch, covAddr, terms) {
+export function resolveEscrowDestination(branch, covAddr, terms) {
     if (ESCROW_DISPUTE_ROLE_BYTES.has(branch)) return covAddr;
     return ESCROW_RELEASE_BRANCHES.has(branch) ? terms.bob_address : terms.alice_address;
 }
@@ -297,37 +253,7 @@ function disputeHeartbeatPayload(branch) {
     return roleByte ? '4553434400' + roleByte : ''; // "ESCD\0" + role (6 bytes)
 }
 
-function buildEscrowInputs(utxos, covSpkHex, redeemHex) {
-    return utxos.map(u => ({
-        previousOutpoint: { transactionId: u.tx_id, index: u.index },
-        // Every escrow branch verifies exactly one signature; sigOpCount 1
-        // commits compute_budget 10 (109,999 units) on tx v1. 0 capped the
-        // input at the 9,999 free units and the node rejected the spend.
-        sequence: 0, sigOpCount: 1,
-        utxoEntry: { amount: exactUnsigned(u.amount, 'escrow input sompi'), scriptPublicKey: covSpkHex, blockDaaScore: exactUnsigned(u.block_daa_score ?? 0n, 'escrow input DAA'), isCoinbase: false },
-        redeemScript: redeemHex, partialSigs: {}, minimumSignatures: 1,
-        bip32Derivations: [],
-        proprietaries: {},
-        finalScriptSig: null, minTime: 0,
-    }));
-}
-
-function buildEscrowPskt(branch, inputs, outputs, txPayload) {
-    // tx_version 1 for covenant introspection on TN10
-    return {
-        global: {
-            txVersion: 1, fallbackLockTime: null,
-            inputsModifiableFlag: false, outputsModifiableFlag: false,
-            inputCount: inputs.length, outputCount: outputs.length,
-            bip32Derivations: [],
-            proprietaries: { escrowBranch: branch },
-            txPayload: txPayload || undefined,
-        },
-        inputs, outputs,
-    };
-}
-
-async function buildEscrowSpendPskb(branch, covAddr, redeemHex, destAddr) {
+export async function buildEscrowSpendPskb(branch, covAddr, redeemHex, destAddr) {
     const fee = getCovFee();
     const utxos = await fetchCovenantUtxos(covAddr);
     if (!utxos.length) throw 'No UTXOs at escrow address';
@@ -335,12 +261,8 @@ async function buildEscrowSpendPskb(branch, covAddr, redeemHex, destAddr) {
     const total = utxos.reduce((s, u) => s + BigInt(u.amount), 0n);
     if (total <= fee) throw 'Balance too low: ' + sompiToKasString(total) + ' KAS';
 
-    const sendAmount = total - fee;
-    const covSpkHex = '0000' + address_script_public_key(covAddr);
-    const destSpkHex = '0000' + address_script_public_key(destAddr);
-    const inputs = buildEscrowInputs(utxos, covSpkHex, redeemHex);
-    const outputs = [mkOutput(sendAmount, destSpkHex)];
-    return pskb_encode_document(exactJsonStringify(buildEscrowPskt(branch, inputs, outputs, disputeHeartbeatPayload(branch))));
+    const outputs = [{ address: destAddr, amount: String(total - fee) }];
+    return encodeCovenantSpend({ covAddr, redeemHex, path: branch, utxos, outputs, payloadHex: disputeHeartbeatPayload(branch) });
 }
 
 export async function handleEscrowSpend(branch) {

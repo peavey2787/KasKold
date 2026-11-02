@@ -2,7 +2,7 @@ use serde::Deserialize;
 
 use crate::account::{address, utxo::UtxoEntry};
 
-use super::{encode_wire, plan_sweep, PskbGlobalPlan, SweepInputPolicy};
+use super::{encode_wire, PskbApi, PskbGlobalPlan, SweepInputPolicy};
 
 #[derive(Clone, Debug)]
 pub(crate) struct PreparedSweep {
@@ -39,7 +39,7 @@ pub(crate) fn encode_prepared_sweep(
     global: PskbGlobalPlan,
     input_policy: &SweepInputPolicy,
 ) -> Result<String, String> {
-    let plan = plan_sweep(
+    let plan = PskbApi.plan_sweep(
         &prepared.utxos,
         &prepared.source_script_public_key,
         &prepared.destination_script_public_key,
@@ -51,7 +51,7 @@ pub(crate) fn encode_prepared_sweep(
 }
 
 #[derive(Deserialize)]
-struct SelectedUtxo {
+pub(crate) struct SelectedUtxo {
     tx_id: String,
     index: u64,
     #[serde(with = "crate::serialization::decimal_u64")]
@@ -123,7 +123,7 @@ fn sweep_scripts(
     Ok((source, destination))
 }
 
-fn selected_utxo_entry(value: SelectedUtxo) -> Result<UtxoEntry, String> {
+pub(crate) fn selected_utxo_entry(value: SelectedUtxo) -> Result<UtxoEntry, String> {
     if value.tx_id.len() != 64 || hex::decode(&value.tx_id).is_err() {
         return Err("UTXO tx_id must be 32-byte hex".to_string());
     }

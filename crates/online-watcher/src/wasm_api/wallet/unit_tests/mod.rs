@@ -1,32 +1,3 @@
-use super::watcher::{decode_preimage_query, find_preimage_in_raw_block};
-
-#[test]
-fn preimage_query_validation_rejects_bad_hex_and_lengths() {
-    let (block, txid) = decode_preimage_query(&"11".repeat(32), &"22".repeat(32)).unwrap();
-    assert_eq!(block, [0x11; 32]);
-    assert_eq!(txid, [0x22; 32]);
-    assert_eq!(
-        decode_preimage_query("zz", &"22".repeat(32))
-            .err()
-            .map(|error| error.to_string())
-            .as_deref(),
-        Some("Invalid block hash: Invalid character 'z' at position 0")
-    );
-    assert_eq!(
-        decode_preimage_query(&"11".repeat(32), "00")
-            .err()
-            .map(|error| error.to_string())
-            .as_deref(),
-        Some("Hash and txid must be 32 bytes")
-    );
-}
-
-#[test]
-fn raw_block_preimage_search_returns_empty_when_no_match_exists() {
-    assert_eq!(find_preimage_in_raw_block(&[], &[0x33; 32]), "");
-    assert_eq!(find_preimage_in_raw_block(&[0; 64], &[0x33; 32]), "");
-}
-
 fn canonical_account_text() -> String {
     use shared_signer::account_key::{
         encode_account_key_text, ACCOUNT_KEY_CHILD_INDEX, ACCOUNT_KEY_DEPTH,
@@ -158,9 +129,7 @@ fn wallet_account_and_address_wasm_boundaries_are_host_testable() {
 fn wallet_watcher_request_boundaries_and_preimage_errors_are_host_testable() {
     use super::{
         account::{fetch_balance, fetch_utxos, fetch_utxos_complete},
-        watcher::{
-            build_utxo_subscribe_request, build_vcc_subscribe_request, find_preimage_in_block,
-        },
+        watcher::build_vcc_subscribe_request,
     };
     use crate::wasm_api::test_support::ready;
 
@@ -169,19 +138,6 @@ fn wallet_watcher_request_boundaries_and_preimage_errors_are_host_testable() {
         "VCC subscribe request"
     )
     .is_empty());
-    let address = kaskold_protocol::encode_p2sh_address(&[0x44; 32], "kaspa");
-    assert!(!crate::wasm_api::test_support::expect_js(
-        build_utxo_subscribe_request(&address, 8),
-        "UTXO subscribe request"
-    )
-    .is_empty());
-    assert_eq!(
-        build_utxo_subscribe_request("bad", 8)
-            .err()
-            .map(|error| format!("{error:?}"))
-            .as_deref(),
-        Some(r#"JsValue(Some("invalid RPC encoding: Unknown address prefix"))"#)
-    );
 
     assert_eq!(
         ready(fetch_balance("{}", "ws://unused"))
@@ -203,17 +159,6 @@ fn wallet_watcher_request_boundaries_and_preimage_errors_are_host_testable() {
             .map(|error| format!("{error:?}"))
             .as_deref(),
         Some(r#"JsValue(Some("Invalid wallet: missing field `kpub` at line 1 column 2"))"#)
-    );
-    assert_eq!(
-        ready(find_preimage_in_block(
-            "zz",
-            &"11".repeat(32),
-            "ws://unused"
-        ))
-        .err()
-        .map(|error| format!("{error:?}"))
-        .as_deref(),
-        Some(r#"JsValue(Some("Invalid block hash: Invalid character 'z' at position 0"))"#)
     );
 
     let valid_wallet = crate::wasm_api::test_support::expect_js(

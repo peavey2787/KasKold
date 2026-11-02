@@ -80,14 +80,4 @@ fn oracle_wasm_genesis_boundaries_are_directly_covered() {
         .as_str()
         .unwrap()
         .starts_with("kaspatest:"));
-
-    let heartbeat = crate::wasm_api::test_support::expect_js(
-        super::covenant_oracle_mb_heartbeat("testnet-12"),
-        "heartbeat boundary",
-    );
-    let heartbeat: Value = serde_json::from_str(&heartbeat).unwrap();
-    assert!(heartbeat["address"]
-        .as_str()
-        .unwrap()
-        .starts_with("kaspatest:"));
 }

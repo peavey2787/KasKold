@@ -15,6 +15,7 @@ shared-signer = { path = "../../crates/shared-signer" }
 kaskold-hardware-core = { path = "../../crates/kaskold-hardware-core" }
 kaskold-protocol = { path = "../../crates/kaskold-protocol", features = ["host", "companion"] }
 offline-signer = { path = "../../crates/offline-signer" }
+online-watcher = { path = "../../crates/online-watcher", default-features = false }
 rqrr = { path = "../../external/rqrr-nostd" }
 
 [[bin]]
@@ -114,6 +115,27 @@ bench = false
 [[bin]]
 name = "rqrr_camera_frame"
 path = "rqrr_camera_frame.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "stego_embed_roundtrip"
+path = "stego_embed_roundtrip.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "multisig_descriptor_json"
+path = "multisig_descriptor_json.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "covenant_invite_json"
+path = "covenant_invite_json.rs"
 test = false
 doc = false
 bench = false

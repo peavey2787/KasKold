@@ -1,10 +1,12 @@
 //! KasKold covenant application builders over Kaspa Portal's covenant core.
 
-pub(crate) mod allowance;
+pub(crate) mod execution;
 pub(crate) mod global_thread;
 pub(crate) mod oracle_v1;
 pub(crate) mod payjoin;
 pub(crate) mod private_swap;
+pub(crate) mod redeem;
+pub(crate) mod spend_document;
 pub(crate) mod sweep;
 pub(crate) mod sweeps;
 pub(crate) mod vault;

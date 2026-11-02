@@ -58,8 +58,8 @@ REQUIRED_FILES = (
     "qa/checks/quality/crap/source_complexity.py",
     "qa/checks/quality/crap/firmware_testability.py",
     "qa/contracts/quality/crap_ratchets.json",
-    "qa/tests/tooling/test_crap_reporting.py",
-    "qa/tests/tooling/test_crap_check.py",
+    "qa/tests/tooling/crap/test_crap_reporting.py",
+    "qa/tests/tooling/crap/test_crap_check.py",
 )
 
 

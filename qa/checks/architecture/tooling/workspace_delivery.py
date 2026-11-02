@@ -181,12 +181,12 @@ def _check_master_catalog(root: Path) -> list[str]:
 
 def _check_master_regressions(root: Path) -> list[str]:
     errors: list[str] = []
-    launcher_regression = root / "qa/tests/tooling/test_master_launcher.py"
+    launcher_regression = root / "qa/tests/tooling/workspace/test_master_launcher.py"
     if not launcher_regression.is_file():
         errors.append("master launcher regression test is missing")
     elif "test_runner_loads_cargo_from_user_environment" not in launcher_regression.read_text(errors="ignore"):
         errors.append("master launcher Cargo-environment regression coverage is missing")
-    regression = root / "qa/tests/tooling/test_architecture_imports.py"
+    regression = root / "qa/tests/tooling/workspace/test_architecture_imports.py"
     if not regression.is_file():
         errors.append("architecture grouped-import regression test is missing")
     else:

@@ -1,13 +1,16 @@
 pub(crate) mod owner;
 pub(crate) mod savings;
 pub(crate) mod timelocked;
-use super::sweep::{CovenantSweepConfig, CovenantSweepSpec, SweepSourceKind};
+use super::{
+    execution::SpendPath,
+    sweep::{CovenantSweepConfig, CovenantSweepSpec, SweepSourceKind},
+};
 
 pub(super) struct TimelockedClaimConfig<'a> {
     pub redeem_script: &'a [u8],
     pub input_sequence: u64,
     pub lock_time: u64,
-    pub branch: &'a str,
+    pub path: SpendPath,
 }
 
 pub(super) fn timelocked_claim_spec<'a>(
@@ -30,8 +33,7 @@ pub(super) fn timelocked_claim_spec<'a>(
             redeem_script: config.redeem_script,
             input_sequence: config.input_sequence,
             lock_time: config.lock_time,
-            branch: Some(config.branch),
-            minimum_signatures: None,
+            path: config.path,
         },
     }
 }

@@ -43,6 +43,7 @@ pub async fn create_covenant_timelocked_savings_claim(
     dest_address: &str,
     redeem_script_hex: &str,
     locktime_daa: u64,
+    key_position: u8,
     fee: u64,
     ws_url: &str,
 ) -> Result<String, JsValue> {
@@ -51,6 +52,7 @@ pub async fn create_covenant_timelocked_savings_claim(
         dest_address,
         redeem_script_hex,
         locktime_daa,
+        key_position,
         fee,
         ws_url,
     )
@@ -73,6 +75,7 @@ pub fn create_covenant_timelocked_savings_claim_selected(
     dest_address: &str,
     redeem_script_hex: &str,
     locktime_daa: u64,
+    key_position: u8,
     utxos_json: &str,
     fee: u64,
 ) -> Result<String, JsValue> {
@@ -81,6 +84,7 @@ pub fn create_covenant_timelocked_savings_claim_selected(
         dest_address,
         redeem_script_hex,
         locktime_daa,
+        key_position,
         utxos_json,
         fee,
     )

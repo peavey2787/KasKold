@@ -4,7 +4,10 @@ use super::OwnerSpendPlan;
 fn owner_spend_plan_construction_is_host_testable() {
     let plan = OwnerSpendPlan::new("51", "owner").expect("owner plan");
     assert_eq!(plan.redeem_script, vec![0x51]);
-    assert_eq!(plan.branch, "owner");
+    assert_eq!(
+        plan.path,
+        crate::transaction_builder::covenant::execution::SpendPath::Owner
+    );
 }
 
 #[cfg(not(target_arch = "wasm32"))]

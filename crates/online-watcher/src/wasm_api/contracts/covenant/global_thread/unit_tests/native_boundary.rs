@@ -82,7 +82,7 @@ fn covers_every_validation_stage_and_both_families() {
     let invalid_csv = expect_error(ready(build_topup(TopupRequest {
         family: GlobalThreadFamily::SpendingLimit,
         wallet_json: &wallet,
-        covenant_address: &spending_address,
+        covenant_address: &crate::wasm_api::test_support::covenant_address(&[0x4d, 3, 0, 9, 0xb1]),
         redeem_script_hex: &malformed_csv,
         covenant_id_hex: &covenant_id,
         thread_utxo_json: &thread,

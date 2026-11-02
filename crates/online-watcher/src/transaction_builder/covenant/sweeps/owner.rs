@@ -1,18 +1,29 @@
 //! Standard owner-path covenant spend planning.
 
-use super::super::sweep::{self, CovenantSweepConfig, CovenantSweepSpec};
+use super::super::{
+    execution::SpendPath,
+    redeem::decode_redeem_script,
+    sweep::{self, CovenantSweepConfig, CovenantSweepSpec},
+};
 use crate::transaction_builder::pskb::PreparedSweep;
 
 pub(crate) struct OwnerSpendPlan {
     pub(crate) redeem_script: Vec<u8>,
-    pub(crate) branch: String,
+    pub(crate) path: SpendPath,
+    pub(crate) after_timelock: bool,
 }
 
 impl OwnerSpendPlan {
     pub(crate) fn new(redeem_script_hex: &str, branch: &str) -> Result<Self, String> {
+        let path = match branch {
+            "" | "owner" => SpendPath::Owner,
+            "owner-time" => SpendPath::Key(0),
+            _ => return Err(format!("Unknown owner spend path {branch}")),
+        };
         Ok(Self {
-            redeem_script: sweep::decode_redeem_script(redeem_script_hex)?,
-            branch: branch.to_owned(),
+            redeem_script: decode_redeem_script(redeem_script_hex)?,
+            path,
+            after_timelock: branch == "owner-time",
         })
     }
 
@@ -24,12 +35,11 @@ impl OwnerSpendPlan {
         empty_error: &'a str,
         low_balance_error: &'a str,
     ) -> Result<(CovenantSweepSpec<'a>, u64), String> {
-        let lock_time = if self.branch == "owner-time" {
+        let lock_time = if self.after_timelock {
             crate::protocol::script::extract_cltv_locktime(&self.redeem_script)?.unwrap_or(0)
         } else {
             0
         };
-        let branch = (!self.branch.is_empty()).then_some(self.branch.as_str());
         Ok((
             CovenantSweepSpec {
                 covenant_address,
@@ -41,8 +51,7 @@ impl OwnerSpendPlan {
                     redeem_script: &self.redeem_script,
                     input_sequence: 0,
                     lock_time,
-                    branch,
-                    minimum_signatures: None,
+                    path: self.path,
                 },
             },
             lock_time,

@@ -25,7 +25,7 @@ _ALLOWED_PATHS = {
     # The detector and its fixture tests must spell the forbidden tokens in
     # order to define and exercise the policy; they are not product surfaces.
     "qa/checks/branding/check_kaskold_brand.py",
-    "qa/tests/tooling/test_kaskold_branding.py",
+    "qa/tests/tooling/policy/test_kaskold_branding.py",
 }
 _ALLOWED_PREFIXES = (
     "docs/legal/",

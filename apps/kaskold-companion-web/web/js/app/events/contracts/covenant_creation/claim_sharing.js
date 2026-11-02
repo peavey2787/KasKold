@@ -5,7 +5,7 @@ import { toast } from '../../../../core/ui/toast.js';
 import { covShowPanel } from '../../../../features/covenants/generation/panel_keys.js';
 import { ownerReceiveAddr } from '../../../../features/covenants/payload/state.js';
 import { covScanAddress } from '../../../../features/covenants/scanning.js';
-import { handleCovBeneficiarySpend, handleCovTimeoutRefund } from '../../../../features/covenants/spending/standard/spend_paths.js';
+import { handleCovBeneficiarySpend } from '../../../../features/covenants/spending/standard/spend_paths.js';
 import { applyScriptTerms } from '../../../../features/covenants/model/script_terms.js';
 import { fetch_utxos_for_address_js } from '../../../../wasm/api.js';
 // KasKold Companion Web — app/events/contracts/covenant_creation/claim_sharing
@@ -89,14 +89,6 @@ function registerSpendPanelActions() {
     byId('btn-cov-owner-back').onclick = () => {
         covShowPanel(covenantState.lastCovenantResult ? 'result' : 'menu');
     };
-    if (byId('btn-cov-borrower-spend')) byId('btn-cov-borrower-spend').onclick = () => {
-        covShowPanel('borrower');
-        if (covenantState.lastCovenantResult) {
-            byId('cov-borrower-addr').value = covenantState.lastCovenantResult.address || '';
-            byId('cov-borrower-script').value = covenantState.lastCovenantResult.redeem_script_hex || '';
-        }
-    };
-    byId('btn-cov-borrower-back').onclick = () => covShowPanel(covenantState.lastCovenantResult ? 'result' : 'menu');
     if (byId('btn-cov-beneficiary-spend')) byId('btn-cov-beneficiary-spend').onclick = () => {
         covShowPanel('beneficiary');
         if (covenantState.lastCovenantResult) {
@@ -134,18 +126,6 @@ function registerSpendPanelActions() {
 }
 
 function registerClaimAndPresetActions() {
-    if (byId('btn-cov-timeout-refund')) byId('btn-cov-timeout-refund').onclick = () => {
-        covShowPanel('timeout');
-        if (covenantState.lastCovenantResult) {
-            byId('cov-timeout-addr').value = covenantState.lastCovenantResult.address || '';
-            byId('cov-timeout-script').value = covenantState.lastCovenantResult.redeem_script_hex || '';
-            if (covenantState.lastCovenantResult.locktime_daa) {
-                byId('cov-timeout-locktime').value = covenantState.lastCovenantResult.locktime_daa;
-            }
-        }
-    };
-    byId('btn-cov-timeout-back').onclick = () => covShowPanel('menu');
-    byId('btn-cov-timeout-create').onclick = () => handleCovTimeoutRefund();
     if (byId('btn-cov-scan-dms2-heir')) byId('btn-cov-scan-dms2-heir').onclick = () => covScanAddress('cov-dms2-heir-pk', 'Scan heir address', true);
     if (byId('cov-dms2-preset')) {
         bindDurationInputs({ prefix: 'cov-dms2', outputId: 'cov-dms2-duration' });

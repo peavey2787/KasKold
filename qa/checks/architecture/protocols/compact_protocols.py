@@ -81,12 +81,12 @@ def check_pskt(root: Path) -> list[str]:
     canonical_pskb_source = portal_text("transaction/interchange/pskt/pskb/encoder.rs")
     if '.entry("subnetworkId".to_string())' not in canonical_pskb_source:
         errors.append("canonical PSKB encoding must explicitly supply the native subnetwork")
-    pskb_encoder = ROOT / "crates/online-watcher/src/transaction_builder/pskb/encoder.rs"
-    pskb_encoder_source = pskb_encoder.read_text(errors="ignore") if pskb_encoder.exists() else ""
-    if "kaspa_portal::transaction::builder::PskbApi" not in pskb_encoder_source or ".encode_document(pskt)" not in pskb_encoder_source:
+    pskb_builder_root = ROOT / "crates/online-watcher/src/transaction_builder/pskb"
+    if (pskb_builder_root / "encoder.rs").exists():
         errors.append("transaction-builder PSKB encoding must delegate to Kaspa Portal's canonical PSKB encoder")
-    if '.entry("subnetworkId".to_string())' in pskb_encoder_source:
-        errors.append("transaction-builder PSKB encoding must not duplicate native-subnetwork insertion")
+    for path in pskb_builder_root.rglob("*.rs"):
+        if '.entry("subnetworkId".to_string())' in path.read_text(errors="ignore"):
+            errors.append("transaction-builder PSKB encoding must not duplicate native-subnetwork insertion")
 
     errors.extend(check_monetary_arithmetic(root))
     errors.extend(check_thin_covenant_boundaries(root))
@@ -97,12 +97,11 @@ def check_thin_covenant_boundaries(root: Path) -> list[str]:
     wasm_pskb = online_root / "wasm_api/protocol/pskb_planning.rs"
     wasm_global = online_root / "wasm_api/contracts/covenant/global_thread/planning.rs"
     core_preparation = online_root / "transaction_builder/pskb/preparation.rs"
-    core_global = online_root / "transaction_builder/pskb/global_thread.rs"
     core_thread_input = online_root / "transaction_builder/pskb/thread_input.rs"
     core_thread_request = online_root / "transaction_builder/pskb/thread_request.rs"
     core_fee = kaskold_source("crates/online-watcher/src/transaction_builder/covenant/fee.rs")
     browser_planner = root / "apps/kaskold-companion-web/web/js/features/transactions/send/compose/planners/covenant.js"
-    dependencies = (core_preparation, core_global, core_thread_input, core_thread_request, core_fee, browser_planner)
+    dependencies = (core_preparation, core_thread_input, core_thread_request, core_fee, browser_planner)
     return [
         *covenant_dependency_errors(root, dependencies),
         *check_pskb_adapter(wasm_pskb),
@@ -117,11 +116,8 @@ def check_monetary_arithmetic(root: Path) -> list[str]:
     balance = kaskold_source("crates/online-watcher/src/account/balance.rs").read_text(
         errors="ignore"
     )
-    global_thread_path = online_root / "transaction_builder/pskb/global_thread.rs"
-    global_thread = global_thread_path.read_text(errors="ignore")
-    global_thread_topup = global_thread_path.with_suffix("") / "topup.rs"
-    if global_thread_topup.exists():
-        global_thread += "\n" + global_thread_topup.read_text(errors="ignore")
+    # The global-thread planner lives in Portal; KasKold only adapts its requests.
+    global_thread = portal_text("transaction/builder/pskb/global_thread.rs")
     covenant = kaskold_source("crates/online-watcher/src/transaction_builder/covenant/builder.rs").read_text(errors="ignore")
     # The covenant fee shape lives in Portal's mass model.
     covenant_fee = (

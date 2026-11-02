@@ -18,7 +18,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[3]
-TEST_FILE = ROOT / "qa/checks/web/web_recovery_coverage.test.mjs"
+TEST_FILE = ROOT / "qa/checks/web/runtime/web_recovery_coverage.test.mjs"
 DEFAULT_OUTPUT = ROOT / "target/qa/browser-recovery"
 MINIMUM_LINE = 90.0
 MINIMUM_FUNCTION = 90.0

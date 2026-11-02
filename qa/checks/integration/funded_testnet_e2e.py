@@ -37,6 +37,8 @@ SITE = ROOT / "target/kaskold-companion-web/site"
 PKG_JS = SITE / "pkg/companion_web.js"
 PKG_WASM = SITE / "pkg/companion_web_bg.wasm"
 FUNDED_BROWSER_CASE = ROOT / "qa/checks/integration/funded_testnet_e2e_case.mjs"
+FUNDED_COVENANT_CASE = ROOT / "qa/checks/integration/funded_covenant_e2e_case.mjs"
+COVENANT_PHASE_TIMEOUT_SECONDS = 1800
 def funded_state_root() -> Path:
     override = os.environ.get("KASKOLD_FUNDED_E2E_STATE_DIR")
     if override:
@@ -344,8 +346,24 @@ class FundedHandler(LoopbackRequestHandler):
     result_event = threading.Event()
     result_payload: dict[str, object] | None = None
     max_result_bytes = 8 * 1024 * 1024
+    browser_case: Path = FUNDED_BROWSER_CASE
+    signer_secret: Path | None = None
+
+    def answer_signing_request(self) -> None:
+        secret = type(self).signer_secret
+        kspt = self.rfile.read(int(self.headers.get("Content-Length", "0"))).decode("ascii", "replace")
+        if secret is None or not re.fullmatch(r"[0-9a-f]+", kspt):
+            self.send_error(400, "no signer for this request")
+            return
+        try:
+            self.send_body(sign_kspt(secret, kspt).encode("ascii"), "text/plain; charset=utf-8")
+        except SystemExit as error:
+            self.send_body(str(error).encode("utf-8", "replace"), "text/plain; charset=utf-8", status=422)
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib handler API
+        if self.path.startswith("/__qa_funded_sign__"):
+            self.answer_signing_request()
+            return
         if not self.path.startswith("/__qa_funded_result__"):
             self.send_error(404)
             return
@@ -360,14 +378,14 @@ class FundedHandler(LoopbackRequestHandler):
         if self.path.startswith("/__qa_funded_config__"):
             self.send_body(json.dumps(type(self).config, separators=(",", ":")).encode(), "application/json")
         elif self.path.startswith("/__qa_funded_e2e__"):
-            self.send_body(funded_browser_document(), "text/html; charset=utf-8")
+            self.send_body(funded_browser_document(type(self).browser_case), "text/html; charset=utf-8")
         else:
             super().do_GET()
 
 
-def funded_browser_document() -> bytes:
+def funded_browser_document(browser_case: Path = FUNDED_BROWSER_CASE) -> bytes:
     """Embed the funded-E2E harness so Chromium does not fetch it dynamically."""
-    module_source = FUNDED_BROWSER_CASE.read_text(encoding="utf-8").replace(
+    module_source = browser_case.read_text(encoding="utf-8").replace(
         "</script", r"<\/script"
     )
     prefix = """<!doctype html><html><body>running
@@ -547,6 +565,25 @@ def wait_for_resulting_utxo(port: int, config: dict[str, object]) -> dict[str, o
         time.sleep(POLL_SECONDS)
 
 
+def run_covenant_spends(port: int, network: str, kpub: str, secret_path: Path, only: str = "") -> list[dict[str, Any]]:
+    """Spend every covenant family live; a family that fails does not hide the rest."""
+    FundedHandler.browser_case = FUNDED_COVENANT_CASE
+    FundedHandler.signer_secret = secret_path
+    try:
+        _status, detail = chromium_result(
+            port,
+            {"phase": "covenants", "network": network, "kpub": kpub, "only": only},
+            timeout=COVENANT_PHASE_TIMEOUT_SECONDS,
+        )
+    finally:
+        FundedHandler.browser_case = FUNDED_BROWSER_CASE
+        FundedHandler.signer_secret = None
+    spends = detail["spends"]
+    if not isinstance(spends, list):
+        raise RuntimeError("the covenant browser case returned no spend list")
+    return spends
+
+
 def print_wallet_address(network_label: str, address: str, existing: bool) -> None:
     print("\n" + "=" * 72)
     print("FUNDED-E2E WALLET")
@@ -704,6 +741,14 @@ def main() -> int:
             },
         )
         record_success(network, txid, destination, index)
+        print("\nSpending every covenant family through the same public node.")
+        spends = run_covenant_spends(port, network, kpub, secret_path)
+
+    failures = [spend for spend in spends if "txid" not in spend]
+    for spend in spends:
+        print(f"  {spend['name']}: {spend.get('txid', spend.get('error'))}")
+    if failures or not spends:
+        raise BrowserPhaseError(f"{len(failures)} of {len(spends)} live covenant spends failed")
 
     print("\nPASS: funded KasKold transaction E2E completed against a real Kaspa public testnet node")
     print(f"Network: {network_label}")

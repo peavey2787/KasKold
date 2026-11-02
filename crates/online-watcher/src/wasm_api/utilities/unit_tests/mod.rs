@@ -3,6 +3,7 @@ mod export_fail_closed;
 use serde::Deserialize;
 
 use crate::account::address::network_prefix;
+use kaspa_portal::primitives::address::address_to_script_pubkey;
 
 use super::common::{
     decode_named_32, decode_pubkey32, parse_request_string, parse_u64_field_string,
@@ -184,21 +185,15 @@ fn address_exports_validate_and_map_networks_through_portal() {
     assert!(is_kaspa_address(address));
     assert!(!is_kaspa_address("kaspatest:qzkpehfq"));
     assert!(!is_kaspa_address("kpub1:abc"));
-    assert_eq!(
-        super::address_script_public_key(address)
-            .ok()
-            .map(|spk| spk.len()),
-        Some(68)
-    );
-
-    let spk = super::address_script_public_key(address).unwrap();
+    let spk = hex::encode(address_to_script_pubkey(address).unwrap());
+    assert_eq!(spk.len(), 68);
     assert_eq!(
         super::script_public_key_address(&spk, "testnet-10"),
         address
     );
     assert_eq!(super::script_public_key_address("51", "testnet-10"), "");
     let p2sh = super::redeem_script_address("51", "testnet-10").unwrap();
-    let p2sh_spk = super::address_script_public_key(&p2sh).unwrap();
+    let p2sh_spk = hex::encode(address_to_script_pubkey(&p2sh).unwrap());
     assert_eq!(
         super::script_public_key_address(&p2sh_spk, "testnet-10"),
         p2sh

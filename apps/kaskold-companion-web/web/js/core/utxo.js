@@ -1,5 +1,5 @@
 // @ts-check
-import { exactUnsigned } from './exact.js';
+import { exactU64, exactUnsigned } from './exact.js';
 
 /**
  * @param {Record<string, any>} utxo
@@ -18,8 +18,8 @@ export function utxoTransactionId(utxo) {
 export function normalizeUtxo(utxo) {
     return {
         ...utxo,
-        amount: exactUnsigned(utxo.amount, 'UTXO amount'),
-        block_daa_score: exactUnsigned(utxo.block_daa_score ?? 0, 'UTXO DAA score'),
+        amount: exactU64(utxo.amount, 'UTXO amount'),
+        block_daa_score: exactU64(utxo.block_daa_score ?? 0n, 'UTXO DAA score'),
     };
 }
 

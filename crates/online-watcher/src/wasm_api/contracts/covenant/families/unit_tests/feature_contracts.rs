@@ -1,14 +1,6 @@
 use super::*;
 
 #[test]
-fn timeout_refund_spec_is_directly_covered() {
-    let redeem = [0x51];
-    let spec = super::super::escrow::timeout_refund_spec("source", "destination", 7, &redeem, 99);
-    assert_eq!(spec.fee, 7);
-    assert_eq!(spec.config.lock_time, 99);
-    assert_eq!(spec.config.minimum_signatures, Some(0));
-}
-#[test]
 fn oracle_v1_statement_is_unique_embedded_and_rejects_role_aliasing() {
     let owner = "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
     let beneficiary = "c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5";

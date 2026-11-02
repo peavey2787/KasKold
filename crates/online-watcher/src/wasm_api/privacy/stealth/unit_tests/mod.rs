@@ -8,11 +8,17 @@ fn metadata_hex() -> String {
 #[test]
 fn stealth_payment_derivation_covers_networks_entropy_and_metadata_errors() {
     let mainnet = derive_stealth_payment(&metadata_hex(), &"01".repeat(32), "mainnet").unwrap();
-    assert!(mainnet.one_time_address.starts_with("kaspa:"));
+    assert_eq!(
+        mainnet.one_time_address,
+        "kaspa:qpte2u8czlygny8m0wrtg37jzl2ypw0e757q9zp72nl0gshxk6x9q68musrzf"
+    );
     assert_ne!(mainnet.payment.ephemeral_pubkey, [0u8; 32]);
 
     let testnet = derive_stealth_payment(&metadata_hex(), &"02".repeat(32), "testnet-12").unwrap();
-    assert!(testnet.one_time_address.starts_with("kaspatest:"));
+    assert_eq!(
+        testnet.one_time_address,
+        "kaspatest:qqswa6n90jnt0fuwl7vdnxgl5qg0qe0478tj6zr7vd597nh26t6wq3nl29839"
+    );
     assert_eq!(
         derive_stealth_payment("00", &"01".repeat(32), "mainnet")
             .err()
@@ -40,7 +46,10 @@ fn stealth_payment_derivation_covers_networks_entropy_and_metadata_errors() {
 fn stealth_spend_material_validates_both_fixed_width_values() {
     let material =
         prepare_stealth_spend_material(&"11".repeat(32), &"22".repeat(32), "testnet-10").unwrap();
-    assert!(material.source_address.starts_with("kaspatest:"));
+    assert_eq!(
+        material.source_address,
+        "kaspatest:qqg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zjwjmnu2y"
+    );
     assert_eq!(material.tweak_hex, "22".repeat(32));
     assert_eq!(
         prepare_stealth_spend_material("00", &"22".repeat(32), "mainnet")
@@ -98,12 +107,16 @@ fn stealth_wasm_boundaries_cover_metadata_payment_announcement_and_preflight_err
         "stealth payment",
     );
     let payment: serde_json::Value = serde_json::from_str(&payment).unwrap();
-    assert!(payment["address"].as_str().unwrap().starts_with("kaspa:"));
+    assert_eq!(
+        payment["address"].as_str().unwrap(),
+        "kaspa:qr5kfqaaqxqej8fhjsvlhphz0cc5z5nug3np8q3npgvtt88zy7m9wgqw4t9nw"
+    );
     assert_eq!(payment["ephemeral_r"].as_str().unwrap().len(), 64);
     assert!(payment["stealth_index"].is_number());
-    assert!(stealth_announcement_address("testnet-10")
-        .unwrap()
-        .starts_with("kaspatest:"));
+    assert_eq!(
+        stealth_announcement_address("testnet-10").unwrap(),
+        "kaspatest:qrsf5g9w4q7ydwmdmr7pz3ah9p5axu5uxx0vpj6edysrmhsee6yus9jdpdn68"
+    );
 
     assert_eq!(
         stealth_meta_from_kpub("bad")

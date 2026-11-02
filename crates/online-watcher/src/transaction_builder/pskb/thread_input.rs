@@ -6,10 +6,6 @@ use serde::Deserialize;
 
 use crate::account::utxo::UtxoEntry;
 
-pub(crate) fn decode_redeem_script(value: &str) -> Result<Vec<u8>, String> {
-    hex::decode(value).map_err(|error| format!("Bad redeem hex: {error}"))
-}
-
 #[derive(Deserialize)]
 struct ThreadUtxoJson {
     tx_id: String,

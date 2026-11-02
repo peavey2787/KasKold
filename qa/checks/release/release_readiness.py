@@ -11,7 +11,7 @@ _RELEASE_DIR = Path(__file__).resolve().parent
 if str(_RELEASE_DIR) not in sys.path:
     sys.path.insert(0, str(_RELEASE_DIR))
 
-from readiness import builders, mobile, software_assurance  # noqa: E402
+from readiness import builders, mobile, portal_assurance, software_assurance  # noqa: E402
 from readiness.model import (  # noqa: E402
     REQUIRED_EVIDENCE,
     SHA256_RE,
@@ -186,6 +186,13 @@ def verify_software_assurance(evidence_dir: Path, documents: dict[str, dict[str,
     return software_assurance.verify(evidence_dir, document)
 
 
+def verify_portal_assurance(documents: dict[str, dict[str, Any]]) -> list[str]:
+    document = documents.get("portal_assurance.json")
+    if not document:
+        return []
+    return portal_assurance.verify(document, _RELEASE_DIR.parents[1] / "Cargo.lock")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--evidence-dir", type=Path, required=True)
@@ -220,6 +227,7 @@ def main() -> int:
         errors.extend(evidence_errors)
         errors.extend(verify_builders(arguments.evidence_dir, documents, arguments.release_manifest))
         errors.extend(verify_software_assurance(arguments.evidence_dir, documents))
+        errors.extend(verify_portal_assurance(documents))
     for error in errors:
         print("ERROR:", error)
     if errors:

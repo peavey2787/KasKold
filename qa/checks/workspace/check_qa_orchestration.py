@@ -86,8 +86,8 @@ def _check_script_entrypoints() -> set[str]:
 
 def _python_test_entrypoints() -> set[str]:
     found: set[str] = set()
-    found.update(_relative(path) for path in (ROOT / "qa/tests/tooling").glob("test_*.py"))
-    found.update(_relative(path) for path in (ROOT / "qa/tests/regression").glob("test_*.py"))
+    found.update(_relative(path) for path in (ROOT / "qa/tests/tooling").rglob("test_*.py"))
+    found.update(_relative(path) for path in (ROOT / "qa/tests/regression").rglob("test_*.py"))
     return found
 
 

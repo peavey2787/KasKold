@@ -41,23 +41,10 @@ fn merkle_and_script_construction_helpers_have_direct_function_coverage() {
         &[0x64; 8],
     );
     assert!(!escrow.is_empty());
-
-    let timed = crate::contracts::covenant::script::build_timelocked_escrow_script(
-        &[0x71; 32],
-        &[0x72; 32],
-        &[0x20; 34],
-        &[0x21; 34],
-        1234,
-    );
-    assert!(!timed.is_empty());
 }
 
 #[test]
 fn oracle_and_zk_helpers_have_direct_function_coverage() {
-    let heartbeat = crate::contracts::oracle::genesis::build_heartbeat_json("mainnet")
-        .expect("heartbeat covenant");
-    assert!(heartbeat.contains("redeem_script_hex"));
-
     let total = crate::contracts::zk::proof::serialize_total(123).expect("field serialization");
     assert!(!total.is_empty());
 

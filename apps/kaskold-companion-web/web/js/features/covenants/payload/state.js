@@ -1,4 +1,5 @@
 import { covenantState, networkState, walletSession } from '../../../app/state/index.js';
+import { byId } from '../../../core/dom.js';
 import { ceilFeeFromRate } from '../../../core/fee_math.js';
 // KasKold Companion Web — features/covenants/payload/state
 
@@ -33,4 +34,9 @@ export function ownerReceiveAddr() {
         const w = walletSession.current();
         return (w && w.receive_addresses && w.receive_addresses[0]) || '';
     } catch { return ''; }
+}
+
+// A savings covenant is claimable by either key; the script needs to know which.
+export function savingsClaimKeyPosition() {
+    return Number(byId('cov-bene-savings-key').value);
 }

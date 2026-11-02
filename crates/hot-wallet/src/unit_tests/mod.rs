@@ -443,8 +443,14 @@ fn receive_addresses_cover_network_chain_and_index() {
         .derive_address(offline_signer::address::KaspaNetwork::Testnet, false, 0)
         .expect("testnet receive address");
 
-    assert!(receive_zero.starts_with("kaspa:"));
-    assert!(testnet_zero.starts_with("kaspatest:"));
+    assert_eq!(
+        receive_zero,
+        "kaspa:qqd6e65yefepe9wk0m9vuxdufxd80sphy67gwwd0vdaumzdt4tc9s3qt0lqeh"
+    );
+    assert_eq!(
+        testnet_zero,
+        "kaspatest:qqd6e65yefepe9wk0m9vuxdufxd80sphy67gwwd0vdaumzdt4tc9ssxd5s7gn"
+    );
     assert_ne!(receive_zero, receive_one);
     assert_ne!(receive_zero, change_zero);
 }
@@ -585,7 +591,10 @@ fn multisig_create_and_import_share_canonical_descriptor_and_address() {
         )
         .expect("2-of-2 multisig");
     assert!(created.descriptor.starts_with("multi_hd45(2,"));
-    assert!(created.address.starts_with("kaspa:"));
+    assert_eq!(
+        created.address,
+        "kaspa:prnhdtswsqqz22dm9ar25dlyvv7l5tn7458wx6lc005ns6uyhqgpu02s252hm"
+    );
     assert_eq!(created.threshold, 2);
     assert_eq!(created.participants, 2);
 
@@ -812,7 +821,10 @@ fn privacy_stego_and_static_multisig_paths_fail_closed_or_round_trip_public_data
         .expect("static multisig descriptor imports");
     assert_eq!(imported.threshold, 1);
     assert_eq!(imported.participants, 2);
-    assert!(imported.address.starts_with("kaspa:"));
+    assert_eq!(
+        imported.address,
+        "kaspa:prhtzsntcfcm286yj0q8q32qg3ukss5am5ullwfc5tfz9uetwwsmy3fgerttg"
+    );
 
     let raw =
         HotWallet::import_raw_private_key_hex(&format!("{:064x}", 1u8)).expect("raw key import");

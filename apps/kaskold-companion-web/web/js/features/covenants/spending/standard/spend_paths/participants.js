@@ -1,53 +1,18 @@
-import { covenantState, navigationState, networkState, walletSession } from '../../../../../app/state/index.js';
+import { covenantState, navigationState, networkState } from '../../../../../app/state/index.js';
 import { hideLoading, showLoading } from '../../../../../app/navigation.js';
 import { fetchCurrentDaa } from '../../../../../core/node/daa.js';
 import { resolveNodeUrl } from '../../../../../core/node/resolver.js';
 import { toast } from '../../../../../core/ui/toast.js';
-import { getCovFee } from '../../../payload/state.js';
+import { getCovFee, savingsClaimKeyPosition } from '../../../payload/state.js';
 import { pickThread } from '../spend_paths.js';
 import { openPsktReview } from '../../../../transactions/pskt_multisig/review.js';
-import { create_covenant_beneficiary_spend, create_covenant_borrower_spend, create_covenant_borrower_withdraw, create_covenant_timelocked_savings_claim, create_covenant_timeout_refund, create_global_allowance_withdraw, fetch_utxos_for_address_js, thread_withdraw_fee } from '../../../../../wasm/api.js';
+import { create_covenant_beneficiary_spend, create_covenant_timelocked_savings_claim, create_global_allowance_withdraw, fetch_utxos_for_address_js, thread_withdraw_fee } from '../../../../../wasm/api.js';
 
 import { byId } from '../../../../../core/dom.js';
 import { formatDaaDuration } from '../../../../../core/format.js';
 import { kasToSompi, sompiToKasString } from '../../../../../core/amounts.js';
 import { exactJsonStringify, exactUnsigned } from '../../../../../core/exact.js';
 import { THREAD_FEE_FLOOR, ceilRateToInteger } from '../../../../../core/fee_math.js';
-import { runCovenantClaim } from './claim_controller.js';
-
-export async function handleCovBorrowerSpend() {
-    if (!walletSession.hasWallet()) { toast('Load wallet first', 'error'); return; }
-    const covAddr = byId('cov-borrower-addr').value.trim();
-    const redeemHex = byId('cov-borrower-script').value.trim();
-    const amountStr = byId('cov-borrower-amount').value.trim();
-    const mode = byId('cov-borrower-mode').value;
-
-    if (!covAddr) { toast('Enter covenant P2SH address', 'error'); return; }
-    if (!redeemHex) { toast('Enter redeem script hex', 'error'); return; }
-    let sompi;
-    try { sompi = kasToSompi(amountStr); } catch { toast('Enter a valid amount with at most 8 decimal places', 'error'); return; }
-    if (sompi <= 0n) { toast('Enter amount', 'error'); return; }
-
-    showLoading(mode === 'withdraw' ? 'Building borrower withdraw PSKB...' : 'Building borrower spend PSKB...');
-    try {
-        const fee = getCovFee();
-        const wsUrl = await resolveNodeUrl();
-        let pskbHex;
-        if (mode === 'withdraw') {
-            pskbHex = await create_covenant_borrower_withdraw(walletSession.json(), covAddr, redeemHex, sompi, fee, wsUrl);
-        } else {
-            pskbHex = await create_covenant_borrower_spend(walletSession.json(), covAddr, redeemHex, sompi, fee, wsUrl);
-        }
-        hideLoading();
-        console.log('[Companion] Covenant borrower PSKB: ' + pskbHex.length + ' hex chars');
-        navigationState._broadcastReturnScreen = 'covenant';
-        openPsktReview(pskbHex);
-    } catch (e) {
-        hideLoading();
-        toast('Borrower TX failed: ' + e, 'error', 5000);
-        console.error('[Companion] Borrower TX error:', e);
-    }
-}
 
 function readBeneficiaryFields() {
     const fields = {
@@ -205,6 +170,7 @@ async function handleStandardBeneficiarySpend(fields) {
                 fields.destinationAddress,
                 fields.redeemScriptHex,
                 BigInt(locktime),
+                savingsClaimKeyPosition(),
                 fee,
                 websocketUrl,
             )
@@ -242,31 +208,4 @@ export async function handleCovBeneficiarySpend() {
         toast('Beneficiary spend failed: ' + error, 'error', 5000);
         console.error('[Companion] Beneficiary spend error:', error);
     }
-}
-
-export async function handleCovTimeoutRefund() {
-    const covenantAddress = byId('cov-timeout-addr').value.trim();
-    const redeemScriptHex = byId('cov-timeout-script').value.trim();
-    const locktime = byId('cov-timeout-locktime').value.trim();
-    const destinationAddress = byId('cov-timeout-dest').value.trim();
-
-    if (!covenantAddress) { toast('Enter covenant P2SH address', 'error'); return; }
-    if (!redeemScriptHex) { toast('Enter redeem script hex', 'error'); return; }
-    if (!/^\d+$/.test(locktime) || exactUnsigned(locktime, 'timeout locktime DAA') === 0n) { toast('Enter locktime DAA score', 'error'); return; }
-    if (!destinationAddress) { toast('Enter refund destination address', 'error'); return; }
-
-    const fee = getCovFee();
-    await runCovenantClaim({
-        loadingMessage: 'Building timeout-refund PSKB...',
-        errorLabel: 'Timeout refund failed',
-        logLabel: 'Timeout-refund PSKB',
-        build: websocketUrl => create_covenant_timeout_refund(
-            covenantAddress,
-            destinationAddress,
-            redeemScriptHex,
-            BigInt(locktime),
-            fee,
-            websocketUrl,
-        ),
-    });
 }

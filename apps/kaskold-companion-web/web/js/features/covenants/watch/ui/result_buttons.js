@@ -19,7 +19,7 @@ const HIDDEN_RESULT_PANEL_IDS = [
     'crowdfund-result-panel',
 ];
 
-const TIMELOCK_RESULT_TYPES = ['dms', 'escrow', 'timelocked-escrow', 'global-allowance'];
+const TIMELOCK_RESULT_TYPES = ['dms', 'escrow', 'global-allowance'];
 
 function hideStaleResultPanels() {
     for (const id of HIDDEN_RESULT_PANEL_IDS) {

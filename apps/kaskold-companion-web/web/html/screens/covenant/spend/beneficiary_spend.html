@@ -10,6 +10,13 @@
                             <input type="number" id="cov-bene-locktime" class="input-text"
                                    placeholder="Same value used at creation" min="1" step="1">
                         </div>
+                        <div class="u-hidden" id="cov-bene-savings-key-wrap">
+                            <label class="input-label">Signing Wallet</label>
+                            <select id="cov-bene-savings-key" class="input-text">
+                                <option value="0">Primary wallet</option>
+                                <option value="1">Recovery wallet</option>
+                            </select>
+                        </div>
                         <div class="u-hidden" id="cov-bene-amount-wrap">
                             <label class="input-label">Withdraw Amount (KAS)</label>
                             <div class="u-display-flex-gap-8px-align-start">

@@ -17,7 +17,7 @@ from typescript_toolchain import (
 
 ROOT = Path(__file__).resolve().parents[3]
 APP_JS_ROOT = ROOT / "apps/kaskold-companion-web/web/js"
-GLOBALS = ROOT / "qa/checks/web/browser-globals.d.ts"
+GLOBALS = ROOT / "qa/checks/web/support/browser-globals.d.ts"
 ENFORCED_CODES = {
     2300, 2304, 2305, 2307, 2395, 2440, 2451, 2552, 2614, 2724, 6133, 6196,
 }

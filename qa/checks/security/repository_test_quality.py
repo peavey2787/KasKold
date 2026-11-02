@@ -534,8 +534,8 @@ def _javascript_test_files() -> list[Path]:
     files: set[Path] = set()
     web = JAVASCRIPT_ROOTS[0]
     if web.is_dir():
-        files.update(web.glob("*.test.mjs"))
-        files.update(web.glob("check_web_*.mjs"))
+        files.update(web.rglob("*.test.mjs"))
+        files.update(web.rglob("check_web_*.mjs"))
     integration = JAVASCRIPT_ROOTS[1]
     if integration.is_dir():
         files.update(integration.glob("*_case.mjs"))
@@ -546,6 +546,8 @@ def _javascript_trivial(code: str) -> list[str]:
     findings: list[str] = []
     if re.search(r"\bassert\.ok\s*\(\s*true\s*(?:,|\))", code):
         findings.append("constant true assertion")
+    if re.search(r"\bassert\.doesNotThrow\s*\(", code):
+        findings.append("doesNotThrow asserts nothing about the result")
     equality = re.compile(
         r"\bassert\.(?:equal|strictEqual|deepEqual|deepStrictEqual)\s*\(\s*"
         r"([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*|-?\d+(?:\.\d+)?|true|false|null)\s*,\s*"

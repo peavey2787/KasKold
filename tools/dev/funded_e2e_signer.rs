@@ -92,10 +92,11 @@ fn sign(path: &Path, kspt_hex: &str) -> Result<(), String> {
 
     let mut signing_entropy = [0u8; 32];
     OsRng.fill_bytes(&mut signing_entropy);
-    let signed_count = kspt::sign_transaction_multi_addr_with_entropy(
+    let signed_count = kspt::sign_transaction_multisig_with_entropy(
         &mut transaction,
-        &seed.bytes,
+        &[(seed.bytes, true)],
         SigHashType::All,
+        Some(0),
         &signing_entropy,
     )
     .map_err(|error| format!("signer failed to sign relayed KSPT: {error:?}"))?;

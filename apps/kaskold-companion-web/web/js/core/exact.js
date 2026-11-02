@@ -16,6 +16,18 @@ export function exactUnsigned(value, field = 'integer') {
 }
 
 /**
+ * A consensus field as Rust reads and writes it: digits in a string, in 64 bits.
+ * @param {unknown} value
+ * @param {string} [field]
+ */
+export function exactU64(value, field = 'integer') {
+    if (typeof value === 'number') throw new Error(`${field} must be an exact unsigned decimal string`);
+    const exact = exactUnsigned(value, field);
+    if (exact > 18_446_744_073_709_551_615n) throw new Error(`${field} must fit in 64 bits`);
+    return exact;
+}
+
+/**
  * @param {unknown} rawJson
  * @param {string} fieldName
  * @param {string} [field]

@@ -43,25 +43,31 @@ pub(crate) fn parse(request_json: &str) -> Result<CommitRevealSpendRequest, Stri
 pub(crate) async fn build(request_json: &str) -> Result<String, String> {
     let request = parse(request_json)?;
     let (_, wire) = crate::transaction_builder::pskb::application::build_covenant_sweep(
-        crate::transaction_builder::pskb::application::CovenantSweepRequest {
-            websocket_url: &request.websocket_url,
-            covenant_address: &request.covenant_address,
-            destination_address: &request.destination_address,
-            fee: request.fee,
-            redeem_script: &request.redeem_script,
-            branch: "beneficiary",
-            proprietaries: serde_json::json!({
-                "commitPartA": request.part_a_hex,
-                "commitPartB": request.part_b_hex,
-            }),
-            signature_op_count: 1,
-            transaction_payload: Some(request.payload),
-            empty_error: "No UTXOs at covenant address",
-            low_balance_error: "Balance too low to cover fee",
-        },
+        sweep_request(&request),
     )
     .await?;
     Ok(wire)
+}
+
+pub(crate) fn sweep_request(
+    request: &CommitRevealSpendRequest,
+) -> crate::transaction_builder::pskb::application::CovenantSweepRequest<'_> {
+    crate::transaction_builder::pskb::application::CovenantSweepRequest {
+        websocket_url: &request.websocket_url,
+        covenant_address: &request.covenant_address,
+        destination_address: &request.destination_address,
+        fee: request.fee,
+        redeem_script: &request.redeem_script,
+        path: crate::transaction_builder::covenant::execution::SpendPath::Key(1),
+        proprietaries: serde_json::json!({
+            "commitPartA": request.part_a_hex,
+            "commitPartB": request.part_b_hex,
+        }),
+        signature_op_count: 1,
+        transaction_payload: Some(request.payload.clone()),
+        empty_error: "No UTXOs at covenant address",
+        low_balance_error: "Balance too low to cover fee",
+    }
 }
 
 fn decode_hex(value: &str, field: &str) -> Result<Vec<u8>, String> {

@@ -114,16 +114,19 @@ run_step() {
             run_in_directory "$ROOT_DIR" python3 tools/build/web/build_app_css.py --check || return $?
             run_in_directory "$ROOT_DIR" python3 qa/checks/web/check_web_dom_contract.py || return $?
             run_in_directory "$ROOT_DIR" python3 qa/checks/web/check_safe_html.py || return $?
-            run_in_directory "$ROOT_DIR" node --test qa/checks/web/vault_saved_wallets.test.mjs || return $?
-            run_in_directory "$ROOT_DIR" node qa/checks/web/network_routing.test.mjs || return $?
+            run_in_directory "$ROOT_DIR" node --test qa/checks/web/wallet/vault_saved_wallets.test.mjs || return $?
+            run_in_directory "$ROOT_DIR" node qa/checks/web/transactions/network_routing.test.mjs || return $?
             ;;
         integration.kaskold-companion-web-browser)
             require_command node || return
-            run_in_directory "$ROOT_DIR" node qa/checks/web/check_web_runtime.mjs || return $?
-            run_in_directory "$ROOT_DIR" node qa/checks/web/check_web_covenant_interactions.mjs || return $?
-            run_in_directory "$ROOT_DIR" node qa/checks/web/covenant_sign_protocol.test.mjs || return $?
-            run_in_directory "$ROOT_DIR" node qa/checks/web/check_web_critical_paths.mjs || return $?
+            run_in_directory "$ROOT_DIR" node qa/checks/web/runtime/check_web_runtime.mjs || return $?
+            run_in_directory "$ROOT_DIR" node qa/checks/web/covenants/check_web_covenant_interactions.mjs || return $?
+            run_in_directory "$ROOT_DIR" node qa/checks/web/covenants/covenant_sign_protocol.test.mjs || return $?
+            run_in_directory "$ROOT_DIR" node qa/checks/web/runtime/check_web_critical_paths.mjs || return $?
             run_in_directory "$ROOT_DIR" python3 qa/checks/web/real_dom/run_real_dom_tests.py || return $?
+            run_in_directory "$ROOT_DIR" node --test qa/checks/web/real_wasm/contract.test.mjs || return $?
+            run_in_directory "$ROOT_DIR" node --test qa/checks/web/real_wasm/spend_documents.test.mjs || return $?
+            run_in_directory "$ROOT_DIR" node --test qa/checks/web/real_wasm/differential.test.mjs || return $?
             ;;
         static.firmware-assurance-contracts)
             require_command python3 || return

@@ -7,7 +7,13 @@ use super::{
     encode_prepared_sweep, prepare_sweep_from_utxos, PreparedSweep, PskbGlobalPlan,
     SweepInputPolicy,
 };
-use crate::network;
+use crate::{
+    network,
+    transaction_builder::covenant::{
+        execution::{execution_for, SpendPath},
+        redeem::require_redeem_for_address,
+    },
+};
 
 pub(crate) async fn prepare_sweep(
     websocket_url: &str,
@@ -42,7 +48,7 @@ pub(crate) struct CovenantSweepRequest<'a> {
     pub(crate) destination_address: &'a str,
     pub(crate) fee: u64,
     pub(crate) redeem_script: &'a [u8],
-    pub(crate) branch: &'a str,
+    pub(crate) path: SpendPath,
     pub(crate) proprietaries: serde_json::Value,
     pub(crate) signature_op_count: u8,
     pub(crate) transaction_payload: Option<Vec<u8>>,
@@ -53,6 +59,7 @@ pub(crate) struct CovenantSweepRequest<'a> {
 pub(crate) async fn build_covenant_sweep(
     request: CovenantSweepRequest<'_>,
 ) -> Result<(PreparedSweep, String), String> {
+    require_redeem_for_address(request.covenant_address, request.redeem_script)?;
     let prepared = prepare_sweep(
         request.websocket_url,
         request.covenant_address,
@@ -62,12 +69,21 @@ pub(crate) async fn build_covenant_sweep(
         request.low_balance_error,
     )
     .await?;
-    let mut global = PskbGlobalPlan::standard().with_branch(request.branch);
-    global.transaction_payload = request.transaction_payload;
-    let mut policy = SweepInputPolicy::covenant(request.redeem_script, 0, request.proprietaries);
-    policy.sig_op_count = request.signature_op_count;
-    let wire = encode(&prepared, global, &policy)?;
+    let wire = encode_covenant_request(&prepared, request)?;
     Ok((prepared, wire))
+}
+
+pub(crate) fn encode_covenant_request(
+    prepared: &PreparedSweep,
+    request: CovenantSweepRequest<'_>,
+) -> Result<String, String> {
+    let mut global = PskbGlobalPlan::standard();
+    global.transaction_payload = request.transaction_payload;
+    let execution = execution_for(request.redeem_script, request.path)?;
+    let mut policy = SweepInputPolicy::covenant(request.redeem_script, 0, execution);
+    policy.proprietaries = request.proprietaries;
+    policy.sig_op_count = request.signature_op_count;
+    encode(prepared, global, &policy)
 }
 
 #[cfg(test)]

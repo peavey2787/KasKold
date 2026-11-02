@@ -147,16 +147,18 @@ pub(crate) fn decode_merkle_scripts(
     destination_address: &str,
     redeem_script_hex: &str,
 ) -> Result<MerkleScripts, String> {
-    address::address_to_script_pubkey(covenant_address).and_then(|covenant| {
-        address::address_to_script_pubkey(destination_address).and_then(|destination| {
-            hex::decode(redeem_script_hex)
-                .map_err(|error| format!("Bad redeem hex: {error}"))
-                .map(|redeem| MerkleScripts {
-                    covenant,
-                    destination,
-                    redeem,
-                })
-        })
+    let covenant = address::address_to_script_pubkey(covenant_address)?;
+    let destination = address::address_to_script_pubkey(destination_address)?;
+    let redeem =
+        crate::transaction_builder::covenant::redeem::decode_redeem_script(redeem_script_hex)?;
+    crate::transaction_builder::covenant::redeem::require_redeem_for_address(
+        covenant_address,
+        &redeem,
+    )?;
+    Ok(MerkleScripts {
+        covenant,
+        destination,
+        redeem,
     })
 }
 
@@ -165,7 +167,7 @@ pub(crate) fn encode_merkle_spend(
     scripts: MerkleScripts,
     change: u64,
 ) -> Result<PreparedMerkleSpend, String> {
-    let inputs = merkle_inputs(request, &scripts);
+    let inputs = merkle_inputs(request, &scripts)?;
     let outputs = merkle_outputs(
         request.send_amount,
         change,
@@ -173,8 +175,7 @@ pub(crate) fn encode_merkle_spend(
         &scripts.covenant,
     );
     let plan = crate::transaction_builder::pskb::PskbPlan {
-        global: crate::transaction_builder::pskb::PskbGlobalPlan::standard()
-            .with_branch("beneficiary"),
+        global: crate::transaction_builder::pskb::PskbGlobalPlan::standard(),
         inputs,
         outputs,
     };
@@ -184,11 +185,17 @@ pub(crate) fn encode_merkle_spend(
 pub(crate) fn merkle_inputs(
     request: &MerkleSpendRequest<'_>,
     scripts: &MerkleScripts,
-) -> Vec<crate::transaction_builder::pskb::PskbInputPlan> {
+) -> Result<Vec<crate::transaction_builder::pskb::PskbInputPlan>, String> {
     let destination_script_hex = format!("0000{}", hex::encode(&scripts.destination));
     let proof_value = serde_json::from_str::<serde_json::Value>(request.proof_json)
         .unwrap_or_else(|_| serde_json::Value::String(request.proof_json.to_string()));
-    request
+    let truth =
+        kaspa_portal::transaction::interchange::pskt::pipeline::merkle_claim_truth(&proof_value)?;
+    let execution = crate::transaction_builder::covenant::execution::execution_for(
+        &scripts.redeem,
+        crate::transaction_builder::covenant::execution::SpendPath::Exact(truth),
+    )?;
+    Ok(request
         .utxos
         .iter()
         .cloned()
@@ -197,7 +204,7 @@ pub(crate) fn merkle_inputs(
                 utxo,
                 &scripts.covenant,
                 &scripts.redeem,
-                crate::transaction_builder::pskb::CovenantInputSettings {
+                crate::transaction_builder::pskb::CovenantInputPolicy {
                     sequence: 0,
                     sig_op_count: 1,
                     minimum_signatures: 1,
@@ -205,11 +212,12 @@ pub(crate) fn merkle_inputs(
                         "merkleProof": proof_value.clone(),
                         "merkleDestSpk": destination_script_hex.clone(),
                     }),
-                    min_time: serde_json::Value::from(0),
+                    min_time: Some(0),
+                    execution: Some(execution),
                 },
             )
         })
-        .collect()
+        .collect())
 }
 
 pub(crate) fn merkle_outputs(

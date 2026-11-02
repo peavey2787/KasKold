@@ -14,7 +14,7 @@ from security.fuzz_targets import registered_targets, validate_targets  # noqa: 
 
 
 # Fuzz coverage only ratchets upward: removing a target needs a reviewed change here.
-MINIMUM_FUZZ_TARGETS = 14
+MINIMUM_FUZZ_TARGETS = 17
 
 
 def _consumer_requirements() -> dict[str, tuple[str, ...]]:

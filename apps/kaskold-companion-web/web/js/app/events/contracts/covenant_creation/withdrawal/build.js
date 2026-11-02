@@ -5,6 +5,7 @@ import {
     create_covenant_timelocked_savings_claim_selected,
 } from '../../../../../wasm/api.js';
 import { assertBeneficiaryClaimUnlocked, beneficiaryClaim } from './policy.js';
+import { savingsClaimKeyPosition } from '../../../../../features/covenants/payload/state.js';
 import { selectedUtxosJson } from './selection.js';
 
 export function buildSelectedSpend({ destination, selected, fee, ownerBranch }) {
@@ -34,6 +35,7 @@ export function buildSelectedSpend({ destination, selected, fee, ownerBranch }) 
             destination,
             redeemScript,
             locktime,
+            savingsClaimKeyPosition(),
             utxos,
             fee,
         )

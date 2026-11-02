@@ -347,6 +347,22 @@
     },
     {
       "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/quality/language_lints.py",
+      "role": "check",
+      "step": "static.language-lints"
+    },
+    {
+      "commands": [
+        "make release-readiness"
+      ],
+      "path": "qa/checks/release/generate_portal_assurance.py",
+      "role": "release-check",
+      "step": "release.candidate-evidence"
+    },
+    {
+      "commands": [
         "make release-readiness"
       ],
       "path": "qa/checks/release/generate_software_assurance.py",
@@ -505,24 +521,6 @@
         "make test",
         "make qa"
       ],
-      "path": "qa/checks/web/check_web_covenant_interactions.mjs",
-      "role": "test",
-      "step": "integration.kaskold-companion-web-browser"
-    },
-    {
-      "commands": [
-        "make test",
-        "make qa"
-      ],
-      "path": "qa/checks/web/check_web_critical_paths.mjs",
-      "role": "test",
-      "step": "integration.kaskold-companion-web-browser"
-    },
-    {
-      "commands": [
-        "make test",
-        "make qa"
-      ],
       "path": "qa/checks/web/check_web_dom_contract.py",
       "role": "check",
       "step": "integration.kaskold-companion-web-generated"
@@ -541,7 +539,7 @@
         "make test",
         "make qa"
       ],
-      "path": "qa/checks/web/check_web_runtime.mjs",
+      "path": "qa/checks/web/covenants/check_web_covenant_interactions.mjs",
       "role": "test",
       "step": "integration.kaskold-companion-web-browser"
     },
@@ -550,18 +548,97 @@
         "make test",
         "make qa"
       ],
-      "path": "qa/checks/web/covenant_sign_protocol.test.mjs",
+      "path": "qa/checks/web/covenants/covenant_sign_protocol.test.mjs",
       "role": "test",
       "step": "integration.kaskold-companion-web-browser"
     },
     {
       "commands": [
-        "make test",
         "make qa"
       ],
-      "path": "qa/checks/web/network_routing.test.mjs",
+      "path": "qa/checks/web/covenants/web_covenant_builder_success_paths.test.mjs",
       "role": "test",
-      "step": "integration.kaskold-companion-web-generated"
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/covenants/web_covenant_claims_deep_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/covenants/web_covenant_event_deep_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/covenants/web_covenant_result_actions_deep_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/covenants/web_covenant_runtime_deep_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/covenants/web_covenant_sign_binding_deep_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/covenants/web_covenant_spending_success_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/covenants/web_crowdfund_deep_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/covenants/web_oracle_model_b_deep_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/covenants/web_private_swap_controller_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/covenants/web_private_swap_deep_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
     },
     {
       "commands": [
@@ -569,6 +646,33 @@
         "make qa"
       ],
       "path": "qa/checks/web/real_dom/run_real_dom_tests.py",
+      "role": "test",
+      "step": "integration.kaskold-companion-web-browser"
+    },
+    {
+      "commands": [
+        "make test",
+        "make qa"
+      ],
+      "path": "qa/checks/web/real_wasm/contract.test.mjs",
+      "role": "test",
+      "step": "integration.kaskold-companion-web-browser"
+    },
+    {
+      "commands": [
+        "make test",
+        "make qa"
+      ],
+      "path": "qa/checks/web/real_wasm/differential.test.mjs",
+      "role": "test",
+      "step": "integration.kaskold-companion-web-browser"
+    },
+    {
+      "commands": [
+        "make test",
+        "make qa"
+      ],
+      "path": "qa/checks/web/real_wasm/spend_documents.test.mjs",
       "role": "test",
       "step": "integration.kaskold-companion-web-browser"
     },
@@ -593,6 +697,177 @@
         "make test",
         "make qa"
       ],
+      "path": "qa/checks/web/runtime/check_web_critical_paths.mjs",
+      "role": "test",
+      "step": "integration.kaskold-companion-web-browser"
+    },
+    {
+      "commands": [
+        "make test",
+        "make qa"
+      ],
+      "path": "qa/checks/web/runtime/check_web_runtime.mjs",
+      "role": "test",
+      "step": "integration.kaskold-companion-web-browser"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/runtime/web_branch_completion.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/runtime/web_branch_hardening.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/runtime/web_branch_hardening_final.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/runtime/web_branch_hardening_ui.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/runtime/web_branch_ratchet_core.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/runtime/web_branch_ratchet_extended.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/runtime/web_recovery_coverage.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/runtime/web_remaining_edge_deep_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/runtime/web_runtime_fail_closed.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/runtime/web_runtime_valid_boundary.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make test",
+        "make qa"
+      ],
+      "path": "qa/checks/web/transactions/network_routing.test.mjs",
+      "role": "test",
+      "step": "integration.kaskold-companion-web-generated"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/transactions/web_device_frame_scanning.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/transactions/web_scanning_deep_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/transactions/web_stealth_live_deep_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/transactions/web_stealth_send_deep_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/transactions/web_stealth_success_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/transactions/web_transaction_deep_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/transactions/web_transaction_success_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/checks/web/transactions/web_transaction_ui_deep_paths.test.mjs",
+      "role": "test",
+      "step": "preflight.crap-check"
+    },
+    {
+      "commands": [
+        "make test",
+        "make qa"
+      ],
       "path": "qa/checks/web/typescript_toolchain.py",
       "role": "check",
       "step": "preflight.companion-build"
@@ -602,7 +877,7 @@
         "make test",
         "make qa"
       ],
-      "path": "qa/checks/web/vault_saved_wallets.test.mjs",
+      "path": "qa/checks/web/wallet/vault_saved_wallets.test.mjs",
       "role": "test",
       "step": "integration.kaskold-companion-web-generated"
     },
@@ -610,7 +885,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/checks/web/web_branch_completion.test.mjs",
+      "path": "qa/checks/web/wallet/web_generation_vault_deep_paths.test.mjs",
       "role": "test",
       "step": "preflight.crap-check"
     },
@@ -618,7 +893,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/checks/web/web_branch_hardening.test.mjs",
+      "path": "qa/checks/web/wallet/web_kpub_manager_deep_paths.test.mjs",
       "role": "test",
       "step": "preflight.crap-check"
     },
@@ -626,7 +901,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/checks/web/web_branch_hardening_final.test.mjs",
+      "path": "qa/checks/web/wallet/web_portfolio_paths.test.mjs",
       "role": "test",
       "step": "preflight.crap-check"
     },
@@ -634,7 +909,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/checks/web/web_branch_hardening_ui.test.mjs",
+      "path": "qa/checks/web/wallet/web_wallet_deep_paths.test.mjs",
       "role": "test",
       "step": "preflight.crap-check"
     },
@@ -642,7 +917,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/checks/web/web_branch_ratchet_core.test.mjs",
+      "path": "qa/checks/web/wallet/web_wallet_success_paths.test.mjs",
       "role": "test",
       "step": "preflight.crap-check"
     },
@@ -650,239 +925,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/checks/web/web_branch_ratchet_extended.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_covenant_builder_success_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_covenant_claims_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_covenant_event_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_covenant_result_actions_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_covenant_runtime_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_covenant_sign_binding_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_covenant_spending_success_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_crowdfund_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_generation_vault_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_kpub_manager_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_oracle_model_b_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_portfolio_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_private_swap_controller_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_private_swap_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_recovery_coverage.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_remaining_edge_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_runtime_fail_closed.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_runtime_valid_boundary.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_scanning_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_stealth_live_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_stealth_send_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_device_frame_scanning.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_stealth_success_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_transaction_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_transaction_success_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_transaction_ui_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_wallet_deep_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_wallet_success_paths.test.mjs",
-      "role": "test",
-      "step": "preflight.crap-check"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/web/web_wallet_views_behaviour.test.mjs",
+      "path": "qa/checks/web/wallet/web_wallet_views_behaviour.test.mjs",
       "role": "test",
       "step": "preflight.crap-check"
     },
@@ -902,22 +945,6 @@
       "path": "qa/checks/workspace/check_qa_orchestration.py",
       "role": "check",
       "step": "static.qa-orchestration-catalog"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/checks/quality/language_lints.py",
-      "role": "check",
-      "step": "static.language-lints"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/tests/tooling/test_language_lints.py",
-      "role": "test",
-      "step": "unit.repository-python-qa"
     },
     {
       "commands": [
@@ -981,6 +1008,14 @@
       "commands": [
         "make qa"
       ],
+      "path": "qa/fuzz/covenant_invite_json.rs",
+      "role": "fuzz-target",
+      "step": "fuzz.repository-security-targets"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
       "path": "qa/fuzz/firmware_external_inputs.rs",
       "role": "fuzz-target",
       "step": "fuzz.repository-security-targets"
@@ -990,6 +1025,14 @@
         "make qa"
       ],
       "path": "qa/fuzz/firmware_protocol_parsing.rs",
+      "role": "fuzz-target",
+      "step": "fuzz.repository-security-targets"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/fuzz/multisig_descriptor_json.rs",
       "role": "fuzz-target",
       "step": "fuzz.repository-security-targets"
     },
@@ -1030,6 +1073,14 @@
         "make qa"
       ],
       "path": "qa/fuzz/std_pskt_parser.rs",
+      "role": "fuzz-target",
+      "step": "fuzz.repository-security-targets"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/fuzz/stego_embed_roundtrip.rs",
       "role": "fuzz-target",
       "step": "fuzz.repository-security-targets"
     },
@@ -1153,39 +1204,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_all_board_adapter_complexity.py",
-      "role": "test",
-      "step": "unit.repository-python-qa"
-    },
-    {
-      "commands": [
-        "make android-qa"
-      ],
-      "path": "qa/tests/regression/test_android_gradle_bootstrap.py",
-      "role": "test",
-      "step": "android-qa"
-    },
-    {
-      "commands": [
-        "make android-qa"
-      ],
-      "path": "qa/tests/regression/test_android_gradle_exec_recovery.py",
-      "role": "test",
-      "step": "android-qa"
-    },
-    {
-      "commands": [
-        "make android-qa"
-      ],
-      "path": "qa/tests/regression/test_android_mutation_toolchain.py",
-      "role": "test",
-      "step": "android-qa"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/tests/regression/test_branch_coverage_90_contract.py",
+      "path": "qa/tests/regression/apps/test_companion_multisig_discovery_state.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1193,7 +1212,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_companion_multisig_discovery_state.py",
+      "path": "qa/tests/regression/apps/test_funded_testnet_e2e.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1201,7 +1220,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_cores3_lite_profile.py",
+      "path": "qa/tests/regression/apps/test_headless_chromium.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1209,7 +1228,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_crap_warning_scope_policy.py",
+      "path": "qa/tests/regression/apps/test_online_watcher_paths.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1217,7 +1236,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_credential_kdf_hardware_memory.py",
+      "path": "qa/tests/regression/apps/test_online_watcher_test_compile_contracts.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1225,7 +1244,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_firmware_decision_extraction.py",
+      "path": "qa/tests/regression/apps/test_online_watcher_transaction_fixture_policy.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1233,7 +1252,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_firmware_error_utf8_safety.py",
+      "path": "qa/tests/regression/apps/test_real_node_integration.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1241,7 +1260,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_firmware_source_contracts.py",
+      "path": "qa/tests/regression/apps/test_vault_network_isolation.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1249,7 +1268,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_firmware_transport_policy.py",
+      "path": "qa/tests/regression/apps/test_watcher_only_apps.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1257,7 +1276,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_funded_testnet_e2e.py",
+      "path": "qa/tests/regression/apps/test_web_pkg_fixture_policy.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1265,7 +1284,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_headless_chromium.py",
+      "path": "qa/tests/regression/coverage/test_branch_coverage_90_contract.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1273,23 +1292,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_hil_and_fuzz_evidence.py",
-      "role": "test",
-      "step": "unit.repository-python-qa"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/tests/regression/test_hot_wallet_custody_boundary.py",
-      "role": "test",
-      "step": "unit.repository-python-qa"
-    },
-    {
-      "commands": [
-        "make qa"
-      ],
-      "path": "qa/tests/regression/test_kaskold_custody_conformance.py",
+      "path": "qa/tests/regression/coverage/test_crap_warning_scope_policy.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1298,7 +1301,7 @@
         "make android-qa",
         "make ios-qa"
       ],
-      "path": "qa/tests/regression/test_mobile_web_coverage_contracts.py",
+      "path": "qa/tests/regression/coverage/test_mobile_web_coverage_contracts.py",
       "role": "test",
       "step": "mobile-qa"
     },
@@ -1306,7 +1309,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_navigation_state_machine.py",
+      "path": "qa/tests/regression/coverage/test_online_watcher_coverage_targets.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1314,7 +1317,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_offline_signer_policy.py",
+      "path": "qa/tests/regression/coverage/test_online_watcher_host_coverage_policy.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1322,7 +1325,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_online_watcher_coverage_targets.py",
+      "path": "qa/tests/regression/coverage/test_web_runtime_coverage_ratchet.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1330,7 +1333,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_online_watcher_host_coverage_policy.py",
+      "path": "qa/tests/regression/coverage/test_web_v8_coverage_merge.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1338,7 +1341,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_online_watcher_paths.py",
+      "path": "qa/tests/regression/coverage/test_workflow_e2e_catalog.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1346,7 +1349,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_online_watcher_test_compile_contracts.py",
+      "path": "qa/tests/regression/coverage/test_workflow_production_coverage.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1354,7 +1357,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_online_watcher_transaction_fixture_policy.py",
+      "path": "qa/tests/regression/coverage/test_workflow_ui_touch_parity.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1362,7 +1365,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_real_node_integration.py",
+      "path": "qa/tests/regression/coverage/test_zero_warning_remediation.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1370,7 +1373,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_release_flash_security.py",
+      "path": "qa/tests/regression/custody/test_hot_wallet_custody_boundary.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1378,7 +1381,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_release_readiness_gate.py",
+      "path": "qa/tests/regression/custody/test_kaskold_custody_conformance.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1386,7 +1389,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_release_version_and_diagnostics.py",
+      "path": "qa/tests/regression/custody/test_offline_signer_policy.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1394,7 +1397,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_retired_raw_signature_protocols.py",
+      "path": "qa/tests/regression/custody/test_retired_raw_signature_protocols.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1402,7 +1405,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_sd_protocol_and_workflow.py",
+      "path": "qa/tests/regression/custody/test_verified_model_finalization_boundary.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1410,7 +1413,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_secure_boot_and_hardware_security.py",
+      "path": "qa/tests/regression/custody/test_wallet_session_policy.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1418,7 +1421,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_thin_family_adapters.py",
+      "path": "qa/tests/regression/firmware/test_all_board_adapter_complexity.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1426,7 +1429,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_vault_network_isolation.py",
+      "path": "qa/tests/regression/firmware/test_boot_asset_sources.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1434,7 +1437,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_verified_model_finalization_boundary.py",
+      "path": "qa/tests/regression/firmware/test_cores3_lite_profile.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1442,7 +1445,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_wallet_session_policy.py",
+      "path": "qa/tests/regression/firmware/test_credential_kdf_hardware_memory.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1450,7 +1453,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_watcher_only_apps.py",
+      "path": "qa/tests/regression/firmware/test_firmware_decision_extraction.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1458,7 +1461,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_web_pkg_fixture_policy.py",
+      "path": "qa/tests/regression/firmware/test_firmware_error_utf8_safety.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1466,7 +1469,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_web_runtime_coverage_ratchet.py",
+      "path": "qa/tests/regression/firmware/test_firmware_source_contracts.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1474,7 +1477,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_web_v8_coverage_merge.py",
+      "path": "qa/tests/regression/firmware/test_firmware_transport_policy.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1482,7 +1485,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_workflow_e2e_catalog.py",
+      "path": "qa/tests/regression/firmware/test_navigation_state_machine.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1490,7 +1493,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_workflow_production_coverage.py",
+      "path": "qa/tests/regression/firmware/test_pop_it_secure_boot.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1498,7 +1501,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_workflow_ui_touch_parity.py",
+      "path": "qa/tests/regression/firmware/test_sd_workflow_markers.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1506,7 +1509,39 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/regression/test_zero_warning_remediation.py",
+      "path": "qa/tests/regression/firmware/test_thin_family_adapters.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make android-qa"
+      ],
+      "path": "qa/tests/regression/mobile/test_android_gradle_bootstrap.py",
+      "role": "test",
+      "step": "android-qa"
+    },
+    {
+      "commands": [
+        "make android-qa"
+      ],
+      "path": "qa/tests/regression/mobile/test_android_gradle_exec_recovery.py",
+      "role": "test",
+      "step": "android-qa"
+    },
+    {
+      "commands": [
+        "make android-qa"
+      ],
+      "path": "qa/tests/regression/mobile/test_android_mutation_toolchain.py",
+      "role": "test",
+      "step": "android-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/tests/regression/release/test_fuzz_evidence.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1514,7 +1549,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_architecture_generated_web_pkg.py",
+      "path": "qa/tests/regression/release/test_hil_transcripts.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1522,7 +1557,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_architecture_imports.py",
+      "path": "qa/tests/regression/release/test_release_flash_security.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1530,7 +1565,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_compiled_stack_budget.py",
+      "path": "qa/tests/regression/release/test_release_readiness_gate.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1538,7 +1573,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_crap_check.py",
+      "path": "qa/tests/regression/release/test_release_version.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1546,7 +1581,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_crap_health.py",
+      "path": "qa/tests/tooling/build/test_compiled_stack_budget.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1554,7 +1589,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_crap_reporting.py",
+      "path": "qa/tests/tooling/build/test_firmware_board_layout.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1562,7 +1597,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_crap_scope_merge.py",
+      "path": "qa/tests/tooling/build/test_lockfile_policy.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1570,7 +1605,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_crap_toolchain.py",
+      "path": "qa/tests/tooling/build/test_reproducible_build_runner.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1578,7 +1613,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_firmware_board_layout.py",
+      "path": "qa/tests/tooling/build/test_toolchain_policy.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1586,7 +1621,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_firmware_simulator_coverage.py",
+      "path": "qa/tests/tooling/build/test_vendored_jsqr.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1594,7 +1629,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_hardware_device_runner.py",
+      "path": "qa/tests/tooling/build/test_web_build_pipeline.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1602,7 +1637,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_irreversible_action_policy.py",
+      "path": "qa/tests/tooling/crap/test_crap_check.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1610,7 +1645,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_kaskold_branding.py",
+      "path": "qa/tests/tooling/crap/test_crap_health.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1618,7 +1653,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_lockfile_policy.py",
+      "path": "qa/tests/tooling/crap/test_crap_reporting.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1626,7 +1661,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_master_launcher.py",
+      "path": "qa/tests/tooling/crap/test_crap_scope_merge.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1634,7 +1669,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_platform_script_wrappers.py",
+      "path": "qa/tests/tooling/crap/test_crap_toolchain.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1642,7 +1677,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_qa_orchestration_catalog.py",
+      "path": "qa/tests/tooling/device/test_firmware_simulator_coverage.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1650,7 +1685,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_qa_test_layout.py",
+      "path": "qa/tests/tooling/device/test_hardware_device_runner.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1658,7 +1693,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_qemu_runner.py",
+      "path": "qa/tests/tooling/device/test_qemu_runner.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1666,7 +1701,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_qemu_scripts.py",
+      "path": "qa/tests/tooling/device/test_qemu_scripts.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1674,7 +1709,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_repository_inventory.py",
+      "path": "qa/tests/tooling/device/test_serial_access.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1682,7 +1717,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_repository_organization.py",
+      "path": "qa/tests/tooling/policy/test_irreversible_action_policy.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1690,7 +1725,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_reproducible_build_runner.py",
+      "path": "qa/tests/tooling/policy/test_kaskold_branding.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1698,7 +1733,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_sdk_architecture.py",
+      "path": "qa/tests/tooling/policy/test_language_lints.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1706,7 +1741,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_security_hardening.py",
+      "path": "qa/tests/tooling/policy/test_security_hardening.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1714,7 +1749,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_serial_access.py",
+      "path": "qa/tests/tooling/policy/test_typescript_toolchain.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1722,7 +1757,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_toolchain_policy.py",
+      "path": "qa/tests/tooling/workspace/test_architecture_generated_web_pkg.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1730,7 +1765,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_typescript_toolchain.py",
+      "path": "qa/tests/tooling/workspace/test_architecture_imports.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1738,7 +1773,7 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_vendored_jsqr.py",
+      "path": "qa/tests/tooling/workspace/test_master_launcher.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },
@@ -1746,7 +1781,47 @@
       "commands": [
         "make qa"
       ],
-      "path": "qa/tests/tooling/test_web_build_pipeline.py",
+      "path": "qa/tests/tooling/workspace/test_platform_script_wrappers.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/tests/tooling/workspace/test_qa_orchestration_catalog.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/tests/tooling/workspace/test_qa_test_layout.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/tests/tooling/workspace/test_repository_inventory.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/tests/tooling/workspace/test_repository_organization.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/tests/tooling/workspace/test_sdk_architecture.py",
       "role": "test",
       "step": "unit.repository-python-qa"
     },

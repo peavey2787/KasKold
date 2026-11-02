@@ -39,8 +39,8 @@ EXPECTED_SCREEN_IDS = {
     "screen-broadcast",
     "screen-pskt-review",
 }
-EXPECTED_ID_DIGEST = "193e28a0d3575732b12389a8b2cd92cf88a1ee71b7a026bcbb6351f37b749a36"
-EXPECTED_ID_TAG_DIGEST = "b627a81d0f294090b3f218dd8085193e9b2b94d8a287f97c2fbe9d928db1c113"
+EXPECTED_ID_DIGEST = "93dc323b730ea0aa96eef883b7c4635b8b3c70d9aecc0ae3bedec6086e2a70a0"
+EXPECTED_ID_TAG_DIGEST = "c60586a93f0127c1e0e2079dd1a3285d50ea0325b6480e71cd6444c7133c6f48"
 EXPECTED_FRAGMENTS = (
     "document/open.html",
     "screens/system/welcome.html",
@@ -81,9 +81,7 @@ EXPECTED_FRAGMENTS = (
     "screens/covenant/create/result.html",
     "screens/covenant/spend/owner_spend.html",
     "screens/covenant/spend/consolidate.html",
-    "screens/covenant/spend/borrower_spend.html",
     "screens/covenant/spend/beneficiary_spend.html",
-    "screens/covenant/recovery/timeout_refund.html",
     "screens/covenant/spend/payjoin_claim.html",
     "screens/covenant/spend/oracle_v1_claim.html",
     "screens/covenant/proofs/advanced_proofs.html",
@@ -260,7 +258,7 @@ def _dom_contract_errors(source: str) -> list[str]:
 
     id_digest = hashlib.sha256("\n".join(sorted(ids)).encode()).hexdigest()
     # Contract covers the watch-only Companion shell.
-    if len(ids) != 670 or id_digest != EXPECTED_ID_DIGEST:
+    if len(ids) != 655 or id_digest != EXPECTED_ID_DIGEST:
         errors.append(
             f"web shell DOM ID contract changed: {len(ids)} IDs / {id_digest}"
         )

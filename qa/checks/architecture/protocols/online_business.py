@@ -13,7 +13,6 @@ _REQUIRED_CORE_PATHS = (
     "serialization/input.rs",
     "transaction_builder/pskb/application.rs",
     "transaction_builder/covenant/global_thread.rs",
-    "transaction_builder/covenant/allowance.rs",
     "transaction_builder/covenant/payjoin.rs",
     "transaction_builder/covenant/private_swap.rs",
     "transaction_builder/covenant/sweep.rs",
@@ -83,7 +82,6 @@ def _check_shared_pskb_planning(root: Path) -> list[str]:
     shared_global_thread_paths = [
         *shared_global_thread_adapter.glob("*.rs"),
         core_global_thread,
-        online_root / "transaction_builder/pskb/global_thread.rs",
         online_root / "transaction_builder/pskb/thread_input.rs",
         online_root / "transaction_builder/pskb/thread_request.rs",
     ]

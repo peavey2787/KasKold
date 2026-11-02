@@ -13,12 +13,13 @@ pub fn covenant_script_terms(
     network: &str,
     attestation_statement: &str,
 ) -> Result<String, JsValue> {
-    crate::contracts::covenant::script_terms::verified_terms_json(
-        covenant_type,
-        redeem_script_hex,
-        address,
-        network,
-        attestation_statement,
-    )
-    .map_err(|error| wasm_error!(&error))
+    crate::facade::WatchWallet::new()
+        .verified_covenant_terms(
+            covenant_type,
+            redeem_script_hex,
+            address,
+            network,
+            attestation_statement,
+        )
+        .map_err(|error| wasm_error!(&error))
 }

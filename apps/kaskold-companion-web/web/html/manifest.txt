@@ -40,9 +40,7 @@ screens/covenant/create/form/close.html
 screens/covenant/create/result.html
 screens/covenant/spend/owner_spend.html
 screens/covenant/spend/consolidate.html
-screens/covenant/spend/borrower_spend.html
 screens/covenant/spend/beneficiary_spend.html
-screens/covenant/recovery/timeout_refund.html
 screens/covenant/spend/payjoin_claim.html
 screens/covenant/spend/oracle_v1_claim.html
 screens/covenant/proofs/advanced_proofs.html

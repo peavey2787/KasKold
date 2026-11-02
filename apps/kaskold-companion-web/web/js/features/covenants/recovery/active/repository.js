@@ -10,7 +10,6 @@ const TYPE_NAMES = {
     vesting: 'Vest',
     additive: 'Piggy',
     escrow: 'D.Channel',
-    'timelocked-escrow': 'T-Escrow',
     'private-swap': 'Private Swap',
     payjoin: 'PayJoin',
     treasury: 'Treasury',

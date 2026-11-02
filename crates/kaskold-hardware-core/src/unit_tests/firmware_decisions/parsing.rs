@@ -1,8 +1,7 @@
 use std::vec;
 
 use crate::qr::classification::{
-    classify_qr_payload, decode_hex, is_covenant_hex, HexError,
-    QrPayloadKind,
+    classify_qr_payload, decode_hex, is_covenant_hex, HexError, QrPayloadKind,
 };
 
 #[test]

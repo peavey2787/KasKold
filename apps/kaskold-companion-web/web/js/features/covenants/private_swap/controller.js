@@ -3,6 +3,8 @@ import { showScreen } from '../../../app/navigation.js';
 import { byId } from '../../../core/dom.js';
 import { kasToSompi, sompiToKasString } from '../../../core/amounts.js';
 import { exactJsonStringify, exactUnsigned } from '../../../core/exact.js';
+import { formatDaaDuration } from '../../../core/format.js';
+import { fetchCurrentDaa } from '../../../core/node/daa.js';
 import { resolveFutureDaa } from '../../../core/node/future_daa.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';
 import { toast } from '../../../core/ui/toast.js';
@@ -10,10 +12,11 @@ import { getOwnerPubkeyHex, covShowPanel } from '../generation/panel_keys.js';
 import { handleCovFund } from '../generation/fund.js';
 import { getCovFee, ownerReceiveAddr } from '../payload/state.js';
 import { covAddActive, covRenderActive, covSaveActive } from '../recovery/active.js';
+import { openPsktReview } from '../../transactions/pskt_multisig/review.js';
 import { startScanner, stopScanner } from '../../stealth/index/camera.js';
 import { startPayloadScanner } from '../../stealth/index/whole_payload.js';
 import {
-    create_private_swap_claim, fetch_utxos_for_address_js,
+    create_private_swap_claim, create_private_swap_refund, fetch_utxos_for_address_js,
     private_swap_claim_sighash, private_swap_complete_public, private_swap_extract_secret, private_swap_max_fee_sompi,
     private_swap_insert_completed_signature, private_swap_verify_completed, private_swap_verify_presignature,
     pskt_finalize_and_broadcast, pskt_relay_to_kspt,
@@ -191,13 +194,17 @@ export async function bobClaimPrivateSwap() {
     } catch (error) { toast('Bob claim failed: ' + (error.message || error), 'error', 6000); }
 }
 
-export function openPrivateSwapRefund() {
+export async function openPrivateSwapRefund() {
     if (!privateSwapState.myAddress || !privateSwapState.myRedeem) { toast('No funded-side covenant to refund', 'error'); return; }
-    covShowPanel('timeout');
-    byId('cov-timeout-addr').value = privateSwapState.myAddress;
-    byId('cov-timeout-script').value = privateSwapState.myRedeem;
-    byId('cov-timeout-locktime').value = privateSwapState.myTimeoutDaa;
-    byId('cov-timeout-dest').value = privateSwapState.myDestination;
+    try {
+        const unlockDaa = exactUnsigned(privateSwapState.myTimeoutDaa, 'swap refund DAA');
+        const currentDaa = await fetchCurrentDaa();
+        if (currentDaa < unlockDaa) throw new Error('Refund unlocks in ~' + formatDaaDuration(unlockDaa - currentDaa) + '. An early refund is rejected by the node.');
+        const funding = await expectedFunding(privateSwapState.myAddress, privateSwapState.myAmountSompi, 'Refund');
+        const pskb = create_private_swap_refund(privateSwapState.myAddress, privateSwapState.myDestination, privateSwapState.myRedeem, exactJsonStringify([funding]), getCovFee(1));
+        navigationState._broadcastReturnScreen = 'covenant';
+        openPsktReview(pskb);
+    } catch (error) { toast('Refund failed: ' + (error.message || error), 'error', 6000); }
 }
 
 export function clearPrivateSwap() { stopPrivateSwapWatcher(); clearPrivateSwapDeviceFlow(); clearPrivateSwapState(); showSection('hub'); renderPrivateSwap(); }

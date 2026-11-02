@@ -770,26 +770,6 @@
     {
       "baseline_complexity": 1,
       "baseline_status": "pass",
-      "function": "covenant_timelocked_escrow",
-      "line": 11,
-      "path": "crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/timelocked.rs",
-      "test_seams": [
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/mod.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
-      "function": "timeout_refund_spec",
-      "line": 138,
-      "path": "crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/timelocked.rs",
-      "test_seams": [
-        "crates/online-watcher/src/wasm_api/contracts/covenant/families/unit_tests/feature_contracts.rs"
-      ]
-    },
-    {
-      "baseline_complexity": 1,
-      "baseline_status": "pass",
       "function": "BeneficiarySweepPlan::spec",
       "line": 182,
       "path": "crates/online-watcher/src/wasm_api/contracts/covenant/families/escrow/timelocked.rs",

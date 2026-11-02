@@ -5,12 +5,10 @@
 
 mod commit_reveal;
 mod crowdfund;
-mod hashes;
 mod merkle;
 
 pub use commit_reveal::*;
 pub use crowdfund::*;
-pub use hashes::*;
 pub use merkle::*;
 
 #[cfg(test)]

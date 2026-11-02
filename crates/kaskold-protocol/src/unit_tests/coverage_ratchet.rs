@@ -50,17 +50,22 @@ fn account_descriptor_accepts_canonical_raw_and_hex_wrapped_account_keys() {
     let descriptor = decode_account(&text, Network::Mainnet).expect("canonical account");
     assert_eq!(descriptor.receive_addresses.len(), 20);
     assert_eq!(descriptor.change_addresses.len(), 20);
-    assert!(descriptor.receive_addresses[0]
-        .address
-        .starts_with("kaspa:"));
+    assert_eq!(
+        descriptor.receive_addresses[0].address,
+        "kaspa:qpnh97agnsn05zh5cejkhh5qhkgdng7hvqz8pkf7rz58hmkd2tu973mmdc8t8"
+    );
 
     let raw = decode_account(&hex::encode(payload), Network::Testnet10).expect("raw payload hex");
-    assert!(raw.receive_addresses[0].address.starts_with("kaspatest:"));
+    assert_eq!(
+        raw.receive_addresses[0].address,
+        "kaspatest:qpnh97agnsn05zh5cejkhh5qhkgdng7hvqz8pkf7rz58hmkd2tu97saakhe6r"
+    );
     let wrapped = decode_account(&hex::encode(text.as_bytes()), Network::Devnet)
         .expect("hex-wrapped canonical text");
-    assert!(wrapped.receive_addresses[0]
-        .address
-        .starts_with("kaspadev:"));
+    assert_eq!(
+        wrapped.receive_addresses[0].address,
+        "kaspadev:qpnh97agnsn05zh5cejkhh5qhkgdng7hvqz8pkf7rz58hmkd2tu97a97t267t"
+    );
     assert_eq!(
         decode_account("00", Network::Mainnet)
             .err()

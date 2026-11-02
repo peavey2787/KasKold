@@ -63,7 +63,7 @@ def _dom_dependency_warnings(root: Path) -> list[str]:
 
 def _interaction_flow_warnings(root: Path) -> list[str]:
     checks = (
-        ("browser-feature-interactions", ["node", "qa/checks/web/check_web_covenant_interactions.mjs"]),
+        ("browser-feature-interactions", ["node", "qa/checks/web/covenants/check_web_covenant_interactions.mjs"]),
     )
     warnings: list[str] = []
     for name, command in checks:

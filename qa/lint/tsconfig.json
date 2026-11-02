@@ -12,5 +12,5 @@
     "skipLibCheck": true,
     "maxNodeModuleJsDepth": 0
   },
-  "include": ["../checks/web/browser-globals.d.ts", "../../apps/kaskold-companion-web/web/js/core/**/*.js"]
+  "include": ["../checks/web/support/browser-globals.d.ts", "../../apps/kaskold-companion-web/web/js/core/**/*.js"]
 }

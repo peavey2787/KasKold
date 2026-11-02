@@ -126,13 +126,11 @@ pub(crate) fn validate_covenant_address(
     redeem_script: &[u8],
     network_name: &str,
 ) -> Result<(), String> {
-    let derived_address = crate::protocol::script::p2sh::script_to_address(
+    crate::transaction_builder::covenant::redeem::require_redeem_on_prefix(
+        covenant_address,
         redeem_script,
         address::network_prefix(network_name)?,
     )?;
-    if derived_address != covenant_address {
-        return Err("Covenant address does not match the supplied redeem script".to_string());
-    }
     Ok(())
 }
 
@@ -185,10 +183,14 @@ pub(crate) fn encode_vault_spend_pskb(
     redeem_script: &[u8],
     split: bool,
 ) -> Result<EncodedVaultSpend, String> {
-    use crate::transaction_builder::pskb::{
-        encode_wire, CovenantInputSettings, PskbGlobalPlan, PskbInputPlan, PskbOutputPlan, PskbPlan,
+    use crate::transaction_builder::{
+        covenant::execution::{execution_for, SpendPath},
+        pskb::{
+            encode_wire, CovenantInputPolicy, PskbGlobalPlan, PskbInputPlan, PskbOutputPlan,
+            PskbPlan,
+        },
     };
-    use serde_json::{json, Value};
+    use serde_json::json;
 
     if prepared.utxos.len() != 1 {
         return Err(format!(
@@ -200,12 +202,13 @@ pub(crate) fn encode_vault_spend_pskb(
         prepared.utxos[0].clone(),
         &prepared.covenant_script_pubkey,
         redeem_script,
-        CovenantInputSettings {
+        CovenantInputPolicy {
             sequence: 0,
             sig_op_count: 1,
             minimum_signatures: 1,
-            proprietaries: serde_json::json!({}),
-            min_time: Value::from(0),
+            proprietaries: json!({}),
+            min_time: Some(0),
+            execution: Some(execution_for(redeem_script, SpendPath::Key(0))?),
         },
     );
     let binding = json!({
@@ -235,9 +238,8 @@ pub(crate) fn encode_vault_spend_pskb(
     let plan = PskbPlan {
         global: PskbGlobalPlan {
             tx_version: 1,
-            fallback_lock_time: Value::from(0),
-            covenant_branch: None,
-            proprietaries: serde_json::json!({}),
+            fallback_lock_time: Some(0),
+            proprietaries: json!({}),
             transaction_payload: None,
         },
         inputs: vec![input],

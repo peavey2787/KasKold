@@ -1,33 +1,11 @@
-//! Time-locked escrow and beneficiary spend planning.
+//! Beneficiary spend planning.
 
-#[cfg(test)]
-use super::super::sweep::CovenantSweepConfig;
-use super::super::sweep::{self, CovenantSweepSpec, SweepSourceKind};
+use super::super::{
+    execution::SpendPath,
+    redeem::decode_redeem_script,
+    sweep::{self, CovenantSweepSpec, SweepSourceKind},
+};
 use crate::transaction_builder::pskb::PreparedSweep;
-
-#[cfg(test)]
-pub(crate) fn timeout_refund_spec<'a>(
-    covenant_address: &'a str,
-    destination_address: &'a str,
-    fee: u64,
-    redeem_script: &'a [u8],
-    locktime_daa: u64,
-) -> CovenantSweepSpec<'a> {
-    CovenantSweepSpec {
-        covenant_address,
-        destination_address,
-        fee,
-        empty_error: "No UTXOs at covenant address",
-        low_balance_error: "Balance too low to cover fee",
-        config: CovenantSweepConfig {
-            redeem_script,
-            input_sequence: 0,
-            lock_time: locktime_daa,
-            branch: None,
-            minimum_signatures: Some(0),
-        },
-    }
-}
 
 pub(crate) struct BeneficiarySweepPlan {
     pub(crate) redeem_script: Vec<u8>,
@@ -38,7 +16,7 @@ pub(crate) struct BeneficiarySweepPlan {
 
 impl BeneficiarySweepPlan {
     pub(crate) fn new(redeem_script_hex: &str, displayed_locktime: u64) -> Result<Self, String> {
-        let redeem_script = sweep::decode_redeem_script(redeem_script_hex)?;
+        let redeem_script = decode_redeem_script(redeem_script_hex)?;
         let input_sequence =
             crate::protocol::script::extract_csv_sequence(&redeem_script)?.unwrap_or(0);
         Ok(Self {
@@ -69,7 +47,7 @@ impl BeneficiarySweepPlan {
                 redeem_script: &self.redeem_script,
                 input_sequence: self.input_sequence,
                 lock_time: self.transaction_locktime,
-                branch: "beneficiary",
+                path: SpendPath::Key(1),
             },
         )
     }

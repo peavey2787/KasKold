@@ -170,7 +170,7 @@ def ensure_windows_shared_test_tools(platform: str | None = None) -> None:
 
 
 def selected_files(scope: str) -> list[Path]:
-    files = sorted(path for root in TEST_ROOTS for path in root.glob("test_*.py"))
+    files = sorted(path for root in TEST_ROOTS for path in root.rglob("test_*.py"))
     if scope == "shared":
         return [path for path in files if path.name not in MOBILE_TESTS]
     wanted = ANDROID_TESTS if scope == "android" else IOS_TESTS

@@ -1,9 +1,8 @@
 import { covShowPanel, covTypeChanged } from '../../../../features/covenants/generation/panel_keys.js';
 import { covScanAddress, covScanPubkey } from '../../../../features/covenants/scanning.js';
-import { handleCovBorrowerSpend, handleCovPayjoinClaim } from '../../../../features/covenants/spending/standard/spend_paths.js';
+import { handleCovPayjoinClaim } from '../../../../features/covenants/spending/standard/spend_paths.js';
 import { byId } from '../../../../core/dom.js';
 export function bindCovenantScansAndClaims(_context) {
-    byId('btn-cov-borrower-create').onclick = () => handleCovBorrowerSpend();
     byId('cov-type').onchange = () => covTypeChanged();
     const recovery = byId('btn-cov-scan-savings-recovery');
     if (recovery) recovery.onclick = () => covScanPubkey('cov-savings-recovery-pk', 'Scan backup wallet address or x-only (not a kpub)', true);

@@ -4,21 +4,13 @@ use crate::account::address::network_prefix;
 use crate::wasm_api::utilities::common::js_error;
 use crate::wasm_api::JsValue;
 use kaspa_portal::primitives::address::{
-    address_prefix, address_to_script_pubkey, script_address, validate_kaspa_address, KaspaNetwork,
+    address_prefix, script_address, validate_kaspa_address, KaspaNetwork,
 };
 
 /// Whether `text` is a valid Kaspa address on any network.
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 pub fn is_kaspa_address(text: &str) -> bool {
     validate_kaspa_address(text.as_bytes())
-}
-
-/// Script public key (hex, without the version) an address locks to.
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-pub fn address_script_public_key(address: &str) -> Result<String, JsValue> {
-    address_to_script_pubkey(address)
-        .map(hex::encode)
-        .map_err(js_error)
 }
 
 /// Address a standard P2PK or P2SH script public key (hex, without the

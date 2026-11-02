@@ -68,8 +68,8 @@ fn wasm_qr_boundaries_cover_generation_decoding_progress_and_version() {
 #[test]
 fn pskt_and_payload_native_cores_reject_malformed_inputs_without_jsvalue() {
     use super::pskt::{
-        pskt_detect, pskt_finalize_and_broadcast_string, pskt_merge_signed_kspt_string,
-        pskt_relay_to_kspt_string, pskt_summary_string,
+        pskt_detect, pskt_finalize_and_broadcast_string, pskt_relay_to_kspt_string,
+        pskt_summary_string,
     };
     use crate::wasm_api::{
         contracts::payload::{build_covenant_payload_string, parse_covenant_payload_string},
@@ -90,13 +90,6 @@ fn pskt_and_payload_native_cores_reject_malformed_inputs_without_jsvalue() {
             .map(|error| error.to_string())
             .as_deref(),
         Some("Encoding: payload too short")
-    );
-    assert_eq!(
-        pskt_merge_signed_kspt_string("00", "00")
-            .err()
-            .map(|error| error.to_string())
-            .as_deref(),
-        Some("KSPT is truncated")
     );
     assert_eq!(
         ready(pskt_finalize_and_broadcast_string("00", "ws://unused"))
@@ -127,21 +120,17 @@ fn pskt_and_payload_native_cores_reject_malformed_inputs_without_jsvalue() {
 }
 
 #[test]
-fn pskb_document_and_output_cores_go_through_portal() {
-    use super::pskt::{pskb_append_output_string, pskb_encode_document_string, pskt_detect};
+fn pskb_output_core_goes_through_portal() {
+    use super::pskt::{pskb_append_output_string, pskt_detect};
 
     let document = r#"{"global":{"outputCount":0},"inputs":[],"outputs":[]}"#;
-    let wire = pskb_encode_document_string(document).expect("PSKB wire");
+    let wire = kaspa_portal::transaction::interchange::pskt::pskb::encode_pskt_document(
+        serde_json::from_str(document).expect("document"),
+    )
+    .expect("PSKB wire");
     assert_eq!(pskt_detect(&wire), "pskb");
     let appended = pskb_append_output_string(&wire, 7, "000051").expect("appended");
     assert_ne!(appended, wire);
-    assert_eq!(
-        pskb_encode_document_string("[")
-            .err()
-            .map(|error| error.to_string())
-            .as_deref(),
-        Some("PSKT JSON: EOF while parsing a list at line 1 column 1")
-    );
     assert_eq!(
         pskb_append_output_string(&wire, 7, "010051")
             .err()
@@ -159,21 +148,17 @@ fn pskb_document_and_output_cores_go_through_portal() {
 }
 
 #[test]
-fn pskb_document_and_output_exports_wrap_the_cores() {
-    use super::pskt::{pskb_append_output, pskb_encode_document};
+fn pskb_output_export_wraps_the_core() {
+    use super::pskt::pskb_append_output;
     use crate::wasm_api::test_support::expect_js;
 
     let document = r#"{"global":{"outputCount":0},"inputs":[],"outputs":[]}"#;
-    let wire = expect_js(pskb_encode_document(document), "PSKB wire");
+    let wire = kaspa_portal::transaction::interchange::pskt::pskb::encode_pskt_document(
+        serde_json::from_str(document).expect("document"),
+    )
+    .expect("PSKB wire");
     let appended = expect_js(pskb_append_output(&wire, 7, "000051"), "appended");
     assert_ne!(appended, wire);
-    assert_eq!(
-        pskb_encode_document("[")
-            .err()
-            .map(|error| format!("{error:?}"))
-            .as_deref(),
-        Some(r#"JsValue(Some("PSKT JSON: EOF while parsing a list at line 1 column 1"))"#)
-    );
     assert_eq!(
         pskb_append_output(&wire, 7, "0000zz")
             .err()

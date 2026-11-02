@@ -212,9 +212,9 @@ def _check_storage_contract(all_web_js_source: str) -> list[str]:
 def _check_required_web_checks(root: Path) -> list[str]:
     required_web_checks = (
         root / "qa/checks/web/check_web_dom_contract.py",
-        root / "qa/checks/web/check_web_covenant_interactions.mjs",
+        root / "qa/checks/web/covenants/check_web_covenant_interactions.mjs",
         root / "qa/checks/web/check_web_javascript.py",
-        root / "qa/checks/web/check_web_critical_paths.mjs",
+        root / "qa/checks/web/runtime/check_web_critical_paths.mjs",
     )
     missing_web_checks = [path.name for path in required_web_checks if not path.exists()]
     if missing_web_checks:
@@ -297,7 +297,7 @@ def _check_recovery_compatibility_exception(root: Path) -> list[str]:
             "historical browser recovery modules must stay absent: "
             + ", ".join(historical_modules)
         )
-    regression_test = root / "qa/checks/web/check_web_critical_paths.mjs"
+    regression_test = root / "qa/checks/web/runtime/check_web_critical_paths.mjs"
     if not regression_test.exists():
         errors.append("current recovery regression test is missing")
     else:

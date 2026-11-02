@@ -103,6 +103,10 @@ Because each builder JSON is itself signature-protected and also binds the final
 The generator runs `cargo-deny`, `syft`, and `osv-scanner`, records their real version strings, hashes and byte-counts the actual scanner outputs, copies and hashes every release-source Cargo lockfile, writes canonical `software_assurance.json`, and signs that JSON with Ed25519. The release gate re-opens every referenced file and rejects missing, substituted, or modified evidence.
 When `KASKOLD_RELEASE_EVIDENCE_DIR` is not set, the generation helper writes ephemeral/local evidence under `target/qa/release/evidence`; release-readiness itself still requires an explicit evidence root and source/artifact bindings.
 
+## Kaspa Portal assurance
+
+The signing core lives in Kaspa Portal, so `portal_assurance.json` binds a release to the Portal commit named in `Cargo.lock`. `python3 qa/checks/release/generate_portal_assurance.py` asks GitHub for a successful `mutation.yml` and `fuzz.yml` run on exactly that commit, records both runs, and signs the result. It refuses to write evidence when either run is missing; dispatch the workflow on that commit first.
+
 ## Running the gate
 
 `make release` only builds and manifest-verifies reproducible artifacts. It intentionally does not fail merely because external audit/HIL/signing-custody evidence has not been supplied. Once the candidate artifact and evidence bundle exist, run the fail-closed gate explicitly:

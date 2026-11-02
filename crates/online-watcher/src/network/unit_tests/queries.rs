@@ -53,7 +53,7 @@ fn utxo_query_boundaries_reject_invalid_addresses_before_transport() {
 fn native_network_query_and_submission_surfaces_reach_transport_fail_closed() {
     use crate::{
         network::{
-            queries::{blocks, chain, fees},
+            queries::{chain, fees},
             submission,
         },
         protocol::transaction::consensus::{ConsensusTransaction, InputEncoding},
@@ -74,9 +74,6 @@ fn native_network_query_and_submission_surfaces_reach_transport_fail_closed() {
     };
     assert!(ready(fetch_all_complete("ws://unused", &wallet))
         .expect_err("complete utxo native transport")
-        .contains(transport_error));
-    assert!(ready(blocks::get_raw("ws://unused", &[0x11; 32]))
-        .expect_err("block native transport")
         .contains(transport_error));
     assert!(ready(chain::virtual_daa_score("ws://unused"))
         .expect_err("dag native transport")

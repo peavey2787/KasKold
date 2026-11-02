@@ -6,8 +6,9 @@ import { resolveNodeUrl } from '../../../../../core/node/resolver.js';
 import { toast } from '../../../../../core/ui/toast.js';
 import { getCovFee } from '../../../payload/state.js';
 import { pickThread } from '../spend_paths.js';
+import { encodeCovenantSpend } from '../spend_document.js';
 import { openPsktReview } from '../../../../transactions/pskt_multisig/review.js';
-import { address_script_public_key, create_covenant_owner_spend, create_global_spending_limit_withdraw, fetch_utxos_for_address_js, pskb_encode_document, thread_withdraw_fee } from '../../../../../wasm/api.js';
+import { create_covenant_owner_spend, create_global_spending_limit_withdraw, fetch_utxos_for_address_js, thread_withdraw_fee } from '../../../../../wasm/api.js';
 
 import { byId } from '../../../../../core/dom.js';
 import { formatDaaDuration } from '../../../../../core/format.js';
@@ -220,38 +221,15 @@ async function buildPartialOwnerSpend(request) {
     if (total < sendSompi + fee) throw 'Balance too low: ' + sompiToKasString(total) + ' KAS available';
 
     const change = total - sendSompi - fee;
-    const covSpkHex = '0000' + address_script_public_key(covAddr);
-    const destSpkHex = '0000' + address_script_public_key(destAddr);
-
-    const inputs = utxos.map(u => ({
-        previousOutpoint: { transactionId: u.tx_id, index: u.index },
-        sequence: 0, sigOpCount: 1,
-        utxoEntry: { amount: exactUnsigned(u.amount, 'owner input sompi'), scriptPublicKey: covSpkHex, blockDaaScore: exactUnsigned(u.block_daa_score ?? 0n, 'owner input DAA'), isCoinbase: false },
-        redeemScript: redeemHex, partialSigs: {}, minimumSignatures: 1,
-        bip32Derivations: [], proprietaries: [], finalScriptSig: null, minTime: 0
-    }));
-
-    const outputs = [{ amount: sendSompi, scriptPublicKey: destSpkHex, bip32Derivations: [], proprietaries: [] }];
-    if (change > 0n) {
-        outputs.push({ amount: change, scriptPublicKey: covSpkHex, bip32Derivations: [], proprietaries: [] });
-    }
+    const outputs = [{ address: destAddr, amount: String(sendSompi) }];
+    if (change > 0n) outputs.push({ address: covAddr, amount: String(change) });
 
     // Partial owner reclaim always spends the immediate branch (the
     // time-locked owner break is full-sweep only), so the TX must be
     // final: locktime 0. The script's CLTV lives in the beneficiary
     // branch; stamping it here would make the node reject the TX as
     // "input #0 is not finalized" before the timeout.
-    const pskt = {
-        global: {
-            txVersion: 0, fallbackLockTime: 0n,
-            inputsModifiableFlag: false, outputsModifiableFlag: false,
-            inputCount: inputs.length, outputCount: outputs.length,
-            bip32Derivations: [], proprietaries: []
-        },
-        inputs, outputs
-    };
-
-    return pskb_encode_document(exactJsonStringify(pskt));
+    return encodeCovenantSpend({ covAddr, redeemHex, path: 'owner', utxos, outputs, txVersion: 0 });
 }
 
 function readOwnerSpendInputs() {

@@ -1,6 +1,13 @@
+use super::{
+    execution::{execution_for, SpendPath},
+    redeem::{decode_redeem_script, require_redeem_for_address},
+};
 use crate::{
     account::{address, utxo::UtxoEntry},
     network,
+    transaction_builder::pskb::{
+        encode_wire, CovenantInputPolicy, PskbGlobalPlan, PskbInputPlan, PskbOutputPlan, PskbPlan,
+    },
 };
 
 const MAX_COVENANT_INPUTS: usize = 4;
@@ -49,15 +56,17 @@ pub(crate) fn build_claim(
     if covenant_utxos.is_empty() {
         return Err("No UTXOs at covenant address".to_string());
     }
-    let redeem_script =
-        hex::decode(redeem_script_hex).map_err(|error| format!("Bad redeem hex: {error}"))?;
+    let redeem_script = decode_redeem_script(redeem_script_hex)?;
+    require_redeem_for_address(covenant_address, &redeem_script)?;
     let amounts = calculate_amounts(&covenant_utxos, &mixing_utxo, requested_fee)?;
     let scripts = Scripts::new(covenant_address, destination_address, mixing_address)?;
-    let inputs = build_inputs(&covenant_utxos, &mixing_utxo, &scripts, &redeem_script);
-    let outputs = build_outputs(&scripts, amounts.send, amounts.change);
+    let inputs = build_inputs(&covenant_utxos, &mixing_utxo, &scripts, &redeem_script)?;
     let input_count = inputs.len();
-    let output_count = outputs.len();
-    let wire = encode_pskb(inputs, outputs, input_count, output_count)?;
+    let wire = encode_wire(&PskbPlan {
+        global: PskbGlobalPlan::standard(),
+        inputs,
+        outputs: build_outputs(&scripts, amounts.send, amounts.change),
+    })?;
     Ok(PayjoinClaim {
         wire,
         input_count,
@@ -156,24 +165,19 @@ fn required_fee(input_count: usize) -> Result<u64, String> {
 }
 
 struct Scripts {
-    covenant: String,
-    destination: String,
-    mixing: String,
+    covenant: Vec<u8>,
+    destination: Vec<u8>,
+    mixing: Vec<u8>,
 }
 
 impl Scripts {
     fn new(covenant: &str, destination: &str, mixing: &str) -> Result<Self, String> {
         Ok(Self {
-            covenant: script_hex(covenant)?,
-            destination: script_hex(destination)?,
-            mixing: script_hex(mixing)?,
+            covenant: address::address_to_script_pubkey(covenant)?,
+            destination: address::address_to_script_pubkey(destination)?,
+            mixing: address::address_to_script_pubkey(mixing)?,
         })
     }
-}
-
-fn script_hex(address_text: &str) -> Result<String, String> {
-    let script = address::address_to_script_pubkey(address_text)?;
-    Ok(format!("0000{}", hex::encode(script)))
 }
 
 fn build_inputs(
@@ -181,99 +185,39 @@ fn build_inputs(
     mixing_utxo: &UtxoEntry,
     scripts: &Scripts,
     redeem_script: &[u8],
-) -> Vec<serde_json::Value> {
-    let redeem_hex = hex::encode(redeem_script);
-    let mut covenant_inputs = covenant_utxos
+) -> Result<Vec<PskbInputPlan>, String> {
+    let execution = execution_for(redeem_script, SpendPath::Key(1))?;
+    let mut inputs = covenant_utxos
         .iter()
-        .map(|utxo| covenant_input(utxo, &scripts.covenant, &redeem_hex))
+        .map(|utxo| {
+            PskbInputPlan::covenant(
+                utxo.clone(),
+                &scripts.covenant,
+                redeem_script,
+                CovenantInputPolicy {
+                    sequence: 0,
+                    sig_op_count: 1,
+                    minimum_signatures: 1,
+                    proprietaries: serde_json::json!({}),
+                    min_time: Some(0),
+                    execution: Some(execution),
+                },
+            )
+        })
         .collect::<Vec<_>>();
-    let mut inputs = Vec::with_capacity(covenant_inputs.len() + 1);
-    inputs.push(covenant_inputs.remove(0));
-    inputs.push(standard_input(mixing_utxo, &scripts.mixing));
-    inputs.extend(covenant_inputs);
-    inputs
+    inputs.insert(
+        1,
+        PskbInputPlan::p2pk(mixing_utxo.clone(), &scripts.mixing, serde_json::json!({})),
+    );
+    Ok(inputs)
 }
 
-fn covenant_input(
-    utxo: &UtxoEntry,
-    script_public_key: &str,
-    redeem_script: &str,
-) -> serde_json::Value {
-    input_value(utxo, script_public_key, Some(redeem_script))
-}
-
-fn standard_input(utxo: &UtxoEntry, script_public_key: &str) -> serde_json::Value {
-    input_value(utxo, script_public_key, None)
-}
-
-fn input_value(
-    utxo: &UtxoEntry,
-    script_public_key: &str,
-    redeem_script: Option<&str>,
-) -> serde_json::Value {
-    serde_json::json!({
-        "previousOutpoint": {
-            "transactionId": utxo.tx_id.as_str(),
-            "index": utxo.index
-        },
-        "sequence": "0",
-        "sighashType": 1,
-        "sigOpCount": 1,
-        "utxoEntry": {
-            "amount": utxo.amount.to_string(),
-            "scriptPublicKey": script_public_key,
-            "blockDaaScore": "0",
-            "isCoinbase": false
-        },
-        "redeemScript": redeem_script,
-        "partialSigs": {},
-        "minimumSignatures": 1,
-        "bip32Derivations": {},
-        "proprietaries": {},
-        "finalScriptSig": null,
-        "minTime": "0"
-    })
-}
-
-fn build_outputs(scripts: &Scripts, send: u64, change: u64) -> Vec<serde_json::Value> {
-    let mut outputs = vec![output_value(send, &scripts.destination)];
+fn build_outputs(scripts: &Scripts, send: u64, change: u64) -> Vec<PskbOutputPlan> {
+    let mut outputs = vec![PskbOutputPlan::plain(send, &scripts.destination)];
     if change > 0 {
-        outputs.push(output_value(change, &scripts.mixing));
+        outputs.push(PskbOutputPlan::plain(change, &scripts.mixing));
     }
     outputs
-}
-
-fn output_value(amount: u64, script_public_key: &str) -> serde_json::Value {
-    serde_json::json!({
-        "amount": amount.to_string(),
-        "scriptPublicKey": script_public_key,
-        "bip32Derivations": {},
-        "proprietaries": {}
-    })
-}
-
-fn encode_pskb(
-    inputs: Vec<serde_json::Value>,
-    outputs: Vec<serde_json::Value>,
-    input_count: usize,
-    output_count: usize,
-) -> Result<String, String> {
-    crate::transaction_builder::pskb::encode_pskt_value(serde_json::json!({
-        "global": {
-            "version": 0,
-            "txVersion": 0,
-            "fallbackLockTime": null,
-            "covenantBranch": "beneficiary",
-            "inputsModifiable": false,
-            "outputsModifiable": false,
-            "inputCount": input_count,
-            "outputCount": output_count,
-            "xpubs": {},
-            "proprietaries": {}
-        },
-        "inputs": inputs,
-        "outputs": outputs
-    }))
 }
 
 #[cfg(test)]

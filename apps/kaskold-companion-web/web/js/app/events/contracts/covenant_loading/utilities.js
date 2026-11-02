@@ -22,10 +22,6 @@ export function bindSwapAndUtilityActions() {
         const addr = new TextDecoder().decode(new Uint8Array(data)).trim();
         if (is_kaspa_address(addr)) { stopScanner(); byId('cov-consol-dest').value = addr; showScreen('covenant'); covShowPanel('consolidate'); toast('Address scanned', 'ok', 1500); }
     });
-    byId('btn-cov-scan-borrower-addr').onclick = () => startScanner('Scan covenant address', (data) => {
-        const addr = new TextDecoder().decode(new Uint8Array(data)).trim();
-        if (is_kaspa_address(addr)) { stopScanner(); byId('cov-borrower-addr').value = addr; showScreen('covenant'); toast('Address scanned', 'ok', 1500); }
-    });
     // Balance checker
     byId('btn-cov-check-balance').onclick = () => {
         covShowPanel('balance');

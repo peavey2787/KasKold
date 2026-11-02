@@ -33,20 +33,16 @@ fn payjoin_fee_split_and_required_fee_are_amount_exact() {
 }
 
 #[test]
-fn payjoin_outputs_and_wire_preserve_zero_change_and_nonzero_change() {
+fn payjoin_outputs_preserve_zero_change_and_nonzero_change() {
     let scripts = Scripts {
-        covenant: "000051".into(),
-        destination: "000052".into(),
-        mixing: "000053".into(),
+        covenant: vec![0x51],
+        destination: vec![0x52],
+        mixing: vec![0x53],
     };
     let one = build_outputs(&scripts, 7, 0);
     assert_eq!(one.len(), 1);
-    assert_eq!(one[0]["amount"], "7");
+    assert_eq!(one[0].amount, 7);
     let two = build_outputs(&scripts, 7, 1);
     assert_eq!(two.len(), 2);
-    assert_eq!(two[1]["amount"], "1");
-
-    let wire = encode_pskb(Vec::new(), two, 0, 2).expect("PSKB wire");
-    let bytes = hex::decode(wire).expect("wire hex");
-    assert_eq!(&bytes[..4], b"PSKB");
+    assert_eq!(two[1].amount, 1);
 }

@@ -13,6 +13,7 @@ import { exactUnsigned } from '../../../../../core/exact.js';
 
 function populateBeneficiaryPanel(result, type) {
     covShowPanel('beneficiary');
+    byId('cov-bene-savings-key-wrap').classList.toggle('u-hidden', type !== 'timelocked-savings');
     byId('cov-bene-addr').value = result.address || '';
     byId('cov-bene-script').value = result.redeem_script_hex || '';
     byId('cov-beneficiary-panel').dataset.covBeneType = type;

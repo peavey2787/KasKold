@@ -101,7 +101,13 @@ fn p2sh_address(script: &[u8]) -> String {
 
 #[test]
 fn merkle_spend_planning_covers_selection_change_and_validation() {
-    let redeem = vec![0x51];
+    let redeem = crate::contracts::merkle::script::build_merkle_whitelist_script(
+        &[0x31; 32],
+        &[0x32; 32],
+        2,
+        100,
+    );
+    let redeem_hex = hex::encode(&redeem);
     let covenant = p2sh_address(&redeem);
     let destination = address(8);
     let proof = json!([
@@ -112,7 +118,7 @@ fn merkle_spend_planning_covers_selection_change_and_validation() {
     let mut request = super::merkle::MerkleSpendRequest {
         covenant_address: &covenant,
         destination_address: &destination,
-        redeem_script_hex: "51",
+        redeem_script_hex: &redeem_hex,
         proof_json: &proof,
         send_amount: 10,
         requested_fee: 1,
@@ -134,19 +140,31 @@ fn merkle_spend_planning_covers_selection_change_and_validation() {
 
     for ((send_amount, fee, utxos, proof_json, redeem_hex), expected) in [
         (
-            (0, 0, vec![utxo(1, 100)], proof.as_str(), "51"),
+            (
+                0,
+                0,
+                vec![utxo(1, 100)],
+                proof.as_str(),
+                redeem_hex.as_str(),
+            ),
             "Send amount must be > 0",
         ),
         (
-            (100, u64::MAX, vec![utxo(1, 100)], proof.as_str(), "51"),
+            (
+                100,
+                u64::MAX,
+                vec![utxo(1, 100)],
+                proof.as_str(),
+                redeem_hex.as_str(),
+            ),
             "Merkle spend amount overflow",
         ),
         (
-            (1, 0, Vec::new(), proof.as_str(), "51"),
+            (1, 0, Vec::new(), proof.as_str(), redeem_hex.as_str()),
             "No UTXOs at covenant address",
         ),
         (
-            (1, 0, vec![utxo(1, 100)], "not-json", "51"),
+            (1, 0, vec![utxo(1, 100)], "not-json", redeem_hex.as_str()),
             "Bad merkle proof JSON: expected ident at line 1 column 2",
         ),
         (
@@ -175,7 +193,7 @@ fn merkle_spend_planning_covers_selection_change_and_validation() {
     let mut overflow = super::merkle::MerkleSpendRequest {
         covenant_address: &covenant,
         destination_address: &destination,
-        redeem_script_hex: "51",
+        redeem_script_hex: &redeem_hex,
         proof_json: &proof,
         send_amount: 1,
         requested_fee: 0,
@@ -193,8 +211,7 @@ fn merkle_spend_planning_covers_selection_change_and_validation() {
 #[test]
 fn zk_wasm_boundaries_cover_hash_merkle_and_commit_reveal() {
     let owner = crate::wasm_api::test_support::xonly_key(2);
-    let committed =
-        crate::wasm_api::test_support::expect_js(super::hashes::commit_hash("abcd"), "commit hash");
+    let committed = "44".repeat(32);
     assert_eq!(committed.len(), 64);
 
     let addresses = vec![address(0x41), address(0x42), address(0x43)];

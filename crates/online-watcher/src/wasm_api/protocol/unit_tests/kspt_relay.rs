@@ -4,10 +4,18 @@ use serde_json::{json, Map, Value};
 
 use crate::wasm_api::protocol::pskt::{
     pskt_finalize_and_broadcast_string,
-    pskt_merge_signed_kspt_string as merge_signed_kspt_into_pskb,
     pskt_relay_to_kspt_string as relay_pskb_as_kspt_hex_for_network,
 };
 use crate::wasm_api::test_support::{canonical_test_pskt, ready};
+
+fn merge_signed_kspt_into_pskb(signed_kspt_hex: &str, pskb: &str) -> Result<String, String> {
+    kaskold_protocol::merge_signed_kspt_hex(
+        pskb,
+        signed_kspt_hex,
+        kaskold_protocol::Network::Mainnet,
+    )
+    .map_err(|error| error.to_string())
+}
 
 const RELAY_KSPT_HEX: &str = "4b535054010000000100000001000000000000000000000000000000000000000000000000000000000000000000000000000000001111111111111111111111111111111111111111111111111111111111111111010000006400000000000000000000000000000001000022204444444444444444444444444444444444444444444444444444444444444444ac0000005a00000000000000000022205555555555555555555555555555555555555555555555555555555555555555ac4e01";
 
@@ -294,24 +302,16 @@ fn signed_kspt_merge_populates_p2pk_signatures_and_rejects_bad_envelopes() {
             .err()
             .map(|error| error.to_string())
             .as_deref(),
-        Some("KSPT hex: Invalid character 'z' at position 0")
+        Some("MalformedRequest: invalid KSPT hex: Invalid character 'z' at position 0")
     );
     assert_eq!(
         merge_signed_kspt_into_pskb(&hex::encode(b"KSPT"), &unsigned_pskb)
             .err()
             .map(|error| error.to_string())
             .as_deref(),
-        Some("KSPT is truncated")
+        Some("TransactionMismatch: KSPT is truncated")
     );
 
-    for network_code in 1u8..=4 {
-        let mut networked = hex::decode(&signed_kspt).unwrap();
-        assert_eq!(networked[networked.len() - 2], b'N');
-        let last = networked.len() - 1;
-        networked[last] = network_code;
-        merge_signed_kspt_into_pskb(&hex::encode(networked), &unsigned_pskb)
-            .expect("canonical signed network code");
-    }
     let mut invalid_network = hex::decode(&signed_kspt).unwrap();
     let last = invalid_network.len() - 1;
     invalid_network[last] = 5;
@@ -340,7 +340,7 @@ fn signed_kspt_merge_populates_p2pk_signatures_and_rejects_bad_envelopes() {
     changed_sighash[signature_offset + 1] = 0x02;
     assert_eq!(
         merge_signed_kspt_into_pskb(&hex::encode(changed_sighash), &unsigned_pskb).unwrap_err(),
-        "input[0] signed KSPT changed sighash type to 0x02",
+        "TransactionMismatch: input[0] signed KSPT changed sighash type to 0x02",
     );
 }
 

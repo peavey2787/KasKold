@@ -12,5 +12,4 @@ export const standardSerializers = Object.freeze({
         + u64(result.max_withdraw_sompi) + u64(result.cooldown_daa) + u64(result.start_daa)
         + pk(result.beneficiary_pubkey_hex) + pk(result.covenant_id_hex),
     escrow: (result) => vhex(result.redeem_script_hex),
-    'timelocked-escrow': (result) => pk(result.beneficiary_pubkey_hex) + u64(result.locktime_daa),
 });

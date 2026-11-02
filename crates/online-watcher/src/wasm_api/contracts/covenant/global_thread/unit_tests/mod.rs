@@ -345,7 +345,7 @@ fn global_thread_wasm_boundaries_cover_withdraw_topup_and_api_conversion() {
             .err()
             .map(|error| error.to_string())
             .as_deref(),
-        Some("covenant_id must be 32 bytes, got 1")
+        Some("Unknown address prefix")
     );
 
     assert_eq!(
@@ -371,7 +371,7 @@ fn global_thread_wasm_boundaries_cover_withdraw_topup_and_api_conversion() {
         .err()
         .map(|error| error.to_string())
         .as_deref(),
-        Some("covenant_id must be 32 bytes, got 1")
+        Some("Unknown address prefix")
     );
     assert_eq!(
         ready(crate::wasm_api::create_global_spending_limit_withdraw(
@@ -380,6 +380,6 @@ fn global_thread_wasm_boundaries_cover_withdraw_topup_and_api_conversion() {
         .err()
         .map(|error| error.to_string())
         .as_deref(),
-        Some("covenant_id must be 32 bytes, got 1")
+        Some("Unknown address prefix")
     );
 }

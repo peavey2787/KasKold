@@ -22,7 +22,6 @@ const GENERATED_WASM_EXPORTS = Object.freeze([
     'fetch_utxos_for_address_js',
     'pskt_detect',
     'kspt_signature_status',
-    'pskb_encode_document',
     'pskb_append_output',
     'thread_withdraw_fee',
     'thread_maximum_withdraw',
@@ -30,9 +29,9 @@ const GENERATED_WASM_EXPORTS = Object.freeze([
     'network_address_prefix',
     'address_network',
     'is_kaspa_address',
-    'address_script_public_key',
     'multisig_descriptor_summary',
     'covenant_spend_path',
+    'covenant_spend_document',
     'read_commit_reveal_reveal',
     'ship_escrow_terms',
     'redeem_script_address',
@@ -65,7 +64,6 @@ const GENERATED_WASM_EXPORTS = Object.freeze([
     'create_global_allowance_topup',
     'covenant_timelocked_savings',
     'create_covenant_timelocked_savings_claim',
-    'covenant_timelocked_escrow',
     'covenant_dms',
     'covenant_script_terms',
     'covenant_private_swap',
@@ -82,6 +80,7 @@ const GENERATED_WASM_EXPORTS = Object.freeze([
     'private_swap_claim_sighash',
     'private_swap_extract_secret',
     'create_private_swap_claim',
+    'create_private_swap_refund',
     'private_swap_insert_completed_signature',
     'covenant_payjoin',
     'covenant_oracle_v1',
@@ -93,12 +92,9 @@ const GENERATED_WASM_EXPORTS = Object.freeze([
     'create_crowdfund_sweep',
     'create_covenant_owner_spend',
     'create_covenant_owner_spend_selected',
-    'create_covenant_borrower_spend',
-    'create_covenant_borrower_withdraw',
     'create_covenant_beneficiary_spend',
     'create_covenant_beneficiary_spend_selected',
     'create_covenant_timelocked_savings_claim_selected',
-    'create_covenant_timeout_refund',
     'create_covenant_payjoin_claim',
     'create_covenant_oracle_v1_claim',
     'verify_oracle_v1_attestation',
@@ -186,7 +182,6 @@ export function decoder_progress(...args) { return invoke('decoder_progress', ar
 export function fetch_utxos_for_address_js(...args) { return invoke('fetch_utxos_for_address_js', args); }
 export function pskt_detect(...args) { return invoke('pskt_detect', args); }
 export function kspt_signature_status(...args) { return invoke('kspt_signature_status', args); }
-export function pskb_encode_document(...args) { return invoke('pskb_encode_document', args); }
 export function pskb_append_output(...args) { return invoke('pskb_append_output', args); }
 export function thread_withdraw_fee(...args) { return invoke('thread_withdraw_fee', args); }
 export function thread_maximum_withdraw(...args) { return invoke('thread_maximum_withdraw', args); }
@@ -194,9 +189,9 @@ export function private_swap_max_fee_sompi(...args) { return invoke('private_swa
 export function network_address_prefix(...args) { return invoke('network_address_prefix', args); }
 export function address_network(...args) { return invoke('address_network', args); }
 export function is_kaspa_address(...args) { return invoke('is_kaspa_address', args); }
-export function address_script_public_key(...args) { return invoke('address_script_public_key', args); }
 export function multisig_descriptor_summary(...args) { return invoke('multisig_descriptor_summary', args); }
 export function covenant_spend_path(...args) { return invoke('covenant_spend_path', args); }
+export function covenant_spend_document(...args) { return invoke('covenant_spend_document', args); }
 export function read_commit_reveal_reveal(...args) { return invoke('read_commit_reveal_reveal', args); }
 export function ship_escrow_terms(...args) { return invoke('ship_escrow_terms', args); }
 export function redeem_script_address(...args) { return invoke('redeem_script_address', args); }
@@ -229,7 +224,6 @@ export function create_global_allowance_withdraw(...args) { return invoke('creat
 export function create_global_allowance_topup(...args) { return invoke('create_global_allowance_topup', args); }
 export function covenant_timelocked_savings(...args) { return invoke('covenant_timelocked_savings', args); }
 export function create_covenant_timelocked_savings_claim(...args) { return invoke('create_covenant_timelocked_savings_claim', args); }
-export function covenant_timelocked_escrow(...args) { return invoke('covenant_timelocked_escrow', args); }
 export function covenant_dms(...args) { return invoke('covenant_dms', args); }
 export function covenant_script_terms(...args) { return invoke('covenant_script_terms', args); }
 export function covenant_private_swap(...args) { return invoke('covenant_private_swap', args); }
@@ -246,6 +240,7 @@ export function private_swap_complete_public(...args) { return invoke('private_s
 export function private_swap_claim_sighash(...args) { return invoke('private_swap_claim_sighash', args); }
 export function private_swap_extract_secret(...args) { return invoke('private_swap_extract_secret', args); }
 export function create_private_swap_claim(...args) { return invoke('create_private_swap_claim', args); }
+export function create_private_swap_refund(...args) { return invoke('create_private_swap_refund', args); }
 export function private_swap_insert_completed_signature(...args) { return invoke('private_swap_insert_completed_signature', args); }
 export function covenant_payjoin(...args) { return invoke('covenant_payjoin', args); }
 export function covenant_oracle_v1(...args) { return invoke('covenant_oracle_v1', args); }
@@ -257,12 +252,9 @@ export function inspect_crowdfund_contributions(...args) { return invoke('inspec
 export function create_crowdfund_sweep(...args) { return invoke('create_crowdfund_sweep', args); }
 export function create_covenant_owner_spend(...args) { return invoke('create_covenant_owner_spend', args); }
 export function create_covenant_owner_spend_selected(...args) { return invoke('create_covenant_owner_spend_selected', args); }
-export function create_covenant_borrower_spend(...args) { return invoke('create_covenant_borrower_spend', args); }
-export function create_covenant_borrower_withdraw(...args) { return invoke('create_covenant_borrower_withdraw', args); }
 export function create_covenant_beneficiary_spend(...args) { return invoke('create_covenant_beneficiary_spend', args); }
 export function create_covenant_beneficiary_spend_selected(...args) { return invoke('create_covenant_beneficiary_spend_selected', args); }
 export function create_covenant_timelocked_savings_claim_selected(...args) { return invoke('create_covenant_timelocked_savings_claim_selected', args); }
-export function create_covenant_timeout_refund(...args) { return invoke('create_covenant_timeout_refund', args); }
 export function create_covenant_payjoin_claim(...args) { return invoke('create_covenant_payjoin_claim', args); }
 export function create_covenant_oracle_v1_claim(...args) { return invoke('create_covenant_oracle_v1_claim', args); }
 export function verify_oracle_v1_attestation(...args) { return invoke('verify_oracle_v1_attestation', args); }

@@ -1,23 +1,20 @@
 pub(crate) mod application;
-mod encoder;
-pub(crate) mod global_thread;
-mod model;
 mod preparation;
-mod sweep;
 mod thread_input;
 mod thread_policy;
 mod thread_request;
 
-pub use encoder::{encode_pskt_value, encode_wire};
-pub use model::{CovenantInputSettings, PskbGlobalPlan, PskbInputPlan, PskbOutputPlan, PskbPlan};
-pub(crate) use preparation::{
-    encode_prepared_sweep, prepare_selected_sweep, prepare_sweep_from_utxos, PreparedSweep,
+pub use kaspa_portal::transaction::builder::{
+    CovenantExecution, CovenantInputPolicy, GlobalThreadPolicy, GlobalThreadWithdrawalRequest,
+    PskbApi, PskbGlobalPlan, PskbInputPlan, PskbOutputPlan, PskbPlan, SweepInputPolicy,
 };
-pub use sweep::{plan_sweep, SweepInputPolicy};
+pub(crate) use preparation::{
+    encode_prepared_sweep, prepare_selected_sweep, prepare_sweep_from_utxos, selected_utxo_entry,
+    PreparedSweep, SelectedUtxo,
+};
 
 #[cfg(any(test, target_arch = "wasm32"))]
 pub(crate) use thread_policy::topup_policy_for;
-pub use thread_policy::GlobalThreadPolicy;
 pub(crate) use thread_policy::{withdrawal_policy_for, GlobalThreadFamily};
 
 #[cfg(any(test, target_arch = "wasm32"))]
@@ -31,3 +28,8 @@ pub(crate) use thread_request::{
 pub(crate) use thread_request::{
     prepare_topup_material as prepare_global_thread_topup_material, PreparedTopup,
 };
+
+/// Encode a typed plan as the canonical PSKB wire.
+pub fn encode_wire(plan: &PskbPlan) -> Result<String, String> {
+    PskbApi.encode(plan).map_err(|error| error.to_string())
+}

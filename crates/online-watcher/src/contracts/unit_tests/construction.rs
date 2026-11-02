@@ -260,7 +260,6 @@ fn browser_neutral_contract_constructors_cover_direct_success_paths() {
 
     let documents = [
         construction::additive::build_json(&owner, 1, 2, "mainnet"),
-        construction::allowance::build_local_json(&owner, &beneficiary, 1, 2, 3, "mainnet"),
         construction::allowance::build_global_json(&owner, &beneficiary, 1, 2, 3, "mainnet"),
         construction::dms::build_json(&owner, &beneficiary, 10, "mainnet"),
         construction::escrow::build_json(
@@ -278,14 +277,6 @@ fn browser_neutral_contract_constructors_cover_direct_success_paths() {
             &third,
             &address_a,
             &address_b,
-            "mainnet",
-        ),
-        construction::escrow::build_timelocked_json(
-            &owner,
-            &beneficiary,
-            &address_a,
-            &address_b,
-            10,
             "mainnet",
         ),
         construction::payjoin::build_json(&owner, &beneficiary, 10, 2, 2, "mainnet"),

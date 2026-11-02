@@ -4,6 +4,7 @@ use crate::{
         balance::{self, BalanceInfo},
         utxo::UtxoEntry,
     },
+    contracts::covenant::script_terms,
     network::{queries, submission},
     transaction_builder, WalletData,
 };
@@ -160,6 +161,25 @@ impl WatchWallet {
             hex::decode(signed_transaction_hex).map_err(|error| format!("Invalid hex: {error}"))?;
         let transaction = kaskold_protocol::companion::verify_complete_kspt(&bytes)?;
         self.submit_verified(&transaction, websocket_url).await
+    }
+
+    /// Verify a covenant invite or stored record against its redeem script and
+    /// return, as JSON, the terms read from that script.
+    pub fn verified_covenant_terms(
+        &self,
+        covenant_type: &str,
+        redeem_script_hex: &str,
+        address: &str,
+        network: &str,
+        attestation_statement: &str,
+    ) -> Result<String, String> {
+        script_terms::verified_terms_json(
+            covenant_type,
+            redeem_script_hex,
+            address,
+            network,
+            attestation_statement,
+        )
     }
 
     /// Only the opaque verified token reaches the node, so nothing decoded after

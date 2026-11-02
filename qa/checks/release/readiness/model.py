@@ -29,6 +29,7 @@ REQUIRED_EVIDENCE = {
     "credential_timing.json": "credential timing/side-channel evidence",
     "physical_fault_injection.json": "physical fault-injection evidence",
     "software_assurance.json": "dependency advisory/SBOM/license evidence",
+    "portal_assurance.json": "Kaspa Portal mutation and fuzz gates on the locked signing-core commit",
     "ios_release_build.json": "iOS signed Release-build evidence",
     "ios_hil_smoke.json": "iOS physical-device Release/HIL smoke evidence",
     "android_release_build.json": "Android signed release-build evidence",
@@ -39,6 +40,7 @@ SPECIALIZED_EVIDENCE = {
     "independent_builder_a.json",
     "independent_builder_b.json",
     "software_assurance.json",
+    "portal_assurance.json",
 }
 
 

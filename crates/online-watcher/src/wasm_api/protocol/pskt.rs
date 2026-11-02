@@ -71,30 +71,6 @@ pub fn pskt_relay_to_kspt(wire_hex: &str, network: &str) -> Result<String, JsVal
     pskt_relay_to_kspt_string(wire_hex, network).map_err(js_error)
 }
 
-/// Inverse of `pskt_relay_to_kspt`: merge the partial sigs from a
-/// device-returned compact KSPT blob into the canonical PSKB and return
-/// the updated PSKB wire hex. Idempotent — existing sigs are not
-/// clobbered.
-///
-/// Accepts `flags = 0x00` (partial) and `flags = 0x01` (fully signed)
-/// equally. Caller must still check whether the merged PSKB has ≥M
-/// sigs before finalizing/broadcasting.
-pub(super) fn pskt_merge_signed_kspt_string(
-    signed_kspt_hex: &str,
-    pskb_wire_hex: &str,
-) -> Result<String, String> {
-    let signed = hex::decode(signed_kspt_hex).map_err(|error| format!("KSPT hex: {error}"))?;
-    kaskold_protocol::companion::merge_signed_kspt_at_trailer_network(pskb_wire_hex, &signed)
-}
-
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-pub fn pskt_merge_signed_kspt(
-    signed_kspt_hex: &str,
-    pskb_wire_hex: &str,
-) -> Result<String, JsValue> {
-    pskt_merge_signed_kspt_string(signed_kspt_hex, pskb_wire_hex).map_err(js_error)
-}
-
 /// PSKT-native finalize + broadcast. Walks the PSKB JSON once,
 /// assembles a consensus Transaction directly (sig_scripts per input,
 /// with partial sigs + redeem script for P2SH multisig), and submits
@@ -118,17 +94,6 @@ pub async fn pskt_finalize_and_broadcast(wire_hex: &str, ws_url: &str) -> Result
 
 /// Wrap one PSKT JSON document in the canonical PSKB wire through Portal,
 /// which checks its exact u64 fields first.
-pub(super) fn pskb_encode_document_string(pskt_json: &str) -> Result<String, String> {
-    let document: serde_json::Value =
-        serde_json::from_str(pskt_json).map_err(|error| format!("PSKT JSON: {error}"))?;
-    kaspa_portal::transaction::interchange::pskt::pskb::encode_pskt_document(document)
-}
-
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-pub fn pskb_encode_document(pskt_json: &str) -> Result<String, JsValue> {
-    pskb_encode_document_string(pskt_json).map_err(js_error)
-}
-
 /// Append a plain output paying `amount` to a version-0 script public key
 /// (`0000` + script hex) on a PSKB wire.
 pub(super) fn pskb_append_output_string(

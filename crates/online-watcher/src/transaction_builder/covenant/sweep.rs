@@ -5,6 +5,10 @@
 //! acquisition, monetary validation, lock/branch policy and PSKB construction
 //! stay here.
 
+use super::{
+    execution::{execution_for, SpendPath},
+    redeem::require_redeem_for_address,
+};
 use crate::{
     network,
     transaction_builder::pskb::{
@@ -34,8 +38,7 @@ pub(crate) struct CovenantSweepConfig<'a> {
     pub(crate) redeem_script: &'a [u8],
     pub(crate) input_sequence: u64,
     pub(crate) lock_time: u64,
-    pub(crate) branch: Option<&'a str>,
-    pub(crate) minimum_signatures: Option<u8>,
+    pub(crate) path: SpendPath,
 }
 
 #[derive(Clone, Copy)]
@@ -48,27 +51,16 @@ pub(crate) struct CovenantSweepSpec<'a> {
     pub(crate) config: CovenantSweepConfig<'a>,
 }
 
-pub(crate) fn decode_redeem_script(redeem_script_hex: &str) -> Result<Vec<u8>, String> {
-    hex::decode(redeem_script_hex).map_err(|error| format!("Bad redeem hex: {error}"))
-}
-
 pub(crate) fn encode_covenant_sweep(
     prepared: &PreparedSweep,
     config: CovenantSweepConfig<'_>,
 ) -> Result<String, String> {
-    let mut global = PskbGlobalPlan::standard().with_lock_time(config.lock_time);
-    if let Some(branch) = config.branch {
-        global = global.with_branch(branch);
-    }
-
-    let mut policy = SweepInputPolicy::covenant(
+    let global = PskbGlobalPlan::standard().with_lock_time(config.lock_time);
+    let policy = SweepInputPolicy::covenant(
         config.redeem_script,
         config.input_sequence,
-        serde_json::json!({}),
+        execution_for(config.redeem_script, config.path)?,
     );
-    if let Some(minimum_signatures) = config.minimum_signatures {
-        policy.minimum_signatures = minimum_signatures;
-    }
     encode_prepared_sweep(prepared, global, &policy)
 }
 
@@ -76,6 +68,7 @@ pub(crate) async fn prepare_automatic(
     websocket_url: &str,
     spec: CovenantSweepSpec<'_>,
 ) -> Result<PreparedSweep, String> {
+    require_redeem_for_address(spec.covenant_address, spec.config.redeem_script)?;
     let utxos =
         network::queries::utxos::fetch_for_address(websocket_url, spec.covenant_address).await?;
     prepare_sweep_from_utxos(
@@ -92,6 +85,7 @@ pub(crate) fn prepare_selected(
     utxos_json: &str,
     spec: CovenantSweepSpec<'_>,
 ) -> Result<PreparedSweep, String> {
+    require_redeem_for_address(spec.covenant_address, spec.config.redeem_script)?;
     prepare_selected_sweep(
         utxos_json,
         spec.covenant_address,

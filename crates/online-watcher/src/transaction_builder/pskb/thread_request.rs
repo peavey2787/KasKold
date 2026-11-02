@@ -7,21 +7,18 @@
 use crate::{
     account::{address, utxo::UtxoEntry},
     protocol::script,
+    transaction_builder::covenant::redeem::{decode_redeem_script, require_redeem_for_address},
 };
 
 use super::{
-    encode_wire,
-    global_thread::{plan_global_thread_withdrawal, GlobalThreadWithdrawalRequest},
-    thread_input::{decode_redeem_script, parse_withdrawal_thread_utxos},
-    withdrawal_policy_for, GlobalThreadFamily, GlobalThreadPolicy,
+    encode_wire, thread_input::parse_withdrawal_thread_utxos, withdrawal_policy_for,
+    GlobalThreadFamily, GlobalThreadPolicy, GlobalThreadWithdrawalRequest, PskbApi,
 };
 
 #[cfg(any(test, target_arch = "wasm32"))]
-use super::{
-    global_thread::{plan_global_thread_topup, GlobalThreadTopupRequest},
-    thread_input::parse_thread_utxo,
-    topup_policy_for,
-};
+use super::{thread_input::parse_thread_utxo, topup_policy_for};
+#[cfg(any(test, target_arch = "wasm32"))]
+use kaspa_portal::transaction::builder::GlobalThreadTopupRequest;
 
 pub(crate) struct WithdrawalBuildRequest<'a> {
     pub family: GlobalThreadFamily,
@@ -68,6 +65,7 @@ fn prepare_withdrawal_material(
     request: &WithdrawalBuildRequest<'_>,
 ) -> Result<WithdrawalMaterial, String> {
     let redeem_script = decode_redeem_script(request.redeem_script_hex)?;
+    require_redeem_for_address(request.covenant_address, &redeem_script)?;
     let csv_sequence = script::extract_csv_sequence(&redeem_script)?.unwrap_or(0);
     let (cltv_lock_time, policy) = withdrawal_policy_for(request.family, &redeem_script)?;
     Ok(WithdrawalMaterial {
@@ -89,18 +87,19 @@ fn finalize_withdrawal(
     request: WithdrawalBuildRequest<'_>,
     material: WithdrawalMaterial,
 ) -> Result<PreparedWithdrawal, String> {
-    let planned = plan_global_thread_withdrawal(GlobalThreadWithdrawalRequest {
-        thread_utxos: &material.thread_utxos,
-        covenant_script_public_key: &material.covenant_script,
-        destination_script_public_key: &material.destination_script,
-        redeem_script: &material.redeem_script,
-        covenant_id: &material.covenant_id,
-        withdrawal: request.withdrawal,
-        fee: request.fee,
-        csv_sequence: material.csv_sequence,
-        policy: &material.policy,
-    })
-    .map_err(|error| error.to_string())?;
+    let planned = PskbApi
+        .plan_global_thread_withdrawal(GlobalThreadWithdrawalRequest {
+            thread_utxos: &material.thread_utxos,
+            covenant_script_public_key: &material.covenant_script,
+            destination_script_public_key: &material.destination_script,
+            redeem_script: &material.redeem_script,
+            covenant_id: &material.covenant_id,
+            withdrawal: request.withdrawal,
+            fee: request.fee,
+            csv_sequence: material.csv_sequence,
+            policy: &material.policy,
+        })
+        .map_err(|error| error.to_string())?;
     let input_count = planned.plan.inputs.len();
     let wire = encode_wire(&planned.plan)?;
     Ok(PreparedWithdrawal {
@@ -135,6 +134,7 @@ pub(crate) fn prepare_topup_material(
     thread_utxo_json: &str,
 ) -> Result<TopupMaterial, String> {
     let redeem_script = decode_redeem_script(redeem_script_hex)?;
+    require_redeem_for_address(covenant_address, &redeem_script)?;
     let (csv_sequence, policy) = topup_policy_for(family, &redeem_script)?;
     let covenant_id = crate::serialization::input::decode_named_32(covenant_id_hex, "covenant_id")?;
     let thread_utxo = parse_thread_utxo(thread_utxo_json)?;
@@ -169,16 +169,17 @@ pub(crate) fn build_topup(
 ) -> Result<PreparedTopup, String> {
     let selected_count = selected.len();
     let thread_amount = material.thread_utxo.amount;
-    let planned = plan_global_thread_topup(GlobalThreadTopupRequest {
-        thread_utxo: material.thread_utxo,
-        wallet_utxos: &selected,
-        covenant_script_public_key: &material.covenant_script,
-        redeem_script: &material.redeem_script,
-        covenant_id: &material.covenant_id,
-        fee,
-        policy: &material.policy,
-    })
-    .map_err(|error| error.to_string())?;
+    let planned = PskbApi
+        .plan_global_thread_topup(GlobalThreadTopupRequest {
+            thread_utxo: material.thread_utxo,
+            wallet_utxos: &selected,
+            covenant_script_public_key: &material.covenant_script,
+            redeem_script: &material.redeem_script,
+            covenant_id: &material.covenant_id,
+            fee,
+            policy: &material.policy,
+        })
+        .map_err(|error| error.to_string())?;
     let input_count = planned.plan.inputs.len();
     let wire = encode_wire(&planned.plan)?;
     Ok(PreparedTopup {

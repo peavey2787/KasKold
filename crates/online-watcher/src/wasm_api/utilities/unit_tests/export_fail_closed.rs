@@ -18,13 +18,6 @@ fn covenant_address_exports_reject_malformed_keys() {
         Some(r#"JsValue(Some("Bad hex: Invalid character 'z' at position 0"))"#)
     );
     assert_eq!(
-        covenant_allowance(BAD_KEY, BAD_KEY, 1, 1, 1, NETWORK)
-            .err()
-            .map(|error| format!("{error:?}"))
-            .as_deref(),
-        Some(r#"JsValue(Some("Bad hex: Invalid character 'z' at position 0"))"#)
-    );
-    assert_eq!(
         covenant_dms(BAD_KEY, BAD_KEY, 1, NETWORK)
             .err()
             .map(|error| format!("{error:?}"))
@@ -46,13 +39,6 @@ fn covenant_address_exports_reject_malformed_keys() {
         Some(
             r#"JsValue(Some("Bad shipping escrow request JSON: expected ident at line 1 column 2"))"#
         )
-    );
-    assert_eq!(
-        covenant_timelocked_escrow(BAD_KEY, BAD_KEY, BAD_ADDRESS, BAD_ADDRESS, 1, NETWORK)
-            .err()
-            .map(|error| format!("{error:?}"))
-            .as_deref(),
-        Some(r#"JsValue(Some("Bad alice pubkey hex: Invalid character 'z' at position 0"))"#)
     );
     assert_eq!(
         covenant_oracle_v1(BAD_KEY, BAD_KEY, BAD_KEY, BAD_KEY, "release", 1, NETWORK)
@@ -117,22 +103,6 @@ fn covenant_address_exports_reject_malformed_keys() {
 #[test]
 fn covenant_spend_exports_reject_malformed_requests_before_network_io() {
     assert_eq!(
-        ready(create_covenant_allowance_withdraw(
-            BAD_ADDRESS,
-            BAD_ADDRESS,
-            BAD_KEY,
-            1,
-            1,
-            WS
-        ))
-        .err()
-        .map(|error| format!("{error:?}"))
-        .as_deref(),
-        Some(
-            r#"JsValue(Some("browser WebSocket transport is unavailable on native hosts (endpoint=ws://unused)"))"#
-        )
-    );
-    assert_eq!(
         ready(create_covenant_beneficiary_spend(
             BAD_ADDRESS,
             BAD_ADDRESS,
@@ -191,6 +161,7 @@ fn covenant_spend_exports_reject_malformed_requests_before_network_io() {
             BAD_ADDRESS,
             BAD_KEY,
             1,
+            0,
             1,
             WS
         ))
@@ -205,6 +176,7 @@ fn covenant_spend_exports_reject_malformed_requests_before_network_io() {
             BAD_ADDRESS,
             BAD_KEY,
             1,
+            0,
             "[]",
             1
         )
@@ -323,13 +295,6 @@ fn utility_and_protocol_exports_reject_malformed_hex_and_documents() {
         Some(r#"JsValue(Some("Bad plaintext hex: Invalid character 'z' at position 0"))"#)
     );
     assert_eq!(
-        commit_hash(BAD_KEY)
-            .err()
-            .map(|error| format!("{error:?}"))
-            .as_deref(),
-        Some(r#"JsValue(Some("Bad preimage hex: Invalid character 'z' at position 0"))"#)
-    );
-    assert_eq!(
         merkle_root_from_addresses("not-json")
             .err()
             .map(|error| format!("{error:?}"))
@@ -404,13 +369,6 @@ fn utility_and_protocol_exports_reject_malformed_hex_and_documents() {
         )
     );
     assert_eq!(
-        pskt_merge_signed_kspt(BAD_KEY, BAD_KEY)
-            .err()
-            .map(|error| format!("{error:?}"))
-            .as_deref(),
-        Some(r#"JsValue(Some("KSPT hex: Invalid character 'z' at position 0"))"#)
-    );
-    assert_eq!(
         ready(pskt_finalize_and_broadcast(BAD_KEY, WS))
             .err()
             .map(|error| format!("{error:?}"))
@@ -457,10 +415,10 @@ fn deterministic_exports_succeed_on_valid_input() {
         sha,
         "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     );
-    assert!(covenant_oracle_mb_heartbeat(NETWORK).is_ok());
-    assert!(stealth_announcement_address(NETWORK)
-        .unwrap()
-        .starts_with("kaspa:"));
+    assert_eq!(
+        stealth_announcement_address(NETWORK).unwrap(),
+        "kaspa:qp34l0x4nvkv94alupe6pyxau4f475jhq0azf5xgf3xghudnjjkhzpt4ly4gu"
+    );
 }
 
 #[test]
@@ -505,7 +463,7 @@ fn expect_err_text(result: Result<String, JsValue>, label: &str) -> String {
 fn selected_covenant_sweep_exports_build_and_log_valid_pskbs() {
     use crate::wasm_api::test_support::expect_js;
 
-    let covenant = crate::account::address::encode_p2pk_address(&[0x61; 32], "kaspa");
+    let (covenant, redeem) = crate::wasm_api::test_support::two_key_covenant();
     let destination = crate::account::address::encode_p2pk_address(&[0x62; 32], "kaspa");
     let utxos = serde_json::json!([
         {"tx_id": "63".repeat(32), "index": 0, "amount": "30000000"}
@@ -516,8 +474,9 @@ fn selected_covenant_sweep_exports_build_and_log_valid_pskbs() {
             create_covenant_timelocked_savings_claim_selected(
                 &covenant,
                 &destination,
-                "51",
+                &redeem,
                 123,
+                0,
                 &utxos,
                 1_000_000,
             ),
@@ -527,7 +486,7 @@ fn selected_covenant_sweep_exports_build_and_log_valid_pskbs() {
             create_covenant_beneficiary_spend_selected(
                 &covenant,
                 &destination,
-                "51",
+                &redeem,
                 123,
                 &utxos,
                 1_000_000,
@@ -538,7 +497,7 @@ fn selected_covenant_sweep_exports_build_and_log_valid_pskbs() {
             create_covenant_owner_spend_selected(
                 &covenant,
                 &destination,
-                "51",
+                &redeem,
                 &utxos,
                 1_000_000,
                 "owner",

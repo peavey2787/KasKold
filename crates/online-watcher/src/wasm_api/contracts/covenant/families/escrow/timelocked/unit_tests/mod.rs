@@ -7,22 +7,16 @@ fn beneficiary_sweep_plan_construction_and_specs_are_host_testable() {
     let selected = plan.spec("source", "destination", 7, SweepSourceKind::Selected);
     assert_eq!(selected.fee, 7);
     assert_eq!(selected.config.lock_time, 42);
-    assert_eq!(selected.config.branch, Some("beneficiary"));
+    assert_eq!(
+        selected.config.path,
+        crate::transaction_builder::covenant::execution::SpendPath::Key(1)
+    );
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 #[test]
 fn timelocked_wasm_sweep_facades_fail_closed_before_network() {
     use crate::wasm_api::test_support::ready;
-    assert_eq!(
-        ready(super::create_covenant_timeout_refund())
-            .err()
-            .map(|error| format!("{error:?}"))
-            .as_deref(),
-        Some(
-            r#"JsValue(Some("Timeout-refund is disabled until its zero-signature covenant branch has a typed verified witness plan"))"#
-        )
-    );
     assert_eq!(
         ready(super::create_covenant_beneficiary_spend(
             "bad",

@@ -1,54 +1,4 @@
 use crate::wasm_api::JsValue;
-/// Build a time-locked escrow covenant P2SH address.
-/// alice_pubkey_hex / bob_pubkey_hex: 32-byte x-only pubkeys (hex)
-/// alice_addr / bob_addr: destination addresses for each party
-/// locktime_daa: DAA score after which funds auto-refund to Alice
-/// Returns JSON: { "address", "redeem_script_hex", "locktime_daa" }
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-pub fn covenant_timelocked_escrow(
-    alice_pubkey_hex: &str,
-    bob_pubkey_hex: &str,
-    alice_addr: &str,
-    bob_addr: &str,
-    locktime_daa: u64,
-    network: &str,
-) -> Result<String, JsValue> {
-    build_timelocked_escrow_json(
-        alice_pubkey_hex,
-        bob_pubkey_hex,
-        alice_addr,
-        bob_addr,
-        locktime_daa,
-        network,
-    )
-    .map_err(|error| wasm_error!(&error))
-}
-
-pub(crate) fn build_timelocked_escrow_json(
-    alice_pubkey_hex: &str,
-    bob_pubkey_hex: &str,
-    alice_addr: &str,
-    bob_addr: &str,
-    locktime_daa: u64,
-    network: &str,
-) -> Result<String, String> {
-    crate::contracts::covenant::construction::escrow::build_timelocked_json(
-        alice_pubkey_hex,
-        bob_pubkey_hex,
-        alice_addr,
-        bob_addr,
-        locktime_daa,
-        network,
-    )
-}
-
-/// Timeout-refund consumer route. Currently fail-closed until the keyless
-/// branch has a typed zero-signature `VerifiedWitnessPlan`.
-#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
-pub async fn create_covenant_timeout_refund() -> Result<String, JsValue> {
-    Err(wasm_error!("Timeout-refund is disabled until its zero-signature covenant branch has a typed verified witness plan"))
-}
-
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
 pub async fn create_covenant_beneficiary_spend(
     covenant_address: &str,
@@ -109,9 +59,7 @@ pub fn create_covenant_beneficiary_spend_selected(
 }
 
 #[cfg(test)]
-pub(crate) use crate::transaction_builder::covenant::sweeps::timelocked::{
-    timeout_refund_spec, BeneficiarySweepPlan,
-};
+pub(crate) use crate::transaction_builder::covenant::sweeps::timelocked::BeneficiarySweepPlan;
 
 #[cfg(test)]
 mod unit_tests;
