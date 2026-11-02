@@ -143,7 +143,7 @@ impl WatchWallet {
         signed_envelope_hex: &str,
         websocket_url: &str,
     ) -> Result<String, String> {
-        let transaction = kaskold_protocol::compat::verify_complete_pskt(
+        let transaction = kaskold_protocol::companion::verify_complete_pskt(
             signed_envelope_hex,
             kaskold_protocol::Network::Mainnet,
         )
@@ -158,7 +158,7 @@ impl WatchWallet {
     ) -> Result<String, String> {
         let bytes =
             hex::decode(signed_transaction_hex).map_err(|error| format!("Invalid hex: {error}"))?;
-        let transaction = kaskold_protocol::compat::verify_complete_kspt(&bytes)?;
+        let transaction = kaskold_protocol::companion::verify_complete_kspt(&bytes)?;
         self.submit_verified(&transaction, websocket_url).await
     }
 
@@ -166,7 +166,7 @@ impl WatchWallet {
     /// authorization can be broadcast.
     async fn submit_verified(
         &self,
-        transaction: &kaskold_protocol::compat::VerifiedTransaction,
+        transaction: &kaskold_protocol::companion::VerifiedTransaction,
         websocket_url: &str,
     ) -> Result<String, String> {
         submission::submit(websocket_url, &transaction.to_consensus()?).await

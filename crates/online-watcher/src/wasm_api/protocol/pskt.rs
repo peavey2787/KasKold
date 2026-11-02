@@ -84,7 +84,7 @@ pub(super) fn pskt_merge_signed_kspt_string(
     pskb_wire_hex: &str,
 ) -> Result<String, String> {
     let signed = hex::decode(signed_kspt_hex).map_err(|error| format!("KSPT hex: {error}"))?;
-    kaskold_protocol::compat::merge_signed_kspt_at_trailer_network(pskb_wire_hex, &signed)
+    kaskold_protocol::companion::merge_signed_kspt_at_trailer_network(pskb_wire_hex, &signed)
 }
 
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]

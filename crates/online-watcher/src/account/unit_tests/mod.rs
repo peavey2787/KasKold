@@ -135,7 +135,7 @@ fn kpub_import_raw_import_and_extension_preserve_watch_only_state() {
 #[test]
 fn kaspa_cli_account_xpub_imports_and_normalizes_to_canonical_text() {
     use super::bip32::import_kpub;
-    use kaskold_protocol::compat::decode_kpub_text;
+    use kaskold_protocol::companion::decode_kpub_text;
     use shared_signer::account_key::{
         ACCOUNT_KEY_CHILD_INDEX, ACCOUNT_KEY_DEPTH, ACCOUNT_KEY_VERSION,
     };

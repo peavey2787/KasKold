@@ -132,8 +132,8 @@
         {
           "path": "crates/online-watcher/src/account/bip32.rs",
           "contains": [
-            "kaskold_protocol::compat::import_kpub",
-            "kaskold_protocol::compat::import_kpub_raw"
+            "kaskold_protocol::companion::import_kpub",
+            "kaskold_protocol::companion::import_kpub_raw"
           ]
         }
       ]

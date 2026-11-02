@@ -42,11 +42,11 @@ pub use pairing::{PairingRequest, PrivacyAddressBatch};
 #[cfg(feature = "host")]
 pub use qr::{QrDecoder, QrFrame, QrProgress};
 
-/// Compatibility-only account primitives used by Companion while it migrates legacy
-/// wallet internals. These are not part of the public third-party SDK contract.
-#[cfg(feature = "companion-compat")]
+/// Account primitives for the first-party Companion. These are not part of the
+/// public third-party SDK contract.
+#[cfg(feature = "companion")]
 #[doc(hidden)]
-pub mod compat {
+pub mod companion {
     pub use crate::account::{
         address_to_script_pubkey, decode_address, decode_kpub_text, extend_addresses, import_kpub,
         import_kpub_raw,

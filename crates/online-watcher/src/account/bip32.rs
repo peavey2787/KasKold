@@ -3,11 +3,11 @@
 pub use kaskold_protocol::WalletData;
 
 pub fn import_kpub(kpub_text: &str, prefix: &str) -> Result<WalletData, String> {
-    kaskold_protocol::compat::import_kpub(kpub_text, prefix)
+    kaskold_protocol::companion::import_kpub(kpub_text, prefix)
 }
 
 pub fn import_kpub_raw(payload: &[u8], prefix: &str) -> Result<WalletData, String> {
-    kaskold_protocol::compat::import_kpub_raw(payload, prefix)
+    kaskold_protocol::companion::import_kpub_raw(payload, prefix)
 }
 
 pub fn extend_addresses(
@@ -16,5 +16,5 @@ pub fn extend_addresses(
     extra_change: u32,
     prefix: &str,
 ) -> Result<WalletData, String> {
-    kaskold_protocol::compat::extend_addresses(wallet, extra_receive, extra_change, prefix)
+    kaskold_protocol::companion::extend_addresses(wallet, extra_receive, extra_change, prefix)
 }

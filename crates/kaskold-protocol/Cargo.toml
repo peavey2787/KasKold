@@ -20,7 +20,7 @@ host = [
     "dep:k256",
 ]
 wasm = ["host", "dep:wasm-bindgen", "dep:js-sys"]
-companion-compat = ["host"]
+companion = ["host"]
 
 [dependencies]
 kaspa-portal = { git = "https://github.com/peavey2787/kaspa-portal.git", default-features = false }

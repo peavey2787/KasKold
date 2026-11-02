@@ -5,11 +5,11 @@ pub(super) use kaskold_protocol::encode_address;
 pub use kaskold_protocol::encode_p2pk_address;
 
 pub fn decode_address(addr: &str) -> Result<(u8, [u8; 32]), String> {
-    kaskold_protocol::compat::decode_address(addr)
+    kaskold_protocol::companion::decode_address(addr)
 }
 
 pub fn address_to_script_pubkey(addr: &str) -> Result<Vec<u8>, String> {
-    kaskold_protocol::compat::address_to_script_pubkey(addr)
+    kaskold_protocol::companion::address_to_script_pubkey(addr)
 }
 
 /// Map a Kaspa network label to the canonical address prefix for internal Companion callers.

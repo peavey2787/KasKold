@@ -110,7 +110,7 @@ fn assert_same_semantic_model(vault: &Transaction, relayed: &Transaction) {
 
 fn assert_verified_materialization_matches(
     wire_hex: &str,
-    verified: &kaskold_protocol::compat::VerifiedTransaction,
+    verified: &kaskold_protocol::companion::VerifiedTransaction,
 ) {
     let finalized = kaskold_protocol::finalize_json(wire_hex)
         .expect("verified PSKT must finalize from the same typed model");
@@ -211,7 +211,7 @@ fuzz_target!(|data: &[u8]| {
     if vault_ok {
         assert!(has_magic);
         assert!(
-            kaskold_protocol::compat::decode_pskt_json_body(&wire[4..]).is_ok(),
+            kaskold_protocol::companion::decode_pskt_json_body(&wire[4..]).is_ok(),
             "Vault accepted PSKT syntax rejected by host canonical grammar"
         );
     }
@@ -231,7 +231,7 @@ fuzz_target!(|data: &[u8]| {
     }
 
     if let Ok(verified) =
-        kaskold_protocol::compat::verify_complete_pskt(&host_hex, Network::Mainnet)
+        kaskold_protocol::companion::verify_complete_pskt(&host_hex, Network::Mainnet)
     {
         assert!(
             vault_ok,
