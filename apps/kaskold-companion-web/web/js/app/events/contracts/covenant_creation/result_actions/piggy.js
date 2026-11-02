@@ -16,7 +16,7 @@ function readPiggyTerms() {
 
 async function currentDaaForPiggy() {
     let curDaa = 0n;
-    try { curDaa = await fetchCurrentDaa(); } catch (_) {}
+    try { curDaa = await fetchCurrentDaa(); } catch { /* With no node answer the DAA stays at zero, so time locks read as still locked. */ }
     if (curDaa === 0n && typeof covenantState._lastKnownDaa !== 'undefined') curDaa = exactUnsigned(covenantState._lastKnownDaa ?? 0n, 'last known DAA');
     return curDaa;
 }

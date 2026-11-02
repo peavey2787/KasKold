@@ -35,7 +35,7 @@ export function hexFrameBatchToBytes(value) {
             return bytes;
         } catch (error) {
             const detail = error?.message || String(error);
-            throw new Error(frames.length === 1 ? detail : `QR frame ${index + 1}: ${detail}`);
+            throw new Error(frames.length === 1 ? detail : `QR frame ${index + 1}: ${detail}`, { cause: error });
         }
     });
 }

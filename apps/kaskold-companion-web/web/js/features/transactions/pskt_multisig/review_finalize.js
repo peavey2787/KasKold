@@ -22,7 +22,7 @@ function isOracleRoll(wireHex) {
     const decoded = JSON.parse(new TextDecoder().decode(hexToBytes(payload)));
     const pskt = Array.isArray(decoded) ? decoded[0] : decoded;
     return pskt?.inputs?.[0]?.proprietaries?.risc0OracleMb === true;
-  } catch (_) {
+  } catch {
     return false;
   }
 }
@@ -35,7 +35,7 @@ function returnToOracleCard() {
   try {
     showScreen('covenant');
     covShowPanel('oracle-mb');
-  } catch (_) {}
+  } catch { /* The screen may already have been left. */ }
 }
 
 function showOracleBroadcastSuccess(txId) {
@@ -59,7 +59,7 @@ async function requestOracleRoll(roll) {
     signal: AbortSignal.timeout(900000),
   });
   let body = null;
-  try { body = await response.json(); } catch (_) {}
+  try { body = await response.json(); } catch { /* A body that is not JSON leaves the status code to report the failure. */ }
   return { response, body };
 }
 

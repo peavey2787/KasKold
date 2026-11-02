@@ -64,7 +64,7 @@ export function stealthFeeSetLevel(prefix, ctx, level) {
 }
 export function stealthFeeValue(prefix, ctx) {
     const inp = byId('input-' + prefix + '-fee');
-    if (inp && inp.value) { try { const v = exactUnsigned(inp.value.trim(), 'stealth fee sompi'); if (v > 0n) return v; } catch (_) {} }
+    if (inp && inp.value) { try { const v = exactUnsigned(inp.value.trim(), 'stealth fee sompi'); if (v > 0n) return v; } catch { /* A fee that will not parse falls back to the computed one. */ } }
     const amt = stealthFeeCompute('normal', ctx);
     return amt != null ? amt : stealthFeeFloor('normal');
 }
@@ -106,7 +106,7 @@ export function handleStealthMeta() {
         qrContainer.replaceChildren();
         try {
             showQrSvg(qrContainer, generate_qr_svg_text(result.meta_address), 'Stealth meta-address QR');
-        } catch (e) {
+        } catch {
             qrContainer.textContent = result.meta_address;
         }
 
@@ -156,7 +156,7 @@ export async function handleStealthSendPay() {
     const metaHex = byId('stealth-send-meta').value.trim();
     if (!metaHex || metaHex.length !== 128) { toast('Enter 128-hex stealth meta-address', 'error'); return; }
     let amountSompi;
-    try { amountSompi = kasToSompi(byId('stealth-send-amount').value.trim()); } catch (_) { toast('Enter a valid amount with at most 8 decimal places', 'error'); return; }
+    try { amountSompi = kasToSompi(byId('stealth-send-amount').value.trim()); } catch { toast('Enter a valid amount with at most 8 decimal places', 'error'); return; }
     if (amountSompi <= 0n) { toast('Enter a valid amount', 'error'); return; }
 
     // Reuse the previewed entropy if it matches this meta-address; else fresh.

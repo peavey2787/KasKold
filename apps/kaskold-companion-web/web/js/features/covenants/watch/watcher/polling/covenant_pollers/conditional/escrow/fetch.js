@@ -14,7 +14,7 @@ export async function fetchEscrowDispute(transactionId) {
         const payload = (await response.json()).payload || '';
         if (!payload.startsWith('4553434400')) return null;
         return payload.slice(10, 12) === '01' ? 'buyer' : 'seller';
-    } catch (_) {
+    } catch {
         return null;
     }
 }

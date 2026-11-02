@@ -8,16 +8,17 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[3]
 ENTRY_POINT = ROOT / "tools/build/web/build_companion_runtime.py"
 BUILDER = ROOT / "tools/build/web/wasm_runtime.py"
 
 
-def load_module(path: Path, name: str):
+def load_module(path: Path, name: str) -> Any:
     spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
     sys.modules[name] = module
     spec.loader.exec_module(module)
     return module

@@ -40,8 +40,8 @@ function root() { return byId('portfolio-root'); }
 function rerender() { renderPortfolio(root(), state); }
 
 async function refreshPrices() {
-    try { state.livePriceMicro = await fetchCurrentPriceMicro(); } catch (_) { state.livePriceMicro = null; }
-    try { state.historicalPrices = await loadHistoricalPrices(state.rangeDays); } catch (_) { state.historicalPrices = []; }
+    try { state.livePriceMicro = await fetchCurrentPriceMicro(); } catch { state.livePriceMicro = null; }
+    try { state.historicalPrices = await loadHistoricalPrices(state.rangeDays); } catch { state.historicalPrices = []; }
     rerender();
 }
 

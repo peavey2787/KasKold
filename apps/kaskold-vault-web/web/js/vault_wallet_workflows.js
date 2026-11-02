@@ -189,7 +189,7 @@ export function installWalletWorkflows(ctx) {
     try {
       const bytes = await readFile($('sd-wallet-file'), 'a Seed / XPrv backup file');
       let plain = '';
-      try { plain = new TextDecoder('utf-8', { fatal: true }).decode(bytes).trim(); } catch {}
+      try { plain = new TextDecoder('utf-8', { fatal: true }).decode(bytes).trim(); } catch { /* Bytes that are not UTF-8 are handled as binary below. */ }
       if (plain.startsWith('kprv')) {
         api('kaskold_vault_import_xprv')(plain);
         applyStagedRestoreName();

@@ -8,15 +8,21 @@ import os
 from pathlib import Path
 import shutil
 import sys
+from typing import TYPE_CHECKING
 
-try:
+if TYPE_CHECKING:
     from .common import deterministic_file_manifest, load_env, sha256_file, verify_file_manifest
     from .toolchains import prefetch_toolchains
     from .ubuntu import prefetch_base, prefetch_debs
-except ImportError:  # direct-script execution
-    from common import deterministic_file_manifest, load_env, sha256_file, verify_file_manifest
-    from toolchains import prefetch_toolchains
-    from ubuntu import prefetch_base, prefetch_debs
+else:
+    try:
+        from .common import deterministic_file_manifest, load_env, sha256_file, verify_file_manifest
+        from .toolchains import prefetch_toolchains
+        from .ubuntu import prefetch_base, prefetch_debs
+    except ImportError:  # direct-script execution
+        from common import deterministic_file_manifest, load_env, sha256_file, verify_file_manifest
+        from toolchains import prefetch_toolchains
+        from ubuntu import prefetch_base, prefetch_debs
 
 
 def _hardlink_context_file(source: str, destination: str) -> str:

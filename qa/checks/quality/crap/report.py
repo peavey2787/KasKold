@@ -7,7 +7,7 @@ from hashlib import sha256
 from pathlib import Path
 import json
 import re
-from typing import Any, Iterable
+from typing import TypedDict, Any, Iterable
 
 STATUS_BY_SYMBOL = {"✗": "fail", "▲": "warning", "✓": "pass"}
 SYMBOL_BY_STATUS = {value: key for key, value in STATUS_BY_SYMBOL.items()}
@@ -277,7 +277,15 @@ def parse_report(path: Path) -> CrapReport:
     return parse_report_text(text)
 
 
-def scope_summary(entries: Iterable[CrapEntry]) -> dict[str, object]:
+class ScopeSummary(TypedDict):
+    functions: int
+    status: dict[str, int]
+    raw_status: dict[str, int]
+    assessment_basis: dict[str, int]
+    coverage: dict[str, int]
+
+
+def scope_summary(entries: Iterable[CrapEntry]) -> ScopeSummary:
     selected = tuple(entries)
     status_counts = {
         status: sum(entry.status == status for entry in selected)

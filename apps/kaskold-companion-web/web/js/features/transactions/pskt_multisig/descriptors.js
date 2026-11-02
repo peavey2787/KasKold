@@ -49,7 +49,7 @@ export async function uploadSavedDescriptorQrImage(file) {
         const code = await decodeQrImageFile(file);
         let descriptor = normalizedDescriptor(code?.data);
         if (!descriptor && code?.binaryData?.length) {
-            try { reset_qr_decoder(); } catch (_) {}
+            try { reset_qr_decoder(); } catch { /* A decoder that never started has nothing to reset. */ }
             descriptor = descriptorFromBytes(new Uint8Array(code.binaryData));
         }
         if (!descriptor) throw new Error('The QR image does not contain a valid multisig descriptor');
@@ -59,7 +59,7 @@ export async function uploadSavedDescriptorQrImage(file) {
         toast(`Descriptor QR import failed: ${error.message || error}`, 'error', 5000);
         return false;
     } finally {
-        try { reset_qr_decoder(); } catch (_) {}
+        try { reset_qr_decoder(); } catch { /* A decoder that never started has nothing to reset. */ }
     }
 }
 
@@ -68,7 +68,7 @@ function loadAll() {
         const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
         if (!Array.isArray(parsed)) return [];
         return parsed.filter(item => item && typeof item.name === 'string' && typeof item.descriptor === 'string').slice(0, MAX_DESCRIPTORS);
-    } catch (_) {
+    } catch {
         return [];
     }
 }

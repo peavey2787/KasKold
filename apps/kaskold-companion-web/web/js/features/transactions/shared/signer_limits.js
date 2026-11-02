@@ -10,7 +10,7 @@ export function signerMaxInputs() {
         const limits = JSON.parse(kaskold_sdk_limits());
         const value = Number(limits.maxInputs);
         if (Number.isSafeInteger(value) && value >= 1) return value;
-    } catch (_) {
+    } catch {
         // Keep local coin control usable while the WASM package is initializing.
     }
     return REFERENCE_SIGNER_MAX_INPUTS;

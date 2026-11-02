@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import {
-  setupDeepHarness, cleanupDeepHarness, moduleUrl, element, wallet, KSPT, PSKB,
+    setupDeepHarness,
+    cleanupDeepHarness,
+    moduleUrl,
+    element,
+    wallet,
 } from './web_runtime_deep_harness.mjs';
 import { FakeElement } from './web_recovery_test_harness.mjs';
 

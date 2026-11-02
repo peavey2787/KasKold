@@ -684,6 +684,7 @@ D	qa/checks/architecture/core/inventory
 D	qa/checks/architecture/core/sdk
 D	qa/checks/architecture/firmware
 D	qa/checks/architecture/firmware/guards
+D	qa/checks/architecture/firmware/presentation
 D	qa/checks/architecture/firmware/subsystems
 D	qa/checks/architecture/protocols
 D	qa/checks/architecture/tooling
@@ -746,6 +747,7 @@ D	qa/fuzz/seeds/std_pskt_parser
 D	qa/fuzz/seeds/stego_picture_parser
 D	qa/fuzz/seeds/unwrap_qr_payload
 D	qa/generated
+D	qa/lint
 D	qa/linux
 D	qa/linux/lib
 D	qa/linux/release
@@ -1192,6 +1194,7 @@ F	apps/kaskold-companion-web/web/js/features/covenants/watch/watcher/polling/cov
 F	apps/kaskold-companion-web/web/js/features/covenants/watch/watcher/polling/covenant_pollers/limits.js
 F	apps/kaskold-companion-web/web/js/features/covenants/watch/watcher/polling/covenant_pollers/oracle_v1.js
 F	apps/kaskold-companion-web/web/js/features/covenants/watch/watcher/polling/covenant_pollers/savings.js
+F	apps/kaskold-companion-web/web/js/features/covenants/watch/watcher/polling/covenant_pollers/status_text.js
 F	apps/kaskold-companion-web/web/js/features/covenants/watch/watcher/polling/covenant_pollers/timed.js
 F	apps/kaskold-companion-web/web/js/features/covenants/watch/watcher/polling/lifecycle.js
 F	apps/kaskold-companion-web/web/js/features/covenants/watch/watcher/polling/poll.js
@@ -2745,6 +2748,7 @@ F	external/rqrr-nostd/src/unit_tests/hostile_image_tests.rs
 F	external/rqrr-nostd/src/version_db.rs
 F	external/serde-yaml-ng-adapter/Cargo.toml
 F	external/serde-yaml-ng-adapter/src/lib.rs
+F	mypy.ini
 F	qa/Cargo.lock
 F	qa/Cargo.toml
 F	qa/baselines/firmware_coverage.json
@@ -2778,12 +2782,7 @@ F	qa/checks/architecture/firmware/__init__.py
 F	qa/checks/architecture/firmware/camera_contract.py
 F	qa/checks/architecture/firmware/firmware_controllers.py
 F	qa/checks/architecture/firmware/firmware_controllers_sd.py
-F	qa/checks/architecture/firmware/firmware_display.py
-F	qa/checks/architecture/firmware/firmware_display_hardware.py
-F	qa/checks/architecture/firmware/firmware_navigation.py
-F	qa/checks/architecture/firmware/firmware_presentation.py
 F	qa/checks/architecture/firmware/firmware_runtime.py
-F	qa/checks/architecture/firmware/firmware_screens.py
 F	qa/checks/architecture/firmware/firmware_services.py
 F	qa/checks/architecture/firmware/firmware_settings_state.py
 F	qa/checks/architecture/firmware/firmware_state.py
@@ -2791,11 +2790,19 @@ F	qa/checks/architecture/firmware/firmware_state_fields.py
 F	qa/checks/architecture/firmware/firmware_workflows.py
 F	qa/checks/architecture/firmware/guards/__init__.py
 F	qa/checks/architecture/firmware/guards/account_key.py
+F	qa/checks/architecture/firmware/guards/remediation_ownership.py
 F	qa/checks/architecture/firmware/guards/source_integrity.py
 F	qa/checks/architecture/firmware/guards/wallet_session.py
+F	qa/checks/architecture/firmware/presentation/__init__.py
+F	qa/checks/architecture/firmware/presentation/firmware_display.py
+F	qa/checks/architecture/firmware/presentation/firmware_display_hardware.py
+F	qa/checks/architecture/firmware/presentation/firmware_navigation.py
+F	qa/checks/architecture/firmware/presentation/firmware_presentation.py
+F	qa/checks/architecture/firmware/presentation/firmware_screens.py
 F	qa/checks/architecture/firmware/subsystems/__init__.py
 F	qa/checks/architecture/firmware/subsystems/firmware_backup.py
 F	qa/checks/architecture/firmware/subsystems/firmware_boot.py
+F	qa/checks/architecture/firmware/subsystems/firmware_cores3_spi.py
 F	qa/checks/architecture/firmware/subsystems/firmware_media.py
 F	qa/checks/architecture/firmware/subsystems/firmware_storage.py
 F	qa/checks/architecture/protocols/__init__.py
@@ -2872,6 +2879,9 @@ F	qa/checks/quality/crap/coverage_manifest.py
 F	qa/checks/quality/crap/firmware_testability.py
 F	qa/checks/quality/crap/health.py
 F	qa/checks/quality/crap/health_audit.py
+F	qa/checks/quality/crap/health_audit_domains.py
+F	qa/checks/quality/crap/health_audit_policy.py
+F	qa/checks/quality/crap/health_audit_sections.py
 F	qa/checks/quality/crap/lcov_metrics.py
 F	qa/checks/quality/crap/merge_reports.py
 F	qa/checks/quality/crap/package_branch_artifacts.py
@@ -3141,6 +3151,9 @@ F	qa/fuzz/std_pskt_parser.rs
 F	qa/fuzz/stego_picture_parser.rs
 F	qa/fuzz/unwrap_qr_payload.rs
 F	qa/generated/production_ui_map.md
+F	qa/lint/eslint.config.mjs
+F	qa/lint/package-lock.json
+F	qa/lint/package.json
 F	qa/linux/lib/collect_esptool_security.py
 F	qa/linux/lib/esptool_security_policy.py
 F	qa/linux/lib/terminal_pause.sh
@@ -3261,6 +3274,7 @@ F	qa/windows/run-release-readiness.ps1
 F	qa/windows/run-security-fuzz.ps1
 F	qa/windows/runner/msvc_asan.py
 F	qa/windows/runner/run_all.py
+F	ruff.toml
 F	run-all-linux.sh
 F	run-all-windows.cmd
 F	scripts/common/lib/cargo_metadata_compat.py

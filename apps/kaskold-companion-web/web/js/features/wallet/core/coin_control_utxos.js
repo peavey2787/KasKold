@@ -139,7 +139,7 @@ export async function fetchCoinControlUtxos({ wsUrl = null } = {}) {
         console.warn('[Companion] Complete REST UTXO scan failed; falling back to wRPC:', restError);
         const endpoint = wsUrl || await resolveNodeUrl();
         const parsed = JSON.parse(await fetch_utxos_complete(walletSession.json(), endpoint));
-        if (!Array.isArray(parsed)) throw new Error('wRPC UTXO response must be an array');
+        if (!Array.isArray(parsed)) throw new Error('wRPC UTXO response must be an array', { cause: restError });
         return {
             utxos: parsed,
             scannedAddresses: walletAddresses(wallet).length,

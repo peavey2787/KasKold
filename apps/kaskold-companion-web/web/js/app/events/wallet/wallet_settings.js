@@ -56,7 +56,7 @@ export function bindWalletSettingsEvents() {
         try {
             await navigator.clipboard.writeText(kpub);
             toast('kpub copied', 'ok', 1200);
-        } catch (_) {
+        } catch {
             toast('Could not copy kpub', 'error', 2200);
         }
     });
@@ -73,7 +73,7 @@ export function bindWalletSettingsEvents() {
         try {
             await navigator.clipboard.writeText(address);
             toast('Address copied', 'ok', 1200);
-        } catch (_) {
+        } catch {
             toast('Could not copy address', 'error', 2200);
         }
     });

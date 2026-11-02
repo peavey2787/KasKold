@@ -255,7 +255,7 @@ export function startScanner(title, callback, returnPanel, options = {}) {
     byId('scanner-status').textContent = 'Starting camera...';
     showScreen('scanner');
     bindFrameHexControls(generation, options.allowFrameHex === true);
-    try { reset_qr_decoder(); } catch (_) {}
+    try { reset_qr_decoder(); } catch { /* A decoder that never started has nothing to reset. */ }
 
     lastDecodeAt = 0;
     const video = byId('scanner-video');

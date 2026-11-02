@@ -80,7 +80,7 @@ export function syncFeeInputFromDisplay() {
     try {
         readFeeSompi();
         return true;
-    } catch (_) {
+    } catch {
         return false;
     }
 }
@@ -89,7 +89,7 @@ export function toggleFeeDisplayUnit() {
     let exact;
     try {
         exact = readFeeSompi();
-    } catch (_) {
+    } catch {
         toast(feeDisplayUnit === 'kas'
             ? 'Enter a valid KAS fee with at most 8 decimal places'
             : 'Enter a whole-number sompi fee', 'error', 2600);
@@ -347,7 +347,7 @@ export function handleSendMax() {
     let feeSompi = defaultFeeSompi;
     try {
         feeSompi = readFeeSompi();
-    } catch (_) {
+    } catch {
         // Keep the conservative default if the field is not an exact integer.
     }
 

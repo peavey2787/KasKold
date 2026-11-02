@@ -105,12 +105,13 @@ def _start_guest(args: argparse.Namespace) -> subprocess.Popen[bytes]:
 def _start_uart_reader(
     process: subprocess.Popen[bytes], output_queue: queue.Queue[tuple[str, object]]
 ) -> None:
-    assert process.stdout is not None
+    stdout = process.stdout
+    assert stdout is not None
 
     def read_stdout() -> None:
         try:
             while True:
-                chunk = process.stdout.read(4096)
+                chunk = stdout.read(4096)
                 if not chunk:
                     break
                 output_queue.put(("data", chunk))

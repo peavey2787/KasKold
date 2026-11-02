@@ -25,7 +25,7 @@ function parseFrameBatch(text) {
       return hexToBytes(value);
     } catch (error) {
       if (values.length === 1) throw error;
-      throw new Error(`QR frame ${index + 1}: ${error.message || error}`);
+      throw new Error(`QR frame ${index + 1}: ${error.message || error}`, { cause: error });
     }
   });
 }

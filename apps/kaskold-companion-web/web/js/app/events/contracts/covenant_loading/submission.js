@@ -39,7 +39,7 @@ export function bindLoadSubmissionAction() {
         }
         takeInviteDate(result);
         covenantState.lastCovenantResult = result;
-        try { sessionStorage.setItem('lastCovenantResult', JSON.stringify(result)); } catch (_) {}
+        try { sessionStorage.setItem('lastCovenantResult', JSON.stringify(result)); } catch { /* Storage can be unavailable; the in-memory state stays authoritative. */ }
         covAddActive(type, result);
         covShowPanel('result');
         covUpdateResultButtons(type);

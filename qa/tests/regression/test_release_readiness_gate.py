@@ -4,6 +4,7 @@ import pathlib
 import subprocess
 import sys
 import tempfile
+from typing import Any
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
@@ -70,7 +71,7 @@ class EvidenceFixture:
     @staticmethod
     def _required_names() -> tuple[str, ...]:
         self_check = ROOT / "qa/checks/release/readiness/model.py"
-        namespace: dict[str, object] = {}
+        namespace: dict[str, Any] = {}
         exec(compile(self_check.read_text(), str(self_check), "exec"), namespace)
         return tuple(namespace["REQUIRED_EVIDENCE"].keys())
 

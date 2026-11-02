@@ -99,7 +99,7 @@ def _sha256_file(path: Path) -> str:
 
 def _current_mutation_provenance(
     errors: list[str], run_scope: dict[str, Any] | None
-) -> tuple[str | None, str | None, str | None, bool]:
+) -> tuple[str, str, str, bool]:
     """Read current mutation provenance without losing completed run evidence.
 
     A mutation run can take many hours. If the checked-in cargo-mutants profile
@@ -114,21 +114,28 @@ def _current_mutation_provenance(
     except (OSError, ValueError, tomllib.TOMLDecodeError) as error:
         profile_current = False
         errors.append(f"cargo-mutants profile cannot be verified after the run: {error}")
-        source_digest = (
-            run_scope.get("mutation_scope_sha256") if run_scope is not None else None
-        )
-        config_digest = (
-            run_scope.get("mutation_config_sha256") if run_scope is not None else None
-        )
+        source_digest = _recorded_digest(run_scope, "mutation_scope_sha256", "mutation scope", errors)
+        config_digest = _recorded_digest(run_scope, "mutation_config_sha256", "mutation config", errors)
 
     try:
         test_digest = workspace_test_sha256()
     except OSError as error:
         errors.append(f"mutation workspace test scope cannot be verified after the run: {error}")
-        test_digest = run_scope.get("workspace_test_sha256") if run_scope is not None else None
+        test_digest = _recorded_digest(run_scope, "workspace_test_sha256", "workspace test scope", errors)
         profile_current = False
 
     return source_digest, test_digest, config_digest, profile_current
+
+
+def _recorded_digest(
+    run_scope: dict[str, Any] | None, key: str, label: str, errors: list[str]
+) -> str:
+    """Return the digest recorded at run start; an empty string never matches, so it fails closed."""
+    value = run_scope.get(key) if run_scope is not None else None
+    if isinstance(value, str):
+        return value
+    errors.append(f"{label} digest is unavailable from run provenance")
+    return ""
 
 
 def _mutant_record(outcome: dict[str, Any]) -> dict[str, Any] | None:
@@ -353,8 +360,8 @@ def _validated_equivalent_entry(entry: Any, errors: list[str]) -> dict[str, str]
         errors.append("equivalent-mutant policy entries must be objects")
         return None
     fields = {key: entry.get(key) for key in _EQUIVALENT_FIELDS}
-    if not all(
-        isinstance(fields[key], str) and fields[key].strip() for key in _EQUIVALENT_FIELDS
+    if any(
+        not isinstance(value, str) or not value.strip() for value in fields.values()
     ):
         errors.append(
             "equivalent-mutant entries require exact name, file, function, replacement, "
@@ -826,8 +833,8 @@ def main() -> int:
         print(f"ERROR: cargo-mutants profile cannot be read: {error}")
         return 2
     if profile_errors:
-        for error in profile_errors:
-            print(f"ERROR: {error}")
+        for message in profile_errors:
+            print(f"ERROR: {message}")
         return 2
     if arguments.command == "setup":
         return setup(policy)
@@ -848,8 +855,8 @@ def main() -> int:
             f"({document['counts']['caught']} caught / "
             f"{document['counts']['viable_non_equivalent']} viable non-equivalent)"
         )
-        for error in errors:
-            print(f"ERROR: {error}")
+        for message in errors:
+            print(f"ERROR: {message}")
         return 1 if errors else 0
     output = arguments.output or ROOT / policy["output_directory"]
     errors, document = summarize(policy, output, ROOT / policy["artifact"])

@@ -44,15 +44,15 @@ export function loadActiveRecords() {
         const saved = sessionStorage.getItem('activeCovenants')
             || localStorage.getItem('activeCovenants');
         if (saved) covenantState.activeCovenants = JSON.parse(saved).map(normalizeCovenantExactFields);
-    } catch (_) {
+    } catch {
         covenantState.activeCovenants = [];
     }
 }
 
 export function saveActiveRecords() {
     const serialized = stringifyCovenantJson(covenantState.activeCovenants);
-    try { sessionStorage.setItem('activeCovenants', serialized); } catch (_) {}
-    try { localStorage.setItem('activeCovenants', serialized); } catch (_) {}
+    try { sessionStorage.setItem('activeCovenants', serialized); } catch { /* Storage can be unavailable; the in-memory state stays authoritative. */ }
+    try { localStorage.setItem('activeCovenants', serialized); } catch { /* Storage can be unavailable; the in-memory state stays authoritative. */ }
 }
 
 export function addActiveRecord(type, result) {

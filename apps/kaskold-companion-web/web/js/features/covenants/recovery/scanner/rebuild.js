@@ -38,7 +38,7 @@ export async function rebuildCovenant(decrypted, ownerPk) {
         const utxos = JSON.parse(utxosJson);
         const total = utxos.reduce((s, u) => s + BigInt(u.amount), 0n);
         result._balance = sompiToKasString(total);
-    } catch (_) {
+    } catch {
         result._balance = '0';
     }
 

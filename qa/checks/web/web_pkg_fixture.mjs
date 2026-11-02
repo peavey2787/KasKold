@@ -53,6 +53,7 @@ export async function isolateWebPackage(pkgDir) {
                     throw new AggregateError(
                         [cleanupError, restoreError],
                         'Unable to clean the QA web package and restore the generated package',
+                        { cause: restoreError },
                     );
                 }
                 throw restoreError;

@@ -39,8 +39,8 @@ function validateShipPubkeys(ownerPk, sellerPk, delivPk, arbPk) {
 // Reads product price and delivery fee in sompi. Returns null after toasting on failure.
 function readShipAmounts() {
     let productSompi, feeSompi;
-    try { productSompi = kasToSompi(byId('cov-ship-product').value.trim()); } catch (_) { toast('Enter product price in KAS (up to 8 decimals)', 'error'); return null; }
-    try { feeSompi = kasToSompi(byId('cov-ship-fee').value.trim()); } catch (_) { toast('Enter delivery fee in KAS (up to 8 decimals)', 'error'); return null; }
+    try { productSompi = kasToSompi(byId('cov-ship-product').value.trim()); } catch { toast('Enter product price in KAS (up to 8 decimals)', 'error'); return null; }
+    try { feeSompi = kasToSompi(byId('cov-ship-fee').value.trim()); } catch { toast('Enter delivery fee in KAS (up to 8 decimals)', 'error'); return null; }
     if (productSompi <= 0n) { toast('Enter product price in KAS', 'error'); return null; }
     if (feeSompi <= 0n) { toast('Enter delivery fee in KAS', 'error'); return null; }
     return { productSompi, feeSompi };

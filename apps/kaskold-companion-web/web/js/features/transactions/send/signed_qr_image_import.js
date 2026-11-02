@@ -18,7 +18,7 @@ function qrPayloadBytes(code) {
 }
 
 function resetDecoder() {
-    try { reset_qr_decoder(); } catch (_) {}
+    try { reset_qr_decoder(); } catch { /* A decoder that never started has nothing to reset. */ }
 }
 
 export function resetSignedQrImageImportSession() {

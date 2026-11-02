@@ -1,8 +1,26 @@
 import assert from 'node:assert/strict';
 import {
-  setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setValue, tick,
-  ADDRESS, CHANGE, BENEFICIARY, EXTERNAL, PK, PK2, PK3, TXID, PSKB, KSPT, COV_ID,
-  wallet, utxos, covenantResult, assertWatchOnlyStorage, rendered } from './web_runtime_deep_harness.mjs';
+    setupDeepHarness,
+    cleanupDeepHarness,
+    moduleUrl,
+    element,
+    setValue,
+    tick,
+    ADDRESS,
+    CHANGE,
+    BENEFICIARY,
+    PK,
+    PK2,
+    PK3,
+    TXID,
+    PSKB,
+    KSPT,
+    wallet,
+    utxos,
+    covenantResult,
+    assertWatchOnlyStorage,
+    rendered,
+} from './web_runtime_deep_harness.mjs';
 
 function treeText(node) {
   return [node?.textContent || '', ...(node?.children || []).map(treeText)].join(' ');

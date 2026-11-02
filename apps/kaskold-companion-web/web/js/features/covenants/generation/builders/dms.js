@@ -36,7 +36,7 @@ function resolveHeirPk(raw) {
 function parseInactivityDaa() {
     let durationSec;
     try { durationSec = exactUnsigned(byId('cov-dms2-duration').value.trim() || '0', 'inactivity seconds'); }
-    catch (_) { durationSec = 0n; }
+    catch { durationSec = 0n; }
     return durationSec;
 }
 

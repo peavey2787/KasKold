@@ -17,7 +17,7 @@ function normalizeStore(raw) {
 export function loadPortfolioStore() {
     try {
         return normalizeStore(JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'));
-    } catch (_) {
+    } catch {
         return cloneEmptyStore();
     }
 }

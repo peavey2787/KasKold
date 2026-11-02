@@ -59,9 +59,9 @@ export function walletMatchesPk(target) {
             try {
                 const d = JSON.parse(decode_address(a));
                 if (d.payload && d.payload === target) return true;
-            } catch (_) {}
+            } catch { /* An address that will not decode cannot match. */ }
         }
-    } catch (_) {}
+    } catch { /* With no wallet open nothing can match. */ }
     return false;
 }
 export function getOwnerPubkeyHex() {

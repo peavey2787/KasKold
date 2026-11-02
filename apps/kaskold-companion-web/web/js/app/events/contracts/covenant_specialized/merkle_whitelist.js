@@ -27,7 +27,7 @@ export function bindMerkleWhitelistEvents() {
             const activeEntry = covenantState.activeCovenants.find(c => c.address === covenantState.lastCovenantResult.address);
             const addrJson = (activeEntry && activeEntry.merkle_addresses_json) || covenantState.lastCovenantResult.merkle_addresses_json || '';
             if (addrJson) {
-                try { byId('cov-mw-spend-addresses').value = JSON.parse(addrJson).join('\n'); } catch (_) {}
+                try { byId('cov-mw-spend-addresses').value = JSON.parse(addrJson).join('\n'); } catch { /* An unreadable saved list leaves the field for the user to fill. */ }
             }
         }
         covShowPanel('mw-spend');
@@ -36,7 +36,7 @@ export function bindMerkleWhitelistEvents() {
         try {
             const m = await mwMaxSompi();
             byId('cov-mw-amount').placeholder = m ? (sompiToKasString(m) + ' max') : 'e.g. 5.0';
-        } catch (_) { byId('cov-mw-amount').placeholder = 'e.g. 5.0'; }
+        } catch { byId('cov-mw-amount').placeholder = 'e.g. 5.0'; }
     };
     byId('btn-cov-mw-spend-back').onclick = () => covShowPanel('result');
     byId('btn-cov-mw-spend-create').onclick = () => handleCovMwSpend();

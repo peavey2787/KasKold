@@ -32,5 +32,5 @@ export function ownerReceiveAddr() {
     try {
         const w = walletSession.current();
         return (w && w.receive_addresses && w.receive_addresses[0]) || '';
-    } catch (_) { return ''; }
+    } catch { return ''; }
 }

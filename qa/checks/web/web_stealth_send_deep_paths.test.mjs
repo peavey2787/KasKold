@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict';
 import {
-  setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setValue,
-  ADDRESS, PK, PK2, PSKB, wallet, assertWatchOnlyStorage, rendered } from './web_runtime_deep_harness.mjs';
+    setupDeepHarness,
+    cleanupDeepHarness,
+    moduleUrl,
+    element,
+    setValue,
+    ADDRESS,
+    PSKB,
+    wallet,
+    assertWatchOnlyStorage,
+    rendered,
+} from './web_runtime_deep_harness.mjs';
 
 await setupDeepHarness();
 try {

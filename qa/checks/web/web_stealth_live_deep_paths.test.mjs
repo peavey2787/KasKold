@@ -54,7 +54,7 @@ try {
   state.stealthState.stealthAnnouncementsR=[]; setFetchHook(async()=>response({json:[]})); await catchup.runHistoricalCatchUp(); assert.match(scanStatus.textContent,/No payments/i);
   state.stealthState.stealthAnnouncementsR=Array.from({length:512},(_,i)=>i.toString(16).padStart(64,'0')); setFetchHook(async()=>response({json:[PK3]})); await catchup.runHistoricalCatchUp(); assert.equal(state.stealthState.stealthAnnouncementsR.length,512);
   state.stealthState.stealthAnnouncementsR=[];
-  setFetchHook(async (url,opts={})=>{
+  setFetchHook(async url=>{
     const u=String(url);
     if(u.includes('/r?since=0')) return response({json:{not:'array'}});
     if(u.includes('virtual-chain-blue-score')) return response({text:'{"blueScore":1}',json:{blueScore:1}});

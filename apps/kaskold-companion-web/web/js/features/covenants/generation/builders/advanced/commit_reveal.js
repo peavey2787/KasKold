@@ -27,7 +27,7 @@ async function resolveLocktime(crDatetime) {
 }
 
 function parseLocktimeDaa(locktime) {
-    try { return exactUnsigned(locktime, 'refund timeout DAA'); } catch (_) { return 0n; }
+    try { return exactUnsigned(locktime, 'refund timeout DAA'); } catch { return 0n; }
 }
 
 function buildCommitExtra(hashDisplay, crDatetime) {

@@ -16,7 +16,7 @@ export function createBlockAddedTransport(options) {
         const current = socket;
         socket = null;
         if (!current) return;
-        try { current.close(); } catch (_) {}
+        try { current.close(); } catch { /* A socket that is already closed needs no closing. */ }
     }
 
     function scheduleReconnect(delay) {

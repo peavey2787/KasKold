@@ -20,7 +20,7 @@ async function resolveNodeWithRetry() {
     for (let attempt = 0; attempt < 3; attempt++) {
         try {
             return await resolveNodeUrl();
-        } catch (_) {
+        } catch {
             await new Promise((resolve) => setTimeout(resolve, 1000));
         }
     }
@@ -33,7 +33,7 @@ async function updateCovenantBalance(covenant, wsUrl) {
         const total = utxos.reduce((sum, utxo) => sum + BigInt(utxo.amount), 0n);
         covenant._balText = `${sompiToKasString(total)} KAS`;
         covenant._empty = utxos.length === 0;
-    } catch (_) {
+    } catch {
         covenant._balText = '?';
         covenant._empty = false;
     }

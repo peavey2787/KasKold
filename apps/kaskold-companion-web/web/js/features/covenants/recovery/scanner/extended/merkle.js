@@ -10,7 +10,7 @@ export function decodeMerkleWhitelist(params, network) {
     const depth = Number.parseInt(params.substring(position, position + 2), 16); position += 2;
     const locktime = readU64(params, position); position += 16;
     let addresses = '';
-    try { addresses = readVstr(params, position, hexToBytes).str; } catch (_) {}
+    try { addresses = readVstr(params, position, hexToBytes).str; } catch { /* The address list is optional; the redeem script alone recovers the covenant. */ }
     return recoveredFromRedeem('merkle-whitelist', redeem, network, {
         locktime_daa: locktime,
         merkle_root: root,

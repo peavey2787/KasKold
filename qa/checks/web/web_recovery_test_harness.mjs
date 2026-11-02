@@ -127,11 +127,11 @@ export class FakeElement {
                 if (className && child.classList?.contains(className)) found.push(child);
                 visit(child);
             }
-            if (className && node._innerHTML?.includes(`class=\"${className}`)) {
+            if (className && node._innerHTML?.includes(`class="${className}`)) {
                 const attribute = className === 'cov-del' ? 'covDelIdx' : 'covExportIdx';
                 const regex = className === 'cov-del'
-                    ? /data-cov-del-idx=\"(\d+)\"/g
-                    : /data-cov-export-idx=\"(\d+)\"/g;
+                    ? /data-cov-del-idx="(\d+)"/g
+                    : /data-cov-export-idx="(\d+)"/g;
                 for (const match of node._innerHTML.matchAll(regex)) {
                     const synthetic = new FakeElement('span');
                     synthetic.classList.add(className);
@@ -203,7 +203,7 @@ function installGlobals() {
         createElement(tag) { return new FakeElement(tag); },
         createTextNode(text) { const node = new FakeElement('#text'); node.textContent = String(text); return node; },
         querySelector(selector) {
-            const balance = selector.match(/^\[data-cov-bal-idx=\"(\d+)\"\]$/);
+            const balance = selector.match(/^\[data-cov-bal-idx="(\d+)"\]$/);
             if (balance) return elements.get(`balance-${balance[1]}`) || null;
             if (selector === '#status-dot .dot') return element('status-dot-value');
             if (selector === '#status-dot .label') return element('status-label-value');

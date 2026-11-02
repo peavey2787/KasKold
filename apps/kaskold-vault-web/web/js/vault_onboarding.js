@@ -4,6 +4,13 @@ import {
   saveEncryptedWallet, updateEncryptedWalletIdentity,
 } from './vault_storage.js';
 
+function hasControlCharacter(text) {
+  return [...text].some(character => {
+    const code = character.codePointAt(0);
+    return code < 0x20 || code === 0x7f;
+  });
+}
+
 function encodeTouchSamples(samples) {
   const bytes = new Uint8Array(samples.length * 8);
   const view = new DataView(bytes.buffer);
@@ -147,13 +154,13 @@ export function installOnboarding({ $, api, parse, show, status, showCreatedPhra
 
   $('onboarding-create').onclick = () => {
     let unlocked = false;
-    try { unlocked = Boolean(api('kaskold_vault_is_unlocked')()); } catch {}
+    try { unlocked = Boolean(api('kaskold_vault_is_unlocked')()); } catch { /* A Vault that cannot answer is treated as locked. */ }
     startCreation(unlocked ? 'add' : 'fresh', 'choice', null);
   };
   $('wallet-name-continue').onclick = () => {
     const value = $('wallet-name-entry').value.trim();
     const bytes = new TextEncoder().encode(value);
-    if (!value || bytes.length > 64 || /[\u0000-\u001f\u007f]/.test(value)) return status('Wallet name must be 1–64 UTF-8 bytes with no control characters.', true);
+    if (!value || bytes.length > 64 || hasControlCharacter(value)) return status('Wallet name must be 1–64 UTF-8 bytes with no control characters.', true);
     walletName = value;
     const next = nameContinuation;
     nameContinuation = null;

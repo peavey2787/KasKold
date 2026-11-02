@@ -50,7 +50,7 @@ export async function handleCovMwSpend() {
     if (!destAddr) { toast('Enter destination (must be in whitelist)', 'error'); return; }
     if (!addrText) { toast('Enter the same whitelist used for creation', 'error'); return; }
     let sendSompi;
-    try { sendSompi = kasToSompi(byId('cov-mw-amount').value); } catch (_) { toast('Enter amount to send', 'error'); return; }
+    try { sendSompi = kasToSompi(byId('cov-mw-amount').value); } catch { toast('Enter amount to send', 'error'); return; }
     if (sendSompi === 0n) { toast('Enter amount to send', 'error'); return; }
     const addresses = addrText.split('\n').map(a => a.trim()).filter(a => a.length > 0);
 

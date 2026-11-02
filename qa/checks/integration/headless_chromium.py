@@ -122,9 +122,9 @@ class LoopbackRequestHandler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, _format: str, *_args: object) -> None:
         pass
 
-    def guess_type(self, path: str) -> str:
+    def guess_type(self, path: str | os.PathLike[str]) -> str:
         """Use browser-safe MIME types independent of the Windows registry."""
-        suffix = Path(urllib.parse.urlsplit(path).path).suffix.lower()
+        suffix = Path(urllib.parse.urlsplit(os.fspath(path)).path).suffix.lower()
         return self.mime_types.get(suffix) or super().guess_type(path)
 
     def send_body(self, body: bytes, content_type: str) -> None:

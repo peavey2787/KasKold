@@ -1,11 +1,20 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import {
-  setupDeepHarness, cleanupDeepHarness, moduleUrl,
-  ADDRESS, BENEFICIARY, PK, PK2, PK3, SIG, TXID, PSKB, KSPT, assertWatchOnlyStorage,
+    setupDeepHarness,
+    cleanupDeepHarness,
+    moduleUrl,
+    ADDRESS,
+    BENEFICIARY,
+    PK,
+    PK2,
+    TXID,
+    PSKB,
+    KSPT,
+    assertWatchOnlyStorage,
 } from './web_runtime_deep_harness.mjs';
 
-const { state } = await setupDeepHarness();
+await setupDeepHarness();
 try {
   const stubs = globalThis.__COMPANION_WASM_STUBS__;
   const swapState = await import(moduleUrl('features/covenants/private_swap/state.js'));

@@ -21,7 +21,7 @@ let signedFrameHexSessionActive = false;
 
 export function resetSignedFrameHexImportSession() {
     signedFrameHexSessionActive = false;
-    try { reset_qr_decoder(); } catch (_) {}
+    try { reset_qr_decoder(); } catch { /* A decoder that never started has nothing to reset. */ }
     const input = byId('input-signed-frame-hex');
     const status = byId('broadcast-frame-status');
     if (input) input.value = '';
@@ -45,7 +45,7 @@ function parseSignedFrameInput(value) {
 
 function ensureSignedFrameSession() {
     if (signedFrameHexSessionActive) return;
-    try { reset_qr_decoder(); } catch (_) {}
+    try { reset_qr_decoder(); } catch { /* A decoder that never started has nothing to reset. */ }
     signedFrameHexSessionActive = true;
 }
 
@@ -163,7 +163,7 @@ export function showBroadcastError(err) {
         byId('link-view-explorer')?.classList.add('hidden');
         const formCard = document.querySelector('#screen-broadcast .card');
         if (formCard) formCard.style.display = 'none';
-        try { oracleMbCardRefresh(); } catch (_) {}
+        try { oracleMbCardRefresh(); } catch { /* The card refreshes again on its next poll. */ }
         return;
     }
     oracleState._oracleMbRollActive = false;
@@ -198,7 +198,7 @@ function resolveSignedScanAntiKlepto(decoded, options, progressTarget) {
     try {
         const accepted = processAntiKleptoResponse(decoded);
         if (accepted === ANTI_KLEPTO_KEEP_SCANNING) {
-            try { reset_qr_decoder(); } catch (_) {}
+            try { reset_qr_decoder(); } catch { /* A decoder that never started has nothing to reset. */ }
             if (progressTarget) progressTarget.textContent = 'Commitment already received — waiting for final KasKold QR';
             return { status: 'keep-scanning' };
         }

@@ -6,7 +6,7 @@ const GATED_METHODS = ['log', 'info', 'debug', 'warn', 'error'];
 function diagnosticsEnabled(storage) {
     try {
         return storage.getItem(DEBUG_KEY) === '1';
-    } catch (_) {
+    } catch {
         return false;
     }
 }

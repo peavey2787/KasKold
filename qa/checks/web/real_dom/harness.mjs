@@ -27,7 +27,7 @@ export async function assertRejects(operation, pattern, message) {
         await operation();
     } catch (error) {
         const text = String(error && error.message || error);
-        if (pattern && !pattern.test(text)) throw new Error(`${message || 'wrong error'}: ${text}`);
+        if (pattern && !pattern.test(text)) throw new Error(`${message || 'wrong error'}: ${text}`, { cause: error });
         return error;
     }
     throw new Error(message || 'expected the operation to fail');

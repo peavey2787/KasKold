@@ -7,6 +7,7 @@ import json
 import sys
 import unittest
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[3]
 CHECK_DIR = ROOT / "qa/checks/quality/crap"
@@ -37,12 +38,12 @@ class BranchCoverage90ContractTests(unittest.TestCase):
 
     def test_raw_manifest_keeps_branch_instrumentation_contract_only(self) -> None:
         profile = {"dev_opt_level": "0", "test_opt_level": "0", "branch_instrumentation": True}
-        previous = {
+        previous: dict[str, Any] = {
             "coverage_profile": profile,
             "branch_coverage_requested": True,
             "coverage": {"branches": {"available": True, "percent": 95.0}},
         }
-        current = {
+        current: dict[str, Any] = {
             "coverage_profile": profile,
             "branch_coverage_requested": True,
             "coverage": {"branches": {"available": True, "percent": 50.0}},

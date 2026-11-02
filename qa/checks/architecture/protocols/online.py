@@ -37,7 +37,6 @@ def _check_contract_inventory(root: Path) -> list[str]:
     errors: list[str] = []
     online_root = ROOT / "crates/online-watcher/src"
     wasm_boundary_root = online_root / "wasm_api"
-    online_root / "infrastructure"
     required_contract_family_paths = (
         wasm_boundary_root / "contracts/covenant/global_thread/mod.rs",
         wasm_boundary_root / "contracts/covenant/global_thread/planning.rs",
@@ -112,8 +111,6 @@ def _check_browser_boundary_placement(root: Path) -> list[str]:
     ROOT = root
     errors: list[str] = []
     online_root = ROOT / "crates/online-watcher/src"
-    online_root / "wasm_api"
-    online_root / "infrastructure"
     for legacy_api in (
         online_root / "contracts/covenant/api.rs",
         online_root / "contracts/oracle/api.rs",
@@ -261,7 +258,6 @@ def _check_wasm_exports(root: Path) -> list[str]:
     errors: list[str] = []
     online_root = ROOT / "crates/online-watcher/src"
     wasm_boundary_root = online_root / "wasm_api"
-    online_root / "infrastructure"
     # Preserve the existing JavaScript/WASM contract while internals move.
     wasm_boundary_source = "\n".join(
         path.read_text(errors="ignore")

@@ -174,7 +174,9 @@ def main() -> int:
     except (OSError, ChromiumError) as error:
         print(f"ERROR: {error}")
         return 1
-    results = result.get("detail", {}).get("results", [])
+    detail = result.get("detail", {})
+    assert isinstance(detail, dict)
+    results = detail.get("results", [])
     failed = [entry for entry in results if not entry.get("ok")]
     for entry in failed:
         print(f"FAIL: {entry.get('name')}\n{entry.get('error')}")

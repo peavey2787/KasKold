@@ -31,17 +31,20 @@ async function findFundedResults() {
     const network = detectWalletNetwork(walletSession.json(), networkState.network);
     const websocketUrl = await resolveNodeUrl();
     const funded = [];
+    let unchecked = 0;
     for (const result of stealthState._stealthResults) {
         let address = '';
-        try { address = encode_p2pk_address(result.pubkey, network); } catch (_) {}
+        try { address = encode_p2pk_address(result.pubkey, network); } catch { /* A key that cannot encode is listed with no address. */ }
         if (!address) continue;
         try {
             const utxos = JSON.parse(await fetch_utxos_for_address_js(address, websocketUrl));
             const total = utxos.reduce((sum, utxo) => sum + BigInt(utxo.amount), 0n);
             if (total > 0n) funded.push({ ...result, address, total });
-        } catch (_) {}
+        } catch {
+            unchecked++;
+        }
     }
-    return funded;
+    return { funded, unchecked };
 }
 
 const STEALTH_FEE_LEVELS = [
@@ -68,13 +71,18 @@ function paymentCard(result, index) {
         spend);
 }
 
-function renderFundedResults(funded) {
+function uncheckedNotice(unchecked) {
+    return `${unchecked} payment address${unchecked === 1 ? '' : 'es'} could not be checked. Try again when the node is reachable.`;
+}
+
+function renderFundedResults({ funded, unchecked }) {
     const list = byId('stealth-found-list');
     if (funded.length === 0) {
-        list.textContent = 'No funded payments for this wallet.';
+        list.textContent = unchecked > 0 ? uncheckedNotice(unchecked) : 'No funded payments for this wallet.';
         return;
     }
     setContent(list,
+        unchecked > 0 ? el('div', { className: 'input-label' }, uncheckedNotice(unchecked)) : '',
         el('label', { className: 'input-label' }, 'Fee'),
         el('div', { className: 'fee-cards' }, STEALTH_FEE_LEVELS.map(feeCard)),
         el('input', { className: 'input-text', id: 'input-spf-fee', attrs: { type: 'number', value: '5000', step: '1', min: '1' } }),
@@ -96,7 +104,7 @@ export async function processStealthResult(raw) {
     byId('stealth-scan-results').classList.remove('hidden');
     try {
         renderFundedResults(await findFundedResults());
-    } catch (_) {
+    } catch {
         byId('stealth-found-list').textContent = 'Node unavailable, cannot check balances.';
     }
 

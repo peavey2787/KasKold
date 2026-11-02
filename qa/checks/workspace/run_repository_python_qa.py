@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Run repository Python QA with mobile suites owned by dedicated commands."""
 from __future__ import annotations
+from typing import TextIO
+from collections.abc import MutableMapping
 
 import argparse
 import importlib.util
@@ -106,7 +108,7 @@ def _install_git_for_windows() -> None:
         raise RuntimeError(f"winget failed to install Git.Git with exit code {result.returncode}")
 
 
-def _prepend_windows_test_tools(root: Path, environment: dict[str, str]) -> None:
+def _prepend_windows_test_tools(root: Path, environment: MutableMapping[str, str]) -> None:
     """Prefer Git Bash/OpenSSL over Windows' WSL bash compatibility launcher."""
     prefixes = (root / "bin", root / "usr/bin", root / "mingw64/bin")
     current = environment.get("PATH", "")
@@ -180,7 +182,7 @@ def selected_files(scope: str) -> list[Path]:
 class TeeStream:
     """Mirror unittest output to the terminal and a persistent QA log."""
 
-    def __init__(self, *streams: object) -> None:
+    def __init__(self, *streams: TextIO) -> None:
         self.streams = streams
 
     def write(self, text: str) -> int:

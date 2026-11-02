@@ -7,7 +7,7 @@ export function installCovenantWorkflows(ctx) {
 
   function clear() {
     lastResponse = null;
-    try { api('kaskold_vault_covenant_cancel')(); } catch {}
+    try { api('kaskold_vault_covenant_cancel')(); } catch { /* Nothing is open to cancel when the module has not started. */ }
     $('covenant-warning').classList.add('hidden');
     $('covenant-warning').textContent = '';
     $('covenant-result-qr').replaceChildren();

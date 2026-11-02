@@ -36,7 +36,7 @@ export async function buildMerkleWhitelist(ownerPk) {
         }
     }
     let locktimeDaa;
-    try { locktimeDaa = exactUnsigned(locktime, 'refund timeout DAA'); } catch (_) { locktimeDaa = 0n; }
+    try { locktimeDaa = exactUnsigned(locktime, 'refund timeout DAA'); } catch { locktimeDaa = 0n; }
     if (locktimeDaa <= 0n) { toast('Pick a refund timeout date', 'error'); return; }
     resultJson = covenant_merkle_whitelist(ownerPk, rootInfo.root, rootInfo.depth, locktimeDaa, networkState.network);
     // Capture whitelist addresses for payload backup and proof generation

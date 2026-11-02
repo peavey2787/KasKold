@@ -111,13 +111,12 @@ def _check_navigation_authority_boundary(root: Path) -> list[str]:
 
 def _check_state_modules(root: Path, expected_fields: dict[str, tuple[str, ...]]) -> tuple[list[str], set[str]]:
     errors: list[str] = []
-    root / "apps/kaskold-hardware/src/runtime/data"
     expected_types = {
         name: "".join(part.title() for part in name.split("_")) + "State"
         for name in expected_fields
     }
     all_flat_state_fields: set[str] = set()
-    for name, expected_fields in expected_fields.items():
+    for name, module_fields in expected_fields.items():
         path = _state_module_path(root, name)
         if not path.exists():
             continue
@@ -137,9 +136,9 @@ def _check_state_modules(root: Path, expected_fields: dict[str, tuple[str, ...]]
         actual_fields = tuple(re.findall(
             r"(?m)^\s*pub\s+([A-Za-z_][A-Za-z0-9_]*)\s*:", match.group("body")
         ))
-        if actual_fields != expected_fields:
+        if actual_fields != module_fields:
             errors.append(
-                f"firmware {name} state ownership changed: expected {expected_fields}, "
+                f"firmware {name} state ownership changed: expected {module_fields}, "
                 f"got {actual_fields}"
             )
         overlap = all_flat_state_fields.intersection(actual_fields)

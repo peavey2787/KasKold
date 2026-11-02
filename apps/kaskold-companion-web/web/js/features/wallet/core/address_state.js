@@ -23,12 +23,12 @@ function observedChangeIndices() {
 function outputMatchesReservation(output, index, address) {
     if (!output || output.address !== address) return false;
     if (Number(output.derivation_branch) !== 1 || Number(output.derivation_index) !== index) return false;
-    try { return BigInt(output.amount_sompi) > 0n; } catch (_) { return false; }
+    try { return BigInt(output.amount_sompi) > 0n; } catch { return false; }
 }
 
 export function reserveStandardChangeFromSummary(walletJson, summary) {
     let wallet;
-    try { wallet = JSON.parse(walletJson); } catch (_) { return null; }
+    try { wallet = JSON.parse(walletJson); } catch { return null; }
     const index = Number(wallet?.next_change_index);
     if (!Number.isSafeInteger(index) || index < 0) return null;
     const address = wallet?.change_addresses?.[index];

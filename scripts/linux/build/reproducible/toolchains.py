@@ -8,11 +8,15 @@ import shutil
 import stat
 import tarfile
 import tomllib
+from typing import TYPE_CHECKING
 
-try:
+if TYPE_CHECKING:
     from .common import atomic_download, clean_environment, deterministic_file_manifest, download_json, run, sha256_file
-except ImportError:  # direct-script execution
-    from common import atomic_download, clean_environment, deterministic_file_manifest, download_json, run, sha256_file
+else:
+    try:
+        from .common import atomic_download, clean_environment, deterministic_file_manifest, download_json, run, sha256_file
+    except ImportError:  # direct-script execution
+        from common import atomic_download, clean_environment, deterministic_file_manifest, download_json, run, sha256_file
 
 HOST = "x86_64-unknown-linux-gnu"
 ESPUP_ASSET = f"espup-{HOST}"
@@ -57,11 +61,12 @@ def _download_espup(output: Path, version: str) -> tuple[Path, str]:
     matches = [asset for asset in assets if isinstance(asset, dict) and asset.get("name") == ESPUP_ASSET]
     if len(matches) != 1:
         raise RuntimeError(f"espup v{version} did not contain exactly one {ESPUP_ASSET} asset")
-    asset = matches[0]
-    digest = asset.get("digest")
-    url = asset.get("browser_download_url")
-    if not isinstance(digest, str) or not digest.startswith("sha256:"):
+    release_asset = matches[0]
+    published_digest = release_asset.get("digest")
+    url = release_asset.get("browser_download_url")
+    if not isinstance(published_digest, str) or not published_digest.startswith("sha256:"):
         raise RuntimeError("espup release asset has no published SHA-256 digest")
+    digest = published_digest
     if not isinstance(url, str) or not url.startswith("https://"):
         raise RuntimeError("espup release asset has no HTTPS download URL")
     atomic_download(url, binary)
@@ -418,7 +423,7 @@ def prefetch_toolchains(root: Path, output: Path, pins: dict[str, str]) -> dict[
 
     toolchain_manifest = output / "TOOLCHAIN-SHA256SUMS"
     deterministic_file_manifest(home, toolchain_manifest)
-    metadata = {
+    metadata: dict[str, object] = {
         "rustup_version": pins["KASKOLD_RUSTUP_VERSION"],
         "host_rust": pins["KASKOLD_REPRO_HOST_RUST"],
         "esp_rust": pins["KASKOLD_ESP_RUST"],

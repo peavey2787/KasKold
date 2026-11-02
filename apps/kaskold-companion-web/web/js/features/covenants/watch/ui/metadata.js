@@ -61,7 +61,7 @@ function piggyBankMetaLine(c) {
 }
 
 function merkleAddressCount(json) {
-    try { return JSON.parse(json || '[]').length; } catch (_) { return 0; }
+    try { return JSON.parse(json || '[]').length; } catch { return 0; }
 }
 
 function merkleWhitelistMetaLine(c) {

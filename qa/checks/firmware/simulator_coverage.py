@@ -31,7 +31,7 @@ def production_line_counts(lcov: str, root: Path) -> dict[str, dict[int, int]]:
         if line.startswith("SF:"):
             relative = relative_source(line[3:], root)
             keep = relative is not None and is_production_source(relative)
-            current = files.setdefault(relative, {}) if keep else None
+            current = files.setdefault(relative, {}) if relative is not None and keep else None
         elif line.startswith("DA:") and current is not None:
             number, count = line[3:].split(",")[:2]
             current[int(number)] = max(current.get(int(number), 0), int(count))

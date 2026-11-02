@@ -49,7 +49,7 @@ try {
   assert.throws(() => repo.renameAccount(store, 'missing', 'x'), /not found/);
 
   const entries = [
-    { id:'a', portfolioId:account.id, type:'Buy', kasSompi:'10000000000', priceMicroUsd:'100000', feeMicroUsd:'0', timestampMs:1, createdAt:1, notes:'buy, \"quoted\"\nline two', sourceTxId:null },
+    { id:'a', portfolioId:account.id, type:'Buy', kasSompi:'10000000000', priceMicroUsd:'100000', feeMicroUsd:'0', timestampMs:1, createdAt:1, notes:'buy, "quoted"\nline two', sourceTxId:null },
     { id:'b', portfolioId:account.id, type:'Sell', kasSompi:'2500000000', priceMicroUsd:'200000', feeMicroUsd:'0', timestampMs:2, createdAt:2, notes:'sell', sourceTxId:null },
     { id:'c', portfolioId:account.id, type:'Transfer In', kasSompi:'100000000', priceMicroUsd:'0', feeMicroUsd:'0', timestampMs:3, createdAt:3, notes:'in', sourceTxId:'chain-c' },
     { id:'d', portfolioId:account.id, type:'Transfer Out', kasSompi:'50000000', priceMicroUsd:'0', feeMicroUsd:'0', timestampMs:4, createdAt:4, notes:'out', sourceTxId:null },
@@ -68,7 +68,7 @@ try {
   assert.equal(decoded[0].kasSompi, entries[0].kasSompi);
   assert.equal(decoded[0].notes, entries[0].notes);
   assert.deepEqual(csv.parsePortfolioCsv('', account.id), []);
-  assert.throws(() => csv.parsePortfolioCsv('type,kas_amount,kas_price_usd,fee_usd,timestamp,notes,source_tx_id\nBuy,1,1,0,2026-01-01T00:00:00Z,\"unterminated,\n', account.id), /unterminated/);
+  assert.throws(() => csv.parsePortfolioCsv('type,kas_amount,kas_price_usd,fee_usd,timestamp,notes,source_tx_id\nBuy,1,1,0,2026-01-01T00:00:00Z,"unterminated,\n', account.id), /unterminated/);
   assert.throws(() => csv.parsePortfolioCsv('type,kas_amount,kas_price_usd,fee_usd,timestamp,notes,source_tx_id\nBuy,1,1,0,2026-01-01T00:00:00Z\n', account.id), /fields/);
   assert.throws(() => csv.parsePortfolioCsv('type,kas_amount,kas_price_usd,fee_usd,timestamp,notes,source_tx_id\nBuy,1,1,0,not-a-date,,\n', account.id), /Invalid transaction timestamp/);
   const crlf = 'type,kas_amount,kas_price_usd,fee_usd,timestamp,notes,source_tx_id\r\nBuy,1,,,2026-01-01T00:00:00Z,,\r\n';

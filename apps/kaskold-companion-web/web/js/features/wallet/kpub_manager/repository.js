@@ -57,7 +57,7 @@ function normalizeEntry(value) {
             createdAt: Number.isFinite(value.createdAt) ? value.createdAt : Date.now(),
             updatedAt: Number.isFinite(value.updatedAt) ? value.updatedAt : Date.now(),
         };
-    } catch (_) {
+    } catch {
         return null;
     }
 }
@@ -84,7 +84,7 @@ export function createKpubRepository(storage = globalThis.localStorage, idFactor
             const serialized = storage.getItem(STORAGE_KEY);
             if (!serialized) return emptyStore();
             return normalizeStore(JSON.parse(serialized));
-        } catch (_) {
+        } catch {
             return emptyStore();
         }
     }
@@ -94,7 +94,7 @@ export function createKpubRepository(storage = globalThis.localStorage, idFactor
         const normalized = normalizeStore(store);
         try {
             storage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-        } catch (_) {
+        } catch {
             throw new Error('Companion could not save wallets in this browser.');
         }
         return normalized;

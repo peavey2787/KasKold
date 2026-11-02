@@ -66,7 +66,7 @@ run().catch(async (error) => {
     };
     try {
         await finish('fail', detail);
-    } catch (_) {
+    } catch {
         document.documentElement.dataset.qaStatus = 'fail';
         document.body.textContent = JSON.stringify(detail);
     }

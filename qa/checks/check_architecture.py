@@ -12,9 +12,9 @@ from architecture.core import (  # noqa: E402
 )
 from architecture.core.inventory import repository_inventory  # noqa: E402
 from architecture.firmware import (  # noqa: E402
-    firmware_controllers, firmware_display, firmware_navigation, firmware_presentation, firmware_runtime, firmware_screens,
-    firmware_services, firmware_state, firmware_workflows,
+    firmware_controllers, firmware_runtime, firmware_services, firmware_state, firmware_workflows,
 )
+from architecture.firmware.presentation import firmware_display, firmware_navigation, firmware_presentation, firmware_screens  # noqa: E402
 from architecture.firmware.guards import account_key, source_integrity, wallet_session  # noqa: E402
 from architecture.firmware.subsystems import (  # noqa: E402
     firmware_backup, firmware_boot, firmware_media, firmware_storage,

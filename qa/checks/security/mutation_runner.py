@@ -550,6 +550,10 @@ def _ensure_current_inventory(ctx: _RunContext, results: Path) -> int | None:
 
 
 def _ensure_inventory_evidenced(ctx: _RunContext, document: dict[str, Any]) -> int | None:
+    if ctx.current_inventory is None:
+        _discard_prior_backup(ctx)
+        print("ERROR: current mutation inventory is unavailable for evidence check")
+        return 2
     missing = _inventory_names(ctx.current_inventory) - _outcome_names(document)
     if missing:
         _discard_prior_backup(ctx)

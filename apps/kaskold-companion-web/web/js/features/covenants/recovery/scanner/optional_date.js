@@ -5,7 +5,7 @@ export function readOptionalDate(params, offset) {
     if (offset >= params.length) return '';
     try {
         return readVstr(params, offset, hexToBytes).str || '';
-    } catch (_) {
+    } catch {
         return '';
     }
 }

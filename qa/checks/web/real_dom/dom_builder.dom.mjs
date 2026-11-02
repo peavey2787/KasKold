@@ -22,7 +22,7 @@ test('element builder keeps only http(s) links and rejects unknown attributes', 
     assertEqual(el('a', { attrs: { href: 'data:text/html,x' } }).hasAttribute('href'), false);
     assertEqual(el('a', { attrs: { href: 'https://explorer.kaspa.org/a' } }).getAttribute('href'), 'https://explorer.kaspa.org/a');
     let threw = false;
-    try { el('div', { attrs: { onclick: 'alert(1)' } }); } catch (_) { threw = true; }
+    try { el('div', { attrs: { onclick: 'alert(1)' } }); } catch { threw = true; }
     assert(threw, 'event-handler attributes are refused');
 });
 
@@ -41,7 +41,7 @@ test('Companion QR image renders the encoder SVG and refuses other markup', asyn
     await decoded(image);
     assertEqual(image.alt, 'test QR');
     let threw = false;
-    try { qrImage(HOSTILE); } catch (_) { threw = true; }
+    try { qrImage(HOSTILE); } catch { threw = true; }
     assert(threw, 'non-SVG markup is refused');
 });
 

@@ -17,7 +17,7 @@ import { planTransaction } from './planners/index.js';
 
 
 function parseWalletForSendIntent(walletJson) {
-    try { return JSON.parse(walletJson); } catch (_) { throw new Error('Wallet state could not be verified'); }
+    try { return JSON.parse(walletJson); } catch { throw new Error('Wallet state could not be verified'); }
 }
 
 function readSendFigures(summary, amountSompi, feeSompi) {
@@ -136,7 +136,7 @@ function resolveSendDestination(rawDest) {
 
 function parseSendAmount(amountStr) {
     let amountSompi;
-    try { amountSompi = kasToSompi(amountStr); } catch (_) {
+    try { amountSompi = kasToSompi(amountStr); } catch {
         toast('Enter a valid amount with at most 8 decimal places', 'error');
         return null;
     }
@@ -149,7 +149,7 @@ function parseSendAmount(amountStr) {
 
 function resolveSendFee() {
     let requestedFee;
-    try { requestedFee = readFeeSompi(); } catch (_) {
+    try { requestedFee = readFeeSompi(); } catch {
         toast('Enter a valid fee in the selected unit', 'error');
         return null;
     }
@@ -163,7 +163,7 @@ function assertStandardPlanSafe(summary, freshWallet, dest, amountSompi, fee) {
         assertStandardSendIntent(summary, freshWallet, dest, amountSompi, fee);
     } catch (error) {
         clearPendingPskt();
-        throw new Error(`Transaction safety check failed: ${error.message || error}`);
+        throw new Error(`Transaction safety check failed: ${error.message || error}`, { cause: error });
     }
 }
 

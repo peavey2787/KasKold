@@ -1,7 +1,19 @@
 import assert from 'node:assert/strict';
 import {
-  setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setValue, setFetchHook,
-  ADDRESS, PK, PK2, PK3, COV_ID, wallet, utxos, rendered } from './web_runtime_deep_harness.mjs';
+    setupDeepHarness,
+    cleanupDeepHarness,
+    moduleUrl,
+    element,
+    setValue,
+    setFetchHook,
+    ADDRESS,
+    PK,
+    PK2,
+    PK3,
+    COV_ID,
+    wallet,
+    rendered,
+} from './web_runtime_deep_harness.mjs';
 import { FakeElement } from './web_recovery_test_harness.mjs';
 
 const { state, response, originalGet } = await setupDeepHarness();
@@ -206,7 +218,7 @@ try {
 
   // Kpub QR ingestion accepts every supported binary view and quote form,
   // including text recovered from binary QR payloads.
-  assert.equal(kpubQr.normalizeKpubText(`'${wallet.kpub}'`),wallet.kpub); assert.equal(kpubQr.normalizeKpubText(`\"${wallet.kpub}\"`),wallet.kpub);
+  assert.equal(kpubQr.normalizeKpubText(`'${wallet.kpub}'`),wallet.kpub); assert.equal(kpubQr.normalizeKpubText(`"${wallet.kpub}"`),wallet.kpub);
   const compact=new Uint8Array(79); compact[0]=1; assert.equal(kpubQr.classifyKpubQrCode({binaryData:compact.buffer}).kind,'compact'); assert.equal(kpubQr.classifyKpubQrCode({binaryData:new DataView(compact.buffer)}).kind,'compact');
   const textBytes=new TextEncoder().encode(wallet.kpub); assert.equal(kpubQr.classifyKpubQrCode({binaryData:textBytes,data:''}).kind,'text'); assert.throws(()=>kpubQr.classifyKpubQrCode({binaryData:new Uint8Array([1,2]),data:''}),/valid KasKold kpub/);
 

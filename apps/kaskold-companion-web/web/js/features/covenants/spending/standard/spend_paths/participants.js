@@ -25,7 +25,7 @@ export async function handleCovBorrowerSpend() {
     if (!covAddr) { toast('Enter covenant P2SH address', 'error'); return; }
     if (!redeemHex) { toast('Enter redeem script hex', 'error'); return; }
     let sompi;
-    try { sompi = kasToSompi(amountStr); } catch (_) { toast('Enter a valid amount with at most 8 decimal places', 'error'); return; }
+    try { sompi = kasToSompi(amountStr); } catch { toast('Enter a valid amount with at most 8 decimal places', 'error'); return; }
     if (sompi <= 0n) { toast('Enter amount', 'error'); return; }
 
     showLoading(mode === 'withdraw' ? 'Building borrower withdraw PSKB...' : 'Building borrower spend PSKB...');
@@ -196,7 +196,7 @@ async function handleStandardBeneficiarySpend(fields) {
         let utxos = [];
         try {
             utxos = JSON.parse(await fetch_utxos_for_address_js(fields.covenantAddress, websocketUrl));
-        } catch (_) {}
+        } catch { /* The claim build below reads the UTXOs itself and reports a failure. */ }
         const fee = getCovFee(utxos.length || 1);
         await ensureStandardClaimUnlocked(fields.type, locktime, utxos);
         const pskbHex = fields.type === 'timelocked-savings'

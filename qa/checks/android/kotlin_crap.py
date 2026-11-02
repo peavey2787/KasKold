@@ -77,16 +77,22 @@ def functions(path: Path) -> list[dict[str, object]]:
     return rows
 
 
+def _crap(row: dict[str, object]) -> float:
+    crap = row["crap"]
+    assert isinstance(crap, float)
+    return crap
+
+
 def main() -> int:
     rows = [row for path in source_files() for row in functions(path)]
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "report.json").write_text(json.dumps({"threshold": THRESHOLD, "rows": rows}, indent=2) + "\n")
-    failures = [row for row in rows if row["crap"] > THRESHOLD]
+    failures = [row for row in rows if _crap(row) > THRESHOLD]
     if failures:
         for row in failures:
             print(f"ERROR: Android source CRAP {row['crap']:.2f}>{THRESHOLD:.0f}: {row['file']}::{row['function']}:{row['line']} (CC {row['complexity']})")
         return 1
-    worst = max(rows, key=lambda row: row["crap"], default=None)
+    worst = max(rows, key=_crap, default=None)
     if worst:
         print(f"PASS: Android source CRAP ({len(rows)} functions; worst {worst['crap']:.2f}, CC {worst['complexity']}; threshold {THRESHOLD:.0f}).")
     else:

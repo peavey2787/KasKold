@@ -2,6 +2,7 @@
 """Tests for complete CRAP/coverage health measurement."""
 
 from __future__ import annotations
+from typing import Any
 
 import importlib.util
 import json
@@ -41,7 +42,7 @@ def function(
     }
 
 
-def policy() -> dict[str, object]:
+def policy() -> dict[str, Any]:
     return {
         "health": {
             "maximum_production_failures": 0,

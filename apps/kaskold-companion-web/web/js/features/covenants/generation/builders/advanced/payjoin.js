@@ -22,7 +22,7 @@ async function resolvePayjoinLocktime(pjDatetime) {
 }
 
 function parseLocktimeDaa(locktime) {
-    try { return exactUnsigned(locktime, 'refund timeout DAA'); } catch (_) { return 0n; }
+    try { return exactUnsigned(locktime, 'refund timeout DAA'); } catch { return 0n; }
 }
 
 function payjoinExtra(benePk, minInputs, minOutputs, pjDatetime) {

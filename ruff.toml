@@ -1,0 +1,8 @@
+target-version = "py311"
+extend-exclude = ["external", "target", "**/node_modules", "apps/**/pkg"]
+
+[lint]
+select = ["C901", "E9", "F"]
+
+[lint.mccabe]
+max-complexity = 12

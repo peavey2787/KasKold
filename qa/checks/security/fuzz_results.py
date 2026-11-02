@@ -107,7 +107,7 @@ def main() -> int:
         parser.error("--runs must be positive")
 
     targets = parse_statuses(arguments.statuses)
-    failed = [target["name"] for target in targets if target["status"] != "pass"]
+    failed: list[str] = [str(target["name"]) for target in targets if target["status"] != "pass"]
     document = {
         "schema_version": 2,
         "healthy": not failed,

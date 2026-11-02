@@ -152,7 +152,7 @@ function readAmount(inputId) {
         const sompi = kasToSompi(input);
         if (sompi < 10_000_000n) throw new Error('below minimum');
         return { kas: input, sompi };
-    } catch (_) {
+    } catch {
         toast('Enter an amount >= 0.1 KAS (up to 8 decimals)', 'error');
         return null;
     }

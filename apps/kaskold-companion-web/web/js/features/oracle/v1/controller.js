@@ -101,7 +101,7 @@ export function scanOracleV1BindingResponse() {
 function persistOracleBinding(result, bindingToken) {
     if (!/^[0-9a-f]{64}$/.test(bindingToken || '')) throw new Error('Invalid covenant binding record');
     result.oracle_covenant_binding_token_hex = bindingToken.toLowerCase();
-    try { sessionStorage.setItem('lastCovenantResult', stringifyCovenantJson(result)); } catch (_) {}
+    try { sessionStorage.setItem('lastCovenantResult', stringifyCovenantJson(result)); } catch { /* Storage can be unavailable; the in-memory state stays authoritative. */ }
     const active = covenantState.activeCovenants?.find(item => item.address === result.address);
     if (active) active.oracle_covenant_binding_token_hex = result.oracle_covenant_binding_token_hex;
     covSaveActive(); covRenderActive();

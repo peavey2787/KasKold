@@ -11,6 +11,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from typing import Any
 import unittest
 from unittest import mock
 import zipfile
@@ -39,6 +40,15 @@ BRANCH_EVIDENCE_FILES = (
 )
 
 
+def _load_module(name: str, path: Path) -> Any:
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    with mock.patch.dict(sys.modules, {name: module}):
+        spec.loader.exec_module(module)
+    return module
+
+
 def branch_run_document(requested: bool = True, available: bool = True, found: int = 4) -> str:
     branches = {"available": available, "found": found, "hit": 3, "percent": 75.0}
     return json.dumps({"branch_coverage_requested": requested, "coverage": {"branches": branches}})
@@ -65,7 +75,7 @@ def run_packager(*arguments: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def rewrite_run(**fields: object) -> Callable[[Path], object]:
+def rewrite_run(**fields: Any) -> Callable[[Path], object]:
     return lambda evidence: (evidence / "run.json").write_text(branch_run_document(**fields), encoding="utf-8")
 
 
@@ -87,12 +97,7 @@ BRANCH_EVIDENCE_DAMAGE = {
 class CrapToolchainTests(CrapCheckTestCase):
     def test_windows_crap_runner_resolves_repository_root(self) -> None:
         runner = ROOT / "scripts/windows/quality/crap_windows.py"
-        spec = importlib.util.spec_from_file_location("kaskold_crap_windows_root_test", runner)
-        self.assertIsNotNone(spec)
-        self.assertIsNotNone(spec.loader)
-        module = importlib.util.module_from_spec(spec)
-        with mock.patch.dict(sys.modules, {spec.name: module}):
-            spec.loader.exec_module(module)
+        module = _load_module("kaskold_crap_windows_root_test", runner)
 
         self.assertEqual(module.ROOT, ROOT)
         self.assertTrue((module.ROOT / "qa/checks/quality/crap/coverage_manifest.py").is_file())
@@ -403,9 +408,7 @@ exit 2
                 self.assertNotEqual(refused.returncode, 0, refused.stdout + refused.stderr)
 
     def test_branch_artifact_archive_check_refuses_a_corrupt_member(self) -> None:
-        spec = importlib.util.spec_from_file_location("kaskold_branch_packager_test", PACKAGER)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("kaskold_branch_packager_test", PACKAGER)
         marker = b"EVIDENCE-MARKER"
         with tempfile.TemporaryDirectory() as directory:
             bundle = Path(directory) / "branch.zip"

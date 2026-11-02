@@ -41,8 +41,13 @@ def _groups(
         if isinstance(path, str) and isinstance(function, str):
             grouped[(path, function)].append(entry)
     for values in grouped.values():
-        values.sort(key=lambda item: item.get("line") if isinstance(item.get("line"), int) else -1)
+        values.sort(key=_line_number)
     return grouped
+
+
+def _line_number(entry: dict[str, Any]) -> int:
+    line = entry.get("line")
+    return line if isinstance(line, int) else -1
 
 
 def _match_entries(

@@ -7,11 +7,15 @@ import subprocess
 import tarfile
 import urllib.parse
 import urllib.request
+from typing import TYPE_CHECKING
 
-try:
+if TYPE_CHECKING:
     from .common import atomic_download, require_command, run, sha256_file
-except ImportError:  # direct-script execution
-    from common import atomic_download, require_command, run, sha256_file
+else:
+    try:
+        from .common import atomic_download, require_command, run, sha256_file
+    except ImportError:  # direct-script execution
+        from common import atomic_download, require_command, run, sha256_file
 
 REGISTRY = "https://registry-1.docker.io"
 AUTH = "https://auth.docker.io/token"

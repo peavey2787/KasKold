@@ -2,13 +2,14 @@ import importlib.util
 import sys
 import unittest
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[3]
 SUPPORT = ROOT / "qa/checks/web/web_recovery_coverage_support.py"
 spec = importlib.util.spec_from_file_location("web_cov_support_merge_test", SUPPORT)
-mod = importlib.util.module_from_spec(spec)
+assert spec is not None and spec.loader is not None
+mod: Any = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = mod
-assert spec.loader is not None
 spec.loader.exec_module(mod)
 
 

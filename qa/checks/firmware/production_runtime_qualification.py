@@ -304,8 +304,8 @@ def main() -> int:
         return 0
     errors = check(ROOT)
     if errors:
-        for error in errors:
-            print(f"ERROR: {error}")
+        for failure in errors:
+            print(f"ERROR: {failure}")
         return 1
     document = build_document(ROOT)
     print(

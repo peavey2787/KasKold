@@ -333,8 +333,8 @@ def main() -> int:
         return 0
     errors = stale_outputs(ROOT)
     if errors:
-        for error in errors:
-            print(f"ERROR: {error}")
+        for stale in errors:
+            print(f"ERROR: {stale}")
         return 1
     document = build_document(ROOT)
     print(

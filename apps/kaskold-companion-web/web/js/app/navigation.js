@@ -145,7 +145,7 @@ export async function start() {
     try {
         const saved = sessionStorage.getItem('lastCovenantResult');
         if (saved) covenantState.lastCovenantResult = parseCovenantJson(saved);
-    } catch (_) {}
+    } catch { /* An unreadable saved covenant is treated as none. */ }
     covLoadActive();
 
     if (wasmStarted) {

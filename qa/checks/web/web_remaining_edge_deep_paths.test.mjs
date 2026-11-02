@@ -1,8 +1,21 @@
 import assert from 'node:assert/strict';
 import {
-  setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setValue, tick, setFetchHook,
-  ADDRESS, BENEFICIARY, PK, PK2, PK3, SIG, TXID, TXID2, PSKB, COV_ID, wallet,
-  covenantResult, assertWatchOnlyStorage,
+    setupDeepHarness,
+    cleanupDeepHarness,
+    moduleUrl,
+    element,
+    setValue,
+    setFetchHook,
+    ADDRESS,
+    PK2,
+    PK3,
+    SIG,
+    TXID,
+    TXID2,
+    PSKB,
+    COV_ID,
+    covenantResult,
+    assertWatchOnlyStorage,
 } from './web_runtime_deep_harness.mjs';
 
 const { state } = await setupDeepHarness();
@@ -44,7 +57,6 @@ try {
 
   // Compact KSPT status inspection covers header flags/version, compact script
   // lengths, complete/partial/unsigned input state, and every truncation guard.
-  const toHex=bytes=>Buffer.from(bytes).toString('hex');
 
   // Covenant deposit planner exercises insufficient/folded additive deposits,
   // DMS dust folding, global-thread top-up safety, and the no-payload builder.

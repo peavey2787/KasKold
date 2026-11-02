@@ -26,7 +26,7 @@ async function oracleMbPollOnce() {
       // price/T within 15s -> the watcher likely missed it -> one REST catch-up read.
       if (Date.now() - oracleState._oracleMbPriceTs > 15000) await oracleMbCardRefresh();
     }
-  } catch (_) { /* node hiccup; keep the last reading, retry next tick */ }
+  } catch { /* node hiccup; keep the last reading, retry next tick */ }
 }
 async function oracleMbCardRefresh() {
   try {

@@ -187,7 +187,7 @@ class FundedTestnetE2EContractTests(unittest.TestCase):
 
         kernel32 = FakeKernel32()
         fake_msvcrt = types.SimpleNamespace(get_osfhandle=lambda _fd: 99)
-        with mock.patch.object(runner.os, "name", "nt"), mock.patch.dict(
+        with mock.patch.object(runner.sys, "platform", "win32"), mock.patch.dict(
             "sys.modules", {"msvcrt": fake_msvcrt}
         ), mock.patch.object(ctypes, "windll", types.SimpleNamespace(kernel32=kernel32), create=True):
             self.assertTrue(runner.restore_windows_console_line_input(FakeStream()))

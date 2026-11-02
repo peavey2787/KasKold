@@ -1,11 +1,19 @@
 import assert from 'node:assert/strict';
 import {
-  setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setValue, setFetchHook,
-  ADDRESS, PK, PK3, wallet, utxos,
+    setupDeepHarness,
+    cleanupDeepHarness,
+    moduleUrl,
+    element,
+    setValue,
+    ADDRESS,
+    PK,
+    PK3,
+    wallet,
+    utxos,
 } from './web_runtime_deep_harness.mjs';
 import { FakeElement } from './web_recovery_test_harness.mjs';
 
-const { state, response } = await setupDeepHarness();
+const { state } = await setupDeepHarness();
 try {
   const notifications = await import(moduleUrl('features/covenants/watch/watcher/subscription/notifications.js'));
   const merkleButtons = await import(moduleUrl('features/covenants/watch/ui/result_buttons/primary_advanced/merkle.js'));

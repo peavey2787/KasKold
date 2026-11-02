@@ -1,5 +1,7 @@
 from pathlib import Path
+from typing import Any
 import hashlib
+import importlib
 import json
 import io
 import shlex
@@ -12,10 +14,7 @@ import tempfile
 import os
 import unittest
 
-if os.name == "posix":
-    import pwd
-else:
-    pwd = None  # type: ignore[assignment]
+pwd: Any = importlib.import_module("pwd") if os.name == "posix" else None
 from unittest import mock
 
 if os.name != "posix":
@@ -102,6 +101,7 @@ class _DockerAccessSandbox:
         }
 
     def run(self, body: str, *, extra_env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+        assert BASH_EXECUTABLE is not None
         script = (
             f"source {shlex.quote(str(DOCKER_ACCESS_LIBRARY))}\n"
             'run_as_root() { shift; "$@"; }\n'
@@ -280,7 +280,7 @@ repro_docker_error_kind "permission denied while trying to connect to the Docker
         result = sandbox.run(f"repro_reexec_with_docker_group {shlex.quote(script)} one 'two words'", extra_env={"USER": "alice"})
         self.assertEqual(result.returncode, 0, result.stderr)
         argv = sandbox.sg_argv()
-        self.assertIsNotNone(argv)
+        assert argv is not None
         self.assertEqual(argv[:2], ["docker", "-c"])
         self.assertEqual(
             shlex.split(argv[2]),
@@ -522,7 +522,8 @@ repro_docker_error_kind "permission denied while trying to connect to the Docker
         with tempfile.TemporaryDirectory() as temporary:
             home = Path(temporary) / "root-home"
             env = toolchains._rustup_init_env(home)
-            self.assertEqual(env["HOME"], pwd.getpwuid(os.geteuid()).pw_dir)
+            geteuid: Any = getattr(os, "geteuid")
+            self.assertEqual(env["HOME"], pwd.getpwuid(geteuid()).pw_dir)
             self.assertEqual(env["CARGO_HOME"], str(home / ".cargo"))
             self.assertEqual(env["RUSTUP_HOME"], str(home / ".rustup"))
             self.assertEqual(env["RUSTUP_INIT_SKIP_PATH_CHECK"], "yes")
@@ -621,9 +622,9 @@ repro_docker_error_kind "permission denied while trying to connect to the Docker
             (root / "apps/kaskold-hardware/Cargo.toml").write_text("[package]\nname='fixture'\nversion='0.0.0'\n")
             (home / ".cargo/bin").mkdir(parents=True)
             export_file.write_text("export FIXTURE_ESP=1\n")
-            calls = []
+            calls: list[tuple[Any, dict[str, Any]]] = []
 
-            def capture(command, **kwargs):
+            def capture(command: Any, **kwargs: Any) -> None:
                 calls.append((command, kwargs))
 
             with mock.patch.object(toolchains, "run", side_effect=capture):

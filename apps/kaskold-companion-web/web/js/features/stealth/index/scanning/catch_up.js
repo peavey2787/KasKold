@@ -147,7 +147,7 @@ function updateScanStatus(done, total, rCount) {
     try {
         byId('stealth-scan-status').textContent =
             'Scanning lane… ' + done + '/' + total + ' windows, ' + rCount + ' R';
-    } catch (_) {}
+    } catch { /* The status line may not be on screen. */ }
 }
 
 function appendIfNewR(rHex) {
@@ -173,7 +173,7 @@ function revealLoadedRs() {
         if (list) list.textContent = stealthState.stealthAnnouncementsR.length + ' R value(s) loaded';
         const qrBtn = byId('btn-stealth-show-scan-qr');
         if (qrBtn) qrBtn.classList.remove('hidden');
-    } catch (_) {}
+    } catch { /* The panel may not be on screen. */ }
 }
 
 // Surface R as soon as a batch finds it: push new ones to the global

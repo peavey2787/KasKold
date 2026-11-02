@@ -49,7 +49,7 @@ function detectStoredRole(covenant) {
 function persistLastResult() {
     try {
         sessionStorage.setItem('lastCovenantResult', stringifyCovenantJson(covenantState.lastCovenantResult));
-    } catch (_) {
+    } catch {
         // Session persistence is optional.
     }
 }

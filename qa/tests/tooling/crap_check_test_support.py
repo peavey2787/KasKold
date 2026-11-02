@@ -1,6 +1,7 @@
 """Shared fixture support for CRAP quality regression tests."""
 
 from __future__ import annotations
+from typing import Any
 
 import importlib.util
 from pathlib import Path
@@ -21,7 +22,7 @@ sys.modules[spec.name] = source_complexity
 spec.loader.exec_module(source_complexity)
 
 
-def report_document(status: str) -> dict[str, object]:
+def report_document(status: str) -> dict[str, Any]:
     statuses = {"fail": 0, "warning": 0, "pass": 0}
     statuses[status] = 1
     empty_statuses = {"fail": 0, "warning": 0, "pass": 0}

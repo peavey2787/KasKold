@@ -208,8 +208,8 @@ def reviewed_sites(pattern: re.Pattern[str], manifest_path: Path) -> tuple[list[
             if not item["reviewed"]:
                 errors.append(f"unreviewed source site in {relative(path)}:{number}: {source}")
     stale = sorted(set(manifest) - seen)
-    for path, number, _ in stale:
-        errors.append(f"stale reviewed source site no longer matches: {path}:{number}")
+    for stale_path, number, _ in stale:
+        errors.append(f"stale reviewed source site no longer matches: {stale_path}:{number}")
     return observed, errors
 
 

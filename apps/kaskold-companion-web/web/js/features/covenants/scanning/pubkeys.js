@@ -31,7 +31,7 @@ export function covScanPubkey(fieldId, label, rejectKpub) {
             stopScanner();
             try {
                 byId(fieldId).value = encode_p2pk_address(xonly, networkState.network);
-            } catch (e) {
+            } catch {
                 byId(fieldId).value = xonly;
             }
             showScreen('covenant');
@@ -90,7 +90,7 @@ export function covScanAddress(fieldId, label, rejectKpub) {
         try {
             const decoded = JSON.parse(decode_address(addr));
             if (!decoded.payload) throw new Error('Address payload missing');
-        } catch (error) {
+        } catch {
             stopScanner(); showScreen('covenant');
             toast('Could not decode address', 'error');
             return;
@@ -114,7 +114,7 @@ export function covScanAddressAppend(textareaId, label) {
         try {
             const decoded = JSON.parse(decode_address(addr));
             if (!decoded.payload) throw new Error('Address payload missing');
-        } catch (error) {
+        } catch {
             stopScanner(); showScreen('covenant');
             toast('Could not decode address', 'error');
             return;

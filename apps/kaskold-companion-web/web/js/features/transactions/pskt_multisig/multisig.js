@@ -207,7 +207,7 @@ function readMultisigCreateInput() {
     if (!input.descriptor) { toast('Paste the multisig descriptor', 'error'); return null; }
     if (!input.sourceAddr) { toast('Enter the P2SH source address', 'error'); return null; }
     if (!input.destAddr) { toast('Enter the destination address', 'error'); return null; }
-    try { input.amountSompi = kasToSompi(amountStr); } catch (_) { toast('Enter a valid amount with at most 8 decimal places', 'error'); return null; }
+    try { input.amountSompi = kasToSompi(amountStr); } catch { toast('Enter a valid amount with at most 8 decimal places', 'error'); return null; }
     if (input.amountSompi <= 0n) { toast('Enter amount', 'error'); return null; }
     return input;
 }

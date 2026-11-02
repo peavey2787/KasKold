@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from typing import IO
 import os
 from pathlib import Path
 import shutil
@@ -850,11 +851,11 @@ def ensure_resume_prerequisites(ns: argparse.Namespace, selected: list[tuple[str
     run_step("preflight.crap-check", ns)
 
 
-def acquire_lock() -> object|None:
+def acquire_lock() -> IO[bytes]|None:
     marker=os.environ.get("KASKOLD_QA_RUN_ALL_LOCK_ROOT")
     if marker and Path(marker).resolve()==ROOT.resolve(): return None
     state=ROOT/"target/qa/state"; state.mkdir(parents=True,exist_ok=True); path=state/"release-workflow.lock"; handle=open(path,"a+b")
-    if os.name=="nt":
+    if sys.platform=="win32":
         import msvcrt
         try: msvcrt.locking(handle.fileno(),msvcrt.LK_NBLCK,1)
         except OSError:
@@ -945,7 +946,7 @@ def _passes_step_filters(record: tuple[str, ...], ns: argparse.Namespace) -> boo
     return True
 
 
-def _select_steps(ns: argparse.Namespace, start: int) -> list[tuple[str, ...]]:
+def _select_steps(ns: argparse.Namespace, start: int) -> list[tuple[str, str, str, str]]:
     selected=[rec for rec in STEPS[start:] if _passes_profile(STEP_SCOPES[rec[2]], ns) and _passes_step_filters(rec, ns)]
     if any(record[2] == "preflight.core-ci" for record in selected):
         selected=[record for record in selected if STEP_SCOPES[record[2]] != "test"]
@@ -960,7 +961,7 @@ def _report_step_failure(step_id: str, code: int, ns: argparse.Namespace) -> Non
         print(f"Detailed test log: {detail_log}", file=sys.stderr)
 
 
-def _run_steps(selected: list[tuple[str, ...]], ns: argparse.Namespace) -> int:
+def _run_steps(selected: Sequence[tuple[str, ...]], ns: argparse.Namespace) -> int:
     current_c=current_w=""; passed=0; skipped=0
     for c,w,i,d in selected:
         if c!=current_c:

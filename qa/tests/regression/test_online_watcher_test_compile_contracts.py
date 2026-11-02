@@ -3,6 +3,7 @@ from pathlib import Path as _PortalPath
 
 _portal_sys.path.insert(0, str(_PortalPath(__file__).resolve().parents[3] / "qa/checks"))
 from pathlib import Path
+from typing import Any
 import importlib.util
 import tempfile
 import unittest
@@ -11,8 +12,8 @@ import unittest
 ROOT = Path(__file__).resolve().parents[3]
 RUST_SYNTAX_PATH = ROOT / "qa/checks/architecture/core/rust_syntax.py"
 RUST_SYNTAX_SPEC = importlib.util.spec_from_file_location("rust_syntax_contract", RUST_SYNTAX_PATH)
-rust_syntax = importlib.util.module_from_spec(RUST_SYNTAX_SPEC)
-assert RUST_SYNTAX_SPEC.loader is not None
+assert RUST_SYNTAX_SPEC is not None and RUST_SYNTAX_SPEC.loader is not None
+rust_syntax: Any = importlib.util.module_from_spec(RUST_SYNTAX_SPEC)
 RUST_SYNTAX_SPEC.loader.exec_module(rust_syntax)
 
 

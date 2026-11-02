@@ -36,17 +36,6 @@ function assertNoPrivateMaterial() {
   }
 }
 
-const generic = Object.freeze({
-  network: 'mainnet', address: 'kaspa:owner-receive', changeAddress: 'kaspa:change',
-  ownerAddress: 'kaspa:owner-receive', beneficiaryAddress: 'kaspa:beneficiary',
-  amount: '100000000', fee: '1000', value: '100000000', balance: '250000000',
-  txid: 'aa'.repeat(32), transactionId: 'aa'.repeat(32), index: 0,
-  ownerPk: '11'.repeat(32), beneficiaryPk: '22'.repeat(32), publicKey: '11'.repeat(32),
-  script: '51', redeemScript: '51', redeem_script_hex: '51', payload: '', payloadHex: '',
-  utxos: [{ transactionId: 'aa'.repeat(32), index: 0, amount: '250000000', scriptPublicKey: '51' }],
-  inputs: [], outputs: [], partialSigs: {}, properties: {},
-});
-
 function corpusArgs(fn) {
   const width = fn.length;
   const fill = first => Array.from({ length: width }, (_, i) => i === 0 ? first : undefined);

@@ -21,7 +21,7 @@ export async function fetchAddressHistory() {
                 const d = await r.json();
                 if (d.total > 0) targetSet.add(i);
             }
-        } catch (_) {}
+        } catch { /* A failed lookup leaves the address marked unused. */ }
     };
 
     try {
@@ -57,7 +57,7 @@ async function fetchAddressHistoryCustom(wallet) {
                         if (hasData) targetSet.add(i);
                     }
                 }
-            } catch (_) {}
+            } catch { /* A failed lookup leaves the address marked unused. */ }
         };
 
         const promises = [

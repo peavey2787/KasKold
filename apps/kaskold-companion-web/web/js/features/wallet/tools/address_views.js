@@ -74,7 +74,7 @@ function showVerify(addr, index, isChange) {
         const svg = String(frames[0]?.svg || '');
         if (!svg) throw new Error('Address QR frame is empty');
         qr.replaceChildren(qrImage(svg, 'Address QR code'));
-    } catch (_) {
+    } catch {
         qr.replaceChildren();
     }
 

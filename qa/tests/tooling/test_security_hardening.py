@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Regression tests for the non-HIL production-hardening gates."""
 from __future__ import annotations
+from typing import Any
 
 import importlib.util
 import json
@@ -364,7 +365,7 @@ class SecurityHardeningTests(unittest.TestCase):
             self.assertTrue(any("profile cannot be verified" in error for error in errors))
             self.assertTrue((root / "persisted/mutation-results.zip").is_file())
 
-    def _crypto_outcome(self, name: str, summary: str) -> dict[str, object]:
+    def _crypto_outcome(self, name: str, summary: str) -> dict[str, Any]:
         return {
             "scenario": {
                 "Mutant": {
@@ -379,7 +380,7 @@ class SecurityHardeningTests(unittest.TestCase):
             "summary": summary,
         }
 
-    def _write_crypto_evidence(self, output: Path, outcomes: list[dict[str, object]]) -> None:
+    def _write_crypto_evidence(self, output: Path, outcomes: list[dict[str, Any]]) -> None:
         counts = {
             "caught": sum(item["summary"] == "CaughtMutant" for item in outcomes),
             "missed": sum(item["summary"] == "MissedMutant" for item in outcomes),

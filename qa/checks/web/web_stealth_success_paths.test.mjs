@@ -11,7 +11,7 @@ try {
    get_fee_estimate:()=>JSON.stringify({suggested_fee:'300000',low_sompi_per_gram:'1',normal_sompi_per_gram:'1',priority_sompi_per_gram:'2',low_seconds:20,normal_seconds:10,priority_seconds:5}),
  });
  const subnet='4b53544c00000000000000000000000000000000';
- globalThis.fetch=async (url,opts={})=>{
+ globalThis.fetch=async url=>{
    const u=String(url);
    if(u.includes('virtual-chain-blue-score')) return {ok:true,status:200,headers:{get(){return null;}},async text(){return '{"blueScore":50}';},async json(){return {blueScore:50};}};
    if(u.includes('/transactions/search')) return {ok:true,status:200,headers:{get(){return null;}},async json(){return [{subnetwork_id:subnet,payload:'01'+R+'7f',accepting_block_blue_score:'49'}];},async text(){return '[]';}};
@@ -20,7 +20,7 @@ try {
  const catchup=await import(moduleUrl('features/stealth/index/scanning/catch_up.js'));
  const found=await catchup.stealthRestCatchUp('https://runtime-api'); assert.deepEqual(found,[R]); assert.ok(stealthState.stealthAnnouncementsR.includes(R));
  // Single fallback route for tip blue score also succeeds.
- let first=true; globalThis.fetch=async url=>{const u=String(url); if(u.includes('virtual-chain-blue-score')) throw new Error('primary unavailable'); if(u.includes('/info/blockdag')) return {ok:true,async json(){return {sink:'bb'.repeat(32)};}}; if(u.includes('/blocks/')) return {ok:true,async text(){return '{"blueScore":10}';}}; if(u.includes('/transactions/search')) return {ok:true,status:200,headers:{get(){return null;}},async json(){return [];}}; throw new Error('unexpected '+u);};
+ globalThis.fetch=async url=>{const u=String(url); if(u.includes('virtual-chain-blue-score')) throw new Error('primary unavailable'); if(u.includes('/info/blockdag')) return {ok:true,async json(){return {sink:'bb'.repeat(32)};}}; if(u.includes('/blocks/')) return {ok:true,async text(){return '{"blueScore":10}';}}; if(u.includes('/transactions/search')) return {ok:true,status:200,headers:{get(){return null;}},async json(){return [];}}; throw new Error('unexpected '+u);};
  assert.deepEqual(await catchup.stealthRestCatchUp('https://runtime-api'),[]);
  // QR request uses all loaded R values and animates frames.
  const requestQr=await import(moduleUrl('features/stealth/index/scanning/live_controls/request_qr.js')); stealthState.stealthAnnouncementsR=[R,'44'.repeat(32)]; stealthState._stealthBatchStart=0; stealthState._stealthCatchupRunning=false; requestQr.showStealthScanQr(); assert.match(rendered(element('stealth-scan-status')),/Scanning R 1–2 of 2/); assert.ok(stealthState._stealthQrTimer);
@@ -29,6 +29,13 @@ try {
  const results=await import(moduleUrl('features/stealth/index/scanning/live_controls/results.js')); await results.processStealthResult(raw); assert.equal(stealthState._stealthResults.length,1); assert.equal(stealthState._stealthResults[0].pubkey,PUB); assert.match(rendered(element('stealth-found-list')),/Payment 1/);
  // Duplicate result does not create a second record.
  await results.processStealthResult(raw); assert.equal(stealthState._stealthResults.length,1);
+ // A node failure on an address is never reported as an empty wallet.
+ const fetchUtxos=globalThis.__COMPANION_WASM_STUBS__.fetch_utxos_for_address_js;
+ globalThis.__COMPANION_WASM_STUBS__.fetch_utxos_for_address_js=()=>{throw new Error('node down');};
+ await results.processStealthResult(raw);
+ assert.match(rendered(element('stealth-found-list')),/1 payment address could not be checked/);
+ assert.doesNotMatch(rendered(element('stealth-found-list')),/No funded payments/);
+ globalThis.__COMPANION_WASM_STUBS__.fetch_utxos_for_address_js=fetchUtxos;
  // Manual R section and lifecycle controls cover UI state transitions.
  const life=await import(moduleUrl('features/stealth/index/scanning/live_controls/lifecycle.js')); stealthState._stealthScanActive=true; life.pauseStealthScan(); life.stopStealthScan(); assert.equal(stealthState._stealthScanActive,false); life.clearStealthQrTimer(); assert.equal(stealthState._stealthQrTimer,null);
  console.log('PASS: stealth catch-up/QR/result/lifecycle success paths');

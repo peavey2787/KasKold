@@ -101,6 +101,7 @@ def _discover_xtensa_linker(env: dict[str, str]) -> Path | None:
 def prepare_esp_build_environment(*, is_windows: bool) -> dict[str, str]:
     """Return an environment containing the pinned ESP Rust/GCC tools."""
     base_env = os.environ.copy()
+    sourced: tuple[Path, ...]
     if is_windows:
         env, sourced = base_env, ()
     else:

@@ -35,7 +35,7 @@ async function showTimelockStatus(covenantType) {
     if (!restriction || locktime === 0n) return;
     try {
         let currentDaa = 0n;
-        try { currentDaa = await fetchCurrentDaa(); } catch (_) {}
+        try { currentDaa = await fetchCurrentDaa(); } catch { /* With no node answer the DAA stays at zero, so time locks read as still locked. */ }
         if (currentDaa === 0n) currentDaa = exactUnsigned(covenantState._lastKnownDaa ?? 0n, 'last known DAA');
         if (currentDaa > 0n && currentDaa < locktime) {
             piggyStatusBanner({
@@ -48,7 +48,7 @@ async function showTimelockStatus(covenantType) {
                 color: 'var(--accent, #4caf50)',
             });
         }
-    } catch (_) {}
+    } catch { /* The banner is advisory; the spend path checks the timelock again. */ }
 }
 
 function configureOwnerHelp(covenantType) {
@@ -147,7 +147,7 @@ async function openSinglePiggy(utxos) {
     try {
         const total = utxos.reduce((sum, utxo) => sum + BigInt(utxo.amount), 0n);
         piggyStatusBanner(await piggyBreakStatus(total, getCovFee(utxos.length || 1)));
-    } catch (_) {}
+    } catch { /* The banner is advisory; the spend path checks the goal again. */ }
 }
 
 async function handleAdditiveOwner() {
@@ -158,7 +158,7 @@ async function handleAdditiveOwner() {
             await openSinglePiggy(utxos);
             return;
         }
-    } catch (_) {}
+    } catch { /* Without a UTXO answer the picker opens and asks the node again. */ }
     openUtxoPicker(ownerReceiveAddr());
 }
 

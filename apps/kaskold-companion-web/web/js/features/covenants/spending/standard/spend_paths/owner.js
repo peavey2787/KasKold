@@ -100,7 +100,7 @@ function computeWithdrawFee(threadAmt, withdrawSompi) {
     const feeRate = ceilRateToInteger(networkState.lastFeeEstimate?.normal_sompi_per_gram || 1);
     try {
         return thread_withdraw_fee(threadAmt, withdrawSompi, THREAD_FEE_FLOOR, feeRate);
-    } catch (_) {
+    } catch {
         return null;
     }
 }
@@ -140,7 +140,7 @@ async function buildGlobalSpendingLimitOwnerSpend(request) {
 // Current DAA from the node, falling back to the last known DAA when the node is unreachable.
 async function currentDaaOrLastKnown() {
     let daa = 0n;
-    try { daa = await fetchCurrentDaa(); } catch (_) {}
+    try { daa = await fetchCurrentDaa(); } catch { /* With no node answer the DAA stays at zero, so time locks read as still locked. */ }
     if (daa === 0n && typeof covenantState._lastKnownDaa !== 'undefined') {
         daa = exactUnsigned(covenantState._lastKnownDaa ?? 0n, 'last known DAA');
     }
@@ -165,7 +165,7 @@ function reportTimelockedReclaim({ eta, reason }) {
                   '. Until then ' + reason + ' — a reclaim TX would be rejected on-chain.',
             color: 'var(--error, #f44336)'
         });
-    } catch (_) {}
+    } catch { /* The toast below reports the same refusal. */ }
     hideLoading();
     toast('Owner reclaim is timelocked for ~' + eta + ' more. The node would reject this TX.', 'error', 7500);
 }
@@ -173,7 +173,7 @@ function reportTimelockedReclaim({ eta, reason }) {
 async function checkPiggyBreak(utxos, sweepFee) {
     const totalCheck = utxos.reduce((s, u) => s + BigInt(u.amount), 0n);
     const st = await piggyBreakStatus(totalCheck, sweepFee);
-    try { piggyStatusBanner(st); } catch (_) {}
+    try { piggyStatusBanner(st); } catch { /* The banner is advisory; the status is returned to the caller. */ }
     return st;
 }
 
@@ -204,7 +204,7 @@ async function buildOwnerSweep(request) {
                 console.log('[Companion] Piggy break: using deadline (time) path');
             }
         }
-    } catch (_) {}
+    } catch { /* With no status the default branch is built and the node judges the spend. */ }
     return await create_covenant_owner_spend(covAddr, destAddr, redeemHex, sweepFee, wsUrl, branch);
 }
 
@@ -274,7 +274,7 @@ function parseIsPartial(amountStr) {
     if (!amountStr) return false;
     try {
         return kasToSompi(amountStr) > 0n;
-    } catch (_) {
+    } catch {
         return null;
     }
 }

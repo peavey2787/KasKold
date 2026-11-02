@@ -48,7 +48,7 @@ export function formatStartDate(covenant, lastKnownDaa = 0n) {
     if (covenant.start_date_iso) {
         try {
             return new Date(covenant.start_date_iso).toLocaleString();
-        } catch (_) {}
+        } catch { /* An unreadable date falls through to the DAA estimate below. */ }
     }
     const daa = exactUnsigned(covenant.start_daa ?? covenant.locktime_daa ?? 0n, 'covenant DAA');
     const current = exactUnsigned(lastKnownDaa ?? 0n, 'current DAA');

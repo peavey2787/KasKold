@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from typing import Any
 import unittest
 from unittest import mock
 
@@ -30,6 +31,20 @@ CATEGORIES = {"build", "install", "lib", "qemu", "quality"}
 LINUX_RUN_ALL = "qa/linux/run-all.sh"
 WINDOWS_ROOT_ENTRY = "run-all-windows.cmd"
 LINUX_ROOT_ENTRY = "run-all-linux.sh"
+
+
+def _load_module(name: str, path: Path) -> Any:
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    with mock.patch.dict(sys.modules, {name: module}):
+        spec.loader.exec_module(module)
+    return module
+
+
+def _record(log: list[Any], item: Any, result: Any) -> Any:
+    log.append(item)
+    return result
 
 
 def run_linux_qa(*args: str) -> str:
@@ -286,11 +301,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
 
     def test_windows_runner_lock_creates_fresh_target_parent_tree(self) -> None:
         runner_path = ROOT / "qa/windows/runner/run_all.py"
-        spec = importlib.util.spec_from_file_location("windows_run_all_fresh_lock", runner_path)
-        self.assertIsNotNone(spec)
-        self.assertIsNotNone(spec.loader)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("windows_run_all_fresh_lock", runner_path)
         marker_name = "KASKOLD_QA_RUN_ALL_LOCK_ROOT"
         previous_marker = os.environ.pop(marker_name, None)
         original_root = module.ROOT
@@ -463,16 +474,13 @@ class PlatformScriptWrapperTests(unittest.TestCase):
 
     def test_make_helper_maps_to_organized_platform_paths(self) -> None:
         helper = COMMON / "lib/make_tasks.py"
-        spec = importlib.util.spec_from_file_location("make_tasks", helper)
-        assert spec and spec.loader
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("make_tasks", helper)
         self.assertEqual(module.ENTRYPOINTS["run-all"], "quality/run-all")
         self.assertEqual(module.ENTRYPOINTS["android-build"], "build/android-build")
         self.assertEqual(module.ENTRYPOINTS["qemu-test"], "qemu/test")
         self.assertEqual(module.ENTRYPOINTS["sdk-build"], "build/sdk-build")
 
-        calls = []
+        calls: list[Any] = []
         original_run = module.run
         original_macos = module.IS_MACOS
         original_windows = module.IS_WINDOWS
@@ -481,7 +489,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
             module.IS_MACOS = True
             module.IS_WINDOWS = False
             module.DEFAULT_SCRIPT_ROOT = module.ROOT / "scripts" / "linux"
-            module.run = lambda command, **kwargs: calls.append(command) or 0
+            module.run = lambda command, **kwargs: _record(calls, command, 0)
             self.assertEqual(module.platform("ios-build", ["build"]), 0)
             self.assertIn("scripts/mac/build/ios-build.sh", calls.pop()[1].replace("\\", "/"))
             self.assertEqual(module.platform("kaskold-companion-web-build", []), 0)
@@ -496,10 +504,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
 
     def test_mobile_product_selectors_are_forwarded_through_make_tasks(self) -> None:
         helper = COMMON / "lib/make_tasks.py"
-        spec = importlib.util.spec_from_file_location("make_tasks_mobile_products", helper)
-        assert spec and spec.loader
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("make_tasks_mobile_products", helper)
         calls = []
 
         def fake_platform(entry, args=None, *, env=None):
@@ -515,25 +520,19 @@ class PlatformScriptWrapperTests(unittest.TestCase):
 
     def test_android_portable_smoke_skips_without_standalone_kotlin_cli(self) -> None:
         runner = ROOT / "qa/checks/android/run_core_tests.py"
-        spec = importlib.util.spec_from_file_location("android_portable_core", runner)
-        assert spec and spec.loader
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("android_portable_core", runner)
         with mock.patch.object(module.shutil, "which", return_value=None):
             self.assertEqual(module.main(), 77)
 
     def test_android_qa_accepts_optional_helper_skip_after_gradle_tests(self) -> None:
         helper = COMMON / "lib/make_tasks.py"
-        spec = importlib.util.spec_from_file_location("make_tasks_android_qa", helper)
-        assert spec and spec.loader
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("make_tasks_android_qa", helper)
         calls: list[list[str]] = []
         results = iter((0, 77, 0, 0, 0, 0))
         with mock.patch.object(module, "platform", return_value=0), mock.patch.object(
             module.shutil, "which", return_value="/toolchain/bin/tool"
         ), mock.patch.object(
-            module, "run", side_effect=lambda command, **_kwargs: calls.append(command) or next(results)
+            module, "run", side_effect=lambda command, **_kwargs: _record(calls, command, next(results))
         ):
             self.assertEqual(module.android_action("qa"), 0)
         self.assertEqual(len(calls), 6)
@@ -542,15 +541,12 @@ class PlatformScriptWrapperTests(unittest.TestCase):
 
     def test_android_qa_skips_portable_smoke_before_invocation_without_global_kotlin_cli(self) -> None:
         helper = COMMON / "lib/make_tasks.py"
-        spec = importlib.util.spec_from_file_location("make_tasks_android_qa_no_kotlinc", helper)
-        assert spec and spec.loader
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("make_tasks_android_qa_no_kotlinc", helper)
         calls: list[list[str]] = []
         with mock.patch.object(module, "platform", return_value=0), mock.patch.object(
             module.shutil, "which", side_effect=lambda name: None if name in {"kotlinc", "java"} else f"/{name}"
         ), mock.patch.object(
-            module, "run", side_effect=lambda command, **_kwargs: calls.append(command) or 0
+            module, "run", side_effect=lambda command, **_kwargs: _record(calls, command, 0)
         ):
             self.assertEqual(module.android_action("qa"), 0)
         self.assertEqual(len(calls), 5)
@@ -559,10 +555,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
 
     def test_flash_firmware_spawns_separate_windows_uart_console_when_launcher_has_no_tty(self) -> None:
         helper = COMMON / "lib/make_flash.py"
-        spec = importlib.util.spec_from_file_location("make_flash_managed", helper)
-        assert spec and spec.loader
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("make_flash_managed", helper)
         board_results = [
             subprocess.CompletedProcess(args=[], returncode=0, stdout="--chip\nesp32s3\n--before\nusb-reset\n"),
             subprocess.CompletedProcess(args=[], returncode=0, stdout="--partition-table\nparts.csv\n--flash-size\n16mb\n"),
@@ -572,7 +565,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
         stdout = io.StringIO()
         stderr = io.StringIO()
         build = mock.Mock(return_value=(0, Path("firmware.elf")))
-        execute = lambda command: flashed.append(command) or 0
+        execute = lambda command: _record(flashed, command, 0)
         monitor = mock.Mock()
         with mock.patch.object(module.subprocess, "run", side_effect=board_results), \
              mock.patch.object(module.subprocess, "Popen", monitor), \
@@ -606,10 +599,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
 
     def test_flash_firmware_keeps_interactive_monitor_on_real_tty(self) -> None:
         helper = COMMON / "lib/make_flash.py"
-        spec = importlib.util.spec_from_file_location("make_flash_tty", helper)
-        assert spec and spec.loader
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("make_flash_tty", helper)
 
         class TtyBuffer(io.StringIO):
             def isatty(self) -> bool:
@@ -624,7 +614,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
         stdout = TtyBuffer()
         stderr = io.StringIO()
         build = mock.Mock(return_value=(0, Path("firmware.elf")))
-        execute = lambda command: flashed.append(command) or 130
+        execute = lambda command: _record(flashed, command, 130)
         with mock.patch.object(module.subprocess, "run", side_effect=board_results), \
              mock.patch.object(module, "resolve_serial_port", return_value="COM11"), \
              mock.patch.object(module, "prepare_serial_command", side_effect=lambda command, _port: command):
@@ -642,10 +632,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
 
     def test_flash_release_uses_only_existing_checksum_verified_signed_image(self) -> None:
         helper = COMMON / "lib/make_flash.py"
-        spec = importlib.util.spec_from_file_location("make_flash_release", helper)
-        assert spec and spec.loader
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("make_flash_release", helper)
 
         with tempfile.TemporaryDirectory() as td:
             release = Path(td)
@@ -661,7 +648,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
             flashed: list[list[str]] = []
             stdout = io.StringIO()
             stderr = io.StringIO()
-            execute = lambda command: flashed.append(command) or 0
+            execute = lambda command: _record(flashed, command, 0)
             with mock.patch.object(module.subprocess, "run", return_value=board_result), \
                  mock.patch.object(module, "prepare_serial_command", side_effect=lambda command, _port: command):
                 self.assertEqual(
@@ -694,10 +681,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
 
     def test_secure_release_profiles_are_nonflashing_and_owner_only_drops_vendor_identity(self) -> None:
         helper = COMMON / "lib/make_firmware_profiles.py"
-        spec = importlib.util.spec_from_file_location("make_firmware_profiles_test", helper)
-        assert spec and spec.loader
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("make_firmware_profiles_test", helper)
 
         with tempfile.TemporaryDirectory() as td:
             temp = Path(td)
@@ -1059,10 +1043,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
 
     def test_public_make_helper_translates_only_facade_parameters(self) -> None:
         helper = COMMON / "lib/make_public.py"
-        spec = importlib.util.spec_from_file_location("make_public_contract", helper)
-        assert spec and spec.loader
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("make_public_contract", helper)
         calls: list[tuple[str, list[str] | None]] = []
 
         def platform(name: str, args: list[str] | None = None) -> int:
@@ -1194,11 +1175,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
 
     def test_mutation_setup_preserves_local_plugin_priority_and_explicit_install_root(self) -> None:
         support_path = ROOT / "qa/checks/security/mutation_support.py"
-        spec = importlib.util.spec_from_file_location("mutation_support_windows_local_tools", support_path)
-        self.assertIsNotNone(spec)
-        self.assertIsNotNone(spec.loader)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("mutation_support_windows_local_tools", support_path)
 
         with tempfile.TemporaryDirectory() as temporary:
             local_root = Path(temporary) / "local-mutants"
@@ -1235,11 +1212,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
 
     def test_windows_funded_skip_77_is_nonfatal_in_master_catalog(self) -> None:
         runner_path = ROOT / "qa/windows/runner/run_all.py"
-        spec = importlib.util.spec_from_file_location("windows_run_all_funded_skip", runner_path)
-        self.assertIsNotNone(spec)
-        self.assertIsNotNone(spec.loader)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("windows_run_all_funded_skip", runner_path)
         namespace = type("Args", (), {"dry_run": False})()
         with mock.patch.object(module, "run", return_value=77) as call:
             module.run_step("integration.funded-testnet-e2e", namespace)
@@ -1248,11 +1221,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
 
     def test_windows_fuzz_bootstrap_is_self_contained_and_local(self) -> None:
         runner_path = ROOT / "qa/windows/runner/run_all.py"
-        spec = importlib.util.spec_from_file_location("windows_run_all_fuzz_bootstrap", runner_path)
-        self.assertIsNotNone(spec)
-        self.assertIsNotNone(spec.loader)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("windows_run_all_fuzz_bootstrap", runner_path)
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "cargo-fuzz-local"
             bin_dir = root / "bin"
@@ -1275,7 +1244,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
                 mock.patch.object(module, "require"),
                 mock.patch.object(module, "configure_fuzz_tool_environment", return_value=(root, bin_dir)),
                 mock.patch.object(module, "capture", side_effect=probes),
-                mock.patch.object(module, "run", side_effect=lambda command, **_kwargs: commands.append(list(command)) or 0),
+                mock.patch.object(module, "run", side_effect=lambda command, **_kwargs: _record(commands, list(command), 0)),
             ):
                 module.ensure_fuzz_toolchain(False)
             self.assertIn(
@@ -1288,11 +1257,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
 
     def test_windows_fuzz_registry_failure_is_not_mistaken_for_empty_success(self) -> None:
         runner_path = ROOT / "qa/windows/runner/run_all.py"
-        spec = importlib.util.spec_from_file_location("windows_run_all_fuzz_registry", runner_path)
-        self.assertIsNotNone(spec)
-        self.assertIsNotNone(spec.loader)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        module = _load_module("windows_run_all_fuzz_registry", runner_path)
         namespace = type("Args", (), {"fuzz_target": "", "dry_run": False, "fuzz_passes": 1})()
         failed = subprocess.CompletedProcess([], 1, "ERROR: broken registry", "")
         with mock.patch.object(module, "ensure_fuzz_toolchain"), mock.patch.object(module, "capture", return_value=failed):
@@ -1443,10 +1408,14 @@ class PlatformScriptWrapperTests(unittest.TestCase):
 class RootValidationEntryPointTests(unittest.TestCase):
     def test_root_entry_points_name_scripts_that_exist(self) -> None:
         windows = (ROOT / WINDOWS_ROOT_ENTRY).read_bytes().decode()
-        target = re.search(r'%~dp0([^"]+)"', windows).group(1).replace("\\", "/")
+        match = re.search(r'%~dp0([^"]+)"', windows)
+        assert match is not None
+        target = match.group(1).replace("\\", "/")
         self.assertTrue((ROOT / target).is_file(), target)
         linux = (ROOT / LINUX_ROOT_ENTRY).read_text(encoding="utf-8")
-        target = re.search(r'/(qa/[^"]+)"', linux).group(1)
+        match = re.search(r'/(qa/[^"]+)"', linux)
+        assert match is not None
+        target = match.group(1)
         self.assertTrue((ROOT / target).is_file(), target)
 
 

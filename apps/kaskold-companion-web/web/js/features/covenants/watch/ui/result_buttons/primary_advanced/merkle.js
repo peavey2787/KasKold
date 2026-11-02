@@ -15,7 +15,7 @@ export function configureMerkleActions({ beneBtn, ownerBtn, fundBtn }) {
             const active = covenantState.activeCovenants.find(item => item.address === result.address);
             const addressesJson = active?.merkle_addresses_json || result.merkle_addresses_json || '';
             if (addressesJson) {
-                try { byId('cov-mw-spend-addresses').value = JSON.parse(addressesJson).join('\n'); } catch (_) {}
+                try { byId('cov-mw-spend-addresses').value = JSON.parse(addressesJson).join('\n'); } catch { /* An unreadable saved list leaves the field for the user to fill. */ }
             }
         }
         covShowPanel('mw-spend');

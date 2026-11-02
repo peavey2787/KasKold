@@ -41,7 +41,7 @@ async function coinPaprikaPrice() {
 export async function fetchCurrentPriceMicro() {
     try {
         return await coinGeckoPrice();
-    } catch (_) {
+    } catch {
         return coinPaprikaPrice();
     }
 }
@@ -129,7 +129,7 @@ export async function loadHistoricalPrices(days = 90) {
     const fallback = historyWindow(await loadBundledHistory(), days);
     try {
         return mergeHistory(await remoteHistory(days), fallback);
-    } catch (_) {
+    } catch {
         return fallback;
     }
 }

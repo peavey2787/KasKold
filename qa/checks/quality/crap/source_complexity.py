@@ -250,12 +250,12 @@ def check_source_policy(
     monitored_maximum = policy.get("maximum_monitored_source_decisions")
     targets = policy.get("targets")
     monitored_paths = policy.get("monitored_paths")
-    if not all(isinstance(value, int) for value in (
-        maximum,
-        warning_level,
-        maximum_warnings,
-        monitored_maximum,
-    )):
+    if (
+        not isinstance(maximum, int)
+        or not isinstance(warning_level, int)
+        or not isinstance(maximum_warnings, int)
+        or not isinstance(monitored_maximum, int)
+    ):
         return ["source-complexity limits are incomplete"], {}
     if not isinstance(targets, list) or not isinstance(monitored_paths, list):
         return ["source-complexity contracts are incomplete"], {}

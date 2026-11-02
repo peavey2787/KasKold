@@ -35,7 +35,7 @@ export function resetPrivateSwapState() {
 }
 
 export function savePrivateSwapState() {
-    try { sessionStorage.setItem(STORAGE_KEY, exactJsonStringify(privateSwapState)); } catch (_) {}
+    try { sessionStorage.setItem(STORAGE_KEY, exactJsonStringify(privateSwapState)); } catch { /* Storage can be unavailable; the in-memory state stays authoritative. */ }
 }
 
 export function loadPrivateSwapState() {
@@ -46,7 +46,7 @@ export function loadPrivateSwapState() {
         for (const key of Object.keys(privateSwapState)) {
             if (Object.prototype.hasOwnProperty.call(parsed, key)) privateSwapState[key] = parsed[key];
         }
-    } catch (_) {}
+    } catch { /* An unreadable saved swap is treated as none. */ }
     return privateSwapState;
 }
 
@@ -67,7 +67,7 @@ export function restorePrivateSwapState(value) {
 
 export function clearPrivateSwapState() {
     resetPrivateSwapState();
-    try { sessionStorage.removeItem(STORAGE_KEY); } catch (_) {}
+    try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* Storage can be unavailable; the in-memory state stays authoritative. */ }
 }
 
 loadPrivateSwapState();

@@ -34,7 +34,7 @@ import { resetBalanceDisplayUnit } from './core/balance.js';
 const SKIP_AUTOLOAD_ONCE_KEY = '__companion_skip_autoload_once_v1';
 
 function bestEffort(action) {
-    try { action(); } catch (_) {}
+    try { action(); } catch { /* Each reset step runs even when an earlier one fails. */ }
 }
 
 function stopBestEffortWatchers() {
@@ -139,7 +139,7 @@ function clearTransientStateObjects() {
     oracleState._oracleMbReturn = undefined;
 
     if (stealthState._stealthScanWs) {
-        try { stealthState._stealthScanWs.close(); } catch (_) {}
+        try { stealthState._stealthScanWs.close(); } catch { /* A socket that is already closed needs no closing. */ }
     }
     stealthState._stealthScanWs = undefined;
     stealthState._stealthSendEntropy = undefined;
@@ -220,11 +220,11 @@ export function hardenedWalletCleanup() {
     clearTransientStateObjects();
     clearTransientDom();
     clearWalletSession();
-    try { sessionStorage.clear(); } catch (_) {}
+    try { sessionStorage.clear(); } catch { /* Storage can be unavailable; the in-memory state stays authoritative. */ }
 }
 
 export function markSkipAutoLoadOnce() {
-    try { localStorage.setItem(SKIP_AUTOLOAD_ONCE_KEY, '1'); } catch (_) {}
+    try { localStorage.setItem(SKIP_AUTOLOAD_ONCE_KEY, '1'); } catch { /* Storage can be unavailable; the in-memory state stays authoritative. */ }
 }
 
 export function consumeSkipAutoLoadOnce() {
@@ -232,7 +232,7 @@ export function consumeSkipAutoLoadOnce() {
         const skip = localStorage.getItem(SKIP_AUTOLOAD_ONCE_KEY) === '1';
         if (skip) localStorage.removeItem(SKIP_AUTOLOAD_ONCE_KEY);
         return skip;
-    } catch (_) {
+    } catch {
         return false;
     }
 }
@@ -243,6 +243,6 @@ export function requestWalletRuntimeReset() {
     try {
         const event = new CustomEvent('companion:request-runtime-reset', { cancelable: true });
         handledByHost = !globalThis.dispatchEvent(event);
-    } catch (_) {}
+    } catch { /* With no host to ask, the page reloads itself. */ }
     if (!handledByHost) globalThis.location.reload();
 }

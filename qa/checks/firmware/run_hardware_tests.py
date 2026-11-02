@@ -115,18 +115,17 @@ def build(board: str) -> Path:
     return image
 
 
-def reader(stream: object, lines: queue.Queue[str | None]) -> None:
-    assert hasattr(stream, "readline")
+def reader(stream: TextIO, lines: queue.Queue[str | None]) -> None:
     try:
         while True:
-            line = stream.readline()  # type: ignore[attr-defined]
+            line = stream.readline()
             if line == "":
                 break
             lines.put(line)
     except (ValueError, OSError):
         # stop_process closes the pipe once the supervisor has a verdict; a read
         # racing that close is end of stream. Errors on an open pipe still raise.
-        if not stream.closed:  # type: ignore[attr-defined]
+        if not stream.closed:
             raise
     lines.put(None)
 

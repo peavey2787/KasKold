@@ -72,6 +72,7 @@ def _step_line_comment(scan: _ScanState) -> _ScanError:
     if scan.source[scan.offset] == "\n":
         scan.state = "code"
     scan.offset += 1
+    return None
 
 
 def _step_block_comment(scan: _ScanState) -> _ScanError:

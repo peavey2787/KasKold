@@ -180,17 +180,15 @@ export async function completeAlicePrivateSwap() {
 
 export async function bobClaimPrivateSwap() {
     if (privateSwapState.role !== 'bob' || !privateSwapState.counterCompletedSignature) { toast('Alice’s completed signature has not been observed on-chain yet', 'error'); return; }
-    let extracted = '';
     try {
         await ensureMyClaimTransaction();
-        extracted = private_swap_extract_secret(privateSwapState.counterPreSignature, Boolean(privateSwapState.counterPreSignatureNegated), privateSwapState.counterCompletedSignature);
+        const extracted = private_swap_extract_secret(privateSwapState.counterPreSignature, Boolean(privateSwapState.counterPreSignatureNegated), privateSwapState.counterCompletedSignature);
         const completed = private_swap_complete_public(privateSwapState.myPreSignature, Boolean(privateSwapState.myPreSignatureNegated), extracted);
         if (!private_swap_verify_completed(privateSwapState.myClaimPubkey, privateSwapState.myClaimSighash, completed)) throw new Error('Completed Bob signature failed exact-transaction BIP340 verification');
         await broadcastCompletedClaim(privateSwapState.myClaimPskb, privateSwapState.myClaimPubkey, completed);
         privateSwapState.completed = true; savePrivateSwapState(); renderPrivateSwap();
         toast('Private Swap complete. Bob claimed Alice’s covenant with the extracted adaptor secret.', 'ok', 7000);
     } catch (error) { toast('Bob claim failed: ' + (error.message || error), 'error', 6000); }
-    finally { extracted = ''; }
 }
 
 export function openPrivateSwapRefund() {

@@ -8,7 +8,7 @@ export function addressToXOnly(value) {
     try {
         const decoded = JSON.parse(decode_address(normalized));
         return decoded.payload && decoded.payload.length === 64 ? decoded.payload : '';
-    } catch (_) {
+    } catch {
         return '';
     }
 }

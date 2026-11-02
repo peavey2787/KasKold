@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Validate the public QA catalog and explicit test/check entrypoint ownership."""
 from __future__ import annotations
+from collections.abc import Sequence
 
 import json
 from pathlib import Path
@@ -131,7 +132,7 @@ def _unique_id_errors(ids: list[str]) -> list[str]:
     return []
 
 
-def _block_order_errors(rows: list[tuple[str, ...]]) -> list[str]:
+def _block_order_errors(rows: Sequence[tuple[str, ...]]) -> list[str]:
     errors: list[str] = []
     scopes = [row[0] for row in rows]
     if not rows or rows[0][3] != "preflight.crap-check" or rows[0][0] != "qa":
@@ -148,7 +149,7 @@ def _block_order_errors(rows: list[tuple[str, ...]]) -> list[str]:
     return errors
 
 
-def _unknown_scope_errors(rows: list[tuple[str, ...]]) -> list[str]:
+def _unknown_scope_errors(rows: Sequence[tuple[str, ...]]) -> list[str]:
     if any(row[0] not in {"test", "qa", "hardware"} for row in rows):
         return ["QA catalog contains an unknown scope"]
     return []
@@ -233,7 +234,7 @@ def _step_assignment_errors(
     entry: dict[str, object],
     commands: list[str],
     ids: list[str],
-    rows: list[tuple[str, ...]],
+    rows: Sequence[tuple[str, ...]],
 ) -> list[str]:
     if "make test" not in commands and "make qa" not in commands:
         return []
@@ -252,7 +253,7 @@ def _entry_errors(
     path: str,
     entry: dict[str, object],
     ids: list[str],
-    rows: list[tuple[str, ...]],
+    rows: Sequence[tuple[str, ...]],
 ) -> list[str]:
     errors: list[str] = []
     commands = entry.get("commands")
@@ -272,7 +273,7 @@ def _entry_errors(
 
 def _load_owned_entries(
     ids: list[str],
-    rows: list[tuple[str, ...]],
+    rows: Sequence[tuple[str, ...]],
 ) -> tuple[dict[str, dict[str, object]], list[str]]:
     document = json.loads(OWNERSHIP.read_text(encoding="utf-8"))
     owned: dict[str, dict[str, object]] = {}

@@ -1,9 +1,21 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import {
-  setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setValue, setFetchHook,
-  intervals, ADDRESS, CHANGE, PK, PK2, PK3, TXID, TXID2, wallet, psktSummary,
-  assertWatchOnlyStorage,
+    setupDeepHarness,
+    cleanupDeepHarness,
+    moduleUrl,
+    element,
+    setFetchHook,
+    intervals,
+    ADDRESS,
+    CHANGE,
+    PK,
+    PK3,
+    TXID,
+    TXID2,
+    wallet,
+    psktSummary,
+    assertWatchOnlyStorage,
 } from './web_runtime_deep_harness.mjs';
 
 const { state, response } = await setupDeepHarness();

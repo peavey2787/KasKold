@@ -85,10 +85,10 @@ def required_native_entrypoints(root: Path) -> set[PurePosixPath]:
         for target in mapping.values():
             required.add(PurePosixPath(f"scripts/{platform}/{target}{suffix}"))
     for entry in _string_set_from_source(source, relative.as_posix(), "MAC_NATIVE_ENTRYPOINTS"):
-        target = mapping.get(entry)
-        if target is None:
+        mac_target = mapping.get(entry)
+        if mac_target is None:
             raise ValueError(f"{relative}: unknown macOS native entrypoint {entry}")
-        required.add(PurePosixPath(f"scripts/mac/{target}.sh"))
+        required.add(PurePosixPath(f"scripts/mac/{mac_target}.sh"))
     return required
 
 
@@ -225,8 +225,8 @@ def main() -> int:
         print(f"ERROR: {error}")
         return 1
     if errors:
-        for error in errors:
-            print(f"ERROR: {error}")
+        for problem in errors:
+            print(f"ERROR: {problem}")
         return 1
     print(
         "PASS: flat source archive matches tracked repository inventory and all native Make entrypoints are present"

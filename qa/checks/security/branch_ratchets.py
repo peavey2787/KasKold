@@ -137,8 +137,8 @@ def main() -> int:
         return 2
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n")
-    for error in errors:
-        print(f"ERROR: {error}")
+    for message in errors:
+        print(f"ERROR: {message}")
     if errors:
         if args.require_target:
             _print_target_branch_diagnostics(document)

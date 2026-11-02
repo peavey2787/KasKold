@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 import os
 from pathlib import Path
@@ -13,6 +14,7 @@ import sys
 import tempfile
 import threading
 import time
+from typing import Any
 import urllib.error
 import urllib.parse
 
@@ -78,7 +80,7 @@ def interactive_stdin_available(stream=None) -> bool:
             return True
     except (AttributeError, OSError, ValueError):
         return False
-    if os.name != "nt":
+    if sys.platform != "win32":
         return False
     try:
         import ctypes
@@ -105,7 +107,7 @@ def restore_windows_console_line_input(stream=None) -> bool:
     line normally.  Keep this repair Windows-only and only touch a real console
     handle; redirected/non-console stdin is left unchanged.
     """
-    if os.name != "nt":
+    if sys.platform != "win32":
         return False
     input_stream = sys.stdin if stream is None else stream
     if input_stream is None:
@@ -144,7 +146,7 @@ def interactive_input(prompt: str) -> str:
 
 
 def _windows_timed_input(prompt: str, timeout_seconds: float) -> str | None:
-    import msvcrt
+    msvcrt: Any = importlib.import_module("msvcrt")
 
     restore_windows_console_line_input()
     sys.stdout.write(prompt)

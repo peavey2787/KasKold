@@ -5,11 +5,15 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
+from typing import TYPE_CHECKING
 
-try:
+if TYPE_CHECKING:
     from .ordered_manifest import OrderedManifest, run_manifest_builder
-except ImportError:
-    from ordered_manifest import OrderedManifest, run_manifest_builder
+else:
+    try:
+        from .ordered_manifest import OrderedManifest, run_manifest_builder
+    except ImportError:
+        from ordered_manifest import OrderedManifest, run_manifest_builder
 
 ROOT = Path(__file__).resolve().parents[3]
 WEB_ROOT = ROOT / "apps/kaskold-companion-web/web"

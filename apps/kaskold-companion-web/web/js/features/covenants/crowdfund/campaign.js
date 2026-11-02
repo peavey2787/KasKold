@@ -113,7 +113,7 @@ function hasUsableSetup(setup) {
 function readGoalFromForm() {
     let goal;
     try { goal = kasToSompi(byId('cov-crowdfund-goal').value.trim()); }
-    catch (_) { toast('Enter a valid crowdfunding goal with at most 8 decimals', 'error'); return null; }
+    catch { toast('Enter a valid crowdfunding goal with at most 8 decimals', 'error'); return null; }
     if (goal === 0n) { toast('Crowdfunding goal must be greater than zero', 'error'); return null; }
     return goal;
 }

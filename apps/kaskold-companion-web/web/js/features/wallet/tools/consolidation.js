@@ -120,7 +120,7 @@ function scriptMatchesAddress(address, spkJson) {
         // P2PK script: [0x20, ...32 bytes..., 0xAC]
         const spk = [0x20, ...Array.from(hexToBytes(decoded.payload)), 0xAC];
         return JSON.stringify(spk) === spkJson;
-    } catch (_) {
+    } catch {
         return false;
     }
 }

@@ -37,7 +37,7 @@ async function fetchTxPayload(apiBase, txId) {
         const txr = await fetch(`${apiBase}/transactions/${txId}`, { signal: AbortSignal.timeout(5000) });
         if (!txr.ok) return undefined;
         return (await txr.json()).payload;
-    } catch (_) {
+    } catch {
         return undefined;
     }
 }

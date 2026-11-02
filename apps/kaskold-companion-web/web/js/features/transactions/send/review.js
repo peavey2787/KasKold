@@ -49,7 +49,7 @@ function renderQrTxInfo() {
 
     function addrLabel(addr) {
         if (!addr || !walletSession.hasWallet()) return '';
-        let w; try { w = walletSession.current(); } catch (_) { return ''; }
+        let w; try { w = walletSession.current(); } catch { return ''; }
         if (w.receive_addresses && w.receive_addresses.includes(addr)) return 'OWN';
         if (w.change_addresses && w.change_addresses.includes(addr)) return 'CHANGE';
         return '';

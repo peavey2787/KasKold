@@ -21,7 +21,7 @@ async function isThreadTopup(result) {
         const wsUrl = await resolveNodeUrl();
         const utxos = JSON.parse(await fetch_utxos_for_address_js(result.address, wsUrl));
         return Array.isArray(utxos) && utxos.length > 0;
-    } catch (_) { return false; }
+    } catch { return false; }
 }
 
 function setToggleLabel(label) {

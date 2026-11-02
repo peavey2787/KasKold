@@ -323,8 +323,8 @@ def main() -> int:
         return 1
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
     arguments.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
-    for error in errors:
-        print(f"ERROR: {error}")
+    for message in errors:
+        print(f"ERROR: {message}")
     if errors:
         return 1
     capabilities = report["capabilities"]

@@ -48,7 +48,7 @@ function goBack() {
 }
 function goHome() {
   let unlocked = false;
-  try { unlocked = Boolean(api('kaskold_vault_is_unlocked')()); } catch {}
+  try { unlocked = Boolean(api('kaskold_vault_is_unlocked')()); } catch { /* A Vault that cannot answer is treated as locked. */ }
   history.length = 0;
   if (unlocked) renderHome(false);
   else show('locked', false);
@@ -396,7 +396,7 @@ async function boot() {
   });
   $('scan-cancel').onclick = () => {
     stopCamera();
-    try { cameraCancel(); } catch {}
+    try { cameraCancel(); } catch { /* Nothing is open to cancel when the module has not started. */ }
     cameraConsumer = transactionWorkflows.acceptFrame;
     cameraCancel = () => {};
     goBack();
@@ -429,6 +429,6 @@ function showCreatedPhrase(phrase, next = null) {
 
 addEventListener('pagehide', () => {
   stopCamera();
-  if (shouldLockOnPageHide()) { try { api('kaskold_vault_lock')(); } catch {} }
+  if (shouldLockOnPageHide()) { try { api('kaskold_vault_lock')(); } catch { /* A module that has not started holds no keys. */ } }
 });
 boot();

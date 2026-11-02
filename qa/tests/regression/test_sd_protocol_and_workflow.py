@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """CMD42 compatibility, write-protect, and workflow/HIL isolation contracts."""
 from pathlib import Path
+from typing import Any
 import importlib.util
 import json
 import sys
@@ -28,9 +29,8 @@ class SdProtocolAndWorkflowTests(unittest.TestCase):
         sys.path.insert(0, str(checks))
         try:
             spec = importlib.util.spec_from_file_location("workflow_runner_contract", checks / "run_workflow_tests.py")
-            self.assertIsNotNone(spec)
-            self.assertIsNotNone(spec.loader)
-            module = importlib.util.module_from_spec(spec)
+            assert spec is not None and spec.loader is not None
+            module: Any = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
         finally:
             sys.path.pop(0)

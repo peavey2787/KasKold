@@ -139,6 +139,9 @@ def _require(condition: bool, board: str, message: str) -> None:
 
 def _validate_partition_placement(layout: BoardLayout, rows: list[_PartitionRow]) -> None:
     board = layout.board
+    flash_size_bytes = layout.flash_size_bytes
+    _require(flash_size_bytes is not None, board, "custom partition table requires flash_size_bytes")
+    assert flash_size_bytes is not None
     previous_end = PARTITION_TABLE_OFFSET + PARTITION_TABLE_SIZE
     for name, kind, _subtype, offset, size in sorted(rows, key=lambda row: row[3]):
         aligned = offset % SECTOR_SIZE == 0 and size > 0 and size % SECTOR_SIZE == 0
@@ -146,7 +149,7 @@ def _validate_partition_placement(layout: BoardLayout, rows: list[_PartitionRow]
         _require(kind != "app" or offset % APP_ALIGNMENT == 0, board, f"app partition {name} must be 64-KiB aligned")
         _require(offset >= previous_end, board, f"partition {name} overlaps a previous partition")
         end = offset + size
-        _require(end <= layout.flash_size_bytes, board, f"partition {name} exceeds physical flash capacity")
+        _require(end <= flash_size_bytes, board, f"partition {name} exceeds physical flash capacity")
         previous_end = end
 
 
@@ -166,6 +169,7 @@ def _validate_target_app(layout: BoardLayout, by_name: dict[str, _PartitionRow])
     board = layout.board
     app_name = layout.target_app_partition
     _require(app_name is not None and app_name in by_name, board, "configured target app partition is missing")
+    assert app_name is not None
     app = by_name[app_name]
     _require(app[1:3] == ("app", "ota_0"), board, f"{app_name} must be an app/ota_0 partition")
     _require(
@@ -180,6 +184,7 @@ def _validate_state_reservation(layout: BoardLayout, app: _PartitionRow, by_name
     board = layout.board
     state = by_name.get("kaskold_state")
     _require(state is not None, board, "kaskold_state reservation is missing")
+    assert state is not None
     _require(
         state[3] == layout.state_offset and state[4] == layout.state_size,
         board,

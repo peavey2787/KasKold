@@ -4,16 +4,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
+import importlib
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
 
-if os.name == "posix":
-    import fcntl
-else:
-    fcntl = None  # type: ignore[assignment]
+fcntl: Any = importlib.import_module("fcntl") if os.name == "posix" else None
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "qa/checks"))

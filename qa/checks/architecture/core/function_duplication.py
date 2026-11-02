@@ -168,15 +168,15 @@ def _candidate_pairs(functions: list[Function]) -> list[tuple[Function, Function
     for (left_index, right_index), common_lines in shared.items():
         if common_lines < 3:
             continue
-        left = functions[left_index]
-        right = functions[right_index]
-        if left.path.suffix != right.path.suffix:
+        left_fn = functions[left_index]
+        right_fn = functions[right_index]
+        if left_fn.path.suffix != right_fn.path.suffix:
             continue
-        smaller = min(len(left.lines), len(right.lines))
-        larger = max(len(left.lines), len(right.lines))
+        smaller = min(len(left_fn.lines), len(right_fn.lines))
+        larger = max(len(left_fn.lines), len(right_fn.lines))
         if smaller / larger < 0.75:
             continue
-        pairs.append((left, right))
+        pairs.append((left_fn, right_fn))
     return pairs
 
 def _warning(root: Path, left: Function, right: Function, similarity: float, coverage: float, code: str) -> str:

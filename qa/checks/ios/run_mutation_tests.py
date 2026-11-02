@@ -243,12 +243,13 @@ def run_xctest(command: list[str], *, timeout: int, stop_on_verdict: bool) -> su
         bufsize=1,
         start_new_session=(os.name != "nt"),
     )
-    assert process.stdout is not None
+    stdout = process.stdout
+    assert stdout is not None
     lines: queue.Queue = queue.Queue()
 
     def reader() -> None:
         try:
-            for line in process.stdout:
+            for line in stdout:
                 lines.put(line)
         finally:
             lines.put(None)

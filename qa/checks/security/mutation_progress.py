@@ -83,7 +83,8 @@ def read_progress_snapshot(output_parent: Path) -> MutationProgressSnapshot:
                     continue
                 completed += 1
                 last_mutant = name
-                key = SUMMARY_KEYS.get(outcome.get("summary"))
+                summary = outcome.get("summary")
+                key = SUMMARY_KEYS.get(summary) if isinstance(summary, str) else None
                 if key == "caught":
                     caught += 1
                 elif key == "missed":

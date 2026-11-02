@@ -111,7 +111,7 @@ async function fetchArchivalHistory() {
         try {
             const txs = await fetchAddressTransactions(apiBase, addr);
             if (txs) recordAddressTransactions(txs, myAddressSet, txMap);
-        } catch (_) {}
+        } catch { /* One address failing leaves the others in the history. */ }
     });
 
     await Promise.all(fetches);

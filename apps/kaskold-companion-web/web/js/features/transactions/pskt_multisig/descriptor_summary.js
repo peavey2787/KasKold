@@ -5,7 +5,7 @@ import { multisig_descriptor_summary } from '../../../wasm/api.js';
 export function descriptorSummary(text) {
     try {
         return JSON.parse(multisig_descriptor_summary(String(text || '').trim()));
-    } catch (_) {
+    } catch {
         return null;
     }
 }

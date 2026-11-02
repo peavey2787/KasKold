@@ -30,14 +30,14 @@ function scrubBinary(value) {
     try {
         if (ArrayBuffer.isView(value)) value.fill(0);
         else new Uint8Array(value).fill(0);
-    } catch (_) {}
+    } catch { /* A detached or frozen buffer holds nothing further to scrub. */ }
 }
 
 function scrubProperty(value, key, current) {
     try {
         if (Object.hasOwn(EMPTY_BY_TYPE, typeof current)) value[key] = EMPTY_BY_TYPE[typeof current];
         else if (current && typeof current === 'object') value[key] = null;
-    } catch (_) {}
+    } catch { /* A read-only property holds nothing further to scrub. */ }
 }
 
 function scrubObjectProperties(value, seen) {

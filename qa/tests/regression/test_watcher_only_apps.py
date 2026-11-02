@@ -1,12 +1,13 @@
 import importlib.util
 from pathlib import Path
+from typing import Any
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 MODULE_PATH = ROOT / "qa/checks/security/watcher_only_apps.py"
 SPEC = importlib.util.spec_from_file_location("watcher_only_apps", MODULE_PATH)
-watcher_only_apps = importlib.util.module_from_spec(SPEC)
-assert SPEC.loader is not None
+assert SPEC is not None and SPEC.loader is not None
+watcher_only_apps: Any = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(watcher_only_apps)
 
 

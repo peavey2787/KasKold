@@ -16,7 +16,7 @@ export async function buildAdditive(ownerPk) {
         try {
             sompi = kasToSompi(goalStr);
             if (sompi <= 0n) throw new Error('Goal must be positive');
-        } catch (_) {
+        } catch {
             toast('Enter a valid positive savings goal in KAS', 'error');
             return;
         }
@@ -83,7 +83,7 @@ async function resolveSavingsLocktimeDaa() {
         }
     }
     let locktimeDaa;
-    try { locktimeDaa = exactUnsigned(locktime, 'unlock DAA'); } catch (_) { locktimeDaa = 0n; }
+    try { locktimeDaa = exactUnsigned(locktime, 'unlock DAA'); } catch { locktimeDaa = 0n; }
     if (locktimeDaa <= 0n) { toast('Set an unlock date (or DAA score)', 'error'); return null; }
     return locktimeDaa;
 }

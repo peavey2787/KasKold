@@ -10,7 +10,7 @@ async function forEachAddress(addresses, visit) {
     for (const address of addresses) {
         try {
             await visit(address);
-        } catch (_) {}
+        } catch { /* Indexer lookups are display only; one bad address must not hide the others. */ }
     }
 }
 
@@ -49,7 +49,7 @@ async function fetchCollectionBuri(base, tick) {
     try {
         const collection = await fetchJson(`${base}/nfts/${tick}`);
         return collection?.result?.buri || '';
-    } catch (_) {
+    } catch {
         return '';
     }
 }

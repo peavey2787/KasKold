@@ -92,8 +92,8 @@ def main() -> int:
         print("+ " + subprocess.list2cmdline(command), flush=True)
         if subprocess.run(command, cwd=ROOT, check=False).returncode != 0:
             failed.append(subprocess.list2cmdline(command))
-    for command in failed:
-        print(f"FAIL: rustfmt drift: {command}")
+    for failure in failed:
+        print(f"FAIL: rustfmt drift: {failure}")
     if failed:
         return 1
     print("PASS: every Rust crate matches pinned stable rustfmt")

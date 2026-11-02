@@ -2,16 +2,18 @@
 """Regression coverage for the KasKold product-brand audit."""
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from typing import Any
 import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "qa/checks"))
 
-from branding import check_kaskold_brand  # noqa: E402
+check_kaskold_brand: Any = importlib.import_module("branding.check_kaskold_brand")
 
 
 class KasKoldBrandingTests(unittest.TestCase):

@@ -68,7 +68,14 @@ def _check_surface(
     name = surface.get("name")
     target = surface.get("target")
     token = surface.get("token")
-    if not all(isinstance(value, str) and value for value in (name, target, token)):
+    if (
+        not isinstance(name, str)
+        or not name
+        or not isinstance(target, str)
+        or not target
+        or not isinstance(token, str)
+        or not token
+    ):
         errors.append("external-input fuzz surface entry has missing name/target/token")
         return
     if name in names:

@@ -24,13 +24,13 @@ CHECK_MODULES = {
     "firmware/guards/account_key.py",
     "firmware/guards/source_integrity.py",
     "firmware/guards/wallet_session.py",
-    "firmware/firmware_display.py",
-    "firmware/firmware_navigation.py",
-    "firmware/firmware_presentation.py",
+    "firmware/presentation/firmware_display.py",
+    "firmware/presentation/firmware_navigation.py",
+    "firmware/presentation/firmware_presentation.py",
     "firmware/subsystems/firmware_media.py",
     "firmware/firmware_runtime.py",
     "firmware/firmware_services.py",
-    "firmware/firmware_screens.py",
+    "firmware/presentation/firmware_screens.py",
     "firmware/firmware_state.py",
     "firmware/subsystems/firmware_storage.py",
     "firmware/firmware_workflows.py",
@@ -62,7 +62,10 @@ SUPPORT_MODULES = {
     "core/sdk/workspace.py",
     "firmware/__init__.py",
     "firmware/camera_contract.py",
-    "firmware/firmware_display_hardware.py",
+    "firmware/firmware_controllers_sd.py",
+    "firmware/firmware_state_fields.py",
+    "firmware/presentation/__init__.py",
+    "firmware/presentation/firmware_display_hardware.py",
     "firmware/firmware_settings_state.py",
     "firmware/guards/__init__.py",
     "firmware/guards/remediation_ownership.py",
@@ -88,7 +91,7 @@ def registered_modules(entrypoint_source: str) -> tuple[set[str], set[str], set[
     registered: dict[str, set[str]] = {"CHECKS": set(), "WARNING_CHECKS": set()}
     for node in tree.body:
         if isinstance(node, ast.ImportFrom) and (
-            node.module == "architecture" or node.module.startswith("architecture.")
+            node.module == "architecture" or (node.module or "").startswith("architecture.")
         ):
             imported.update(alias.name for alias in node.names)
         if not isinstance(node, ast.Assign):
@@ -324,6 +327,7 @@ def _check_function_lengths(module_name: str, source: str, errors: list[str]) ->
         node for node in ast.walk(tree)
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     ):
+        assert function.end_lineno is not None
         function_lines = function.end_lineno - function.lineno + 1
         if function_lines > MAX_ARCHITECTURE_FUNCTION_LINES:
             errors.append(

@@ -297,7 +297,6 @@ try {
   // The sign scanner accepts only nonce/final response kinds after identity
   // binding; unrelated protocol responses fail before state transition.
   await oracle.showOracleV1SignRequest();
-  const wrongKindSession = requestField(lastQr, 8, 16);
   oracle.scanOracleV1CovenantSignResponse();
   await state.scannerState.scanCallback(Buffer.from(responseHex({
     kind:3, session:'00'.repeat(16), keyId, pubkey, token, commitment,

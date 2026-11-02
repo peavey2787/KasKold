@@ -172,7 +172,7 @@ export async function refreshBalance() {
             const currentUtxos = JSON.parse(utxosJson);
             trackUtxoChangesAndUsed(currentUtxos);
             setStatus('online', 'Connected');
-        } catch (_) {
+        } catch {
             setStatus('online', 'Connected');
             // Keep the authoritative balance already rendered above. The next
             // background refresh will retry history without blocking the UI.
@@ -206,8 +206,8 @@ export async function refreshBalance() {
             if (daa > 0 && byId('balance-daa')) {
                 byId('balance-daa').textContent = 'DAA ' + daa.toLocaleString();
             }
-        } catch (_) {}
-    } catch (_) {
+        } catch { /* The DAA line is optional; the balance above is already shown. */ }
+    } catch {
         showNodeFailureAfterRetries();
     } finally {
         scannerState.refreshing = false;

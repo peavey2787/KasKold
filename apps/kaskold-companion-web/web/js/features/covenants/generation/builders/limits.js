@@ -19,7 +19,7 @@ function positiveSompi(inputId, message) {
         const value = kasToSompi(byId(inputId).value);
         if (value === 0n) throw new Error('zero');
         return value;
-    } catch (_) {
+    } catch {
         toast(message, 'error');
         return null;
     }

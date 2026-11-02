@@ -24,7 +24,7 @@ export async function oracleAlreadyMoved(currentState, heartbeatAddress) {
         const liveRollTxid = heartbeatUtxos.length ? utxoTransactionId(heartbeatUtxos[0]) : '';
         return Boolean(liveRollTxid)
             && liveRollTxid.toLowerCase() !== String(currentState.rollTxid).toLowerCase();
-    } catch (_) {
+    } catch {
         return false;
     }
 }

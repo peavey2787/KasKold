@@ -20,7 +20,7 @@ async function currentDaa() {
     try {
         const current = await fetchCurrentDaa();
         return current || lastKnownDaa();
-    } catch (_) {
+    } catch {
         return lastKnownDaa();
     }
 }

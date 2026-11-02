@@ -36,7 +36,7 @@ async function pollPrivateSwapFunding() {
             savePrivateSwapState();
             startSubscription();
         }
-    } catch (_) {}
+    } catch { /* The next poll tries again. */ }
 }
 
 function startSubscription() {

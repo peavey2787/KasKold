@@ -129,8 +129,8 @@ def main() -> int:
         args.output.write_text(json.dumps(document, indent=2, sort_keys=True) + "\n")
     print(render_summary(document))
     if args.strict and errors:
-        for error in errors:
-            print(f"ERROR: {error}")
+        for message in errors:
+            print(f"ERROR: {message}")
         return 1
     return 0
 

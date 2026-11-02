@@ -1,8 +1,22 @@
 import assert from 'node:assert/strict';
 import {
-  setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setFetchHook,
-  ADDRESS, CHANGE, EXTERNAL, PK, TXID, TXID2, PSKB, wallet, utxos, psktSummary,
-  assertWatchOnlyStorage, rendered } from './web_runtime_deep_harness.mjs';
+    setupDeepHarness,
+    cleanupDeepHarness,
+    moduleUrl,
+    element,
+    setFetchHook,
+    ADDRESS,
+    CHANGE,
+    PK,
+    TXID,
+    TXID2,
+    PSKB,
+    wallet,
+    utxos,
+    psktSummary,
+    assertWatchOnlyStorage,
+    rendered,
+} from './web_runtime_deep_harness.mjs';
 
 const { state, response } = await setupDeepHarness();
 try {
@@ -116,9 +130,9 @@ try {
   state.walletState.usedReceiveIndices=new Set(); state.walletState.usedChangeIndices=new Set(); state.walletState.addressHistoryEnabled=false; state.networkState.customRestUrl=null;
   setFetchHook(async()=>response({json:{total:1}})); await history.fetchAddressHistory(); assert.ok(state.walletState.usedReceiveIndices.size>0);
   state.walletState.addressHistoryEnabled=true; state.networkState.customRestUrl='https://runtime-history'; state.walletState.usedReceiveIndices=new Set(); state.walletState.usedChangeIndices=new Set();
-  setFetchHook(async url=>response({json:{tx_count:1,transactions:[{}]}})); await history.fetchAddressHistory(); assert.ok(state.walletState.usedReceiveIndices.size>0);
+  setFetchHook(async ()=>response({json:{tx_count:1,transactions:[{}]}})); await history.fetchAddressHistory(); assert.ok(state.walletState.usedReceiveIndices.size>0);
   state.walletState.usedReceiveIndices=new Set(); state.walletState.usedChangeIndices=new Set(); let first=true;
-  setFetchHook(async url=>{ if(first){first=false; return response({status:404,json:{}});} return response({json:[{}]}); });
+  setFetchHook(async ()=>{ if(first){first=false; return response({status:404,json:{}});} return response({json:[{}]}); });
   await history.fetchAddressHistory(); assert.ok(state.walletState.usedReceiveIndices.size>0);
   state.networkState.network='devnet'; state.walletState.addressHistoryEnabled=false; state.networkState.customRestUrl=null; await assert.rejects(() => history.fetchAddressHistory(), /No public Kaspa REST endpoint configured for devnet/);
   state.networkState.network='mainnet';
@@ -128,7 +142,7 @@ try {
   state.walletSession.replace(structuredClone(wallet)); state.walletState.fundedReceiveIndices=[]; state.walletState.usedReceiveIndices=new Set(); state.walletState.fundedChangeIndices=[]; state.walletState.usedChangeIndices=new Set();
   assert.equal(addrState.expandAddressesIfNeeded(),false);
   state.walletState.fundedReceiveIndices=[0,1,2]; state.walletState.usedReceiveIndices=new Set();
-  wasm.extend_addresses=(json,r,c)=>JSON.stringify({...JSON.parse(json),receive_addresses:[...wallet.receive_addresses,...Array.from({length:r},(_,i)=>`kaspa:extra-r-${i}`)]});
+  wasm.extend_addresses=(json,r)=>JSON.stringify({...JSON.parse(json),receive_addresses:[...wallet.receive_addresses,...Array.from({length:r},(_,i)=>`kaspa:extra-r-${i}`)]});
   assert.equal(addrState.expandAddressesIfNeeded(),true);
   state.walletSession.replace(structuredClone(wallet)); state.walletState.fundedReceiveIndices=[0,1,2]; state.walletState.fundedChangeIndices=[0,1,2];
   wasm.extend_addresses=()=>{throw new Error('derive fail');}; assert.equal(addrState.expandAddressesIfNeeded(),false);

@@ -45,7 +45,7 @@ export async function handleCovGenerate() {
         covenantWatcherState._covWatcherSpendPath = null;
         covenantWatcherState._covWatcherOutpoint = null;
         covenantWatcherState._covWatcherLastBalance = null;
-        try { sessionStorage.setItem('lastCovenantResult', stringifyCovenantJson(result)); } catch (_) {}
+        try { sessionStorage.setItem('lastCovenantResult', stringifyCovenantJson(result)); } catch { /* Storage can be unavailable; the in-memory state stays authoritative. */ }
         console.log('[Companion] Covenant created:', result);
 
         // Add to active covenants list

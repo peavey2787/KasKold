@@ -57,7 +57,7 @@ function renderAddress(chain, index) {
     try {
         const frames = JSON.parse(generate_qr_frames(utf8ToHex(address)));
         showQrSvg(byId('receive-qr'), frames[0].svg, 'Receive address QR');
-    } catch (_) {
+    } catch {
         byId('receive-qr').replaceChildren();
     }
     renderReceiveAddress(address);

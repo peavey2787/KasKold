@@ -71,7 +71,7 @@ function deriveOracleAddress(price, timestamp) {
             heartbeat_cov_id_hex: oracleMbIdentity.heartbeatCovIdH,
             network: ORACLE_MB_PROTOCOL.network,
         }))).address;
-    } catch (_) {}
+    } catch { /* The caller treats a missing address as not ready. */ }
     return address;
 }
 

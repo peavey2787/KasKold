@@ -98,7 +98,7 @@ class SerialAccessTests(unittest.TestCase):
 
     def test_sudo_prompt_explains_scope_and_never_runs_espflash_as_root(self) -> None:
         group = types.SimpleNamespace(gr_gid=20, gr_mem=[TEST_USERNAME])
-        completed = subprocess.CompletedProcess(args=[], returncode=0)
+        completed: subprocess.CompletedProcess[str] = subprocess.CompletedProcess(args=[], returncode=0)
         output = io.StringIO()
         with (
             mock.patch.object(SERIAL.sys.stdin, "isatty", return_value=True),

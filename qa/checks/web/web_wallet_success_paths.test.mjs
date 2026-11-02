@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import {
-  setupHarness, teardownHarness, moduleUrl, element, setFetchHook, setConfirmResult, state, rendered } from './web_recovery_test_harness.mjs';
+    setupHarness,
+    teardownHarness,
+    moduleUrl,
+    element,
+    setFetchHook,
+    setConfirmResult,
+    rendered,
+} from './web_recovery_test_harness.mjs';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 

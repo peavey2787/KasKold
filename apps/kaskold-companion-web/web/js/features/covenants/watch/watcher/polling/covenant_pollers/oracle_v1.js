@@ -64,7 +64,7 @@ async function fetchBeacon(transactionId, result) {
         markChecked(result, transactionId);
         const parsed = await parseBeaconPayload(payload, result);
         return parsed ? { ...parsed, transactionId } : null;
-    } catch (_) {
+    } catch {
         return null;
     }
 }

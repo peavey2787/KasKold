@@ -34,7 +34,7 @@ async function savingsLockEta(lt) {
 }
 
 async function fetchVaultUtxos(address) {
-    try { return JSON.parse(await fetch_utxos_for_address_js(address, await resolveNodeUrl())); } catch (_) { return []; }
+    try { return JSON.parse(await fetch_utxos_for_address_js(address, await resolveNodeUrl())); } catch { return []; }
 }
 
 function oldestUtxoDaa(utxos) {

@@ -1,7 +1,18 @@
 import assert from 'node:assert/strict';
 import {
-  setupDeepHarness, cleanupDeepHarness, moduleUrl, element, setValue, tick,
-  ADDRESS, PK, PK2, PK3, covenantResult, utxos, assertWatchOnlyStorage, rendered } from './web_runtime_deep_harness.mjs';
+    setupDeepHarness,
+    cleanupDeepHarness,
+    moduleUrl,
+    element,
+    setValue,
+    tick,
+    ADDRESS,
+    PK,
+    PK2,
+    covenantResult,
+    assertWatchOnlyStorage,
+    rendered,
+} from './web_runtime_deep_harness.mjs';
 
 const { state } = await setupDeepHarness();
 const encode = obj => new TextEncoder().encode(typeof obj === 'string' ? obj : JSON.stringify(obj));

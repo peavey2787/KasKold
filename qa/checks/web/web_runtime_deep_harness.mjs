@@ -102,7 +102,7 @@ export async function setupDeepHarness() {
     import_kpub: () => JSON.stringify(wallet), import_kpub_raw: () => JSON.stringify(wallet), parse_kpub: () => JSON.stringify({ account_pubkey: PK }),
     extend_addresses: walletJson => walletJson,
     decode_address: address => JSON.stringify({ payload: String(address).includes('beneficiary') ? PK2 : PK, version: 0 }),
-    encode_p2pk_address: (pk, net) => String(pk).startsWith(PK2.slice(0,8)) ? BENEFICIARY : ADDRESS,
+    encode_p2pk_address: pk => String(pk).startsWith(PK2.slice(0,8)) ? BENEFICIARY : ADDRESS,
     fetch_utxos: () => JSON.stringify(utxos), fetch_utxos_complete: () => JSON.stringify(utxos), fetch_utxos_for_address_js: () => JSON.stringify(utxos),
     fetch_balance: () => JSON.stringify({ total_kas:4, total_sompi:400000000, utxo_count:2, funded_addresses:2, funded_receive_indices:[0], funded_change_indices:[0], total:'400000000', mature:'400000000', pending:'0' }),
     get_virtual_daa_score: () => '1000', get_fee_estimate: () => JSON.stringify(state.networkState.lastFeeEstimate),
@@ -144,7 +144,7 @@ export async function setupDeepHarness() {
     create_oracle_mb_publish: () => PSKB, build_vcc_subscribe_request: () => 'aa',
   });
 
-  setFetchHook(async (url, options = {}) => {
+  setFetchHook(async url => {
     const u = String(url);
     if (u.includes('virtual-chain-blue-score')) return response({ text:'{"blueScore":1000}', json:{blueScore:1000} });
     if (u.includes('/info/blockdag')) return response({ json:{ sink:TXID } });

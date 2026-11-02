@@ -22,12 +22,12 @@ import subprocess
 import sys
 from typing import Any, Mapping
 
-if os.name == "posix":
+if sys.platform == "win32":  # pragma: no cover - exercised by native Windows wrapper validation
+    grp: Any = None
+    pwd: Any = None
+else:
     import grp
     import pwd
-else:  # pragma: no cover - exercised by native Windows wrapper validation
-    grp = None  # type: ignore[assignment]
-    pwd = None  # type: ignore[assignment]
 
 DIALOUT = "dialout"
 SERIAL_GLOBS = ("/dev/ttyACM*", "/dev/ttyUSB*")
@@ -184,6 +184,8 @@ def resolve_serial_port(
 
 def _username() -> str:
     assert pwd is not None
+    if sys.platform != "linux":
+        raise SerialAccessError("dialout account checks are Linux-only")
     return pwd.getpwuid(os.getuid()).pw_name
 
 
@@ -208,6 +210,8 @@ def _persistent_member(username: str, group: Any) -> bool:
 
 
 def _active_member(group: Any) -> bool:
+    if sys.platform != "linux":
+        raise SerialAccessError("dialout account checks are Linux-only")
     return os.getegid() == group.gr_gid or group.gr_gid in os.getgroups()
 
 
@@ -278,7 +282,9 @@ def prepare_serial_command(command: list[str], explicit_port: str | None = None)
     It never broadens permissions on the device node and never executes espflash
     through sudo/root.
     """
-    if os.name != "posix" or not sys.platform.startswith("linux") or os.geteuid() == 0:
+    if sys.platform != "linux":
+        return command
+    if os.geteuid() == 0:
         return command
 
     ports = _candidate_ports(explicit_port)

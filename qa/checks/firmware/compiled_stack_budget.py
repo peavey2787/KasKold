@@ -166,8 +166,8 @@ def main() -> int:
         return 1
     errors = check_entries(entries)
     if errors:
-        for error in errors:
-            print(f"ERROR: {error}", file=sys.stderr)
+        for problem in errors:
+            print(f"ERROR: {problem}", file=sys.stderr)
         return 1
     largest = max(entries, key=lambda entry: entry.size)
     first_party = [entry for entry in entries if any(token in entry.name for token in FIRST_PARTY_TOKENS)]

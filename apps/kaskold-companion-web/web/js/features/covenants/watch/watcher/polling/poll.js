@@ -118,7 +118,7 @@ export async function covWatcherPoll() {
 
     try {
         await pollWatchedType(type);
-    } catch (_) {
+    } catch {
         // Best-effort watcher poll. The next interval retries.
     }
 }

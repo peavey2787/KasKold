@@ -13,6 +13,7 @@ import subprocess
 import tempfile
 import sys
 import threading
+from typing import Any
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from unittest import mock
@@ -64,7 +65,7 @@ def simulated_flash_and_monitor(*args: object, **kwargs: object) -> int:
 
     real_popen = subprocess.Popen
 
-    def portable_popen(command: list[str], *popen_args: object, **popen_kwargs: object):
+    def portable_popen(command: list[str], *popen_args: Any, **popen_kwargs: Any) -> Any:
         if command and command[0] == "espflash":
             command = [bash, fixture.as_posix(), *command[1:]]
         return real_popen(command, *popen_args, **popen_kwargs)
@@ -76,14 +77,14 @@ def simulated_flash_and_monitor(*args: object, **kwargs: object) -> int:
 class SupervisorClosesAfterLine(io.StringIO):
     """The supervisor reaches its verdict and closes the pipe right after a line."""
 
-    def readline(self, size: int = -1) -> str:
+    def readline(self, size: Any = -1, /) -> Any:
         line = super().readline(size)
         self.close()
         return line
 
 
 class BrokenOpenPipe(io.StringIO):
-    def readline(self, size: int = -1) -> str:
+    def readline(self, size: Any = -1, /) -> Any:
         raise OSError("serial pipe failed while still open")
 
 

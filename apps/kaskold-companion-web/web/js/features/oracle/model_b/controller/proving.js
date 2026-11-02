@@ -17,7 +17,7 @@ function oracleAgeSeconds(state) {
 }
 
 async function refreshQuietly(dependencies) {
-    try { await dependencies.oracleMbCardRefresh(); } catch (_) {}
+    try { await dependencies.oracleMbCardRefresh(); } catch { /* The card refreshes again on its next poll. */ }
 }
 
 async function checkRollNeeded(dependencies, ui) {

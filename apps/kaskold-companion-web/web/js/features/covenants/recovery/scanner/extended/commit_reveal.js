@@ -11,7 +11,7 @@ export function decodeCommitReveal(params, network) {
     try {
         const field = readLen(params, cipherPosition);
         ciphertext = params.substring(field.endOff, field.endOff + field.len * 2);
-    } catch (_) {}
+    } catch { /* An older commitment may carry no ciphertext field. */ }
     return recoveredFromRedeem('commit-reveal', redeem, network, {
         locktime_daa: locktime,
         commit_hash: commitHash,

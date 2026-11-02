@@ -9,7 +9,7 @@ export function spliceOracleServiceFee(wireHex, protocol) {
 
 export function setOracleFee(totalKas, fromCustom) {
     let sompi;
-    try { sompi = kasToSompi(String(totalKas).trim()); } catch (_) { return; }
+    try { sompi = kasToSompi(String(totalKas).trim()); } catch { return; }
     if (sompi < 100000000n) return;
     const value = sompiToKasString(sompi);
     oracleState._oracleMbFeeTotalKas = value;
