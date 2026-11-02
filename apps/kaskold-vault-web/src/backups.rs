@@ -1,6 +1,5 @@
 //! Portable and steganographic wallet backups for the web vault.
 
-use vault_runtime::VaultRuntime;
 use wasm_bindgen::prelude::*;
 
 use super::workflows::wallet_response;
