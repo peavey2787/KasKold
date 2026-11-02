@@ -18,8 +18,6 @@ pub(crate) fn handle_sd_sig_filename(ctx: SdIoContext<'_, '_, '_>) -> bool {
             back_state: crate::runtime::navigation::continuation!(MainMenu),
             filename_state: AppState::SdSigFilename,
             next_state: crate::runtime::navigation::continuation!(MainMenu),
-            redraw_if_exists: true,
-            redraw_if_available: true,
         },
         PendingStorageAction::SaveSignature,
     )

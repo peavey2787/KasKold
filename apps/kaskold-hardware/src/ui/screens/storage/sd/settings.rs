@@ -111,7 +111,7 @@ impl<'a> BootDisplay<'a> {
         } else {
             let s1 = "No SD card detected";
             draw_lato_body(&mut self.display, s1, (320 - measure_body(s1)) / 2, 100, COLOR_TEXT_DIM);
-            let s2 = "Insert a microSD card";
+            let s2 = "Insert one and restart";
             draw_lato_body(&mut self.display, s2, (320 - measure_body(s2)) / 2, 125, COLOR_TEXT_DIM);
         }
     }

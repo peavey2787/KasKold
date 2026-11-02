@@ -5,6 +5,7 @@ import { fetchCurrentDaa } from '../../../../../core/node/daa.js';
 import { resolveNodeUrl } from '../../../../../core/node/resolver.js';
 import { toast } from '../../../../../core/ui/toast.js';
 import { covShowPanel } from '../../../../../features/covenants/generation/panel_keys.js';
+import { TIMELOCKED_OWNER_REASONS } from '../../../../../features/covenants/model/owner_timelock.js';
 import { getCovFee, ownerReceiveAddr } from '../../../../../features/covenants/payload/state.js';
 import { handleEscrowSpend } from '../../../../../features/covenants/spending/standard/shipment.js';
 import { fetch_utxos_for_address_js } from '../../../../../wasm/api.js';
@@ -25,13 +26,7 @@ function piggyHelpText(covenant) {
 }
 
 async function showTimelockStatus(covenantType) {
-    const descriptions = {
-        'merkle-whitelist': 'only whitelisted spends are valid',
-        'commit-reveal': 'only the reveal path is valid',
-        payjoin: 'only the joint-spend path is valid',
-        'oracle-v1': 'only an oracle-attested beneficiary claim is valid',
-    };
-    const restriction = descriptions[covenantType];
+    const restriction = TIMELOCKED_OWNER_REASONS.get(covenantType);
     const locktime = exactUnsigned(covenantState.lastCovenantResult?.locktime_daa ?? 0n, 'owner locktime DAA');
     if (!restriction || locktime === 0n) return;
     try {
@@ -72,7 +67,6 @@ function configureOwnerHelp(covenantType) {
     help.style.display = '';
 }
 
-const ALWAYS_SWEEP_OWNER_TYPES = new Set(['additive', 'global-allowance', 'dms', 'oracle-v1']);
 const OWNER_CREATE_LABELS = new Map([
     ['dms', 'Create Heartbeat TX'],
     ['additive', 'Break Piggy Bank'],
@@ -91,7 +85,7 @@ function ownerAmountPlaceholder(covenantType) {
 function configureOwnerAmount(covenantType) {
     const amount = inputById('cov-owner-amount');
     const label = /** @type {HTMLElement | null | undefined} */ (amount?.previousElementSibling);
-    const alwaysSweep = ALWAYS_SWEEP_OWNER_TYPES.has(covenantType);
+    const alwaysSweep = covenantType !== 'global-spending-limit';
     if (amount) {
         amount.style.display = alwaysSweep ? 'none' : '';
         if (alwaysSweep) amount.value = '';

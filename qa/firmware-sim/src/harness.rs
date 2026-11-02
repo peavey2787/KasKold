@@ -1,6 +1,7 @@
 //! Drives the running firmware the way a person holding the device does.
 #[cfg(feature = "production")]
 mod app_image;
+pub(crate) mod card;
 mod keyboard;
 mod power;
 mod qr;
@@ -160,13 +161,31 @@ impl Device {
                 return;
             }
         }
-        panic!("screen never settled");
+        panic!(
+            "screen never settled on {:?}",
+            app_state().navigation.app.state
+        );
     }
 
     /// Presses and lifts a finger at a display coordinate.
     pub(crate) fn tap_at(&self, x: u16, y: u16) {
         touch::press(x, y);
         control::run_polls(2);
+        touch::release();
+        control::run_polls(2);
+        self.settle();
+    }
+
+    /// Moves a finger through a point at a time without lifting it, while `keep_going` holds.
+    pub(crate) fn draw(
+        &self,
+        points: impl Iterator<Item = (u16, u16)>,
+        keep_going: impl Fn() -> bool,
+    ) {
+        for (x, y) in points.take_while(|_| keep_going()) {
+            touch::press(x, y);
+            control::run_polls(1);
+        }
         touch::release();
         control::run_polls(2);
         self.settle();

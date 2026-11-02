@@ -22,9 +22,6 @@ try {
   covenantState.lastCovenantResult={type:'savings',address:ADDRESS,redeem_script_hex:'51',locktime_daa:'0'};
   element('cov-owner-panel').dataset.covOwnerType='savings'; element('cov-owner-amount').value='';
   await owner.handleCovOwnerSpend(); assert.equal(transactionState._psktReviewHex,PSKB);
-  // Partial owner spend builds an unsigned PSKB locally with covenant change.
-  transactionState._psktReviewHex=null; element('cov-owner-amount').value='1'; await owner.handleCovOwnerSpend();
-  assert.ok(transactionState._psktReviewHex?.startsWith('50534b42'));
   // Global spending-limit close and capped partial paths.
   covenantState.lastCovenantResult={type:'global-spending-limit',address:ADDRESS,redeem_script_hex:'51',covenant_id_hex:CID,cooldown_daa:'0',max_withdraw_sompi:'250000000'};
   element('cov-owner-panel').dataset.covOwnerType='global-spending-limit'; element('cov-owner-amount').value=''; await owner.handleCovOwnerSpend(); assert.equal(transactionState._psktReviewHex,PSKB);
@@ -93,8 +90,6 @@ try {
   element('cov-owner-addr').value=ADDRESS; element('cov-owner-script').value=''; await owner.handleCovOwnerSpend(); assert.match(element('toast').textContent,/redeem script/);
   element('cov-owner-script').value='51'; element('cov-owner-dest').value=''; await owner.handleCovOwnerSpend(); assert.match(element('toast').textContent,/destination/);
   element('cov-owner-dest').value=DEST; element('cov-owner-amount').value='1.000000001'; await owner.handleCovOwnerSpend(); assert.match(element('toast').textContent,/valid KAS amount/);
-  element('cov-owner-amount').value='1'; element('cov-owner-panel').dataset.covOwnerType='commit-reveal'; await owner.handleCovOwnerSpend(); assert.match(element('toast').textContent,/full-only/);
-  element('cov-owner-panel').dataset.covOwnerType='oracle-v1'; await owner.handleCovOwnerSpend(); assert.match(element('toast').textContent,/full-only/);
 
   console.log('PASS: covenant owner/beneficiary success and fail-closed paths');
 } finally { teardownHarness(); }

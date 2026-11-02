@@ -247,8 +247,7 @@ def _check_kpub_import(root: Path, errors: list[str]) -> None:
     for path in (
         "crates/offline-signer/src/derivation/xpub/kpub.rs",
         "apps/kaskold-hardware/src/runtime/interactions/camera_loop/dispatch/kpub.rs",
-        "apps/kaskold-hardware/src/runtime/interactions/sd/exports/kpub.rs",
-        "apps/kaskold-hardware/src/runtime/interactions/sd/exports/kspt_export/content.rs",
+        "apps/kaskold-hardware/src/runtime/interactions/sd/common/loaded_text.rs",
     ):
         contents = _read(path)
         _require(

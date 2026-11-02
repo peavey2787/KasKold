@@ -9,7 +9,7 @@ use crate::runtime::data::AppData;
 pub(super) fn handle_pure(ad: &mut AppData, x: u16, is_back: bool) -> Option<bool> {
     use crate::runtime::input::AppState;
     match ad.navigation.app.state {
-        AppState::ExportKpub => Some(handle_export_screen(ad)),
+        AppState::ExportKpub => Some(handle_export_screen(ad, is_back)),
         AppState::KpubScannedPopup => {
             if is_back {
                 crate::runtime::effects::home(ad);
@@ -34,8 +34,8 @@ pub(super) fn handle_pure(ad: &mut AppData, x: u16, is_back: bool) -> Option<boo
     }
 }
 
-fn handle_export_screen(ad: &mut AppData) -> bool {
-    if ad.export.kpub_len == 0 {
+fn handle_export_screen(ad: &mut AppData, is_back: bool) -> bool {
+    if is_back || ad.export.kpub_len == 0 {
         crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::KpubExport);
     } else {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ExportKpubPopup));
@@ -50,45 +50,15 @@ pub(super) fn handle(
     x: u16,
     is_back: bool,
 ) -> Option<bool> {
-    let mut needs_redraw = super::RedrawFlag::default();
-
-    match ad.navigation.app.state {
-        crate::runtime::input::AppState::ExportKpub => {
-            if ad.export.kpub_len == 0 {
-                crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::KpubExport);
-            } else {
-                crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ExportKpubPopup));
-            }
-            needs_redraw.mark();
-        }
-        crate::runtime::input::AppState::KpubScannedPopup => {
-            if is_back {
-                crate::runtime::effects::home(ad);
-            } else if x < 160 {
-                crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ExportKpub));
-            } else {
-                ad.wallet.seeds.pp_input.reset();
-                crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SdKpubFilename));
-            }
-            needs_redraw.mark();
-        }
-        crate::runtime::input::AppState::ExportKpubPopup => {
-            if is_back {
-                crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::KpubExport);
-                needs_redraw.mark();
-            } else if (30..=155).contains(&x) {
-                let next = crate::runtime::interactions::sd::scan_auto_increment(i2c, delay, b"KP", b"TXT");
-                let name = crate::runtime::interactions::sd::format_auto_name(b"KP", next, b"TXT");
-                super::derivation::prepare_filename(ad, name);
-                crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SdKpubFilename));
-                needs_redraw.mark();
-            } else if (165..=290).contains(&x) {
-                crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ExportKpub));
-                needs_redraw.mark();
-            }
-        }
-        _ => return None,
+    if let Some(result) = handle_pure(ad, x, is_back) {
+        return Some(result);
     }
-
-    Some(needs_redraw.value())
+    if ad.navigation.app.state != crate::runtime::input::AppState::ExportKpubPopup {
+        return None;
+    }
+    let next = crate::runtime::interactions::sd::scan_auto_increment(i2c, delay, b"KP", b"TXT");
+    let name = crate::runtime::interactions::sd::format_auto_name(b"KP", next, b"TXT");
+    super::derivation::prepare_filename(ad, name);
+    crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SdKpubFilename));
+    Some(true)
 }

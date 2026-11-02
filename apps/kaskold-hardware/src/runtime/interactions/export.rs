@@ -29,7 +29,6 @@ mod watch_only;
 pub(crate) use watch_only::{export_kpub_to_sd, prepare_multisig_kpub_qr};
 mod xprv;
 
-use crate::runtime::interactions::feedback::RedrawFlag;
 use crate::runtime::interactions::TouchInput;
 
 pub use context::ExportTouchContext;

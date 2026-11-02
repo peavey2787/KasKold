@@ -8,11 +8,13 @@ import { withNodeRetry } from '/target/kaskold-companion-web/site/js/features/wa
 import {
     buildEscrowSpendPskb, buildShipSpendPskb, getShipParams, resolveEscrowDestination,
 } from '/target/kaskold-companion-web/site/js/features/covenants/spending/standard/shipment.js';
-import { encodeCovenantSpend } from '/target/kaskold-companion-web/site/js/features/covenants/spending/standard/spend_document.js';
 
 const KAS = 100_000_000n;
 const FEE = 1_000_000n;
+const THREAD_FEE_FLOOR = 300_000n;
 const FUNDING = 3n * KAS;
+// The builder counts the wallet's coins largest first.
+const LARGEST_COIN = '0';
 const POLL_MS = 2_000;
 const COIN_TIMEOUT_MS = 120_000;
 const CASE_TIMEOUT_MS = 300_000;
@@ -86,10 +88,6 @@ async function broadcast(document_) {
 }
 
 async function fund(address, covenantType, amount = FUNDING) {
-    const coins = JSON.parse(await node(wsUrl => wasm.fetch_utxos(walletJson, wsUrl)));
-    const largest = coins.reduce((best, coin, index) => (
-        BigInt(coin.amount) > BigInt(coins[best].amount) ? index : best
-    ), 0);
     const document_ = await node(wsUrl => wasm.create_covenant_pskb(JSON.stringify({
         wallet_json: walletJson,
         covenant_address: address,
@@ -97,7 +95,7 @@ async function fund(address, covenantType, amount = FUNDING) {
         send_amount: String(amount),
         fee: String(FEE),
         change_address: wallet.change_addresses[0],
-        utxo_indices_csv: String(largest),
+        utxo_indices_csv: LARGEST_COIN,
         ws_url: wsUrl,
     })));
     return coinFrom(address, await broadcast(document_));
@@ -112,6 +110,17 @@ async function spendAndSee(document_, destination) {
 const destination = () => wallet.receive_addresses[5];
 const parsed = text => JSON.parse(text);
 
+const ownerSweep = (covenant, branch) => node(wsUrl => wasm.create_covenant_owner_spend(
+    covenant.address, destination(), covenant.redeem_script_hex, FEE, wsUrl, branch,
+));
+
+/** A timelocked owner refund: fund it, let the lock pass, take it all back. */
+async function refundAfterLock(covenant, lock, covenantType) {
+    await fund(covenant.address, covenantType);
+    await untilDaaPasses(lock);
+    return spendAndSee(await ownerSweep(covenant, 'owner-time'), destination());
+}
+
 function dmsCases() {
     const inactivity = 30n;
     return {
@@ -120,14 +129,6 @@ function dmsCases() {
             await fund(covenant.address, 'dms');
             return spendAndSee(await node(wsUrl => wasm.create_covenant_owner_spend(
                 covenant.address, destination(), covenant.redeem_script_hex, FEE, wsUrl, 'owner',
-            )), destination());
-        },
-        'dead-man-switch heir after inactivity': async () => {
-            const covenant = parsed(wasm.covenant_dms(key(1), key(2), inactivity, network));
-            const coin = await fund(covenant.address, 'dms');
-            await untilDaaPasses(BigInt(coin.block_daa_score) + inactivity);
-            return spendAndSee(await node(wsUrl => wasm.create_covenant_beneficiary_spend(
-                covenant.address, destination(), covenant.redeem_script_hex, inactivity, FEE, wsUrl,
             )), destination());
         },
     };
@@ -146,24 +147,6 @@ function savingsCases() {
     return {
         'savings claimed by its first key': claim(0),
         'savings claimed by its second key': claim(1),
-        'savings withdrawn in part, the change staying locked': async () => {
-            const lock = await daa() + 100_000n;
-            const covenant = parsed(wasm.covenant_timelocked_savings(key(0), key(1), lock, network));
-            const coin = await fund(covenant.address, 'timelocked-savings');
-            const change = BigInt(coin.amount) - KAS - FEE;
-            const txid = await spendAndSee(encodeCovenantSpend({
-                covAddr: covenant.address,
-                redeemHex: covenant.redeem_script_hex,
-                path: 'owner',
-                utxos: [coin],
-                outputs: [{ address: destination(), amount: String(KAS) }, { address: covenant.address, amount: String(change) }],
-                txVersion: 0,
-            }), destination());
-            await coinFrom(covenant.address, txid);
-            return spendAndSee(await node(wsUrl => wasm.create_covenant_owner_spend(
-                covenant.address, destination(), covenant.redeem_script_hex, FEE, wsUrl, 'owner',
-            )), destination());
-        },
     };
 }
 
@@ -180,6 +163,167 @@ function escrowCases() {
         };
     }
     return cases;
+}
+
+function piggyCases() {
+    return {
+        'piggy bank broken with no conditions': async () => {
+            const covenant = parsed(wasm.covenant_additive_address(key(0), 0n, 0n, network));
+            await fund(covenant.address, 'additive');
+            return spendAndSee(await ownerSweep(covenant, ''), destination());
+        },
+        'piggy bank broken at its goal': async () => {
+            const covenant = parsed(wasm.covenant_additive_address(key(0), KAS, 0n, network));
+            await fund(covenant.address, 'additive');
+            return spendAndSee(await ownerSweep(covenant, ''), destination());
+        },
+        'piggy bank broken after its deadline': async () => {
+            const lock = await daa() + LOCK_MARGIN;
+            const covenant = parsed(wasm.covenant_additive_address(key(0), 0n, lock, network));
+            return refundAfterLock(covenant, lock, 'additive');
+        },
+    };
+}
+
+async function threadWithdrawal(withdraw, covenant, coin, amount) {
+    const fee = wasm.thread_withdraw_fee(BigInt(coin.amount), amount, THREAD_FEE_FLOOR, 1n);
+    const txid = await spendAndSee(await withdraw(
+        covenant.address, destination(), covenant.redeem_script_hex, coin.covenant_id || '', amount, fee, JSON.stringify([coin]),
+    ), destination());
+    return { txid, left: BigInt(coin.amount) - amount - fee };
+}
+
+function threadCases() {
+    return {
+        'spending limit withdrawn in part, then closed': async () => {
+            const covenant = parsed(wasm.covenant_global_spending_limit(key(0), FUNDING, 0n, network));
+            const coin = await fund(covenant.address, 'global-spending-limit');
+            const { txid, left } = await threadWithdrawal(wasm.create_global_spending_limit_withdraw, covenant, coin, KAS);
+            if (left <= 0n) throw new Error('the withdrawal left nothing to close');
+            const thread = await coinFrom(covenant.address, txid);
+            return (await threadWithdrawal(wasm.create_global_spending_limit_withdraw, covenant, thread, BigInt(thread.amount))).txid;
+        },
+        'allowance withdrawn by its beneficiary, then reclaimed by its owner': async () => {
+            const covenant = parsed(wasm.covenant_global_allowance(key(0), key(1), KAS, 0n, 0n, network));
+            const coin = await fund(covenant.address, 'global-allowance');
+            const { txid } = await threadWithdrawal(wasm.create_global_allowance_withdraw, covenant, coin, KAS);
+            await coinFrom(covenant.address, txid);
+            return spendAndSee(await ownerSweep(covenant, ''), destination());
+        },
+    };
+}
+
+function timelockedRefundCases() {
+    const hash = '11'.repeat(32);
+    const lockedCase = build => async () => {
+        const lock = await daa() + LOCK_MARGIN;
+        const { covenant, type } = await build(lock);
+        return refundAfterLock(covenant, lock, type);
+    };
+    return {
+        'payjoin refunded to its owner after its lock': lockedCase(lock => ({
+            covenant: parsed(wasm.covenant_payjoin(key(0), key(1), lock, 2n, 2n, network)), type: 'payjoin',
+        })),
+        'commit-reveal refunded to its owner after its lock': lockedCase(lock => ({
+            covenant: parsed(wasm.covenant_commit_reveal(key(0), hash, lock, network)), type: 'commit-reveal',
+        })),
+        'whitelist refunded to its owner after its lock': lockedCase(lock => {
+            const root = parsed(wasm.merkle_root_from_addresses(JSON.stringify(wallet.receive_addresses.slice(3, 6))));
+            return { covenant: parsed(wasm.covenant_merkle_whitelist(key(0), root.root, root.depth, lock, network)), type: 'merkle-whitelist' };
+        }),
+        'oracle covenant refunded to its owner after its lock': lockedCase(lock => ({
+            covenant: parsed(wasm.covenant_oracle_v1(key(0), key(1), key(2), hash, 'the release happened', lock, network)), type: 'oracle-v1',
+        })),
+        'crowdfund contribution refunded after its deadline': lockedCase(lock => {
+            const { vk_hex: verifyingKey } = parsed(wasm.zk_crowdfund_setup());
+            return {
+                covenant: parsed(wasm.covenant_crowdfund(key(0), wallet.receive_addresses[3], FUNDING, lock, verifyingKey, network)),
+                type: 'crowdfund',
+            };
+        }),
+    };
+}
+
+async function attested(commitment) {
+    const answer = await fetch('/__qa_funded_attest__', { method: 'POST', body: commitment });
+    if (!answer.ok) throw new Error(await answer.text());
+    const [oracleKey, signature] = (await answer.text()).trim().split(' ');
+    return { oracleKey, signature };
+}
+
+function claimCases() {
+    return {
+        'oracle covenant claimed with its attestation': async () => {
+            // The oracle's key is fixed, and the covenant commits to a statement it salts.
+            const { oracleKey } = await attested('00'.repeat(32));
+            const covenant = parsed(wasm.covenant_oracle_v1(key(0), key(1), oracleKey, '11'.repeat(32), 'the release happened', await daa() + 100_000n, network));
+            const { signature } = await attested(covenant.message_commitment_hex);
+            await fund(covenant.address, 'oracle-v1');
+            return spendAndSee(await node(wsUrl => wasm.create_covenant_oracle_v1_claim(
+                covenant.address, destination(), covenant.redeem_script_hex, oracleKey, signature, covenant.message_commitment_hex, FEE, wsUrl,
+            )), destination());
+        },
+        'crowdfund swept at its goal': async () => {
+            const { pk_hex: provingKey, vk_hex: verifyingKey } = parsed(wasm.zk_crowdfund_setup());
+            const lock = await daa() + 100_000n;
+            const covenant = parsed(wasm.covenant_crowdfund(key(0), destination(), KAS, lock, verifyingKey, network));
+            const coin = await fund(covenant.address, 'crowdfund');
+            const proof = parsed(wasm.zk_crowdfund_prove(provingKey, verifyingKey, JSON.stringify([String(coin.amount)])));
+            const contribution = {
+                address: covenant.address,
+                contributor_pubkey_hex: key(0),
+                redeem_script_hex: covenant.redeem_script_hex,
+                crowdfund_salt_hex: covenant.crowdfund_salt_hex,
+            };
+            const txid = await node(wsUrl => wasm.create_crowdfund_sweep(
+                JSON.stringify([contribution]), destination(), KAS, lock, verifyingKey, proof.proof_hex, proof.public_input_hex, FEE, wsUrl,
+            ));
+            await coinFrom(destination(), txid);
+            return txid;
+        },
+        'private swap claimed by its claimant': async () => {
+            const salt = crypto.getRandomValues(new Uint8Array(16)).reduce((text, byte) => text + byte.toString(16).padStart(2, '0'), '');
+            const covenant = parsed(wasm.covenant_private_swap(key(0), key(1), destination(), await daa() + 100_000n, salt, network));
+            const coin = await fund(covenant.address, 'private-swap');
+            return spendAndSee(await wasm.create_private_swap_claim(
+                covenant.address, destination(), covenant.redeem_script_hex, JSON.stringify([coin]), FEE,
+            ), destination());
+        },
+        'whitelist paid to a listed address': async () => {
+            const listed = wallet.receive_addresses.slice(3, 6);
+            const root = parsed(wasm.merkle_root_from_addresses(JSON.stringify(listed)));
+            const lock = await daa() + 100_000n;
+            const covenant = parsed(wasm.covenant_merkle_whitelist(key(0), root.root, root.depth, lock, network));
+            await fund(covenant.address, 'merkle-whitelist');
+            const proof = parsed(wasm.merkle_proof_for_address(JSON.stringify(listed), destination()));
+            return spendAndSee(await node(wsUrl => wasm.create_merkle_whitelist_spend(
+                covenant.address, destination(), covenant.redeem_script_hex, JSON.stringify(proof.proof), KAS, FEE, wsUrl,
+            )), destination());
+        },
+        'commitment revealed by its owner': async () => {
+            const secret = crypto.getRandomValues(new Uint8Array(32)).reduce((text, byte) => text + byte.toString(16).padStart(2, '0'), '');
+            const hash = await (await fetch('/__qa_funded_commitment__', { method: 'POST', body: secret })).text();
+            const covenant = parsed(wasm.covenant_commit_reveal(key(0), hash, await daa() + 100_000n, network));
+            await fund(covenant.address, 'commit-reveal');
+            return spendAndSee(await node(wsUrl => wasm.create_commit_reveal_spend(JSON.stringify({
+                covenant_address: covenant.address,
+                dest_address: destination(),
+                redeem_script_hex: covenant.redeem_script_hex,
+                part_a_hex: secret,
+                part_b_hex: '',
+                payload_hex: `43523031${hash}`,
+                fee: String(FEE),
+                ws_url: wsUrl,
+            }))), destination());
+        },
+        'payjoin claimed with a second input': async () => {
+            const covenant = parsed(wasm.covenant_payjoin(key(0), key(1), await daa() + 100_000n, 2n, 2n, network));
+            await fund(covenant.address, 'payjoin');
+            return spendAndSee(await node(wsUrl => wasm.create_covenant_payjoin_claim(
+                covenant.address, destination(), covenant.redeem_script_hex, destination(), FEE, wsUrl,
+            )), destination());
+        },
+    };
 }
 
 async function shipment() {
@@ -247,7 +391,10 @@ async function run() {
     wallet = JSON.parse(wasm.import_kpub(input.kpub, network));
     if (wallet.receive_addresses.length <= ROLE_KEYS + 2) throw new Error('the wallet derived too few addresses');
     walletJson = JSON.stringify(wallet);
-    const cases = { ...dmsCases(), ...savingsCases(), ...escrowCases(), ...shipmentCases(), ...privateSwapCases() };
+    const cases = {
+        ...dmsCases(), ...savingsCases(), ...piggyCases(), ...threadCases(), ...timelockedRefundCases(), ...claimCases(),
+        ...escrowCases(), ...shipmentCases(), ...privateSwapCases(),
+    };
     const spends = [];
     for (const [name, spend] of Object.entries(cases)) {
         if (input.only && !name.includes(input.only)) continue;

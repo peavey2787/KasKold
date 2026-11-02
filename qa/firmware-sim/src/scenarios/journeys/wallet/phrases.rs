@@ -1,8 +1,8 @@
 //! Recovery phrases of both lengths: what is accepted, what is refused, what comes back.
-use super::known::{self, PIN};
-use super::walk;
 use crate::harness::{app_state, discard_board, note, recall, Device};
 use crate::runtime::input::AppState;
+use crate::scenarios::journeys::known::{self, PIN};
+use crate::scenarios::journeys::walk;
 
 const WORDS_IN_LONG_PHRASE: usize = 24;
 

@@ -32,7 +32,7 @@ const MULTISIG_ADDRESS_RULE: ImportScanRule =
     ImportScanRule { text_import_kind: Some(TextFileKind::MultisigAddress), ..KPUB_RULE };
 const MULTISIG_DESCRIPTOR_RULE: ImportScanRule = ImportScanRule {
     extensions: &[*b"TXT", *b"KSP"],
-    max_size: 512,
+    max_size: 1024,
     exclude_hidden: true,
     next_state: crate::runtime::navigation::continuation!(SdKpubFileList),
     empty_message: "No descriptor files found",

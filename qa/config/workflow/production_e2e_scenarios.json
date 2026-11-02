@@ -1261,6 +1261,9 @@
     },
     {
       "actions": [
+        "apps/kaskold-hardware/src/runtime/interactions/sd/common/loaded_text.rs::open_address",
+        "apps/kaskold-hardware/src/runtime/interactions/sd/common/loaded_text.rs::open_descriptor",
+        "apps/kaskold-hardware/src/runtime/interactions/sd/common/loaded_text.rs::open_kpub",
         "apps/kaskold-hardware/src/runtime/interactions/sd/exports/kpub.rs::handle_import_payload"
       ],
       "id": "connected-sd-text-import",
@@ -1521,6 +1524,8 @@
     },
     {
       "actions": [
+        "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_advanced_touch",
+        "apps/kaskold-hardware/src/runtime/interactions/stego/photo_scan.rs::open_restore_picker",
         "apps/kaskold-hardware/src/runtime/interactions/stego/import_selection/descriptor.rs::handle_choice",
         "apps/kaskold-hardware/src/runtime/interactions/stego/import_decrypt.rs::handle_descriptor_entry",
         "apps/kaskold-hardware/src/runtime/interactions/stego/import_decrypt.rs::handle_portable_password",
@@ -1996,6 +2001,8 @@
     },
     {
       "actions": [
+        "apps/kaskold-hardware/src/runtime/interactions/persistence/onboarding.rs::handle_advanced_touch",
+        "apps/kaskold-hardware/src/runtime/interactions/stego/photo_scan.rs::open_restore_picker",
         "apps/kaskold-hardware/src/runtime/interactions/camera_loop/cycle.rs::handle_m5_outcome",
         "apps/kaskold-hardware/src/runtime/interactions/camera_loop/decoder.rs::handle_decode_result",
         "apps/kaskold-hardware/src/runtime/interactions/camera_loop/state.rs::leave_screen",
@@ -2073,6 +2080,9 @@
         "apps/kaskold-hardware/src/runtime/interactions/sd/common/overwrite.rs::handle_sd_overwrite_warning",
         "apps/kaskold-hardware/src/runtime/interactions/sd/common/routing.rs::handle_file_io",
         "apps/kaskold-hardware/src/runtime/interactions/sd/common/routing.rs::handle_file_list",
+        "apps/kaskold-hardware/src/runtime/interactions/sd/common/loaded_text.rs::open_address",
+        "apps/kaskold-hardware/src/runtime/interactions/sd/common/loaded_text.rs::open_descriptor",
+        "apps/kaskold-hardware/src/runtime/interactions/sd/common/loaded_text.rs::open_kpub",
         "apps/kaskold-hardware/src/runtime/interactions/sd/common/routing.rs::handle_kpub_io",
         "apps/kaskold-hardware/src/runtime/interactions/sd/common/routing.rs::handle_kspt_io",
         "apps/kaskold-hardware/src/runtime/interactions/sd/common/routing.rs::handle_multisig_io",

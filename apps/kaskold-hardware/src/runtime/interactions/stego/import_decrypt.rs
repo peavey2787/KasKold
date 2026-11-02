@@ -175,9 +175,8 @@ fn handle_portable_password(
             if !opened {
                 ad.stego.session.portable.clear();
                 show_rejection(boot_display, delay, "Wrong password or damaged backup", 2_000, ErrorSound::Beep);
-                crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoImportPortablePassword));
             }
-            opened
+            true
         }
     })
 }

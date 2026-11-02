@@ -1,7 +1,7 @@
 //! What the device does to someone who should not be using it.
-use super::known::{self, ABOUT_WORDS, PIN};
-use super::walk::{self, restore_the_known_wallet as restore_the_wallet};
 use crate::harness::Device;
+use crate::scenarios::journeys::known::{self, ABOUT_WORDS, PIN};
+use crate::scenarios::journeys::walk::{self, restore_the_known_wallet as restore_the_wallet};
 use std::time::Duration;
 
 const WRONG_PIN: &str = "111111";

@@ -13,8 +13,6 @@ pub(crate) fn handle_sd_ms_addr_filename(ctx: SdIoContext<'_, '_, '_>) -> bool {
             back_state: crate::runtime::navigation::continuation!(MultisigShowAddress),
             filename_state: crate::runtime::input::AppState::SdMsAddrFilename,
             next_state: crate::runtime::navigation::continuation!(SdMsAddrEncryptAsk),
-            redraw_if_exists: true,
-            redraw_if_available: true,
         },
     )
 }
@@ -23,7 +21,7 @@ pub(crate) fn handle_sd_ms_addr_encrypt_ask(ctx: SdIoContext<'_, '_, '_>) -> boo
     run_encryption_prompt(
         ctx,
         EncryptionPromptWorkflow {
-            back_state: crate::runtime::navigation::continuation!(MultisigShowAddress),
+            back_state: crate::runtime::navigation::continuation!(SdMsAddrFilename),
             payload: EncryptionPayload::KpubExport { kind: TextFileKind::MultisigAddress },
             password_back_state: crate::runtime::navigation::continuation!(SdMsAddrEncryptAsk),
             encrypted_success_state: crate::runtime::navigation::continuation!(MultisigDescriptor),
@@ -42,8 +40,6 @@ pub(crate) fn handle_sd_ms_desc_filename(ctx: SdIoContext<'_, '_, '_>) -> bool {
             back_state: crate::runtime::navigation::continuation!(MultisigDescriptor),
             filename_state: crate::runtime::input::AppState::SdMsDescFilename,
             next_state: crate::runtime::navigation::continuation!(SdMsDescEncryptAsk),
-            redraw_if_exists: false,
-            redraw_if_available: false,
         },
     )
 }
@@ -52,7 +48,7 @@ pub(crate) fn handle_sd_ms_desc_encrypt_ask(ctx: SdIoContext<'_, '_, '_>) -> boo
     run_encryption_prompt(
         ctx,
         EncryptionPromptWorkflow {
-            back_state: crate::runtime::navigation::continuation!(MultisigDescriptor),
+            back_state: crate::runtime::navigation::continuation!(SdMsDescFilename),
             payload: EncryptionPayload::Outgoing { kind: TextFileKind::MultisigDescriptor },
             password_back_state: crate::runtime::navigation::continuation!(SdMsDescEncryptAsk),
             encrypted_success_state: crate::runtime::navigation::continuation!(MultisigDescriptor),

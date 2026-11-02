@@ -39,7 +39,7 @@ pub(crate) use shared::{
     build_filename_83, format_auto_name, generate_trng_nonce, scan_auto_increment, write_file_to_sd,
 };
 
-use shared::{parse_descriptor, sd_file_exists};
+use shared::sd_file_exists;
 
 pub use common::routing::handle_sd_touch;
 

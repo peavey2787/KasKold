@@ -16,8 +16,6 @@ pub(crate) struct FilenameWorkflow {
     pub(in crate::runtime::interactions::sd) back_state: ContinuationRoute,
     pub(in crate::runtime::interactions::sd) filename_state: AppState,
     pub(in crate::runtime::interactions::sd) next_state: ContinuationRoute,
-    pub(in crate::runtime::interactions::sd) redraw_if_exists: bool,
-    pub(in crate::runtime::interactions::sd) redraw_if_available: bool,
 }
 
 pub(crate) fn run_filename_workflow(ctx: SdIoContext<'_, '_, '_>, workflow: FilenameWorkflow) -> bool {
@@ -61,12 +59,12 @@ fn submit_filename(
         ad.storage.confirmation.overwrite_back =
             crate::runtime::navigation::continuation_from_state(workflow.filename_state);
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SdOverwriteWarning));
-        return workflow.redraw_if_exists;
+        return true;
     }
 
     ad.wallet.seeds.pp_input.reset();
     execute_pending_action(ad, boot_display, delay, i2c, action);
-    workflow.redraw_if_available
+    true
 }
 
 fn prepare_overwrite_prompt(ad: &mut crate::runtime::data::AppData, filename: &[u8; 11]) {

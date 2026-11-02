@@ -1,8 +1,8 @@
 //! Signing: a transaction arrives by camera, a person reviews it, the answer leaves as a QR.
-use super::known::{self, PIN};
-use super::walk::{self, restore_the_known_wallet as restore_the_wallet};
 use crate::harness::{app_state, hold_up_qr, lower_qr, read_qr_on_screen, Device};
 use crate::runtime::input::AppState;
+use crate::scenarios::journeys::known::{self, PIN};
+use crate::scenarios::journeys::walk::{self, restore_the_known_wallet as restore_the_wallet};
 use kaspa_portal::crypto::schnorr::{schnorr_verify, SchnorrSignature};
 use kaspa_portal::transaction::interchange::kspt::decode_compact_kspt;
 use kaspa_portal::transaction::interchange::qr::frame::{parse_frame, session_id, SESSION_ID_LEN};
@@ -44,7 +44,7 @@ fn sign_by_camera() {
 }
 
 /// Asks for an answer too large for one QR code and reads it frame by frame.
-pub(super) fn read_framed_answer(device: &Device, label: &str) -> Vec<u8> {
+pub(in crate::scenarios::journeys) fn read_framed_answer(device: &Device, label: &str) -> Vec<u8> {
     device.tap(label);
     device.wait_for_text("QR DISPLAY MODE");
     device.tap("Manual");
@@ -53,7 +53,7 @@ pub(super) fn read_framed_answer(device: &Device, label: &str) -> Vec<u8> {
     shown
 }
 
-pub(super) fn read_every_frame(device: &Device) -> Vec<u8> {
+pub(in crate::scenarios::journeys) fn read_every_frame(device: &Device) -> Vec<u8> {
     let first = device.wait_for_qr();
     let total = usize::from(parse_frame(&first).expect("a QR frame").total_frames);
     let mut session = [0u8; SESSION_ID_LEN];
@@ -109,6 +109,10 @@ fn cancel_by_camera() {
         app_state().signing.transaction.active.inputs[0].sig_count,
         0
     );
+    device.expect_text("TX Cancelled");
+    device.tap("OK");
+    device.wait_for_text("Scan QR");
+    device.expect_absent("CONFIRM SEND");
 }
 
 fn refuse_false_change() {

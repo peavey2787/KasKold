@@ -34,8 +34,10 @@ mod import_decrypt;
 mod import_finish;
 mod import_selection;
 mod mode;
+mod photo_scan;
 
 pub use context::StegoTouchContext;
+pub(crate) use photo_scan::open_restore_picker;
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) use {
     export_description::workflow_accept_description_file,

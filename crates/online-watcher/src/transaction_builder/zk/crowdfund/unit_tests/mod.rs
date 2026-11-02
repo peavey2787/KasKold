@@ -170,7 +170,7 @@ fn contribution_count_sweep_totals_fee_and_hex_boundaries_are_exact() {
             .err()
             .map(|error| error.to_string())
             .as_deref(),
-        Some("Crowdfunding sweep supports at most 16 transaction inputs")
+        Some("Crowdfunding sweep supports at most 8 transaction inputs")
     );
     assert_eq!(
         validate_sweep_totals(total, total, CROWDFUND_MAX_TX_INPUTS as usize, &public),
@@ -181,7 +181,7 @@ fn contribution_count_sweep_totals_fee_and_hex_boundaries_are_exact() {
             .err()
             .map(|error| error.to_string())
             .as_deref(),
-        Some("Crowdfunding sweep supports at most 16 transaction inputs")
+        Some("Crowdfunding sweep supports at most 8 transaction inputs")
     );
 
     let expected_floor = cost::groth16_min_fee_sompi(1).checked_mul(12).unwrap() / 10;

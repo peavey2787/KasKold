@@ -260,9 +260,13 @@ pub(crate) fn fail_fatal(ad: &mut AppData, message: &'static str, code: &'static
 /// deliberately abandons the current screen and commits Home. Fatal errors
 /// remain sticky and can never be hidden by navigation recovery.
 pub(crate) fn clear_recoverable_modal(ad: &mut AppData) {
-    if matches!(ad.presentation.modal, ModalState::RecoverableError { .. }) {
+    if recoverable_error_showing(ad) {
         ad.presentation.modal = ModalState::None;
     }
+}
+
+pub(crate) fn recoverable_error_showing(ad: &AppData) -> bool {
+    matches!(ad.presentation.modal, ModalState::RecoverableError { .. })
 }
 
 pub(crate) fn blocks_input(ad: &AppData) -> bool {

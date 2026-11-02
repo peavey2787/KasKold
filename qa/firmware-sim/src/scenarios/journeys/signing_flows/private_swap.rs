@@ -1,9 +1,9 @@
 //! Private swaps: an isolated key, bound to one covenant, whose claim only completes as agreed.
-use super::covenant::{hex, unhex};
-use super::known::{self, PIN};
-use super::signing::read_framed_answer;
-use super::walk::{self, restore_the_known_wallet};
 use crate::harness::{hold_up_frames, hold_up_qr, lower_qr, note, recall, Device};
+use crate::scenarios::journeys::known::{self, PIN};
+use crate::scenarios::journeys::signing_flows::covenant::{hex, unhex};
+use crate::scenarios::journeys::signing_flows::signing::read_framed_answer;
+use crate::scenarios::journeys::walk::{self, restore_the_known_wallet};
 use kaspa_portal::contract::covenant::build_private_swap_script;
 use kaspa_portal::crypto::adaptor::{verify_adaptor_presignature, AdaptorPreSignature};
 use kaspa_portal::crypto::schnorr::{schnorr_verify, SchnorrSignature};

@@ -23,7 +23,7 @@ def nested_struct_expectations(data_root: Path) -> dict[Path, dict[str, tuple[st
         },
         data_root / "signing.rs": {
             "TransactionSigningState": ("active", "signatures_present", "signatures_required", "input_format", "pskt_parsed", "output_ownership", "initial_signature_counts"),
-            "MultisigState": ("store", "creating", "threshold", "participant_count", "scroll", "descriptor_indices", "descriptor_count", "descriptor_persisted", "descriptor_save_prompted", "picking_key"),
+            "MultisigState": ("store", "creating", "threshold", "participant_count", "scroll", "descriptor_indices", "descriptor_count", "descriptor_persisted", "descriptor_save_prompted", "reviewing_own_descriptor", "picking_key"),
             "MessageSigningState": ("payload", "payload_len", "signature", "hash"),
             "CommitRevealState": ("plaintext", "plaintext_len", "hash", "ciphertext"),
         },

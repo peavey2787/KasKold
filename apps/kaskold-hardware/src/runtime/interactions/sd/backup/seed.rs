@@ -24,7 +24,13 @@ pub(crate) fn handle_seed_backup_warning(ctx: SdIoContext<'_, '_, '_>) -> bool {
         return false;
     }
     if ctx.sd_card_type.is_none() {
-        show_rejection(ctx.boot_display, ctx.delay, "No SD card detected", 2_000, ErrorSound::Silent);
+        show_rejection(
+            ctx.boot_display,
+            ctx.delay,
+            crate::runtime::interactions::feedback::NO_CARD_MESSAGE,
+            2_000,
+            ErrorSound::Silent,
+        );
         return true;
     }
     let next = scan_auto_increment(ctx.i2c, ctx.delay, b"SD", b"KAS");
@@ -64,8 +70,6 @@ pub(crate) fn handle_seed_backup_filename(ctx: SdIoContext<'_, '_, '_>) -> bool 
             back_state,
             filename_state: AppState::SdSeedFilename,
             next_state: crate::runtime::navigation::continuation!(SdSeedExportPassphrase),
-            redraw_if_exists: true,
-            redraw_if_available: true,
         },
     )
 }

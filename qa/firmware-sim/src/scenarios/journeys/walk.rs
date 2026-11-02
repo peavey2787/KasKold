@@ -12,8 +12,10 @@ const REVIEW_HIGHLIGHT_CHARS: usize = 8;
 const NEXT_WORD_TAP: (u16, u16) = (160, 120);
 const NEXT_PAGE_TAP: (u16, u16) = (300, 135);
 const PREVIOUS_PAGE_TAP: (u16, u16) = (18, 135);
+const KPUB_PREFIX: &[u8] = b"kpub";
 const WARNING_ACCEPT_TAP: (u16, u16) = (238, 212);
 const HOME_TAP: (u16, u16) = (295, 15);
+const ADD_WALLET_ROW: (u16, u16) = (160, 70);
 const BACK_TAP: (u16, u16) = (20, 15);
 const FORMAT_HOLD: Duration = Duration::from_secs(5);
 
@@ -40,6 +42,20 @@ pub(super) fn factory_reset() {
 /// Goes back to the main menu from wherever the home icon is shown.
 pub(super) fn go_home(device: &Device) {
     device.tap_at(HOME_TAP.0, HOME_TAP.1);
+}
+
+/// The kpub text the device saved on the card.
+pub(super) fn kpub_on_the_card() -> String {
+    let card = esp_hal::board::sd::image();
+    let start = card
+        .windows(KPUB_PREFIX.len())
+        .position(|window| window == KPUB_PREFIX)
+        .expect("the kpub reached the card");
+    card[start..]
+        .iter()
+        .take_while(|byte| byte.is_ascii_alphanumeric() || **byte == b':')
+        .map(|&byte| char::from(byte))
+        .collect()
 }
 
 /// Goes back one screen.
@@ -128,6 +144,23 @@ pub(super) fn enter_password(device: &Device, password: &str) {
     press_full_ok(device);
 }
 
+/// From the home menu to the list of wallets.
+pub(super) fn open_wallet_list(device: &Device) {
+    device.tap("Wallet");
+    next_menu_page(device);
+    device.tap("Switch / Add Wallet");
+}
+
+/// From the wallet list to the choice of how a new wallet arrives.
+pub(super) fn tap_add_wallet(device: &Device) {
+    device.tap_at(ADD_WALLET_ROW.0, ADD_WALLET_ROW.1);
+}
+
+pub(super) fn open_add_wallet(device: &Device) {
+    open_wallet_list(device);
+    tap_add_wallet(device);
+}
+
 /// Turns to the next page of a menu.
 pub(super) fn next_menu_page(device: &Device) {
     device.tap_at(NEXT_PAGE_TAP.0, NEXT_PAGE_TAP.1);
@@ -138,12 +171,16 @@ pub(super) fn accept_warning(device: &Device) {
     device.tap_at(WARNING_ACCEPT_TAP.0, WARNING_ACCEPT_TAP.1);
 }
 
-pub(super) fn open_receive(device: &Device) {
+pub(super) fn open_wallet_menu(device: &Device) {
     device.tap("Wallet");
     // The menu reopens on the page it was left on.
     if device.screen().find("Receive").is_none() {
         device.tap_at(PREVIOUS_PAGE_TAP.0, PREVIOUS_PAGE_TAP.1);
     }
+}
+
+pub(super) fn open_receive(device: &Device) {
+    open_wallet_menu(device);
     device.tap("Receive");
 }
 

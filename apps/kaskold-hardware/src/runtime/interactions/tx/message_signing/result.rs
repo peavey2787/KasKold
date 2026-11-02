@@ -21,7 +21,13 @@ pub(super) fn handle(
         if has_sd_card {
             export::begin_sd_export(ad, i2c, delay);
         } else {
-            show_rejection(boot_display, delay, "No SD card", 1500, ErrorSound::Beep);
+            show_rejection(
+                boot_display,
+                delay,
+                crate::runtime::interactions::feedback::NO_CARD_MESSAGE,
+                1500,
+                ErrorSound::Beep,
+            );
         }
         return true;
     }

@@ -33,16 +33,10 @@ try {
   setValue('cov-owner-addr',ADDRESS); setValue('cov-owner-script',''); await owner.handleCovOwnerSpend(); assert.equal(state.transactionState._psktReviewHex,null);
   setValue('cov-owner-script','51'); setValue('cov-owner-dest',''); await owner.handleCovOwnerSpend(); assert.equal(state.transactionState._psktReviewHex,null);
   setValue('cov-owner-dest',ADDRESS); setValue('cov-owner-amount','not-kas'); await owner.handleCovOwnerSpend(); assert.equal(state.transactionState._psktReviewHex,null);
-  setValue('cov-owner-amount','1'); setDataset('cov-owner-panel','covOwnerType','commit-reveal'); await owner.handleCovOwnerSpend(); assert.equal(state.transactionState._psktReviewHex,null);
-
-  // Partial owner spend: missing UTXO and insufficient balance reject; valid partial remains unsigned PSKB review.
-  setDataset('cov-owner-panel','covOwnerType','savings'); setValue('cov-owner-amount','1'); wasmUtxos=[]; await owner.handleCovOwnerSpend(); assert.equal(state.transactionState._psktReviewHex,null);
-  wasmUtxos=[{...baseUtxo,amount:'1000000'}]; await owner.handleCovOwnerSpend(); assert.equal(state.transactionState._psktReviewHex,null);
-  wasmUtxos=[baseUtxo]; clearReview(); await owner.handleCovOwnerSpend(); assert.match(state.transactionState._psktReviewHex,/^50534b42/);
 
   // Every CLTV-only owner type refuses an immature reclaim and succeeds after maturity.
   setValue('cov-owner-amount','');
-  for (const type of ['payjoin','merkle-whitelist','commit-reveal']) {
+  for (const type of ['payjoin','merkle-whitelist','commit-reveal','crowdfund']) {
     setDataset('cov-owner-panel','covOwnerType',type);
     state.covenantState.lastCovenantResult={type,address:ADDRESS,redeem_script_hex:'51',locktime_daa:'3000'};
     daa='2000'; clearReview(); await owner.handleCovOwnerSpend(); assert.equal(state.transactionState._psktReviewHex,null,`${type} must reject immature owner reclaim`);

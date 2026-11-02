@@ -13,8 +13,6 @@ pub(crate) fn handle_sd_xprv_filename(ctx: SdIoContext<'_, '_, '_>) -> bool {
             back_state: crate::runtime::navigation::continuation!(XprvExportMenu),
             filename_state: AppState::SdXprvFilename,
             next_state: crate::runtime::navigation::continuation!(SdXprvExportPassphrase),
-            redraw_if_exists: true,
-            redraw_if_available: true,
         },
     )
 }

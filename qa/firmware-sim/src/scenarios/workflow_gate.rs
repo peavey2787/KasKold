@@ -28,5 +28,7 @@ fn every_connected_workflow_passes() {
 
 fn tail(serial: &str) -> String {
     let lines: Vec<&str> = serial.lines().collect();
-    lines[lines.len().saturating_sub(40)..].join("\n")
+    let failed = lines.iter().copied().filter(|line| line.contains("FAIL"));
+    let last = lines[lines.len().saturating_sub(40)..].iter().copied();
+    failed.chain(last).collect::<Vec<_>>().join("\n")
 }

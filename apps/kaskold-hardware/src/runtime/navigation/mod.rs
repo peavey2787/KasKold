@@ -130,9 +130,9 @@ pub(crate) fn reconcile(ad: &mut AppData) -> bool {
     true
 }
 
-/// Central handling for hierarchy/menu Back behavior. Workflow-specific Back
-/// actions remain in their owning reducer when they must mutate domain data.
-pub(crate) fn handle_back(ad: &mut AppData) -> bool {
+/// Back on a screen a person may not leave at will. Everywhere else the screen's
+/// own reducer hears Back first, because only it knows what must be cleared.
+pub(crate) fn handle_modal_back(ad: &mut AppData) -> bool {
     if !reconcile(ad) {
         return true;
     }
@@ -145,7 +145,16 @@ pub(crate) fn handle_back(ad: &mut AppData) -> bool {
         // The latter may be cancelled only back to WALLETS; neither can escape home.
         return true;
     }
-    if ad.navigation.app.state == AppState::SeedList && ad.wallet.seeds.seed_mgr.active_slot().is_none() {
+    ad.navigation.app.state == AppState::SeedList && ad.wallet.seeds.seed_mgr.active_slot().is_none()
+}
+
+/// Hierarchy Back, for when the current screen has no Back of its own. A screen
+/// with nothing above it has nowhere to go, which is not an error.
+pub(crate) fn handle_back(ad: &mut AppData) -> bool {
+    if handle_modal_back(ad) {
+        return true;
+    }
+    if back::target(ad).or(ad.navigation.history.peek()).is_none() {
         return true;
     }
     back::prepare(ad);

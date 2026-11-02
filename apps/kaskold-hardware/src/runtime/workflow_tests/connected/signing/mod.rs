@@ -94,10 +94,7 @@ impl SigningContext<'_, '_, '_> {
     }
 
     fn dismiss_confirm_rejection_to_home(&mut self) -> bool {
-        if !self.dismiss_rejected_to(AppState::ConfirmTx) {
-            return false;
-        }
-        self.tx_touch(20, 20, true) == Some(true) && super::root::home_ok(self.ad)
+        self.dismiss_rejected_to(AppState::MainMenu) && super::root::home_ok(self.ad)
     }
 }
 

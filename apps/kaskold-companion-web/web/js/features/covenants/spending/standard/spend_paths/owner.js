@@ -15,7 +15,7 @@ import { resolveNodeUrl } from '../../../../../core/node/resolver.js';
 import { toast } from '../../../../../core/ui/toast.js';
 import { getCovFee } from '../../../payload/state.js';
 import { pickThread } from '../spend_paths.js';
-import { encodeCovenantSpend } from '../spend_document.js';
+import { TIMELOCKED_OWNER_REASONS } from '../../../model/owner_timelock.js';
 import { openPsktReview } from '../../../../transactions/pskt_multisig/review.js';
 
 import { byId, inputById } from '../../../../../core/dom.js';
@@ -26,19 +26,6 @@ import { THREAD_FEE_FLOOR, ceilRateToInteger } from '../../../../../core/fee_mat
 
 const AMBIGUOUS_THREAD_MSG = 'Multiple covenant-tagged UTXOs at this address and no known thread id, cannot safely pick the thread.';
 const UNAVAILABLE_THREAD_MSG = 'Thread covenant_id unavailable from the node. The continuation must reuse the thread id; the node must serve version-2 UTXO entries.';
-
-// CLTV-only covenant types: the owner path IS the timelock branch.
-const CLTV_OWNER_REASONS = new Map([
-    ['merkle-whitelist', 'only whitelisted spends are valid'],
-    ['commit-reveal', 'only the reveal path is valid'],
-    ['payjoin', 'only the joint-spend path is valid'],
-    ['oracle-v1', 'only an oracle-attested beneficiary claim is valid'],
-]);
-
-const PARTIAL_OWNER_REFUSALS = new Map([
-    ['commit-reveal', { message: 'Commit-Reveal owner refund is full-only. Clear the amount to refund the whole commitment. A partial refund would leave a remainder that breaks the reveal and refund paths.', durationMs: 8000 }],
-    ['oracle-v1', { message: 'Oracle owner refund is full-only after the timeout. Clear the amount to refund the whole covenant balance.', durationMs: 8000 }],
-]);
 
 const REQUIRED_OWNER_FIELDS = [
     ['covAddr', 'Enter covenant P2SH address'],
@@ -158,7 +145,7 @@ async function currentDaaOrLastKnown() {
 
 // Returns { eta, reason } when a CLTV-only owner reclaim is still timelocked, else null.
 async function timelockBlockFor(covType) {
-    const reason = CLTV_OWNER_REASONS.get(covType);
+    const reason = TIMELOCKED_OWNER_REASONS.get(covType);
     if (!reason) return null;
     const locktimeDaa = exactUnsigned(covenantState.lastCovenantResult?.locktime_daa ?? 0n, 'owner locktime DAA');
     if (!(locktimeDaa > 0n)) return null;
@@ -191,7 +178,7 @@ async function buildOwnerSweep(request) {
     // Sweep all — use existing WASM function. Scale the fee to the UTXO
     // count so a multi-UTXO sweep (e.g. a vault/DMS funded several times)
     // is not rejected for compute mass.
-    let branch = CLTV_OWNER_REASONS.has(covType) ? 'owner-time' : '';
+    let branch = TIMELOCKED_OWNER_REASONS.has(covType) ? 'owner-time' : '';
     // Block the doomed TX with a banner before the CLTV-only timelock matures.
     const timelockBlock = await timelockBlockFor(covType);
     if (timelockBlock) { reportTimelockedReclaim(timelockBlock); return; }
@@ -215,29 +202,6 @@ async function buildOwnerSweep(request) {
         }
     } catch { /* With no status the default branch is built and the node judges the spend. */ }
     return await create_covenant_owner_spend(covAddr, destAddr, redeemHex, sweepFee, wsUrl, branch);
-}
-
-async function buildPartialOwnerSpend(request) {
-    const { covAddr, redeemHex, destAddr, amountStr, fee, wsUrl } = request;
-    // Partial spend — build PSKB in JS with change back to covenant
-    const sendSompi = kasToSompi(amountStr);
-    const utxosJson = await fetch_utxos_for_address_js(covAddr, wsUrl);
-    const utxos = JSON.parse(utxosJson);
-    if (!utxos.length) throw 'No UTXOs at covenant address';
-
-    const total = utxos.reduce((s, u) => s + BigInt(u.amount), 0n);
-    if (total < sendSompi + fee) throw 'Balance too low: ' + sompiToKasString(total) + ' KAS available';
-
-    const change = total - sendSompi - fee;
-    const outputs = [{ address: destAddr, amount: String(sendSompi) }];
-    if (change > 0n) outputs.push({ address: covAddr, amount: String(change) });
-
-    // Partial owner reclaim always spends the immediate branch (the
-    // time-locked owner break is full-sweep only), so the TX must be
-    // final: locktime 0. The script's CLTV lives in the beneficiary
-    // branch; stamping it here would make the node reject the TX as
-    // "input #0 is not finalized" before the timeout.
-    return encodeCovenantSpend({ covAddr, redeemHex, path: 'owner', utxos, outputs, txVersion: 0 });
 }
 
 function readOwnerSpendInputs() {
@@ -270,15 +234,11 @@ function readCovOwnerType() {
     return panel ? (panel.dataset.covOwnerType || '') : '';
 }
 
-function partialRefusalFor(covType, isPartial) {
-    if (!isPartial) return null;
-    return PARTIAL_OWNER_REFUSALS.get(covType) ?? null;
-}
-
-function buildOwnerSpendPskb(covType, isPartial, request) {
+// Only the spending limit leaves a continuation: every other owner path sweeps,
+// so the amount field is hidden for it (result_actions/owner.js).
+function buildOwnerSpendPskb(covType, request) {
     if (covType === 'global-spending-limit') return buildGlobalSpendingLimitOwnerSpend(request);
-    if (!isPartial) return buildOwnerSweep(request);
-    return buildPartialOwnerSpend(request);
+    return buildOwnerSweep(request);
 }
 
 export async function handleCovOwnerSpend() {
@@ -290,15 +250,13 @@ export async function handleCovOwnerSpend() {
     const isPartial = parseIsPartial(inputs.amountStr);
     if (isPartial === null) { toast('Enter a valid KAS amount with at most 8 decimal places', 'error'); return; }
     const covType = readCovOwnerType();
-    const refusal = partialRefusalFor(covType, isPartial);
-    if (refusal) { toast(refusal.message, 'error', refusal.durationMs); return; }
 
     showLoading('Building owner-spend PSKB...');
     try {
         const fee = getCovFee();
         const wsUrl = await resolveNodeUrl();
         const request = { ...inputs, isPartial, covType, fee, wsUrl };
-        const pskbHex = await buildOwnerSpendPskb(covType, isPartial, request);
+        const pskbHex = await buildOwnerSpendPskb(covType, request);
         if (!pskbHex) return;
 
         hideLoading();

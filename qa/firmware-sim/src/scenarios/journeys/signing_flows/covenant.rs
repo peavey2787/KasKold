@@ -1,8 +1,8 @@
 //! Covenant keys: isolated from the wallet, bound to one script, and only signing with the host's nonce.
-use super::known::{self, PIN};
-use super::signing::read_framed_answer;
-use super::walk::{self, restore_the_known_wallet};
 use crate::harness::{hold_up_frames, hold_up_qr, lower_qr, note, recall, Device};
+use crate::scenarios::journeys::known::{self, PIN};
+use crate::scenarios::journeys::signing_flows::signing::read_framed_answer;
+use crate::scenarios::journeys::walk::{self, restore_the_known_wallet};
 use kaspa_portal::crypto::schnorr::{schnorr_verify, SchnorrSignature};
 use kaspa_portal::transaction::signing::anti_klepto::protocol::host_commitment;
 use kaspa_portal::transaction::signing::covenant::protocol::{
@@ -112,11 +112,11 @@ fn bind(device: &Device, key: &CovenantSignResponse, script: &[u8]) -> [u8; 32] 
     bound.binding_token
 }
 
-pub(super) fn hex(bytes: &[u8]) -> String {
+pub(in crate::scenarios::journeys) fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
-pub(super) fn unhex(text: &str) -> [u8; 32] {
+pub(in crate::scenarios::journeys) fn unhex(text: &str) -> [u8; 32] {
     let mut out = [0u8; 32];
     for (index, byte) in out.iter_mut().enumerate() {
         *byte = u8::from_str_radix(&text[index * 2..index * 2 + 2], 16).expect("hex");

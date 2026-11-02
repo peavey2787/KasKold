@@ -5,6 +5,7 @@ use std::{
     path::Path,
 };
 
+use k256::schnorr::SigningKey;
 use offline_signer::{
     derivation::{bip39, xpub},
     transaction::{
@@ -40,12 +41,17 @@ fn run() -> Result<(), String> {
             reject_extra(args)?;
             sign(Path::new(&state), &kspt_hex)
         }
+        "attest" => {
+            let commitment_hex = args.next().ok_or_else(usage)?;
+            reject_extra(args)?;
+            attest(&commitment_hex)
+        }
         _ => Err(usage()),
     }
 }
 
 fn usage() -> String {
-    "usage: kaskold-funded-e2e wallet <secret-state-file> | sign <secret-state-file> <kspt-hex>"
+    "usage: kaskold-funded-e2e wallet <secret-state-file> | sign <secret-state-file> <kspt-hex> | attest <commitment-hex>"
         .to_string()
 }
 
@@ -112,6 +118,27 @@ fn sign(path: &Path, kspt_hex: &str) -> Result<(), String> {
     let signed_wire = kspt::serialize_compact_kspt_vec(&transaction)
         .map_err(|error| format!("signed KSPT serialization failed: {error:?}"))?;
     println!("{}", encode_hex(&signed_wire));
+    Ok(())
+}
+
+/// The oracle the test covenants name. It secures nothing beyond a test's own coins.
+const TEST_ORACLE_SECRET: [u8; 32] = [0x0a; 32];
+
+/// The test oracle's key and its signature over one commitment.
+fn attest(commitment_hex: &str) -> Result<(), String> {
+    let commitment = decode_hex(commitment_hex)?;
+    let mut signing_entropy = [0u8; 32];
+    OsRng.fill_bytes(&mut signing_entropy);
+    let oracle = SigningKey::from_bytes((&TEST_ORACLE_SECRET).into())
+        .map_err(|error| format!("oracle key refused: {error}"))?;
+    let signature = oracle
+        .sign_raw(&commitment, &signing_entropy)
+        .map_err(|error| format!("oracle could not sign: {error}"))?;
+    println!(
+        "{} {}",
+        encode_hex(&oracle.verifying_key().to_bytes()),
+        encode_hex(&signature.to_bytes())
+    );
     Ok(())
 }
 

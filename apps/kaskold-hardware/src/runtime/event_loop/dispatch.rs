@@ -15,6 +15,9 @@ macro_rules! handle_action {
             // Exit only this dispatch block when a tap is consumed. Never
             // `continue` the application loop from here: the shared frame,
             // camera, persistence, and audio-tail stages must still run.
+            let is_back = $crate::ui::layout::is_back_tap(x, y);
+            let screen_tapped = $ad.navigation.app.state;
+            let redraw_pending = $ad.runtime.needs_redraw;
             'tap_dispatch: {
             if let Some(changed) = $crate::runtime::power_state::qr_brightness_tap($ad, x, y) {
                 if changed { $crate::runtime::event_loop::audio::click($ad, &mut $runtime_audio); }
@@ -63,8 +66,7 @@ macro_rules! handle_action {
             if !$crate::runtime::navigation::reconcile($ad) {
                 break 'tap_dispatch;
             }
-            let is_back = $crate::ui::layout::is_back_tap(x, y);
-            if is_back && $crate::runtime::navigation::handle_back($ad) {
+            if is_back && $crate::runtime::navigation::handle_modal_back($ad) {
                 $crate::runtime::event_loop::audio::click($ad, &mut $runtime_audio);
                 break 'tap_dispatch;
             }
@@ -192,6 +194,11 @@ macro_rules! handle_action {
                 $crate::runtime::event_loop::audio::click($ad, &mut $runtime_audio);
             }
 
+            }
+            let screen_answered = $ad.navigation.app.state != screen_tapped
+                || ($ad.runtime.needs_redraw && !redraw_pending);
+            if is_back && !screen_answered && $crate::runtime::navigation::handle_back($ad) {
+                $crate::runtime::event_loop::audio::click($ad, &mut $runtime_audio);
             }
         }
 

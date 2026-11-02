@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -341,6 +342,13 @@ def sign_kspt(secret_path: Path, kspt_hex: str) -> str:
     return signed
 
 
+def attest_commitment(commitment_hex: str) -> str:
+    attestation = run_signer_helper("attest", commitment_hex)
+    if not re.fullmatch(r"[0-9a-f]{64} [0-9a-f]{128}", attestation):
+        raise SystemExit("ERROR: funded-E2E signer helper returned an invalid attestation")
+    return attestation
+
+
 class FundedHandler(LoopbackRequestHandler):
     config: dict[str, object] = {}
     result_event = threading.Event()
@@ -360,6 +368,18 @@ class FundedHandler(LoopbackRequestHandler):
         except SystemExit as error:
             self.send_body(str(error).encode("utf-8", "replace"), "text/plain; charset=utf-8", status=422)
 
+    def answer_commitment_request(self) -> None:
+        preimage = self.rfile.read(int(self.headers.get("Content-Length", "0")))
+        digest = hashlib.blake2b(bytes.fromhex(preimage.decode("ascii")), digest_size=32).hexdigest()
+        self.send_body(digest.encode("ascii"), "text/plain; charset=utf-8")
+
+    def answer_attestation_request(self) -> None:
+        commitment = self.rfile.read(int(self.headers.get("Content-Length", "0"))).decode("ascii", "replace")
+        if not re.fullmatch(r"[0-9a-f]{64}", commitment):
+            self.send_error(400, "not a commitment")
+            return
+        self.send_body(attest_commitment(commitment).encode("ascii"), "text/plain; charset=utf-8")
+
     def print_progress(self) -> None:
         line = self.rfile.read(int(self.headers.get("Content-Length", "0"))).decode("utf-8", "replace")
         print(f"  {line}", flush=True)
@@ -368,6 +388,12 @@ class FundedHandler(LoopbackRequestHandler):
     def do_POST(self) -> None:  # noqa: N802 - stdlib handler API
         if self.path.startswith("/__qa_funded_sign__"):
             self.answer_signing_request()
+            return
+        if self.path.startswith("/__qa_funded_commitment__"):
+            self.answer_commitment_request()
+            return
+        if self.path.startswith("/__qa_funded_attest__"):
+            self.answer_attestation_request()
             return
         if self.path.startswith("/__qa_funded_progress__"):
             self.print_progress()

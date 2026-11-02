@@ -123,7 +123,7 @@ fn portable_round_trip(ctx: &mut StegoContext<'_, '_, '_>, artifacts: &MediaArti
         return false;
     }
     ctx.set_text(WRONG_PASSWORD);
-    if ctx.touch(290, 215, false, true) != Some(false)
+    if ctx.touch(290, 215, false, true) != Some(true)
         || ctx.ad.navigation.app.state != AppState::StegoImportPortablePassword
         || ctx.ad.wallet.seeds.seed_mgr.active_slot().is_some()
     {

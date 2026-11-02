@@ -200,6 +200,22 @@ where
     }
 }
 
+/// Draws a little-endian RGB565 icon, leaving whatever is behind its black pixels.
+pub(crate) fn draw_icon_over<D>(display: &mut D, raw: &[u8], width: u32, origin: Point)
+where
+    D: DrawTarget<Color = Rgb565>,
+{
+    let pixels = raw.chunks_exact(2).enumerate().filter_map(|(index, bytes)| {
+        let value = u16::from_le_bytes([bytes[0], bytes[1]]);
+        (value != 0).then(|| {
+            let index = index as u32;
+            let at = origin + Point::new((index % width) as i32, (index / width) as i32);
+            Pixel(at, Rgb565::new((value >> 11) as u8, ((value >> 5) & 0x3f) as u8, (value & 0x1f) as u8))
+        })
+    });
+    display.draw_iter(pixels).ok();
+}
+
 fn draw_back_button<D>(display: &mut D)
 where
     D: DrawTarget<Color = Rgb565>,
@@ -258,6 +274,11 @@ impl<'a> BootDisplay<'a> {
 
     pub fn draw_back_button(&mut self) {
         draw_back_button(&mut self.display);
+    }
+
+    /// For a screen that is not on the usual background: the icon's black shows what is behind.
+    pub fn draw_back_button_over_warning(&mut self) {
+        draw_icon_over(&mut self.display, super::icon_data::ICON_BACK, super::icon_data::ICON_BACK_W, Point::zero());
     }
 
     pub fn clear_keep_nav(&mut self) {

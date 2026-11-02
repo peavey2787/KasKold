@@ -3,6 +3,9 @@
 use crate::hw::display::BootDisplay;
 use crate::services::audio as sound;
 
+/// The card is looked for at power-on, so a card put in later needs a restart.
+pub(crate) const NO_CARD_MESSAGE: &str = "Insert SD card and restart";
+
 /// Small mutable accumulator used by controller façades that delegate one
 /// touch event across several focused handlers.
 #[derive(Default)]
@@ -11,10 +14,6 @@ pub(crate) struct RedrawFlag(bool);
 impl RedrawFlag {
     pub(crate) fn set(&mut self, value: bool) {
         self.0 = value;
-    }
-
-    pub(crate) fn mark(&mut self) {
-        self.0 = true;
     }
 
     pub(crate) fn value(self) -> bool {

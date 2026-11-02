@@ -12,10 +12,7 @@ pub(super) fn process(data: &[u8], len: usize, ad: &mut AppData, checkpoint: &mu
         sound::error();
         return;
     };
-    crate::runtime::interactions::multisig_config::install_descriptor_and_resolve(ad, &parsed, true, checkpoint);
-    if let Some(slot) = ad.signing.multisig.store.find_free() {
-        ad.signing.multisig.store.configs[slot] = ad.signing.multisig.creating.clone();
-    }
+    crate::runtime::interactions::multisig_config::review_descriptor(ad, &parsed, checkpoint);
     log!(
         "   → multisig descriptor QR imported ({}-of-{}, v45={})",
         parsed.threshold,

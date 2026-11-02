@@ -16,7 +16,6 @@ const TOTAL = 400_000_000n;
 
 let state;
 let shipment;
-let owner;
 let currentUtxos = [];
 
 function utxo(amount) {
@@ -49,7 +48,6 @@ before(async () => {
     state.networkState.network = 'mainnet';
     state.networkState.customNodeUrl = 'wss://unused';
     shipment = await import(moduleUrl('features/covenants/spending/standard/shipment.js'));
-    owner = await import(moduleUrl('features/covenants/spending/standard/spend_paths/owner.js'));
 });
 
 after(() => teardownHarness());
@@ -81,21 +79,6 @@ test('every escrow path relays to the signer it names', async () => {
         assert.equal(summary.finalize_ready, false, path);
         assert.equal(real.kspt_signature_status(real.pskt_relay_to_kspt(wire, 'mainnet')), 'unsigned', path);
     }
-});
-
-test('a partial owner withdrawal keeps its change at the covenant and relays', async () => {
-    const covenant = JSON.parse(real.covenant_timelocked_savings(KEY_1G, KEY_2G, 1000n, 'mainnet'));
-    state.covenantState.lastCovenantResult = { ...covenant, type: 'timelocked-savings' };
-    element('cov-owner-addr').value = covenant.address;
-    element('cov-owner-script').value = covenant.redeem_script_hex;
-    element('cov-owner-dest').value = RECEIVE_0;
-    element('cov-owner-amount').value = '1';
-    element('cov-owner-panel').dataset.covOwnerType = 'timelocked-savings';
-    currentUtxos = [utxo(TOTAL)];
-    const { wire, summary } = await documentAfter(() => owner.handleCovOwnerSpend());
-    assert.equal(summary.output_count, 2);
-    assert.equal(summary.outputs[1].address, covenant.address);
-    assert.equal(real.kspt_signature_status(real.pskt_relay_to_kspt(wire, 'mainnet')), 'unsigned');
 });
 
 test('a covenant path the script cannot run never reaches a document', async () => {

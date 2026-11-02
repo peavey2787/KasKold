@@ -28,6 +28,7 @@ use recovery::handle_recovery_acknowledgement;
 pub(crate) use recovery::workflow_handle_recovery_acknowledgement;
 
 const RESTORE_FROM_CARD_ROW: usize = 2;
+const RESTORE_FROM_PHOTO_ROW: usize = 2;
 
 pub(super) fn handle(
     input: TouchInput,
@@ -41,7 +42,7 @@ pub(super) fn handle(
     match ad.navigation.app.state {
         AppState::StorageModeChoice => handle_mode_choice(input, ad, persistence, display, delay),
         AppState::StorageSeedSourceChoice => handle_source_touch(input, ad, display, delay, i2c, card_present),
-        AppState::AdvancedRestoreMenu => handle_advanced_restore(input, ad),
+        AppState::AdvancedRestoreMenu => handle_advanced_touch(input, ad, display, delay, i2c, card_present),
         AppState::RestoreWord12Detected => handle_restore_12_detected(input, ad),
         AppState::StorageRecoveryAcknowledgement => handle_recovery_acknowledgement(input, ad, display, delay),
         AppState::StorageFinalizeChoice => handle_finalize_choice(input, ad, persistence, display, delay),
@@ -132,6 +133,18 @@ pub(crate) fn workflow_handle_source_touch(
 }
 
 #[cfg(feature = "workflow-test-auto")]
+pub(crate) fn workflow_handle_advanced_touch(
+    input: TouchInput,
+    ad: &mut AppData,
+    display: &mut BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
+    card_present: bool,
+) -> Option<bool> {
+    handle_advanced_touch(input, ad, display, delay, i2c, card_present)
+}
+
+#[cfg(feature = "workflow-test-auto")]
 pub(crate) fn workflow_handle_advanced_restore(input: TouchInput, ad: &mut AppData) -> Option<bool> {
     handle_advanced_restore(input, ad)
 }
@@ -177,6 +190,23 @@ fn handle_source_touch(
         i2c,
         card_present,
     );
+    Some(true)
+}
+
+/// A photo restore reads the card first, so the picker only opens on photos that exist.
+fn handle_advanced_touch(
+    input: TouchInput,
+    ad: &mut AppData,
+    display: &mut BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
+    card_present: bool,
+) -> Option<bool> {
+    let on_photo_row = (44..=276).contains(&input.x) && menu_row(input.y) == Some(RESTORE_FROM_PHOTO_ROW);
+    if input.is_back || !on_photo_row {
+        return handle_advanced_restore(input, ad);
+    }
+    crate::runtime::interactions::stego::open_restore_picker(ad, display, delay, i2c, card_present);
     Some(true)
 }
 
@@ -233,9 +263,6 @@ fn handle_advanced_restore(input: TouchInput, ad: &mut AppData) -> Option<bool> 
     match item {
         0 | 1 => {
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ScanQR));
-        }
-        2 => {
-            let _ = crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoImportPick));
         }
         3 => {
             let _ = crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ImportPrivKey));

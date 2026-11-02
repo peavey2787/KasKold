@@ -12,8 +12,6 @@ pub(crate) fn handle_sd_kspt_filename(ctx: SdIoContext<'_, '_, '_>) -> bool {
             back_state: crate::runtime::navigation::continuation!(ShowQrPopup),
             filename_state: crate::runtime::input::AppState::SdKsptFilename,
             next_state: crate::runtime::navigation::continuation!(SdKsptEncryptAsk),
-            redraw_if_exists: false,
-            redraw_if_available: false,
         },
     )
 }
@@ -22,7 +20,7 @@ pub(crate) fn handle_sd_kspt_encrypt_ask(ctx: SdIoContext<'_, '_, '_>) -> bool {
     run_encryption_prompt(
         ctx,
         EncryptionPromptWorkflow {
-            back_state: crate::runtime::navigation::continuation!(ShowQrPopup),
+            back_state: crate::runtime::navigation::continuation!(SdKsptFilename),
             payload: EncryptionPayload::Transaction,
             password_back_state: crate::runtime::navigation::continuation!(SdKsptEncryptAsk),
             encrypted_success_state: crate::runtime::navigation::continuation!(MainMenu),

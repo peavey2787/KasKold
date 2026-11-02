@@ -10,9 +10,7 @@ pub(super) fn handle(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> Option<
         AppState::Rejected => {
             let ok = crate::ui::layout::ERROR_OK_ZONE.contains(x, y);
             if is_back || ok {
-                if !crate::runtime::effects::back(ad) {
-                    crate::runtime::effects::home(ad);
-                }
+                dismiss_rejection(ad);
             }
             Some(true)
         }
@@ -20,8 +18,29 @@ pub(super) fn handle(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> Option<
     }
 }
 
+/// A cancelled transaction is over; a refused scan goes back to the camera for another try.
+fn dismiss_rejection(ad: &mut AppData) {
+    if ad.navigation.history.peek() == Some(AppState::ConfirmTx) {
+        let initial_counts = ad.signing.anti_klepto.initial_sig_counts;
+        if ad.signing.anti_klepto.phase != crate::runtime::data::AntiKleptoPhase::Inactive {
+            crate::runtime::signing::rollback_added_signatures(ad, &initial_counts);
+        }
+        ad.signing.anti_klepto.reset();
+        crate::runtime::effects::home(ad);
+    } else if !crate::runtime::effects::back(ad) {
+        crate::runtime::effects::home(ad);
+    }
+}
+
 fn advance_or_close(ad: &mut AppData) {
     use crate::runtime::data::AntiKleptoPhase;
+    if ad.qr.outgoing.manual_frames && ad.qr.outgoing.frame_count > 1 {
+        let next = ad.qr.outgoing.frame + 1;
+        if next < ad.qr.outgoing.frame_count {
+            ad.qr.outgoing.frame = next;
+            return;
+        }
+    }
     match ad.signing.anti_klepto.phase {
         AntiKleptoPhase::AwaitingReveal => {
             ad.qr.outgoing.frame_count = 0;
@@ -40,13 +59,6 @@ fn advance_or_close(ad: &mut AppData) {
     if ad.qr.outgoing.length == 0 {
         crate::runtime::effects::home(ad);
         return;
-    }
-    if ad.qr.outgoing.manual_frames && ad.qr.outgoing.frame_count > 1 {
-        let next = ad.qr.outgoing.frame + 1;
-        if next < ad.qr.outgoing.frame_count {
-            ad.qr.outgoing.frame = next;
-            return;
-        }
     }
     if let Some(target) = ad.qr.outgoing.close_state {
         ad.qr.outgoing.clear();

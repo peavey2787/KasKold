@@ -98,7 +98,12 @@ fn redraw_output(state: AppState, ad: &mut AppData, boot_display: &mut display::
 }
 
 fn draw_address(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {
-    let mut label_buf = [0u8; 8];
+    if !ad.signing.multisig.creating.active {
+        let address = core::str::from_utf8(&ad.export.kpub_data[..ad.export.kpub_len]).unwrap_or("");
+        boot_display.draw_foreign_multisig_address(address);
+        return;
+    }
+    let mut label_buf = [0u8; 16];
     let label_len = ad.signing.multisig.creating.label(&mut label_buf);
     let label = core::str::from_utf8(&label_buf[..label_len]).unwrap_or("?-of-?");
     let mut addr_buf = [0u8; offline_signer::address::MAX_ADDR_LEN];
@@ -149,7 +154,7 @@ fn redraw_descriptor(state: AppState, ad: &mut AppData, boot_display: &mut displ
 }
 
 fn draw_descriptor(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {
-    let mut label_buf = [0u8; 8];
+    let mut label_buf = [0u8; 16];
     let label_len = ad.signing.multisig.creating.label(&mut label_buf);
     let label = core::str::from_utf8(&label_buf[..label_len]).unwrap_or("?-of-?");
     let mut xonly = [[0u8; 32]; offline_signer::transaction::model::MAX_MULTISIG_KEYS];
@@ -157,5 +162,7 @@ fn draw_descriptor(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {
     for (index, key) in xonly.iter_mut().take(count).enumerate() {
         key.copy_from_slice(&ad.signing.multisig.creating.cosigner_pubkeys[index][1..33]);
     }
-    boot_display.draw_multisig_descriptor(ad.signing.multisig.creating.n, &xonly[..count], label);
+    let keep = crate::runtime::interactions::multisig_config::can_keep_reviewed_descriptor(ad);
+    let action = if keep { "SAVE" } else { "SD CARD" };
+    boot_display.draw_multisig_descriptor(ad.signing.multisig.creating.n, &xonly[..count], label, action);
 }

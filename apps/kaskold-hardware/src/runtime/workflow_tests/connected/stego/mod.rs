@@ -98,14 +98,10 @@ impl StegoContext<'_, '_, '_> {
                 self.ad,
             ) != Some(true)
             || self.ad.navigation.app.state != AppState::AdvancedRestoreMenu
-            || crate::runtime::interactions::persistence::workflow_handle_advanced_restore(
-                TouchInput::new(160, 158, false),
-                self.ad,
-            ) != Some(true)
-            || self.ad.navigation.app.state != AppState::StegoImportPick
         {
             return false;
         }
+        crate::runtime::effects::route(self.ad, crate::runtime::navigation::route!(StegoImportPick));
         crate::runtime::navigation::reconcile(self.ad)
     }
 

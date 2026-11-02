@@ -25,26 +25,7 @@ pub(super) fn import_selected_file(
     };
 
     liveness();
-    let detected = payload_detection::detect_payload(&buffer, bytes_read);
-    let length = detected.trimmed_len();
-    match detected {
-        payload_detection::DetectedSdPayload::CovenantBackup { .. } => {
-            covenant_backup::present(ad, &buffer[..length]);
-            true
-        }
-        payload_detection::DetectedSdPayload::PlainXprv { .. } => {
-            xprv::import(ad, &buffer[..length], boot_display, delay);
-            false
-        }
-        payload_detection::DetectedSdPayload::PlainPrivateKey { .. } => {
-            private_key::import(ad, &buffer[..length], boot_display, delay);
-            false
-        }
-        payload_detection::DetectedSdPayload::Unknown { .. } => {
-            show_rejection(boot_display, delay, "Unknown file format", 2000, ErrorSound::Silent);
-            false
-        }
-    }
+    import_payload(ad, boot_display, delay, &buffer, bytes_read)
 }
 
 #[cfg(feature = "workflow-test-auto")]
@@ -54,7 +35,17 @@ pub(crate) fn workflow_import_payload(
     delay: &mut esp_hal::delay::Delay,
     payload: &[u8],
 ) -> bool {
-    let detected = payload_detection::detect_payload(payload, payload.len());
+    import_payload(ad, boot_display, delay, payload, payload.len())
+}
+
+fn import_payload(
+    ad: &mut crate::runtime::data::AppData,
+    boot_display: &mut crate::hw::display::BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    payload: &[u8],
+    bytes_read: usize,
+) -> bool {
+    let detected = payload_detection::detect_payload(payload, bytes_read);
     let length = detected.trimmed_len();
     match detected {
         payload_detection::DetectedSdPayload::CovenantBackup { .. } => {

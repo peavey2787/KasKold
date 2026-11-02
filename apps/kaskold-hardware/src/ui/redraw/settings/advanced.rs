@@ -13,7 +13,7 @@ pub(super) fn redraw(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) 
                 "It can never be disabled or changed.",
                 guidance,
             );
-            boot_display.draw_back_button();
+            boot_display.draw_back_button_over_warning();
         }
         AppState::AdvancedDuressEntry => draw_duress_entry(ad, boot_display, false),
         AppState::AdvancedDuressConfirm => draw_duress_entry(ad, boot_display, true),

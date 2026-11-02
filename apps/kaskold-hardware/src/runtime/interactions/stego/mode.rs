@@ -1,14 +1,12 @@
 // KasKold — Air-gapped offline signing device for Kaspa
 // License: GPL-3.0-or-later.
 
+use super::photo_scan::{self, PhotoList};
 use super::{display, sdcard, AppData, RedrawFlag};
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use crate::{
     runtime::input::AppState,
-    services::{
-        stego::{StegoCarrier, StegoSecurity},
-        storage_files,
-    },
+    services::stego::{StegoCarrier, StegoSecurity},
 };
 
 pub(super) fn handle(
@@ -69,7 +67,13 @@ fn handle_carrier_select(
         return true;
     }
     if sd_card_type.is_none() {
-        show_rejection(boot_display, delay, "No SD card", 1_500, ErrorSound::Silent);
+        show_rejection(
+            boot_display,
+            delay,
+            crate::runtime::interactions::feedback::NO_CARD_MESSAGE,
+            1_500,
+            ErrorSound::Silent,
+        );
         crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SeedBackup);
         return true;
     }
@@ -106,7 +110,13 @@ fn handle_security_select(
         return false;
     };
     if sd_card_type.is_none() {
-        show_rejection(boot_display, delay, "No SD card", 1_500, ErrorSound::Silent);
+        show_rejection(
+            boot_display,
+            delay,
+            crate::runtime::interactions::feedback::NO_CARD_MESSAGE,
+            1_500,
+            ErrorSound::Silent,
+        );
         crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SeedBackup);
         return true;
     }
@@ -122,19 +132,14 @@ fn scan_jpegs(
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
 ) -> bool {
-    boot_display.draw_loading_screen("Scanning SD...");
-    boot_display.update_progress_bar(50);
-    crate::services::timing::pause(delay, 50);
-    let result = storage_files::scan_jpeg_files(
-        &mut ad.stego.export_flow.jpeg_file_names,
-        &mut ad.stego.export_flow.jpeg_display_names,
-        &mut ad.stego.export_flow.jpeg_display_lens,
-        &mut ad.stego.export_flow.jpeg_file_count,
-        delay,
-        i2c,
-    );
-    if !matches!(result, Ok(count) if count > 0) {
-        show_rejection(boot_display, delay, "No .JPG files on SD", 2_000, ErrorSound::Beep);
+    let export = &mut ad.stego.export_flow;
+    let list = PhotoList {
+        names: &mut export.jpeg_file_names,
+        display_names: &mut export.jpeg_display_names,
+        display_lens: &mut export.jpeg_display_lens,
+        count: &mut export.jpeg_file_count,
+    };
+    if !photo_scan::scan(list, boot_display, delay, i2c) {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoSecuritySelect));
         return true;
     }

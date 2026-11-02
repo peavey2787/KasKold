@@ -20,7 +20,13 @@ pub(crate) fn export_kpub_to_sd(
         return;
     }
     if sd_card_type.is_none() {
-        show_rejection(boot_display, delay, "No SD card", 1_500, ErrorSound::Silent);
+        show_rejection(
+            boot_display,
+            delay,
+            crate::runtime::interactions::feedback::NO_CARD_MESSAGE,
+            1_500,
+            ErrorSound::Silent,
+        );
         return;
     }
 

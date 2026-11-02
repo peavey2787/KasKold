@@ -190,7 +190,7 @@ fn route_transition(
     if !policy::transition_allowed(context.owner, owner, context.from, next) {
         return Err(Rejection::InvalidRoute);
     }
-    if next == AppState::MainMenu {
+    if matches!(next, AppState::MainMenu | AppState::StorageModeChoice) {
         history = HistoryEffect::Clear;
     }
     Ok(Transition { from: context.from, next, owner, history, root_index, redraw, operation: None })

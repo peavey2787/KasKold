@@ -2,10 +2,10 @@
 // License: GPL-3.0-or-later.
 
 use super::{
-    draw_lato_18, draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_18, measure_body,
-    measure_header, measure_hint, measure_title, BootDisplay, CornerRadii, DrawTarget, Drawable, Line, Point,
-    Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size, COLOR_BG, COLOR_CARD, COLOR_CARD_BORDER, COLOR_HINT,
-    COLOR_ORANGE, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_TEAL,
+    draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_body, measure_header, measure_hint,
+    measure_title, BootDisplay, CornerRadii, DrawTarget, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle,
+    RoundedRectangle, Size, COLOR_BG, COLOR_CARD, COLOR_CARD_BORDER, COLOR_HINT, COLOR_ORANGE, COLOR_TEXT,
+    COLOR_TEXT_DIM, KASPA_TEAL,
 };
 
 impl<'a> BootDisplay<'a> {
@@ -131,8 +131,8 @@ impl<'a> BootDisplay<'a> {
             .draw(&mut self.display)
             .ok();
 
-        let sw = measure_18("The answer is your BIP39 passphrase.");
-        draw_lato_18(&mut self.display, "The answer is your BIP39 passphrase.", (320 - sw) / 2, 58, COLOR_ORANGE);
+        let sw = measure_body("The answer is your BIP39 passphrase.");
+        draw_lato_body(&mut self.display, "The answer is your BIP39 passphrase.", (320 - sw) / 2, 58, COLOR_ORANGE);
 
         let btn_corner = CornerRadii::new(Size::new(4, 4));
         for i in 0..4u8 {
@@ -209,15 +209,8 @@ impl<'a> BootDisplay<'a> {
             }
         }
 
-        // "The answer IS your passphrase" — header font for maximum emphasis
-        let aw = measure_header("The answer is your BIP39 passphrase.");
-        draw_oswald_header(
-            &mut self.display,
-            "The answer is your BIP39 passphrase.",
-            (320 - aw) / 2,
-            162,
-            COLOR_ORANGE,
-        );
+        let aw = measure_body("The answer is your BIP39 passphrase.");
+        draw_lato_body(&mut self.display, "The answer is your BIP39 passphrase.", (320 - aw) / 2, 162, COLOR_ORANGE);
         let ew = measure_body("Enter it as your BIP39 25th word.");
         draw_lato_body(&mut self.display, "Enter it as your BIP39 25th word.", (320 - ew) / 2, 188, COLOR_TEXT_DIM);
 

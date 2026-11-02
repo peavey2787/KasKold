@@ -1,8 +1,8 @@
 //! The retail build refuses every chip and image the factory did not finish properly.
 //! A finished chip walks every other journey, because this build runs them all.
-use super::known::{self, RECEIVE_0};
-use super::walk;
 use crate::harness::{Device, ImageFault};
+use crate::scenarios::journeys::known::{self, RECEIVE_0};
+use crate::scenarios::journeys::walk;
 use esp_hal::board::efuse;
 
 const OPEN_DEBUG_PORT: [&str; 1] = ["DIS_USB_JTAG"];

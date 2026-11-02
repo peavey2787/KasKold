@@ -1,7 +1,7 @@
 //! A wallet moved onto the card: it opens only with that card and the PIN, and survives every reboot.
-use super::known::{self, PIN};
-use super::walk::{self, restore_the_known_wallet};
 use crate::harness::Device;
+use crate::scenarios::journeys::known::{self, PIN};
+use crate::scenarios::journeys::walk::{self, restore_the_known_wallet};
 use esp_hal::board::{flash, sd};
 use std::time::Duration;
 

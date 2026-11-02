@@ -1,4 +1,4 @@
-//! Copy-forward EXIF builder that preserves the host TIFF block verbatim.
+//! Copy-forward EXIF builder that preserves the host TIFF block, minus what it replaces.
 
 use super::{
     byte_order, read_u16, read_u32, write_u16, write_u32, EXIF_HEADER, TAG_IMAGE_DESCRIPTION, TAG_USER_COMMENT,
@@ -36,6 +36,7 @@ pub fn build_copyforward(host_app1: &[u8], description: &[u8], user_comment: &[u
         return 0;
     }
     output[tiff_output..tiff_output + host.tiff.len()].copy_from_slice(host.tiff);
+    blank_replaced_values(&host, &mut output[tiff_output..tiff_output + host.tiff.len()]);
     let Some(position) = aligned_copyforward_position(output, tiff_output + host.tiff.len(), tiff_output) else {
         return 0;
     };
@@ -64,6 +65,29 @@ fn copyforward_host_layout(host_app1: &[u8]) -> Option<HostLayout<'_>> {
     let kept_count =
         (0..entry_count).filter(|entry_index| keep_host_entry(tiff, ifd0, *entry_index, little_endian)).count();
     Some(HostLayout { tiff, ifd0, entry_count, entries_end, kept_count, little_endian })
+}
+
+/// An overwritten backup must not stay in the file, and neither may the directory that found it.
+fn blank_replaced_values(host: &HostLayout<'_>, tiff: &mut [u8]) {
+    for entry_index in 0..host.entry_count {
+        if !keep_host_entry(host.tiff, host.ifd0, entry_index, host.little_endian) {
+            blank_entry_value(host, entry_index, tiff);
+        }
+    }
+    tiff[host.ifd0..host.entries_end + 4].fill(0);
+}
+
+fn blank_entry_value(host: &HostLayout<'_>, entry_index: usize, tiff: &mut [u8]) {
+    let position = host.ifd0 + 2 + entry_index * 12;
+    let length = read_u32(&host.tiff[position + 4..position + 8], host.little_endian) as usize;
+    if length <= 4 {
+        return;
+    }
+    let start = read_u32(&host.tiff[position + 8..position + 12], host.little_endian) as usize;
+    let value = start.checked_add(length).and_then(|end| tiff.get_mut(start..end));
+    if let Some(value) = value {
+        value.fill(0);
+    }
 }
 
 fn keep_host_entry(tiff: &[u8], ifd0: usize, entry_index: usize, little_endian: bool) -> bool {

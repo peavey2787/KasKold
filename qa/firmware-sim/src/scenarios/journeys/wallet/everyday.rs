@@ -1,10 +1,9 @@
 //! What a person does day to day once a wallet exists.
-use super::known::{self, PIN};
-use super::walk::{self, restore_the_known_wallet};
 use crate::harness::{app_state, Device};
 use crate::runtime::input::AppState;
+use crate::scenarios::journeys::known::{self, PIN};
+use crate::scenarios::journeys::walk::{self, restore_the_known_wallet};
 use crate::ui::layout::ADDRESS_QR_ZONE;
-use esp_hal::board::sd;
 use kaspa_portal::crypto::message::message_digest;
 use kaspa_portal::crypto::schnorr::{schnorr_verify, SchnorrSignature};
 use kaspa_portal::primitives::address::decode_address;
@@ -20,7 +19,6 @@ const SIGNATURE_QR_TAP: (u16, u16) = (235, 173);
 const SIGNATURE_BYTES: usize = 64;
 const TAP_FOR_QR: (u16, u16) = (160, 120);
 const P2SH_VERSION: u8 = 0x08;
-const KPUB_PREFIX: &[u8] = b"kpub";
 
 journey!(a_receive_qr_scans_as_the_address_on_screen: restore_the_known_wallet, scan_the_receive_qr);
 journey!(a_hidden_key_address_commits_only_to_a_script_hash: restore_the_known_wallet, show_the_hidden_key_address);
@@ -96,17 +94,7 @@ fn save_the_kpub_to_a_card() {
     device.wait_for_text("ENCRYPT FILE?");
     device.tap("No");
     device.wait_for_text("kpub to SD");
-    let card = sd::image();
-    let start = card
-        .windows(KPUB_PREFIX.len())
-        .position(|window| window == KPUB_PREFIX)
-        .expect("the kpub reached the card");
-    let text: String = card[start..]
-        .iter()
-        .take_while(|byte| byte.is_ascii_alphanumeric() || **byte == b':')
-        .map(|&byte| char::from(byte))
-        .collect();
-    let wallet = import_kpub(&text, "kaspa").expect("a readable kpub");
+    let wallet = import_kpub(&walk::kpub_on_the_card(), "kaspa").expect("a readable kpub");
     assert_eq!(wallet.receive_addresses[0], known::RECEIVE_0);
 }
 
@@ -115,7 +103,7 @@ fn refuse_the_kpub_without_a_card() {
     walk::unlock_with_pin(&device, PIN);
     walk::open_wallet_tools(&device);
     device.tap("kpub to SD");
-    device.expect_was_shown("No SD card");
+    device.expect_was_shown("Insert SD card and restart");
     device.wait_for_text("kpub to SD");
     assert_eq!(
         app_state().navigation.app.state,

@@ -122,10 +122,7 @@ impl<'a> BootDisplay<'a> {
 
     /// Draw the post-Home navigation shortcut as a pure overlay.
     pub fn draw_home_button(&mut self) {
-        use embedded_graphics::image::{Image, ImageRawLE};
-
         static ICON_HOME: &[u8] = include_bytes!("../../../../assets/icon_home_24.raw");
-        let raw_icon: ImageRawLE<Rgb565> = ImageRawLE::new(ICON_HOME, 24);
-        Image::new(&raw_icon, Point::new(284, 3)).draw(&mut self.display).ok();
+        crate::ui::display::draw_icon_over(&mut self.display, ICON_HOME, 24, Point::new(284, 3));
     }
 }

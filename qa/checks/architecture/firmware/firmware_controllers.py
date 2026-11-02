@@ -70,7 +70,7 @@ STATE_CONTROLLER_CONTRACTS = {
         "state_digest": "f1d679a363437d27b6f6b68bb842d2eb66c20ce27391d405a892994b3c618baf",
     },
     "stego": {
-        "modules": ("context.rs", "export_confirm/mod.rs", "export_description.rs", "export_security.rs", "import_decrypt.rs", "import_finish.rs", "import_selection/mod.rs", "mode.rs"),
+        "modules": ("context.rs", "export_confirm/mod.rs", "export_description.rs", "export_security.rs", "import_decrypt.rs", "import_finish.rs", "import_selection/mod.rs", "mode.rs", "photo_scan.rs"),
         "api_count": 1,
         "api_digest": "ceab23f1102d535acf13ec0f51232d882bc85dbdecdb5c33db0562ddaece2b0b",
         "state_count": 18,

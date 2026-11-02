@@ -16,10 +16,13 @@ use embedded_iconoir::prelude::IconoirNewIcon;
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use super::super::super::{
-    draw_lato_hint, draw_lato_title, draw_oswald_header, measure_header, size24px, BootDisplay, CornerRadii, Drawable,
-    Image, Line, Point, Primitive, PrimitiveStyle, Rectangle, Rgb565, RoundedRectangle, Size, Triangle, COLOR_CARD,
-    COLOR_CARD_BORDER, COLOR_RED_BTN, COLOR_TEXT, KASPA_TEAL,
+    draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_header, measure_title, size24px,
+    BootDisplay, CornerRadii, Drawable, Image, Line, Point, Primitive, PrimitiveStyle, Rectangle, Rgb565,
+    RoundedRectangle, Size, Triangle, COLOR_CARD, COLOR_CARD_BORDER, COLOR_RED_BTN, COLOR_TEXT, KASPA_TEAL,
 };
+
+const FILE_NAME_INSET: i32 = 36;
+const DELETE_BUTTON_ROOM: i32 = 48;
 
 impl<'a> BootDisplay<'a> {
     /// Draw SD file list for restore — shows up to 8 backup files found on SD
@@ -90,7 +93,12 @@ impl<'a> BootDisplay<'a> {
                 // Draw filename — centered vertically if no seed label, shifted up if label present
                 let name_y = if matched_seed.is_some() { row_y + 18 } else { row_y + 28 };
                 if let Ok(name_str) = core::str::from_utf8(&disp[..dlen]) {
-                    draw_lato_title(&mut self.display, name_str, start_x + 36, name_y, COLOR_TEXT);
+                    let room_for_name = card_w as i32 - FILE_NAME_INSET - DELETE_BUTTON_ROOM;
+                    if measure_title(name_str) <= room_for_name {
+                        draw_lato_title(&mut self.display, name_str, start_x + FILE_NAME_INSET, name_y, COLOR_TEXT);
+                    } else {
+                        draw_lato_body(&mut self.display, name_str, start_x + FILE_NAME_INSET, name_y, COLOR_TEXT);
+                    }
                 }
 
                 // Draw seed label if matched

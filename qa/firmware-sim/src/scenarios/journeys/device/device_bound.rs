@@ -1,7 +1,7 @@
 //! A thief with the storage but not the chip it was written on gets nothing, even with the PIN.
-use super::known::{self, PIN};
-use super::walk::{self, restore_the_known_wallet};
 use crate::harness::Device;
+use crate::scenarios::journeys::known::{self, PIN};
+use crate::scenarios::journeys::walk::{self, restore_the_known_wallet};
 use esp_hal::board::efuse;
 
 const BACKOFF_OVER: std::time::Duration = std::time::Duration::from_secs(65);

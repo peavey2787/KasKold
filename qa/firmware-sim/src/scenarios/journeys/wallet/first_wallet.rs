@@ -1,8 +1,8 @@
 //! Getting a first wallet onto a new device, and finding it there after a reboot.
-use super::known::{self, ABOUT_WORDS, PIN};
-use super::walk;
 use crate::harness::{app_state, discard_board, note, recall, Device};
 use crate::runtime::input::AppState;
+use crate::scenarios::journeys::known::{self, ABOUT_WORDS, PIN};
+use crate::scenarios::journeys::walk;
 use esp_hal::board::flash;
 
 journey!(a_new_device_boots_to_the_welcome_screen: welcome_screen);

@@ -24,7 +24,13 @@ pub(crate) fn scan_by_rule(
 ) {
     ad.storage.browser.text_import_kind = rule.text_import_kind;
     if !card_present {
-        show_rejection(boot_display, delay, "No SD card detected", 2000, ErrorSound::Silent);
+        show_rejection(
+            boot_display,
+            delay,
+            crate::runtime::interactions::feedback::NO_CARD_MESSAGE,
+            2000,
+            ErrorSound::Silent,
+        );
         return;
     }
 

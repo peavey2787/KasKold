@@ -77,6 +77,13 @@ pub fn read_block(block: usize) -> [u8; BLOCK] {
     with_card(|card| card.block(block))
 }
 
+/// Writes one block, the way a computer the card is plugged into would.
+pub fn write_block(block: usize, data: &[u8; BLOCK]) {
+    with_card(|card| {
+        card.blocks.insert(block, *data);
+    });
+}
+
 impl Card {
     fn block(&self, block: usize) -> [u8; BLOCK] {
         self.blocks.get(&block).copied().unwrap_or([0; BLOCK])

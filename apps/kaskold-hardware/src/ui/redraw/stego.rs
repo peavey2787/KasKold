@@ -69,7 +69,7 @@ fn stego_export_keyboard_title(state: AppState) -> Option<&'static str> {
     match state {
         AppState::StegoJpegDesc => Some("IMAGE DESCRIPTOR"),
         AppState::StegoJpegPpEntry => Some("CUSTOM HINT"),
-        AppState::StegoPortablePassword => Some("PORTABLE BACKUP PASSWORD"),
+        AppState::StegoPortablePassword => Some("BACKUP PASSWORD"),
         AppState::StegoPortablePasswordConfirm => Some("CONFIRM PASSWORD"),
         _ => None,
     }

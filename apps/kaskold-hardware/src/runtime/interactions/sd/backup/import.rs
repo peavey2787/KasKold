@@ -126,6 +126,10 @@ fn import_xprv(
             ad.wallet.seeds.mark_pending_add_wallet_installed();
             ad.wallet.seeds.pp_input.reset();
             Ok(crate::runtime::navigation::continuation!(WalletNameEntry { purpose: 3 }))
+        } else if ad.storage.persistence.device_storage_intent.is_seed_onboarding() {
+            crate::services::wallet_session::install_account_xprv(ad, imported)?;
+            ad.storage.persistence.recovery_words_acknowledged = true;
+            Ok(crate::runtime::navigation::continuation!(StorageFinalizeChoice))
         } else {
             crate::services::wallet_session::install_account_xprv(ad, imported)?;
             Ok(crate::runtime::navigation::continuation!(SeedList))

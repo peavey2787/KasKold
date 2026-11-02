@@ -10,6 +10,7 @@ const SYSTIMER_UNIT0_VALUE_LO: u32 = 0x6002_3044;
 const RNG_DATA: u32 = 0x6003_507C;
 const ADC_NOISE: u32 = 0x6004_0868;
 const SYSTIMER_TICKS_PER_MICRO: u64 = 16;
+const NOISE_POWER_ON_STRIDE: u32 = 0x85EB_CA6B;
 
 static REGISTERS: Mutex<Option<HashMap<u32, u32>>> = Mutex::new(None);
 static RNG_STATE: Mutex<u32> = Mutex::new(0x9E37_79B9);
@@ -17,6 +18,12 @@ static RNG_STATE: Mutex<u32> = Mutex::new(0x9E37_79B9);
 fn with_registers<T>(operation: impl FnOnce(&mut HashMap<u32, u32>) -> T) -> T {
     let mut registers = REGISTERS.lock().expect("register model poisoned");
     operation(registers.get_or_insert_with(HashMap::new))
+}
+
+/// A real generator never repeats itself after a restart, so each power-on has a stream of its own.
+pub fn start_noise_for_power_on(power_on: u32) {
+    let mut state = RNG_STATE.lock().expect("rng model poisoned");
+    *state ^= power_on.wrapping_mul(NOISE_POWER_ON_STRIDE);
 }
 
 /// A deterministic xorshift stream: statistically healthy, and repeatable in every run.

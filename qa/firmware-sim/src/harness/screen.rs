@@ -21,6 +21,7 @@ const FONTS: [DrawText; 7] = [
     text::draw_rubik_big::<MaskTarget>,
 ];
 const BASELINE: i32 = 40;
+const BACK_CORNER: usize = 34;
 const BIP39_WORDS: u16 = 2048;
 const RECOVERY_WORD_BAND: std::ops::Range<usize> = 108..170;
 
@@ -97,6 +98,15 @@ impl Screen {
         screens_held_for_reading()
             .into_iter()
             .map(|pixels| Self { pixels })
+            .collect()
+    }
+
+    /// The corner of the screen the back icon sits in.
+    pub(crate) fn back_corner(&self) -> Vec<u16> {
+        self.pixels
+            .chunks(WIDTH)
+            .take(BACK_CORNER)
+            .flat_map(|row| row[..BACK_CORNER].iter().copied())
             .collect()
     }
 

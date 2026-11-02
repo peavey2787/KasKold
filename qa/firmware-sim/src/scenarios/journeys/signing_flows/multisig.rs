@@ -1,8 +1,8 @@
 //! A shared wallet: cosigners exchange keys by QR and everyone must arrive at one address.
-use super::known::{self, ABOUT_WORDS, LEGAL_WORDS, PIN, TWENTY_FOUR_WORDS};
-use super::signing::read_every_frame;
-use super::walk::{self, restore_the_known_wallet};
 use crate::harness::{app_state, discard_board, hold_up_qr, lower_qr, note, recall, Device};
+use crate::scenarios::journeys::known::{self, ABOUT_WORDS, LEGAL_WORDS, PIN, TWENTY_FOUR_WORDS};
+use crate::scenarios::journeys::signing_flows::signing::read_every_frame;
+use crate::scenarios::journeys::walk::{self, restore_the_known_wallet};
 use kaskold_protocol::wire::qr_payload::unwrap_v1_raw;
 use kaspa_portal::crypto::schnorr::{schnorr_verify, SchnorrSignature};
 use kaspa_portal::primitives::address::script_to_p2sh_address;
@@ -18,10 +18,10 @@ use kaspa_portal::wallet::key::xpub::{
 use offline_signer::derivation::xpub::{decode_kpub_or_xpub, XPUB_PAYLOAD_LEN};
 
 const BACK_TAP: (u16, u16) = (18, 18);
-const ADDRESS_TAP: (u16, u16) = (160, 120);
+pub(super) const ADDRESS_TAP: (u16, u16) = (160, 120);
 const NEXT_ADDRESS_TAP: (u16, u16) = (290, 224);
 const PREVIOUS_ADDRESS_TAP: (u16, u16) = (30, 224);
-const SAVE_YES_TAP: (u16, u16) = (90, 160);
+pub(super) const SAVE_YES_TAP: (u16, u16) = (90, 160);
 const SAVE_NO_TAP: (u16, u16) = (225, 160);
 /// The about wallet sorts second of the three cosigners, so its addresses use branch 1.
 const ABOUT_COSIGNER_BRANCH: u32 = 1;
@@ -65,16 +65,22 @@ fn signing_key_of(words: &[&str]) -> [u8; 32] {
         .expect("a public key")
 }
 
-fn shared_redeem_script() -> Vec<u8> {
+/// The 2-of-n shared wallet these wallets make together.
+pub(super) fn shared_config(wallets: &[&[&str]]) -> MultisigConfig {
     let mut config = MultisigConfig::new();
     config.m = 2;
-    config.n = 3;
+    config.n = wallets.len() as u8;
     config.v45 = true;
-    for (slot, words) in cosigner_words().into_iter().enumerate() {
+    for (slot, words) in wallets.iter().enumerate() {
         let parts = parse_kpub_parts(&kpub_of(words)).expect("kpub parts");
         assert!(config.set_cosigner(slot, &parts));
     }
     config.sort_cosigners();
+    config
+}
+
+fn shared_redeem_script() -> Vec<u8> {
+    let mut config = shared_config(&cosigner_words());
     config.cosigner_index = ABOUT_COSIGNER_BRANCH as u8;
     assert_ne!(config.build_script(), 0);
     config.script[..config.script_len].to_vec()
@@ -90,7 +96,7 @@ fn shared_transaction() -> Vec<u8> {
     known::transaction_spending_shared(&shared_redeem_script(), hint)
 }
 
-fn open_multisig_menu(device: &Device) {
+pub(super) fn open_multisig_menu(device: &Device) {
     device.tap("Wallet");
     walk::next_menu_page(device);
     device.tap("Multisig");
@@ -105,7 +111,7 @@ fn scan_cosigner(device: &Device, position: usize, kpub: &[u8]) {
 }
 
 /// The device's own key arrives through its own QR, as it would from another device.
-fn add_all_cosigners(device: &Device, own_key: &[u8]) {
+pub(super) fn add_all_cosigners(device: &Device, own_key: &[u8]) {
     device.tap("Create Multisig");
     device.tap("NEXT");
     scan_cosigner(device, 1, own_key);
@@ -124,7 +130,7 @@ fn is_same_key(kpub: &[u8], own_key: &[u8]) -> bool {
     unwrap_v1_raw(own_key) == Some(&payload[..])
 }
 
-fn read_own_key(device: &Device, words: &[&str]) -> Vec<u8> {
+pub(super) fn read_own_key(device: &Device, words: &[&str]) -> Vec<u8> {
     device.tap("kpub Multisig QR");
     let own_key = device.wait_for_qr();
     assert!(is_same_key(&kpub_of(words), &own_key));

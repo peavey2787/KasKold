@@ -3,6 +3,7 @@ pub(super) mod encryption_prompt;
 pub(super) mod filename;
 pub(super) mod import_scan;
 pub(super) mod list_navigation;
+pub(super) mod loaded_text;
 pub(super) mod overwrite;
 pub(super) mod passphrase;
 pub(super) mod routing;

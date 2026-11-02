@@ -1,7 +1,7 @@
 //! Permanent signing policies: once set, the hardware clock decides when this wallet may sign.
-use super::known::{self, PIN};
-use super::walk::{self, restore_the_known_wallet};
 use crate::harness::{app_state, hold_up_qr, lower_qr, Device};
+use crate::scenarios::journeys::known::{self, PIN};
+use crate::scenarios::journeys::walk::{self, restore_the_known_wallet};
 use esp_hal::board::rtc;
 
 const CLOCK_ROW: (u16, u16) = (160, 207);

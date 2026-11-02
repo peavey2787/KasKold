@@ -4,26 +4,42 @@ use crate::runtime::data::AppData;
 use kaskold_protocol::wire::multisig_descriptor::ParsedMultisigDescriptor;
 use offline_signer::transaction::model::MultisigConfig;
 
-pub(crate) fn config_from_descriptor(descriptor: &ParsedMultisigDescriptor, active: bool) -> MultisigConfig {
-    let mut config = MultisigConfig::from_descriptor(descriptor);
-    config.active = active;
-    config.build_script();
-    config
-}
-
-pub(crate) fn install_descriptor(ad: &mut AppData, descriptor: &ParsedMultisigDescriptor, active: bool) {
-    ad.signing.multisig.creating = config_from_descriptor(descriptor, active);
-}
-
-pub(crate) fn install_descriptor_and_resolve(
+/// A description from outside the device stays untrusted until its owner has looked at its
+/// keys and kept it, because a kept description decides which outputs count as change.
+pub(crate) fn review_descriptor(
     ad: &mut AppData,
     descriptor: &ParsedMultisigDescriptor,
-    active: bool,
     checkpoint: &mut (impl FnMut() + ?Sized),
 ) {
-    install_descriptor(ad, descriptor, active);
+    let mut config = MultisigConfig::from_descriptor(descriptor);
+    config.active = false;
+    ad.signing.multisig.creating = config;
     let _ = crate::runtime::interactions::tx::resolve_loaded_cosigner_index(ad, checkpoint);
     ad.signing.multisig.creating.build_script();
+    let mut candidate = ad.signing.multisig.creating.clone();
+    candidate.active = true;
+    ad.signing.multisig.reviewing_own_descriptor = belongs_to_active_wallet(ad, &candidate, checkpoint);
+}
+
+pub(crate) fn can_keep_reviewed_descriptor(ad: &AppData) -> bool {
+    !ad.signing.multisig.creating.active && ad.signing.multisig.reviewing_own_descriptor
+}
+
+/// An address from outside the device names no wallet it knows, so it is only shown.
+pub(crate) fn show_foreign_address(ad: &mut AppData, address: &[u8]) -> bool {
+    let room = ad.qr.outgoing.buffer.len().min(ad.export.kpub_data.len());
+    if address.len() > room || !offline_signer::address::validate_kaspa_address(address) {
+        return false;
+    }
+    ad.export.kpub_data[..address.len()].copy_from_slice(address);
+    ad.export.kpub_len = address.len();
+    ad.qr.outgoing.buffer[..address.len()].copy_from_slice(address);
+    ad.qr.outgoing.length = address.len();
+    ad.qr.outgoing.frame = 0;
+    ad.qr.outgoing.frame_count = 0;
+    ad.qr.presentation.large = false;
+    ad.signing.multisig.creating.active = false;
+    true
 }
 
 /// Persist the currently edited config back to its matching stored wallet.

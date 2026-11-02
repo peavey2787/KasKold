@@ -1,8 +1,8 @@
 //! Recovery material: what the device shows, and whether it really brings a wallet back.
-use super::known::{self, ABOUT_WORDS, PASSWORD, PIN};
-use super::walk::{self, restore_the_known_wallet};
 use crate::harness::{app_state, discard_board, hold_up_qr, lower_qr, note, recall, Device};
 use crate::runtime::input::AppState;
+use crate::scenarios::journeys::known::{self, ABOUT_WORDS, PASSWORD, PIN};
+use crate::scenarios::journeys::walk::{self, restore_the_known_wallet};
 use esp_hal::board::sd;
 
 const BACKUP_FILE_ON_DISK: &[u8] = b"SD000001KAS";

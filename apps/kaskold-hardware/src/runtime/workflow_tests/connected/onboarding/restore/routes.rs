@@ -86,11 +86,15 @@ fn raw_key_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     ctx.base.seed_touch(20, 20, true) == Some(true) && ctx.base.ad.navigation.app.state == AppState::AdvancedRestoreMenu
 }
 
+/// A card holding photos opens the picker and back returns; anything else never leaves the menu.
 fn stego_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    if ctx.advanced_touch(2) != Some(true) || ctx.base.ad.navigation.app.state != AppState::StegoImportPick {
+    if ctx.photo_source_touch() != Some(true) {
         return false;
     }
-    ctx.stego_back() == Some(true) && ctx.base.ad.navigation.app.state == AppState::AdvancedRestoreMenu
+    if ctx.base.ad.navigation.app.state == AppState::StegoImportPick && ctx.stego_back() != Some(true) {
+        return false;
+    }
+    ctx.base.ad.navigation.app.state == AppState::AdvancedRestoreMenu
 }
 
 pub(super) fn sd_empty_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {

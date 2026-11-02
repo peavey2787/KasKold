@@ -26,24 +26,19 @@ where
 }
 
 impl<'a> BootDisplay<'a> {
-    /// Draw multisig result screen — shows M-of-N label + P2SH address. Tap for QR.
-    pub fn draw_multisig_result(&mut self, label: &str, address: &str, addr_index: u32, sig_chain: Option<(u8, u8)>) {
+    /// An address read from a card: this device knows no wallet behind it. Tap for QR.
+    pub fn draw_foreign_multisig_address(&mut self, address: &str) {
         self.clear_keep_nav();
-
-        let tw = measure_header("MULTISIG WALLET");
-        draw_oswald_header(&mut self.display, "MULTISIG WALLET", (320 - tw) / 2, 25, KASPA_TEAL);
+        let tw = measure_header("MULTISIG ADDRESS");
+        draw_oswald_header(&mut self.display, "MULTISIG ADDRESS", (320 - tw) / 2, 25, KASPA_TEAL);
         Line::new(Point::new(20, 35), Point::new(300, 35))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
             .draw(&mut self.display)
             .ok();
+        self.draw_multisig_address_lines(address);
+    }
 
-        // "2-of-3 multisig · #N" combined label — shows M-of-N context AND
-        // the current address index in a single line.
-        let mut info: heapless::String<32> = heapless::String::new();
-        core::fmt::Write::write_fmt(&mut info, format_args!("{label} multisig · #{addr_index}")).ok();
-        let iw = measure_body(info.as_str());
-        draw_lato_body(&mut self.display, &info, (320 - iw) / 2, 52, KASPA_ACCENT);
-
+    fn draw_multisig_address_lines(&mut self, address: &str) {
         // Address text — title font, centered, 25 chars/line.
         // Shrunk vertical band to make room for the bottom nav row.
         let bytes = address.as_bytes();
@@ -66,6 +61,27 @@ impl<'a> BootDisplay<'a> {
             y_pos += line_h;
             offset = end;
         }
+    }
+
+    /// Draw multisig result screen — shows M-of-N label + P2SH address. Tap for QR.
+    pub fn draw_multisig_result(&mut self, label: &str, address: &str, addr_index: u32, sig_chain: Option<(u8, u8)>) {
+        self.clear_keep_nav();
+
+        let tw = measure_header("MULTISIG WALLET");
+        draw_oswald_header(&mut self.display, "MULTISIG WALLET", (320 - tw) / 2, 25, KASPA_TEAL);
+        Line::new(Point::new(20, 35), Point::new(300, 35))
+            .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
+            .draw(&mut self.display)
+            .ok();
+
+        // "2-of-3 multisig · #N" combined label — shows M-of-N context AND
+        // the current address index in a single line.
+        let mut info: heapless::String<40> = heapless::String::new();
+        core::fmt::Write::write_fmt(&mut info, format_args!("{label} multisig · #{addr_index}")).ok();
+        let iw = measure_body(info.as_str());
+        draw_lato_body(&mut self.display, &info, (320 - iw) / 2, 52, KASPA_ACCENT);
+
+        self.draw_multisig_address_lines(address);
 
         // Bottom nav: [<] [#N] [>] — mirrors singlesig draw_address_screen.
         // Hit zones for touch handler: y=210..238
@@ -112,7 +128,7 @@ impl<'a> BootDisplay<'a> {
     /// Draw multisig wallet descriptor text screen.
     /// Shows the descriptor in format: multi(M, pubkey1_hex, ..., pubkeyN_hex)
     /// This allows companion wallets to reconstruct the same multisig address.
-    pub fn draw_multisig_descriptor(&mut self, n: u8, pubkeys: &[[u8; 32]], label: &str) {
+    pub fn draw_multisig_descriptor(&mut self, n: u8, pubkeys: &[[u8; 32]], label: &str, action: &str) {
         self.clear_keep_nav();
 
         let tw = measure_header("DESCRIPTOR");
@@ -123,7 +139,7 @@ impl<'a> BootDisplay<'a> {
             .ok();
 
         // "2-of-3 multisig" label
-        let mut info: heapless::String<24> = heapless::String::new();
+        let mut info: heapless::String<32> = heapless::String::new();
         core::fmt::Write::write_fmt(&mut info, format_args!("{label} multisig")).ok();
         let iw = measure_body(info.as_str());
         draw_lato_body(&mut self.display, &info, (320 - iw) / 2, 55, KASPA_ACCENT);
@@ -161,14 +177,14 @@ impl<'a> BootDisplay<'a> {
         let qw = measure_title("SHOW QR");
         draw_lato_title(&mut self.display, "SHOW QR", 10 + (140 - qw) / 2, 217, COLOR_BG);
 
-        // === SD CARD button (right) — y=195..225, x=160..310 ===
+        // === Action button (right) — y=195..225, x=160..310 ===
         let sd_rect = Rectangle::new(Point::new(170, 195), Size::new(140, 30));
         RoundedRectangle::new(sd_rect, btn_corner)
             .into_styled(PrimitiveStyle::with_fill(KASPA_TEAL))
             .draw(&mut self.display)
             .ok();
-        let sw = measure_title("SD CARD");
-        draw_lato_title(&mut self.display, "SD CARD", 170 + (140 - sw) / 2, 217, COLOR_BG);
+        let sw = measure_title(action);
+        draw_lato_title(&mut self.display, action, 170 + (140 - sw) / 2, 217, COLOR_BG);
     }
 }
 

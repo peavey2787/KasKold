@@ -48,6 +48,7 @@ pub struct MultisigState {
     pub descriptor_count: u8,
     pub descriptor_persisted: [bool; offline_signer::transaction::model::MAX_MULTISIG_WALLETS],
     pub descriptor_save_prompted: bool,
+    pub reviewing_own_descriptor: bool,
     /// `255` routes to the multisig wallet index; `0` routes to normal address selection.
     pub picking_key: u8,
 }
@@ -63,6 +64,7 @@ impl MultisigState {
             descriptor_count: 0,
             descriptor_persisted: [false; offline_signer::transaction::model::MAX_MULTISIG_WALLETS],
             descriptor_save_prompted: false,
+            reviewing_own_descriptor: false,
             picking_key: 0,
         }
     }

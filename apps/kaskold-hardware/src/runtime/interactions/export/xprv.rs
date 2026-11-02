@@ -119,7 +119,13 @@ fn handle_menu(
         }
         PagedMenuAction::Selected(1) => {
             if sd_card_type.is_none() {
-                show_rejection(boot_display, delay, "No SD card detected", 2_000, ErrorSound::Silent);
+                show_rejection(
+                    boot_display,
+                    delay,
+                    crate::runtime::interactions::feedback::NO_CARD_MESSAGE,
+                    2_000,
+                    ErrorSound::Silent,
+                );
                 return true;
             }
             let next = crate::runtime::interactions::sd::scan_auto_increment(i2c, delay, b"XP", b"KAS");

@@ -61,6 +61,10 @@ fn fail(ad: &mut AppData) {
 #[cfg(feature = "m5stack")]
 pub(super) fn service(ad: &mut AppData, watchdog_feed: &mut impl FnMut()) {
     use crate::services::wallet_keys::worker as kpub_worker;
+    // The screen stays committed under an error; retrying here would raise it again every frame.
+    if crate::runtime::presentation::recoverable_error_showing(ad) {
+        return;
+    }
     let address_screen = matches!(ad.navigation.app.state, AppState::ShowAddress | AppState::ShowAddressQR);
     if !address_screen || ad.qr.scan.address_length != 0 {
         cancel(ad);

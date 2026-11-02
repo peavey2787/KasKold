@@ -9,7 +9,7 @@ use kaspa_portal::transaction::model::{
     Ms45Hint, ScriptPublicKey, SigHashType, Transaction, OP_BLAKE2B, OP_DATA_32, OP_EQUAL,
 };
 use kaspa_portal::wallet::derivation::bip32::{
-    derive_account_key, derive_address_key, derive_change_key, ExtendedPrivKey,
+    derive_account_key, derive_address_key, derive_change_key, derive_child, ExtendedPrivKey,
 };
 use kaspa_portal::wallet::mnemonic::bip39::{
     seed_from_mnemonic_12, seed_from_mnemonic_24, word_to_index, Mnemonic12, Mnemonic24, Seed,
@@ -54,16 +54,16 @@ pub(super) const PASSPHRASE_RECEIVE_0: &str =
     "kaspa:qzmzhr957he0n3tsjs2sev9pa3kcshc9jg2zvslvv82mv559wg2quxs9qrlys";
 
 /// The seed of a 12 or 24 word phrase, from Portal.
-fn seed_of(words: &[&str]) -> Seed {
+fn seed_of(words: &[&str], passphrase: &str) -> Seed {
     let index = |word: &&str| word_to_index(word).expect("a recovery word");
     let indices: Vec<u16> = words.iter().map(index).collect();
     match <[u16; 12]>::try_from(indices.as_slice()) {
-        Ok(indices) => seed_from_mnemonic_12(&Mnemonic12 { indices }, ""),
+        Ok(indices) => seed_from_mnemonic_12(&Mnemonic12 { indices }, passphrase),
         Err(_) => seed_from_mnemonic_24(
             &Mnemonic24 {
                 indices: indices.try_into().expect("12 or 24 words"),
             },
-            "",
+            passphrase,
         ),
     }
 }
@@ -80,7 +80,7 @@ pub(super) const LEGAL_WORDS: &[&str] = &[
 ];
 
 pub(super) fn multisig_seed_of(words: &[&str]) -> Seed {
-    seed_of(words)
+    seed_of(words, "")
 }
 
 /// A spend of a shared wallet's coins paying a stranger, naming where the signers' keys are.
@@ -123,18 +123,35 @@ pub(super) fn transaction_claiming_a_swap(covenant: &[u8]) -> Vec<u8> {
 }
 
 fn account_of(words: &[&str]) -> ExtendedPrivKey {
-    derive_account_key(&seed_of(words).bytes).expect("account key")
+    derive_account_key(&seed_of(words, "").bytes).expect("account key")
 }
 
 /// The first receive address of a wallet whose words were read off a screen, from
 /// Portal because those words are different on every run.
 pub(super) fn address_of(words: &str) -> String {
+    address_with_passphrase(words, "")
+}
+
+/// The first receive address of those words under a passphrase.
+pub(super) fn address_with_passphrase(words: &str, passphrase: &str) -> String {
     let words: Vec<&str> = words.split(' ').collect();
-    let key = derive_address_key(&account_of(&words), 0).expect("address key");
+    let account = derive_account_key(&seed_of(&words, passphrase).bytes).expect("account key");
+    let key = derive_address_key(&account, 0).expect("address key");
     let public_key = key.public_key_x_only().expect("public key");
     let mut text = [0u8; MAX_ADDR_LEN];
     let length = encode_p2pk(&public_key, &mut text);
     String::from_utf8(text[..length].to_vec()).expect("ascii address")
+}
+
+/// The public scan key a sender pays, and the account key the payment is spent with.
+pub(super) fn about_stealth_keys() -> ([u8; 32], [u8; 32]) {
+    let account = account_of(ABOUT_WORDS);
+    let branch = derive_child(&account, 2).expect("scan branch");
+    let scan = derive_child(&branch, 0).expect("scan key");
+    (
+        scan.public_key_x_only().expect("public key"),
+        account.public_key_x_only().expect("public key"),
+    )
 }
 
 /// The account key of the known wallet, which signs messages rather than coins.

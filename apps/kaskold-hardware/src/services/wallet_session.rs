@@ -250,13 +250,12 @@ pub fn visible_wallet_count(ad: &AppData) -> usize {
 }
 
 pub fn require_startup_wallet_selection(ad: &mut AppData) -> bool {
-    let visible = visible_wallet_count(ad);
-    if visible > 1 {
+    if visible_wallet_count(ad) > 1 {
         clear_active_wallet(ad);
         ad.wallet.seeds.seed_list_scroll = 0;
         return true;
     }
-    visible == 1 && ad.wallet.seeds.seed_mgr.active_slot().is_none()
+    ad.wallet.seeds.seed_mgr.active_slot().is_none()
 }
 
 #[cfg(feature = "workflow-test-auto")]

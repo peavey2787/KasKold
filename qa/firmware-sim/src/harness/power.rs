@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use esp_hal::board::nonvolatile;
+use esp_hal::board::{mmio, nonvolatile};
 
 const PHASE: &str = "KASKOLD_SIM_PHASE";
 const BOARD_FILE: &str = "KASKOLD_SIM_BOARD_FILE";
@@ -17,7 +17,11 @@ static BOARD_DISCARDED: AtomicBool = AtomicBool::new(false);
 /// Runs one journey: each phase is one power-on of the same device, in order.
 pub(crate) fn across_power_cycles(test_path: &str, phases: &[fn()]) {
     match env::var(PHASE) {
-        Ok(phase) => power_on_once(phases[phase.parse::<usize>().expect("phase index")]),
+        Ok(phase) => {
+            let phase = phase.parse::<usize>().expect("phase index");
+            mmio::start_noise_for_power_on(phase as u32);
+            power_on_once(phases[phase]);
+        }
         Err(_) => run_every_power_on(test_path, phases.len()),
     }
 }

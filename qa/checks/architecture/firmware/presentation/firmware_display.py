@@ -35,6 +35,7 @@ EXPECTED_PRESENTATION_METHODS = (
     "draw_frame_counter",
     "draw_sig_status",
     "draw_back_button",
+    "draw_back_button_over_warning",
     "clear_keep_nav",
 )
 

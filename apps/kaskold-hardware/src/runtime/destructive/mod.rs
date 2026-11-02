@@ -394,10 +394,8 @@ fn confirm_rect(action: DestructiveAction) -> TouchRect {
 }
 
 fn is_cancel(action: DestructiveAction, x: u16, y: u16) -> bool {
-    match action {
-        DestructiveAction::FormatSd => (x <= 52 && y <= 52) || (x >= 268 && y <= 52),
-        _ => TouchRect::new(30, 180, 150, 230).contains(x, y),
-    }
+    let on_navigation_corner = (x <= 52 || x >= 268) && y <= 52;
+    on_navigation_corner || (action != DestructiveAction::FormatSd && TouchRect::new(30, 180, 150, 230).contains(x, y))
 }
 
 fn now_millis() -> u64 {

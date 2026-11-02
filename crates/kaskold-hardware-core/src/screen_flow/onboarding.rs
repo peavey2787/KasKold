@@ -282,7 +282,12 @@ fn scan_or_sd_transition_allowed(from: AppState, to: AppState) -> bool {
         SdWalletBackupFileList => {
             matches!(to, StorageSeedSourceChoice | SdWalletBackupImportPassphrase)
         }
-        SdWalletBackupImportPassphrase => matches!(to, SdWalletBackupFileList | PassphraseChoice),
+        SdWalletBackupImportPassphrase => {
+            matches!(
+                to,
+                SdWalletBackupFileList | PassphraseChoice | StorageFinalizeChoice
+            )
+        }
         _ => false,
     }
 }

@@ -9,7 +9,7 @@
 //! screens, navigation overlays, and security-oriented presentation helpers.
 
 mod boot;
-pub(crate) use boot::draw_security_badge;
+pub(crate) use boot::{draw_icon_over, draw_security_badge};
 pub(crate) mod icon_data;
 mod icons;
 mod palette;

@@ -29,8 +29,6 @@ def check_internal_visibility_contract(errors: list[str]) -> None:
         "back_state",
         "filename_state",
         "next_state",
-        "redraw_if_exists",
-        "redraw_if_available",
     ):
         require(
             errors,
@@ -70,9 +68,10 @@ def check_internal_visibility_contract(errors: list[str]) -> None:
     )
 
     sd_mod = read("apps/kaskold-hardware/src/runtime/interactions/sd/mod.rs")
+    loaded_text = read("apps/kaskold-hardware/src/runtime/interactions/sd/common/loaded_text.rs")
     require(
         errors,
-        "use shared::{parse_descriptor, sd_file_exists};" in sd_mod,
+        "use shared::sd_file_exists;" in sd_mod and "use super::shared::parse_descriptor;" in loaded_text,
         "SD descriptor helpers must remain private ancestor imports for child modules",
     )
     for overly_broad in (

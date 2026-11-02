@@ -57,8 +57,9 @@ fn staged_onboarding_mnemonic(ad: &AppData) -> bool {
 }
 
 fn finalize_back_route(ad: &mut AppData) -> crate::runtime::navigation::UiRoute {
+    use crate::wallet::seed_manager::WalletSource;
     if ad.storage.persistence.device_storage_intent.is_seed_onboarding()
-        && ad.wallet.seeds.active_source == crate::wallet::seed_manager::WalletSource::RawPrivateKey
+        && matches!(ad.wallet.seeds.active_source, WalletSource::RawPrivateKey | WalletSource::AccountXprv)
     {
         let intent = ad.storage.persistence.device_storage_intent;
         cancel_seed_onboarding(ad);
