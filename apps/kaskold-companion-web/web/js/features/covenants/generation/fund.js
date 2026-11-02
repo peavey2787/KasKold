@@ -1,8 +1,12 @@
-import { covenantState, navigationState, networkState } from '../../../app/state/index.js';
+import {
+    covenantState,
+    navigationState,
+    networkState,
+    fetch_utxos_for_address_js,
+} from '../boundary.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';
 import { toast } from '../../../core/ui/toast.js';
 import { openSendScreen, setFeeLevel, toggleSendUtxos, updateFeeCardAmounts } from '../../transactions/send/compose/send_form.js';
-import { fetch_utxos_for_address_js } from '../../../wasm/api.js';
 // KasKold Companion Web — features/covenants/generation/fund
 import { byId } from '../../../core/dom.js';
 

@@ -1,4 +1,4 @@
-import { redeem_script_address } from '../../../../../wasm/api.js';
+import { redeem_script_address } from '../../../boundary.js';
 
 export function recoveredFromRedeem(type, redeemScriptHex, network, fields = {}) {
     if (!redeemScriptHex) return null;

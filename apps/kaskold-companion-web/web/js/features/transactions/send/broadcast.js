@@ -1,6 +1,18 @@
 import { renderScanProgress } from '../../../core/ui/scan_progress.js';
 import { bytesToHex, hexFrameBatchToBytes } from '../../../core/bytes.js';
-import { covenantState, networkState, oracleState, transactionState } from '../../../app/state/index.js';
+import {
+    covenantState,
+    networkState,
+    oracleState,
+    transactionState,
+    broadcast_signed,
+    decode_qr_frame,
+    decoder_progress,
+    kaskold_sdk_complete,
+    kspt_signature_status,
+    pskt_detect,
+    reset_qr_decoder,
+} from '../boundary.js';
 import { BROADCAST_ENABLED } from '../../../core/config/runtime.js';
 import { oracleMbCardRefresh } from '../../oracle/model_b/controller.js';
 import { hideLoading, showLoading, showScreen } from '../../../app/navigation.js';
@@ -9,7 +21,6 @@ import { stopScanner } from '../../stealth/index/camera.js';
 import { openPsktReview } from '../pskt_multisig/review.js';
 import { displayKsptQr } from './review.js';
 import { markStandardChangeBroadcast, refreshBalanceAfterBroadcast, withNodeRetry } from '../../wallet/core.js';
-import { broadcast_signed, decode_qr_frame, decoder_progress, kaskold_sdk_complete, kspt_signature_status, pskt_detect, reset_qr_decoder } from '../../../wasm/api.js';
 // KasKold Companion Web — features/transactions/send/broadcast
 import { byId } from '../../../core/dom.js';
 import { ANTI_KLEPTO_KEEP_SCANNING, processAntiKleptoResponse } from '../anti_klepto/response.js';

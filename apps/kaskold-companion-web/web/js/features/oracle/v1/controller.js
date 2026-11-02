@@ -1,4 +1,11 @@
-import { covenantState, walletSession } from '../../../app/state/index.js';
+import {
+    covenantState,
+    walletSession,
+    create_covenant_oracle_v1_claim,
+    create_covenant_pskb_with_payload,
+    verify_oracle_v1_attestation,
+    verify_covenant_anti_klepto,
+} from '../boundary.js';
 import { showScreen } from '../../../app/navigation.js';
 import { byId } from '../../../core/dom.js';
 import { bytesToHex } from '../../../core/bytes.js';
@@ -15,11 +22,6 @@ import {
 import { stopScanner } from '../../stealth/index/camera.js';
 import { startPayloadScanner } from '../../stealth/index/whole_payload.js';
 import { showStaticPayloadQr } from '../../qr_display/static_payload.js';
-import {
-    create_covenant_oracle_v1_claim,
-    create_covenant_pskb_with_payload,
-    verify_oracle_v1_attestation, verify_covenant_anti_klepto,
-} from '../../../wasm/api.js';
 import { oracleV1MessageCommitment, parseOracleV1Attestation, verifyOracleV1Attestation } from './attestation.js';
 
 const state = { signature: '', commitment: '', statement: '', keyId: '', pubkey: '', bindingToken: '', sessionId: '', noncePoint: '', hostSecret: '' };

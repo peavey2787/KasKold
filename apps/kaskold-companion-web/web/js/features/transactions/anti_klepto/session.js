@@ -1,8 +1,8 @@
 import {
-  anti_klepto_accept_commitment,
-  anti_klepto_begin,
-  anti_klepto_verify_signed,
-} from '../../../wasm/api.js';
+    anti_klepto_accept_commitment,
+    anti_klepto_begin,
+    anti_klepto_verify_signed,
+} from '../boundary.js';
 
 let session = null;
 

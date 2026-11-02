@@ -1,4 +1,4 @@
-import { covenantState } from '../../../../app/state/index.js';
+import { covenantState } from '../../boundary.js';
 import { showScreen } from '../../../../app/navigation.js';
 import { hexToBytes } from '../../../../core/bytes.js';
 import { toast } from '../../../../core/ui/toast.js';

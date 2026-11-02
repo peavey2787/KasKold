@@ -6,6 +6,7 @@ import hashlib
 import re
 
 from architecture.core.common import relative_posix
+from .web_boundaries import check_feature_boundaries
 from .web_contracts import check_feature_contracts
 from .web_infrastructure import check_scoped_context, check_shared_browser_infrastructure
 from .web_wasm_api import WASM_API_RELATIVE, check_wasm_api
@@ -26,6 +27,7 @@ def _check_module_layout(root: Path) -> tuple[list[str], list[str], str]:
         *_check_required_modules(actual_web_js_modules),
         *_check_main_entry(web_js_root),
         *check_scoped_context(web_js_root),
+        *check_feature_boundaries(web_js_root),
         *_check_module_files(web_js_root),
         *check_shared_browser_infrastructure(web_js_root),
         *wasm_errors,

@@ -1,7 +1,17 @@
 import { descriptorSummary } from './descriptor_summary.js';
 import { renderScanProgress } from '../../../core/ui/scan_progress.js';
 import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
-import { networkState, transactionState } from '../../../app/state/index.js';
+import {
+    networkState,
+    transactionState,
+    create_multisig_pskb,
+    create_multisig_pskb_selected,
+    create_multisig_pskb_multi_js,
+    scan_multisig_branch_js,
+    decode_qr_frame,
+    decoder_progress,
+    fetch_utxos_for_address_js,
+} from '../boundary.js';
 import { KNS_LOOKUP } from '../../../core/config/services.js';
 import { hideLoading, showLoading, showScreen } from '../../../app/navigation.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';
@@ -9,7 +19,6 @@ import { toast } from '../../../core/ui/toast.js';
 import { getCovFee } from '../../covenants/payload/state.js';
 import { stopScanner } from '../../stealth/index/camera.js';
 import { openPsktReview } from './review.js';
-import { create_multisig_pskb, create_multisig_pskb_selected, create_multisig_pskb_multi_js, scan_multisig_branch_js, decode_qr_frame, decoder_progress, fetch_utxos_for_address_js } from '../../../wasm/api.js';
 // KasKold Companion Web — features/transactions/pskt_multisig/multisig
 import { byId } from '../../../core/dom.js';
 import { addressPrefix } from '../../../core/network.js';

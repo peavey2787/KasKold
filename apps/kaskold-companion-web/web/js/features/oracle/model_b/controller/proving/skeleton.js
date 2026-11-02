@@ -1,4 +1,4 @@
-import { oracleState, walletSession } from '../../../../../app/state/index.js';
+import { oracleState, walletSession } from '../../../boundary.js';
 import { kasToSompi } from '../../../../../core/amounts.js';
 import { openPsktReview } from '../../../../transactions/pskt_multisig/review.js';
 import { oracleMbOracleAddress, oracleMbPublish } from '../../protocol.js';

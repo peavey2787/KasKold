@@ -1,4 +1,4 @@
-import { covenantState } from '../../../app/state/index.js';
+import { covenantState } from '../boundary.js';
 import { toast } from '../../../core/ui/toast.js';
 import { showStaticPayloadQr } from '../../qr_display/static_payload.js';
 import { addContribution, campaignFromResult, contributionFromResult, normalizeCampaign, validateContribution } from './model.js';

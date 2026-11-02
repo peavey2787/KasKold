@@ -1,8 +1,11 @@
-import { covenantWatcherState, navigationState } from '../../../../app/state/index.js';
+import {
+    covenantWatcherState,
+    navigationState,
+    fetch_utxos_for_address_js,
+} from '../../boundary.js';
 import { byId } from '../../../../core/dom.js';
 import { sompiToKasString } from '../../../../core/amounts.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
-import { fetch_utxos_for_address_js } from '../../../../wasm/api.js';
 import { activeCovenants } from './repository.js';
 
 export async function fetchActiveBalances() {

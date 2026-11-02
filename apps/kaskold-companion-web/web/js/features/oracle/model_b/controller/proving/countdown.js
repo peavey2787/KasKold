@@ -1,4 +1,4 @@
-import { oracleState } from '../../../../../app/state/index.js';
+import { oracleState } from '../../../boundary.js';
 // Oracle roll review countdown.
 
 function isOnPsktReview() {

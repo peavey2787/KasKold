@@ -1,4 +1,4 @@
-import { covenantState, walletSession } from '../../../app/state/index.js';
+import { covenantState, walletSession } from '../boundary.js';
 import { toast } from '../../../core/ui/toast.js';
 import { buildBeneficiaryExport } from './export/beneficiary_payload.js';
 import { buildOwnerExport } from './export/owner_payload.js';

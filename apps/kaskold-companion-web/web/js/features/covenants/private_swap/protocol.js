@@ -1,7 +1,12 @@
 import { bytesToHex } from '../../../core/bytes.js';
 import { exactUnsigned } from '../../../core/exact.js';
-import { networkState } from '../../../app/state/index.js';
-import { covenant_private_swap, decode_address, is_kaspa_address, sha256_hash } from '../../../wasm/api.js';
+import {
+    networkState,
+    covenant_private_swap,
+    decode_address,
+    is_kaspa_address,
+    sha256_hash,
+} from '../boundary.js';
 
 export const PRIVATE_SWAP_WIRE_VERSION = 2;
 export const MIN_REFUND_GAP_DAA = 18_000n;

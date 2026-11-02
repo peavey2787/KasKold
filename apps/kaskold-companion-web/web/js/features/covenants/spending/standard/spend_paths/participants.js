@@ -1,4 +1,13 @@
-import { covenantState, navigationState, networkState } from '../../../../../app/state/index.js';
+import {
+    covenantState,
+    navigationState,
+    networkState,
+    create_covenant_beneficiary_spend,
+    create_covenant_timelocked_savings_claim,
+    create_global_allowance_withdraw,
+    fetch_utxos_for_address_js,
+    thread_withdraw_fee,
+} from '../../../boundary.js';
 import { hideLoading, showLoading } from '../../../../../app/navigation.js';
 import { fetchCurrentDaa } from '../../../../../core/node/daa.js';
 import { resolveNodeUrl } from '../../../../../core/node/resolver.js';
@@ -6,7 +15,6 @@ import { toast } from '../../../../../core/ui/toast.js';
 import { getCovFee, savingsClaimKeyPosition } from '../../../payload/state.js';
 import { pickThread } from '../spend_paths.js';
 import { openPsktReview } from '../../../../transactions/pskt_multisig/review.js';
-import { create_covenant_beneficiary_spend, create_covenant_timelocked_savings_claim, create_global_allowance_withdraw, fetch_utxos_for_address_js, thread_withdraw_fee } from '../../../../../wasm/api.js';
 
 import { byId } from '../../../../../core/dom.js';
 import { formatDaaDuration } from '../../../../../core/format.js';

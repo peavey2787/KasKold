@@ -1,9 +1,8 @@
-import { navigationState } from '../../app/state/index.js';
+import { navigationState, generate_qr_svg_text } from './boundary.js';
 import { showScreen } from '../../app/navigation.js';
 import { byId } from '../../core/dom.js';
 import { showQrSvg } from '../../core/qr/svg_image.js';
 import { setContent } from '../../core/ui/elements.js';
-import { generate_qr_svg_text } from '../../wasm/api.js';
 import { hideQrFrameHexDisplay, pauseQrCycle } from '../transactions/send/review.js';
 
 // One presenter for every single-frame payload shown on the QR screen

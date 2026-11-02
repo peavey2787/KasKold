@@ -1,4 +1,11 @@
-import { navigationState, networkState, oracleState, transactionState } from '../../../app/state/index.js';
+import {
+    navigationState,
+    networkState,
+    oracleState,
+    transactionState,
+    pskt_finalize_and_broadcast,
+    pskt_summary,
+} from '../boundary.js';
 import { BROADCAST_ENABLED } from '../../../core/config/runtime.js';
 import { ORACLE_MB_PROTOCOL } from '../../oracle/model_b/config.js';
 import { hideLoading, showLoading, showScreen } from '../../../app/navigation.js';
@@ -6,7 +13,6 @@ import { toast } from '../../../core/ui/toast.js';
 import { covShowPanel } from '../../covenants/generation/panel_keys.js';
 import { showBroadcastError, showBroadcastSuccess } from '../send/broadcast.js';
 import { withNodeRetry } from '../../wallet/core.js';
-import { pskt_finalize_and_broadcast, pskt_summary } from '../../../wasm/api.js';
 import { hexToBytes } from '../../../core/bytes.js';
 import {
   hideOracleProvingScreen,

@@ -1,4 +1,4 @@
-import { navigationState, networkState, walletSession } from '../../../app/state/index.js';
+import { navigationState, networkState, walletSession, generate_qr_svg_text } from '../boundary.js';
 import { qrImage } from '../../../core/qr/svg_image.js';
 import { hideLoading, navigateBack, showLoading, showScreen } from '../../../app/navigation.js';
 import { byId } from '../../../core/dom.js';
@@ -11,7 +11,6 @@ import { decodeKpubQrImage } from '../core/kpub_image_import.js';
 import { clearWalletSession, consumeSkipAutoLoadOnce, hardenedWalletCleanup } from '../state_reset.js';
 import { syncWalletUnloadAction } from '../reset.js';
 import { kpubRepository } from './repository.js';
-import { generate_qr_svg_text } from '../../../wasm/api.js';
 
 function networkLabel(network) {
     if (network === 'mainnet') return 'Mainnet';

@@ -1,7 +1,6 @@
-import { oracleState } from '../../../../../app/state/index.js';
+import { oracleState, covenant_oracle_mb } from '../../../boundary.js';
 import { hexToBytes } from '../../../../../core/bytes.js';
 import { createBlockAddedTransport } from '../../../../../core/node/block_added_transport.js';
-import { covenant_oracle_mb } from '../../../../../wasm/api.js';
 import { ORACLE_MB_PROTOCOL } from '../../config.js';
 import { oracleMbIdentity } from '../../state.js';
 

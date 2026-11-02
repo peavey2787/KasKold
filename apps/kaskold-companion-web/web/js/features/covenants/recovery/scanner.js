@@ -1,4 +1,4 @@
-import { networkState, walletSession } from '../../../app/state/index.js';
+import { networkState, walletSession } from '../boundary.js';
 import { kaspaRestApiBase } from '../../../core/config/network.js';
 import { toast } from '../../../core/ui/toast.js';
 import { getAccountPubkeyHex } from '../generation/panel_keys.js';

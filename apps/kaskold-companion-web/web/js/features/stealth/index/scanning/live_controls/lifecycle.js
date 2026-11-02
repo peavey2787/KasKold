@@ -1,4 +1,4 @@
-import { scannerState, stealthState } from '../../../../../app/state/index.js';
+import { scannerState, stealthState } from '../../../boundary.js';
 import { byId } from '../../../../../core/dom.js';
 import { stopScanner } from '../../camera.js';
 

@@ -1,7 +1,11 @@
-import { networkState, transactionState } from '../../../app/state/index.js';
+import {
+    networkState,
+    transactionState,
+    kaskold_sdk_prepare,
+    pskt_relay_to_kspt,
+} from '../boundary.js';
 import { toast } from '../../../core/ui/toast.js';
 import { displayKsptQr } from '../send/review.js';
-import { kaskold_sdk_prepare, pskt_relay_to_kspt } from '../../../wasm/api.js';
 import { byId } from '../../../core/dom.js';
 import { beginAntiKlepto, clearAntiKleptoSession } from '../anti_klepto/session.js';
 

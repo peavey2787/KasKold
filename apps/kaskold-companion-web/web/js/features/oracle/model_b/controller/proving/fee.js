@@ -1,5 +1,4 @@
-import { oracleState } from '../../../../../app/state/index.js';
-import { pskb_append_output } from '../../../../../wasm/api.js';
+import { oracleState, pskb_append_output } from '../../../boundary.js';
 import { byId } from '../../../../../core/dom.js';
 import { kasToSompi, sompiToKasString } from '../../../../../core/amounts.js';
 

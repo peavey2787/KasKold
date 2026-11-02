@@ -1,4 +1,4 @@
-import { crowdfund_campaign_id } from '../../../../../wasm/api.js';
+import { crowdfund_campaign_id } from '../../../boundary.js';
 import { hexToBytes } from '../../../../../core/bytes.js';
 import { readLen, readU64, readVstr } from '../payload_reader.js';
 import { contributionJson } from '../../../crowdfund/model.js';

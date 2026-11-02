@@ -1,4 +1,21 @@
-import { covenantState, navigationState, networkState, walletSession } from '../../../app/state/index.js';
+import {
+    covenantState,
+    navigationState,
+    networkState,
+    walletSession,
+    create_private_swap_claim,
+    create_private_swap_refund,
+    fetch_utxos_for_address_js,
+    private_swap_claim_sighash,
+    private_swap_complete_public,
+    private_swap_extract_secret,
+    private_swap_max_fee_sompi,
+    private_swap_insert_completed_signature,
+    private_swap_verify_completed,
+    private_swap_verify_presignature,
+    pskt_finalize_and_broadcast,
+    pskt_relay_to_kspt,
+} from '../boundary.js';
 import { showScreen } from '../../../app/navigation.js';
 import { byId } from '../../../core/dom.js';
 import { kasToSompi, sompiToKasString } from '../../../core/amounts.js';
@@ -15,12 +32,6 @@ import { covAddActive, covRenderActive, covSaveActive } from '../recovery/active
 import { openPsktReview } from '../../transactions/pskt_multisig/review.js';
 import { startScanner, stopScanner } from '../../stealth/index/camera.js';
 import { startPayloadScanner } from '../../stealth/index/whole_payload.js';
-import {
-    create_private_swap_claim, create_private_swap_refund, fetch_utxos_for_address_js,
-    private_swap_claim_sighash, private_swap_complete_public, private_swap_extract_secret, private_swap_max_fee_sompi,
-    private_swap_insert_completed_signature, private_swap_verify_completed, private_swap_verify_presignature,
-    pskt_finalize_and_broadcast, pskt_relay_to_kspt,
-} from '../../../wasm/api.js';
 import {
     acceptPrivateSwapBindingResponse, acceptPrivateSwapCompletedResponse, acceptPrivateSwapKeyResponse,
     acceptPrivateSwapPreSignResponse, clearPrivateSwapDeviceFlow, pendingPrivateSwapDeviceAction,

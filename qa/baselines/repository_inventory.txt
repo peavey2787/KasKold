@@ -1083,11 +1083,13 @@ F	apps/kaskold-companion-web/web/js/core/ui/scan_progress.js
 F	apps/kaskold-companion-web/web/js/core/ui/screen_dom.js
 F	apps/kaskold-companion-web/web/js/core/ui/toast.js
 F	apps/kaskold-companion-web/web/js/core/utxo.js
+F	apps/kaskold-companion-web/web/js/features/assets/boundary.js
 F	apps/kaskold-companion-web/web/js/features/assets/client.js
 F	apps/kaskold-companion-web/web/js/features/assets/index.js
 F	apps/kaskold-companion-web/web/js/features/assets/render.js
 F	apps/kaskold-companion-web/web/js/features/covenants/blockchain/block_added_subscription.js
 F	apps/kaskold-companion-web/web/js/features/covenants/blockchain/outpoint_parser.js
+F	apps/kaskold-companion-web/web/js/features/covenants/boundary.js
 F	apps/kaskold-companion-web/web/js/features/covenants/crowdfund/campaign.js
 F	apps/kaskold-companion-web/web/js/features/covenants/crowdfund/invites.js
 F	apps/kaskold-companion-web/web/js/features/covenants/crowdfund/model.js
@@ -1217,6 +1219,7 @@ F	apps/kaskold-companion-web/web/js/features/covenants/watch/watcher/subscriptio
 F	apps/kaskold-companion-web/web/js/features/covenants/watch/watcher/subscription/message.js
 F	apps/kaskold-companion-web/web/js/features/covenants/watch/watcher/subscription/notifications.js
 F	apps/kaskold-companion-web/web/js/features/covenants/watch/watcher/types.js
+F	apps/kaskold-companion-web/web/js/features/oracle/boundary.js
 F	apps/kaskold-companion-web/web/js/features/oracle/model_b.js
 F	apps/kaskold-companion-web/web/js/features/oracle/model_b/config.js
 F	apps/kaskold-companion-web/web/js/features/oracle/model_b/controller.js
@@ -1236,6 +1239,7 @@ F	apps/kaskold-companion-web/web/js/features/oracle/model_b/protocol.js
 F	apps/kaskold-companion-web/web/js/features/oracle/model_b/state.js
 F	apps/kaskold-companion-web/web/js/features/oracle/v1/attestation.js
 F	apps/kaskold-companion-web/web/js/features/oracle/v1/controller.js
+F	apps/kaskold-companion-web/web/js/features/portfolio/boundary.js
 F	apps/kaskold-companion-web/web/js/features/portfolio/calculations.js
 F	apps/kaskold-companion-web/web/js/features/portfolio/controller.js
 F	apps/kaskold-companion-web/web/js/features/portfolio/csv.js
@@ -1245,8 +1249,11 @@ F	apps/kaskold-companion-web/web/js/features/portfolio/pricing.js
 F	apps/kaskold-companion-web/web/js/features/portfolio/render.js
 F	apps/kaskold-companion-web/web/js/features/portfolio/repository.js
 F	apps/kaskold-companion-web/web/js/features/portfolio/wallet_history.js
+F	apps/kaskold-companion-web/web/js/features/qr_display/boundary.js
 F	apps/kaskold-companion-web/web/js/features/qr_display/static_payload.js
+F	apps/kaskold-companion-web/web/js/features/settings/boundary.js
 F	apps/kaskold-companion-web/web/js/features/settings/screen.js
+F	apps/kaskold-companion-web/web/js/features/stealth/boundary.js
 F	apps/kaskold-companion-web/web/js/features/stealth/index.js
 F	apps/kaskold-companion-web/web/js/features/stealth/index/camera.js
 F	apps/kaskold-companion-web/web/js/features/stealth/index/config.js
@@ -1267,6 +1274,7 @@ F	apps/kaskold-companion-web/web/js/features/stealth/index/spend.js
 F	apps/kaskold-companion-web/web/js/features/stealth/index/whole_payload.js
 F	apps/kaskold-companion-web/web/js/features/transactions/anti_klepto/response.js
 F	apps/kaskold-companion-web/web/js/features/transactions/anti_klepto/session.js
+F	apps/kaskold-companion-web/web/js/features/transactions/boundary.js
 F	apps/kaskold-companion-web/web/js/features/transactions/pskt_multisig.js
 F	apps/kaskold-companion-web/web/js/features/transactions/pskt_multisig/descriptor_summary.js
 F	apps/kaskold-companion-web/web/js/features/transactions/pskt_multisig/descriptors.js
@@ -1292,6 +1300,7 @@ F	apps/kaskold-companion-web/web/js/features/transactions/send/signed_qr_image_i
 F	apps/kaskold-companion-web/web/js/features/transactions/shared/signer_limits.js
 F	apps/kaskold-companion-web/web/js/features/transactions/shared/utxo_selection.js
 F	apps/kaskold-companion-web/web/js/features/transactions/shared/utxo_selector.js
+F	apps/kaskold-companion-web/web/js/features/wallet/boundary.js
 F	apps/kaskold-companion-web/web/js/features/wallet/core.js
 F	apps/kaskold-companion-web/web/js/features/wallet/core/address_state.js
 F	apps/kaskold-companion-web/web/js/features/wallet/core/balance.js
@@ -2139,9 +2148,16 @@ F	apps/kaskold-vault-android/app/src/main/cpp/vault_jni.cpp
 F	apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/CreationFlowScreens.kt
 F	apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/MainActivity.kt
 F	apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/QrViews.kt
+F	apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/SigningScreens.kt
+F	apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/VaultApp.kt
+F	apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/WalletScreens.kt
 F	apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/WorkflowScreens.kt
+F	apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/runtime/NativeFileWorkflows.kt
+F	apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/runtime/NativeToolRunner.kt
 F	apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/runtime/RuntimeBridge.kt
 F	apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/runtime/VaultController.kt
+F	apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/runtime/VaultScreenState.kt
+F	apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/runtime/WalletCreationFlow.kt
 F	apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/security/VaultBlobStore.kt
 F	apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault/security/VaultWrappingKeyStore.kt
 F	apps/kaskold-vault-android/app/src/main/res/drawable-nodpi/icon_connect_companion_56.png
@@ -2834,6 +2850,7 @@ F	qa/checks/architecture/tooling/workspace_delivery.py
 F	qa/checks/architecture/web/__init__.py
 F	qa/checks/architecture/web/advisory_quality.py
 F	qa/checks/architecture/web/generated_output.py
+F	qa/checks/architecture/web/web_boundaries.py
 F	qa/checks/architecture/web/web_contracts.py
 F	qa/checks/architecture/web/web_css.py
 F	qa/checks/architecture/web/web_html.py
@@ -3230,6 +3247,7 @@ F	qa/tests/regression/apps/test_online_watcher_transaction_fixture_policy.py
 F	qa/tests/regression/apps/test_real_node_integration.py
 F	qa/tests/regression/apps/test_vault_network_isolation.py
 F	qa/tests/regression/apps/test_watcher_only_apps.py
+F	qa/tests/regression/apps/test_web_feature_boundaries.py
 F	qa/tests/regression/apps/test_web_pkg_fixture_policy.py
 F	qa/tests/regression/coverage/test_branch_coverage_90_contract.py
 F	qa/tests/regression/coverage/test_crap_warning_scope_policy.py

@@ -1,5 +1,5 @@
 import { el, setContent } from '../../../../../core/ui/elements.js';
-import { scannerState } from '../../../../../app/state/index.js';
+import { scannerState } from '../../../boundary.js';
 import { byId } from '../../../../../core/dom.js';
 import { toast } from '../../../../../core/ui/toast.js';
 import { startScanner } from '../../camera.js';

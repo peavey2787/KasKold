@@ -1,7 +1,6 @@
-import { networkState } from '../../../../../app/state/index.js';
+import { networkState, covenant_payjoin } from '../../../boundary.js';
 import { resolveFutureDaa } from '../../../../../core/node/future_daa.js';
 import { toast } from '../../../../../core/ui/toast.js';
-import { covenant_payjoin } from '../../../../../wasm/api.js';
 // payjoin covenant builder.
 
 import { byId } from '../../../../../core/dom.js';

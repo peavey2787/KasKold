@@ -1,4 +1,4 @@
-import { stealthState } from '../../../../../app/state/index.js';
+import { stealthState } from '../../../boundary.js';
 import { STEALTH_MAX_R } from '../../config.js';
 import { bytesToHex } from '../../../../../core/bytes.js';
 import { byId } from '../../../../../core/dom.js';

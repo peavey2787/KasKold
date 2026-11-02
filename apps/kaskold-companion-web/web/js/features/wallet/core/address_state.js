@@ -1,6 +1,5 @@
-import { networkState, walletSession, walletState } from '../../../app/state/index.js';
+import { networkState, walletSession, walletState, extend_addresses } from '../boundary.js';
 import { GAP_EXPAND_CHANGE, GAP_EXPAND_RECEIVE } from '../../../core/config/network.js';
-import { extend_addresses } from '../../../wasm/api.js';
 
 function standardChangeReservations() {
     if (!(walletState.standardChangeReservations instanceof Map)) {

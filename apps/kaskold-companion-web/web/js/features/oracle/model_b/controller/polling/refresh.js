@@ -1,10 +1,9 @@
-import { oracleState } from '../../../../../app/state/index.js';
+import { oracleState, fetch_utxos_for_address_js } from '../../../boundary.js';
 import { ORACLE_MB_DEPLOY } from '../../config.js';
 import { oracleMbIdentity } from '../../state.js';
 import { resolveNodeUrl } from '../../../../../core/node/resolver.js';
 import { oracleMbDiscoverAndRead } from '../../protocol.js';
 import { utxoTransactionId } from '../../../../../core/utxo.js';
-import { fetch_utxos_for_address_js } from '../../../../../wasm/api.js';
 // Oracle Model B refresh and timer lifecycle.
 
 import { byId } from '../../../../../core/dom.js';

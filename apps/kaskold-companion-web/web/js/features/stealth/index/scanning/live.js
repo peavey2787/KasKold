@@ -1,6 +1,5 @@
-import { stealthState } from '../../../../app/state/index.js';
+import { stealthState, build_vcc_subscribe_request } from '../../boundary.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
-import { build_vcc_subscribe_request } from '../../../../wasm/api.js';
 // KasKold Companion Web — features/stealth/index/scanning/live
 import { byId } from '../../../../core/dom.js';
 import { runHistoricalCatchUp } from './live/catch_up_session.js';

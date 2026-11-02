@@ -1,6 +1,11 @@
-import { networkState, transactionState } from '../../../../../app/state/index.js';
+import {
+    networkState,
+    transactionState,
+    create_send_pskb,
+    create_send_pskb_limited,
+    create_send_pskb_with_utxos,
+} from '../../../boundary.js';
 import { withNodeRetry } from '../../../../wallet/core.js';
-import { create_send_pskb, create_send_pskb_limited, create_send_pskb_with_utxos } from '../../../../../wasm/api.js';
 // Standard wallet transaction planners.
 
 import { kasToSompi } from '../../../../../core/amounts.js';

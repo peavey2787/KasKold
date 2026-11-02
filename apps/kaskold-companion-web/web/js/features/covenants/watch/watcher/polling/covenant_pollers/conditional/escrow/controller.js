@@ -1,5 +1,5 @@
 import { applyScriptTerms } from '../../../../../../model/script_terms.js';
-import { covenantState, covenantWatcherState } from '../../../../../../../../app/state/index.js';
+import { covenantState, covenantWatcherState } from '../../../../../../boundary.js';
 import { fetchEscrowDispute } from './fetch.js';
 import { renderEscrowEmpty, renderEscrowFunded, renderEscrowResolved } from './render.js';
 import { beginEscrowCycle, resolveEscrowCycle, saveEscrowDispute, shouldCheckDispute } from './state.js';

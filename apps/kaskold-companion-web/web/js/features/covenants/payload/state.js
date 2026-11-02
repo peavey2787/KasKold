@@ -1,4 +1,4 @@
-import { covenantState, networkState, walletSession } from '../../../app/state/index.js';
+import { covenantState, networkState, walletSession } from '../boundary.js';
 import { byId } from '../../../core/dom.js';
 import { ceilFeeFromRate } from '../../../core/fee_math.js';
 // KasKold Companion Web — features/covenants/payload/state

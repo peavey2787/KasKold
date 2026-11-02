@@ -1,4 +1,12 @@
-import { networkState, scannerState, uiState, walletSession, walletState } from '../../../app/state/index.js';
+import {
+    networkState,
+    scannerState,
+    uiState,
+    walletSession,
+    walletState,
+    fetch_balance,
+    fetch_utxos,
+} from '../boundary.js';
 import { setStatus } from '../../../app/navigation.js';
 import { fetchCurrentDaa } from '../../../core/node/daa.js';
 import { resolvePublicNode } from '../../../core/node/resolver.js';
@@ -7,7 +15,6 @@ import { renderNodeUnavailable } from '../../../core/ui/connectivity_status.js';
 import { expandAddressesIfNeeded, reconcileStandardChangeReservations } from './address_state.js';
 import { fetchAddressHistory } from './history.js';
 import { trackUtxoChangesAndUsed } from '../tools.js';
-import { fetch_balance, fetch_utxos } from '../../../wasm/api.js';
 
 import { byId } from '../../../core/dom.js';
 import { exactUnsigned } from '../../../core/exact.js';

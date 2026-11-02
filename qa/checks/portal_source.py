@@ -55,24 +55,24 @@ MOVED_TO_PORTAL = {
     "crates/offline-signer/src/crypto/anti_klepto.rs": "crypto/anti_klepto.rs",
     "crates/offline-signer/src/crypto/ecies.rs": "crypto/ecies.rs",
     "crates/offline-signer/src/crypto/message.rs": "crypto/message.rs",
-    "crates/offline-signer/src/crypto/unit_tests/schnorr_tests.rs": "crypto/schnorr/unit-tests/schnorr_tests.rs",
-    "crates/offline-signer/src/crypto/unit_tests/password_kdf_tests.rs": "crypto/kdf/unit-tests/password.rs",
-    "crates/offline-signer/src/crypto/unit_tests/message_tests.rs": "crypto/unit-tests/message.rs",
-    "crates/offline-signer/src/crypto/unit_tests/adaptor_tests.rs": "crypto/unit-tests/adaptor.rs",
-    "crates/offline-signer/src/crypto/unit_tests/ecies_tests.rs": "crypto/unit-tests/ecies.rs",
-    "crates/offline-signer/src/crypto/unit_tests/anti_klepto_tests.rs": "crypto/unit-tests/anti_klepto.rs",
-    "crates/offline-signer/src/derivation/unit_tests/bip32_tests.rs": "wallet/derivation/bip32/unit-tests/mod.rs",
-    "crates/offline-signer/src/derivation/unit_tests/bip39_tests.rs": "wallet/mnemonic/bip39/unit-tests/mod.rs",
-    "crates/offline-signer/src/derivation/unit_tests/bip85_tests.rs": "wallet/derivation/unit-tests/bip85.rs",
-    "crates/offline-signer/src/derivation/unit_tests/xpub_tests.rs": "wallet/key/xpub/unit-tests/mod.rs",
+    "crates/offline-signer/src/crypto/unit_tests/schnorr_tests.rs": "crypto/schnorr/unit_tests/schnorr_tests.rs",
+    "crates/offline-signer/src/crypto/unit_tests/password_kdf_tests.rs": "crypto/kdf/unit_tests/password.rs",
+    "crates/offline-signer/src/crypto/unit_tests/message_tests.rs": "crypto/unit_tests/message.rs",
+    "crates/offline-signer/src/crypto/unit_tests/adaptor_tests.rs": "crypto/unit_tests/adaptor.rs",
+    "crates/offline-signer/src/crypto/unit_tests/ecies_tests.rs": "crypto/unit_tests/ecies.rs",
+    "crates/offline-signer/src/crypto/unit_tests/anti_klepto_tests.rs": "crypto/unit_tests/anti_klepto.rs",
+    "crates/offline-signer/src/derivation/unit_tests/bip32_tests.rs": "wallet/derivation/bip32/unit_tests/mod.rs",
+    "crates/offline-signer/src/derivation/unit_tests/bip39_tests.rs": "wallet/mnemonic/bip39/unit_tests/mod.rs",
+    "crates/offline-signer/src/derivation/unit_tests/bip85_tests.rs": "wallet/derivation/unit_tests/bip85.rs",
+    "crates/offline-signer/src/derivation/unit_tests/xpub_tests.rs": "wallet/key/xpub/unit_tests/mod.rs",
     "crates/offline-signer/src/derivation/bip32/": "wallet/derivation/bip32/",
     "crates/offline-signer/src/derivation/bip39/": "wallet/mnemonic/bip39/",
     "crates/offline-signer/src/derivation/bip39_wordlist.rs": "wallet/mnemonic/wordlist.rs",
     "crates/offline-signer/src/derivation/xpub/": "wallet/key/xpub/",
-    "crates/offline-signer/src/derivation/covenant/unit_tests/mod.rs": "wallet/derivation/covenant/unit-tests/mod.rs",
+    "crates/offline-signer/src/derivation/covenant/unit_tests/mod.rs": "wallet/derivation/covenant/unit_tests/mod.rs",
     "crates/offline-signer/src/derivation/": "wallet/derivation/",
     "crates/offline-signer/src/transaction/kspt/wire_adapter.rs": "transaction/interchange/kspt/codec/partial_signed.rs",
-    "crates/offline-signer/src/transaction/kspt/wire_adapter/unit_tests/mod.rs": "transaction/interchange/kspt/unit-tests/codec.rs",
+    "crates/offline-signer/src/transaction/kspt/wire_adapter/unit_tests/mod.rs": "transaction/interchange/kspt/unit_tests/codec.rs",
     "crates/offline-signer/src/transaction/kspt/kssn_io.rs": "transaction/interchange/kspt/wire/io.rs",
     "crates/kaskold-protocol/src/wire/kspt/decode/": "transaction/interchange/kspt/wire/decode/",
     "crates/kaskold-protocol/src/wire/kspt/decode.rs": "transaction/interchange/kspt/wire/decode.rs",
@@ -80,13 +80,13 @@ MOVED_TO_PORTAL = {
     "crates/kaskold-protocol/src/wire/kspt/error.rs": "transaction/interchange/kspt/wire/error.rs",
     "crates/kaskold-protocol/src/wire/kspt/io.rs": "transaction/interchange/kspt/wire/io.rs",
     "crates/kaskold-protocol/src/wire/kspt/model.rs": "transaction/interchange/kspt/wire/model.rs",
-    "crates/kaskold-protocol/src/unit_tests/kspt_wire/": "transaction/interchange/kspt/wire/unit-tests/",
+    "crates/kaskold-protocol/src/unit_tests/kspt_wire/": "transaction/interchange/kspt/wire/unit_tests/",
     "crates/kaskold-protocol/src/wire/pskt_schema/fields.rs": "transaction/interchange/pskt/schema/tables.rs",
     "crates/kaskold-protocol/src/wire/pskt_schema/": "transaction/interchange/pskt/schema/",
-    "crates/kaskold-protocol/src/unit_tests/pskt_schema.rs": "transaction/interchange/pskt/schema/unit-tests/mod.rs",
+    "crates/kaskold-protocol/src/unit_tests/pskt_schema.rs": "transaction/interchange/pskt/schema/unit_tests/mod.rs",
     "crates/kaskold-protocol/src/pskt": "transaction/interchange/pskt/pipeline",
     "crates/kaskold-protocol/src/pskt/": "transaction/interchange/pskt/pipeline/",
-    "crates/kaskold-protocol/src/unit_tests/finalization.rs": "transaction/interchange/pskt/pipeline/unit-tests/finalization.rs",
+    "crates/kaskold-protocol/src/unit_tests/finalization.rs": "transaction/interchange/pskt/pipeline/unit_tests/finalization.rs",
     "crates/offline-signer/src/transaction/kspt/": "transaction/interchange/kspt/",
     "crates/offline-signer/src/transaction/std_pskt/": "transaction/interchange/pskt/standard/",
     "crates/offline-signer/src/transaction/std_pskt.rs": "transaction/interchange/pskt/standard/mod.rs",
@@ -94,7 +94,7 @@ MOVED_TO_PORTAL = {
     "crates/offline-signer/src/transaction/private_swap/": "transaction/signing/private_swap/",
     "crates/offline-signer/src/transaction/signature_verification.rs": "transaction/signature_verification/mod.rs",
     "crates/offline-signer/src/transaction/signature_verification/": "transaction/signature_verification/",
-    "crates/offline-signer/src/transaction/unit_tests/sighash_tests.rs": "transaction/sighash/unit-tests/sighash_tests.rs",
+    "crates/offline-signer/src/transaction/unit_tests/sighash_tests.rs": "transaction/sighash/unit_tests/sighash_tests.rs",
     "crates/offline-signer/src/transaction/model/": "transaction/model/",
     "crates/offline-signer/src/transaction/sighash/": "transaction/sighash/",
     "crates/offline-signer/src/self_test/": "self_test/",
@@ -106,10 +106,10 @@ MOVED_TO_PORTAL = {
     "crates/shared-signer/src/covenant_sign/mod.rs": "transaction/signing/covenant/protocol/mod.rs",
     "crates/shared-signer/src/covenant_sign/private_swap/validation.rs": "transaction/signing/covenant/protocol/private_swap.rs",
     "crates/shared-signer/src/covenant_sign/script_int.rs": "contract/script/number.rs",
-    "crates/shared-signer/src/unit_tests/account_key_tests.rs": "wallet/key/unit-tests/account.rs",
-    "crates/shared-signer/src/unit_tests/property_tests.rs": "wallet/key/unit-tests/property.rs",
-    "crates/shared-signer/src/unit_tests/pskt_tests.rs": "transaction/interchange/pskt/unit-tests/shared.rs",
-    "crates/shared-signer/src/unit_tests/qr_frame_tests.rs": "transaction/interchange/qr/unit-tests/frame.rs",
+    "crates/shared-signer/src/unit_tests/account_key_tests.rs": "wallet/key/unit_tests/account.rs",
+    "crates/shared-signer/src/unit_tests/property_tests.rs": "wallet/key/unit_tests/property.rs",
+    "crates/shared-signer/src/unit_tests/pskt_tests.rs": "transaction/interchange/pskt/unit_tests/shared.rs",
+    "crates/shared-signer/src/unit_tests/qr_frame_tests.rs": "transaction/interchange/qr/unit_tests/frame.rs",
     "crates/shared-signer/src/covenant_sign/": "transaction/signing/covenant/protocol/",
     "crates/shared-signer/src/pskt.rs": "transaction/interchange/pskt/shared.rs",
     "crates/shared-signer/src/qr_frame.rs": "transaction/interchange/qr/frame.rs",
@@ -148,13 +148,13 @@ MOVED_TO_PORTAL = {
     "crates/kaskold-protocol/src/account/bip32.rs": "wallet/account/derivation.rs",
     "crates/online-watcher/src/protocol/transaction/consensus.rs": "transaction/consensus/model.rs",
     "crates/online-watcher/src/protocol/transaction/sighash.rs": "transaction/sighash/digest.rs",
-    "crates/online-watcher/src/protocol/transaction/unit_tests/sighash.rs": "transaction/sighash/unit-tests/vectors.rs",
+    "crates/online-watcher/src/protocol/transaction/unit_tests/sighash.rs": "transaction/sighash/unit_tests/vectors.rs",
     "crates/online-watcher/src/protocol/transaction/verified.rs": "transaction/interchange/pskt/pipeline/consensus.rs",
     "crates/online-watcher/src/protocol/pskt/consensus/finalizer.rs": "transaction/interchange/pskt/pipeline/consensus.rs",
-    "crates/online-watcher/src/protocol/pskt/unit_tests/consensus_finalizer.rs": "transaction/interchange/pskt/pipeline/unit-tests/consensus.rs",
+    "crates/online-watcher/src/protocol/pskt/unit_tests/consensus_finalizer.rs": "transaction/interchange/pskt/pipeline/unit_tests/consensus.rs",
     "crates/online-watcher/src/protocol/pskt/review/": "transaction/interchange/pskt/review/",
-    "crates/online-watcher/src/protocol/pskt/unit_tests/review.rs": "transaction/interchange/pskt/unit-tests/review.rs",
-    "crates/online-watcher/src/protocol/pskt/unit_tests/review_boundaries.rs": "transaction/interchange/pskt/unit-tests/review_boundaries.rs",
+    "crates/online-watcher/src/protocol/pskt/unit_tests/review.rs": "transaction/interchange/pskt/unit_tests/review.rs",
+    "crates/online-watcher/src/protocol/pskt/unit_tests/review_boundaries.rs": "transaction/interchange/pskt/unit_tests/review_boundaries.rs",
     "crates/online-watcher/src/protocol/pskt/model/summary.rs": "transaction/interchange/pskt/model/summary.rs",
     "crates/online-watcher/src/protocol/pskt/anti_klepto.rs": "transaction/interchange/kspt/signing/anti_klepto/transcript.rs",
     "crates/online-watcher/src/protocol/anti_klepto.rs": "crypto/anti_klepto.rs",
@@ -164,8 +164,8 @@ MOVED_TO_PORTAL = {
     "crates/online-watcher/src/network/model/": "network/model/",
     "crates/online-watcher/src/network/error.rs": "network/error.rs",
     "crates/online-watcher/src/network/submission/encoder.rs": "transaction/broadcast/encoder.rs",
-    "crates/online-watcher/src/network/unit_tests/submission.rs": "transaction/broadcast/unit-tests/mod.rs",
-    "crates/online-watcher/src/network/unit_tests/utxo_response.rs": "network/unit-tests/utxo_response.rs",
+    "crates/online-watcher/src/network/unit_tests/submission.rs": "transaction/broadcast/unit_tests/mod.rs",
+    "crates/online-watcher/src/network/unit_tests/utxo_response.rs": "network/unit_tests/utxo_response.rs",
     "crates/online-watcher/src/privacy/stealth/": "privacy/stealth/",
     "crates/online-watcher/src/infrastructure/browser_websocket.rs": "platform/browser/websocket.rs",
 }
@@ -175,7 +175,7 @@ def _portal_relative(relative: str) -> str | None:
     for prefix in sorted(MOVED_TO_PORTAL, key=len, reverse=True):
         target = MOVED_TO_PORTAL[prefix]
         if prefix.endswith("/") and relative.startswith(prefix):
-            return (target + relative[len(prefix):]).replace("/unit_tests/", "/unit-tests/")
+            return target + relative[len(prefix):]
         if relative == prefix:
             return target
     return None
@@ -241,7 +241,7 @@ def kaskold_glob(pattern: str) -> list[Path]:
     moved = _portal_relative(directory)
     if moved is None:
         return []
-    portal_pattern = moved + pattern[len(directory):].replace("/unit_tests/", "/unit-tests/")
+    portal_pattern = moved + pattern[len(directory):]
     return [
         Path(value)
         for value in _glob.glob(str(portal_root() / portal_pattern), recursive=True)
@@ -259,6 +259,6 @@ def module_text(relative: str) -> str:
     children = path.with_suffix("")
     if path.suffix == ".rs" and children.is_dir():
         for child in sorted(children.rglob("*.rs")):
-            if "unit_tests" not in child.parts and "unit-tests" not in child.parts:
+            if "unit_tests" not in child.parts:
                 parts.append(child.read_text(encoding="utf-8", errors="replace"))
     return "\n".join(parts)

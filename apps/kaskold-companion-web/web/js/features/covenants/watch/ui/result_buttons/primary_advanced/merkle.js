@@ -1,4 +1,4 @@
-import { covenantState } from '../../../../../../app/state/index.js';
+import { covenantState } from '../../../../boundary.js';
 import { byId } from '../../../../../../core/dom.js';
 import { covShowPanel } from '../../../../generation/panel_keys.js';
 

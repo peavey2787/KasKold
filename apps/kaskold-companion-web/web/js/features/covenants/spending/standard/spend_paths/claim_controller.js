@@ -1,4 +1,4 @@
-import { navigationState } from '../../../../../app/state/index.js';
+import { navigationState } from '../../../boundary.js';
 import { hideLoading, showLoading } from '../../../../../app/navigation.js';
 import { resolveNodeUrl } from '../../../../../core/node/resolver.js';
 import { toast } from '../../../../../core/ui/toast.js';

@@ -1,4 +1,4 @@
-import { networkState } from '../../../../app/state/index.js';
+import { networkState } from '../../boundary.js';
 import { decodeCommitReveal } from './extended/commit_reveal.js';
 import { decodeGeneric } from './extended/generic.js';
 import { decodeMerkleWhitelist } from './extended/merkle.js';

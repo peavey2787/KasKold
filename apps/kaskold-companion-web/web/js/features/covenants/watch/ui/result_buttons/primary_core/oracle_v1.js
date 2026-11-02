@@ -1,4 +1,4 @@
-import { covenantState } from '../../../../../../app/state/index.js';
+import { covenantState } from '../../../../boundary.js';
 import { byId } from '../../../../../../core/dom.js';
 
 const BINDING_TOKEN_HEX_PATTERN = /^[0-9a-f]{64}$/;

@@ -1,4 +1,4 @@
-import { networkState, stealthState } from '../../../../../app/state/index.js';
+import { networkState, stealthState } from '../../../boundary.js';
 import { STEALTH_LOOKBACK_BLUE_SCORE, STEALTH_MAX_R } from '../../config.js';
 import { kaspaRestApiBase } from '../../../../../core/config/network.js';
 import { STEALTH_INDEXER_URL } from '../../../../../core/config/services.js';

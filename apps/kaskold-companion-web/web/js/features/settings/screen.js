@@ -1,4 +1,10 @@
-import { navigationState, networkState, stealthState, walletSession, walletState } from '../../app/state/index.js';
+import {
+    navigationState,
+    networkState,
+    stealthState,
+    walletSession,
+    walletState,
+} from './boundary.js';
 import { navigateBack, showScreen } from '../../app/navigation.js';
 import { renderBrowserConnectivity } from '../../core/ui/connectivity_status.js';
 import { setScreenReturn, takeScreenReturn, visibleScreenName } from '../../core/ui/screen_dom.js';

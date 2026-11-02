@@ -1,7 +1,7 @@
 import { decodeQrImageFile } from '../../../core/qr/image_file.js';
 import { byId } from '../../../core/dom.js';
 import { toast } from '../../../core/ui/toast.js';
-import { reset_qr_decoder } from '../../../wasm/api.js';
+import { reset_qr_decoder } from '../boundary.js';
 import { handleSignedScan } from './broadcast.js';
 
 let imageDecoderSessionActive = false;

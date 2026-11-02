@@ -1,5 +1,5 @@
 import { bytesToHex } from '../../../../../core/bytes.js';
-import { covenant_spend_path } from '../../../../../wasm/api.js';
+import { covenant_spend_path } from '../../../boundary.js';
 
 // owner, heir or unknown: Kaspa Portal reads the branch selector.
 export function detectSpendPath(signature, redeemScriptHex) {

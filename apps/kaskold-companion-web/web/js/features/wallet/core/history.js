@@ -1,4 +1,4 @@
-import { networkState, walletSession, walletState } from '../../../app/state/index.js';
+import { networkState, walletSession, walletState } from '../boundary.js';
 import { kaspaRestApiBase } from '../../../core/config/network.js';
 
 export async function fetchAddressHistory() {

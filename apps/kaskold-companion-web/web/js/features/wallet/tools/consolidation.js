@@ -1,10 +1,17 @@
-import { networkState, transactionState, walletSession, walletState } from '../../../app/state/index.js';
+import {
+    networkState,
+    transactionState,
+    walletSession,
+    walletState,
+    create_consolidate_pskb,
+    create_send_pskb_selected,
+    decode_address,
+} from '../boundary.js';
 import { hideLoading, showLoading } from '../../../app/navigation.js';
 import { toast } from '../../../core/ui/toast.js';
 import { openPsktReview } from '../../transactions/pskt_multisig/review.js';
 import { getNextReceiveIndex, walletWithFreshIndices, withNodeRetry } from '../core.js';
 import { consolidationFee } from '../../transactions/send/compose/fees.js';
-import { create_consolidate_pskb, create_send_pskb_selected, decode_address } from '../../../wasm/api.js';
 import { openSendScreenWithSelectedUtxos } from '../../transactions/send/compose/send_form.js';
 import { utxoId } from '../../transactions/shared/utxo_selection.js';
 

@@ -1,7 +1,11 @@
-import { networkState } from '../../../../app/state/index.js';
+import {
+    networkState,
+    covenant_additive_address,
+    covenant_timelocked_savings,
+    decode_address,
+} from '../../boundary.js';
 import { resolveFutureDaa } from '../../../../core/node/future_daa.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { covenant_additive_address, covenant_timelocked_savings, decode_address } from '../../../../wasm/api.js';
 // savings covenant builders.
 
 import { byId } from '../../../../core/dom.js';

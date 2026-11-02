@@ -1,9 +1,13 @@
-import { networkState } from '../../../../app/state/index.js';
+import {
+    networkState,
+    covenant_global_allowance,
+    covenant_global_spending_limit,
+    decode_address,
+} from '../../boundary.js';
 import { kasToSompi } from '../../../../core/amounts.js';
 import { byId } from '../../../../core/dom.js';
 import { resolveFutureDaa } from '../../../../core/node/future_daa.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { covenant_global_allowance, covenant_global_spending_limit, decode_address } from '../../../../wasm/api.js';
 
 function positiveSeconds(inputId, message) {
     const text = byId(inputId).value.trim();

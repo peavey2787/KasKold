@@ -1,5 +1,5 @@
 import { setContent, span } from '../../../../../../../../core/ui/elements.js';
-import { covenantState } from '../../../../../../../../app/state/index.js';
+import { covenantState } from '../../../../../../boundary.js';
 
 export function renderEscrowResolved(status) {
     setContent(status, span('u-text-teal', '✅ Escrow resolved. Funds released.'));

@@ -1,10 +1,16 @@
-import { crowdfundState, networkState, walletSession } from '../../../app/state/index.js';
+import {
+    crowdfundState,
+    networkState,
+    walletSession,
+    crowdfund_campaign_id,
+    covenant_crowdfund,
+    zk_crowdfund_setup,
+} from '../boundary.js';
 import { kasToSompi, sompiToKasString } from '../../../core/amounts.js';
 import { byId } from '../../../core/dom.js';
 import { exactUnsigned } from '../../../core/exact.js';
 import { resolveFutureDaa } from '../../../core/node/future_daa.js';
 import { toast } from '../../../core/ui/toast.js';
-import { crowdfund_campaign_id, covenant_crowdfund, zk_crowdfund_setup } from '../../../wasm/api.js';
 import { normalizeCampaign } from './model.js';
 
 export function setCrowdfundRole(role) {

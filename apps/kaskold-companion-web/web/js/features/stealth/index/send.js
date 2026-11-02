@@ -1,12 +1,22 @@
 import { bytesToHex } from '../../../core/bytes.js';
-import { navigationState, networkState, stealthState, walletSession } from '../../../app/state/index.js';
+import {
+    navigationState,
+    networkState,
+    stealthState,
+    walletSession,
+    generate_qr_svg_text,
+    get_fee_estimate,
+    stealth_announcement_address,
+    stealth_create_payment_lane,
+    stealth_generate_payment,
+    stealth_meta_from_kpub,
+} from '../boundary.js';
 import { stealthScanPause } from './scanning/live.js';
 import { hideLoading, showLoading } from '../../../app/navigation.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';
 import { toast } from '../../../core/ui/toast.js';
 import { openPsktReview } from '../../transactions/pskt_multisig/review.js';
 import { detectWalletNetwork } from '../../../core/network.js';
-import { generate_qr_svg_text, get_fee_estimate, stealth_announcement_address, stealth_create_payment_lane, stealth_generate_payment, stealth_meta_from_kpub } from '../../../wasm/api.js';
 import { showQrSvg } from '../../../core/qr/svg_image.js';
 // KasKold Companion Web — features/stealth/index/send
 import { byId } from '../../../core/dom.js';

@@ -1,4 +1,4 @@
-import { multisig_descriptor_summary } from '../../../wasm/api.js';
+import { multisig_descriptor_summary } from '../boundary.js';
 
 // Kind, threshold and participant count of a descriptor KasKold can
 // co-sign, parsed by Kaspa Portal; null when it is not one.

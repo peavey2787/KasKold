@@ -1,7 +1,7 @@
 import { byId } from '../../../core/dom.js';
 import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
 import { renderScanProgress } from '../../../core/ui/scan_progress.js';
-import { decode_qr_frame, decoder_progress } from '../../../wasm/api.js';
+import { decode_qr_frame, decoder_progress } from '../boundary.js';
 import { startScanner } from './camera.js';
 
 const FRAME_MAGIC = [0x4b, 0x51];

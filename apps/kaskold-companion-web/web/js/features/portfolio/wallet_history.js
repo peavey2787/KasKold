@@ -1,7 +1,6 @@
-import { networkState, walletSession } from '../../app/state/index.js';
+import { networkState, walletSession, extend_addresses } from './boundary.js';
 import { kaspaRestApiBase } from '../../core/config/network.js';
 import { exactUnsigned, exactUnsignedJsonField } from '../../core/exact.js';
-import { extend_addresses } from '../../wasm/api.js';
 import { importedTxIds, newId } from './repository.js';
 import { kasValueMicro } from './exact_money.js';
 import { loadBundledHistory, historicalPriceAt } from './pricing.js';

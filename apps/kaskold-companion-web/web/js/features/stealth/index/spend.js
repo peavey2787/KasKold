@@ -1,11 +1,10 @@
-import { navigationState, networkState, walletSession } from '../../../app/state/index.js';
+import { navigationState, networkState, walletSession, create_stealth_spend } from '../boundary.js';
 import { hideLoading, showLoading } from '../../../app/navigation.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';
 import { toast } from '../../../core/ui/toast.js';
 import { stealthFeeValue } from './send.js';
 import { openPsktReview } from '../../transactions/pskt_multisig/review.js';
 import { detectWalletNetwork } from '../../../core/network.js';
-import { create_stealth_spend } from '../../../wasm/api.js';
 // KasKold Companion Web — features/stealth/index/spend
 
 

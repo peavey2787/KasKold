@@ -1,4 +1,8 @@
-import { covenantState, covenantWatcherState } from '../../../../../app/state/index.js';
+import {
+    covenantState,
+    covenantWatcherState,
+    fetch_utxos_for_address_js,
+} from '../../../boundary.js';
 import { sompiToKasFixed, sompiToKasString } from '../../../../../core/amounts.js';
 import { exactUnsigned } from '../../../../../core/exact.js';
 import { fetchCurrentDaa } from '../../../../../core/node/daa.js';
@@ -7,7 +11,6 @@ import { covSaveActive } from '../../../recovery/active.js';
 import { pickThread } from '../../../spending/standard/spend_paths.js';
 import { covWatcherStop } from './lifecycle.js';
 import { isWatchedCovenantType } from '../types.js';
-import { fetch_utxos_for_address_js } from '../../../../../wasm/api.js';
 import { byId } from '../../../../../core/dom.js';
 import { pollCovenantType } from './covenant_pollers.js';
 

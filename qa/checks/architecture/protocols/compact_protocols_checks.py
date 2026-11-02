@@ -272,7 +272,7 @@ def production_kspt_files(protocol_wire: Path, bridge_root: Path) -> list[Path]:
     return [
         path for base in (protocol_wire, bridge_root)
         for path in base.rglob("*.rs")
-        if "unit_tests" not in path.parts and "unit-tests" not in path.parts
+        if "unit_tests" not in path.parts
     ]
 
 

@@ -1,9 +1,15 @@
-import { navigationState, networkState, transactionState, walletSession, walletState } from '../../../app/state/index.js';
+import {
+    navigationState,
+    networkState,
+    transactionState,
+    walletSession,
+    walletState,
+    generate_qr_frames,
+} from '../boundary.js';
 import { hideLoading, showLoading, showScreen } from '../../../app/navigation.js';
 import { toast } from '../../../core/ui/toast.js';
 import { updateConsolidateButtons } from './consolidation.js';
 import { explorerAddressUrl } from '../../../core/explorer.js';
-import { generate_qr_frames } from '../../../wasm/api.js';
 import { fetchCoinControlUtxos } from '../core/coin_control_utxos.js';
 
 import { utf8ToHex } from '../../../core/bytes.js';

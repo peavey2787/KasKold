@@ -8,7 +8,7 @@ from portal_source import portal_text  # noqa: E402
 
 class OnlineWatcherTransactionFixturePolicyTests(unittest.TestCase):
     def test_standard_send_fixture_preserves_non_dust_change(self) -> None:
-        source = portal_text("transaction/builder/unit-tests/mod.rs")
+        source = portal_text("transaction/builder/unit_tests/mod.rs")
         test = source.split(
             "fn standard_send_preparation_and_utxo_paths_are_host_testable()", 1
         )[1].split("\n#[test]", 1)[0]

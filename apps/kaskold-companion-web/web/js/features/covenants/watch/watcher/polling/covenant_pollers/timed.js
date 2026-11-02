@@ -1,5 +1,5 @@
 import { setContent, span } from '../../../../../../core/ui/elements.js';
-import { covenantWatcherState } from '../../../../../../app/state/index.js';
+import { covenantWatcherState } from '../../../../boundary.js';
 import { formatDaaDuration } from '../../../../../../core/format.js';
 import { isFundsSpent, setPlainStatus } from './status_text.js';
 

@@ -1,4 +1,4 @@
-import { crowdfundState } from '../../../app/state/index.js';
+import { crowdfundState } from '../boundary.js';
 import { exactDecimalString, exactUnsigned } from '../../../core/exact.js';
 
 const HEX64 = /^[0-9a-f]{64}$/;

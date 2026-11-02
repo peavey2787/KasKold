@@ -1,10 +1,9 @@
-import { networkState } from '../../../../../app/state/index.js';
+import { networkState, covenant_oracle_v1 } from '../../../boundary.js';
 import { addressToXOnly } from '../../../../../core/address.js';
 import { byId } from '../../../../../core/dom.js';
 import { exactUnsigned } from '../../../../../core/exact.js';
 import { resolveFutureDaa } from '../../../../../core/node/future_daa.js';
 import { toast } from '../../../../../core/ui/toast.js';
-import { covenant_oracle_v1 } from '../../../../../wasm/api.js';
 
 export async function buildOracleV1(ownerPk) {
     const beneficiaryPk = addressToXOnly(byId('cov-oracle-v1-bene').value);

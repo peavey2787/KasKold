@@ -1,5 +1,5 @@
 import { el } from '../../../../../core/ui/elements.js';
-import { stealthState } from '../../../../../app/state/index.js';
+import { stealthState } from '../../../boundary.js';
 import { byId } from '../../../../../core/dom.js';
 import { toast } from '../../../../../core/ui/toast.js';
 

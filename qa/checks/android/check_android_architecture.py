@@ -8,6 +8,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[3]
 APP = ROOT / "apps/kaskold-companion-android"
 SOURCE = APP / "app/src/main/java/com/kaskold/companion"
+VAULT_SOURCE = ROOT / "apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault"
 MAIN = SOURCE / "app/MainActivity.kt"
 WEB_HOST = SOURCE / "app/CompanionWebViewHost.kt"
 MOBILE_BRIDGE = SOURCE / "app/CompanionMobileBridge.kt"
@@ -39,10 +40,10 @@ def check_structure(errors):
         if path.exists(): add(errors, f"obsolete Android compatibility file must not exist: {path.relative_to(ROOT)}")
     if list(APP.rglob("*.rs")) or (APP / "Cargo.toml").exists():
         add(errors, "Android app must not embed a duplicate Rust runtime/workspace")
-    for path in SOURCE.rglob("*.kt"):
+    for path in (*SOURCE.rglob("*.kt"), *VAULT_SOURCE.rglob("*.kt")):
         lines = len(path.read_text(encoding="utf-8").splitlines())
         if lines > MAX_KOTLIN_LINES: add(errors, f"Kotlin SRP line limit exceeded ({lines}>{MAX_KOTLIN_LINES}): {path.relative_to(ROOT)}")
-    for directory in sorted({p.parent for p in SOURCE.rglob("*.kt")}):
+    for directory in sorted({p.parent for root in (SOURCE, VAULT_SOURCE) for p in root.rglob("*.kt")}):
         if len(list(directory.glob("*.kt"))) > MAX_DIRECT_KOTLIN_FILES:
             add(errors, f"crowded Android source folder: {directory.relative_to(ROOT)}")
 

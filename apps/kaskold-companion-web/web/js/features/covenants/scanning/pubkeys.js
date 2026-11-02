@@ -1,9 +1,14 @@
-import { networkState } from '../../../app/state/index.js';
+import {
+    networkState,
+    decode_address,
+    encode_p2pk_address,
+    import_kpub,
+    is_kaspa_address,
+} from '../boundary.js';
 import { addressPrefix } from '../../../core/network.js';
 import { showScreen } from '../../../app/navigation.js';
 import { toast } from '../../../core/ui/toast.js';
 import { startScanner, stopScanner } from '../../stealth/index/camera.js';
-import { decode_address, encode_p2pk_address, import_kpub, is_kaspa_address } from '../../../wasm/api.js';
 
 import { byId } from '../../../core/dom.js';
 

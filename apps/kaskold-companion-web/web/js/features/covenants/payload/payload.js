@@ -1,5 +1,9 @@
-import { walletSession } from '../../../app/state/index.js';
-import { build_covenant_payload, derive_covenant_payload_key, parse_covenant_payload } from '../../../wasm/api.js';
+import {
+    walletSession,
+    build_covenant_payload,
+    derive_covenant_payload_key,
+    parse_covenant_payload,
+} from '../boundary.js';
 // KasKold Companion Web — features/covenants/payload/payload
 import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
 

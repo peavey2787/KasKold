@@ -1,12 +1,17 @@
 import { el, setContent, span } from '../../../../../core/ui/elements.js';
-import { networkState, stealthState, walletSession } from '../../../../../app/state/index.js';
+import {
+    networkState,
+    stealthState,
+    walletSession,
+    encode_p2pk_address,
+    fetch_utxos_for_address_js,
+} from '../../../boundary.js';
 import { showScreen } from '../../../../../app/navigation.js';
 import { bytesToHex } from '../../../../../core/bytes.js';
 import { byId } from '../../../../../core/dom.js';
 import { detectWalletNetwork } from '../../../../../core/network.js';
 import { resolveNodeUrl } from '../../../../../core/node/resolver.js';
 import { toast } from '../../../../../core/ui/toast.js';
-import { encode_p2pk_address, fetch_utxos_for_address_js } from '../../../../../wasm/api.js';
 import { stopScanner } from '../../camera.js';
 import { stealthFeePrepare, stealthFeeSetLevel, stealthShowPanel } from '../../send.js';
 import { handleStealthSpend } from '../../spend.js';

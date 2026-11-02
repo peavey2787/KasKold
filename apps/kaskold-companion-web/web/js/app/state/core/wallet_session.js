@@ -64,6 +64,7 @@ export function bestEffortScrubMutable(value, seen = new WeakSet()) {
 }
 
 export const walletSession = Object.freeze({
+    scrubMutable: bestEffortScrubMutable,
     hasWallet() {
         return walletSnapshot !== null;
     },

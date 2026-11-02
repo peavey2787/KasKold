@@ -1,5 +1,5 @@
 import { applyScriptTerms } from '../model/script_terms.js';
-import { covenantState, covenantWatcherState, oracleState } from '../../../app/state/index.js';
+import { covenantState, covenantWatcherState, oracleState } from '../boundary.js';
 import { toast } from '../../../core/ui/toast.js';
 import { covShowPanel } from '../generation/panel_keys.js';
 import { covRenderMetaLine } from '../watch/ui/metadata.js';

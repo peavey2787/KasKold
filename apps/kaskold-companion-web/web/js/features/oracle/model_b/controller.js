@@ -1,4 +1,4 @@
-import { oracleState } from '../../../app/state/index.js';
+import { oracleState } from '../boundary.js';
 import { ORACLE_MB_DEPLOY } from './config.js';
 import { applyDeployedOracleIdentity } from './state.js';
 // KasKold Companion Web — features/oracle/model_b/controller

@@ -1,4 +1,4 @@
-import { covenantState } from '../../../../app/state/index.js';
+import { covenantState } from '../../boundary.js';
 // KasKold Companion Web — covenant result-button façade.
 import { byId } from '../../../../core/dom.js';
 import { configurePrimaryCoreActions } from './result_buttons/primary_core.js';

@@ -1,7 +1,10 @@
-import { networkState } from '../../../../../app/state/index.js';
+import {
+    networkState,
+    covenant_merkle_whitelist,
+    merkle_root_from_addresses,
+} from '../../../boundary.js';
 import { resolveFutureDaa } from '../../../../../core/node/future_daa.js';
 import { toast } from '../../../../../core/ui/toast.js';
-import { covenant_merkle_whitelist, merkle_root_from_addresses } from '../../../../../wasm/api.js';
 // merkle-whitelist covenant builder.
 
 import { byId } from '../../../../../core/dom.js';

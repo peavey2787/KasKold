@@ -1,5 +1,4 @@
-import { networkState } from '../../../../../app/state/index.js';
-import { covenant_dms } from '../../../../../wasm/api.js';
+import { networkState, covenant_dms } from '../../../boundary.js';
 import { readU64 } from '../payload_reader.js';
 import { baseRecoveredRecord, normalizedCovenantId, readStoredScript } from './common.js';
 

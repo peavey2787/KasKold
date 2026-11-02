@@ -1,8 +1,7 @@
-import { stealthState } from '../../../../../app/state/index.js';
+import { stealthState, generate_qr_frames } from '../../../boundary.js';
 import { bytesToHex, hexToBytes } from '../../../../../core/bytes.js';
 import { byId } from '../../../../../core/dom.js';
 import { toast } from '../../../../../core/ui/toast.js';
-import { generate_qr_frames } from '../../../../../wasm/api.js';
 import { clearStealthQrTimer } from './lifecycle.js';
 import { qrImage, showQrSvg } from '../../../../../core/qr/svg_image.js';
 import { el, setContent } from '../../../../../core/ui/elements.js';

@@ -1,6 +1,6 @@
 import { bytesToHex } from '../../../core/bytes.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';
-import { fetch_utxos_for_address_js } from '../../../wasm/api.js';
+import { fetch_utxos_for_address_js } from '../boundary.js';
 import { createBlockAddedSubscription } from '../blockchain/block_added_subscription.js';
 import { readFirstPush } from '../blockchain/outpoint_parser.js';
 import { privateSwapState, savePrivateSwapState } from './state.js';

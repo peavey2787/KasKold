@@ -1,5 +1,5 @@
 import { qrImage } from '../../../../core/qr/svg_image.js';
-import { generate_qr_frames, generate_qr_svg_text } from '../../../../wasm/api.js';
+import { generate_qr_frames, generate_qr_svg_text } from '../../boundary.js';
 
 export function presentExportQr(area, payload, onError) {
     if (payload.hex.length <= 268) {

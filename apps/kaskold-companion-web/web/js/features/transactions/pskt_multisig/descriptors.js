@@ -4,7 +4,7 @@ import { decodeQrImageFile } from '../../../core/qr/image_file.js';
 import { byId } from '../../../core/dom.js';
 import { toast } from '../../../core/ui/toast.js';
 import { stopScanner } from '../../stealth/index/camera.js';
-import { decode_qr_frame, reset_qr_decoder } from '../../../wasm/api.js';
+import { decode_qr_frame, reset_qr_decoder } from '../boundary.js';
 import { descriptorSummary } from './descriptor_summary.js';
 
 const STORAGE_KEY = 'kaskold-companion-multisig-descriptors-v1';

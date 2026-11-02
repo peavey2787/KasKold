@@ -7,7 +7,7 @@ import {
     private_swap_presign_request,
     private_swap_reveal_request,
     private_swap_verify_host_relation,
-} from '../../../wasm/api.js';
+} from '../boundary.js';
 import { covenantScriptFingerprint } from '../signing/protocol.js';
 import { randomHex } from './protocol.js';
 

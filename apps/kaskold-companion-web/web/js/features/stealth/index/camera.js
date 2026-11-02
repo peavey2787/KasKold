@@ -1,8 +1,7 @@
-import { navigationState, scannerState, walletSession } from '../../../app/state/index.js';
+import { navigationState, scannerState, walletSession, reset_qr_decoder } from '../boundary.js';
 import { showScreen } from '../../../app/navigation.js';
 import { covShowPanel } from '../../covenants/generation/panel_keys.js';
 import { resumeQrCycleIfPossible } from '../../transactions/send/review.js';
-import { reset_qr_decoder } from '../../../wasm/api.js';
 // KasKold Companion Web — features/stealth/index/camera
 import { byId } from '../../../core/dom.js';
 import { hexFrameBatchToBytes } from '../../../core/bytes.js';

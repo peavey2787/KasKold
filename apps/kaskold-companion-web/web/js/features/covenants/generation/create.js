@@ -1,4 +1,4 @@
-import { covenantState, covenantWatcherState } from '../../../app/state/index.js';
+import { covenantState, covenantWatcherState } from '../boundary.js';
 import { toast } from '../../../core/ui/toast.js';
 import { covShowPanel, getAccountPubkeyHex } from './panel_keys.js';
 import { covAddActive } from '../recovery/active.js';

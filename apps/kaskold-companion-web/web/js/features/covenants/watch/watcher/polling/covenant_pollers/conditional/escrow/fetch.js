@@ -1,5 +1,5 @@
 import { kaspaRestApiBase } from '../../../../../../../../core/config/network.js';
-import { networkState } from '../../../../../../../../app/state/index.js';
+import { networkState } from '../../../../../../boundary.js';
 
 function apiBase() {
     return kaspaRestApiBase(networkState.network);

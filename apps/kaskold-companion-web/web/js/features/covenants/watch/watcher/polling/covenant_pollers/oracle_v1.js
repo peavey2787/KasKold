@@ -1,9 +1,13 @@
-import { covenantState, covenantWatcherState, networkState } from '../../../../../../app/state/index.js';
+import {
+    covenantState,
+    covenantWatcherState,
+    networkState,
+    verify_oracle_v1_attestation,
+} from '../../../../boundary.js';
 import { hexToBytes } from '../../../../../../core/bytes.js';
 import { kaspaRestApiBase } from '../../../../../../core/config/network.js';
 import { formatDaaDuration } from '../../../../../../core/format.js';
 import { el, setContent, span } from '../../../../../../core/ui/elements.js';
-import { verify_oracle_v1_attestation } from '../../../../../../wasm/api.js';
 import { oracleV1MessageCommitment } from '../../../../../oracle/v1/attestation.js';
 import { covSaveActive } from '../../../../recovery/active.js';
 

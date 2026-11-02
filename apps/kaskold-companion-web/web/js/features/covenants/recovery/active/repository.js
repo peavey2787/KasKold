@@ -1,4 +1,4 @@
-import { covenantState } from '../../../../app/state/index.js';
+import { covenantState } from '../../boundary.js';
 import { normalizeCovenantExactFields, stringifyCovenantJson } from '../../model/exact_fields.js';
 
 if (!covenantState.activeCovenants) covenantState.activeCovenants = [];

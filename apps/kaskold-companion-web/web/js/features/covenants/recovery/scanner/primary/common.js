@@ -1,5 +1,4 @@
-import { networkState } from '../../../../../app/state/index.js';
-import { redeem_script_address } from '../../../../../wasm/api.js';
+import { networkState, redeem_script_address } from '../../../boundary.js';
 import { readLen } from '../payload_reader.js';
 
 export function readStoredScript(params) {

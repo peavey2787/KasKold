@@ -1,10 +1,16 @@
 import { el, span } from '../../../core/ui/elements.js';
-import { covenantState, networkState, oracleState, transactionState, walletSession } from '../../../app/state/index.js';
+import {
+    covenantState,
+    networkState,
+    oracleState,
+    transactionState,
+    walletSession,
+    pskt_summary,
+} from '../boundary.js';
 import { showScreen } from '../../../app/navigation.js';
 import { toast } from '../../../core/ui/toast.js';
 import { sompiToKasString } from '../../../core/amounts.js';
 import { exactUnsigned } from '../../../core/exact.js';
-import { pskt_summary } from '../../../wasm/api.js';
 // KasKold Companion Web — features/transactions/pskt_multisig/review
 import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
 import { byId } from '../../../core/dom.js';

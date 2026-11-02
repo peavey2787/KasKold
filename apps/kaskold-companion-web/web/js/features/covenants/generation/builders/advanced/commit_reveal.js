@@ -1,7 +1,6 @@
-import { networkState } from '../../../../../app/state/index.js';
+import { networkState, covenant_commit_reveal } from '../../../boundary.js';
 import { resolveFutureDaa } from '../../../../../core/node/future_daa.js';
 import { toast } from '../../../../../core/ui/toast.js';
-import { covenant_commit_reveal } from '../../../../../wasm/api.js';
 // commit-reveal covenant builder.
 
 import { byId } from '../../../../../core/dom.js';

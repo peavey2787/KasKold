@@ -1,4 +1,4 @@
-import { navigationState, scannerState, uiState, walletSession } from '../../../app/state/index.js';
+import { navigationState, scannerState, uiState, walletSession } from '../boundary.js';
 import { AUTO_REFRESH_INTERVAL } from '../../../core/config/network.js';
 import { refreshBalance } from './balance.js';
 

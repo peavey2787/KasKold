@@ -1,5 +1,5 @@
 import { exactJsonStringify } from '../../../../core/exact.js';
-import { covenant_spend_document } from '../../../../wasm/api.js';
+import { covenant_spend_document } from '../../boundary.js';
 
 // KasKold Companion Web — one covenant spend the Companion shapes itself. Kaspa
 // Portal encodes it, so it always names a path the script can run.

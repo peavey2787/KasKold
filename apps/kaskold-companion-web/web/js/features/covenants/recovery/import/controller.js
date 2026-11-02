@@ -1,4 +1,4 @@
-import { scannerState, walletSession } from '../../../../app/state/index.js';
+import { scannerState, walletSession } from '../../boundary.js';
 import { toast } from '../../../../core/ui/toast.js';
 import { stopScanner } from '../../../stealth/index/camera.js';
 import { covenantHexFromBytes, covenantKind, normalizeScanBytes } from './formats.js';

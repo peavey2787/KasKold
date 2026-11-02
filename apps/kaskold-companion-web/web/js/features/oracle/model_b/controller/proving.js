@@ -1,4 +1,4 @@
-import { oracleState } from '../../../../app/state/index.js';
+import { oracleState } from '../../boundary.js';
 import { toast } from '../../../../core/ui/toast.js';
 import { u64ToLittleEndianHex } from '../../../../core/bytes.js';
 import { ORACLE_MB_PROTOCOL } from '../config.js';

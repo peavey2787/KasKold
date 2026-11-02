@@ -1,5 +1,5 @@
 import { setContent, span } from '../../../../../../core/ui/elements.js';
-import { covenantState, covenantWatcherState } from '../../../../../../app/state/index.js';
+import { covenantState, covenantWatcherState } from '../../../../boundary.js';
 import { exactUnsigned } from '../../../../../../core/exact.js';
 import { formatDaaDuration } from '../../../../../../core/format.js';
 import { sompiToKasString } from '../../../../../../core/amounts.js';

@@ -1,7 +1,6 @@
-import { networkState, walletSession } from '../../../app/state/index.js';
+import { networkState, walletSession, extend_addresses, generate_qr_frames } from '../boundary.js';
 import { showScreen } from '../../../app/navigation.js';
 import { getNextReceiveIndex } from '../../wallet/core.js';
-import { extend_addresses, generate_qr_frames } from '../../../wasm/api.js';
 import { showQrSvg } from '../../../core/qr/svg_image.js';
 // KasKold Companion Web — features/transactions/send/receive
 import { utf8ToHex } from '../../../core/bytes.js';

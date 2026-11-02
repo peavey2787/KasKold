@@ -1,6 +1,6 @@
 import { COVENANT_TYPE_CODES } from '../../payload/types.js';
 import { buildCovenantParamsHex } from '../../payload/params.js';
-import { build_covenant_payload, derive_covenant_payload_key } from '../../../../wasm/api.js';
+import { build_covenant_payload, derive_covenant_payload_key } from '../../boundary.js';
 import { bytesToHex, hexToBytes } from '../../../../core/bytes.js';
 
 export async function buildOwnerExport(covenant, kpub) {

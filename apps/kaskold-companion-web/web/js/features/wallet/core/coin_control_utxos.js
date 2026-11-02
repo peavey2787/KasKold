@@ -1,8 +1,7 @@
-import { networkState, walletSession } from '../../../app/state/index.js';
+import { networkState, walletSession, fetch_utxos_complete } from '../boundary.js';
 import { kaspaRestApiBase } from '../../../core/config/network.js';
 import { exactUnsigned } from '../../../core/exact.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';
-import { fetch_utxos_complete } from '../../../wasm/api.js';
 
 const REST_BATCH_ADDRESSES = 8;
 const REST_TIMEOUT_MS = 8_000;

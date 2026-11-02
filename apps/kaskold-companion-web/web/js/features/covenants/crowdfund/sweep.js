@@ -1,14 +1,15 @@
-import { covenantState, crowdfundState } from '../../../app/state/index.js';
+import {
+    covenantState,
+    crowdfundState,
+    create_crowdfund_sweep,
+    inspect_crowdfund_contributions,
+    zk_crowdfund_prove,
+} from '../boundary.js';
 import { sompiToKasString } from '../../../core/amounts.js';
 import { byId } from '../../../core/dom.js';
 import { exactUnsigned } from '../../../core/exact.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';
 import { toast } from '../../../core/ui/toast.js';
-import {
-    create_crowdfund_sweep,
-    inspect_crowdfund_contributions,
-    zk_crowdfund_prove,
-} from '../../../wasm/api.js';
 import { contributionList, hydrateCrowdfundState } from './model.js';
 
 const DEFAULT_REQUESTED_FEE = 400_000n;

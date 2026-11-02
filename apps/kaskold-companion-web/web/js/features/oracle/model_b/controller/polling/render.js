@@ -1,4 +1,4 @@
-import { oracleState } from '../../../../../app/state/index.js';
+import { oracleState } from '../../../boundary.js';
 // Oracle Model B card presentation.
 import { byId } from '../../../../../core/dom.js';
 import { formatAge, formatPrice, shorten } from './format.js';

@@ -1,4 +1,4 @@
-import { commitRevealState, covenantState } from '../../../../../../app/state/index.js';
+import { commitRevealState, covenantState } from '../../../../boundary.js';
 import { hexToBytes } from '../../../../../../core/bytes.js';
 import { toast } from '../../../../../../core/ui/toast.js';
 import { byId } from '../../../../../../core/dom.js';

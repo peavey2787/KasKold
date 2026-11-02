@@ -1,4 +1,4 @@
-import { networkState, transactionState } from '../../../../app/state/index.js';
+import { networkState, transactionState } from '../../boundary.js';
 import { KNS_LOOKUP } from '../../../../core/config/services.js';
 import { hideLoading, showLoading, showScreen } from '../../../../app/navigation.js';
 import { toast } from '../../../../core/ui/toast.js';

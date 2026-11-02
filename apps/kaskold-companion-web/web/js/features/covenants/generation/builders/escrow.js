@@ -1,6 +1,11 @@
-import { networkState, walletSession } from '../../../../app/state/index.js';
+import {
+    networkState,
+    walletSession,
+    covenant_escrow,
+    covenant_ship_escrow,
+    encode_p2pk_address,
+} from '../../boundary.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { covenant_escrow, covenant_ship_escrow, encode_p2pk_address } from '../../../../wasm/api.js';
 // escrow covenant builders.
 
 import { byId } from '../../../../core/dom.js';

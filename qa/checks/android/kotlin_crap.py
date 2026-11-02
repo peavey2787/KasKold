@@ -17,8 +17,11 @@ APP = ROOT / "apps/kaskold-companion-android/app/src/main/java/com/kaskold/compa
 OUT = ROOT / "target/qa/android-crap"
 THRESHOLD = 30.0
 SCOPE = (APP / "domain", APP / "infrastructure")
+ALL_KOTLIN = (APP, ROOT / "apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault")
+MAX_COMPLEXITY = 12
 FUN = re.compile(r"\bfun\s+(?:<[^>]+>\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*\([^)]*\)[^{=]*([={])")
 DECISION = re.compile(r"\b(?:if|for|while|catch|when)\b|&&|\|\||\?:")
+STRING = re.compile(r'"""(?s:.*?)"""|"(?:\\.|[^"\\\n])*"')
 
 
 def source_files() -> list[Path]:
@@ -63,7 +66,7 @@ def functions(path: Path) -> list[dict[str, object]]:
             body = text[opening + 1:matching_brace(text, opening)]
         else:
             body = text[match.end():].splitlines()[0] if text[match.end():] else ""
-        complexity = 1 + len(DECISION.findall(body))
+        complexity = 1 + len(DECISION.findall(STRING.sub('""', body)))
         crap = float(complexity * complexity + complexity)
         line = text.count("\n", 0, match.start()) + 1
         rows.append({
@@ -77,13 +80,34 @@ def functions(path: Path) -> list[dict[str, object]]:
     return rows
 
 
+def _complexity(row: dict[str, object]) -> int:
+    complexity = row["complexity"]
+    assert isinstance(complexity, int)
+    return complexity
+
+
 def _crap(row: dict[str, object]) -> float:
     crap = row["crap"]
     assert isinstance(crap, float)
     return crap
 
 
+def complexity_errors() -> list[str]:
+    """Every Kotlin function of both apps stays under the complexity ceiling."""
+    rows = [row for root in ALL_KOTLIN for path in sorted(root.rglob("*.kt")) for row in functions(path)]
+    return [
+        f"ERROR: Kotlin complexity {row['complexity']}>{MAX_COMPLEXITY}: {row['file']}::{row['function']}:{row['line']}"
+        for row in rows
+        if _complexity(row) > MAX_COMPLEXITY
+    ]
+
+
 def main() -> int:
+    complexity = complexity_errors()
+    for error in complexity:
+        print(error)
+    if complexity:
+        return 1
     rows = [row for path in source_files() for row in functions(path)]
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "report.json").write_text(json.dumps({"threshold": THRESHOLD, "rows": rows}, indent=2) + "\n")

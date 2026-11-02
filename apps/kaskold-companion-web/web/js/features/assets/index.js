@@ -1,4 +1,4 @@
-import { networkState, walletSession } from '../../app/state/index.js';
+import { networkState, walletSession } from './boundary.js';
 import { hideLoading, showLoading, showScreen } from '../../app/navigation.js';
 import { toast } from '../../core/ui/toast.js';
 import { fetchWalletAssets } from './client.js';

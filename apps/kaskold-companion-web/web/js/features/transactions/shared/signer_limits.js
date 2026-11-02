@@ -1,4 +1,4 @@
-import { kaskold_sdk_limits } from '../../../wasm/api.js';
+import { kaskold_sdk_limits } from '../boundary.js';
 
 const REFERENCE_SIGNER_MAX_INPUTS = 32;
 

@@ -1,4 +1,4 @@
-import { oracleState } from '../../../../../app/state/index.js';
+import { oracleState } from '../../../boundary.js';
 import { byId } from '../../../../../core/dom.js';
 
 export function createOracleAskUi() {

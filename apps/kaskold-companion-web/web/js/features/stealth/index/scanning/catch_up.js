@@ -1,4 +1,4 @@
-import { stealthState } from '../../../../app/state/index.js';
+import { stealthState } from '../../boundary.js';
 // KasKold Companion Web — features/stealth/index/scanning/catch_up
 import { byId } from '../../../../core/dom.js';
 import { exactUnsignedJsonField } from '../../../../core/exact.js';

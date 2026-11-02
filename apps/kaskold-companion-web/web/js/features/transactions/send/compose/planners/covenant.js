@@ -1,4 +1,16 @@
-import { covenantState, navigationState, networkState, transactionState, walletSession } from '../../../../../app/state/index.js';
+import {
+    covenantState,
+    navigationState,
+    networkState,
+    transactionState,
+    walletSession,
+    create_covenant_pskb,
+    create_covenant_pskb_with_payload,
+    create_global_allowance_topup,
+    create_global_spending_limit_topup,
+    estimate_covenant_fee,
+    fetch_utxos_for_address_js,
+} from '../../../boundary.js';
 import { COVENANT_TYPE_CODES } from '../../../../covenants/payload/types.js';
 import { hideLoading } from '../../../../../app/navigation.js';
 import { resolveNodeUrl } from '../../../../../core/node/resolver.js';
@@ -7,14 +19,6 @@ import { encryptCovenantPayload } from '../../../../covenants/payload/payload.js
 import { pickThread } from '../../../../covenants/spending/standard/spend_paths.js';
 import { openPsktReview } from '../../../pskt_multisig/review.js';
 import { withNodeRetry } from '../../../../wallet/core.js';
-import {
-    create_covenant_pskb,
-    create_covenant_pskb_with_payload,
-    create_global_allowance_topup,
-    create_global_spending_limit_topup,
-    estimate_covenant_fee,
-    fetch_utxos_for_address_js,
-} from '../../../../../wasm/api.js';
 import { kasToSompi } from '../../../../../core/amounts.js';
 import { exactJsonStringify, exactUnsigned } from '../../../../../core/exact.js';
 import { normalizeUtxos } from '../../../../../core/utxo.js';

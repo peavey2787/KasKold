@@ -1,4 +1,4 @@
-import { covenantState } from '../../../../../../../../app/state/index.js';
+import { covenantState } from '../../../../../../boundary.js';
 import { covSaveActive } from '../../../../../../recovery/active.js';
 
 function activeRecord() {

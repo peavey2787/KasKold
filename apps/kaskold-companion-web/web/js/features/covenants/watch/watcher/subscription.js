@@ -1,4 +1,4 @@
-import { covenantState, covenantWatcherState } from '../../../../app/state/index.js';
+import { covenantState, covenantWatcherState } from '../../boundary.js';
 import { createBlockAddedSubscription } from '../../blockchain/block_added_subscription.js';
 import { isWatchedCovenantType } from './types.js';
 import { detectSpendPath } from './subscription/message.js';

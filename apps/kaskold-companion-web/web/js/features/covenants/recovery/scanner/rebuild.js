@@ -1,7 +1,6 @@
-import { covenantState } from '../../../../app/state/index.js';
+import { covenantState, fetch_utxos_for_address_js } from '../../boundary.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
 import { covAddActive } from '../active.js';
-import { fetch_utxos_for_address_js } from '../../../../wasm/api.js';
 import { rebuildPrimaryRecoveredCovenant } from './primary.js';
 import { rebuildExtendedRecoveredCovenant } from './extended.js';
 import { sompiToKasString } from '../../../../core/amounts.js';

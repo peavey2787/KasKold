@@ -1,6 +1,6 @@
 import { toast } from '../../../../../core/ui/toast.js';
 import { getCovFee } from '../../../payload/state.js';
-import { create_covenant_payjoin_claim } from '../../../../../wasm/api.js';
+import { create_covenant_payjoin_claim } from '../../../boundary.js';
 
 import { byId } from '../../../../../core/dom.js';
 import { runCovenantClaim } from './claim_controller.js';

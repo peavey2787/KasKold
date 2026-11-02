@@ -1,4 +1,4 @@
-import { covenantWatcherState } from '../../../../../../app/state/index.js';
+import { covenantWatcherState } from '../../../../boundary.js';
 
 export function isFundsSpent(total) {
     const lastBalance = covenantWatcherState._covWatcherLastBalance;

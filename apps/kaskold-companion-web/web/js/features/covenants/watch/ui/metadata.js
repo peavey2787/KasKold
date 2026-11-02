@@ -1,4 +1,4 @@
-import { covenantState } from '../../../../app/state/index.js';
+import { covenantState } from '../../boundary.js';
 import { fetchCurrentDaa } from '../../../../core/node/daa.js';
 // KasKold Companion Web — features/covenants/watch/ui/metadata
 import { byId } from '../../../../core/dom.js';

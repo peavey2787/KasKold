@@ -1,4 +1,4 @@
-import { walletSession } from '../../app/state/index.js';
+import { walletSession } from './boundary.js';
 import { byId } from '../../core/dom.js';
 import { hardenedWalletCleanup, requestWalletRuntimeReset } from './state_reset.js';
 

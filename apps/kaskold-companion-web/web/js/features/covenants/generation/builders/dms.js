@@ -1,6 +1,5 @@
-import { networkState } from '../../../../app/state/index.js';
+import { networkState, covenant_dms, decode_address } from '../../boundary.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { covenant_dms, decode_address } from '../../../../wasm/api.js';
 // dms covenant builders.
 
 import { byId } from '../../../../core/dom.js';

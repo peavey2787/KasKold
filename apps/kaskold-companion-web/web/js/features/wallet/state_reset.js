@@ -12,10 +12,9 @@ import {
     uiState,
     walletSession,
     walletState,
-} from '../../app/state/index.js';
-import { bestEffortScrubMutable } from '../../app/state/core/wallet_session.js';
+    reset_qr_decoder,
+} from './boundary.js';
 import { byId } from '../../core/dom.js';
-import { reset_qr_decoder } from '../../wasm/api.js';
 import { oracleMbAmbientStop } from '../oracle/model_b/controller.js';
 import { stopOracleMbCountdown } from '../oracle/model_b/controller/proving/countdown.js';
 import { covActiveWatcherStop } from '../covenants/recovery/active.js';
@@ -86,7 +85,7 @@ function clearTransientStateObjects() {
         oracleState._oracleMbState,
         stealthState._stealthResults,
         scannerState.qrFrames,
-    ]) bestEffortScrubMutable(value);
+    ]) walletSession.scrubMutable(value);
 
     transactionState._currentKsptHex = undefined;
     transactionState._psktReviewHex = undefined;

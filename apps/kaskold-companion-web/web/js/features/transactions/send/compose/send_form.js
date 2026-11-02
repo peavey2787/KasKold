@@ -1,8 +1,14 @@
-import { covenantState, navigationState, networkState, transactionState, walletSession } from '../../../../app/state/index.js';
+import {
+    covenantState,
+    navigationState,
+    networkState,
+    transactionState,
+    walletSession,
+    get_fee_estimate,
+} from '../../boundary.js';
 import { showScreen } from '../../../../app/navigation.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
 import { toast } from '../../../../core/ui/toast.js';
-import { get_fee_estimate } from '../../../../wasm/api.js';
 import { fetchCoinControlUtxos } from '../../../wallet/core/coin_control_utxos.js';
 // KasKold Companion Web — features/transactions/send/compose/send_form
 import { byId } from '../../../../core/dom.js';

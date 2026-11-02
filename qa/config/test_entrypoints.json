@@ -1252,6 +1252,14 @@
       "commands": [
         "make qa"
       ],
+      "path": "qa/tests/regression/apps/test_web_feature_boundaries.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
       "path": "qa/tests/regression/apps/test_real_node_integration.py",
       "role": "test",
       "step": "unit.repository-python-qa"

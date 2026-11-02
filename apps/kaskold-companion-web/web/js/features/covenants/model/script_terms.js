@@ -1,5 +1,4 @@
-import { networkState } from '../../../app/state/index.js';
-import { covenant_script_terms } from '../../../wasm/api.js';
+import { networkState, covenant_script_terms } from '../boundary.js';
 import { parseCovenantJson } from './exact_fields.js';
 
 // Covenant families whose terms are read from the redeem script in WASM.

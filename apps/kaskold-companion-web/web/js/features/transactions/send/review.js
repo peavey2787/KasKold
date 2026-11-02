@@ -1,8 +1,15 @@
-import { covenantState, networkState, scannerState, transactionState, walletSession } from '../../../app/state/index.js';
+import {
+    covenantState,
+    networkState,
+    scannerState,
+    transactionState,
+    walletSession,
+    generate_qr_frames,
+    script_public_key_address,
+} from '../boundary.js';
 import { showScreen } from '../../../app/navigation.js';
 import { toast } from '../../../core/ui/toast.js';
 import { sompiToKasString } from '../../../core/amounts.js';
-import { generate_qr_frames, script_public_key_address } from '../../../wasm/api.js';
 // KasKold Companion Web — features/transactions/send/review
 import { bytesToHex, hexToBytes } from '../../../core/bytes.js';
 import { bindClick, byId } from '../../../core/dom.js';

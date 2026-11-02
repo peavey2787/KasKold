@@ -1,12 +1,17 @@
 import { applyScriptTerms } from '../../model/script_terms.js';
 import { el, setContent, span } from '../../../../core/ui/elements.js';
-import { covenantState, navigationState, networkState } from '../../../../app/state/index.js';
+import {
+    covenantState,
+    navigationState,
+    networkState,
+    fetch_utxos_for_address_js,
+    ship_escrow_terms,
+} from '../../boundary.js';
 import { hideLoading, showLoading } from '../../../../app/navigation.js';
 import { resolveNodeUrl } from '../../../../core/node/resolver.js';
 import { toast } from '../../../../core/ui/toast.js';
 import { getCovFee } from '../../payload/state.js';
 import { openPsktReview } from '../../../transactions/pskt_multisig/review.js';
-import { fetch_utxos_for_address_js, ship_escrow_terms } from '../../../../wasm/api.js';
 import { encodeCovenantSpend } from './spend_document.js';
 // KasKold Companion Web — features/covenants/spending/standard/shipment
 import { byId } from '../../../../core/dom.js';

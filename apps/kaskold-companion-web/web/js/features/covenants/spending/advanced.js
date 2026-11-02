@@ -1,9 +1,16 @@
-import { commitRevealState, covenantState, navigationState } from '../../../app/state/index.js';
+import {
+    commitRevealState,
+    covenantState,
+    navigationState,
+    create_commit_reveal_spend,
+    create_merkle_whitelist_spend,
+    fetch_utxos_for_address_js,
+    merkle_proof_for_address,
+} from '../boundary.js';
 import { hideLoading, showLoading } from '../../../app/navigation.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';
 import { toast } from '../../../core/ui/toast.js';
 import { openPsktReview } from '../../transactions/pskt_multisig/review.js';
-import { create_commit_reveal_spend, create_merkle_whitelist_spend, fetch_utxos_for_address_js, merkle_proof_for_address } from '../../../wasm/api.js';
 // KasKold Companion Web — features/covenants/spending/advanced
 import { byId } from '../../../core/dom.js';
 

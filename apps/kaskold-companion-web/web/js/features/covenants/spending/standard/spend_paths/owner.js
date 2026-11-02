@@ -1,4 +1,12 @@
-import { covenantState, navigationState, networkState } from '../../../../../app/state/index.js';
+import {
+    covenantState,
+    navigationState,
+    networkState,
+    create_covenant_owner_spend,
+    create_global_spending_limit_withdraw,
+    fetch_utxos_for_address_js,
+    thread_withdraw_fee,
+} from '../../../boundary.js';
 import { piggyBreakStatus, piggyStatusBanner } from '../../../../../app/events/contracts/covenant_creation/result_actions.js';
 import { hideLoading, showLoading } from '../../../../../app/navigation.js';
 import { fetchCurrentDaa } from '../../../../../core/node/daa.js';
@@ -8,7 +16,6 @@ import { getCovFee } from '../../../payload/state.js';
 import { pickThread } from '../spend_paths.js';
 import { encodeCovenantSpend } from '../spend_document.js';
 import { openPsktReview } from '../../../../transactions/pskt_multisig/review.js';
-import { create_covenant_owner_spend, create_global_spending_limit_withdraw, fetch_utxos_for_address_js, thread_withdraw_fee } from '../../../../../wasm/api.js';
 
 import { byId } from '../../../../../core/dom.js';
 import { formatDaaDuration } from '../../../../../core/format.js';

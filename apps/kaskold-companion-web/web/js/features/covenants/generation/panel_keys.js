@@ -1,5 +1,4 @@
-import { walletSession } from '../../../app/state/index.js';
-import { decode_address, parse_kpub } from '../../../wasm/api.js';
+import { walletSession, decode_address, parse_kpub } from '../boundary.js';
 // KasKold Companion Web — features/covenants/generation/panel_keys
 import { showCovenantPanel } from './panels/router.js';
 import { byId } from '../../../core/dom.js';

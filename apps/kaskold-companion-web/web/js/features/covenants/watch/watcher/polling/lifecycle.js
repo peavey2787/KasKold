@@ -1,4 +1,4 @@
-import { covenantState, covenantWatcherState } from '../../../../../app/state/index.js';
+import { covenantState, covenantWatcherState } from '../../../boundary.js';
 import { covWatcherPoll } from './poll.js';
 import { covSubscriptionStart, covSubscriptionStop } from '../subscription.js';
 import { isWatchedCovenantType } from '../types.js';

@@ -3,7 +3,11 @@ import { oracleMbIdentity } from './state.js';
 import { resolveNodeUrl } from '../../../core/node/resolver.js';
 import { utxoTransactionId } from '../../../core/utxo.js';
 import { littleEndianHexToU64 } from '../../../core/bytes.js';
-import { covenant_oracle_mb, create_oracle_mb_publish, fetch_utxos_for_address_js } from '../../../wasm/api.js';
+import {
+    covenant_oracle_mb,
+    create_oracle_mb_publish,
+    fetch_utxos_for_address_js,
+} from '../boundary.js';
 // KasKold Companion Web — Model B oracle protocol operations.
 // The heartbeat UTXO is co-rolled with every publish; standalone heartbeat
 // rolling is intentionally unsupported by this browser workflow.

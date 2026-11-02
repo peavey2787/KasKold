@@ -6,7 +6,7 @@ from pathlib import Path
 WASM_EXPORT_ATTR = r'(?:#\[wasm_bindgen(?:\([^\]]*\))?\]|#\[cfg_attr\(target_arch\s*=\s*"wasm32",\s*wasm_bindgen::prelude::wasm_bindgen(?:\([^\]]*\))?\)\])'
 WASM_API_RELATIVE = "wasm/api.js"
 GENERATED_EXPORT_PATTERN = r"const\s+GENERATED_WASM_EXPORTS\s*=\s*Object\.freeze\(\[(.*?)\]\);"
-NAMED_IMPORT_PATTERN = r"""import\s*\{(?P<names>.*?)\}\s*from\s*['"](?P<source>[^'"]+)['"]"""
+NAMED_IMPORT_PATTERN = r"""(?:import|export)\s*\{(?P<names>.*?)\}\s*from\s*['"](?P<source>[^'"]+)['"]"""
 
 
 def check_wasm_api(root: Path, web_js_root: Path) -> tuple[list[str], list[str]]:

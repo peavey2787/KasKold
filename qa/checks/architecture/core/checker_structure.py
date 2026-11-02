@@ -79,6 +79,7 @@ SUPPORT_MODULES = {
     "web/__init__.py",
     "web/web_contracts.py",
     "web/web_infrastructure.py",
+    "web/web_boundaries.py",
     "web/web_wasm_api.py",
 }
 EXPECTED_GROUPS = {"core", "firmware", "protocols", "tooling", "web"}

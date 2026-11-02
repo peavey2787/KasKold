@@ -1,10 +1,15 @@
-import { networkState, scannerState, walletSession } from '../../../app/state/index.js';
+import {
+    networkState,
+    scannerState,
+    walletSession,
+    import_kpub,
+    import_kpub_raw,
+} from '../boundary.js';
 import { hideLoading, showScreen } from '../../../app/navigation.js';
 import { isWasmReady, wasmRuntimeStatus } from '../../../wasm/runtime.js';
 import { refreshBalance } from './balance.js';
 import { syncWalletUnloadAction } from '../reset.js';
 import { isSupportedKpubText, normalizeKpubText } from './kpub_qr_payload.js';
-import { import_kpub, import_kpub_raw } from '../../../wasm/api.js';
 
 const INVALID_KPUB_MESSAGE = 'Invalid account key — expected canonical kpub1 text or an account-level xpub';
 const COMPACT_ACCOUNT_KEY_LENGTH = 79;
