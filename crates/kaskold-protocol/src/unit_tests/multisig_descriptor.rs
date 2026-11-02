@@ -1,5 +1,6 @@
 use crate::wire::multisig_descriptor::{
-    parse_multisig_descriptor, MultisigDescriptorError, MAX_DESCRIPTOR_PARTICIPANTS,
+    looks_like_descriptor, parse_multisig_descriptor, MultisigDescriptorError,
+    MAX_DESCRIPTOR_PARTICIPANTS,
 };
 
 fn hd44_participant(prefix: u8, fill: u8) -> String {
@@ -34,4 +35,14 @@ fn signer_binding_enforces_kaskold_capacity_thresholds_and_duplicates() {
         parse_multisig_descriptor(format!("multi_hd(1,{entries})").as_bytes()),
         Err(MultisigDescriptorError::TooManyParticipants),
     );
+}
+
+#[test]
+fn only_hd_descriptor_syntax_is_sniffed_as_a_descriptor() {
+    for descriptor in [&b"multi_hd45(2,a,b)"[..], b"multi_hd(2,a,b)"] {
+        assert!(looks_like_descriptor(descriptor));
+    }
+    for other in [&b""[..], b"multi_hdx(2,a,b)", b"multi(2,a,b)", b"kaspa:qq"] {
+        assert!(!looks_like_descriptor(other));
+    }
 }

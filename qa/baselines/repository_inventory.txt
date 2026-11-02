@@ -467,6 +467,7 @@ D	crates/kaskold-hardware-core/src/runtime
 D	crates/kaskold-hardware-core/src/runtime/worker
 D	crates/kaskold-hardware-core/src/screen_flow
 D	crates/kaskold-hardware-core/src/screen_flow/navigation
+D	crates/kaskold-hardware-core/src/screen_flow/navigation/unit_tests
 D	crates/kaskold-hardware-core/src/screen_flow/state
 D	crates/kaskold-hardware-core/src/security
 D	crates/kaskold-hardware-core/src/storage
@@ -2331,6 +2332,7 @@ F	crates/kaskold-hardware-core/src/screen_flow/handler_group.rs
 F	crates/kaskold-hardware-core/src/screen_flow/mod.rs
 F	crates/kaskold-hardware-core/src/screen_flow/navigation.rs
 F	crates/kaskold-hardware-core/src/screen_flow/navigation/bridges.rs
+F	crates/kaskold-hardware-core/src/screen_flow/navigation/unit_tests/mod.rs
 F	crates/kaskold-hardware-core/src/screen_flow/onboarding.rs
 F	crates/kaskold-hardware-core/src/screen_flow/state.rs
 F	crates/kaskold-hardware-core/src/screen_flow/state/predicates.rs
@@ -2423,6 +2425,7 @@ F	crates/kaskold-sdk/build.sh
 F	crates/kaskold-sdk/src/error/mod.rs
 F	crates/kaskold-sdk/src/lib.rs
 F	crates/kaskold-sdk/src/unit_tests/mod.rs
+F	crates/kaskold-sdk/src/unit_tests/signing_flow.rs
 F	crates/kaskold-sdk/src/wasm/mod.rs
 F	crates/offline-signer/Cargo.toml
 F	crates/offline-signer/src/crypto/container_framing.rs

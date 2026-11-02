@@ -223,3 +223,18 @@ fn descriptor_summary_export_names_every_supported_kind() {
         )
     );
 }
+
+#[test]
+fn a_branch_scan_defaults_to_mainnet_and_the_standard_depth() {
+    let request: MultisigBranchScanRequest = serde_json::from_value(serde_json::json!({
+        "descriptor": "multi_hd45()",
+        "cosigner_index": 1,
+        "ws_url": "wss://node.example",
+    }))
+    .expect("request");
+    assert_eq!(request.address_prefix, "kaspa");
+    assert_eq!(
+        request.depth,
+        kaspa_portal::transaction::builder::MULTISIG_BRANCH_SCAN_DEPTH
+    );
+}

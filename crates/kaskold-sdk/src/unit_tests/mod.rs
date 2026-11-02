@@ -1,5 +1,7 @@
 use super::*;
 
+mod signing_flow;
+
 #[test]
 fn public_limits_match_reference_signer_protocol_capabilities() {
     let limits = limits();

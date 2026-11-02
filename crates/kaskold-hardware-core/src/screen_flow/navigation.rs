@@ -49,14 +49,8 @@ pub fn owner_for_intent(
     }
     // QR presentation belongs to the workflow that produced the payload. A
     // stale seed-onboarding storage intent must not steal a later Signing,
-    // Export, Storage, or Multisig result screen. Active onboarding still
-    // retains QR ownership because its current owner is already Onboarding.
+    // Export, Storage, or Multisig result screen.
     if is_qr_state(state) {
-        if current == NavigationOwner::Onboarding
-            && onboarding::owns_state(intent.is_seed_onboarding(), state)
-        {
-            return NavigationOwner::Onboarding;
-        }
         return qr_owner(current);
     }
     if onboarding::owns_state(intent.is_seed_onboarding(), state) {
@@ -65,8 +59,7 @@ pub fn owner_for_intent(
     if state == AppState::StorageSdFailure && current == NavigationOwner::Settings {
         return NavigationOwner::Settings;
     }
-    fixed_owner(state, current)
-        .unwrap_or_else(|| owner_from_handler(state.handler_group(), current))
+    fixed_owner(state).unwrap_or_else(|| owner_from_handler(state.handler_group(), current))
 }
 
 pub fn transition_allowed(
@@ -168,7 +161,7 @@ pub fn recovery_owner(owner: NavigationOwner) -> NavigationOwner {
     }
 }
 
-fn fixed_owner(state: AppState, current: NavigationOwner) -> Option<NavigationOwner> {
+fn fixed_owner(state: AppState) -> Option<NavigationOwner> {
     use AppState::*;
     use NavigationOwner::*;
     if matches!(state, StorageUnlockPin | StorageUnlockPassword) {
@@ -204,43 +197,44 @@ fn fixed_owner(state: AppState, current: NavigationOwner) -> Option<NavigationOw
     if is_settings_state(state) {
         return Some(Settings);
     }
-    if is_qr_state(state) {
-        return Some(qr_owner(current));
-    }
     if state == ShowQrPopup {
         return Some(Signing);
     }
     None
 }
 
-fn owner_transition_allowed(from: NavigationOwner, to: NavigationOwner) -> bool {
+/// The owners each workflow may hand over to.
+const OWNER_TRANSITIONS: &[(NavigationOwner, &[NavigationOwner])] = {
     use NavigationOwner::*;
-    #[cfg(feature = "workflow-tests")]
-    if matches!(
-        (from, to),
-        (Settings, WorkflowTests) | (WorkflowTests, Settings)
-    ) {
-        return true;
-    }
-    match from {
-        Onboarding => matches!(to, Onboarding | Main),
-        Settings => matches!(
-            to,
-            Main | Seeds | Signing | Export | Storage | Stego | Multisig
+    &[
+        (Onboarding, &[Onboarding, Main]),
+        (
+            Settings,
+            &[Main, Seeds, Signing, Export, Storage, Stego, Multisig],
         ),
-        Main => matches!(to, Seeds | Settings | Signing | Export),
-        Seeds => matches!(
-            to,
-            Main | Settings | Signing | Export | Storage | Multisig | Onboarding
+        (Main, &[Seeds, Settings, Signing, Export]),
+        (
+            Seeds,
+            &[
+                Main, Settings, Signing, Export, Storage, Multisig, Onboarding,
+            ],
         ),
-        Signing => matches!(to, Main | Seeds | Export | Storage | Multisig),
-        Export => matches!(to, Main | Seeds | Signing | Storage | Multisig),
-        Storage => matches!(to, Main | Seeds | Signing | Export | Multisig | Stego),
-        Stego => matches!(to, Main | Seeds | Storage | Export),
-        Multisig => matches!(to, Main | Seeds | Signing | Export | Storage),
+        (Signing, &[Main, Seeds, Export, Storage, Multisig]),
+        (Export, &[Main, Seeds, Signing, Storage, Multisig]),
+        (Storage, &[Main, Seeds, Signing, Export, Multisig, Stego]),
+        (Stego, &[Main, Seeds, Storage, Export]),
+        (Multisig, &[Main, Seeds, Signing, Export, Storage]),
         #[cfg(feature = "workflow-tests")]
-        WorkflowTests => matches!(to, Settings),
-    }
+        (Settings, &[WorkflowTests]),
+        #[cfg(feature = "workflow-tests")]
+        (WorkflowTests, &[Settings]),
+    ]
+};
+
+fn owner_transition_allowed(from: NavigationOwner, to: NavigationOwner) -> bool {
+    OWNER_TRANSITIONS
+        .iter()
+        .any(|(owner, targets)| *owner == from && targets.contains(&to))
 }
 
 fn is_qr_state(state: AppState) -> bool {
@@ -392,3 +386,6 @@ pub fn home_shortcut_allowed(home_reached: bool, state: AppState) -> bool {
             AppState::StorageUnlockPin | AppState::StorageUnlockPassword
         )
 }
+
+#[cfg(test)]
+mod unit_tests;

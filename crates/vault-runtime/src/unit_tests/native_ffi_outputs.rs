@@ -8,7 +8,7 @@ use crate::native_ffi::{
     kaskold_vault_workflow_text, kaskold_vault_workflow_text_with_bytes, NativeVault,
 };
 
-use super::{copy_ffi_result, ResultCopier};
+use super::{copy_ffi_result, owned_compact_kspt, ResultCopier};
 
 const OK: i32 = 0;
 const ERROR: i32 = -1;
@@ -250,6 +250,71 @@ fn tool_workflows_return_derived_signed_and_decrypted_values() {
         text(handle, "clear_signing_policy", "{}"),
         serde_json::json!({})
     );
+    unsafe { kaskold_vault_destroy(handle) };
+}
+
+#[test]
+fn a_kip22_address_hides_its_key_and_stays_the_same_on_every_ask() {
+    let handle = restored();
+    let address = |operation: &str, network: &str, change: bool, index: u32| {
+        let input = serde_json::json!({"network": network, "change": change, "index": index});
+        text(handle, operation, &input.to_string())["address"]
+            .as_str()
+            .expect("address")
+            .to_owned()
+    };
+    let hidden = address("kip22_address", "mainnet", false, 0);
+    assert!(hidden.starts_with("kaspa:p"), "{hidden}");
+    assert_eq!(address("kip22_address", "mainnet", false, 0), hidden);
+    assert_ne!(address("kip22_address", "mainnet", true, 0), hidden);
+    assert_ne!(address("kip22_address", "mainnet", false, 1), hidden);
+    assert!(address("kip22_address", "testnet-10", false, 0).starts_with("kaspatest:p"));
+    assert!(address("receive_address", "mainnet", false, 0).starts_with("kaspa:q"));
+
+    assert_eq!(
+        text_error(
+            handle,
+            "kip22_address",
+            r#"{"network":"nowhere","change":false,"index":0}"#,
+        ),
+        r#""InvalidNetwork""#
+    );
+    unsafe { kaskold_vault_destroy(handle) };
+}
+
+#[test]
+fn a_transaction_file_returns_the_review_of_what_it_spends() {
+    let handle = restored();
+    let operation = "transaction_file";
+    let input = "{}";
+    let wire = owned_compact_kspt(0);
+    let status = unsafe {
+        kaskold_vault_workflow_text_with_bytes(
+            handle,
+            operation.as_ptr(),
+            operation.len(),
+            input.as_ptr(),
+            input.len(),
+            wire.as_ptr(),
+            wire.len(),
+        )
+    };
+    assert_eq!(
+        status,
+        OK,
+        "{}",
+        copy(handle, kaskold_vault_last_error_copy)
+    );
+    let review: serde_json::Value =
+        serde_json::from_str(&copy(handle, kaskold_vault_last_text_copy)).expect("review JSON");
+    assert_eq!(review["state"], "review");
+    assert_eq!(review["network"], "MAINNET");
+    assert_eq!(review["inputCount"], 1);
+    assert_eq!(review["outputCount"], 1);
+    assert_eq!(review["inputTotal"], "80000");
+    assert_eq!(review["inputs"][0]["amount"], "80000");
+    assert_eq!(review["inputs"].as_array().expect("inputs").len(), 1);
+    assert_eq!(review["outputs"].as_array().expect("outputs").len(), 1);
     unsafe { kaskold_vault_destroy(handle) };
 }
 

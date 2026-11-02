@@ -114,6 +114,60 @@ fn qr_raw_paths_and_signing_request_success_are_covered() {
     assert!(!request.qr_frames().is_empty());
 }
 
+#[test]
+fn addresses_decode_to_the_key_they_pay_and_bad_text_is_a_decoding_error() {
+    let (text, _) = canonical_account_key();
+    let account = decode_account(&text, Network::Mainnet).expect("account");
+    let address = &account.receive_addresses[0].address;
+    let (version, key) = crate::decode_address(address).expect("address");
+    assert_eq!(version, 0);
+    assert_eq!(crate::encode_address(&key, version, "kaspa"), *address);
+
+    let script = crate::address_to_script_pubkey(address).expect("script");
+    assert_eq!(script.len(), 34);
+    assert_eq!((script[0], script[33]), (0x20, 0xac));
+    assert_eq!(script[1..33], key);
+
+    for error in [
+        crate::decode_address("kaspa:bad").map(|_| ()).unwrap_err(),
+        crate::address_to_script_pubkey("kaspa:bad")
+            .map(|_| ())
+            .unwrap_err(),
+        crate::decode_kpub_text("bad").map(|_| ()).unwrap_err(),
+        crate::import_kpub("bad", "kaspa").map(|_| ()).unwrap_err(),
+        crate::import_kpub_raw(b"bad", "kaspa")
+            .map(|_| ())
+            .unwrap_err(),
+    ] {
+        assert_eq!(error.kind(), ProtocolErrorKind::Decoding);
+    }
+}
+
+#[test]
+fn a_watched_account_imports_either_way_and_extends_where_it_stopped() {
+    let (text, payload) = canonical_account_key();
+    assert_eq!(crate::decode_kpub_text(&text).expect("text"), payload);
+
+    let imported = crate::import_kpub(&text, "kaspa").expect("text import");
+    let raw = crate::import_kpub_raw(&payload, "kaspa").expect("raw import");
+    assert_eq!(imported.receive_addresses, raw.receive_addresses);
+    assert_eq!(imported.change_addresses, raw.change_addresses);
+
+    let extended = crate::extend_addresses(&imported, 2, 1, "kaspa").expect("extended");
+    assert_eq!(
+        extended.receive_addresses.len(),
+        imported.receive_addresses.len() + 2
+    );
+    assert_eq!(
+        extended.change_addresses.len(),
+        imported.change_addresses.len() + 1
+    );
+    assert_eq!(
+        extended.receive_addresses[..imported.receive_addresses.len()],
+        imported.receive_addresses[..]
+    );
+}
+
 fn canonical_account_key() -> (
     String,
     [u8; shared_signer::account_key::ACCOUNT_KEY_PAYLOAD_LEN],
