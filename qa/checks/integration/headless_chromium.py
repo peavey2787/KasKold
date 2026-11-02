@@ -189,6 +189,25 @@ def browser_environment() -> dict[str, str]:
     return {key: value for key, value in os.environ.items() if not key.startswith("DBUS_")}
 
 
+# A new profile is not a clean one: Edge signs it in to the Windows account and
+# syncs that account's extensions, whose welcome tab pushes the test tab into the
+# background, where the browser stops running its timers.
+ISOLATED_PROFILE_ARGUMENTS = (
+    "--disable-extensions",
+    "--disable-sync",
+    "--disable-background-networking",
+    "--disable-component-update",
+    "--disable-default-apps",
+    "--disable-features=msImplicitSignin,CalculateNativeWinOcclusion,IntensiveWakeUpThrottling",
+)
+# Live flows wait on page timers for many minutes, focused or not.
+UNTHROTTLED_PAGE_ARGUMENTS = (
+    "--disable-background-timer-throttling",
+    "--disable-backgrounding-occluded-windows",
+    "--disable-renderer-backgrounding",
+)
+
+
 def chromium_command(chromium: str, debug_port: int, profile_dir: Path) -> list[str]:
     """Real-time headless Chromium; completion comes from the page's result POST."""
     return [
@@ -199,6 +218,8 @@ def chromium_command(chromium: str, debug_port: int, profile_dir: Path) -> list[
         "--disable-dev-shm-usage",
         "--no-first-run",
         "--no-default-browser-check",
+        *ISOLATED_PROFILE_ARGUMENTS,
+        *UNTHROTTLED_PAGE_ARGUMENTS,
         "--remote-debugging-address=127.0.0.1",
         f"--remote-debugging-port={debug_port}",
         f"--user-data-dir={profile_dir}",

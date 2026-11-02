@@ -86,6 +86,15 @@ class ChromiumCommandTests(unittest.TestCase):
         self.assertFalse(any(argument.startswith("--virtual-time-budget") for argument in command))
         self.assertNotIn("--dump-dom", command)
 
+    def test_chromium_runs_a_profile_nothing_else_can_open_a_tab_in(self) -> None:
+        harness = load_harness()
+        command = harness.chromium_command("/usr/bin/chromium", 9222, Path("/tmp/profile"))
+        for argument in ("--disable-extensions", "--disable-sync", "--disable-background-timer-throttling"):
+            self.assertIn(argument, command)
+        features = next(argument for argument in command if argument.startswith("--disable-features="))
+        self.assertIn("msImplicitSignin", features)
+        self.assertEqual(command[-1], "about:blank")
+
     def test_browser_environment_drops_stale_dbus_addresses(self):
         harness = load_harness()
         environment = {"DBUS_SESSION_BUS_ADDRESS": "unix:path=/gone", "PATH": "/bin"}
