@@ -99,13 +99,13 @@ class GateOutcomeTests(unittest.TestCase):
 
 
 class RuleCanaryTests(unittest.TestCase):
-    def _rejection(self, returncode: int, stdout: str) -> None:
+    def _rejection(self, returncode: int, stdout: str) -> object:
         completed = subprocess.CompletedProcess(["tool"], returncode, stdout=stdout, stderr="")
         with mock.patch.object(language_lints.subprocess, "run", return_value=completed), mock.patch("builtins.print"):
-            language_lints.require_rejection(["tool"], "source", "C901")
+            return language_lints.require_rejection(["tool"], "source", "C901")
 
     def test_a_tool_that_reports_the_rule_passes(self) -> None:
-        self._rejection(1, "canary.py:1:5: C901 `canary` is too complex")
+        self.assertIsNone(self._rejection(1, "canary.py:1:5: C901 `canary` is too complex"))
 
     def test_a_tool_that_accepts_the_canary_fails_the_gate(self) -> None:
         with self.assertRaises(subprocess.CalledProcessError):

@@ -5,14 +5,15 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from pathlib import Path
+import json
 import os
 import shutil
 import subprocess
 import sys
 
-TYPESCRIPT_VERSION = "5.8.3"
 NPM_REGISTRY = "https://registry.npmjs.org"
 ROOT = Path(__file__).resolve().parents[3]
+TYPESCRIPT_VERSION = json.loads((ROOT / "qa/lint/package.json").read_text(encoding="utf-8"))["devDependencies"]["typescript"]
 
 CommandRunner = Callable[..., subprocess.CompletedProcess[str]]
 CommandLookup = Callable[[str], str | None]
