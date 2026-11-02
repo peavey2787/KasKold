@@ -25,6 +25,7 @@ from headless_chromium import (  # noqa: E402
     ChromiumError,
     LoopbackRequestHandler,
     browser_executable,
+    browser_case_source,
     browser_log_tail,
     cleanup_chromium_profile,
     free_port,
@@ -419,9 +420,7 @@ class FundedHandler(LoopbackRequestHandler):
 
 def funded_browser_document(browser_case: Path = FUNDED_BROWSER_CASE) -> bytes:
     """Embed the funded-E2E harness so Chromium does not fetch it dynamically."""
-    module_source = browser_case.read_text(encoding="utf-8").replace(
-        "</script", r"<\/script"
-    )
+    module_source = browser_case_source(browser_case).replace("</script", r"<\/script")
     prefix = """<!doctype html><html><body>running
 <script id=\"funded-e2e-module\" type=\"module\">
 """

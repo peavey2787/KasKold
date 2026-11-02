@@ -53,7 +53,7 @@ class FundedTestnetE2EContractTests(unittest.TestCase):
         document = runner.funded_browser_document().decode("utf-8")
         self.assertIn('id="funded-e2e-module" type="module"', document)
         self.assertIn("withFundedNodeRetry", document)
-        self.assertIn("import * as wasm from '/target/kaskold-companion-web/site/js/wasm/api.js';", document)
+        self.assertRegex(document, r"import \* as wasm from '/target/kaskold-companion-web/site/js/wasm/api\.js(\?rev=[0-9a-f]+)?';")
         self.assertNotIn("import('/qa/checks/integration/funded_testnet_e2e_case.mjs')", document)
 
     def test_initial_funding_status_skips_prompt_when_wallet_is_already_funded(self):

@@ -86,6 +86,24 @@ class ChromiumCommandTests(unittest.TestCase):
         self.assertFalse(any(argument.startswith("--virtual-time-budget") for argument in command))
         self.assertNotIn("--dump-dom", command)
 
+    def test_a_case_imports_the_stamped_module_instances_the_site_uses(self) -> None:
+        harness = load_harness()
+        source = (
+            "import * as wasm from '/target/kaskold-companion-web/site/js/wasm/api.js';\n"
+            "import {\n  a,\n} from \"/target/kaskold-companion-web/site/js/features/x.js\";\n"
+            "import local from './local.js';\n"
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            case = Path(directory) / "case.mjs"
+            case.write_text(source, encoding="utf-8")
+            with patch.object(harness, "site_asset_revision", return_value="abc123"):
+                stamped = harness.browser_case_source(case)
+            with patch.object(harness, "site_asset_revision", return_value=None):
+                self.assertEqual(harness.browser_case_source(case), source)
+        self.assertIn("'/target/kaskold-companion-web/site/js/wasm/api.js?rev=abc123'", stamped)
+        self.assertIn('"/target/kaskold-companion-web/site/js/features/x.js?rev=abc123"', stamped)
+        self.assertIn("'./local.js'", stamped)
+
     def test_chromium_runs_a_profile_nothing_else_can_open_a_tab_in(self) -> None:
         harness = load_harness()
         command = harness.chromium_command("/usr/bin/chromium", 9222, Path("/tmp/profile"))

@@ -15,6 +15,7 @@ import http.server
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import signal
 import socket
@@ -182,6 +183,27 @@ def serve(handler: type[LoopbackRequestHandler]) -> Iterator[int]:
         server.shutdown()
         thread.join(timeout=5)
         server.server_close()
+
+
+def site_asset_revision() -> str | None:
+    """The revision stamped on the built site, when it has been built."""
+    index = ROOT / "target/kaskold-companion-web/site/index.html"
+    match = re.search(r"\?rev=([0-9a-f]+)", index.read_text(encoding="utf-8")) if index.is_file() else None
+    return match.group(1) if match else None
+
+
+def browser_case_source(case: Path) -> str:
+    """A case's source, importing the same module instances the site's own modules do.
+
+    The site's modules import each other by stamped URL, and a browser keeps one
+    instance per URL: an unstamped import would get a second copy of the state and
+    WebAssembly modules, and initialising that copy leaves the site's own unusable.
+    """
+    source = case.read_text(encoding="utf-8")
+    revision = site_asset_revision()
+    if revision is None:
+        return source
+    return re.sub(r"(/target/kaskold-companion-web/site/js/[^'\"?]+\.js)(?=['\"])", rf"\1?rev={revision}", source)
 
 
 def browser_environment() -> dict[str, str]:

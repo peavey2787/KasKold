@@ -20,6 +20,7 @@ from headless_chromium import (  # noqa: E402
     ROOT,
     ChromiumError,
     LoopbackRequestHandler,
+    browser_case_source,
     browser_executable,
     browser_log_tail,
     cleanup_chromium_profile,
@@ -33,6 +34,7 @@ from headless_chromium import (  # noqa: E402
 SITE = ROOT / "target/kaskold-companion-web/site"
 PKG_JS = SITE / "pkg/companion_web.js"
 PKG_WASM = SITE / "pkg/companion_web_bg.wasm"
+REAL_NODE_CASE = ROOT / "qa/checks/integration/browser_real_node_case.mjs"
 
 
 def parse_args() -> argparse.Namespace:
@@ -62,7 +64,7 @@ def write_evidence(path: Path, detail: dict[str, object]) -> None:
         "mode": "production-public-resolver",
         "detail": detail,
         "inputs": {
-            "browser_case_sha256": sha256_file(ROOT / "qa/checks/integration/browser_real_node_case.mjs"),
+            "browser_case_sha256": sha256_file(REAL_NODE_CASE),
             "browser_runner_sha256": sha256_file(Path(__file__).resolve()),
             "production_resolver_sha256": sha256_file(ROOT / "apps/kaskold-companion-web/web/js/core/node/resolver.js"),
             "wasm_sha256": sha256_file(PKG_WASM),
@@ -116,6 +118,8 @@ const publishBootstrapFailure = async (error) => {
 import('/qa/checks/integration/browser_real_node_case.mjs').catch(publishBootstrapFailure);
 </script></body></html>"""
             self.send_body(body, "text/html; charset=utf-8")
+        elif self.path.startswith("/qa/checks/integration/browser_real_node_case.mjs"):
+            self.send_body(browser_case_source(REAL_NODE_CASE).encode("utf-8"), "text/javascript")
         else:
             super().do_GET()
 
