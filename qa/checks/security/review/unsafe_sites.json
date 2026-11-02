@@ -450,7 +450,7 @@
     },
     {
       "path": "apps/kaskold-hardware/src/runtime/data/signing.rs",
-      "line": 117,
+      "line": 119,
       "source": "pub(super) unsafe fn initialize_in_place(target: *mut Self, transaction: TransactionSigningState) {",
       "fingerprint": "c9285522dcf340ff0c21e787ee93672242e4a9e3c9c6c85358c3a307c868efe3",
       "rationale": "Reviewed signing-state placement boundary: the pointer targets an exclusively owned, uninitialized SigningState field inside the claimed AppData slot. Each child is written exactly once, the only fallible transaction allocation is completed before StaticCell claim, and no signing state is read until every child has been initialized. The no-inline boundary prevents aggregate stack temporaries.",

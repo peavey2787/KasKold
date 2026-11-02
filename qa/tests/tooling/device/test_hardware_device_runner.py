@@ -23,6 +23,7 @@ RUNNER_PATH = ROOT / "qa" / "checks" / "firmware" / "run_hardware_tests.py"
 SPEC = importlib.util.spec_from_file_location("hardware_runner", RUNNER_PATH)
 assert SPEC and SPEC.loader
 HARDWARE_RUNNER = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = HARDWARE_RUNNER
 SPEC.loader.exec_module(HARDWARE_RUNNER)
 
 

@@ -30,7 +30,5 @@ wasm-bindgen = "0.2.108"
 js-sys = "0.3.85"
 
 [dev-dependencies]
-hot-wallet = { version = "=2.0.0", path = "../hot-wallet" }
-kaskold-protocol = { version = "=2.0.0", path = "../kaskold-protocol", features = ["companion"] }
 serde_json = "1"
 shared-signer = { version = "=2.0.0", path = "../shared-signer" }

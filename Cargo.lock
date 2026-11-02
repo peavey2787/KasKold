@@ -1070,7 +1070,9 @@ version = "2.0.0"
 dependencies = [
  "aes-gcm",
  "getrandom 0.2.17",
+ "hex",
  "kaskold-protocol",
+ "kaskold-sdk",
  "offline-signer",
  "serde_json",
  "sha2 0.10.9",
@@ -1479,7 +1481,6 @@ version = "2.0.0"
 dependencies = [
  "getrandom 0.2.17",
  "hex",
- "hot-wallet",
  "js-sys",
  "kaskold-protocol",
  "serde",

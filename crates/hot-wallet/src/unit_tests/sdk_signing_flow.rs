@@ -2,17 +2,21 @@
 //! exported account, prepare a transaction, carry it over QR, merge the signed
 //! response and finalize.
 
-use hot_wallet::HotWallet;
 use kaskold_protocol::companion::encode_pskt_json_body;
+use kaskold_sdk::{
+    attach_input_derivation, attach_output_derivation, DerivedAddress, KasKold, Network,
+    PairedAccount, PairingMode, SdkErrorKind, SignedPskt, SigningRequest,
+};
 use serde_json::{json, Value};
 
-use super::*;
+use crate::HotWallet;
 
 const PHRASE: &str =
     "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
 fn script_hex(address: &DerivedAddress) -> String {
-    let script = protocol::address_to_script_pubkey(&address.address).expect("address script");
+    let script =
+        kaskold_protocol::address_to_script_pubkey(&address.address).expect("address script");
     format!("0000{}", hex::encode(script))
 }
 
@@ -139,7 +143,7 @@ fn a_signed_response_merges_and_finalizes_into_the_reviewed_transaction() {
     let paired = paired();
     let request = prepared(&paired, 90_000);
     assert_eq!(
-        protocol::pskt_is_complete(&request.original_pskt_hex, Network::Mainnet),
+        kaskold_protocol::pskt_is_complete(&request.original_pskt_hex, Network::Mainnet),
         Ok(false)
     );
 
@@ -149,7 +153,7 @@ fn a_signed_response_merges_and_finalizes_into_the_reviewed_transaction() {
         .expect("merged");
     assert_eq!(signed.network, Network::Mainnet);
     assert_eq!(
-        protocol::pskt_is_complete(&signed.pskt_hex, Network::Mainnet),
+        kaskold_protocol::pskt_is_complete(&signed.pskt_hex, Network::Mainnet),
         Ok(true)
     );
 
@@ -179,25 +183,13 @@ fn a_response_for_another_transaction_is_refused() {
 fn an_unsigned_transaction_does_not_finalize() {
     let paired = paired();
     let request = prepared(&paired, 90_000);
-    let unsigned = SignedPskt {
-        network: Network::Mainnet,
-        pskt_hex: request.original_pskt_hex,
-    };
+    let unsigned: SignedPskt = serde_json::from_value(json!({
+        "network": "mainnet",
+        "psktHex": request.original_pskt_hex,
+    }))
+    .expect("signed document");
     assert_eq!(
         paired.sdk.finalize(&unsigned).unwrap_err().kind(),
         SdkErrorKind::Finalization
     );
-}
-
-#[test]
-fn resetting_the_decoder_forgets_a_partial_scan() {
-    let frames = protocol::encode_qr_frames(&[0x66u8; 220]).expect("frames");
-    let mut scanner = KasKold::new();
-    assert!(scanner
-        .accept_qr_frame(&frames[0].payload)
-        .expect("frame")
-        .is_none());
-    assert_eq!(scanner.qr_decoder_progress().received, 1);
-    scanner.reset_qr_decoder();
-    assert_eq!(scanner.qr_decoder_progress().received, 0);
 }

@@ -20,4 +20,7 @@ getrandom = "0.2"
 getrandom = { version = "0.2", features = ["js"] }
 
 [dev-dependencies]
+hex = "0.4"
+kaskold-protocol = { version = "=2.0.0", path = "../kaskold-protocol", features = ["companion"] }
+kaskold-sdk = { version = "=2.0.0", path = "../kaskold-sdk" }
 serde_json = "1.0"

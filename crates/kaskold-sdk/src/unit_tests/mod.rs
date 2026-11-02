@@ -1,7 +1,5 @@
 use super::*;
 
-mod signing_flow;
-
 #[test]
 fn public_limits_match_reference_signer_protocol_capabilities() {
     let limits = limits();
@@ -233,4 +231,17 @@ fn sdk_privacy_pairing_request_uses_runtime_randomness_and_tracks_pending_sessio
     assert_eq!(wire.change_start, 19);
     assert_eq!(wire.change_count, 3);
     assert_eq!(signer.pending_pairing.as_ref(), Some(&request));
+}
+
+#[test]
+fn resetting_the_decoder_forgets_a_partial_scan() {
+    let frames = protocol::encode_qr_frames(&[0x66u8; 220]).expect("frames");
+    let mut scanner = KasKold::new();
+    assert!(scanner
+        .accept_qr_frame(&frames[0].payload)
+        .expect("frame")
+        .is_none());
+    assert_eq!(scanner.qr_decoder_progress().received, 1);
+    scanner.reset_qr_decoder();
+    assert_eq!(scanner.qr_decoder_progress().received, 0);
 }

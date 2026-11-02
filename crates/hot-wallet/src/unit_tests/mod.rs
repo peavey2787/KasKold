@@ -12,6 +12,7 @@ use offline_signer::{
 };
 
 mod kip22;
+mod sdk_signing_flow;
 pub(crate) mod zeroization;
 
 const MNEMONIC_12: &str =

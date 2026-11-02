@@ -2287,6 +2287,7 @@ F	crates/hot-wallet/src/transaction_review/unit_tests/mod.rs
 F	crates/hot-wallet/src/transaction_signing.rs
 F	crates/hot-wallet/src/unit_tests/kip22.rs
 F	crates/hot-wallet/src/unit_tests/mod.rs
+F	crates/hot-wallet/src/unit_tests/sdk_signing_flow.rs
 F	crates/hot-wallet/src/unit_tests/zeroization.rs
 F	crates/hot-wallet/src/wallet_creation/mod.rs
 F	crates/hot-wallet/src/wallet_multisig/mod.rs
@@ -2425,7 +2426,6 @@ F	crates/kaskold-sdk/build.sh
 F	crates/kaskold-sdk/src/error/mod.rs
 F	crates/kaskold-sdk/src/lib.rs
 F	crates/kaskold-sdk/src/unit_tests/mod.rs
-F	crates/kaskold-sdk/src/unit_tests/signing_flow.rs
 F	crates/kaskold-sdk/src/wasm/mod.rs
 F	crates/offline-signer/Cargo.toml
 F	crates/offline-signer/src/crypto/container_framing.rs
