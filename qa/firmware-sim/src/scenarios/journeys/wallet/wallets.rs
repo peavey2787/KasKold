@@ -22,6 +22,17 @@ journey!(
     add_a_wallet_with_its_own_pin,
     open_the_second_wallet_with_its_own_pin,
 );
+journey!(
+    a_second_wallet_for_this_session_is_forgotten_at_power_off:
+    restore_the_known_wallet,
+    add_a_wallet_for_this_session,
+    only_the_kept_wallet_comes_back,
+);
+journey!(
+    a_session_wallet_the_device_already_keeps_is_refused:
+    restore_the_known_wallet,
+    add_the_kept_wallet_for_this_session,
+);
 
 journey!(
     deleting_a_wallet_takes_a_long_hold_and_can_be_backed_out_of:
@@ -80,8 +91,8 @@ fn a_deleted_wallet_stays_gone() {
     walk::expect_address(&device, known::RECEIVE_0);
 }
 
-/// Restores a second wallet up to the question of how it is protected.
-fn begin_adding_a_second_wallet(device: &Device) {
+/// Restores a second wallet up to the question of whether the device keeps it.
+fn begin_restoring_a_second_wallet(device: &Device) {
     walk::unlock_with_pin(device, PIN);
     walk::open_add_wallet(device);
     device.tap("Restore Wallet");
@@ -89,6 +100,11 @@ fn begin_adding_a_second_wallet(device: &Device) {
     walk::type_words(device, &known::TWENTY_FOUR_WORDS);
     device.tap("No Passphrase");
     walk::name_wallet_as(device, SECOND_WALLET);
+}
+
+/// Restores a second wallet up to the question of how it is protected.
+fn begin_adding_a_second_wallet(device: &Device) {
+    begin_restoring_a_second_wallet(device);
     device.tap("Save Securely on Device");
 }
 
@@ -111,6 +127,40 @@ fn add_a_wallet_with_its_own_pin() {
     device.enter_pin(SECOND_WALLET_PIN);
     device.enter_pin(SECOND_WALLET_PIN);
     device.wait_for_text("WALLETS");
+}
+
+fn add_a_wallet_for_this_session() {
+    let device = Device::boot();
+    begin_restoring_a_second_wallet(&device);
+    device.tap("Use for This Session Only");
+    device.wait_for_text("WALLETS");
+    device.expect_text(SECOND_WALLET);
+    assert_eq!(app_state().wallet.seeds.seed_mgr.count(), 2);
+    walk::go_home(&device);
+    walk::open_receive(&device);
+    walk::expect_address(&device, known::TWENTY_FOUR_WORD_RECEIVE_0);
+}
+
+fn only_the_kept_wallet_comes_back() {
+    let device = Device::boot();
+    walk::unlock_with_pin(&device, PIN);
+    assert_eq!(app_state().wallet.seeds.seed_mgr.count(), 1);
+    walk::open_receive(&device);
+    walk::expect_address(&device, known::RECEIVE_0);
+}
+
+fn add_the_kept_wallet_for_this_session() {
+    let device = Device::boot();
+    walk::unlock_with_pin(&device, PIN);
+    walk::open_add_wallet(&device);
+    walk::restore_words(&device, known::ABOUT_WORDS, "No Passphrase");
+    walk::name_wallet_as(&device, SECOND_WALLET);
+    device.tap("Use for This Session Only");
+    device.settle();
+    device.expect_was_shown("Wallet already exists");
+    device.wait_for_text("WALLETS");
+    device.expect_text("Main");
+    assert_eq!(app_state().wallet.seeds.seed_mgr.count(), 1);
 }
 
 fn open_the_list_after_the_device_pin(device: &Device) {

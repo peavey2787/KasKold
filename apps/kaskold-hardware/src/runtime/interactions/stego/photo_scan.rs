@@ -2,8 +2,10 @@
 
 use super::display;
 use crate::runtime::data::AppData;
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
+use crate::runtime::interactions::feedback::{show_rejection, show_success, ErrorSound};
 use crate::services::storage_files;
+
+const MORE_PHOTOS_MESSAGE: &str = "Listing the first 8 photos";
 
 pub(super) struct PhotoList<'list> {
     pub(super) names: &'list mut [[u8; 11]; 8],
@@ -24,8 +26,13 @@ pub(super) fn scan(
     crate::services::timing::pause(delay, 50);
     let result =
         storage_files::scan_jpeg_files(list.names, list.display_names, list.display_lens, list.count, delay, i2c);
-    if matches!(result, Ok(count) if count > 0) {
-        return true;
+    if let Ok(found) = result {
+        if found.count > 0 {
+            if found.more_on_card {
+                show_success(boot_display, delay, MORE_PHOTOS_MESSAGE, 2_000);
+            }
+            return true;
+        }
     }
     show_rejection(boot_display, delay, "No .JPG files on SD", 2_000, ErrorSound::Beep);
     false

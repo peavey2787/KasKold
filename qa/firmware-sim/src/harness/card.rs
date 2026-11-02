@@ -6,10 +6,25 @@ const BLOCK: usize = 512;
 const DIRECTORY_ENTRY: usize = 32;
 const FAT_ENTRY: usize = 4;
 const ARCHIVE: u8 = 0x20;
+const VOLUME_LABEL: u8 = 0x08;
+const DIRECTORY: u8 = 0x10;
+const LONG_NAME: u8 = 0x0F;
+const LAST_LONG_PART: u8 = 0x40;
+const LONG_PART_CHARS: usize = 13;
+const LONG_PART_SLOTS: [usize; LONG_PART_CHARS] = [1, 3, 5, 7, 9, 14, 16, 18, 20, 22, 24, 28, 30];
+const COMPUTER_PARTITION_START: usize = 8192;
+const COMPUTER_RESERVED_BLOCKS: u16 = 32;
+const COMPUTER_BLOCKS_PER_CLUSTER: u8 = 64;
+const COMPUTER_FAT_BLOCKS: u32 = 2048;
+const COMPUTER_TOTAL_BLOCKS: u32 = 16 * 1024 * 1024 - COMPUTER_PARTITION_START as u32;
+const ROOT_CLUSTER: u32 = 2;
+const BOOT_SIGNATURE_AT: usize = 510;
+const FAT32_LBA_PARTITION: u8 = 0x0C;
 const FREE_ENTRY: u8 = 0x00;
 const DELETED_ENTRY: u8 = 0xE5;
 const END_OF_CHAIN: u32 = 0x0FFF_FFFF;
 const FIRST_FILE_CLUSTER: u32 = 3;
+const FAT_BLOCKS_CHECKED: usize = 64;
 const FILESYSTEM_MARK: &[u8; 5] = b"FAT32";
 const FILESYSTEM_MARK_AT: usize = 82;
 const PARTITION_START_AT: usize = 454;
@@ -125,6 +140,20 @@ impl Volume {
     }
 
     fn write_entry(&self, name: &[u8; 11], first_cluster: u32, size: usize) {
+        self.write_entry_with(name, ARCHIVE, first_cluster, size);
+    }
+
+    fn write_entry_with(&self, name: &[u8; 11], kind: u8, first_cluster: u32, size: usize) {
+        let mut entry = [0u8; DIRECTORY_ENTRY];
+        entry[..11].copy_from_slice(name);
+        entry[11] = kind;
+        entry[20..22].copy_from_slice(&((first_cluster >> 16) as u16).to_le_bytes());
+        entry[26..28].copy_from_slice(&(first_cluster as u16).to_le_bytes());
+        entry[28..32].copy_from_slice(&(size as u32).to_le_bytes());
+        self.append_raw_entry(&entry);
+    }
+
+    fn append_raw_entry(&self, raw: &[u8; DIRECTORY_ENTRY]) {
         let (block_at, offset) = self
             .root_slots()
             .into_iter()
@@ -133,14 +162,98 @@ impl Volume {
             })
             .expect("room in the root directory");
         let mut block = sd::read_block(block_at);
-        let entry = &mut block[offset..offset + DIRECTORY_ENTRY];
-        entry.fill(0);
-        entry[..11].copy_from_slice(name);
-        entry[11] = ARCHIVE;
-        entry[20..22].copy_from_slice(&((first_cluster >> 16) as u16).to_le_bytes());
-        entry[26..28].copy_from_slice(&(first_cluster as u16).to_le_bytes());
-        entry[28..32].copy_from_slice(&(size as u32).to_le_bytes());
+        block[offset..offset + DIRECTORY_ENTRY].copy_from_slice(raw);
         sd::write_block(block_at, &block);
+    }
+
+    /// The long-name entries a computer writes just before a file's own entry.
+    fn append_long_name(&self, long: &str, short: &[u8; 11]) {
+        let checksum = short
+            .iter()
+            .fold(0u8, |sum, byte| sum.rotate_right(1).wrapping_add(*byte));
+        let characters: Vec<u16> = long.encode_utf16().chain([0]).collect();
+        let parts = long.encode_utf16().count().div_ceil(LONG_PART_CHARS);
+        for part in (0..parts).rev() {
+            let mut entry = [0xFFu8; DIRECTORY_ENTRY];
+            let sequence = part as u8 + 1;
+            entry[0] = sequence | if part + 1 == parts { LAST_LONG_PART } else { 0 };
+            entry[11] = LONG_NAME;
+            entry[12] = 0;
+            entry[13] = checksum;
+            entry[26..28].fill(0);
+            let piece = part * LONG_PART_CHARS..(part + 1) * LONG_PART_CHARS;
+            let piece = characters.get(piece.start..piece.end.min(characters.len()));
+            for (slot, character) in LONG_PART_SLOTS.iter().zip(piece.unwrap_or_default()) {
+                entry[*slot..*slot + 2].copy_from_slice(&character.to_le_bytes());
+            }
+            self.append_raw_entry(&entry);
+        }
+    }
+
+    /// Every cluster a file's chain walks through.
+    fn chain_of(&self, first: u32) -> Vec<u32> {
+        let mut chain = Vec::new();
+        let mut cluster = first;
+        while (ROOT_CLUSTER..END_OF_CHAIN & !7).contains(&cluster) {
+            chain.push(cluster);
+            cluster = self.next(cluster);
+        }
+        chain
+    }
+
+    /// What a disk checker looks at: one owner per cluster, chains that fit the
+    /// sizes, and both copies of the table alike. Nothing is repaired.
+    fn problems(&self) -> Vec<String> {
+        let mut problems = Vec::new();
+        let mut owners = std::collections::HashMap::new();
+        let mut long_parts_waiting = false;
+        for (block_at, offset) in self.root_slots() {
+            let block = sd::read_block(block_at);
+            let entry = &block[offset..offset + DIRECTORY_ENTRY];
+            if entry[0] == FREE_ENTRY {
+                break;
+            }
+            if entry[0] == DELETED_ENTRY {
+                if long_parts_waiting {
+                    problems.push("a long name is left over from a deleted file".to_string());
+                }
+                long_parts_waiting = false;
+                continue;
+            }
+            if entry[11] == LONG_NAME {
+                long_parts_waiting = true;
+                continue;
+            }
+            long_parts_waiting = false;
+            if entry[11] & VOLUME_LABEL != 0 {
+                continue;
+            }
+            let name = String::from_utf8_lossy(&entry[..11]).into_owned();
+            let first = (little_u16(entry, 20) as u32) << 16 | little_u16(entry, 26) as u32;
+            let chain = self.chain_of(first);
+            for cluster in &chain {
+                if let Some(other) = owners.insert(*cluster, name.clone()) {
+                    problems.push(format!("{name} and {other} share cluster {cluster}"));
+                }
+            }
+            let size = little_u32(entry, 28) as usize;
+            if entry[11] & DIRECTORY == 0 && chain.len() != size.div_ceil(self.cluster_bytes()) {
+                problems.push(format!(
+                    "{name} holds {size} bytes in {} clusters",
+                    chain.len()
+                ));
+            }
+        }
+        for at in 0..self.fat_blocks.min(FAT_BLOCKS_CHECKED) {
+            for copy in 1..self.fats {
+                if sd::read_block(self.fat + at)
+                    != sd::read_block(self.fat + copy * self.fat_blocks + at)
+                {
+                    problems.push(format!("copy {copy} of the table differs at block {at}"));
+                }
+            }
+        }
+        problems
     }
 
     fn delete_entry(&self, name: &[u8; 11]) {
@@ -192,4 +305,106 @@ pub(crate) fn read_file(name: &[u8; 11]) -> Option<Vec<u8>> {
     }
     contents.truncate(size);
     Some(contents)
+}
+
+/// Erases the card and formats it the way a computer does: a partition table, and a
+/// volume that starts later on the card with large clusters.
+pub(crate) fn format_like_a_computer() {
+    let mut table = [0u8; BLOCK];
+    table[446 + 4] = FAT32_LBA_PARTITION;
+    table[PARTITION_START_AT..PARTITION_START_AT + 4]
+        .copy_from_slice(&(COMPUTER_PARTITION_START as u32).to_le_bytes());
+    table[PARTITION_START_AT + 4..PARTITION_START_AT + 8]
+        .copy_from_slice(&COMPUTER_TOTAL_BLOCKS.to_le_bytes());
+    table[BOOT_SIGNATURE_AT..].copy_from_slice(&[0x55, 0xAA]);
+    sd::write_block(0, &table);
+
+    let mut boot = [0u8; BLOCK];
+    boot[..3].copy_from_slice(&[0xEB, 0x58, 0x90]);
+    boot[3..11].copy_from_slice(b"MSDOS5.0");
+    boot[11..13].copy_from_slice(&(BLOCK as u16).to_le_bytes());
+    boot[13] = COMPUTER_BLOCKS_PER_CLUSTER;
+    boot[14..16].copy_from_slice(&COMPUTER_RESERVED_BLOCKS.to_le_bytes());
+    boot[16] = 2;
+    boot[21] = 0xF8;
+    boot[32..36].copy_from_slice(&COMPUTER_TOTAL_BLOCKS.to_le_bytes());
+    boot[36..40].copy_from_slice(&COMPUTER_FAT_BLOCKS.to_le_bytes());
+    boot[44..48].copy_from_slice(&ROOT_CLUSTER.to_le_bytes());
+    boot[48..50].copy_from_slice(&1u16.to_le_bytes());
+    boot[50..52].copy_from_slice(&6u16.to_le_bytes());
+    boot[FILESYSTEM_MARK_AT..FILESYSTEM_MARK_AT + 5].copy_from_slice(FILESYSTEM_MARK);
+    boot[BOOT_SIGNATURE_AT..].copy_from_slice(&[0x55, 0xAA]);
+    sd::write_block(COMPUTER_PARTITION_START, &boot);
+
+    let reserved = COMPUTER_PARTITION_START + usize::from(COMPUTER_RESERVED_BLOCKS);
+    let blank = [0u8; BLOCK];
+    for at in reserved..reserved + 2 * COMPUTER_FAT_BLOCKS as usize {
+        sd::write_block(at, &blank);
+    }
+    let volume = volume();
+    for cluster in [0, 1] {
+        volume.link(cluster, END_OF_CHAIN);
+    }
+    let first = volume.first_block(ROOT_CLUSTER);
+    for at in first..first + volume.per_cluster {
+        sd::write_block(at, &blank);
+    }
+    volume.link(ROOT_CLUSTER, END_OF_CHAIN);
+}
+
+/// Puts a file on the card under a long name; `short` is the name the computer derived.
+pub(crate) fn put_long_named_file(long: &str, short: &[u8; 11], contents: &[u8]) {
+    let volume = volume();
+    let clusters = volume.free_clusters(contents.len().div_ceil(volume.cluster_bytes()).max(1));
+    volume.write_chain(&clusters, contents);
+    volume.append_long_name(long, short);
+    volume.write_entry(short, clusters[0], contents.len());
+}
+
+/// As a card that has been used for a while: the file's clusters are not side by side.
+pub(crate) fn put_scattered_file(long: &str, short: &[u8; 11], contents: &[u8]) {
+    let volume = volume();
+    let count = contents.len().div_ceil(volume.cluster_bytes()).max(1);
+    let clusters: Vec<u32> = volume
+        .free_clusters(2 * count)
+        .into_iter()
+        .step_by(2)
+        .collect();
+    volume.write_chain(&clusters, contents);
+    volume.append_long_name(long, short);
+    volume.write_entry(short, clusters[0], contents.len());
+}
+
+pub(crate) fn put_volume_label(label: &[u8; 11]) {
+    volume().write_entry_with(label, VOLUME_LABEL, 0, 0);
+}
+
+/// A folder the firmware has no reason to enter.
+pub(crate) fn put_folder(long: &str, short: &[u8; 11]) {
+    let volume = volume();
+    let cluster = volume.free_clusters(1)[0];
+    volume.write_chain(&[cluster], &[0u8; DIRECTORY_ENTRY]);
+    volume.append_long_name(long, short);
+    volume.write_entry_with(short, DIRECTORY, cluster, 0);
+}
+
+/// A file a computer already deleted: its entries remain, marked free.
+pub(crate) fn put_deleted_file(long: &str, short: &[u8; 11]) {
+    let volume = volume();
+    volume.append_long_name(long, short);
+    volume.write_entry(short, 0, 0);
+    for (block_at, offset) in volume.root_slots() {
+        let mut block = sd::read_block(block_at);
+        let entry = &block[offset..offset + DIRECTORY_ENTRY];
+        if entry[0] != FREE_ENTRY && (entry[11] == LONG_NAME || &entry[..11] == short) {
+            block[offset] = DELETED_ENTRY;
+            sd::write_block(block_at, &block);
+        }
+    }
+}
+
+/// Panics on anything a disk checker on a computer would report about this card.
+pub(crate) fn expect_a_sound_volume() {
+    let problems = volume().problems();
+    assert!(problems.is_empty(), "the card is damaged: {problems:#?}");
 }

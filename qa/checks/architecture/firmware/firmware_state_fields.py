@@ -19,7 +19,7 @@ def nested_struct_expectations(data_root: Path) -> dict[Path, dict[str, tuple[st
             "FileBrowserState": ("file_list", "file_count", "file_scroll", "selected_file", "text_import_kind"),
             "ExportFileState": ("filename", "overwrite_prompt", "overwrite_prompt_len", "encrypted_operation"),
             "StorageConfirmationState": ("overwrite_action", "overwrite_back", "delete_return"),
-            "TextFileList": ("file_names", "display_names", "display_lens", "file_count"),
+            "TextFileList": ("file_names", "display_names", "display_lens", "file_count", "more_on_card"),
         },
         data_root / "signing.rs": {
             "TransactionSigningState": ("active", "signatures_present", "signatures_required", "input_format", "pskt_parsed", "output_ownership", "initial_signature_counts"),

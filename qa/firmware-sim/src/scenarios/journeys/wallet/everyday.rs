@@ -1,5 +1,5 @@
 //! What a person does day to day once a wallet exists.
-use crate::harness::{app_state, Device};
+use crate::harness::{app_state, card, hold_up_qr, lower_qr, Device};
 use crate::runtime::input::AppState;
 use crate::scenarios::journeys::known::{self, PIN};
 use crate::scenarios::journeys::walk::{self, restore_the_known_wallet};
@@ -15,6 +15,9 @@ const REQUIRE_PIN_ROW: (u16, u16) = (160, 195);
 /// Blank space on the unlock screen: touching a dimmed screen only wakes it.
 const WAKE_TAP: (u16, u16) = (160, 60);
 const MESSAGE: &str = "hello";
+const SCANNED_MESSAGE: &str = "pay the plumber";
+const CARD_MESSAGE: &str = "rent is paid";
+const MESSAGE_FILE: &[u8; 11] = b"MESSAGE TXT";
 const SIGNATURE_QR_TAP: (u16, u16) = (235, 173);
 const SIGNATURE_BYTES: usize = 64;
 const TAP_FOR_QR: (u16, u16) = (160, 120);
@@ -25,6 +28,8 @@ journey!(a_hidden_key_address_commits_only_to_a_script_hash: restore_the_known_w
 journey!(a_kpub_saved_to_a_card_derives_the_wallet_addresses: restore_the_known_wallet, save_the_kpub_to_a_card);
 journey!(a_kpub_is_not_saved_without_a_card: restore_the_known_wallet, refuse_the_kpub_without_a_card);
 journey!(a_signed_message_verifies_against_the_wallet_key: restore_the_known_wallet, sign_a_message);
+journey!(a_message_from_a_qr_signs_what_it_says: restore_the_known_wallet, sign_a_scanned_message);
+journey!(a_message_from_a_card_signs_what_it_says: restore_the_known_wallet, sign_a_message_from_the_card);
 journey!(an_idle_screen_stays_open_unless_the_lock_is_on: restore_the_known_wallet, idle_without_the_lock);
 journey!(
     the_screen_lock_asks_for_the_pin_and_survives_a_reboot:
@@ -111,23 +116,52 @@ fn refuse_the_kpub_without_a_card() {
     );
 }
 
-fn sign_a_message() {
-    let device = Device::boot();
-    walk::unlock_with_pin(&device, PIN);
+fn open_sign_message(device: &Device) {
+    walk::unlock_with_pin(device, PIN);
     device.tap("Wallet");
-    walk::next_menu_page(&device);
+    walk::next_menu_page(device);
     device.tap("Advanced");
     device.tap("Sign Message");
+}
+
+fn sign_a_message() {
+    let device = Device::boot();
+    open_sign_message(&device);
     device.tap("Type manually");
     device.type_text(MESSAGE);
     walk::press_full_ok(&device);
-    device.expect_text(MESSAGE);
+    sign_the_reviewed_message(&device, MESSAGE);
+}
+
+fn sign_a_scanned_message() {
+    let device = Device::boot();
+    open_sign_message(&device);
+    device.tap("Scan message QR");
+    hold_up_qr(SCANNED_MESSAGE.as_bytes());
+    device.wait_for_text(SCANNED_MESSAGE);
+    lower_qr();
+    sign_the_reviewed_message(&device, SCANNED_MESSAGE);
+}
+
+fn sign_a_message_from_the_card() {
+    let device = Device::boot_with_card();
+    card::format_like_a_computer();
+    card::put_file(MESSAGE_FILE, format!("{CARD_MESSAGE}\r\n").as_bytes());
+    open_sign_message(&device);
+    device.tap("Load .TXT from SD");
+    device.tap("MESSAGE.TXT");
+    device.wait_for_text(CARD_MESSAGE);
+    sign_the_reviewed_message(&device, CARD_MESSAGE);
+}
+
+fn sign_the_reviewed_message(device: &Device, message: &str) {
+    device.expect_text(message);
     device.tap("SIGN");
     device.wait_for_text("SIGNATURE");
     device.tap_at(SIGNATURE_QR_TAP.0, SIGNATURE_QR_TAP.1);
     let scanned = device.wait_for_qr();
     let (signature, digest) = scanned.split_at(SIGNATURE_BYTES);
-    assert_eq!(digest, message_digest(MESSAGE.as_bytes()));
+    assert_eq!(digest, message_digest(message.as_bytes()));
     let signature = SchnorrSignature {
         bytes: signature.try_into().expect("a signature"),
     };

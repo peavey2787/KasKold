@@ -84,11 +84,19 @@ pub struct TextFileList {
     pub display_names: [[u8; 32]; 8],
     pub display_lens: [u8; 8],
     pub file_count: u8,
+    /// More text files matched than the list can hold.
+    pub more_on_card: bool,
 }
 
 impl TextFileList {
     pub const fn empty() -> Self {
-        Self { file_names: [[0; 11]; 8], display_names: [[0; 32]; 8], display_lens: [0; 8], file_count: 0 }
+        Self {
+            file_names: [[0; 11]; 8],
+            display_names: [[0; 32]; 8],
+            display_lens: [0; 8],
+            file_count: 0,
+            more_on_card: false,
+        }
     }
 }
 

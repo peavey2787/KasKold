@@ -7,9 +7,7 @@ fn accept_content(ad: &mut crate::runtime::data::AppData, content: &[u8]) -> Res
     if content.is_empty() {
         return Err("Message is empty");
     }
-    if core::str::from_utf8(content).is_err()
-        || content.iter().any(|byte| *byte < 0x20 && !matches!(*byte, b'\n' | b'\r' | b'\t'))
-    {
+    if !text_files::is_readable_text(content) {
         return Err("Message must contain readable text");
     }
     ad.signing.message.payload.fill(0);
@@ -22,10 +20,7 @@ fn accept_content(ad: &mut crate::runtime::data::AppData, content: &[u8]) -> Res
 pub(super) fn handle(context: TextFileSelectionContext<'_, '_, '_>) -> bool {
     text_files::handle_selection::<1_024>(
         context,
-        TextFileSelectionWorkflow {
-            back_state: crate::runtime::navigation::continuation!(SignMsgChoice),
-            read_error_message: "Read failed",
-        },
+        TextFileSelectionWorkflow { back_state: crate::runtime::navigation::continuation!(SignMsgChoice) },
         accept_content,
     )
 }

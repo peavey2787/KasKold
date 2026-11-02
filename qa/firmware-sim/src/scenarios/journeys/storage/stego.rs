@@ -23,14 +23,14 @@ const JPEG_START: [u8; 2] = [0xFF, 0xD8];
 /// The upper and lower cards of the carrier and security screens.
 pub(super) const UPPER_CARD: (u16, u16) = (160, 90);
 pub(super) const LOWER_CARD: (u16, u16) = (160, 170);
-const TYPE_MANUALLY: &str = "Type manually";
+pub(super) const TYPE_MANUALLY: &str = "Type manually";
 /// NEXT on the descriptor preview, and NO then YES on the hint question.
-const PREVIEW_NEXT: (u16, u16) = (230, 205);
-const NO_HINT: (u16, u16) = (80, 195);
+pub(super) const PREVIEW_NEXT: (u16, u16) = (230, 205);
+pub(super) const NO_HINT: (u16, u16) = (80, 195);
 const WANT_HINT: (u16, u16) = (230, 195);
 const FIRST_PRESET_HINT: (u16, u16) = (100, 80);
 /// The title of the same screen also says OVERWRITE.
-const OVERWRITE: (u16, u16) = (235, 205);
+pub(super) const OVERWRITE: (u16, u16) = (235, 205);
 const BACKUP_MADE: &str = "Stego Backup Created";
 const HINT_FOUND: &str = "A recovery hint was found:";
 const FIRST_PRESET_HINT_TEXT: &str = "My favorite place I lived?";
@@ -87,7 +87,7 @@ journey!(
     refuse_a_restore_without_photos,
 );
 
-fn open_stego(device: &Device) {
+pub(super) fn open_stego(device: &Device) {
     device.tap("Wallet");
     device.tap("Backup");
     device.tap("Advanced");
@@ -110,7 +110,7 @@ fn describe_the_photo(device: &Device) {
     device.wait_for_text("HIDE A HINT?");
 }
 
-fn set_the_portable_password(device: &Device) {
+pub(super) fn set_the_portable_password(device: &Device) {
     walk::enter_password(device, PASSWORD);
     walk::enter_password(device, PASSWORD);
     device.wait_for_text("CONFIRM OVERWRITE");
@@ -130,9 +130,13 @@ pub(super) fn hide_portably(photo: &[u8], carrier: (u16, u16)) {
     expect_the_photo_holds_a_secret(&device);
 }
 
-fn expect_the_photo_holds_a_secret(device: &Device) {
+pub(super) fn expect_the_backup_was_made(device: &Device) {
     device.wait_for_text(BACKUP_MADE);
     assert_eq!(app_state().navigation.app.state, AppState::StegoResult);
+}
+
+fn expect_the_photo_holds_a_secret(device: &Device) {
+    expect_the_backup_was_made(device);
     let photo = card::read_file(PHOTO_FILE).expect("the photo is still on the card");
     assert!(
         photo.starts_with(&JPEG_START),

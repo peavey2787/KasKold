@@ -4,5 +4,6 @@ mod card_files;
 mod card_imports;
 mod card_storage;
 mod card_transactions;
+mod computer_card;
 mod stego;
 mod stego_exif;

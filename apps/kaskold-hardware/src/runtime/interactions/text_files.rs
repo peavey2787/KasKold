@@ -3,11 +3,17 @@
 use crate::{
     hw::{display, touch::TouchZone},
     runtime::interactions::{
-        feedback::{show_rejection, ErrorSound},
+        feedback::{show_rejection, show_success, ErrorSound},
         TouchInput,
     },
     runtime::{data::AppData, navigation::ContinuationRoute},
 };
+
+/// Text a person can read on the review screen, line breaks and tabs included.
+pub(crate) fn is_readable_text(content: &[u8]) -> bool {
+    core::str::from_utf8(content).is_ok()
+        && !content.iter().any(|byte| *byte < 0x20 && !matches!(*byte, b'\n' | b'\r' | b'\t'))
+}
 
 #[derive(Clone, Copy)]
 pub(crate) struct TextFileScanWorkflow {
@@ -28,7 +34,6 @@ pub(crate) struct TextFileSelectionContext<'ctx, 'display, 'hal> {
 #[derive(Clone, Copy)]
 pub(crate) struct TextFileSelectionWorkflow {
     pub back_state: ContinuationRoute,
-    pub read_error_message: &'static str,
 }
 
 pub(crate) fn scan(
@@ -43,6 +48,9 @@ pub(crate) fn scan(
     crate::services::timing::pause(delay, 50);
     match crate::services::storage_files::scan_text_files(workflow.maximum_bytes, delay, i2c) {
         Ok(files) if files.file_count > 0 => {
+            if files.more_on_card {
+                show_success(boot_display, delay, crate::services::storage_files::MORE_FILES_MESSAGE, 2_000);
+            }
             ad.storage.text_files = files;
             crate::runtime::effects::continue_to(ad, workflow.next_state);
             true
@@ -87,8 +95,8 @@ pub(crate) fn handle_selection<const N: usize>(
         .and_then(|length| on_loaded(ad, &content[..length]));
     shared_signer::bytes::zeroize_bytes(&mut content);
 
-    if result.is_err() {
-        show_rejection(boot_display, delay, workflow.read_error_message, 1_500, ErrorSound::Beep);
+    if let Err(reason) = result {
+        show_rejection(boot_display, delay, reason, 1_500, ErrorSound::Beep);
     }
     true
 }

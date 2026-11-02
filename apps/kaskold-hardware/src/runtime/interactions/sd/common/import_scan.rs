@@ -2,7 +2,7 @@
 
 use super::super::{display, AppData};
 use crate::runtime::data::TextFileKind;
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
+use crate::runtime::interactions::feedback::{show_rejection, show_success, ErrorSound};
 
 #[derive(Clone, Copy)]
 pub(crate) struct ImportScanRule {
@@ -50,7 +50,10 @@ pub(crate) fn scan_by_rule(
     crate::services::touch_recovery::after_sd_scan();
 
     match result {
-        Ok(count) if count > 0 => {
+        Ok(found) if found.count > 0 => {
+            if found.more_on_card {
+                show_success(boot_display, delay, crate::services::storage_files::MORE_FILES_MESSAGE, 2_000);
+            }
             let _ = crate::runtime::effects::continue_to(ad, rule.next_state);
         }
         Ok(_) => {

@@ -2,6 +2,7 @@
 use super::super::super::{display, AppData};
 use crate::runtime::input::AppState;
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
+use crate::runtime::interactions::text_files::is_readable_text;
 
 pub(in crate::runtime::interactions::camera_loop::dispatch) fn is_pending(ad: &AppData) -> bool {
     ad.navigation.app.state == AppState::SignMsgScan
@@ -9,11 +10,7 @@ pub(in crate::runtime::interactions::camera_loop::dispatch) fn is_pending(ad: &A
 
 #[cfg(feature = "workflow-test-auto")]
 pub(in crate::runtime::interactions::camera_loop::dispatch) fn workflow_process(data: &[u8], ad: &mut AppData) {
-    if data.is_empty()
-        || data.len() > ad.signing.message.payload.len()
-        || core::str::from_utf8(data).is_err()
-        || data.iter().any(|byte| *byte < 0x20 && !matches!(*byte, b'\n' | b'\r' | b'\t'))
-    {
+    if data.is_empty() || data.len() > ad.signing.message.payload.len() || !is_readable_text(data) {
         crate::runtime::effects::redraw(ad);
         return;
     }
@@ -31,11 +28,7 @@ pub(in crate::runtime::interactions::camera_loop::dispatch) fn process(
     delay: &mut esp_hal::delay::Delay,
 ) {
     let message = &data[..len.min(data.len())];
-    if message.is_empty()
-        || message.len() > ad.signing.message.payload.len()
-        || core::str::from_utf8(message).is_err()
-        || message.iter().any(|byte| *byte < 0x20 && !matches!(*byte, b'\n' | b'\r' | b'\t'))
-    {
+    if message.is_empty() || message.len() > ad.signing.message.payload.len() || !is_readable_text(message) {
         show_rejection(boot_display, delay, "Message QR must contain readable text", 1_200, ErrorSound::Beep);
         crate::runtime::effects::redraw(ad);
         return;

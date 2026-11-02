@@ -1,6 +1,6 @@
 mod helpers;
 use super::allocation::release_chain;
-use super::directory::{mark_dir_entry_deleted, write_dir_entry_to_root};
+use super::directory::{mark_dir_entry_deleted, mark_long_name_deleted, write_dir_entry_to_root};
 use super::{find_file_in_root, read_file_progress, DirEntry, Fat32Info, SdCardType};
 use helpers::{allocate_file_chain, clusters_for_file, file_entry, replace_existing_file, write_new_file_payload};
 // KasKold — Air-gapped offline signing device for Kaspa
@@ -59,6 +59,7 @@ pub fn delete_file(card_type: SdCardType, fat32: &Fat32Info, name_83: &[u8; 11])
     let (entry, sector, offset) = find_file_in_root(card_type, fat32, name_83)?;
     // Commit deletion first. A power loss after this point may leak clusters,
     // but no live directory entry can point into a chain that is being freed.
+    mark_long_name_deleted(card_type, fat32, sector, offset)?;
     mark_dir_entry_deleted(card_type, sector, offset)?;
     release_chain(card_type, fat32, entry.first_cluster())?;
     log!("[FAT32] Deleted file");

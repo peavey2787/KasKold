@@ -146,6 +146,65 @@ pub(in crate::hw::shared::storage::fat32) fn replace_dir_entry_at(
     sd_write_block(card_type, sector, &buf)
 }
 
+/// Long-name parts sit right before the entry they name. A computer lists at most 20.
+const MAX_LONG_NAME_PARTS: usize = 20;
+const DIRECTORY_ENTRY_BYTES: usize = 32;
+const LONG_NAME_ATTRIBUTE: u8 = 0x0F;
+
+/// The directory slots of a run of long-name parts, in the order they were met.
+struct LongNameRun {
+    slots: [(u32, usize); MAX_LONG_NAME_PARTS],
+    length: usize,
+}
+
+impl LongNameRun {
+    fn note(&mut self, sector: u32, offset: usize, entry: &[u8]) {
+        let part = entry[11] == LONG_NAME_ATTRIBUTE && entry[0] != 0xE5;
+        if !part || self.length == MAX_LONG_NAME_PARTS {
+            self.length = 0;
+        }
+        if part && self.length < MAX_LONG_NAME_PARTS {
+            self.slots[self.length] = (sector, offset);
+            self.length += 1;
+        }
+    }
+
+    fn mark_deleted(&self, card_type: SdCardType) -> Result<(), &'static str> {
+        for (sector, offset) in &self.slots[..self.length] {
+            mark_dir_entry_deleted(card_type, *sector, *offset)?;
+        }
+        Ok(())
+    }
+}
+
+/// Marks free the long name of the entry at `target`, so a deleted file's name goes with it.
+pub(in crate::hw::shared::storage::fat32) fn mark_long_name_deleted(
+    card_type: SdCardType,
+    fat32: &Fat32Info,
+    target_sector: u32,
+    target_offset: usize,
+) -> Result<(), &'static str> {
+    let mut run = LongNameRun { slots: [(0, 0); MAX_LONG_NAME_PARTS], length: 0 };
+    let mut block = [0u8; 512];
+    let mut cluster = fat32.root_cluster;
+    loop {
+        let base_sector = fat32.cluster_to_sector(cluster);
+        for sector in base_sector..base_sector + fat32.sectors_per_cluster as u32 {
+            sd_read_block(card_type, sector, &mut block)?;
+            for offset in (0..block.len()).step_by(DIRECTORY_ENTRY_BYTES) {
+                if (sector, offset) == (target_sector, target_offset) {
+                    return run.mark_deleted(card_type);
+                }
+                run.note(sector, offset, &block[offset..offset + DIRECTORY_ENTRY_BYTES]);
+            }
+        }
+        cluster = read_fat_entry(card_type, fat32, cluster)?;
+        if cluster >= 0x0FFF_FFF8 {
+            return Ok(());
+        }
+    }
+}
+
 pub(in crate::hw::shared::storage::fat32) fn mark_dir_entry_deleted(
     card_type: SdCardType,
     sector: u32,

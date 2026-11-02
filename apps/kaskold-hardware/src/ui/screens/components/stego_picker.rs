@@ -5,6 +5,21 @@ use super::super::{
 };
 use embedded_iconoir::prelude::IconoirNewIcon;
 
+const NAME_HEAD: usize = 6;
+const NAME_TAIL: usize = 8;
+
+/// A name too long for its row keeps both ends: photos from one camera differ at the end.
+fn shorten_name<'text>(name: &'text str, shortened: &'text mut [u8; NAME_HEAD + 2 + NAME_TAIL]) -> &'text str {
+    let bytes = name.as_bytes();
+    if bytes.len() <= shortened.len() {
+        return name;
+    }
+    shortened[..NAME_HEAD].copy_from_slice(&bytes[..NAME_HEAD]);
+    shortened[NAME_HEAD..NAME_HEAD + 2].copy_from_slice(b"..");
+    shortened[NAME_HEAD + 2..].copy_from_slice(&bytes[bytes.len() - NAME_TAIL..]);
+    core::str::from_utf8(shortened).unwrap_or("?")
+}
+
 impl<'a> BootDisplay<'a> {
     pub(crate) fn draw_stego_file_picker(
         &mut self,
@@ -56,16 +71,8 @@ impl<'a> BootDisplay<'a> {
             }
             let length = usize::from(display_lens[index as usize]);
             let name = core::str::from_utf8(&display_names[index as usize][..length]).unwrap_or("?");
-            let mut truncated = [0u8; 18];
-            let shown = if name.len() > 16 {
-                let length = name.len().min(14);
-                truncated[..length].copy_from_slice(&name.as_bytes()[..length]);
-                truncated[length..length + 2].copy_from_slice(b"..");
-                core::str::from_utf8(&truncated[..length + 2]).unwrap_or(name)
-            } else {
-                name
-            };
-            draw_lato_title(&mut self.display, shown, 80, y + 28, icon_color);
+            let mut shortened = [0u8; NAME_HEAD + 2 + NAME_TAIL];
+            draw_lato_title(&mut self.display, shorten_name(name, &mut shortened), 80, y + 28, icon_color);
         }
 
         let arrow_y = 136;

@@ -3136,6 +3136,7 @@ F	qa/firmware-sim/src/scenarios/journeys/storage/card_files.rs
 F	qa/firmware-sim/src/scenarios/journeys/storage/card_imports.rs
 F	qa/firmware-sim/src/scenarios/journeys/storage/card_storage.rs
 F	qa/firmware-sim/src/scenarios/journeys/storage/card_transactions.rs
+F	qa/firmware-sim/src/scenarios/journeys/storage/computer_card.rs
 F	qa/firmware-sim/src/scenarios/journeys/storage/stego.rs
 F	qa/firmware-sim/src/scenarios/journeys/storage/stego_exif.rs
 F	qa/firmware-sim/src/scenarios/journeys/walk.rs

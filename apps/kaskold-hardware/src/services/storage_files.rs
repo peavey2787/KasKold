@@ -3,6 +3,16 @@
 use crate::{hw::sdcard, runtime::data::TextFileList};
 
 const MAX_FILES: usize = 8;
+/// Said when a list could not hold every matching file.
+pub const MORE_FILES_MESSAGE: &str = "Listing the first 8 files";
+
+/// What a bounded file scan found.
+#[derive(Clone, Copy)]
+pub struct FileScan {
+    pub count: u8,
+    /// More files matched than the list can hold.
+    pub more_on_card: bool,
+}
 
 pub fn scan_text_files(
     maximum_size: u32,
@@ -50,20 +60,25 @@ pub fn scan_jpeg_files(
     file_count: &mut u8,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-) -> Result<u8, &'static str> {
+) -> Result<FileScan, &'static str> {
     let _ = &mut *i2c;
     *file_count = 0;
+    let mut more_on_card = false;
     sdcard::with_sd_card!(i2c, delay, |card| {
         let fat32 = sdcard::mount_fat32(card)?;
         sdcard::list_root_dir_lfn(card, &fat32, |entry, display_name, display_len| {
             let index = *file_count as usize;
-            if entry.is_dir() || entry.file_size == 0 || index >= MAX_FILES {
+            if entry.is_dir() || entry.file_size == 0 {
                 return true;
             }
             let extension = &entry.name[8..11];
             let hidden = matches!(entry.name[0], b'.' | b'_' | 0xE5);
             let jpeg = extension.eq_ignore_ascii_case(b"JPG") || extension.eq_ignore_ascii_case(b"JPE");
             if hidden || !jpeg {
+                return true;
+            }
+            if index >= MAX_FILES {
+                more_on_card = true;
                 return true;
             }
             file_names[index] = entry.name;
@@ -76,7 +91,7 @@ pub fn scan_jpeg_files(
         })?;
         Ok(())
     })?;
-    Ok(*file_count)
+    Ok(FileScan { count: *file_count, more_on_card })
 }
 
 pub fn scan_short_name_files(
@@ -87,14 +102,15 @@ pub fn scan_short_name_files(
     exclude_hidden: bool,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-) -> Result<u8, &'static str> {
+) -> Result<FileScan, &'static str> {
     let _ = &mut *i2c;
     *file_count = 0;
+    let mut more_on_card = false;
     sdcard::with_sd_card!(i2c, delay, |card| {
         let fat32 = sdcard::mount_fat32(card)?;
         sdcard::list_root_dir(card, &fat32, |entry| {
             let index = *file_count as usize;
-            if entry.is_dir() || entry.file_size == 0 || entry.file_size > maximum_size || index >= MAX_FILES {
+            if entry.is_dir() || entry.file_size == 0 || entry.file_size > maximum_size {
                 return true;
             }
             let hidden = matches!(entry.name[0], b'.' | b'_' | 0xE5);
@@ -103,13 +119,17 @@ pub fn scan_short_name_files(
             if (exclude_hidden && hidden) || !matches_extension {
                 return true;
             }
+            if index >= MAX_FILES {
+                more_on_card = true;
+                return true;
+            }
             file_names[index] = entry.name;
             *file_count += 1;
             true
         })?;
         Ok(())
     })?;
-    Ok(*file_count)
+    Ok(FileScan { count: *file_count, more_on_card })
 }
 
 fn capture_text_file(
@@ -120,13 +140,17 @@ fn capture_text_file(
     display_len: usize,
 ) -> bool {
     let index = files.file_count as usize;
-    if entry.is_dir() || entry.file_size == 0 || entry.file_size > maximum_size || index >= MAX_FILES {
+    if entry.is_dir() || entry.file_size == 0 || entry.file_size > maximum_size {
         return true;
     }
 
     let extension = &entry.name[8..11];
     let hidden = matches!(entry.name[0], b'.' | b'_' | 0xE5);
     if hidden || !extension.eq_ignore_ascii_case(b"TXT") {
+        return true;
+    }
+    if index >= MAX_FILES {
+        files.more_on_card = true;
         return true;
     }
 
@@ -141,7 +165,7 @@ fn capture_text_file(
 
 fn validate_text_file_size(file_size: usize, capacity: usize) -> Result<(), &'static str> {
     if file_size > capacity {
-        Err("Text file exceeds buffer")
+        Err("Text file is too long")
     } else {
         Ok(())
     }
@@ -149,7 +173,7 @@ fn validate_text_file_size(file_size: usize, capacity: usize) -> Result<(), &'st
 
 fn normalize_text_content(output: &mut [u8], length: usize) -> Result<usize, &'static str> {
     if length > output.len() {
-        return Err("Text file exceeds buffer");
+        return Err("Text file is too long");
     }
 
     let start = if length >= 3 && output[..3] == [0xEF, 0xBB, 0xBF] { 3 } else { 0 };
@@ -159,7 +183,7 @@ fn normalize_text_content(output: &mut [u8], length: usize) -> Result<usize, &'s
     }
     if end == start {
         output[..length].fill(0);
-        return Err("Empty content");
+        return Err("Text file is empty");
     }
 
     let normalized_length = end - start;

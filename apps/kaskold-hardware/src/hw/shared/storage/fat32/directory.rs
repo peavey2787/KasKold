@@ -4,7 +4,7 @@ use helpers::{
     hydrate_fsinfo_hint, next_directory_cluster, probe_common_offsets, try_mbr_partition, try_superfloppy,
     write_entry_into_sector,
 };
-pub(super) use helpers::{mark_dir_entry_deleted, replace_dir_entry_at};
+pub(super) use helpers::{mark_dir_entry_deleted, mark_long_name_deleted, replace_dir_entry_at};
 // KasKold — Air-gapped offline signing device for Kaspa
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
 //

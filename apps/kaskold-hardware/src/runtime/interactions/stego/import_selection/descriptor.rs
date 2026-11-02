@@ -40,10 +40,7 @@ pub(super) fn handle_choice(
 pub(super) fn handle_file(context: TextFileSelectionContext<'_, '_, '_>) -> bool {
     text_files::handle_selection::<128>(
         context,
-        TextFileSelectionWorkflow {
-            back_state: crate::runtime::navigation::continuation!(StegoImportDescChoice),
-            read_error_message: "Read failed",
-        },
+        TextFileSelectionWorkflow { back_state: crate::runtime::navigation::continuation!(StegoImportDescChoice) },
         accept_content,
     )
 }
@@ -54,6 +51,9 @@ fn accept_content(ad: &mut AppData, content: &[u8]) -> Result<(), &'static str> 
     }
     if content.len() > 96 {
         return Err("Description too large");
+    }
+    if !text_files::is_readable_text(content) {
+        return Err("Description must be readable");
     }
     ad.wallet.seeds.pp_input.reset();
     ad.wallet.seeds.pp_input.buf[..content.len()].copy_from_slice(content);

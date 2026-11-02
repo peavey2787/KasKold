@@ -30,7 +30,8 @@ impl<'a> BootDisplay<'a> {
                 .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
                 .draw(&mut self.display)
                 .ok();
-            match row {
+            // Without a QR row, the second row is the file.
+            match if include_qr { row } else { row * 2 } {
                 0 => {
                     let icon = size24px::editor::EditPencil::new(KASPA_TEAL);
                     Image::new(&icon, Point::new(50, y + 9)).draw(&mut self.display).ok();
