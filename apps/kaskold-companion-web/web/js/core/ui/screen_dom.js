@@ -1,3 +1,4 @@
+// @ts-check
 import { byId } from '../dom.js';
 
 export function visibleScreenName(fallback = 'welcome') {
@@ -5,6 +6,9 @@ export function visibleScreenName(fallback = 'welcome') {
     return active?.id?.replace(/^screen-/, '') || fallback;
 }
 
+/**
+ * @param {string} name
+ */
 export function activateScreen(name) {
     const target = byId(`screen-${name}`);
     if (!target) return false;
@@ -13,6 +17,10 @@ export function activateScreen(name) {
     return true;
 }
 
+/**
+ * @param {string} screenName
+ * @param {string | null | undefined} returnScreen
+ */
 export function setScreenReturn(screenName, returnScreen) {
     const screen = byId(`screen-${screenName}`);
     if (!screen) return;
@@ -20,6 +28,10 @@ export function setScreenReturn(screenName, returnScreen) {
     screen.dataset.returnScreen = target;
 }
 
+/**
+ * @param {string} screenName
+ * @param {string} [fallback]
+ */
 export function takeScreenReturn(screenName, fallback = 'welcome') {
     const screen = byId(`screen-${screenName}`);
     const target = screen?.dataset.returnScreen || fallback;

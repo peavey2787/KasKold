@@ -1,8 +1,12 @@
+// @ts-check
 // Shared Back/Home control layout. Existing Back handlers retain their cleanup
 // semantics; Home invokes Back first, then navigates to the wallet-aware home.
+/**
+ * @param {() => void} onHome
+ */
 export function installBackHomeControls(onHome) {
     if (typeof onHome !== 'function') return;
-    document.querySelectorAll('.btn-back').forEach(backButton => {
+    /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll('.btn-back')).forEach(backButton => {
         if (backButton.closest('.back-home-row')) return;
         const parent = backButton.parentNode;
         if (!parent) return;

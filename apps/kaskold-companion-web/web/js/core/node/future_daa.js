@@ -1,9 +1,14 @@
+// @ts-check
 import { exactUnsigned } from '../exact.js';
 import { fetchCurrentDaa } from './daa.js';
 
 const DAA_PER_SECOND = 10n;
 
 class FutureDaaError extends Error {
+/**
+ * @param {string} code
+ * @param {string} message
+ */
     constructor(code, message) {
         super(message);
         this.name = 'FutureDaaError';
@@ -11,6 +16,10 @@ class FutureDaaError extends Error {
     }
 }
 
+/**
+ * @param {string | number | Date} datetimeValue
+ * @param {number} [nowMs]
+ */
 function futureSeconds(datetimeValue, nowMs = Date.now()) {
     const targetMs = new Date(datetimeValue).getTime();
     if (!Number.isFinite(targetMs)) {
@@ -22,6 +31,9 @@ function futureSeconds(datetimeValue, nowMs = Date.now()) {
     return Math.ceil((targetMs - nowMs) / 1000);
 }
 
+/**
+ * @param {string | number | Date} datetimeValue
+ */
 export async function resolveFutureDaa(datetimeValue) {
     const secondsUntil = futureSeconds(datetimeValue);
     const currentDaa = exactUnsigned(await fetchCurrentDaa(), 'current DAA score');

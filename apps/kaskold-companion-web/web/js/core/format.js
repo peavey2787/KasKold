@@ -1,3 +1,4 @@
+// @ts-check
 import { exactUnsigned } from './exact.js';
 // Pure presentation helpers shared across browser features.
 
@@ -16,9 +17,13 @@ export function durationPartsToSeconds({
         + minutes * 60;
 }
 
+/**
+ * @param {number} seconds
+ */
 export function formatDuration(seconds) {
     if (seconds <= 0) return '0s';
     const parts = [];
+    /** @type {Array<[number, string]>} */
     const units = [
         [31536000, 'y'],
         [2592000, 'mo'],
@@ -38,12 +43,19 @@ export function formatDuration(seconds) {
     return parts.join(' ');
 }
 
+/**
+ * @param {unknown} deltaDaa
+ */
 export function formatDaaDuration(deltaDaa) {
     const seconds = exactUnsigned(deltaDaa, 'DAA delta') / 10n;
     if (seconds > BigInt(Number.MAX_SAFE_INTEGER)) return 'very long';
     return formatDuration(Number(seconds));
 }
 
+/**
+ * @param {{start_date_iso?: string, start_daa?: unknown, locktime_daa?: unknown}} covenant
+ * @param {unknown} [lastKnownDaa]
+ */
 export function formatStartDate(covenant, lastKnownDaa = 0n) {
     if (covenant.start_date_iso) {
         try {
@@ -62,6 +74,9 @@ export function formatStartDate(covenant, lastKnownDaa = 0n) {
     return 'DAA ' + daa.toString();
 }
 
+/**
+ * @param {number | null | undefined} seconds
+ */
 export function formatSeconds(seconds) {
     if (seconds == null || seconds <= 0) return '';
     if (seconds < 1) return '< 1s';
@@ -70,6 +85,9 @@ export function formatSeconds(seconds) {
     return Math.round(seconds / 3600) + 'h';
 }
 
+/**
+ * @param {number} blockTimeMs
+ */
 export function formatTransactionTime(blockTimeMs) {
     const date = new Date(blockTimeMs);
     const differenceMs = Date.now() - blockTimeMs;
@@ -85,6 +103,10 @@ export function formatTransactionTime(blockTimeMs) {
     return `${month} ${day}, ${year} ${hour}:${minute}`;
 }
 
+/**
+ * @param {string} hex
+ * @param {number} [edgeLength]
+ */
 export function shortenHex(hex, edgeLength = 10) {
     if (!hex || hex.length <= edgeLength * 2) return hex;
     return hex.slice(0, edgeLength) + '\u2026' + hex.slice(-edgeLength);

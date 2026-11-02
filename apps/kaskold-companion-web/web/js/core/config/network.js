@@ -1,3 +1,4 @@
+// @ts-check
 export const AUTO_REFRESH_INTERVAL = 30_000;
 export const GAP_EXPAND_RECEIVE = 10;
 export const GAP_EXPAND_CHANGE = 5;
@@ -21,7 +22,11 @@ export const RESOLVERS = Object.freeze([
     'https://alex.kaspa.red',
 ]);
 
+/**
+ * @param {string} network
+ */
 export function kaspaRestApiBase(network) {
+    /** @type {Readonly<Record<string, string>>} */
     const endpoints = Object.freeze({
         mainnet: 'https://api.kaspa.org',
         'testnet-10': 'https://api-tn10.kaspa.org',

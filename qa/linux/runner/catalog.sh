@@ -86,6 +86,10 @@ run_step() {
             # the independent tools lock before invoking cargo test --locked.
             run_cargo_metadata_check "$ROOT_DIR/tools" "Cargo.toml" || return $?
             run_cargo_test --manifest-path tools/Cargo.toml --lib --bins --locked ;;
+        static.language-lints)
+            require_command python3 || return
+            run_in_directory "$ROOT_DIR" python3 qa/checks/quality/language_lints.py
+            ;;
         static.qa-orchestration-catalog)
             require_command python3 || return
             run_in_directory "$ROOT_DIR" python3 qa/checks/workspace/check_qa_orchestration.py

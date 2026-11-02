@@ -2889,6 +2889,7 @@ F	qa/checks/quality/crap/policy.json
 F	qa/checks/quality/crap/regression.py
 F	qa/checks/quality/crap/report.py
 F	qa/checks/quality/crap/source_complexity.py
+F	qa/checks/quality/language_lints.py
 F	qa/checks/release/generate_software_assurance.py
 F	qa/checks/release/irreversible_action_ack.py
 F	qa/checks/release/readiness/__init__.py
@@ -3152,8 +3153,10 @@ F	qa/fuzz/stego_picture_parser.rs
 F	qa/fuzz/unwrap_qr_payload.rs
 F	qa/generated/production_ui_map.md
 F	qa/lint/eslint.config.mjs
+F	qa/lint/globals.d.ts
 F	qa/lint/package-lock.json
 F	qa/lint/package.json
+F	qa/lint/tsconfig.json
 F	qa/linux/lib/collect_esptool_security.py
 F	qa/linux/lib/esptool_security_policy.py
 F	qa/linux/lib/terminal_pause.sh
@@ -3246,6 +3249,7 @@ F	qa/tests/tooling/test_firmware_simulator_coverage.py
 F	qa/tests/tooling/test_hardware_device_runner.py
 F	qa/tests/tooling/test_irreversible_action_policy.py
 F	qa/tests/tooling/test_kaskold_branding.py
+F	qa/tests/tooling/test_language_lints.py
 F	qa/tests/tooling/test_lockfile_policy.py
 F	qa/tests/tooling/test_master_launcher.py
 F	qa/tests/tooling/test_platform_script_wrappers.py

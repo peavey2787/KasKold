@@ -75,6 +75,9 @@ check_environment() {
     version_contains gradle "$KASKOLD_GRADLE_VERSION" --version \
         && printf '  OK   Gradle %s\n' "$KASKOLD_GRADLE_VERSION" \
         || { printf '  MISS Gradle %s\n' "$KASKOLD_GRADLE_VERSION"; missing=1; }
+    version_contains node "v$KASKOLD_NODE_VERSION" --version \
+        && printf '  OK   Node.js %s\n' "$KASKOLD_NODE_VERSION" \
+        || { printf '  MISS Node.js %s\n' "$KASKOLD_NODE_VERSION"; missing=1; }
     version_contains kotlinc "$KASKOLD_KOTLIN_CLI_VERSION" -version \
         && printf '  OK   Kotlin %s\n' "$KASKOLD_KOTLIN_CLI_VERSION" \
         || { printf '  MISS Kotlin %s\n' "$KASKOLD_KOTLIN_CLI_VERSION"; missing=1; }
@@ -144,7 +147,7 @@ install_host_packages() {
         local -a packages=(
             build-essential ca-certificates clang cmake curl git libgcrypt20 libglib2.0-0
             libpixman-1-0 libsdl2-2.0-0 libslirp0 libssl-dev libudev-dev
-            libusb-1.0-0-dev make ninja-build nodejs npm pkg-config python3 python3-pip
+            libusb-1.0-0-dev make ninja-build pkg-config python3 python3-pip
             python3-venv unzip util-linux xz-utils zip
         )
         if apt-cache show chromium >/dev/null 2>&1; then packages+=(chromium); else packages+=(chromium-browser); fi
@@ -152,12 +155,12 @@ install_host_packages() {
     elif command -v dnf >/dev/null 2>&1; then
         run_as_root "$reason" dnf install -y \
             ca-certificates clang cmake curl gcc gcc-c++ git glib2 libgcrypt libslirp make \
-            ninja-build nodejs npm openssl-devel pixman pkgconf-pkg-config python3 python3-pip \
+            ninja-build openssl-devel pixman pkgconf-pkg-config python3 python3-pip \
             SDL2 systemd-devel unzip util-linux xz zip libusb1-devel chromium
     elif command -v pacman >/dev/null 2>&1; then
         run_as_root "$reason" pacman -Sy --needed --noconfirm \
             base-devel ca-certificates clang cmake curl git glib2 libgcrypt libslirp make \
-            ninja nodejs npm openssl pixman pkgconf python python-pip sdl2 systemd-libs \
+            ninja openssl pixman pkgconf python python-pip sdl2 systemd-libs \
             unzip util-linux xz zip libusb chromium
     else
         echo 'ERROR: unsupported Linux package manager; expected apt-get, dnf, or pacman.' >&2
@@ -246,6 +249,18 @@ PYJDK
     for name in java javac jar keytool; do ln -sfn "$target/bin/$name" "$LOCAL_BIN/$name"; done
 }
 
+install_node() {
+    local name="node-v${KASKOLD_NODE_VERSION}-linux-x64" target="$TOOL_ROOT/node-${KASKOLD_NODE_VERSION}" tmp archive tool
+    if version_contains node "v$KASKOLD_NODE_VERSION" --version; then return 0; fi
+    tmp="$(mktemp -d)"; archive="$tmp/node.tar.xz"
+    curl -fL "https://nodejs.org/dist/v${KASKOLD_NODE_VERSION}/${name}.tar.xz" -o "$archive"
+    printf '%s  %s\n' "$KASKOLD_NODE_LINUX_SHA256" "$archive" | sha256sum -c -
+    tar -xJf "$archive" -C "$tmp"
+    rm -rf "$target"; mv "$tmp/$name" "$target"
+    for tool in node npm npx; do ln -sfn "$target/bin/$tool" "$LOCAL_BIN/$tool"; done
+    rm -rf "$tmp"
+}
+
 install_gradle() {
     local target="$TOOL_ROOT/gradle-${KASKOLD_GRADLE_VERSION}" archive checksum expected tmp
     if version_contains gradle "$KASKOLD_GRADLE_VERSION" --version; then return 0; fi
@@ -318,6 +333,7 @@ PY
 printf '==> Installing native Linux host packages\n'
 install_host_packages
 printf '==> Installing pinned Rust and QA toolchains\n'
+install_node
 install_rust
 install_rust_tools
 printf '==> Installing JDK %s, Kotlin %s, and Gradle %s\n' "$KASKOLD_ANDROID_JDK" "$KASKOLD_KOTLIN_CLI_VERSION" "$KASKOLD_GRADLE_VERSION"

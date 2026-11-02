@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * DOM construction without HTML parsing.
  *
@@ -6,11 +7,16 @@
  * Attribute names are an allowlist and links accept only http(s) targets.
  */
 
+/** @typedef {Node | string | number | bigint | null | undefined | false | Array<unknown>} ElementChild */
+
 const ATTRIBUTES = new Set([
     'alt', 'aria-expanded', 'aria-hidden', 'aria-label', 'for', 'href', 'max', 'min',
     'name', 'placeholder', 'rel', 'role', 'step', 'tabindex', 'target', 'title', 'type', 'value',
 ]);
 
+/**
+ * @param {unknown} value
+ */
 function safeHref(value) {
     try {
         const url = new URL(String(value));
@@ -20,6 +26,11 @@ function safeHref(value) {
     }
 }
 
+/**
+ * @param {Element} node
+ * @param {string} name
+ * @param {unknown} value
+ */
 function setAttribute(node, name, value) {
     if (!ATTRIBUTES.has(name)) throw new Error(`Unsupported element attribute: ${name}`);
     if (value === null || value === undefined || value === false) return;
@@ -28,10 +39,14 @@ function setAttribute(node, name, value) {
     node.setAttribute(name, text);
 }
 
+/**
+ * @param {Element} node
+ * @param {ElementChild[]} children
+ */
 function appendChildren(node, children) {
     for (const child of children.flat(Infinity)) {
         if (child === null || child === undefined || child === false) continue;
-        node.append(typeof child === 'object' ? child : document.createTextNode(String(child)));
+        node.append(typeof child === 'object' ? /** @type {Node} */ (child) : document.createTextNode(String(child)));
     }
 }
 
@@ -41,7 +56,7 @@ function appendChildren(node, children) {
  * @param {string} tag
  * @param {{className?: string, id?: string, dataset?: Record<string, unknown>,
  *          attrs?: Record<string, unknown>, checked?: boolean, disabled?: boolean}} [options]
- * @param {...(Node|string|number|bigint|null|undefined|false|Array<unknown>)} children
+ * @param {...ElementChild} children
  * @returns {HTMLElement}
  */
 export function el(tag, options = {}, ...children) {
@@ -52,20 +67,30 @@ export function el(tag, options = {}, ...children) {
         if (value !== null && value !== undefined) node.dataset[key] = String(value);
     }
     for (const [name, value] of Object.entries(options.attrs || {})) setAttribute(node, name, value);
-    if (options.checked !== undefined) node.checked = Boolean(options.checked);
-    if (options.disabled !== undefined) node.disabled = Boolean(options.disabled);
+    if (options.checked !== undefined) /** @type {HTMLInputElement} */ (node).checked = Boolean(options.checked);
+    if (options.disabled !== undefined) /** @type {HTMLInputElement} */ (node).disabled = Boolean(options.disabled);
     appendChildren(node, children);
     return node;
 }
 
-/** Replace an element's content with built nodes or plain text. */
+/**
+ * Replace an element's content with built nodes or plain text.
+ *
+ * @param {Element | null | undefined} target
+ * @param {...ElementChild} children
+ */
 export function setContent(target, ...children) {
     if (!target) return;
     target.replaceChildren();
     appendChildren(target, children);
 }
 
-/** A span with a utility class, the most common status fragment. */
+/**
+ * A span with a utility class, the most common status fragment.
+ *
+ * @param {string} className
+ * @param {...ElementChild} children
+ */
 export function span(className, ...children) {
     return el('span', { className }, ...children);
 }

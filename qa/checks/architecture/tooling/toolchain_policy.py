@@ -44,6 +44,7 @@ def _consumer_requirements() -> dict[str, tuple[str, ...]]:
         ),
         "scripts/linux/install/install.sh": (
             "qa/config/toolchains.env", "KASKOLD_STABLE_RUST", "KASKOLD_BRANCH_RUST",
+            "KASKOLD_NODE_VERSION", "KASKOLD_NODE_LINUX_SHA256",
             "KASKOLD_CARGO_FUZZ_VERSION", "KASKOLD_CARGO_MUTANTS_VERSION",
             "KASKOLD_ANDROID_JDK", "KASKOLD_GRADLE_VERSION", "KASKOLD_KOTLIN_CLI_VERSION",
             "KASKOLD_ANDROID_API", "KASKOLD_ANDROID_BUILD_TOOLS", "KASKOLD_ANDROID_CMDLINE_TOOLS",
@@ -125,6 +126,8 @@ def _pin_consumers() -> dict[str, tuple[str, ...]]:
         ),
         "scripts/linux/lib/qemu-common.sh": ("KASKOLD_ESP_IDF_VERSION",),
         "qa/checks/security/dependency_advisories.py": ("KASKOLD_CARGO_AUDIT_VERSION",),
+        "qa/checks/quality/language_lints.py": ("KASKOLD_RUFF_VERSION", "KASKOLD_MYPY_VERSION", "KASKOLD_NODE_VERSION"),
+        ".github/workflows/qa.yml": ("KASKOLD_NODE_VERSION",),
         "scripts/linux/lib/qemu-rust.sh": ("KASKOLD_ESPUP_VERSION", "KASKOLD_ESP_RUST", "KASKOLD_ESPFLASH_VERSION"),
         "Dockerfile.base": ("KASKOLD_REPRO_HOST_RUST", "KASKOLD_ESPFLASH_VERSION"),
         "scripts/linux/build/reproducible/toolchains.py": (

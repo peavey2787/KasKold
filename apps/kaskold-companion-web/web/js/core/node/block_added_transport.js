@@ -1,8 +1,14 @@
+// @ts-check
 import { build_vcc_subscribe_request } from '../../wasm/api.js';
 import { resolveNodeUrl } from './resolver.js';
 
+/**
+ * @param {{isActive: () => boolean, onPayload: (payload: Uint8Array) => void, label: string, reconnectDelay?: number, retryDelay?: number}} options
+ */
 export function createBlockAddedTransport(options) {
+    /** @type {WebSocket | null} */
     let socket = null;
+    /** @type {ReturnType<typeof setTimeout> | null} */
     let reconnectTimer = null;
     let stopped = true;
 
@@ -19,6 +25,9 @@ export function createBlockAddedTransport(options) {
         try { current.close(); } catch { /* A socket that is already closed needs no closing. */ }
     }
 
+/**
+ * @param {number} delay
+ */
     function scheduleReconnect(delay) {
         clearReconnectTimer();
         if (stopped || !options.isActive()) return;

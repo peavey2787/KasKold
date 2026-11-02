@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * Display a generated QR SVG as an inert image.
  *
@@ -22,7 +23,13 @@ export function qrImage(svg, alt = 'QR code') {
     return image;
 }
 
-/** Replace a container's content with one QR image. */
+/**
+ * Replace a container's content with one QR image.
+ *
+ * @param {Element | null | undefined} container
+ * @param {string} svg
+ * @param {string} [alt]
+ */
 export function showQrSvg(container, svg, alt) {
     if (!container) return;
     container.replaceChildren(qrImage(svg, alt));

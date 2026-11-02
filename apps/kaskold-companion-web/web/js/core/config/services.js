@@ -1,3 +1,4 @@
+// @ts-check
 export const STEALTH_INDEXER_URL = 'https://keeper.kaskold.com/keeper';
 
 export const KASPLEX_API = Object.freeze({

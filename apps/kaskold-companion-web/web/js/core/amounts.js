@@ -1,9 +1,13 @@
+// @ts-check
 // Pure, lossless Kaspa amount conversions.
 
 import { exactUnsigned } from './exact.js';
 
 export const SOMPI_PER_KAS = 100000000n;
 
+/**
+ * @param {unknown} value
+ */
 export function kasToSompi(value) {
     const text = String(value).trim();
     if (!/^\d+(\.\d{1,8})?$/.test(text)) {
@@ -14,6 +18,9 @@ export function kasToSompi(value) {
     return BigInt(whole) * SOMPI_PER_KAS + BigInt(paddedFraction);
 }
 
+/**
+ * @param {unknown} sompi
+ */
 export function sompiToKasString(sompi) {
     const value = exactUnsigned(sompi, 'sompi');
     const digits = value.toString().padStart(9, '0');
@@ -22,6 +29,10 @@ export function sompiToKasString(sompi) {
     return fraction ? `${whole}.${fraction}` : whole;
 }
 
+/**
+ * @param {unknown} sompi
+ * @param {number} [fractionDigits]
+ */
 export function sompiToKasFixed(sompi, fractionDigits = 8) {
     if (!Number.isInteger(fractionDigits) || fractionDigits < 0 || fractionDigits > 8) {
         throw new Error('fractionDigits must be 0..8');
@@ -33,14 +44,24 @@ export function sompiToKasFixed(sompi, fractionDigits = 8) {
     return `${whole}.${fraction}`;
 }
 
+/**
+ * @param {string} value
+ */
 function groupDecimalDigits(value) {
     return String(value).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
+/**
+ * @param {unknown} sompi
+ */
 export function formatSompiGrouped(sompi) {
     return groupDecimalDigits(exactUnsigned(sompi, 'sompi').toString());
 }
 
+/**
+ * @param {unknown} sompi
+ * @param {number} [fractionDigits]
+ */
 export function sompiToKasRoundedGrouped(sompi, fractionDigits = 2) {
     if (!Number.isInteger(fractionDigits) || fractionDigits < 0 || fractionDigits > 8) {
         throw new Error('fractionDigits must be 0..8');

@@ -1,3 +1,4 @@
+// @ts-check
 import { byId } from '../dom.js';
 
 function statusParts() {
@@ -8,6 +9,9 @@ function statusParts() {
     };
 }
 
+/**
+ * @param {Element | null} networkTag
+ */
 function clearNetworkTag(networkTag) {
     if (!networkTag) return;
     networkTag.textContent = '';

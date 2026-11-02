@@ -1,3 +1,5 @@
+// @ts-check
+/** @type {Readonly<Record<string, string>>} */
 const EXPLORERS = Object.freeze({
     mainnet: 'https://explorer.kaspa.org',
     'testnet-10': 'https://explorer-tn10.kaspa.org',
@@ -5,17 +7,28 @@ const EXPLORERS = Object.freeze({
     'testnet-12': 'https://explorer-tn12.kaspa.org',
 });
 
+/**
+ * @param {string} network
+ */
 export function explorerBase(network) {
     const base = EXPLORERS[network];
     if (!base) throw new Error(`No block explorer configured for ${network}`);
     return base;
 }
 
+/**
+ * @param {string} network
+ * @param {string} address
+ */
 export function explorerAddressUrl(network, address) {
     const base = explorerBase(network);
     return `${base}/addresses/${encodeURIComponent(address)}`;
 }
 
+/**
+ * @param {string} network
+ * @param {string} transactionId
+ */
 export function explorerTransactionUrl(network, transactionId) {
     const base = explorerBase(network);
     return `${base}/txs/${encodeURIComponent(transactionId)}`;

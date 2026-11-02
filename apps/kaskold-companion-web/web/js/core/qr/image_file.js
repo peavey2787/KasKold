@@ -1,12 +1,19 @@
+// @ts-check
 const MAX_IMAGE_BYTES = 16 * 1024 * 1024;
 const MAX_DECODE_SIDE = 2048;
 
+/**
+ * @param {Blob} file
+ */
 function validateImageFile(file) {
     if (!file) throw new Error('Choose a QR image file first');
     if (file.size > MAX_IMAGE_BYTES) throw new Error('QR image is larger than 16 MiB');
     if (file.type && !file.type.startsWith('image/')) throw new Error('The selected file is not an image');
 }
 
+/**
+ * @param {Blob} file
+ */
 async function loadImage(file) {
     if (typeof createImageBitmap === 'function') return createImageBitmap(file);
 
@@ -22,6 +29,10 @@ async function loadImage(file) {
     }
 }
 
+/**
+ * @param {number} width
+ * @param {number} height
+ */
 function scaledDimensions(width, height) {
     if (!width || !height) throw new Error('The selected image has no readable dimensions');
     const scale = Math.min(1, MAX_DECODE_SIDE / Math.max(width, height));
@@ -31,14 +42,17 @@ function scaledDimensions(width, height) {
     };
 }
 
+/**
+ * @param {Blob} file
+ */
 export async function decodeQrImageFile(file) {
     validateImageFile(file);
     if (typeof jsQR !== 'function') throw new Error('The QR decoder is unavailable');
 
     const image = await loadImage(file);
     try {
-        const sourceWidth = image.width || image.naturalWidth;
-        const sourceHeight = image.height || image.naturalHeight;
+        const sourceWidth = image.width || ('naturalWidth' in image ? image.naturalWidth : 0);
+        const sourceHeight = image.height || ('naturalHeight' in image ? image.naturalHeight : 0);
         const dimensions = scaledDimensions(sourceWidth, sourceHeight);
         const canvas = document.createElement('canvas');
         canvas.width = dimensions.width;
@@ -51,6 +65,6 @@ export async function decodeQrImageFile(file) {
             inversionAttempts: 'attemptBoth',
         });
     } finally {
-        if (typeof image.close === 'function') image.close();
+        if ('close' in image) image.close();
     }
 }

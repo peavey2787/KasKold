@@ -1,4 +1,9 @@
-/** Convert a byte-oriented value to lowercase hexadecimal. */
+// @ts-check
+/**
+ * Convert a byte-oriented value to lowercase hexadecimal.
+ *
+ * @param {ArrayLike<number>} value
+ */
 export function bytesToHex(value) {
     const bytes = value instanceof Uint8Array ? value : new Uint8Array(value);
     let output = '';
@@ -6,7 +11,11 @@ export function bytesToHex(value) {
     return output;
 }
 
-/** Decode validated hexadecimal into a Uint8Array. */
+/**
+ * Decode validated hexadecimal into a Uint8Array.
+ *
+ * @param {unknown} value
+ */
 export function hexToBytes(value) {
     if (typeof value !== 'string') throw new TypeError('hex value must be a string');
     const hex = value.trim();
@@ -20,7 +29,11 @@ export function hexToBytes(value) {
 }
 
 
-/** Decode one or more QR frame hex values separated by newlines, commas, or semicolons. */
+/**
+ * Decode one or more QR frame hex values separated by newlines, commas, or semicolons.
+ *
+ * @param {unknown} value
+ */
 export function hexFrameBatchToBytes(value) {
     if (typeof value !== 'string') throw new TypeError('QR Frame Hex must be a string');
     const frames = value
@@ -34,17 +47,24 @@ export function hexFrameBatchToBytes(value) {
             if (!bytes.length) throw new Error('QR Frame Hex is empty');
             return bytes;
         } catch (error) {
-            const detail = error?.message || String(error);
+            const detail = (error instanceof Error && error.message) || String(error);
             throw new Error(frames.length === 1 ? detail : `QR frame ${index + 1}: ${detail}`, { cause: error });
         }
     });
 }
 
-/** Encode UTF-8 text as lowercase hexadecimal. */
+/**
+ * Encode UTF-8 text as lowercase hexadecimal.
+ *
+ * @param {unknown} value
+ */
 export function utf8ToHex(value) {
     return bytesToHex(new TextEncoder().encode(String(value)));
 }
 
+/**
+ * @param {string} hex
+ */
 export function littleEndianHexToU64(hex) {
     if (!/^[0-9a-fA-F]{16}$/.test(hex)) {
         throw new Error('expected exactly 8 bytes of hexadecimal data');
@@ -57,6 +77,9 @@ export function littleEndianHexToU64(hex) {
     return value;
 }
 
+/**
+ * @param {bigint | number | string} value
+ */
 export function u64ToLittleEndianHex(value) {
     let remaining = BigInt(value);
     if (remaining < 0n || remaining > 0xffffffffffffffffn) {

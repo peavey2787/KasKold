@@ -28,6 +28,7 @@ test	integration	offline-signer	integration.offline-signer-firmware-signing	Firm
 test	integration	online-watcher	integration.online-watcher-source	Browser Rust and JavaScript source contracts
 test	integration	kaskold-companion-web	integration.kaskold-companion-web-generated	Generated HTML CSS and DOM contracts
 test	integration	kaskold-companion-web	integration.kaskold-companion-web-browser	Fast browser startup covenant and critical-path tests
+qa	static	repository	static.language-lints	Pinned ruff mypy ESLint tsc and npm audit over all Python and JavaScript
 qa	static	repository	static.qa-orchestration-catalog	Validate public QA step ordering and explicit ownership of every registered test/check entrypoint
 qa	static	repository	unit.repository-python-qa	Python QA tooling policy and historical regression tests
 qa	static	repository	preflight.firmware-source-contracts	Validate firmware source compile contracts

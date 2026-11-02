@@ -1,5 +1,9 @@
+// @ts-check
 import { exactUnsigned } from './exact.js';
 
+/**
+ * @param {Record<string, any>} utxo
+ */
 export function utxoTransactionId(utxo) {
     return utxo.tx_id
         ?? utxo.transactionId
@@ -8,6 +12,9 @@ export function utxoTransactionId(utxo) {
         ?? null;
 }
 
+/**
+ * @param {Record<string, any>} utxo
+ */
 export function normalizeUtxo(utxo) {
     return {
         ...utxo,
@@ -16,16 +23,25 @@ export function normalizeUtxo(utxo) {
     };
 }
 
+/**
+ * @param {Array<Record<string, any>>} utxos
+ */
 export function normalizeUtxos(utxos) {
     return utxos.map(normalizeUtxo);
 }
 
+/**
+ * @param {string} json
+ */
 export function parseUtxosJson(json) {
     const parsed = JSON.parse(json);
     if (!Array.isArray(parsed)) throw new Error('UTXO response must be an array');
     return normalizeUtxos(parsed);
 }
 
+/**
+ * @param {Array<Record<string, any>>} utxos
+ */
 export function sortUtxosLargestFirst(utxos) {
     utxos.sort((left, right) => {
         const leftAmount = exactUnsigned(left.amount, 'UTXO amount');

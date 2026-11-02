@@ -1,3 +1,4 @@
+// @ts-check
 import { el, setContent } from './elements.js';
 
 /**

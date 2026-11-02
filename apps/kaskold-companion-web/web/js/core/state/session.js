@@ -1,3 +1,4 @@
+// @ts-check
 import { covenantState, networkState, stealthState, uiState, walletState } from '../../app/state/index.js';
 // In-memory application session. State is discarded when the tab closes.
 

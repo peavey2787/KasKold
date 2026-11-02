@@ -907,6 +907,22 @@
       "commands": [
         "make qa"
       ],
+      "path": "qa/checks/quality/language_lints.py",
+      "role": "check",
+      "step": "static.language-lints"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/tests/tooling/test_language_lints.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
       "path": "qa/checks/workspace/check_rust_format.py",
       "role": "check",
       "step": "preflight.core-ci"

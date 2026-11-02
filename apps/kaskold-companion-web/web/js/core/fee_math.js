@@ -1,3 +1,4 @@
+// @ts-check
 // Exact conversion from advisory decimal fee rates to integral sompi fees.
 // Fee rates may arrive from the node as JSON numbers, but once represented as
 // their decimal text all multiplication, markup, rounding, and floors use BigInt.
@@ -7,6 +8,10 @@ import { exactUnsigned } from './exact.js';
 // Fee floor of one covenant thread or UTXO spend (0.003 KAS).
 export const THREAD_FEE_FLOOR = 300_000n;
 
+/**
+ * @param {unknown} value
+ * @param {string} [field]
+ */
 function decimalRatio(value, field = 'decimal rate') {
     const text = String(value ?? '').trim().toLowerCase();
     const match = /^(\d+)(?:\.(\d+))?(?:e([+-]?\d+))?$/.exec(text);
@@ -21,12 +26,21 @@ function decimalRatio(value, field = 'decimal rate') {
     return { numerator, denominator };
 }
 
+/**
+ * @param {unknown} value
+ * @param {string} field
+ */
 function positiveRatio(value, field) {
     const ratio = decimalRatio(value, field);
     if (ratio.numerator === 0n) return { numerator: 1n, denominator: 1n };
     return ratio;
 }
 
+/**
+ * @param {unknown} rate
+ * @param {unknown} mass
+ * @param {unknown} [floorSompi]
+ */
 export function roundFeeFromRate(rate, mass, floorSompi = 0n) {
     const { numerator, denominator } = positiveRatio(rate, 'fee rate');
     const exactMass = exactUnsigned(mass, 'transaction mass');
@@ -36,6 +50,13 @@ export function roundFeeFromRate(rate, mass, floorSompi = 0n) {
     return rounded > floor ? rounded : floor;
 }
 
+/**
+ * @param {unknown} rate
+ * @param {unknown} mass
+ * @param {unknown} [floorSompi]
+ * @param {unknown} [markupNumerator]
+ * @param {unknown} [markupDenominator]
+ */
 export function ceilFeeFromRate(rate, mass, floorSompi = 0n, markupNumerator = 1n, markupDenominator = 1n) {
     const { numerator, denominator } = positiveRatio(rate, 'fee rate');
     const exactMass = exactUnsigned(mass, 'transaction mass');
@@ -49,6 +70,9 @@ export function ceilFeeFromRate(rate, mass, floorSompi = 0n, markupNumerator = 1
     return roundedUp > floor ? roundedUp : floor;
 }
 
+/**
+ * @param {unknown} rate
+ */
 export function ceilRateToInteger(rate) {
     const { numerator, denominator } = positiveRatio(rate, 'fee rate');
     return (numerator + denominator - 1n) / denominator;

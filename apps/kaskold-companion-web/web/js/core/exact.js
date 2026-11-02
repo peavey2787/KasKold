@@ -1,5 +1,10 @@
+// @ts-check
 // Lossless helpers for consensus integers crossing the Rust/WASM/JSON boundary.
 
+/**
+ * @param {unknown} value
+ * @param {string} [field]
+ */
 export function exactUnsigned(value, field = 'integer') {
     if (typeof value === 'bigint') {
         if (value < 0n) throw new Error(`${field} must be unsigned`);
@@ -10,6 +15,11 @@ export function exactUnsigned(value, field = 'integer') {
     throw new Error(`${field} must be an exact unsigned decimal integer`);
 }
 
+/**
+ * @param {unknown} rawJson
+ * @param {string} fieldName
+ * @param {string} [field]
+ */
 export function exactUnsignedJsonField(rawJson, fieldName, field = fieldName) {
     if (typeof rawJson !== 'string' || typeof fieldName !== 'string' || !fieldName) {
         throw new Error(`${field} must come from JSON text`);
@@ -21,20 +31,35 @@ export function exactUnsignedJsonField(rawJson, fieldName, field = fieldName) {
     return BigInt(matches[0][1] ?? matches[0][2]);
 }
 
+/**
+ * @param {unknown} value
+ * @param {string} [field]
+ */
 export function exactDecimalString(value, field = 'integer') {
     return exactUnsigned(value, field).toString();
 }
 
+/**
+ * @param {unknown} value
+ */
 export function exactJsonStringify(value) {
     return JSON.stringify(value, (_key, entry) => typeof entry === 'bigint' ? entry.toString() : entry);
 }
 
+/**
+ * @param {unknown} left
+ * @param {unknown} right
+ */
 export function compareExactDescending(left, right) {
     const a = exactUnsigned(left);
     const b = exactUnsigned(right);
     return a === b ? 0 : (a > b ? -1 : 1);
 }
 
+/**
+ * @param {unknown} minuend
+ * @param {...unknown} subtrahends
+ */
 export function nonNegativeDifference(minuend, ...subtrahends) {
     let value = exactUnsigned(minuend);
     for (const entry of subtrahends) value -= exactUnsigned(entry);

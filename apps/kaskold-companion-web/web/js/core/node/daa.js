@@ -1,3 +1,4 @@
+// @ts-check
 import { networkState } from '../../app/state/index.js';
 import { get_virtual_daa_score } from '../../wasm/api.js';
 import { exactUnsigned } from '../exact.js';

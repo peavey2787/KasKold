@@ -772,6 +772,7 @@ def _integration_handlers() -> dict[str, StepHandler]:
 
 def _assurance_handlers() -> dict[str, StepHandler]:
     return {
+        "static.language-lints": _script("qa/checks/quality/language_lints.py"),
         "static.qa-orchestration-catalog": _script("qa/checks/workspace/check_qa_orchestration.py"),
         "static.firmware-assurance-contracts": _commands([
             [PYTHON, script]

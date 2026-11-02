@@ -1,6 +1,10 @@
+// @ts-check
 import { byId } from '../dom.js';
 import { durationPartsToSeconds } from '../format.js';
 
+/**
+ * @param {{prefix: string, outputId: string}} options
+ */
 export function bindDurationInputs({ prefix, outputId }) {
     const ids = {
         years: `${prefix}-years`,
@@ -12,10 +16,10 @@ export function bindDurationInputs({ prefix, outputId }) {
     const recalculate = () => {
         const parts = Object.fromEntries(Object.entries(ids).map(([name, id]) => [
             name,
-            Number.parseInt(byId(id)?.value || '0', 10) || 0,
+            Number.parseInt(/** @type {HTMLInputElement | null} */ (byId(id))?.value || '0', 10) || 0,
         ]));
         const total = durationPartsToSeconds(parts);
-        byId(outputId).value = total > 0 ? total : '';
+        /** @type {HTMLInputElement} */ (byId(outputId)).value = total > 0 ? String(total) : '';
     };
     Object.values(ids).forEach((id) => {
         const input = byId(id);

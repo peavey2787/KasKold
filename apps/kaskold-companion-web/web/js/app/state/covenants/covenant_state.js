@@ -1,4 +1,5 @@
 // Focused covenant session state.
+/** @type {Record<string, any>} */
 export const covenantState = Object.seal({
     '_covPayloadHex': undefined,
     '_lastKnownDaa': undefined,

@@ -1,4 +1,5 @@
 // Explicit stealthState shape. Complex behavior belongs in domain facades; this object holds simple session state.
+/** @type {Record<string, any>} */
 export const stealthState = Object.seal({
     '_stealthBatchStart': undefined,
     '_stealthCatchupRunning': undefined,

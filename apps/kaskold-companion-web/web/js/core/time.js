@@ -1,4 +1,10 @@
-/** Format a millisecond timestamp as a compact relative age. */
+// @ts-check
+/**
+ * Format a millisecond timestamp as a compact relative age.
+ *
+ * @param {number} timestampMs
+ * @param {number} [nowMs]
+ */
 export function timeAgo(timestampMs, nowMs = Date.now()) {
     const minutes = Math.floor(Math.max(0, nowMs - timestampMs) / 60_000);
     if (minutes < 1) return 'just now';

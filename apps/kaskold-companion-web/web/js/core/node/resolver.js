@@ -1,3 +1,4 @@
+// @ts-check
 import { networkState } from '../../app/state/index.js';
 import { RESOLVERS } from '../config/network.js';
 
@@ -5,12 +6,19 @@ function resolverSecurity() {
     return globalThis.location?.protocol === 'https:' ? 'tls' : 'any';
 }
 
+/**
+ * @param {unknown} url
+ * @param {string} security
+ */
 function isAllowedResolvedUrl(url, security) {
     if (typeof url !== 'string') return false;
     if (security === 'tls') return url.startsWith('wss://');
     return url.startsWith('ws://') || url.startsWith('wss://');
 }
 
+/**
+ * @param {unknown} error
+ */
 function resolverFailureDetail(error) {
     if (error instanceof Error && error.message) return error.message;
     return String(error);

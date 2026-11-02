@@ -52,7 +52,7 @@ jobs:
         run: rm -f espup-*.zip
       - uses: actions/setup-node@v5
         with:
-          node-version: '24'
+          node-version: ${{ env.KASKOLD_NODE_VERSION }}
       - name: Install host build libraries
         shell: bash
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libudev-dev pkg-config
