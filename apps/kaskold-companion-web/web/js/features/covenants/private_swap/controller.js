@@ -11,6 +11,7 @@ import { handleCovFund } from '../generation/fund.js';
 import { getCovFee, ownerReceiveAddr } from '../payload/state.js';
 import { covAddActive, covRenderActive, covSaveActive } from '../recovery/active.js';
 import { startScanner, stopScanner } from '../../stealth/index/camera.js';
+import { startPayloadScanner } from '../../stealth/index/whole_payload.js';
 import {
     create_private_swap_claim, fetch_utxos_for_address_js,
     private_swap_claim_sighash, private_swap_complete_public, private_swap_extract_secret, private_swap_max_fee_sompi,
@@ -118,7 +119,7 @@ export function requestPrivateSwapBinding() {
 export function scanPrivateSwapDeviceResponse() {
     const action = pendingPrivateSwapDeviceAction();
     if (!action) { toast('No pending KasKold Private Swap request', 'error'); return; }
-    startScanner('Scan KasKold Private Swap Response', raw => { void handleDeviceResponse(action, raw); });
+    startPayloadScanner('Scan KasKold Private Swap Response', raw => { void handleDeviceResponse(action, raw); });
 }
 
 export async function fundPrivateSwapSide() {

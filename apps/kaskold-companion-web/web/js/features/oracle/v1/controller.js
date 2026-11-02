@@ -12,7 +12,8 @@ import {
     CovenantKnownScheme, covenantBindRequestHex, covenantKeyRequestHex, covenantKnownRequestHex, covenantRevealHex,
     covenantScriptFingerprint, covenantSignatureResponseHex, createCovenantSigningChallenge, parseCovenantResponse,
 } from '../../covenants/signing/protocol.js';
-import { startScanner, stopScanner } from '../../stealth/index/camera.js';
+import { stopScanner } from '../../stealth/index/camera.js';
+import { startPayloadScanner } from '../../stealth/index/whole_payload.js';
 import { showStaticPayloadQr } from '../../qr_display/static_payload.js';
 import {
     create_covenant_oracle_v1_claim,
@@ -53,7 +54,7 @@ export function showOracleV1KeyRequest() {
 }
 
 export function scanOracleV1KeyResponse() {
-    startScanner('Scan Oracle covenant-key response', raw => {
+    startPayloadScanner('Scan Oracle covenant-key response', raw => {
         try {
             const response = parseCovenantResponse(raw);
             if (response.kind !== 'key') throw new Error('Expected covenant-key response');
@@ -81,7 +82,7 @@ export function showOracleV1BindingRequest() {
 }
 
 export function scanOracleV1BindingResponse() {
-    startScanner('Scan Oracle covenant-key binding response', async raw => {
+    startPayloadScanner('Scan Oracle covenant-key binding response', async raw => {
         try {
             const result = currentOracle();
             const response = parseCovenantResponse(raw);
@@ -189,7 +190,7 @@ export async function showOracleV1SignRequest() {
 }
 
 export function scanOracleV1ClaimAttestation() {
-    startScanner('Scan Oracle covenant signature', async raw => {
+    startPayloadScanner('Scan Oracle covenant signature', async raw => {
         try {
             const textField = byId('cov-oracle-v1-claim-text');
             const parsed = await acceptScannedAttestation(raw, textField, byId('cov-oracle-v1-claim-status'));
@@ -202,7 +203,7 @@ export function scanOracleV1ClaimAttestation() {
 }
 
 export function scanOracleV1CovenantSignResponse() {
-    startScanner('Scan KasKold COVENANT SIGN response', async raw => {
+    startPayloadScanner('Scan KasKold COVENANT SIGN response', async raw => {
         try {
             const result = currentOracle();
             const response = parseCovenantResponse(raw);
@@ -238,13 +239,22 @@ export function scanOracleV1CovenantSignResponse() {
     });
 }
 
+const lowerHex = value => (value || '').toLowerCase();
+
+function transcriptIdentityRules(response, result) {
+    return [
+        [!state.sessionId || response.sessionId !== state.sessionId, 'Response belongs to a different covenant signing session'],
+        [response.keyId !== lowerHex(result.oracle_covenant_key_id_hex), 'Response used a different covenant key instance'],
+        [response.pubkey !== lowerHex(result.oracle_pubkey_hex), 'Response came from a different covenant key'],
+        [response.bindingToken !== lowerHex(result.oracle_covenant_binding_token_hex), 'Response used a different covenant binding record'],
+        [response.commitment !== lowerHex(result.message_commitment_hex), 'Response belongs to a different Oracle covenant'],
+        [Boolean(state.noncePoint) && response.kind === 'signature' && response.noncePoint !== state.noncePoint, 'Final response changed the committed nonce'],
+    ];
+}
+
 function validateOracleTranscriptIdentity(response, result) {
-    if (!state.sessionId || response.sessionId !== state.sessionId) throw new Error('Response belongs to a different covenant signing session');
-    if (response.keyId !== (result.oracle_covenant_key_id_hex || '').toLowerCase()) throw new Error('Response used a different covenant key instance');
-    if (response.pubkey !== (result.oracle_pubkey_hex || '').toLowerCase()) throw new Error('Response came from a different covenant key');
-    if (response.bindingToken !== (result.oracle_covenant_binding_token_hex || '').toLowerCase()) throw new Error('Response used a different covenant binding record');
-    if (response.commitment !== (result.message_commitment_hex || '').toLowerCase()) throw new Error('Response belongs to a different Oracle covenant');
-    if (state.noncePoint && response.kind === 'signature' && response.noncePoint !== state.noncePoint) throw new Error('Final response changed the committed nonce');
+    const failed = transcriptIdentityRules(response, result).find(([mismatch]) => mismatch);
+    if (failed) throw new Error(failed[1]);
 }
 
 export async function buildOracleV1Claim() {
@@ -270,28 +280,45 @@ export async function buildOracleV1Claim() {
     });
 }
 
+function assertBeaconWalletLoaded() {
+    if (!walletSession.hasWallet()) {
+        throw new Error('Load any funding wallet in the oracle session to publish the signed beacon');
+    }
+}
+
+function assertLoadedAttestationMatchesKey(result) {
+    const sameKey = state.keyId === lowerHex(result.oracle_covenant_key_id_hex)
+        && state.pubkey === lowerHex(result.oracle_pubkey_hex)
+        && state.bindingToken === lowerHex(result.oracle_covenant_binding_token_hex);
+    if (!sameKey) throw new Error('Loaded attestation belongs to a different covenant key');
+}
+
+async function verifyBeaconAttestation(result) {
+    assertBeaconWalletLoaded();
+    await verifyOracleV1Attestation(state, state.statement);
+    assertLoadedAttestationMatchesKey(result);
+    if (!verify_oracle_v1_attestation(result.oracle_pubkey_hex || '', state.signature, state.commitment)) {
+        throw new Error('Oracle signature is not valid for this covenant key');
+    }
+}
+
+function beaconPayloadHex() {
+    return '4f525631' + state.signature + state.commitment
+        + bytesToHex(new TextEncoder().encode(state.statement));
+}
+
+function beaconChangeAddress(wallet) {
+    return wallet.change_addresses?.[wallet.next_change_index || 0]
+        || wallet.receive_addresses?.[0] || '';
+}
+
 export async function publishOracleV1Beacon() {
     const result = currentOracle();
     try {
-        if (!walletSession.hasWallet()) {
-            throw new Error('Load any funding wallet in the oracle session to publish the signed beacon');
-        }
-        await verifyOracleV1Attestation(state, state.statement);
-        if (state.keyId !== (result.oracle_covenant_key_id_hex || '').toLowerCase()
-            || state.pubkey !== (result.oracle_pubkey_hex || '').toLowerCase()
-            || state.bindingToken !== (result.oracle_covenant_binding_token_hex || '').toLowerCase()) {
-            throw new Error('Loaded attestation belongs to a different covenant key');
-        }
-        if (!verify_oracle_v1_attestation(result.oracle_pubkey_hex || '', state.signature, state.commitment)) {
-            throw new Error('Oracle signature is not valid for this covenant key');
-        }
+        await verifyBeaconAttestation(result);
     } catch (error) { toast(String(error.message || error), 'error'); return; }
 
-    const payloadHex = '4f525631' + state.signature + state.commitment
-        + bytesToHex(new TextEncoder().encode(state.statement));
-    const wallet = walletSession.current();
-    const changeAddress = wallet.change_addresses?.[wallet.next_change_index || 0]
-        || wallet.receive_addresses?.[0] || '';
+    const changeAddress = beaconChangeAddress(walletSession.current());
     if (!changeAddress) { toast('Funding wallet has no change address', 'error'); return; }
     await runCovenantClaim({
         loadingMessage: 'Building oracle attestation beacon PSKB...', errorLabel: 'Oracle beacon failed',
@@ -299,7 +326,7 @@ export async function publishOracleV1Beacon() {
         build: websocketUrl => create_covenant_pskb_with_payload(JSON.stringify({
             wallet_json: walletSession.json(), covenant_address: result.address,
             send_amount: ORACLE_V1_BEACON_DEPOSIT_SOMPI.toString(), fee: getCovFee(1).toString(),
-            change_address: changeAddress, payload_hex: payloadHex, utxo_indices_csv: '',
+            change_address: changeAddress, payload_hex: beaconPayloadHex(), utxo_indices_csv: '',
             ws_url: websocketUrl, tag_genesis: false,
         })),
     });

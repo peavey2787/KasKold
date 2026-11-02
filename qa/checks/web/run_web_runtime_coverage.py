@@ -34,6 +34,7 @@ TEST_COMMANDS = (
     ("covenant_spending_success", ["node", "--test", "qa/checks/web/web_covenant_spending_success_paths.test.mjs"]),
     ("covenant_builder_success", ["node", "--test", "qa/checks/web/web_covenant_builder_success_paths.test.mjs"]),
     ("stealth_success", ["node", "--test", "qa/checks/web/web_stealth_success_paths.test.mjs"]),
+    ("device_frames", ["node", "--test", "qa/checks/web/web_device_frame_scanning.test.mjs"]),
     ("valid_boundary", ["node", "--test", "qa/checks/web/web_runtime_valid_boundary.test.mjs"]),
     ("kpub_deep", ["node", "--test", "qa/checks/web/web_kpub_manager_deep_paths.test.mjs"]),
     ("scanning_deep", ["node", "--test", "qa/checks/web/web_scanning_deep_paths.test.mjs"]),
