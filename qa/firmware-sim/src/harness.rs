@@ -30,7 +30,10 @@ const MAX_SETTLE_ROUNDS: usize = 20_000;
 const FIRMWARE_PANIC_EXIT: i32 = 101;
 const WAIT_POLLS: u64 = 32;
 const WAIT_SLICE: std::time::Duration = std::time::Duration::from_millis(10);
+/// How long the screen may stay unchanged while the device is still expected to get somewhere.
 const WAIT_LIMIT: std::time::Duration = std::time::Duration::from_secs(45);
+/// How long any one wait may last in all, however busy the host is.
+const WORK_LIMIT: std::time::Duration = std::time::Duration::from_secs(600);
 const NO_REVIEW_ROUNDS: usize = 200;
 const HOLD_SLICE_MILLIS: u128 = 250;
 
@@ -339,15 +342,25 @@ impl Device {
     }
 }
 
-/// Keeps nudging the device until `done`, and reports false once it has taken too long.
+/// Keeps nudging the device until `done`, and reports false once it has stalled or taken too long.
+///
+/// The device's work runs on the host's CPU, so a loaded host only slows it down: a
+/// wait fails when the screen stops changing, not when a fixed time has passed.
 fn wait_until(mut done: impl FnMut() -> bool, nudge: impl Fn()) -> bool {
     let started = std::time::Instant::now();
-    while started.elapsed() < WAIT_LIMIT {
+    let mut progressed = started;
+    let mut last = Screen::capture();
+    while progressed.elapsed() < WAIT_LIMIT && started.elapsed() < WORK_LIMIT {
         if done() {
             return true;
         }
         nudge();
         std::thread::sleep(WAIT_SLICE);
+        let now = Screen::capture();
+        if now != last {
+            progressed = std::time::Instant::now();
+            last = now;
+        }
     }
     false
 }

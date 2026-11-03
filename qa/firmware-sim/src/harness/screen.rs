@@ -84,6 +84,7 @@ fn render(draw: DrawText, label: &str) -> Option<Glyphs> {
     })
 }
 
+#[derive(PartialEq)]
 pub(crate) struct Screen {
     pixels: Vec<u16>,
 }
