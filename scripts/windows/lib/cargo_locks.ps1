@@ -141,7 +141,7 @@ function Repair-KasKoldHostLocks {
     $probe = Invoke-KasKoldCapture -Command 'rustup' -Arguments @('run',$env:KASKOLD_STABLE_RUST,'cargo','--version')
     if ($probe.ExitCode -ne 0) {
         Write-Host "==> Installing pinned host Rust $($env:KASKOLD_STABLE_RUST) for lock verification"
-        Invoke-KasKoldCommand -Command 'rustup' -Arguments @('toolchain','install',$env:KASKOLD_STABLE_RUST,'--profile','minimal') | Out-Null
+        Invoke-KasKoldCommand -Command 'rustup' -Arguments @('toolchain','install',$env:KASKOLD_STABLE_RUST,'--profile','minimal','--no-self-update') | Out-Null
     }
     Repair-KasKoldOneHostLock $Root 'Root workspace' 'Cargo.toml' 'Cargo.lock'
     Repair-KasKoldOneHostLock $Root 'Signer firmware workspace' 'apps/kaskold-hardware/Cargo.toml' 'apps/kaskold-hardware/Cargo.lock'

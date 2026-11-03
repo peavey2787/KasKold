@@ -31,10 +31,10 @@ cleanup_source_fuzz_scratch
 trap cleanup_source_fuzz_scratch EXIT
 
 if ! rustup run "$INSTALLER_TOOLCHAIN" rustc --version >/dev/null 2>&1; then
-  rustup toolchain install "$INSTALLER_TOOLCHAIN" --profile minimal || exit $?
+  rustup toolchain install "$INSTALLER_TOOLCHAIN" --profile minimal --no-self-update || exit $?
 fi
 if ! rustup run "$EXECUTION_TOOLCHAIN" rustc --version >/dev/null 2>&1; then
-  rustup toolchain install "$EXECUTION_TOOLCHAIN" --profile minimal || exit $?
+  rustup toolchain install "$EXECUTION_TOOLCHAIN" --profile minimal --no-self-update || exit $?
 fi
 actual="$(rustup run "$EXECUTION_TOOLCHAIN" cargo fuzz --version 2>/dev/null || true)"
 if [[ "$actual" != *"cargo-fuzz $VERSION"* ]]; then

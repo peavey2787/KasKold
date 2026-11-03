@@ -18,7 +18,7 @@ $env:PATH = "$($asanRuntime.Output.Trim());$env:PATH"
 foreach ($cmd in @('rustup','cargo')) { Require-KasKoldCommand $cmd | Out-Null }
 foreach ($toolchain in @($installer,$execution)) {
     $probe = Invoke-KasKoldCapture -Command 'rustup' -Arguments @('run',$toolchain,'rustc','--version')
-    if ($probe.ExitCode -ne 0) { Invoke-KasKoldCommand -Command 'rustup' -Arguments @('toolchain','install',$toolchain,'--profile','minimal') | Out-Null }
+    if ($probe.ExitCode -ne 0) { Invoke-KasKoldCommand -Command 'rustup' -Arguments @('toolchain','install',$toolchain,'--profile','minimal','--no-self-update') | Out-Null }
 }
 $actualProbe = Invoke-KasKoldCapture -Command 'rustup' -Arguments @('run',$execution,'cargo','fuzz','--version')
 $actual = $actualProbe.Output

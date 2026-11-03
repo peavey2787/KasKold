@@ -188,7 +188,7 @@ run_core_ci_gate() {
     if $DRY_RUN; then
         printf '  + Core CI log: %s\n' "$log_path"
         printf '  + reuse local rustup %q toolchain when rustc, rustfmt, and clippy are already available\n' "$KASKOLD_STABLE_RUST"
-        printf '  + rustup toolchain install %q --profile minimal --component rustfmt --component clippy  # only when missing locally\n' "$KASKOLD_STABLE_RUST"
+        printf '  + rustup toolchain install %q --profile minimal --no-self-update --component rustfmt --component clippy  # only when missing locally\n' "$KASKOLD_STABLE_RUST"
         printf '  + python3 qa/checks/workspace/check_rust_format.py\n'
         printf '  + rustup run %q cargo clippy --workspace --all-targets --locked -- -D warnings\n' "$KASKOLD_STABLE_RUST"
         for manifest in "${SIDE_CLIPPY_MANIFESTS[@]}"; do
@@ -234,7 +234,7 @@ run_core_ci_gate() {
         else
             echo "Pinned core toolchain or required components are missing; installing $KASKOLD_STABLE_RUST."
             rustup toolchain install "$KASKOLD_STABLE_RUST" \
-              --profile minimal \
+              --profile minimal --no-self-update \
               --component rustfmt \
               --component clippy
             rc=$?
@@ -381,11 +381,11 @@ ensure_fuzz_toolchain() {
     fi
     if ! rustup run "$installer_toolchain" rustc --version >/dev/null 2>&1; then
         printf '  ! Pinned cargo-fuzz installer toolchain is missing; installing %s.\n' "$installer_toolchain"
-        rustup toolchain install "$installer_toolchain" --profile minimal
+        rustup toolchain install "$installer_toolchain" --profile minimal --no-self-update
     fi
     if ! rustup run "$execution_toolchain" rustc --version >/dev/null 2>&1; then
         printf '  ! Pinned nightly is missing; installing %s.\n' "$execution_toolchain"
-        rustup toolchain install "$execution_toolchain" --profile minimal
+        rustup toolchain install "$execution_toolchain" --profile minimal --no-self-update
     fi
     local actual
     actual="$(rustup run "$execution_toolchain" cargo fuzz --version 2>/dev/null || true)"

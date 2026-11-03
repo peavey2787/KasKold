@@ -95,7 +95,7 @@ kaskold_ensure_rust_toolchain() {
         return 0
     fi
     printf 'Installing pinned Rust toolchain %s...\n' "$toolchain"
-    rustup toolchain install "$toolchain" --profile minimal "$@"
+    rustup toolchain install "$toolchain" --profile minimal --no-self-update "$@"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

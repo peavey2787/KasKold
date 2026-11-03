@@ -461,7 +461,7 @@ class MasterTestLauncherTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertTrue(marker.exists())
             self.assertIn(
-                f"toolchain install {PINS['KASKOLD_BRANCH_RUST']} --profile minimal",
+                f"toolchain install {PINS['KASKOLD_BRANCH_RUST']} --profile minimal --no-self-update",
                 rustup_log.read_text(),
             )
             self.assertIn("Pinned nightly is missing", result.stdout)

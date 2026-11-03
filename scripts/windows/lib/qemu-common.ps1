@@ -24,7 +24,7 @@ function Install-KasKoldEspRustToolchain {
     $hostCargo = Invoke-KasKoldCapture -Command 'rustup' -Arguments @('run',$env:KASKOLD_STABLE_RUST,'cargo','--version')
     if ($hostCargo.ExitCode -ne 0) {
         Write-Host "Pinned host Rust $($env:KASKOLD_STABLE_RUST) is missing; installing it before ESP tooling."
-        Invoke-KasKoldStreamingCommand -Command 'rustup' -Arguments @('toolchain','install',$env:KASKOLD_STABLE_RUST,'--profile','minimal')
+        Invoke-KasKoldStreamingCommand -Command 'rustup' -Arguments @('toolchain','install',$env:KASKOLD_STABLE_RUST,'--profile','minimal','--no-self-update')
     }
     $probe = Invoke-KasKoldCapture -Command 'rustup' -Arguments @('run','esp','rustc','--version')
     if ($probe.ExitCode -ne 0) {

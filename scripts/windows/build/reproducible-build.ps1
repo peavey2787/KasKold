@@ -70,7 +70,7 @@ try {
     # the prefetched portable registry/source cache. No Linux executable is launched.
     $repro=$env:KASKOLD_REPRO_HOST_RUST
     $probe=Invoke-KasKoldCapture -Command 'rustup' -Arguments @('run',$repro,'rustc','--version')
-    if($probe.ExitCode -ne 0){Invoke-KasKoldCommand -Command 'rustup' -Arguments @('toolchain','install',$repro,'--profile','minimal')|Out-Null}
+    if($probe.ExitCode -ne 0){Invoke-KasKoldCommand -Command 'rustup' -Arguments @('toolchain','install',$repro,'--profile','minimal','--no-self-update')|Out-Null}
     $targets=Invoke-KasKoldCapture -Command 'rustup' -Arguments @('target','list','--toolchain',$repro,'--installed')
     if(($targets.Output -split "`r?`n") -notcontains 'wasm32-unknown-unknown'){Invoke-KasKoldCommand -Command 'rustup' -Arguments @('target','add','wasm32-unknown-unknown','--toolchain',$repro)|Out-Null}
     $cargoHome=Join-Path $prefetch 'root-home/.cargo';$reproEnv=@{'CARGO_HOME'=$cargoHome;'RUSTUP_TOOLCHAIN'=$repro;'CARGO_NET_OFFLINE'='true'}

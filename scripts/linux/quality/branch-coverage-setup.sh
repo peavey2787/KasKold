@@ -47,7 +47,7 @@ printf '  Toolchain:       %s\n' "$TOOLCHAIN"
 if rustup run "$TOOLCHAIN" rustc --version >/dev/null 2>&1; then
     printf '  Rust toolchain:  already installed\n'
 else
-    rustup toolchain install "$TOOLCHAIN" --profile minimal --component llvm-tools-preview
+    rustup toolchain install "$TOOLCHAIN" --profile minimal --no-self-update --component llvm-tools-preview
 fi
 
 if rustup component list --toolchain "$TOOLCHAIN" --installed 2>/dev/null \

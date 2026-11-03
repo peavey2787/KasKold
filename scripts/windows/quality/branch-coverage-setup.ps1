@@ -62,7 +62,7 @@ if($pathEntries -notcontains $toolBin){$env:PATH=$toolBin+';'+$env:PATH}
 
 Write-Host "Provisioning pinned branch-coverage tools:`n  Toolchain:       $toolchain`n  Local tool root: $toolRoot"
 $p=Invoke-KasKoldCapture -Command 'rustup' -Arguments @('run',$toolchain,'rustc','--version')
-if($p.ExitCode -eq 0){Write-Host '  Rust toolchain:  already installed'}else{Invoke-KasKoldCommand -Command 'rustup' -Arguments @('toolchain','install',$toolchain,'--profile','minimal','--component','llvm-tools-preview')|Out-Null}
+if($p.ExitCode -eq 0){Write-Host '  Rust toolchain:  already installed'}else{Invoke-KasKoldCommand -Command 'rustup' -Arguments @('toolchain','install',$toolchain,'--profile','minimal','--no-self-update','--component','llvm-tools-preview')|Out-Null}
 $components=Invoke-KasKoldCapture -Command 'rustup' -Arguments @('component','list','--toolchain',$toolchain,'--installed')
 if($components.Output -match '(?m)^llvm-tools'){Write-Host '  LLVM tools:      already installed'}else{Invoke-KasKoldCommand -Command 'rustup' -Arguments @('component','add','llvm-tools-preview','--toolchain',$toolchain)|Out-Null;Write-Host '  LLVM tools:      installed'}
 function Get-PluginVersion([string]$sub){

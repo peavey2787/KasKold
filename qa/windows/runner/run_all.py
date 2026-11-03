@@ -275,7 +275,7 @@ def ensure_fuzz_toolchain(dry: bool) -> None:
     stable=os.environ["KASKOLD_STABLE_RUST"]; nightly=os.environ["KASKOLD_BRANCH_RUST"]; ver=os.environ["KASKOLD_CARGO_FUZZ_VERSION"]
     for tc in (stable,nightly):
         if capture(["rustup","run",tc,"rustc","--version"]).returncode:
-            run(["rustup","toolchain","install",tc,"--profile","minimal"])
+            run(["rustup","toolchain","install",tc,"--profile","minimal","--no-self-update"])
     # A direct --resume-from fuzz invocation must be self-contained. The earlier
     # branch-coverage gate normally installs LLVM tooling, but fuzz cannot rely
     # on a prior stage having run in this process/session. rustup is idempotent
@@ -458,7 +458,7 @@ _CORE_CI_GATES = ("FORMAT", "CLIPPY", "QA CLIPPY", "TOOLS CLIPPY", "VAULT WEB CL
 
 def _core_ci_commands(stable: str) -> list[list[str]]:
     return [
-        ["rustup", "toolchain", "install", stable, "--profile", "minimal", "--component", "rustfmt", "--component", "clippy"],
+        ["rustup", "toolchain", "install", stable, "--profile", "minimal", "--no-self-update", "--component", "rustfmt", "--component", "clippy"],
         [PYTHON, "qa/checks/workspace/check_rust_format.py"],
         ["rustup", "run", stable, "cargo", "clippy", "--workspace", "--all-targets", "--locked", "--", "-D", "warnings"],
         ["rustup", "run", stable, "cargo", "clippy", "--manifest-path", "qa/Cargo.toml", "--all-targets", "--locked", "--", "-D", "warnings"],

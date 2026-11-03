@@ -206,7 +206,7 @@ kaskold_reconcile_host_locks() {
 
     if ! rustup run "${KASKOLD_STABLE_RUST}" cargo --version >/dev/null 2>&1; then
         printf '==> Installing pinned host Rust %s for lock verification\n' "$KASKOLD_STABLE_RUST"
-        rustup toolchain install "$KASKOLD_STABLE_RUST" --profile minimal
+        rustup toolchain install "$KASKOLD_STABLE_RUST" --profile minimal --no-self-update
     fi
 
     # Mirror the master QA runner's independent Cargo resolution checks so

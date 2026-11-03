@@ -425,7 +425,7 @@ def setup(policy: dict[str, Any]) -> int:
     version = policy["cargo_mutants_version"]
     if ensure_rustup() != 0:
         return 2
-    run(["rustup", "toolchain", "install", toolchain, "--profile", "minimal"])
+    run(["rustup", "toolchain", "install", toolchain, "--profile", "minimal", "--no-self-update"])
     if reconcile_root_lock(toolchain) != 0:
         return 2
     actual = captured(["rustup", "run", toolchain, "cargo", "mutants", "--version"])
