@@ -1,7 +1,7 @@
 use super::restored_wallet;
 use crate::{HotWalletError, OutputOwnership};
 use offline_signer::{
-    address::{p2pk_script, p2sh_script, KaspaNetwork},
+    address::{p2pk_script, p2sh_script, script_hash, KaspaNetwork},
     derivation::kip22::{self, Chain},
     transaction::{kspt::serialize_compact_kspt_vec, model::Transaction},
 };
@@ -26,6 +26,11 @@ fn set_script(target: &mut offline_signer::transaction::model::ScriptPublicKey, 
 
 /// A KIP-22 spend paying a foreign key, with its second output at `change`.
 fn spend(source: &[u8; 32], change: &[u8]) -> Vec<u8> {
+    spend_from(&kip22_script(source), &kip22::redeem_script(source), change)
+}
+
+/// A spend of the script-hash coin at `coin`, revealing `redeem`.
+fn spend_from(coin: &[u8], redeem: &[u8], change: &[u8]) -> Vec<u8> {
     let mut transaction = Transaction::try_new().expect("transaction allocation");
     transaction.version = 1;
     transaction.network = KaspaNetwork::Mainnet;
@@ -38,10 +43,10 @@ fn spend(source: &[u8; 32], change: &[u8]) -> Vec<u8> {
     transaction.inputs[0].utxo_entry.amount = 100_000;
     set_script(
         &mut transaction.inputs[0].utxo_entry.script_public_key,
-        &kip22_script(source),
+        coin,
     );
     transaction
-        .store_redeem(0, &kip22::redeem_script(source))
+        .store_redeem(0, redeem)
         .expect("store redeem script");
     transaction.outputs[0].value = 30_000;
     set_script(
@@ -74,6 +79,17 @@ fn a_foreign_script_hash_stays_a_payment() {
         .expect("KIP-22 spend reviews");
     assert_eq!(review.outputs[1].ownership, OutputOwnership::External);
     assert_eq!(review.external_total, 99_000);
+}
+
+#[test]
+fn a_script_hash_coin_that_is_not_kip22_is_refused() {
+    let redeem = [0x51];
+    let change = kip22_script(&wallet_key(Chain::Change, 0));
+    let spend = spend_from(&p2sh_script(&script_hash(&redeem)), &redeem, &change);
+    assert!(matches!(
+        restored_wallet().review_compact_kspt(&spend),
+        Err(HotWalletError::InvalidToolInput)
+    ));
 }
 
 #[test]
