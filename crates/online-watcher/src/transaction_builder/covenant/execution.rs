@@ -64,9 +64,9 @@ fn truth_for(branches: &BranchResolution, path: SpendPath) -> Result<u16, String
     let key_error = |error| format!("Covenant script has no such key: {error:?}");
     match path {
         SpendPath::Owner => {
+            // Every selector true except those the first key needs false.
             let key = branches.key_at(0).map_err(key_error)?;
-            let reaching = branches.truth_reaching_key(0).map_err(key_error)?;
-            Ok((branches.selector_mask() & !key.decision_mask) | reaching)
+            Ok(branches.selector_mask() & !(key.decision_mask & !key.if_mask))
         }
         SpendPath::Key(position) => branches.truth_reaching_key(position).map_err(key_error),
         SpendPath::Exact(truth) => Ok(truth),

@@ -134,6 +134,14 @@ pub(crate) mod test_support {
         }
     }
 
+    /// The PSKT documents inside a PSKB wire.
+    pub(crate) fn decode_pskb_document(wire: &str) -> serde_json::Value {
+        let bytes = hex::decode(wire).expect("wire hex");
+        assert_eq!(&bytes[..4], b"PSKB");
+        let json_hex = core::str::from_utf8(&bytes[4..]).expect("JSON hex");
+        serde_json::from_slice(&hex::decode(json_hex).expect("JSON bytes")).expect("PSKB JSON")
+    }
+
     /// The mainnet address a redeem script locks funds at.
     pub(crate) fn covenant_address(redeem_script: &[u8]) -> String {
         crate::protocol::script::p2sh::script_to_address(redeem_script, "kaspa")

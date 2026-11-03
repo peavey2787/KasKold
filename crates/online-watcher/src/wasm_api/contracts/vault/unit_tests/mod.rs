@@ -228,11 +228,7 @@ fn vault_pskb_plans_require_hardware_signing_and_preserve_covenant_binding() {
     );
     assert_eq!(spendable, 90);
     assert_eq!(split, None);
-    let outer = hex::decode(&wire).expect("PSKB outer hex");
-    assert_eq!(&outer[..4], b"PSKB");
-    let body_hex = core::str::from_utf8(&outer[4..]).expect("PSKB body hex");
-    let body = hex::decode(body_hex).expect("PSKB JSON hex");
-    let document: serde_json::Value = serde_json::from_slice(&body).expect("PSKB JSON");
+    let document = crate::wasm_api::test_support::decode_pskb_document(&wire);
     assert_eq!(
         document[0]["outputs"][0]["covenantBinding"]["covenantId"],
         serde_json::Value::String("22".repeat(32)),

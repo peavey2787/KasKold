@@ -15,12 +15,15 @@ use offline_signer::{
 use crate::{
     account::address::{address_to_script_pubkey, encode_p2pk_address},
     contracts::covenant::script,
-    transaction_builder::covenant::{
-        execution::{execution_named, SpendPath},
-        private_swap, spend_document,
-        sweeps::{owner, savings, timelocked},
+    transaction_builder::{
+        covenant::{
+            execution::{execution_named, signatures_required, SpendPath},
+            private_swap, spend_document,
+            sweeps::{owner, savings, timelocked},
+        },
+        pskb::CovenantExecution,
     },
-    wasm_api::test_support::covenant_address,
+    wasm_api::test_support::{covenant_address, decode_pskb_document},
 };
 
 use kaskold_protocol::{companion::verify_complete_pskt, Network};
@@ -117,6 +120,10 @@ pub(super) fn signatures_per_input(spend: &VerifiedTransaction) -> Vec<usize> {
 
 /// A spend the Companion builds from a named path, as its escrow screens do.
 fn named_path_spend(redeem: &[u8], path: &str, lock_time: u64) -> String {
+    spend_with_payload(redeem, path, lock_time, "")
+}
+
+fn spend_with_payload(redeem: &[u8], path: &str, lock_time: u64, payload_hex: &str) -> String {
     spend_document::encode_json(
         &serde_json::json!({
             "covenant_address": covenant_address(redeem),
@@ -124,7 +131,7 @@ fn named_path_spend(redeem: &[u8], path: &str, lock_time: u64) -> String {
             "path": path,
             "tx_version": 1,
             "lock_time": lock_time.to_string(),
-            "payload_hex": "",
+            "payload_hex": payload_hex,
             "utxos": [{ "tx_id": "63".repeat(32), "index": 0, "amount": "30000000" }],
             "outputs": [{ "address": destination(), "amount": "29000000" }],
         })
@@ -277,6 +284,60 @@ fn shipment_timeouts_finalize_with_no_signature_at_all() {
         let spend = verify_complete_pskt(&wire, Network::Mainnet).expect(path);
         assert_eq!(signatures_per_input(&spend), [0], "{path}");
     }
+}
+
+#[test]
+fn each_owner_route_supplies_the_selectors_its_party_spends_through() {
+    let piggy_bank = script::build_piggy_bank_script(&wallet_key(), 10_000_000, LOCK_TIME, &[1; 8]);
+    let switch = script::build_dms_csv_script(&wallet_key(), &stranger(21), 100);
+    let shipment = shipment(&keys_with_wallet_as::<4>(0));
+    let supplying = |supplied_mask, supplied_true_mask| {
+        Ok::<_, String>(CovenantExecution {
+            supplied_mask,
+            supplied_true_mask,
+        })
+    };
+    assert_eq!(execution_named(&piggy_bank, "owner"), supplying(0b11, 0b11));
+    assert_eq!(
+        execution_named(&piggy_bank, "owner-time"),
+        supplying(0b11, 0b01)
+    );
+    assert_eq!(execution_named(&switch, "owner"), supplying(0b1, 0b1));
+    assert_eq!(execution_named(&switch, "beneficiary"), supplying(0b1, 0b0));
+    assert_eq!(execution_named(&shipment, ""), supplying(0x7f, 0x7f));
+}
+
+#[test]
+fn a_spend_signs_only_as_often_as_its_path_checks() {
+    let redeem = shipment(&keys_with_wallet_as::<4>(0));
+    for (path, signatures) in [("state0-timeout", 0), ("pickup", 1)] {
+        let execution = execution_named(&redeem, path).expect(path);
+        assert_eq!(
+            signatures_required(&redeem, &execution),
+            signatures,
+            "{path}"
+        );
+    }
+}
+
+#[test]
+fn a_spend_document_stamps_a_lock_time_and_payload_only_when_it_has_them() {
+    let redeem = shipment(&keys_with_wallet_as::<4>(0));
+    let global = |lock_time, payload_hex| {
+        decode_pskb_document(&spend_with_payload(
+            &redeem,
+            "pickup",
+            lock_time,
+            payload_hex,
+        ))[0]["global"]
+            .clone()
+    };
+    let bare = global(0, "");
+    assert_eq!(bare["fallbackLockTime"], serde_json::Value::Null);
+    assert_eq!(bare.get("txPayload"), None);
+    let stamped = global(LOCK_TIME, "abcd");
+    assert_eq!(stamped["fallbackLockTime"], LOCK_TIME.to_string());
+    assert_eq!(stamped["txPayload"], "abcd");
 }
 
 #[test]

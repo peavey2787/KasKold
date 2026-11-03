@@ -6,7 +6,7 @@ use crate::wasm_api::protocol::pskt::{
     pskt_finalize_and_broadcast_string,
     pskt_relay_to_kspt_string as relay_pskb_as_kspt_hex_for_network,
 };
-use crate::wasm_api::test_support::{canonical_test_pskt, ready};
+use crate::wasm_api::test_support::{canonical_test_pskt, decode_pskb_document, ready};
 
 fn merge_signed_kspt_into_pskb(signed_kspt_hex: &str, pskb: &str) -> Result<String, String> {
     kaskold_protocol::merge_signed_kspt_hex(
@@ -272,13 +272,6 @@ fn relay_v4_encodes_explicit_networks_and_derivation_hints() {
             .unwrap_err()
             .contains("branch must be 0 or 1")
     );
-}
-
-fn decode_pskb_document(wire: &str) -> Value {
-    let bytes = hex::decode(wire).expect("wire hex");
-    assert_eq!(&bytes[..4], b"PSKB");
-    let json_hex = core::str::from_utf8(&bytes[4..]).expect("JSON hex");
-    serde_json::from_slice(&hex::decode(json_hex).expect("JSON bytes")).expect("PSKB JSON")
 }
 
 #[test]
