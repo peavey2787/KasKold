@@ -9,10 +9,13 @@ import shutil
 import subprocess
 import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import simulator_coverage  # noqa: E402
-
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(ROOT / "qa/checks"))
+import simulator_coverage  # noqa: E402
+from toolchains import load_toolchains  # noqa: E402
+
+TOOLCHAIN = load_toolchains()["KASKOLD_STABLE_RUST"]
 SIMULATOR = ROOT / "qa/firmware-sim"
 TARGET = ROOT / "target/firmware-sim"
 COVERAGE = TARGET / "coverage"
@@ -37,6 +40,7 @@ def commands() -> list[list[str]]:
 def environment(profiles: Path) -> dict[str, str]:
     return {
         **os.environ,
+        "RUSTUP_TOOLCHAIN": TOOLCHAIN,
         "CARGO_TARGET_DIR": str(TARGET),
         "RUSTFLAGS": "-D warnings -C instrument-coverage",
         "LLVM_PROFILE_FILE": str(profiles / "%p-%m.profraw"),
@@ -81,13 +85,14 @@ def run_scenarios() -> list[str] | None:
 
 
 def main() -> int:
+    simulator_coverage.ensure_llvm_tools(TOOLCHAIN)
     shutil.rmtree(COVERAGE, ignore_errors=True)
     TEST_PROFILES.mkdir(parents=True)
     BUILD_PROFILES.mkdir(parents=True)
     objects = run_scenarios()
     if objects is None:
         return 1
-    lcov = simulator_coverage.export_lcov(TEST_PROFILES, objects, SIMULATOR)
+    lcov = simulator_coverage.export_lcov(TEST_PROFILES, objects, TOOLCHAIN)
     shutil.rmtree(TEST_PROFILES)
     shutil.rmtree(BUILD_PROFILES)
     hit, total = simulator_coverage.line_coverage(lcov, ROOT)

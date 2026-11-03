@@ -79,6 +79,10 @@ class Runner(unittest.TestCase):
         self.assertIn("-C instrument-coverage", flags)
         self.assertIn("-D warnings", flags)
 
+    def test_the_simulator_builds_with_the_pinned_stable_toolchain(self) -> None:
+        environment = runner.environment(runner.TEST_PROFILES)
+        self.assertEqual(environment["RUSTUP_TOOLCHAIN"], runner.load_toolchains()["KASKOLD_STABLE_RUST"])
+
 
 if __name__ == "__main__":
     unittest.main()

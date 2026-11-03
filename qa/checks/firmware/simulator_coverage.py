@@ -56,28 +56,34 @@ def load_floor(baseline: Path) -> float:
     return float(json.loads(baseline.read_text(encoding="utf-8"))["production_line_percent"])
 
 
-def _rustc(cwd: Path, *arguments: str) -> str:
-    return subprocess.run(["rustc", *arguments], cwd=cwd, check=True, capture_output=True, text=True).stdout
+def _rustc(toolchain: str, *arguments: str) -> str:
+    command = ["rustup", "run", toolchain, "rustc", *arguments]
+    return subprocess.run(command, check=True, capture_output=True, text=True).stdout
 
 
-def llvm_tool(name: str, cwd: Path) -> Path:
-    sysroot = _rustc(cwd, "--print", "sysroot").strip()
-    host = next(line.split()[1] for line in _rustc(cwd, "-vV").splitlines() if line.startswith("host:"))
+def ensure_llvm_tools(toolchain: str) -> None:
+    """The profiles can only be read by the LLVM tools of the toolchain that wrote them."""
+    subprocess.run(["rustup", "component", "add", "llvm-tools-preview", "--toolchain", toolchain], check=True)
+
+
+def llvm_tool(name: str, toolchain: str) -> Path:
+    sysroot = _rustc(toolchain, "--print", "sysroot").strip()
+    host = next(line.split()[1] for line in _rustc(toolchain, "-vV").splitlines() if line.startswith("host:"))
     suffix = ".exe" if os.name == "nt" else ""
     return Path(sysroot) / "lib/rustlib" / host / "bin" / f"{name}{suffix}"
 
 
-def export_lcov(profiles: Path, objects: list[str], cwd: Path) -> str:
+def export_lcov(profiles: Path, objects: list[str], toolchain: str) -> str:
     merged = profiles.parent / "merged.profdata"
     listing = profiles.parent / "profiles.txt"
     listing.write_text("\n".join(str(path) for path in sorted(profiles.glob("*.profraw"))), encoding="utf-8")
     subprocess.run(
-        [llvm_tool("llvm-profdata", cwd), "merge", "-sparse", f"--input-files={listing}", "-o", merged],
+        [llvm_tool("llvm-profdata", toolchain), "merge", "-sparse", f"--input-files={listing}", "-o", merged],
         check=True,
     )
     pairs = [argument for executable in objects for argument in ("--object", executable)]
     exported = subprocess.run(
-        [llvm_tool("llvm-cov", cwd), "export", "--format=lcov", f"--instr-profile={merged}", *pairs],
+        [llvm_tool("llvm-cov", toolchain), "export", "--format=lcov", f"--instr-profile={merged}", *pairs],
         check=True,
         capture_output=True,
         text=True,
