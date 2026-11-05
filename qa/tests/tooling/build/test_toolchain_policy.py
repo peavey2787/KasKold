@@ -36,6 +36,17 @@ class ToolchainPolicyTests(unittest.TestCase):
         for source in (runner, commands):
             self.assertIn("fuzz_targets.py", source)
 
+    def test_fuzz_workflow_timeout_must_fit_every_target(self) -> None:
+        workflow = "timeout-minutes: {}\n  run: FUZZ_SECONDS=300 bash fuzz.sh\n"
+        self.assertEqual(toolchain_policy.fuzz_budget_errors(workflow.format(105), 17), [])
+        self.assertEqual(
+            toolchain_policy.fuzz_budget_errors(workflow.format(75), 17),
+            ["fuzz workflow timeout-minutes must cover 105 minutes for 17 targets"],
+        )
+        self.assertEqual(
+            toolchain_policy.fuzz_budget_errors("run: fuzz.sh\n", 17),
+            ["fuzz workflow must state timeout-minutes and FUZZ_SECONDS"],
+        )
 
     def test_root_lock_tracks_wasm_target_dependencies_used_by_workspace_members(self) -> None:
         lock = tomllib.loads((ROOT / "Cargo.lock").read_text())

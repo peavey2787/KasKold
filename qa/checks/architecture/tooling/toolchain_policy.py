@@ -15,6 +15,8 @@ from security.fuzz_targets import registered_targets, validate_targets  # noqa: 
 
 # Fuzz coverage only ratchets upward: removing a target needs a reviewed change here.
 MINIMUM_FUZZ_TARGETS = 17
+# Time the fuzz workflow needs beyond fuzzing itself: checkout, toolchains, build.
+FUZZ_WORKFLOW_SETUP_SECONDS = 20 * 60
 
 
 def _consumer_requirements() -> dict[str, tuple[str, ...]]:
@@ -218,6 +220,23 @@ def _check_security_registry(root: Path) -> list[str]:
     return errors
 
 
+def fuzz_budget_errors(workflow: str, target_count: int) -> list[str]:
+    """The fuzz workflow's job timeout must fit every target's fuzzing time."""
+    timeout = re.search(r"timeout-minutes:\s*(\d+)", workflow)
+    seconds = re.search(r"FUZZ_SECONDS=(\d+)", workflow)
+    if timeout is None or seconds is None:
+        return ["fuzz workflow must state timeout-minutes and FUZZ_SECONDS"]
+    needed = target_count * int(seconds.group(1)) + FUZZ_WORKFLOW_SETUP_SECONDS
+    if int(timeout.group(1)) * 60 < needed:
+        return [f"fuzz workflow timeout-minutes must cover {needed // 60} minutes for {target_count} targets"]
+    return []
+
+
+def _check_fuzz_budget(root: Path) -> list[str]:
+    workflow = (root / ".github/workflows/fuzz.yml").read_text(errors="replace")
+    return fuzz_budget_errors(workflow, len(registered_targets(root / "qa/fuzz/Cargo.toml")))
+
+
 def check(root: Path) -> list[str]:
     try:
         pins = load_toolchains(root / "qa/config/toolchains.env")
@@ -227,4 +246,5 @@ def check(root: Path) -> list[str]:
         *_check_consumers(root, pins),
         *_check_offline_docker(root),
         *_check_security_registry(root),
+        *_check_fuzz_budget(root),
     ]

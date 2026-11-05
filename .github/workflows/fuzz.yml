@@ -16,7 +16,9 @@ jobs:
   bounded-security-fuzz:
     name: Bounded security fuzz (nightly/manual/harness changes)
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    # Every registered target runs FUZZ_SECONDS; the architecture gate keeps
+    # this budget above that total plus the build.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v6
       - name: Bounded registered fuzz targets
