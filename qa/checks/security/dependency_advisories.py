@@ -37,6 +37,22 @@ def installed_version() -> str:
     return output.split()[-1]
 
 
+def ensure_pinned(toolchains: dict[str, str]) -> bool:
+    """Install the pinned cargo-audit when it is missing or another version."""
+    required = toolchains["KASKOLD_CARGO_AUDIT_VERSION"]
+    if installed_version() != required:
+        subprocess.run(
+            ["rustup", "run", toolchains["KASKOLD_STABLE_RUST"], "cargo", "install",
+             "cargo-audit", "--version", required, "--locked", "--force"],
+            cwd=ROOT, check=False,
+        )
+    found = installed_version()
+    if found != required:
+        print(f"FAIL: cargo-audit {required} is required (found {found or 'none'}) "
+              "and installing it failed")
+    return found == required
+
+
 def lockfiles() -> list[Path]:
     listed = subprocess.run(
         ["git", "ls-files", "*Cargo.lock"],
@@ -54,11 +70,7 @@ def audit(lockfile: Path) -> bool:
 
 
 def main() -> int:
-    required = load_toolchains()["KASKOLD_CARGO_AUDIT_VERSION"]
-    found = installed_version()
-    if found != required:
-        print(f"FAIL: cargo-audit {required} is required (found {found or 'none'}); "
-              f"install it with: cargo install cargo-audit --version {required} --locked")
+    if not ensure_pinned(load_toolchains()):
         return 1
     failed = [lock for lock in lockfiles() if not audit(lock)]
     for lock in failed:
