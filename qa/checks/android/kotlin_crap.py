@@ -18,7 +18,7 @@ OUT = ROOT / "target/qa/android-crap"
 THRESHOLD = 30.0
 SCOPE = (APP / "domain", APP / "infrastructure")
 ALL_KOTLIN = (APP, ROOT / "apps/kaskold-vault-android/app/src/main/java/com/kaskold/vault")
-MAX_COMPLEXITY = 12
+MAX_COMPLEXITY = 6
 FUN = re.compile(r"\bfun\s+(?:<[^>]+>\s*)?([A-Za-z_][A-Za-z0-9_]*)\s*\([^)]*\)[^{=]*([={])")
 DECISION = re.compile(r"\b(?:if|for|while|catch|when)\b|&&|\|\||\?:")
 STRING = re.compile(r'"""(?s:.*?)"""|"(?:\\.|[^"\\\n])*"')

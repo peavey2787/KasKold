@@ -40,42 +40,59 @@ internal fun BackupScreen(state: VaultScreenState.Backup, onAdvanced: () -> Unit
     val words = remember(state.phrase) { state.phrase.trim().split(Regex("\\s+")).filter(String::isNotEmpty) }
     var index by remember(state.phrase) { mutableIntStateOf(0) }
     var showAll by remember(state.phrase) { mutableStateOf(false) }
+    val finished = showAll || index + 1 >= words.size
     Text("Recovery Words", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
     Text("Write down each recovery word in order and store the backup privately and securely.")
-    if (showAll) {
-        Card(modifier = Modifier.fillMaxWidth()) {
-            SelectionContainer {
-                Text(
-                    words.mapIndexed { wordIndex, word -> "${wordIndex + 1}. $word" }.joinToString("\n"),
-                    modifier = Modifier.padding(24.dp),
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-            }
-        }
-    } else {
-        Text("Word ${index + 1} of ${words.size}")
-        Card(modifier = Modifier.fillMaxWidth()) {
-            SelectionContainer {
-                Text(words.getOrElse(index) { "" }, modifier = Modifier.padding(24.dp), style = MaterialTheme.typography.headlineMedium)
-            }
-        }
-    }
-    OutlinedButton(onClick = { showAll = !showAll }, modifier = Modifier.fillMaxWidth()) {
+    if (showAll) AllBackupWords(words) else OneBackupWord(words, index)
+    BackupControls(
+        showAll = showAll,
+        finished = finished,
+        canGoBack = !showAll && index > 0,
+        onToggle = { showAll = !showAll },
+        onPrevious = { index -= 1 },
+        onNext = { index += 1 },
+        onDone = onDone,
+    )
+    OutlinedButton(onClick = onAdvanced, modifier = Modifier.fillMaxWidth()) { Text("Advanced backup") }
+}
+
+@Composable
+private fun BackupControls(
+    showAll: Boolean, finished: Boolean, canGoBack: Boolean,
+    onToggle: () -> Unit, onPrevious: () -> Unit, onNext: () -> Unit, onDone: () -> Unit,
+) {
+    OutlinedButton(onClick = onToggle, modifier = Modifier.fillMaxWidth()) {
         Text(if (showAll) "Show One at a Time" else "Show All")
     }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-        OutlinedButton(
-            onClick = { if (index > 0) index -= 1 },
-            enabled = !showAll && index > 0,
-            modifier = Modifier.weight(1f),
-        ) { Text("Previous") }
-        Button(
-            onClick = { if (showAll || index + 1 >= words.size) onDone() else index += 1 },
-            enabled = true,
-            modifier = Modifier.weight(1f),
-        ) { Text(if (showAll || index + 1 >= words.size) "Continue" else "Next") }
+        OutlinedButton(onClick = onPrevious, enabled = canGoBack, modifier = Modifier.weight(1f)) { Text("Previous") }
+        Button(onClick = if (finished) onDone else onNext, modifier = Modifier.weight(1f)) {
+            Text(if (finished) "Continue" else "Next")
+        }
     }
-    OutlinedButton(onClick = onAdvanced, modifier = Modifier.fillMaxWidth()) { Text("Advanced backup") }
+}
+
+@Composable
+private fun AllBackupWords(words: List<String>) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        SelectionContainer {
+            Text(
+                words.mapIndexed { wordIndex, word -> "${wordIndex + 1}. $word" }.joinToString("\n"),
+                modifier = Modifier.padding(24.dp),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        }
+    }
+}
+
+@Composable
+private fun OneBackupWord(words: List<String>, index: Int) {
+    Text("Word ${index + 1} of ${words.size}")
+    Card(modifier = Modifier.fillMaxWidth()) {
+        SelectionContainer {
+            Text(words.getOrElse(index) { "" }, modifier = Modifier.padding(24.dp), style = MaterialTheme.typography.headlineMedium)
+        }
+    }
 }
 
 @Composable

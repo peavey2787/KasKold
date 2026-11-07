@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -27,6 +28,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
@@ -43,18 +45,7 @@ internal fun QrScannerView(
     onFrame: (ByteArray) -> Unit,
     onError: (String) -> Unit,
 ) {
-    val context = LocalContext.current
-    var granted by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED,
-        )
-    }
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { allowed ->
-        granted = allowed
-        if (!allowed) onError("Camera permission is required to scan a signing request")
-    }
-    LaunchedEffect(Unit) { if (!granted) launcher.launch(Manifest.permission.CAMERA) }
-    if (!granted) return
+    if (!rememberCameraPermission(onError)) return
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val executor = remember { Executors.newSingleThreadExecutor() }
@@ -77,25 +68,7 @@ internal fun QrScannerView(
                     val analysis = ImageAnalysis.Builder()
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build()
-                    analysis.setAnalyzer(executor) { imageProxy ->
-                        val mediaImage = imageProxy.image
-                        if (mediaImage == null || !busy.compareAndSet(false, true)) {
-                            imageProxy.close()
-                            return@setAnalyzer
-                        }
-                        val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-                        scanner.process(image)
-                            .addOnSuccessListener { barcodes ->
-                                val qr = barcodes.firstOrNull { it.format == Barcode.FORMAT_QR_CODE }
-                                val payload = qr?.rawBytes ?: qr?.rawValue?.toByteArray(StandardCharsets.ISO_8859_1)
-                                if (payload != null && payload.isNotEmpty()) onFrame(payload)
-                            }
-                            .addOnFailureListener { error -> onError(error.message ?: "QR decoding failed") }
-                            .addOnCompleteListener {
-                                busy.set(false)
-                                imageProxy.close()
-                            }
-                    }
+                    analysis.setAnalyzer(executor) { imageProxy -> analyzeFrame(imageProxy, scanner, busy, onFrame, onError) }
                     provider.unbindAll()
                     provider.bindToLifecycle(lifecycleOwner, CameraSelector.DEFAULT_BACK_CAMERA, preview, analysis)
                 }.onFailure { onError(it.message ?: "Camera initialization failed") }
@@ -110,6 +83,53 @@ internal fun QrScannerView(
             executor.shutdownNow()
         }
     }
+}
+
+/** Asks for the camera once; true while it is granted. */
+@Composable
+private fun rememberCameraPermission(onError: (String) -> Unit): Boolean {
+    val context = LocalContext.current
+    var granted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED,
+        )
+    }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { allowed ->
+        granted = allowed
+        if (!allowed) onError("Camera permission is required to scan a signing request")
+    }
+    LaunchedEffect(Unit) { if (!granted) launcher.launch(Manifest.permission.CAMERA) }
+    return granted
+}
+
+/** Decodes one camera frame unless the previous one is still being decoded. */
+private fun analyzeFrame(
+    imageProxy: ImageProxy,
+    scanner: BarcodeScanner,
+    busy: AtomicBoolean,
+    onFrame: (ByteArray) -> Unit,
+    onError: (String) -> Unit,
+) {
+    val mediaImage = imageProxy.image
+    if (mediaImage == null || !busy.compareAndSet(false, true)) {
+        imageProxy.close()
+        return
+    }
+    val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+    scanner.process(image)
+        .addOnSuccessListener { barcodes -> qrPayload(barcodes)?.let(onFrame) }
+        .addOnFailureListener { error -> onError(error.message ?: "QR decoding failed") }
+        .addOnCompleteListener {
+            busy.set(false)
+            imageProxy.close()
+        }
+}
+
+/** The bytes of the first QR code found, or null when there is none or it is empty. */
+internal fun qrPayload(barcodes: List<Barcode>): ByteArray? {
+    val qr = barcodes.firstOrNull { it.format == Barcode.FORMAT_QR_CODE }
+    val payload = qr?.rawBytes ?: qr?.rawValue?.toByteArray(StandardCharsets.ISO_8859_1)
+    return payload?.takeIf { it.isNotEmpty() }
 }
 
 @Composable

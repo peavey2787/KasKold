@@ -19,6 +19,7 @@ D	apps/kaskold-companion-android/app/src/main/java/com/kaskold
 D	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion
 D	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/app
 D	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/domain
+D	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/domain/overlay
 D	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/domain/weather
 D	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/features
 D	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/features/cover
@@ -851,6 +852,7 @@ F	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/app/Com
 F	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/app/CompanionWebViewHost.kt
 F	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/app/KasKoldTheme.kt
 F	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/app/MainActivity.kt
+F	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/domain/overlay/OverlayPolicy.kt
 F	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/domain/weather/WeatherModels.kt
 F	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/features/cover/CitySearchScreen.kt
 F	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/features/cover/WeatherCoverScreen.kt
@@ -868,6 +870,7 @@ F	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/infrast
 F	apps/kaskold-companion-android/app/src/main/java/com/kaskold/companion/shared/ui/SettingsComponents.kt
 F	apps/kaskold-companion-android/app/src/main/res/drawable-nodpi/kaskold_icon.png
 F	apps/kaskold-companion-android/app/src/main/res/values/styles.xml
+F	apps/kaskold-companion-android/app/src/test/java/com/kaskold/companion/domain/OverlayPolicyTest.kt
 F	apps/kaskold-companion-android/app/src/test/java/com/kaskold/companion/domain/WeatherUnlockPolicyTest.kt
 F	apps/kaskold-companion-android/app/src/test/java/com/kaskold/companion/infrastructure/AppLockServiceRobolectricTest.kt
 F	apps/kaskold-companion-android/app/src/test/java/com/kaskold/companion/infrastructure/PersistenceRobolectricTest.kt

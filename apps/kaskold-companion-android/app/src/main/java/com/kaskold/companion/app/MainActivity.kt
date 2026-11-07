@@ -18,6 +18,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import com.kaskold.companion.domain.overlay.OverlayPolicy
+import com.kaskold.companion.domain.overlay.OverlayVisibility
 import com.kaskold.companion.features.root.CompanionBootState
 import com.kaskold.companion.features.root.MobileOverlayScreen
 
@@ -100,16 +102,17 @@ class MainActivity : FragmentActivity() {
                         bootState,
                         showMobileSettings,
                     ) { security, weather, boot, mobileSettings ->
-                        val weatherCover = security.enabled && weather.enabled && !security.privacyCoverSuspendedForSession
-                        OverlayVisibility(
-                            overlayNeeded = security.locked || weatherCover || mobileSettings || boot != CompanionBootState.Ready,
-                            hideWallet = security.locked || weatherCover || mobileSettings,
+                        OverlayPolicy.visibility(
+                            locked = security.locked,
+                            weatherCover = OverlayPolicy.weatherCoverShown(
+                                security.enabled,
+                                weather.enabled,
+                                security.privacyCoverSuspendedForSession,
+                            ),
+                            mobileSettings = mobileSettings,
+                            booted = boot == CompanionBootState.Ready,
                         )
-                    }.collect { visibility ->
-                        overlayView.visibility = if (visibility.overlayNeeded) View.VISIBLE else View.GONE
-                        companionHost.setWalletHidden(visibility.hideWallet)
-                        if (visibility.overlayNeeded) overlayView.bringToFront()
-                    }
+                    }.collect(::applyOverlay)
                 }
                 launch {
                     container.appLock.state.collect { security ->
@@ -118,6 +121,12 @@ class MainActivity : FragmentActivity() {
                 }
             }
         }
+    }
+
+    private fun applyOverlay(visibility: OverlayVisibility) {
+        overlayView.visibility = if (visibility.overlayNeeded) View.VISIBLE else View.GONE
+        companionHost.setWalletHidden(visibility.hideWallet)
+        if (visibility.overlayNeeded) overlayView.bringToFront()
     }
 
     private fun updateRecentsPrivacy(enabled: Boolean) {
@@ -130,6 +139,4 @@ class MainActivity : FragmentActivity() {
             window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
     }
-
-    private data class OverlayVisibility(val overlayNeeded: Boolean, val hideWallet: Boolean)
 }

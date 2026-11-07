@@ -24,6 +24,7 @@ import com.kaskold.companion.domain.weather.TemperatureUnit
 import com.kaskold.companion.domain.weather.WeatherSnapshot
 import com.kaskold.companion.domain.weather.WeatherUnlockPolicy
 import com.kaskold.companion.domain.weather.WeatherUnlockTarget
+import com.kaskold.companion.infrastructure.persistence.WeatherCoverSettings
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
@@ -43,7 +44,7 @@ fun WeatherCoverScreen(container: AppContainer, activity: FragmentActivity) {
         message = null
         runCatching { container.weatherCover.refresh(settings) }
             .onSuccess { snapshot = it }
-            .onFailure { message = if (snapshot == null) "Weather is temporarily unavailable." else "Unable to refresh. Showing the last update." }
+            .onFailure { message = refreshFailureMessage(snapshot) }
         refreshing = false
     }
 
@@ -52,27 +53,7 @@ fun WeatherCoverScreen(container: AppContainer, activity: FragmentActivity) {
         WeatherSettingsScreen(container, activity, snapshot, { snapshot = it }, { showSettings = false })
         return
     }
-
-    var tapCount by remember { mutableIntStateOf(0) }
-    var tapJob by remember { mutableStateOf<Job?>(null) }
-    var unlockBusy by remember { mutableStateOf(false) }
-    val recordTap: (WeatherUnlockTarget) -> Unit = { tapped ->
-        if (tapped == settings.unlockTarget && !unlockBusy) {
-            tapCount += 1
-            tapJob?.cancel()
-            tapJob = scope.launch {
-                delay(500)
-                val completed = tapCount
-                tapCount = 0
-                if (WeatherUnlockPolicy.shouldUnlock(settings.unlockTarget, tapped, completed, settings.unlockTapCount)) {
-                    unlockBusy = true
-                    container.appLock.unlockFromPrivacyCover(activity)
-                    unlockBusy = false
-                }
-            }
-        }
-    }
-    DisposableEffect(Unit) { onDispose { tapJob?.cancel() } }
+    val recordTap = rememberUnlockTaps(container, activity, settings)
 
     Scaffold(topBar = {
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.End) {
@@ -91,30 +72,69 @@ fun WeatherCoverScreen(container: AppContainer, activity: FragmentActivity) {
                     Text(LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d")), style = MaterialTheme.typography.bodyMedium)
                 }
             }
-            item {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(weatherEmoji(snapshot?.weatherCode), fontSize = 80.sp, modifier = Modifier.clickable { recordTap(WeatherUnlockTarget.CONDITION_ICON) })
-                    Text(temperature(snapshot?.temperature), fontSize = 64.sp, fontWeight = FontWeight.Light, modifier = Modifier.clickable { recordTap(WeatherUnlockTarget.TEMPERATURE) })
-                    Text(weatherCondition(snapshot?.weatherCode), style = MaterialTheme.typography.titleLarge)
-                    snapshot?.let {
-                        val wind = if (settings.temperatureUnit == TemperatureUnit.FAHRENHEIT) "mph" else "km/h"
-                        Text("Feels like ${temperature(it.apparentTemperature)}  •  Wind ${it.windSpeed.toInt()} $wind", style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
-            }
+            item { CurrentConditions(snapshot, settings.temperatureUnit, recordTap) }
             item { ForecastCard(snapshot) }
-            item {
-                when {
-                    refreshing -> CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
-                    message != null -> Text(message!!, style = MaterialTheme.typography.bodySmall)
-                    snapshot != null -> Text("Updated ${updatedTime(snapshot!!)}", style = MaterialTheme.typography.bodySmall)
-                }
-            }
+            item { RefreshStatus(refreshing, message, snapshot) }
             item { TextButton(onClick = { scope.launch { refresh() } }, enabled = !refreshing) { Text("Refresh Weather") } }
             item { Text("Weather data by Open-Meteo", style = MaterialTheme.typography.labelSmall) }
         }
     }
 }
+
+/** Counts taps on the chosen unlock target and unlocks once they stop at the configured count. */
+@Composable
+private fun rememberUnlockTaps(
+    container: AppContainer,
+    activity: FragmentActivity,
+    settings: WeatherCoverSettings,
+): (WeatherUnlockTarget) -> Unit {
+    val scope = rememberCoroutineScope()
+    var tapCount by remember { mutableIntStateOf(0) }
+    var tapJob by remember { mutableStateOf<Job?>(null) }
+    var unlockBusy by remember { mutableStateOf(false) }
+    DisposableEffect(Unit) { onDispose { tapJob?.cancel() } }
+    return { tapped ->
+        if (tapped == settings.unlockTarget && !unlockBusy) {
+            tapCount += 1
+            tapJob?.cancel()
+            tapJob = scope.launch {
+                delay(500)
+                val completed = tapCount
+                tapCount = 0
+                if (WeatherUnlockPolicy.shouldUnlock(settings.unlockTarget, tapped, completed, settings.unlockTapCount)) {
+                    unlockBusy = true
+                    container.appLock.unlockFromPrivacyCover(activity)
+                    unlockBusy = false
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CurrentConditions(snapshot: WeatherSnapshot?, unit: TemperatureUnit, recordTap: (WeatherUnlockTarget) -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(weatherEmoji(snapshot?.weatherCode), fontSize = 80.sp, modifier = Modifier.clickable { recordTap(WeatherUnlockTarget.CONDITION_ICON) })
+        Text(temperature(snapshot?.temperature), fontSize = 64.sp, fontWeight = FontWeight.Light, modifier = Modifier.clickable { recordTap(WeatherUnlockTarget.TEMPERATURE) })
+        Text(weatherCondition(snapshot?.weatherCode), style = MaterialTheme.typography.titleLarge)
+        snapshot?.let {
+            val wind = if (unit == TemperatureUnit.FAHRENHEIT) "mph" else "km/h"
+            Text("Feels like ${temperature(it.apparentTemperature)}  •  Wind ${it.windSpeed.toInt()} $wind", style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
+@Composable
+private fun RefreshStatus(refreshing: Boolean, message: String?, snapshot: WeatherSnapshot?) {
+    when {
+        refreshing -> CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+        message != null -> Text(message, style = MaterialTheme.typography.bodySmall)
+        snapshot != null -> Text("Updated ${updatedTime(snapshot)}", style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+private fun refreshFailureMessage(snapshot: WeatherSnapshot?): String =
+    if (snapshot == null) "Weather is temporarily unavailable." else "Unable to refresh. Showing the last update."
 
 @Composable
 private fun ForecastCard(snapshot: WeatherSnapshot?) {
