@@ -1,5 +1,5 @@
 use crate::{
-    hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
+    hw::{display::BootDisplay, touch::TouchZone},
     runtime::interactions::{sd::SdTouchContext, tx::TxTouchContext},
     runtime::{data::AppData, input::AppState},
 };
@@ -17,7 +17,6 @@ struct SigningContext<'ctx, 'display, 'hal> {
     ad: &'ctx mut AppData,
     display: &'ctx mut BootDisplay<'display>,
     i2c: &'ctx mut I2c<'hal, Blocking>,
-    sd: &'ctx Option<SdCardType>,
     delay: &'ctx mut Delay,
     list: [TouchZone; 4],
     up: TouchZone,
@@ -27,7 +26,7 @@ struct SigningContext<'ctx, 'display, 'hal> {
 
 impl SigningContext<'_, '_, '_> {
     fn redraw(&mut self) {
-        super::redraw_step(self.ad, self.display, self.i2c, self.sd);
+        super::redraw_step(self.ad, self.display, self.i2c);
     }
     fn redraw_step(&mut self) {
         self.redraw();
@@ -48,7 +47,6 @@ impl SigningContext<'_, '_, '_> {
             delay: &mut *self.delay,
             liveness: &mut || {},
             i2c: &mut *self.i2c,
-            sd_card_type: self.sd,
             list_zones: &self.list,
             persistent_wallet: None,
             input,
@@ -71,7 +69,6 @@ impl SigningContext<'_, '_, '_> {
             delay: &mut *self.delay,
             liveness: &mut || {},
             i2c: &mut *self.i2c,
-            sd_card_type: self.sd,
             backup_device: &mut self.backup_device,
             list_zones: &self.list,
             page_up_zone: &self.up,
@@ -102,7 +99,6 @@ pub(super) fn exercise(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
     FAILURE_MASK.store(0, Ordering::Relaxed);
@@ -110,17 +106,8 @@ pub(super) fn exercise(
         return false;
     }
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
-    let mut ctx = SigningContext {
-        ad,
-        display,
-        i2c,
-        sd,
-        delay,
-        list,
-        up,
-        down,
-        backup_device: super::backup::WorkflowBackupDevice,
-    };
+    let mut ctx =
+        SigningContext { ad, display, i2c, delay, list, up, down, backup_device: super::backup::WorkflowBackupDevice };
     log!("KASKOLD_WORKFLOW_TESTS: SIGNING/REVIEW TRANCHE BEGIN");
     let mut summary = super::probe_status::ProbeSummary::new("SIGNING/REVIEW");
 

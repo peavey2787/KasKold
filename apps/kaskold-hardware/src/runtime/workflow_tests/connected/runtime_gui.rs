@@ -7,7 +7,7 @@
 mod firmware;
 
 use crate::{
-    hw::{camera::CameraStatus, display::BootDisplay, sdcard::SdCardType},
+    hw::{camera::CameraStatus, display::BootDisplay},
     runtime::{self, data::AppData, input::AppState, interactions::TouchInput},
 };
 use esp_hal::{delay::Delay, dma::DmaRxBuf, i2c::master::I2c, lcd_cam::cam::Camera, Blocking};
@@ -37,11 +37,10 @@ fn render(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
     watchdog_feed: &mut impl FnMut(),
 ) {
-    super::redraw_step(ad, display, i2c, sd);
+    super::redraw_step(ad, display, i2c);
     super::show_step(delay);
     // Equivalent to a completed production frame: feed only after redraw and
     // its bounded dwell have returned successfully.
@@ -104,7 +103,6 @@ fn probe_view_words(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
     watchdog_feed: &mut impl FnMut(),
 ) -> bool {
@@ -113,7 +111,7 @@ fn probe_view_words(
     if !open_view_words(ad) {
         return fail(NAME, "production Wallet -> Backup & Recovery -> View Words route rejected");
     }
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     pass(NAME);
     true
 }
@@ -122,7 +120,6 @@ fn probe_pop_it(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
     watchdog_feed: &mut impl FnMut(),
 ) -> bool {
@@ -131,7 +128,7 @@ fn probe_pop_it(
     if !open_advanced(ad) {
         return fail(NAME, "production Home -> Settings -> Advanced route rejected");
     }
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     if crate::runtime::navigation::production::pop_it_available() {
         if !runtime::interactions::menu::primary::workflow_advanced_select(ad, 3)
             || ad.navigation.app.state != AppState::PopItPrompt
@@ -146,7 +143,7 @@ fn probe_pop_it(
             return fail(NAME, "safe prompt adapter route rejected");
         }
     }
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     pass(NAME);
     true
 }
@@ -155,7 +152,6 @@ fn probe_receive_change(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
     watchdog_feed: &mut impl FnMut(),
 ) -> bool {
@@ -165,11 +161,11 @@ fn probe_receive_change(
     if !open_receive(ad) {
         return fail(NAME, "production Home -> Receive route rejected");
     }
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     if !crate::runtime::event_loop::runner::workflow_drive_address_cache(ad, watchdog_feed) {
         return fail(NAME, "address cache did not complete");
     }
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
     let toggled =
         runtime::interactions::export::handle_export_touch(runtime::interactions::export::ExportTouchContext {
@@ -178,7 +174,6 @@ fn probe_receive_change(
             delay,
             liveness: watchdog_feed,
             i2c,
-            sd_card_type: sd,
             list_zones: &list,
             page_up_zone: &up,
             page_down_zone: &down,
@@ -190,7 +185,7 @@ fn probe_receive_change(
     if toggled != Some(true) || !ad.wallet.addresses.view_is_change {
         return fail(NAME, "Change toggle rejected");
     }
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     pass(NAME);
     true
 }
@@ -199,7 +194,6 @@ fn probe_connect_companion(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
     watchdog_feed: &mut impl FnMut(),
 ) -> bool {
@@ -211,7 +205,7 @@ fn probe_connect_companion(
     // One physical loading render is the authoritative Queued -> Presented boundary.
     // Do not redraw the one-shot presentation before the operation engine has
     // advanced it into Running; production input dispatch follows the same order.
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     if !crate::runtime::presentation::operation_active(ad, crate::runtime::data::OperationKind::ConnectCompanion) {
         return fail(NAME, "production Connect Companion request did not enter loading");
     }
@@ -221,7 +215,7 @@ fn probe_connect_companion(
     if ad.navigation.app.state != AppState::ExportKpub || ad.export.kpub_len == 0 {
         return fail(NAME, "Connect Companion did not commit the account-key export state");
     }
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     pass(NAME);
     true
 }
@@ -230,7 +224,6 @@ fn probe_multisig_kpub(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
     watchdog_feed: &mut impl FnMut(),
 ) -> bool {
@@ -239,17 +232,17 @@ fn probe_multisig_kpub(
     if !open_multisig(ad) {
         return fail(NAME, "production Home -> Wallet -> Multisig route rejected");
     }
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     if !runtime::interactions::export::prepare_multisig_kpub_qr(ad, display, delay, watchdog_feed)
         || !crate::runtime::presentation::operation_active(ad, crate::runtime::data::OperationKind::DeriveMultisigKpub)
     {
         return fail(NAME, "production request did not enter loading");
     }
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     if !crate::runtime::event_loop::runner::workflow_drive_multisig_kpub(ad, display, delay, watchdog_feed) {
         return fail(NAME, "cooperative derivation did not complete");
     }
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     pass(NAME);
     true
 }
@@ -258,7 +251,6 @@ fn probe_pin_unlock_order(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
     watchdog_feed: &mut impl FnMut(),
 ) -> bool {
@@ -268,7 +260,7 @@ fn probe_pin_unlock_order(
     if !crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageUnlockPin)) {
         return fail(NAME, "production persistent-wallet PIN route rejected");
     }
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     ad.wallet.seeds.pp_input.reset();
     for digit in PIN_KDF_PASSWORD {
         ad.wallet.seeds.pp_input.push_char(*digit);
@@ -286,7 +278,7 @@ fn probe_pin_unlock_order(
     if crate::runtime::presentation::take_ready_operation(ad).is_some() {
         return fail(NAME, "credential operation became runnable before loading render");
     }
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     let operation = crate::runtime::data::OperationKind::UnlockWalletPin;
     if crate::runtime::presentation::take_ready_operation(ad) != Some(operation) {
         return fail(NAME, "credential operation was not runnable after loading render");
@@ -314,7 +306,7 @@ fn probe_pin_unlock_order(
         return fail(NAME, "credential result commit ordering rejected");
     }
     crate::runtime::presentation::finish_success(ad);
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     pass(NAME);
     true
 }
@@ -323,7 +315,6 @@ fn probe_recoverable_operation_timeout(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
     watchdog_feed: &mut impl FnMut(),
 ) -> bool {
@@ -341,7 +332,7 @@ fn probe_recoverable_operation_timeout(
             if code == "OP-TIMEOUT-01" && return_to == stable => {}
         _ => return fail(NAME, "timeout did not install recoverable modal"),
     }
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     let (x, y) = crate::ui::layout::zone_center(crate::ui::layout::ERROR_OK_ZONE);
     if !crate::runtime::presentation::handle_tap(ad, x, y)
         || ad.presentation.modal != crate::runtime::data::ModalState::None
@@ -349,7 +340,7 @@ fn probe_recoverable_operation_timeout(
     {
         return fail(NAME, "recoverable timeout OK did not return to stable screen");
     }
-    render(ad, display, i2c, sd, delay, watchdog_feed);
+    render(ad, display, i2c, delay, watchdog_feed);
     pass(NAME);
     true
 }
@@ -380,7 +371,6 @@ pub(super) fn exercise(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
     camera: &mut Option<Camera<'_>>,
     camera_dma: &mut Option<DmaRxBuf>,
@@ -398,26 +388,16 @@ pub(super) fn exercise(
     watchdog_feed();
     log!("KASKOLD_WORKFLOW_RUNTIME: PRODUCTION WATCHDOG ARMED");
 
-    if !probe_view_words(ad, display, i2c, sd, delay, watchdog_feed)
-        || !firmware::probe_firmware_update_guidance(ad, display, i2c, sd, delay, watchdog_feed)
-        || !firmware::probe_scan_qr_camera(
-            ad,
-            display,
-            i2c,
-            sd,
-            delay,
-            camera,
-            camera_dma,
-            camera_status,
-            watchdog_feed,
-        )
-        || !probe_pop_it(ad, display, i2c, sd, delay, watchdog_feed)
-        || !probe_receive_change(ad, display, i2c, sd, delay, watchdog_feed)
-        || !probe_connect_companion(ad, display, i2c, sd, delay, watchdog_feed)
-        || !probe_multisig_kpub(ad, display, i2c, sd, delay, watchdog_feed)
-        || !probe_pin_unlock_order(ad, display, i2c, sd, delay, watchdog_feed)
-        || !super::onboarding::persistent_pin_round_trip(ad, persistent_wallet, display, i2c, sd, delay, watchdog_feed)
-        || !probe_recoverable_operation_timeout(ad, display, i2c, sd, delay, watchdog_feed)
+    if !probe_view_words(ad, display, i2c, delay, watchdog_feed)
+        || !firmware::probe_firmware_update_guidance(ad, display, i2c, delay, watchdog_feed)
+        || !firmware::probe_scan_qr_camera(ad, display, i2c, delay, camera, camera_dma, camera_status, watchdog_feed)
+        || !probe_pop_it(ad, display, i2c, delay, watchdog_feed)
+        || !probe_receive_change(ad, display, i2c, delay, watchdog_feed)
+        || !probe_connect_companion(ad, display, i2c, delay, watchdog_feed)
+        || !probe_multisig_kpub(ad, display, i2c, delay, watchdog_feed)
+        || !probe_pin_unlock_order(ad, display, i2c, delay, watchdog_feed)
+        || !super::onboarding::persistent_pin_round_trip(ad, persistent_wallet, display, i2c, delay, watchdog_feed)
+        || !probe_recoverable_operation_timeout(ad, display, i2c, delay, watchdog_feed)
         || !probe_argon2(watchdog_feed)
     {
         return false;

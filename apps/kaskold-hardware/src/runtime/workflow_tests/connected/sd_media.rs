@@ -5,7 +5,9 @@
 //! the physical create/read/compare/delete tranche are restricted to the
 //! explicit `workflow-hil` profile, which requires a disposable QA card.
 
+#[cfg(feature = "workflow-hil-auto")]
 use crate::hw::sdcard::SdCardType;
+use crate::services::storage_device::known_card;
 #[cfg(feature = "workflow-hil-auto")]
 use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
@@ -15,20 +17,15 @@ const QA_FILE: &[u8; 11] = b"KSE2ETSTBIN";
 const QA_PAYLOAD: &[u8] = b"KasKold CoreS3 SD E2E v1";
 
 #[cfg(feature = "workflow-hil-auto")]
-pub(super) fn prepare_and_verify(i2c: &mut I2c<'_, Blocking>, sd: &Option<SdCardType>, delay: &mut Delay) -> bool {
+pub(super) fn prepare_and_verify(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) -> bool {
     log!("KASKOLD_WORKFLOW_TESTS: SD MEDIA PROBE BEGIN");
-    prepare_hil_media(i2c, sd, delay)
+    prepare_hil_media(i2c, delay)
 }
 
 #[cfg(not(feature = "workflow-hil-auto"))]
-pub(super) fn prepare_controller_e2e(sd: &Option<SdCardType>) -> bool {
+pub(super) fn prepare_controller_e2e() {
     log!("KASKOLD_WORKFLOW_TESTS: SD MEDIA PROBE BEGIN");
-    controller_e2e_media_gate(sd)
-}
-
-#[cfg(not(feature = "workflow-hil-auto"))]
-fn controller_e2e_media_gate(sd: &Option<SdCardType>) -> bool {
-    match sd {
+    match known_card() {
         Some(card_type) => log!(
             "KASKOLD_WORKFLOW_TESTS: SD MEDIA CARD DETECTED {:?}; PHYSICAL MEDIA MUTATION SKIPPED IN CONTROLLER E2E",
             card_type,
@@ -38,12 +35,11 @@ fn controller_e2e_media_gate(sd: &Option<SdCardType>) -> bool {
         ),
     }
     log!("KASKOLD_WORKFLOW_TESTS: SD MEDIA PHYSICAL TRANCHE DEFERRED TO workflow-hil WITH A DISPOSABLE QA CARD");
-    true
 }
 
 #[cfg(feature = "workflow-hil-auto")]
-fn prepare_hil_media(i2c: &mut I2c<'_, Blocking>, sd: &Option<SdCardType>, delay: &mut Delay) -> bool {
-    let Some(card_type) = *sd else {
+fn prepare_hil_media(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) -> bool {
+    let Some(card_type) = known_card() else {
         log!("KASKOLD_WORKFLOW_TESTS: SD MEDIA HIL FAIL - BOOT SD INITIALIZATION RETURNED NONE; SEE BOOT PHASE sd DIAGNOSTICS ABOVE");
         return false;
     };

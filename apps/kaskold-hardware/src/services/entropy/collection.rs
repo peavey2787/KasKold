@@ -12,7 +12,6 @@ pub fn collect<'a>(
     idle_ticks: u32,
     camera_device: &mut Option<Camera<'a>>,
     dma_buffer: &mut Option<DmaRxBuf>,
-    sd_card_type: &Option<crate::hw::sdcard::SdCardType>,
 ) -> Result<[u8; 32], EntropyError> {
     trng::enable_hardware_rng()?;
     let imu_initialized = imu::initialize(i2c, delay);
@@ -45,16 +44,10 @@ pub fn collect<'a>(
     );
     #[cfg(feature = "e12-capture")]
     if let Some(capture) = e12_capture.take() {
-        if sd_card_type.is_some() {
-            if let Err(error) = capture.write_sd(i2c, delay) {
-                crate::log!("   [E12] capture write failed: {}", error);
-            }
-        } else {
-            crate::log!("   [E12] no SD card detected; capture discarded");
+        if let Err(error) = capture.write_sd(i2c, delay) {
+            crate::log!("   [E12] capture write failed: {}", error);
         }
     }
-    #[cfg(not(feature = "e12-capture"))]
-    let _ = sd_card_type;
     let mut imu_post = [0u8; imu::SEED_SAMPLE_BYTES];
     let imu_post_count = collect_imu_window(i2c, delay, imu_initialized, &mut imu_post);
     let pre_healthy = imu::mix_seed_sample(&mut pool, &mut imu_pre, imu_pre_count, 0x01);

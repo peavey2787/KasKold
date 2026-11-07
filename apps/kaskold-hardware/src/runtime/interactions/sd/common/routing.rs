@@ -36,7 +36,6 @@ pub fn handle_sd_touch(context: SdTouchContext<'_, '_, '_>) -> Option<bool> {
         delay,
         liveness,
         i2c,
-        sd_card_type,
         backup_device,
         list_zones,
         page_up_zone,
@@ -45,90 +44,27 @@ pub fn handle_sd_touch(context: SdTouchContext<'_, '_, '_>) -> Option<bool> {
     } = context;
     let TouchInput { x, y, is_back } = input;
     Some(match group {
-        SdRouteGroup::Signature => handle_signature_io(SdIoContext {
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            i2c,
-            backup_device,
-            sd_card_type,
-            x,
-            y,
-            is_back,
-        }),
-        SdRouteGroup::File => handle_file_io(SdIoContext {
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            i2c,
-            backup_device,
-            sd_card_type,
-            x,
-            y,
-            is_back,
-        }),
-        SdRouteGroup::SeedBackup => handle_seed_backup_io(SdIoContext {
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            i2c,
-            backup_device,
-            sd_card_type,
-            x,
-            y,
-            is_back,
-        }),
-        SdRouteGroup::Xprv => handle_xprv_io(SdIoContext {
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            i2c,
-            backup_device,
-            sd_card_type,
-            x,
-            y,
-            is_back,
-        }),
-        SdRouteGroup::Kspt => handle_kspt_io(SdIoContext {
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            i2c,
-            backup_device,
-            sd_card_type,
-            x,
-            y,
-            is_back,
-        }),
-        SdRouteGroup::Kpub => handle_kpub_io(SdIoContext {
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            i2c,
-            backup_device,
-            sd_card_type,
-            x,
-            y,
-            is_back,
-        }),
-        SdRouteGroup::Multisig => handle_multisig_io(SdIoContext {
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            i2c,
-            backup_device,
-            sd_card_type,
-            x,
-            y,
-            is_back,
-        }),
+        SdRouteGroup::Signature => {
+            handle_signature_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back })
+        }
+        SdRouteGroup::File => {
+            handle_file_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back })
+        }
+        SdRouteGroup::SeedBackup => {
+            handle_seed_backup_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back })
+        }
+        SdRouteGroup::Xprv => {
+            handle_xprv_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back })
+        }
+        SdRouteGroup::Kspt => {
+            handle_kspt_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back })
+        }
+        SdRouteGroup::Kpub => {
+            handle_kpub_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back })
+        }
+        SdRouteGroup::Multisig => {
+            handle_multisig_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back })
+        }
         SdRouteGroup::Action => qr::handle_show_qr_mode_choice(SdActionContext { ad, x, y, is_back }),
         SdRouteGroup::WalletBackupList => super::super::backup::import::handle_wallet_backup_file_list(SdListContext {
             ad,
@@ -145,7 +81,6 @@ pub fn handle_sd_touch(context: SdTouchContext<'_, '_, '_>) -> Option<bool> {
             boot_display,
             delay,
             i2c,
-            sd_card_type,
             list_zones,
             page_up_zone,
             page_down_zone,

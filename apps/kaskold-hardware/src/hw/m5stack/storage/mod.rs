@@ -24,65 +24,20 @@
 
 use esp_hal::delay::Delay;
 
-use core::sync::atomic::{AtomicU8, Ordering};
-
-const CARD_LOCK_UNKNOWN: u8 = 0;
-const CARD_LOCK_UNLOCKED: u8 = 1;
-const CARD_LOCK_LOCKED: u8 = 2;
-static CARD_LOCK_STATUS: AtomicU8 = AtomicU8::new(CARD_LOCK_UNKNOWN);
-const SESSION_NONE: u8 = 0;
-const SESSION_SDV1: u8 = 1;
-const SESSION_SDV2_SC: u8 = 2;
-const SESSION_SDV2_HC: u8 = 3;
-static MANUAL_UNLOCK_SESSION: AtomicU8 = AtomicU8::new(SESSION_NONE);
-
-pub(crate) fn record_card_lock_status(locked: bool) {
-    let value = if locked { CARD_LOCK_LOCKED } else { CARD_LOCK_UNLOCKED };
-    CARD_LOCK_STATUS.store(value, Ordering::Relaxed);
-}
-
-pub(crate) fn card_is_known_locked() -> bool {
-    CARD_LOCK_STATUS.load(Ordering::Relaxed) == CARD_LOCK_LOCKED
-}
-
-pub(crate) fn record_manual_unlock_session(card_type: SdCardType) {
-    let value = match card_type {
-        SdCardType::SdV1 => SESSION_SDV1,
-        SdCardType::SdV2Sc => SESSION_SDV2_SC,
-        SdCardType::SdV2Hc => SESSION_SDV2_HC,
-    };
-    MANUAL_UNLOCK_SESSION.store(value, Ordering::Relaxed);
-    record_card_lock_status(false);
-}
-
-pub(crate) fn manual_unlock_session_card_type() -> Option<SdCardType> {
-    let value = MANUAL_UNLOCK_SESSION.load(Ordering::Relaxed);
-    if value == SESSION_SDV1 {
-        return Some(SdCardType::SdV1);
-    }
-    decode_v2_session(value)
-}
-
-fn decode_v2_session(value: u8) -> Option<SdCardType> {
-    match value {
-        SESSION_SDV2_SC => Some(SdCardType::SdV2Sc),
-        SESSION_SDV2_HC => Some(SdCardType::SdV2Hc),
-        _ => None,
-    }
-}
-
-pub(crate) fn clear_manual_unlock_session() {
-    MANUAL_UNLOCK_SESSION.store(SESSION_NONE, Ordering::Relaxed);
-}
+mod card_state;
+pub(crate) use card_state::{
+    card_is_known_locked, clear_manual_unlock_session, known_card, manual_unlock_session_card_type, record_card,
+    record_card_lock_status, record_manual_unlock_session,
+};
 
 mod transport;
+pub(crate) use transport::detect_card;
 pub use transport::sd_read_block;
 pub(crate) use transport::with_sd_card as with_sd_card_impl;
 #[cfg(all(feature = "workflow-hil-auto", feature = "m5stack"))]
 pub(crate) use transport::workflow_force_erase_locked_card;
 pub(crate) use transport::{fast_read_multi_block, fast_write_multi_block, sd_sector_count, sd_write_block};
 pub(crate) use transport::{force_erase_locked_card_session, unlock_locked_card_session};
-pub(crate) use transport::{power_cycle_card, probe_boot_card};
 
 macro_rules! with_sd_card {
     ($i2c:expr, $delay:expr, $operation:expr) => {

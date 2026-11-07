@@ -2,7 +2,7 @@
 
 use crate::{
     runtime::input::AppState,
-    runtime::interactions::feedback::{show_rejection, show_success, ErrorSound},
+    runtime::interactions::feedback::{card_inserted, show_rejection, show_success, ErrorSound},
 };
 use shared_signer::{bytes::zeroize_bytes, bytes::zeroize_u16};
 
@@ -23,14 +23,7 @@ pub(crate) fn handle_seed_backup_warning(ctx: SdIoContext<'_, '_, '_>) -> bool {
     if !crate::ui::layout::MODAL_LEFT_BUTTON_ZONE.contains(ctx.x, ctx.y) {
         return false;
     }
-    if ctx.sd_card_type.is_none() {
-        show_rejection(
-            ctx.boot_display,
-            ctx.delay,
-            crate::runtime::interactions::feedback::NO_CARD_MESSAGE,
-            2_000,
-            ErrorSound::Silent,
-        );
+    if !card_inserted(ctx.boot_display, ctx.delay, ctx.i2c) {
         return true;
     }
     let next = scan_auto_increment(ctx.i2c, ctx.delay, b"SD", b"KAS");

@@ -6,7 +6,7 @@
 
 #[cfg(not(feature = "workflow-test-auto"))]
 macro_rules! finish_frame {
-    ($ad:ident, $persistent_wallet:ident, $boot_display:ident, $delay:ident, $i2c:ident, $sd_card_type:ident,
+    ($ad:ident, $persistent_wallet:ident, $boot_display:ident, $delay:ident, $i2c:ident,
      $tracker:ident, $watchdog_feed:ident, $list_zones:ident, $page_up_zone:ident, $page_down_zone:ident) => {
         // ─── Redraw, camera, post-frame effects ──────────────────
         // Stage-3 long-running signing is serviced only after its operation
@@ -61,7 +61,7 @@ macro_rules! finish_frame {
                 $crate::runtime::event_loop::runner::acknowledge(&mut $watchdog_feed);
                 $crate::log!("   NAV redraw BEGIN: {:?}", $ad.navigation.app.state);
             }
-            $crate::ui::redraw::redraw_screen($ad, &mut $boot_display, &mut $i2c, &$sd_card_type);
+            $crate::ui::redraw::redraw_screen($ad, &mut $boot_display, &mut $i2c);
             #[cfg(feature = "m5stack")]
             {
                 $crate::log!("   NAV redraw DONE: {:?}", $ad.navigation.app.state);
@@ -99,7 +99,6 @@ macro_rules! finish_frame {
                     delay: &mut $delay,
                     liveness: &mut $watchdog_feed,
                     i2c: &mut $i2c,
-                    sd_card_type: &$sd_card_type,
                     backup_device: &mut $persistent_wallet,
                     list_zones: &$list_zones,
                     page_up_zone: &$page_up_zone,

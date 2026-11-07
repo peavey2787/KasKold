@@ -5,7 +5,7 @@
 //! Extended-private-key export menu.
 
 use super::{context::ExportStorageContext, TouchInput};
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
+use crate::runtime::interactions::feedback::{card_inserted, show_rejection, ErrorSound};
 use crate::{
     hw::{display, touch},
     runtime::interactions::menu_selection::{handle_paged_menu_touch, PagedMenuAction},
@@ -58,7 +58,6 @@ pub(super) fn handle(context: ExportStorageContext<'_, '_, '_>) -> Option<bool> 
         delay,
         liveness,
         i2c,
-        sd_card_type,
         list_zones,
         page_up_zone,
         page_down_zone,
@@ -78,7 +77,6 @@ pub(super) fn handle(context: ExportStorageContext<'_, '_, '_>) -> Option<bool> 
             delay,
             liveness,
             i2c,
-            sd_card_type,
             list_zones,
             page_up_zone,
             page_down_zone,
@@ -96,7 +94,6 @@ fn handle_menu(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<crate::services::storage_device::SdCardType>,
     list_zones: &[touch::TouchZone; 4],
     page_up_zone: &touch::TouchZone,
     page_down_zone: &touch::TouchZone,
@@ -118,14 +115,7 @@ fn handle_menu(
             true
         }
         PagedMenuAction::Selected(1) => {
-            if sd_card_type.is_none() {
-                show_rejection(
-                    boot_display,
-                    delay,
-                    crate::runtime::interactions::feedback::NO_CARD_MESSAGE,
-                    2_000,
-                    ErrorSound::Silent,
-                );
+            if !card_inserted(boot_display, delay, i2c) {
                 return true;
             }
             let next = crate::runtime::interactions::sd::scan_auto_increment(i2c, delay, b"XP", b"KAS");

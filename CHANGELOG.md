@@ -9,7 +9,8 @@
 - Device: with no wallet left, the device opens on the wallet list instead of a Home screen whose Wallet menu could not work. A failed address derivation now shows its error once; it used to raise the error and beep again on every frame.
 - Device: Back and Home now leave the "HOLD 4s" prompt when deleting a wallet or a card file, and ENCRYPT FILE? steps back to the file name. Back and Home icons no longer draw a black box on red warning screens.
 - Device: restoring from a steganographic photo lists the card's photos. The list was never filled, so this restore could not be used.
-- Device: the screen no longer freezes on FILENAME after OK. Long card file names stay clear of the delete button, and messages about a missing card say to restart, because the card is only detected at power-on.
+- Device: the screen no longer freezes on FILENAME after OK. Long card file names stay clear of the delete button.
+- Device: a card put in after power-on is found when it is needed, and one taken out is noticed. The card used to be looked for only at power-on, so it needed a restart. On the Storage screen with no card, tapping the screen looks again.
 - Device: cancelling a transaction now ends at Home. "TX Cancelled" then OK used to return to CONFIRM SEND with the transaction still open. Anti-klepto signing in Manual QR mode now shows every commitment frame and no longer loses the signed answer on the first tap.
 - Device: restoring an encrypted extended-key card backup on a new device no longer ends in "Navigation error".
 - Device: a shared wallet description from a card or a QR code now waits for review. Tapping SAVE keeps it, which is what makes its change addresses count as change, and it survives a restart. Before, "Restore from SD" only displayed the description, a scanned code was trusted silently, and duplicates piled up. A description that leaves this wallet out cannot be kept, and five-key descriptions now appear in the file list.

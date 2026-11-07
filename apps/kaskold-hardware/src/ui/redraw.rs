@@ -19,7 +19,7 @@
 // All draw_*_screen() calls dispatched by AppState.
 // Called from main loop when needs_redraw is true.
 
-use crate::{hw::battery, hw::display, hw::sdcard, hw::sound, wallet::seed_manager};
+use crate::{hw::battery, hw::display, hw::sound, wallet::seed_manager};
 
 mod covenant;
 mod device;
@@ -40,7 +40,6 @@ pub fn redraw_screen(
     ad: &mut crate::runtime::data::AppData,
     boot_display: &mut display::BootDisplay<'_>,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<sdcard::SdCardType>,
 ) {
     let _ = crate::runtime::navigation::reconcile(ad);
     crate::runtime::qr_presentation::prepare_navigation(ad);
@@ -51,7 +50,7 @@ pub fn redraw_screen(
     let handled = navigation::redraw(ad, boot_display, i2c)
         || device::redraw(ad, boot_display)
         || wallet::redraw(ad, boot_display)
-        || storage::redraw(ad, boot_display, sd_card_type)
+        || storage::redraw(ad, boot_display)
         || export::redraw(ad, boot_display)
         || settings::redraw(ad, boot_display)
         || signing::redraw(ad, boot_display)

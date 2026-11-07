@@ -1,5 +1,5 @@
 use crate::{
-    hw::{display::BootDisplay, sdcard::SdCardType},
+    hw::display::BootDisplay,
     runtime::interactions::TouchInput,
     runtime::{data::AppData, input::AppState},
 };
@@ -89,10 +89,9 @@ pub(super) fn exercise(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
-    let mut ctx = AdvancedToolsContext::new(ad, display, i2c, sd, delay);
+    let mut ctx = AdvancedToolsContext::new(ad, display, i2c, delay);
     log!("KASKOLD_WORKFLOW_TESTS: ADVANCED WALLET TOOLS TRANCHE BEGIN");
     let mut summary = super::probe_status::ProbeSummary::new("ADVANCED-TOOLS");
 

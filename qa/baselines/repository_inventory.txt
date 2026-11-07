@@ -1456,12 +1456,14 @@ F	apps/kaskold-hardware/src/hw/m5stack/spi_bus/sd_busy_probe.rs
 F	apps/kaskold-hardware/src/hw/m5stack/spi_bus/sd_power_lines.rs
 F	apps/kaskold-hardware/src/hw/m5stack/spi_bus/sd_release.rs
 F	apps/kaskold-hardware/src/hw/m5stack/spi_bus/state.rs
+F	apps/kaskold-hardware/src/hw/m5stack/storage/card_state.rs
 F	apps/kaskold-hardware/src/hw/m5stack/storage/mod.rs
 F	apps/kaskold-hardware/src/hw/m5stack/storage/transport/block.rs
 F	apps/kaskold-hardware/src/hw/m5stack/storage/transport/block/adaptive.rs
 F	apps/kaskold-hardware/src/hw/m5stack/storage/transport/capacity.rs
 F	apps/kaskold-hardware/src/hw/m5stack/storage/transport/card.rs
 F	apps/kaskold-hardware/src/hw/m5stack/storage/transport/card_recovery.rs
+F	apps/kaskold-hardware/src/hw/m5stack/storage/transport/detection.rs
 F	apps/kaskold-hardware/src/hw/m5stack/storage/transport/mod.rs
 F	apps/kaskold-hardware/src/hw/m5stack/storage/transport/multi_block.rs
 F	apps/kaskold-hardware/src/hw/m5stack/storage/transport/power.rs

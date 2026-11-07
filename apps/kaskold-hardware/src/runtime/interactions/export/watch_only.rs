@@ -4,7 +4,7 @@
 
 //! Watch-only export workflows.
 
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
+use crate::runtime::interactions::feedback::{card_inserted, show_rejection, ErrorSound};
 use crate::{hw::display, runtime::data::AppData};
 
 pub(crate) fn export_kpub_to_sd(
@@ -13,20 +13,12 @@ pub(crate) fn export_kpub_to_sd(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<crate::services::storage_device::SdCardType>,
 ) {
     if !ad.wallet.seeds.seed_loaded {
         show_rejection(boot_display, delay, "Load a seed first", 1_500, ErrorSound::Silent);
         return;
     }
-    if sd_card_type.is_none() {
-        show_rejection(
-            boot_display,
-            delay,
-            crate::runtime::interactions::feedback::NO_CARD_MESSAGE,
-            1_500,
-            ErrorSound::Silent,
-        );
+    if !card_inserted(boot_display, delay, i2c) {
         return;
     }
 

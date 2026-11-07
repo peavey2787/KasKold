@@ -1,7 +1,7 @@
 //! Test-driver boundary injected after authoritative production startup.
 
 use crate::{
-    hw::{display::BootDisplay, sdcard::SdCardType},
+    hw::display::BootDisplay,
     runtime::{data::AppData, event_loop::camera::CameraHardware},
     services::persistent_wallet::PersistentWallet,
 };
@@ -11,7 +11,6 @@ pub(super) fn run(
     ad: &mut AppData,
     mut display: BootDisplay<'_>,
     mut i2c: I2c<'_, Blocking>,
-    sd_card_type: Option<SdCardType>,
     mut delay: Delay,
     camera: CameraHardware<'_>,
     mut persistent_wallet: PersistentWallet<'_>,
@@ -22,7 +21,6 @@ pub(super) fn run(
         ad,
         &mut display,
         &mut i2c,
-        &sd_card_type,
         &mut delay,
         &mut camera,
         &mut camera_dma,

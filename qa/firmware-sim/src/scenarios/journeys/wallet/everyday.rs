@@ -108,7 +108,7 @@ fn refuse_the_kpub_without_a_card() {
     walk::unlock_with_pin(&device, PIN);
     walk::open_wallet_tools(&device);
     device.tap("kpub to SD");
-    device.expect_was_shown("Insert SD card and restart");
+    device.expect_was_shown("Insert an SD card");
     device.wait_for_text("kpub to SD");
     assert_eq!(
         app_state().navigation.app.state,

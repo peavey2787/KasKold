@@ -320,7 +320,7 @@ def _redraw_facade_errors(redraw_facade: Path) -> list[str]:
             " ".join(f"pub fn redraw_screen {api_match.group(1)}".split())
         ]
         api_digest = hashlib.sha256("\n".join(api_signatures).encode()).hexdigest()
-        if len(api_signatures) != 1 or api_digest != "e0ebf2afa44b0343240f40f2be30ecba661624211c4b8a434d0faf2a773e11b2":
+        if len(api_signatures) != 1 or api_digest != "dafa9f93a7e407c0228c8c26026de1bd98d8d36972026deec1a6a3b63a967311":
             errors.append(f"firmware redraw API changed: {len(api_signatures)} signatures / {api_digest}")
     return errors
 

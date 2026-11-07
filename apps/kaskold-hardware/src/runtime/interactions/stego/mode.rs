@@ -2,8 +2,8 @@
 // License: GPL-3.0-or-later.
 
 use super::photo_scan::{self, PhotoList};
-use super::{display, sdcard, AppData, RedrawFlag};
-use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
+use super::{display, AppData, RedrawFlag};
+use crate::runtime::interactions::feedback::{card_inserted, show_rejection, ErrorSound};
 use crate::{
     runtime::input::AppState,
     services::stego::{StegoCarrier, StegoSecurity},
@@ -14,16 +14,13 @@ pub(super) fn handle(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<sdcard::SdCardType>,
     x: u16,
     y: u16,
     is_back: bool,
 ) -> Option<bool> {
     let changed = match ad.navigation.app.state {
-        AppState::StegoModeSelect => handle_carrier_select(ad, boot_display, delay, sd_card_type, x, y, is_back),
-        AppState::StegoSecuritySelect => {
-            handle_security_select(ad, boot_display, delay, i2c, sd_card_type, x, y, is_back)
-        }
+        AppState::StegoModeSelect => handle_carrier_select(ad, boot_display, delay, i2c, x, y, is_back),
+        AppState::StegoSecuritySelect => handle_security_select(ad, boot_display, delay, i2c, x, y, is_back),
         AppState::StegoResult => {
             ad.wallet.seeds.pp_input.reset();
             ad.stego.export_flow.clear_portable_confirmation();
@@ -42,7 +39,7 @@ fn handle_carrier_select(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    sd_card_type: &Option<sdcard::SdCardType>,
+    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     x: u16,
     y: u16,
     is_back: bool,
@@ -66,14 +63,7 @@ fn handle_carrier_select(
         crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SeedBackup);
         return true;
     }
-    if sd_card_type.is_none() {
-        show_rejection(
-            boot_display,
-            delay,
-            crate::runtime::interactions::feedback::NO_CARD_MESSAGE,
-            1_500,
-            ErrorSound::Silent,
-        );
+    if !card_inserted(boot_display, delay, i2c) {
         crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SeedBackup);
         return true;
     }
@@ -90,7 +80,6 @@ fn handle_security_select(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<sdcard::SdCardType>,
     x: u16,
     y: u16,
     is_back: bool,
@@ -109,14 +98,7 @@ fn handle_security_select(
     } else {
         return false;
     };
-    if sd_card_type.is_none() {
-        show_rejection(
-            boot_display,
-            delay,
-            crate::runtime::interactions::feedback::NO_CARD_MESSAGE,
-            1_500,
-            ErrorSound::Silent,
-        );
+    if !card_inserted(boot_display, delay, i2c) {
         crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SeedBackup);
         return true;
     }

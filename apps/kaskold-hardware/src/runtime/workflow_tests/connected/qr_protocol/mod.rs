@@ -1,5 +1,5 @@
 use crate::{
-    hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
+    hw::{display::BootDisplay, touch::TouchZone},
     runtime::data::AppData,
     runtime::interactions::{tx::TxTouchContext, TouchInput},
 };
@@ -12,7 +12,6 @@ pub(super) struct QrContext<'ctx, 'display, 'hal> {
     ad: &'ctx mut AppData,
     display: &'ctx mut BootDisplay<'display>,
     i2c: &'ctx mut I2c<'hal, Blocking>,
-    sd: &'ctx Option<SdCardType>,
     delay: &'ctx mut Delay,
     list: [TouchZone; 4],
 }
@@ -26,7 +25,6 @@ impl QrContext<'_, '_, '_> {
             liveness: &mut || {},
             i2c: &mut *self.i2c,
             persistent_wallet: None,
-            sd_card_type: self.sd,
             list_zones: &self.list,
             input: TouchInput::new(20, 20, true),
         }) == Some(true)
@@ -37,14 +35,13 @@ pub(super) fn exercise(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
     if !super::root::home_ok(ad) || !super::signing::fixture::install_wallet(ad) {
         return false;
     }
     let (_, list, _, _) = crate::runtime::touch_dispatch::touch_zones();
-    let mut ctx = QrContext { ad, display, i2c, sd, delay, list };
+    let mut ctx = QrContext { ad, display, i2c, delay, list };
     log!("KASKOLD_WORKFLOW_TESTS: QR PROTOCOL MATRIX TRANCHE BEGIN");
     let mut summary = super::probe_status::ProbeSummary::new("QR-PROTOCOL");
 

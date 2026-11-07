@@ -1,5 +1,5 @@
 use crate::{
-    hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
+    hw::{display::BootDisplay, touch::TouchZone},
     runtime::input::AppState,
     runtime::interactions::{sd::SdTouchContext, stego::StegoTouchContext, TouchInput},
 };
@@ -44,7 +44,6 @@ impl RestoreIo<'_, '_, '_> {
             &mut *self.base.display,
             &mut *self.base.delay,
             &mut *self.base.i2c,
-            self.base.sd.is_some(),
         )
     }
 
@@ -70,7 +69,6 @@ impl RestoreIo<'_, '_, '_> {
             &mut *self.base.display,
             &mut *self.base.delay,
             &mut *self.base.i2c,
-            self.base.sd.is_some(),
         )
     }
 
@@ -95,7 +93,6 @@ impl RestoreIo<'_, '_, '_> {
             delay: &mut *self.base.delay,
             liveness: &mut || {},
             i2c: &mut *self.base.i2c,
-            sd_card_type: self.base.sd,
             backup_device: &mut self.backup_device,
             list_zones: &self.list,
             page_up_zone: &self.up,
@@ -111,7 +108,6 @@ impl RestoreIo<'_, '_, '_> {
             delay: &mut *self.base.delay,
             liveness: &mut || {},
             i2c: &mut *self.base.i2c,
-            sd_card_type: self.base.sd,
             backup_device: &mut self.backup_device,
             list_zones: &self.list,
             page_up_zone: &self.up,
@@ -125,14 +121,13 @@ pub(super) fn exercise(
     ad: &mut crate::runtime::data::AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut esp_hal::delay::Delay,
 ) -> bool {
     // Each restore subprobe enters the authoritative storage-choice state on
     // its own so a prior create/restore failure cannot suppress later restore
     // cases in the same connected hardware run.
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
-    let base = OnboardingContext { ad, display, i2c, sd, delay };
+    let base = OnboardingContext { ad, display, i2c, delay };
     let mut ctx = RestoreIo { base, list, up, down, backup_device: WorkflowBackupDevice };
     log!("KASKOLD_WORKFLOW_TESTS: RESTORE/IMPORT TRANCHE BEGIN");
     let mut summary = super::super::probe_status::ProbeSummary::new("RESTORE/IMPORT");

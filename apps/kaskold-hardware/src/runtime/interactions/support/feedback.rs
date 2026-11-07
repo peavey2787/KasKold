@@ -3,8 +3,21 @@
 use crate::hw::display::BootDisplay;
 use crate::services::audio as sound;
 
-/// The card is looked for at power-on, so a card put in later needs a restart.
-pub(crate) const NO_CARD_MESSAGE: &str = "Insert SD card and restart";
+pub(crate) const NO_CARD_MESSAGE: &str = "Insert an SD card";
+
+/// Look for a card now, so one put in after power-on is found. Without one,
+/// say so and return false.
+pub(crate) fn card_inserted(
+    display: &mut BootDisplay<'_>,
+    delay: &mut esp_hal::delay::Delay,
+    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
+) -> bool {
+    if crate::services::storage_device::detect_card(i2c, delay).is_some() {
+        return true;
+    }
+    show_rejection(display, delay, NO_CARD_MESSAGE, 1_500, ErrorSound::Silent);
+    false
+}
 
 /// Small mutable accumulator used by controller façades that delegate one
 /// touch event across several focused handlers.

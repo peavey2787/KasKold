@@ -2,7 +2,7 @@
 
 use super::super::{display, AppData};
 use crate::runtime::data::TextFileKind;
-use crate::runtime::interactions::feedback::{show_rejection, show_success, ErrorSound};
+use crate::runtime::interactions::feedback::{card_inserted, show_rejection, show_success, ErrorSound};
 
 #[derive(Clone, Copy)]
 pub(crate) struct ImportScanRule {
@@ -19,18 +19,10 @@ pub(crate) fn scan_by_rule(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    card_present: bool,
     rule: ImportScanRule,
 ) {
     ad.storage.browser.text_import_kind = rule.text_import_kind;
-    if !card_present {
-        show_rejection(
-            boot_display,
-            delay,
-            crate::runtime::interactions::feedback::NO_CARD_MESSAGE,
-            2000,
-            ErrorSound::Silent,
-        );
+    if !card_inserted(boot_display, delay, i2c) {
         return;
     }
 

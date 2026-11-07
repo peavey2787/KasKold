@@ -308,12 +308,15 @@ fn refuse_a_restore_without_a_card() {
     sd::set_present(false);
     let device = Device::boot();
     open_the_restore_picker(&device);
-    device.expect_was_shown("Insert SD card and restart");
+    device.expect_was_shown("Insert an SD card");
     device.expect_text("Steganographic");
 }
 
+/// The card is looked for when it is needed, so one put in after power-on is read.
 fn refuse_a_restore_without_photos() {
-    let device = Device::boot_with_card();
+    sd::set_present(false);
+    let device = Device::boot();
+    sd::set_present(true);
     open_the_restore_picker(&device);
     device.expect_was_shown("No .JPG files on SD");
     device.expect_text("Steganographic");

@@ -27,7 +27,6 @@ pub(crate) fn handle(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<crate::services::storage_device::SdCardType>,
     dvp_camera_opt: &mut Option<DvpCamera<'_>>,
     cam_dma_buf_opt: &mut Option<DmaRxBuf>,
     x: u16,
@@ -42,7 +41,6 @@ pub(crate) fn handle(
             delay,
             liveness,
             i2c,
-            sd_card_type,
             dvp_camera_opt,
             cam_dma_buf_opt,
             x,
@@ -56,7 +54,6 @@ pub(crate) fn handle(
             delay,
             liveness,
             i2c,
-            sd_card_type,
             dvp_camera_opt,
             cam_dma_buf_opt,
             x,
@@ -137,7 +134,6 @@ fn handle_word_count(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<crate::services::storage_device::SdCardType>,
     dvp_camera_opt: &mut Option<DvpCamera<'_>>,
     cam_dma_buf_opt: &mut Option<DmaRxBuf>,
     x: u16,
@@ -165,7 +161,6 @@ fn handle_word_count(
         delay,
         liveness,
         i2c,
-        sd_card_type,
         dvp_camera_opt,
         cam_dma_buf_opt,
         word_count,
@@ -180,24 +175,13 @@ fn start_word_count_action(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<crate::services::storage_device::SdCardType>,
     dvp_camera_opt: &mut Option<DvpCamera<'_>>,
     cam_dma_buf_opt: &mut Option<DmaRxBuf>,
     word_count: u8,
     action: u8,
 ) {
     match action {
-        0 => generate_random_seed(
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            i2c,
-            sd_card_type,
-            dvp_camera_opt,
-            cam_dma_buf_opt,
-            word_count,
-        ),
+        0 => generate_random_seed(ad, boot_display, delay, liveness, i2c, dvp_camera_opt, cam_dma_buf_opt, word_count),
         4 => start_bip85(ad, word_count),
         _ => {}
     }
@@ -209,7 +193,6 @@ fn generate_random_seed(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<crate::services::storage_device::SdCardType>,
     dvp_camera_opt: &mut Option<DvpCamera<'_>>,
     cam_dma_buf_opt: &mut Option<DmaRxBuf>,
     word_count: u8,
@@ -225,7 +208,6 @@ fn generate_random_seed(
         ad.runtime.idle_ticks,
         dvp_camera_opt,
         cam_dma_buf_opt,
-        sd_card_type,
     ) {
         Ok(mut pool) => {
             ad.wallet.seeds.stage_seed_entropy(&mut pool, word_count);
@@ -308,7 +290,6 @@ fn handle_entropy_recovery(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<crate::services::storage_device::SdCardType>,
     dvp_camera_opt: &mut Option<DvpCamera<'_>>,
     cam_dma_buf_opt: &mut Option<DmaRxBuf>,
     x: u16,
@@ -324,17 +305,7 @@ fn handle_entropy_recovery(
     match choice {
         Some(crate::ui::screens::EntropyRecoveryChoice::Retry) => {
             log!("   Camera entropy user retry: {} words", word_count);
-            generate_random_seed(
-                ad,
-                boot_display,
-                delay,
-                liveness,
-                i2c,
-                sd_card_type,
-                dvp_camera_opt,
-                cam_dma_buf_opt,
-                word_count,
-            );
+            generate_random_seed(ad, boot_display, delay, liveness, i2c, dvp_camera_opt, cam_dma_buf_opt, word_count);
             true
         }
         Some(crate::ui::screens::EntropyRecoveryChoice::Cancel) => {

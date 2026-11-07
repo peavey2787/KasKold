@@ -2,10 +2,7 @@ use super::OnboardingContext;
 use crate::runtime::{input::AppState, interactions::TouchInput};
 
 #[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))]
-use crate::{
-    hw::{display::BootDisplay, sdcard::SdCardType},
-    runtime::data::AppData,
-};
+use crate::{hw::display::BootDisplay, runtime::data::AppData};
 #[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))]
 use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
@@ -91,11 +88,10 @@ fn render_runtime(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
     watchdog_feed: &mut impl FnMut(),
 ) {
-    super::super::redraw_step(ad, display, i2c, sd);
+    super::super::redraw_step(ad, display, i2c);
     super::super::show_step(delay);
     watchdog_feed();
 }
@@ -132,22 +128,21 @@ pub(in crate::runtime::workflow_tests::connected) fn persistent_pin_round_trip(
     persistent_wallet: &mut crate::services::persistent_wallet::PersistentWallet<'_>,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
     watchdog_feed: &mut impl FnMut(),
 ) -> bool {
     const NAME: &str = "persistent-pin-storage-round-trip";
     log!("KASKOLD_WORKFLOW_RUNTIME: ACTION BEGIN {}", NAME);
     let mut operation_engine = crate::runtime::event_loop::operation_engine::OperationEngineState::new();
-    if !prepare_persistent_pin_fixture(ad, persistent_wallet, display, i2c, sd, delay, watchdog_feed) {
+    if !prepare_persistent_pin_fixture(ad, persistent_wallet, display, i2c, delay, watchdog_feed) {
         cleanup_qa_storage(persistent_wallet, ad);
         return fail_runtime(NAME, "QA persistent-storage fixture setup failed");
     }
-    if !verify_invalid_pin_retry(&mut operation_engine, ad, persistent_wallet, display, i2c, sd, delay, watchdog_feed) {
+    if !verify_invalid_pin_retry(&mut operation_engine, ad, persistent_wallet, display, i2c, delay, watchdog_feed) {
         cleanup_qa_storage(persistent_wallet, ad);
         return fail_runtime(NAME, "invalid PIN retry path failed");
     }
-    if !verify_valid_pin_unlock(&mut operation_engine, ad, persistent_wallet, display, i2c, sd, delay, watchdog_feed) {
+    if !verify_valid_pin_unlock(&mut operation_engine, ad, persistent_wallet, display, i2c, delay, watchdog_feed) {
         cleanup_qa_storage(persistent_wallet, ad);
         return fail_runtime(NAME, "valid PIN unlock path failed");
     }
@@ -165,7 +160,6 @@ fn prepare_persistent_pin_fixture(
     persistent_wallet: &mut crate::services::persistent_wallet::PersistentWallet<'_>,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
     watchdog_feed: &mut impl FnMut(),
 ) -> bool {
@@ -199,7 +193,7 @@ fn prepare_persistent_pin_fixture(
     if !crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageUnlockPin)) {
         return false;
     }
-    render_runtime(ad, display, i2c, sd, delay, watchdog_feed);
+    render_runtime(ad, display, i2c, delay, watchdog_feed);
     true
 }
 
@@ -239,7 +233,6 @@ fn verify_invalid_pin_retry(
     persistent_wallet: &mut crate::services::persistent_wallet::PersistentWallet<'_>,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
     watchdog_feed: &mut impl FnMut(),
 ) -> bool {
@@ -249,7 +242,7 @@ fn verify_invalid_pin_retry(
     if crate::runtime::presentation::take_ready_operation(ad).is_some() {
         return false;
     }
-    render_runtime(ad, display, i2c, sd, delay, watchdog_feed);
+    render_runtime(ad, display, i2c, delay, watchdog_feed);
     if !service_credential_operation(operation_engine, ad, persistent_wallet, display, i2c, delay, watchdog_feed) {
         return false;
     }
@@ -265,7 +258,7 @@ fn verify_invalid_pin_retry(
     if ad.wallet.seeds.seed_loaded {
         return false;
     }
-    render_runtime(ad, display, i2c, sd, delay, watchdog_feed);
+    render_runtime(ad, display, i2c, delay, watchdog_feed);
     log!("KASKOLD_WORKFLOW_RUNTIME: PERSISTENT PIN INVALID RETRY PASS");
     true
 }
@@ -277,7 +270,6 @@ fn verify_valid_pin_unlock(
     persistent_wallet: &mut crate::services::persistent_wallet::PersistentWallet<'_>,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
     watchdog_feed: &mut impl FnMut(),
 ) -> bool {
@@ -289,7 +281,7 @@ fn verify_valid_pin_unlock(
     if crate::runtime::presentation::take_ready_operation(ad).is_some() {
         return false;
     }
-    render_runtime(ad, display, i2c, sd, delay, watchdog_feed);
+    render_runtime(ad, display, i2c, delay, watchdog_feed);
     if !service_credential_operation(operation_engine, ad, persistent_wallet, display, i2c, delay, watchdog_feed) {
         return false;
     }
@@ -303,7 +295,7 @@ fn verify_valid_pin_unlock(
     if persistent_wallet.unlock_failures() != Ok(0) {
         return false;
     }
-    render_runtime(ad, display, i2c, sd, delay, watchdog_feed);
+    render_runtime(ad, display, i2c, delay, watchdog_feed);
     true
 }
 

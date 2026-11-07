@@ -2,7 +2,7 @@
 
 use super::display;
 use crate::runtime::data::AppData;
-use crate::runtime::interactions::feedback::{show_rejection, show_success, ErrorSound};
+use crate::runtime::interactions::feedback::{card_inserted, show_rejection, show_success, ErrorSound};
 use crate::services::storage_files;
 
 const MORE_PHOTOS_MESSAGE: &str = "Listing the first 8 photos";
@@ -44,16 +44,8 @@ pub(crate) fn open_restore_picker(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    card_present: bool,
 ) {
-    if !card_present {
-        show_rejection(
-            boot_display,
-            delay,
-            crate::runtime::interactions::feedback::NO_CARD_MESSAGE,
-            1_500,
-            ErrorSound::Silent,
-        );
+    if !card_inserted(boot_display, delay, i2c) {
         return;
     }
     let import = &mut ad.stego.import;

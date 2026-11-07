@@ -120,7 +120,6 @@ fn tx_touch(ctx: &mut SecurityContext<'_, '_, '_>, x: u16, y: u16) -> Option<boo
         liveness: &mut || {},
         i2c: ctx.i2c,
         persistent_wallet: None,
-        sd_card_type: ctx.sd,
         list_zones: &ctx.list,
         input: TouchInput::new(x, y, false),
     })

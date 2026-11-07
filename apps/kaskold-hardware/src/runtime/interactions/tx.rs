@@ -19,7 +19,7 @@ use crate::runtime::interactions::TouchInput;
 use crate::{
     hw::{display, touch},
     runtime::data::AppData,
-    services::{audio as sound, storage_device},
+    services::audio as sound,
 };
 mod commit_results;
 mod commit_reveal;
@@ -46,7 +46,6 @@ pub struct TxTouchContext<'ctx, 'display, 'hal, 'wallet> {
     pub delay: &'ctx mut esp_hal::delay::Delay,
     pub i2c: &'ctx mut esp_hal::i2c::master::I2c<'hal, esp_hal::Blocking>,
     pub persistent_wallet: Option<&'ctx mut crate::services::persistent_wallet::PersistentWallet<'wallet>>,
-    pub sd_card_type: &'ctx Option<storage_device::SdCardType>,
     pub liveness: &'ctx mut dyn FnMut(),
     pub list_zones: &'ctx [touch::TouchZone; 4],
     pub input: TouchInput,
@@ -54,8 +53,7 @@ pub struct TxTouchContext<'ctx, 'display, 'hal, 'wallet> {
 
 #[inline(never)]
 pub fn handle_tx_touch(context: TxTouchContext<'_, '_, '_, '_>) -> Option<bool> {
-    let TxTouchContext { ad, boot_display, delay, i2c, persistent_wallet, sd_card_type, liveness, list_zones, input } =
-        context;
+    let TxTouchContext { ad, boot_display, delay, i2c, persistent_wallet, liveness, list_zones, input } = context;
     let TouchInput { x, y, is_back } = input;
     if let Some(result) = transaction::handle(ad, boot_display, delay, x, y, is_back) {
         return Some(result);
@@ -69,7 +67,7 @@ pub fn handle_tx_touch(context: TxTouchContext<'_, '_, '_, '_>) -> Option<bool> 
     if let Some(result) = message_source::handle(ad, boot_display, delay, i2c, list_zones, x, y, is_back) {
         return Some(result);
     }
-    if let Some(result) = message_signing::handle(ad, boot_display, delay, liveness, i2c, sd_card_type, x, y, is_back) {
+    if let Some(result) = message_signing::handle(ad, boot_display, delay, liveness, i2c, x, y, is_back) {
         return Some(result);
     }
     if let Some(result) = covenant_signing::handle(ad, boot_display, delay, liveness, x, y, is_back) {

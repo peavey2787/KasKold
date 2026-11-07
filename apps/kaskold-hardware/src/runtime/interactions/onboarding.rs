@@ -9,7 +9,7 @@ pub(crate) mod dice;
 
 use crate::{
     hw::display, runtime::data::AppData, runtime::interactions::TouchInput,
-    services::persistent_wallet::PersistentWallet, services::storage_device as sdcard,
+    services::persistent_wallet::PersistentWallet,
 };
 use esp_hal::{dma::DmaRxBuf, lcd_cam::cam::Camera as DvpCamera};
 
@@ -20,7 +20,6 @@ pub struct OnboardingTouchContext<'ctx, 'display, 'hal, 'camera, 'wallet> {
     pub delay: &'ctx mut esp_hal::delay::Delay,
     pub liveness: &'ctx mut dyn FnMut(),
     pub i2c: &'ctx mut esp_hal::i2c::master::I2c<'hal, esp_hal::Blocking>,
-    pub sd_card_type: &'ctx Option<sdcard::SdCardType>,
     pub dvp_camera_opt: &'ctx mut Option<DvpCamera<'camera>>,
     pub cam_dma_buf_opt: &'ctx mut Option<DmaRxBuf>,
     pub list_zones: &'ctx [crate::hw::touch::TouchZone; 4],
@@ -39,7 +38,6 @@ pub fn handle_onboarding_touch(context: OnboardingTouchContext<'_, '_, '_, '_, '
         delay,
         liveness,
         i2c,
-        sd_card_type,
         dvp_camera_opt,
         cam_dma_buf_opt,
         list_zones,
@@ -51,15 +49,7 @@ pub fn handle_onboarding_touch(context: OnboardingTouchContext<'_, '_, '_, '_, '
 
     match crate::runtime::navigation::onboarding_route(ad) {
         Some(crate::runtime::navigation::OnboardingRoute::Persistence) => {
-            crate::runtime::interactions::persistence::handle(
-                input,
-                ad,
-                persistent_wallet,
-                boot_display,
-                delay,
-                i2c,
-                sd_card_type.is_some(),
-            )
+            crate::runtime::interactions::persistence::handle(input, ad, persistent_wallet, boot_display, delay, i2c)
         }
         Some(crate::runtime::navigation::OnboardingRoute::Generation) => {
             crate::runtime::interactions::menu::seed_generation::handle(
@@ -68,7 +58,6 @@ pub fn handle_onboarding_touch(context: OnboardingTouchContext<'_, '_, '_, '_, '
                 delay,
                 liveness,
                 i2c,
-                sd_card_type,
                 dvp_camera_opt,
                 cam_dma_buf_opt,
                 x,
@@ -93,7 +82,6 @@ pub fn handle_onboarding_touch(context: OnboardingTouchContext<'_, '_, '_, '_, '
                 delay,
                 liveness,
                 i2c,
-                sd_card_type,
                 backup_device: persistent_wallet,
                 list_zones,
                 page_up_zone,
@@ -109,7 +97,6 @@ pub fn handle_onboarding_touch(context: OnboardingTouchContext<'_, '_, '_, '_, '
                     delay,
                     liveness,
                     i2c,
-                    sd_card_type,
                     backup_device: persistent_wallet,
                     list_zones,
                     page_up_zone,

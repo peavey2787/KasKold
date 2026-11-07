@@ -128,9 +128,8 @@ pub(crate) fn workflow_handle_source_touch(
     display: &mut BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    card_present: bool,
 ) -> Option<bool> {
-    onboarding::workflow_handle_source_touch(input, ad, display, delay, i2c, card_present)
+    onboarding::workflow_handle_source_touch(input, ad, display, delay, i2c)
 }
 
 #[cfg(feature = "workflow-test-auto")]
@@ -140,9 +139,8 @@ pub(crate) fn workflow_handle_advanced_touch(
     display: &mut BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    card_present: bool,
 ) -> Option<bool> {
-    onboarding::workflow_handle_advanced_touch(input, ad, display, delay, i2c, card_present)
+    onboarding::workflow_handle_advanced_touch(input, ad, display, delay, i2c)
 }
 
 #[cfg(feature = "workflow-test-auto")]
@@ -232,9 +230,8 @@ pub(crate) fn handle(
     display: &mut BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    card_present: bool,
 ) -> Option<bool> {
-    if let Some(result) = onboarding::handle(input, ad, persistence, display, delay, i2c, card_present) {
+    if let Some(result) = onboarding::handle(input, ad, persistence, display, delay, i2c) {
         return Some(result);
     }
     credential::handle(input, ad, display)

@@ -92,7 +92,6 @@ pub(crate) fn render_priority_operation(
     ad: &mut crate::runtime::data::AppData,
     display: &mut crate::hw::display::BootDisplay<'_>,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<crate::hw::sdcard::SdCardType>,
     tracker: &mut crate::hw::touch::TouchTracker,
     watchdog_feed: &mut dyn FnMut(),
 ) {
@@ -109,7 +108,7 @@ pub(crate) fn render_priority_operation(
     // controller queues it, before any deferred service or persistence work.
     crate::runtime::event_loop::runner::acknowledge(watchdog_feed);
     crate::log!("   UI priority operation redraw BEGIN: {:?}", kind);
-    crate::ui::redraw::redraw_screen(ad, display, i2c, sd_card_type);
+    crate::ui::redraw::redraw_screen(ad, display, i2c);
     ad.runtime.needs_redraw = false;
     if kind.is_credential() {
         tracker.require_strict_release();

@@ -1,3 +1,4 @@
+use crate::services::storage_device::workflow_view::while_showing;
 use crate::{
     hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
     runtime::interactions::{stego::StegoTouchContext, TouchInput},
@@ -10,36 +11,32 @@ mod export;
 mod media;
 mod restore;
 
-const NO_SD: Option<SdCardType> = None;
-
 pub(super) struct StegoContext<'ctx, 'display, 'hal> {
     pub(super) ad: &'ctx mut AppData,
     pub(super) display: &'ctx mut BootDisplay<'display>,
     pub(super) i2c: &'ctx mut I2c<'hal, Blocking>,
-    pub(super) sd: &'ctx Option<SdCardType>,
     pub(super) delay: &'ctx mut Delay,
     pub(super) list: [TouchZone; 4],
     pub(super) up: TouchZone,
     pub(super) down: TouchZone,
-    pub(super) workflow_sd: Option<SdCardType>,
     pub(super) backup_device: super::backup::WorkflowBackupDevice,
 }
 
 impl StegoContext<'_, '_, '_> {
     pub(super) fn touch(&mut self, x: u16, y: u16, is_back: bool, media_present: bool) -> Option<bool> {
-        let sd_card_type = if media_present { &self.workflow_sd } else { &NO_SD };
-        crate::runtime::interactions::stego::handle_stego_touch(StegoTouchContext {
-            ad: self.ad,
-            boot_display: self.display,
-            delay: self.delay,
-            liveness: &mut || {},
-            i2c: self.i2c,
-            sd_card_type,
-            backup_device: &mut self.backup_device,
-            list_zones: &self.list,
-            page_up_zone: &self.up,
-            page_down_zone: &self.down,
-            input: TouchInput::new(x, y, is_back),
+        while_showing(media_present.then_some(SdCardType::SdV2Hc), || {
+            crate::runtime::interactions::stego::handle_stego_touch(StegoTouchContext {
+                ad: self.ad,
+                boot_display: self.display,
+                delay: self.delay,
+                liveness: &mut || {},
+                i2c: self.i2c,
+                backup_device: &mut self.backup_device,
+                list_zones: &self.list,
+                page_up_zone: &self.up,
+                page_down_zone: &self.down,
+                input: TouchInput::new(x, y, is_back),
+            })
         })
     }
 
@@ -52,7 +49,7 @@ impl StegoContext<'_, '_, '_> {
     }
 
     pub(super) fn redraw_step(&mut self) {
-        super::redraw_step(self.ad, self.display, self.i2c, self.sd);
+        super::redraw_step(self.ad, self.display, self.i2c);
         super::show_step(self.delay);
     }
 
@@ -122,25 +119,14 @@ pub(super) fn exercise(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
     if !crate::services::wallet_session::install_workflow_backup_mnemonic_fixture(ad) {
         return false;
     }
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
-    let mut ctx = StegoContext {
-        ad,
-        display,
-        i2c,
-        sd,
-        delay,
-        list,
-        up,
-        down,
-        workflow_sd: Some(SdCardType::SdV2Hc),
-        backup_device: super::backup::WorkflowBackupDevice,
-    };
+    let mut ctx =
+        StegoContext { ad, display, i2c, delay, list, up, down, backup_device: super::backup::WorkflowBackupDevice };
     log!("KASKOLD_WORKFLOW_TESTS: STEGANOGRAPHY TRANCHE BEGIN");
     let mut summary = super::probe_status::ProbeSummary::new("STEGO");
 

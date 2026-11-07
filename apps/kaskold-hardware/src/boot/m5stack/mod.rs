@@ -48,7 +48,7 @@ macro_rules! initialize {
         // Connected CoreS3 workflow E2E intentionally exercises the real SD
         // transport. Audio/entropy/camera remain deferred outside HIL, but
         // removable-storage detection must never be faked as absent.
-        let sd_card_type = $crate::boot::m5stack::sd::initialize(&mut i2c, &mut $delay);
+        $crate::boot::m5stack::sd::initialize(&mut i2c, &mut $delay);
         // Bring up the visible liveness surface.
         let cs_pin = Output::new($peripherals.GPIO3, Level::High, OutputConfig::default());
         let reset_pin = Output::new($peripherals.GPIO14, Level::High, OutputConfig::default());
@@ -60,7 +60,7 @@ macro_rules! initialize {
             log!("KASKOLD_WORKFLOW_TESTS: OPTIONAL AUDIO/ENTROPY/CAMERA SKIPPED; SD PROBED");
             log!("KASKOLD_WORKFLOW_TESTS: BOARD PHASES COMPLETE");
             (i2c, boot_display, None::<DvpCamera<'_>>, None::<esp_hal::dma::DmaRxBuf>,
-             hw::camera::CameraStatus::Error, sd_card_type, None::<$crate::hw::sound::RuntimeAudio>)
+             hw::camera::CameraStatus::Error, None::<$crate::hw::sound::RuntimeAudio>)
         }
         #[cfg(any(not(feature = "workflow-test-auto"), feature = "workflow-runtime-auto"))]
         {
@@ -109,14 +109,14 @@ macro_rules! initialize {
             {
                 log!(
                     "KASKOLD_WORKFLOW_RUNTIME: PERIPHERALS READY sd={} audio={} camera={:?}",
-                    sd_card_type.is_some(), runtime_audio.is_some(), cam_status
+                    $crate::hw::sdcard::known_card().is_some(), runtime_audio.is_some(), cam_status
                 );
                 log!("KASKOLD_WORKFLOW_RUNTIME: REAL PMU/TOUCH/ENTROPY/CAMERA INIT PATH EXECUTED");
                 #[cfg(feature = "workflow-hil-auto")]
                 log!("KASKOLD_WORKFLOW_HIL: DESTRUCTIVE MEDIA PROFILE ENABLED");
                 log!("KASKOLD_WORKFLOW_TESTS: BOARD PHASES COMPLETE");
             }
-            (i2c, boot_display, dvp_camera_opt, cam_dma_buf_opt, cam_status, sd_card_type, runtime_audio)
+            (i2c, boot_display, dvp_camera_opt, cam_dma_buf_opt, cam_status, runtime_audio)
         }
     }}
 }

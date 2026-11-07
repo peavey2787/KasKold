@@ -5,6 +5,7 @@ use super::{
     protocol::{card_is_locked, initialize_card},
     Delay, SdCardType,
 };
+use crate::hw::m5stack::storage::record_card;
 
 pub fn with_sd_card<I2C, F, T>(i2c: &mut I2C, delay: &mut Delay, f: F) -> Result<T, &'static str>
 where
@@ -25,7 +26,7 @@ where
     if let Some(card_type) = crate::hw::m5stack::storage::manual_unlock_session_card_type() {
         return Ok(card_type);
     }
-    power_cycle_card(i2c, delay)?;
+    power_cycle_card(i2c, delay).inspect_err(|_| record_card(None))?;
     initialize_unlocked_card(delay)
 }
 
@@ -39,8 +40,10 @@ fn finish_card_operation<T>(result: &Result<T, &'static str>) {
 fn initialize_unlocked_card(delay: &mut Delay) -> Result<SdCardType, &'static str> {
     let card_type = initialize_card(delay).map_err(|error| {
         crate::log!("[SD] with_sd_card init failed: {}", error);
+        record_card(None);
         error
     })?;
+    record_card(Some(card_type));
     require_unlocked_card()?;
     Ok(card_type)
 }
@@ -53,32 +56,4 @@ fn require_unlocked_card() -> Result<(), &'static str> {
     }
     crate::log!("[SD] card detected but password-locked; data I/O blocked before CMD17/CMD24");
     Err("SD card is locked")
-}
-
-pub(crate) fn probe_boot_card(delay: &mut Delay) -> Result<SdCardType, &'static str> {
-    let card_type = initialize_card(delay)?;
-    let locked = card_is_locked(true)?;
-    crate::hw::m5stack::storage::record_card_lock_status(locked);
-    if locked {
-        crate::log!("   SD card password lock detected; MBR read skipped");
-    } else {
-        log_boot_mbr(card_type);
-    }
-    Ok(card_type)
-}
-
-fn log_boot_mbr(card_type: SdCardType) {
-    let mut sector0 = [0u8; 512];
-    match super::block::sd_read_block(card_type, 0, &mut sector0) {
-        Ok(()) => crate::log!(
-            "   MBR: {:02x}{:02x}{:02x}{:02x}..sig={:02x}{:02x} OK",
-            sector0[0],
-            sector0[1],
-            sector0[2],
-            sector0[3],
-            sector0[510],
-            sector0[511]
-        ),
-        Err(error) => crate::log!("   MBR read failed: {}", error),
-    }
 }

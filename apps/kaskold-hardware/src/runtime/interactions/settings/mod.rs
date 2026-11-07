@@ -1,10 +1,7 @@
 // KasKold — Air-gapped offline signing device for Kaspa
 // Settings controller façade; subsystem handlers live in focused modules.
 
-use crate::{
-    hw::display as hw_display, hw::touch, runtime::data::AppData, runtime::interactions::TouchInput,
-    services::storage_device,
-};
+use crate::{hw::display as hw_display, hw::touch, runtime::data::AppData, runtime::interactions::TouchInput};
 
 pub(crate) mod advanced;
 #[cfg(feature = "m5stack")]
@@ -25,7 +22,6 @@ pub struct SettingsTouchContext<'ctx, 'display, 'hal> {
     pub boot_display: &'ctx mut hw_display::BootDisplay<'display>,
     pub delay: &'ctx mut esp_hal::delay::Delay,
     pub i2c: &'ctx mut esp_hal::i2c::master::I2c<'hal, esp_hal::Blocking>,
-    pub sd_card_type: &'ctx Option<storage_device::SdCardType>,
     pub input: TouchInput,
 }
 
@@ -97,11 +93,11 @@ pub fn handle_sd_settings_navigation(ad: &mut AppData, input: TouchInput) -> Opt
 /// Handle settings screens that genuinely own board hardware.
 #[inline(never)]
 pub fn handle_settings_touch(context: SettingsTouchContext<'_, '_, '_>) -> Option<bool> {
-    let SettingsTouchContext { ad, boot_display, delay, i2c, sd_card_type, input } = context;
+    let SettingsTouchContext { ad, boot_display, delay, i2c, input } = context;
     let TouchInput { x, y, is_back } = input;
     let needs_redraw = match ad.navigation.app.state {
         crate::runtime::input::AppState::SdCardSettings => {
-            handle_sd_card_settings(ad, boot_display, delay, i2c, sd_card_type, x, y, is_back)
+            handle_sd_card_settings(ad, boot_display, delay, i2c, x, y, is_back)
         }
         crate::runtime::input::AppState::SdCardUnlockPassword => {
             storage::handle_unlock_password(ad, boot_display, delay, i2c, x, y, is_back)

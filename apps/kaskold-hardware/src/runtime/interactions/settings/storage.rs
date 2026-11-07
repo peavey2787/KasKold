@@ -21,7 +21,6 @@ pub(super) fn handle_sd_card_settings(
     boot_display: &mut hw_display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<sdcard::SdCardType>,
     x: u16,
     y: u16,
     is_back: bool,
@@ -30,8 +29,8 @@ pub(super) fn handle_sd_card_settings(
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SettingsMenu));
         return true;
     }
-    if sd_card_type.is_none() {
-        return false;
+    if sdcard::known_card().is_none() {
+        return sdcard::detect_card(i2c, delay).is_some();
     }
     if sdcard::card_is_known_locked() {
         return handle_locked_card(ad, x, y);

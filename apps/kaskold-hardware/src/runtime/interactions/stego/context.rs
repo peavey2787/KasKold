@@ -8,7 +8,6 @@ use crate::{
     hw::{display, touch},
     runtime::data::AppData,
     runtime::interactions::TouchInput,
-    services::storage_device as sdcard,
 };
 
 /// Capabilities supplied by the firmware router to the stego façade.
@@ -18,7 +17,6 @@ pub struct StegoTouchContext<'ctx, 'display, 'hal> {
     pub delay: &'ctx mut esp_hal::delay::Delay,
     pub liveness: &'ctx mut dyn FnMut(),
     pub i2c: &'ctx mut esp_hal::i2c::master::I2c<'hal, esp_hal::Blocking>,
-    pub sd_card_type: &'ctx Option<sdcard::SdCardType>,
     pub backup_device: &'ctx mut dyn crate::services::backup::BackupDevice,
     pub list_zones: &'ctx [touch::TouchZone; 4],
     pub page_up_zone: &'ctx touch::TouchZone,

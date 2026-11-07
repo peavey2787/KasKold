@@ -1,5 +1,5 @@
 use crate::{
-    hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
+    hw::{display::BootDisplay, touch::TouchZone},
     runtime::interactions::TouchInput,
     runtime::{data::AppData, input::AppState},
 };
@@ -9,7 +9,6 @@ struct SettingsContext<'ctx, 'display, 'hal> {
     ad: &'ctx mut AppData,
     display: &'ctx mut BootDisplay<'display>,
     i2c: &'ctx mut I2c<'hal, Blocking>,
-    sd: &'ctx Option<SdCardType>,
     delay: &'ctx mut Delay,
     list: [TouchZone; 4],
     up: TouchZone,
@@ -18,7 +17,7 @@ struct SettingsContext<'ctx, 'display, 'hal> {
 
 impl SettingsContext<'_, '_, '_> {
     fn redraw(&mut self) {
-        super::redraw_step(&mut *self.ad, &mut *self.display, &mut *self.i2c, self.sd);
+        super::redraw_step(&mut *self.ad, &mut *self.display, &mut *self.i2c);
     }
 
     fn show_step(&mut self) {
@@ -57,11 +56,10 @@ pub(super) fn exercise(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
-    let mut ctx = SettingsContext { ad, display, i2c, sd, delay, list, up, down };
+    let mut ctx = SettingsContext { ad, display, i2c, delay, list, up, down };
     log!("KASKOLD_WORKFLOW_TESTS: SETTINGS EXHAUSTIVE ROOT BEGIN");
 
     if ctx.select(320, 235) {

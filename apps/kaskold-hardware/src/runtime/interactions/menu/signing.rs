@@ -27,7 +27,6 @@ pub(super) fn handle(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<crate::services::storage_device::SdCardType>,
     list_zones: &[touch::TouchZone; 4],
     x: u16,
     y: u16,
@@ -35,7 +34,7 @@ pub(super) fn handle(
 ) -> Option<bool> {
     match ad.navigation.app.state {
         AppState::MultisigMenu | AppState::MultisigDescriptorsMenu => {
-            Some(multisig::handle(ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones, x, y, is_back))
+            Some(multisig::handle(ad, boot_display, delay, liveness, i2c, list_zones, x, y, is_back))
         }
         _ => None,
     }

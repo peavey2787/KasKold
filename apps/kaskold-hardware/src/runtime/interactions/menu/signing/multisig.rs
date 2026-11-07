@@ -31,7 +31,6 @@ pub(super) fn handle(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<crate::services::storage_device::SdCardType>,
     list_zones: &[touch::TouchZone; 4],
     x: u16,
     y: u16,
@@ -40,7 +39,7 @@ pub(super) fn handle(
     match ad.navigation.app.state {
         AppState::MultisigMenu => handle_root_menu(ad, boot_display, delay, liveness, list_zones, x, y, is_back),
         AppState::MultisigDescriptorsMenu => {
-            handle_descriptors_menu(ad, boot_display, delay, liveness, i2c, sd_card_type, list_zones, x, y, is_back)
+            handle_descriptors_menu(ad, boot_display, delay, liveness, i2c, list_zones, x, y, is_back)
         }
         _ => false,
     }
@@ -73,7 +72,6 @@ fn handle_descriptors_menu(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<crate::services::storage_device::SdCardType>,
     list_zones: &[touch::TouchZone; 4],
     x: u16,
     y: u16,
@@ -107,7 +105,6 @@ fn handle_descriptors_menu(
                 boot_display,
                 delay,
                 i2c,
-                sd_card_type.is_some(),
             );
             true
         }

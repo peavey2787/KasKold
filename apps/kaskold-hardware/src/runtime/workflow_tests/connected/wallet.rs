@@ -1,5 +1,5 @@
 use crate::{
-    hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
+    hw::{display::BootDisplay, touch::TouchZone},
     runtime::interactions::TouchInput,
     runtime::{data::AppData, input::AppState},
 };
@@ -14,7 +14,6 @@ struct WalletContext<'ctx, 'display, 'hal> {
     ad: &'ctx mut AppData,
     display: &'ctx mut BootDisplay<'display>,
     i2c: &'ctx mut I2c<'hal, Blocking>,
-    sd: &'ctx Option<SdCardType>,
     delay: &'ctx mut Delay,
     grid: [TouchZone; 4],
     list: [TouchZone; 4],
@@ -24,7 +23,7 @@ struct WalletContext<'ctx, 'display, 'hal> {
 
 impl WalletContext<'_, '_, '_> {
     fn redraw(&mut self) {
-        super::redraw_step(self.ad, self.display, self.i2c, self.sd);
+        super::redraw_step(self.ad, self.display, self.i2c);
     }
 
     fn show_step(&mut self) {
@@ -72,7 +71,6 @@ pub(super) fn exercise(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
     if !crate::services::wallet_session::install_workflow_wallet_inventory_fixture(ad) {
@@ -97,7 +95,7 @@ pub(super) fn exercise(
     }
 
     let (grid, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
-    let mut ctx = WalletContext { ad, display, i2c, sd, delay, grid, list, up, down };
+    let mut ctx = WalletContext { ad, display, i2c, delay, grid, list, up, down };
     log!("KASKOLD_WORKFLOW_TESTS: WALLET MANAGEMENT BEGIN");
 
     mark_failure_stage(1);
@@ -229,7 +227,6 @@ fn wallet_receive_route(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
             delay: &mut *ctx.delay,
             liveness: &mut || {},
             i2c: &mut *ctx.i2c,
-            sd_card_type: ctx.sd,
             list_zones: &list,
             page_up_zone: &up,
             page_down_zone: &down,

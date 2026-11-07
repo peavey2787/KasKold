@@ -13,7 +13,6 @@ pub struct MenuTouchContext<'ctx, 'display, 'hal, 'camera> {
     pub delay: &'ctx mut esp_hal::delay::Delay,
     pub liveness: &'ctx mut dyn FnMut(),
     pub i2c: &'ctx mut esp_hal::i2c::master::I2c<'hal, esp_hal::Blocking>,
-    pub sd_card_type: &'ctx Option<crate::services::storage_device::SdCardType>,
     pub dvp_camera_opt: &'ctx mut Option<DvpCamera<'camera>>,
     pub cam_dma_buf_opt: &'ctx mut Option<DmaRxBuf>,
     pub list_zones: &'ctx [touch::TouchZone; 4],

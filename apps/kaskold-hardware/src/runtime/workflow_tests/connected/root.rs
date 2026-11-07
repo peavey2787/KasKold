@@ -8,7 +8,6 @@ pub(super) fn exercise(
     ad: &mut crate::runtime::data::AppData,
     display: &mut crate::hw::display::BootDisplay<'_>,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd: &Option<crate::hw::sdcard::SdCardType>,
     delay: &mut esp_hal::delay::Delay,
 ) -> bool {
     FAILURE_MASK.store(0, Ordering::Relaxed);
@@ -18,7 +17,7 @@ pub(super) fn exercise(
 
     log!("KASKOLD_WORKFLOW_TESTS: APP STATE INIT OK (static internal RAM)");
     log!("KASKOLD_WORKFLOW_TESTS: SCREEN HOME");
-    super::redraw_step(ad, display, i2c, sd);
+    super::redraw_step(ad, display, i2c);
     super::show_step(delay);
 
     if crate::runtime::interactions::menu::handle_connected_root_probe(ad, 160, 132) {
@@ -52,15 +51,15 @@ pub(super) fn exercise(
             return false;
         }
         log!("KASKOLD_WORKFLOW_TESTS: ROOT TILE {} ROUTE OK", index);
-        super::redraw_step(ad, display, i2c, sd);
+        super::redraw_step(ad, display, i2c);
         log!("KASKOLD_WORKFLOW_TESTS: SCREEN {:?}", expected);
         super::show_step(delay);
         log!("KASKOLD_WORKFLOW_TESTS: ROOT TILE {} DWELL OK", index);
 
         let returned_home = match index {
             0 => connect_companion_from_home(ad),
-            2 => wallet_and_backup(ad, display, i2c, sd, delay),
-            3 => super::settings::exercise(ad, display, i2c, sd, delay),
+            2 => wallet_and_backup(ad, display, i2c, delay),
+            3 => super::settings::exercise(ad, display, i2c, delay),
             _ => return_home(ad),
         };
         if !returned_home {
@@ -69,7 +68,7 @@ pub(super) fn exercise(
         }
 
         log!("KASKOLD_WORKFLOW_TESTS: ROOT TILE {} HOME ROUTE OK", index);
-        super::redraw_step(ad, display, i2c, sd);
+        super::redraw_step(ad, display, i2c);
         log!("KASKOLD_WORKFLOW_TESTS: SCREEN HOME RETURN {}", index);
         super::show_step(delay);
     }
@@ -81,15 +80,14 @@ fn wallet_and_backup(
     ad: &mut crate::runtime::data::AppData,
     display: &mut crate::hw::display::BootDisplay<'_>,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd: &Option<crate::hw::sdcard::SdCardType>,
     delay: &mut esp_hal::delay::Delay,
 ) -> bool {
-    let wallet_ok = super::wallet::exercise(ad, display, i2c, sd, delay);
+    let wallet_ok = super::wallet::exercise(ad, display, i2c, delay);
     if !wallet_ok {
         log!("KASKOLD_WORKFLOW_TESTS: WALLET MANAGEMENT FAILED; RECOVERING HOME FOR BACKUP VIA AUTHORITATIVE SCENARIO RESET");
     }
     let home_ready = super::reset_tranche_to_home(ad);
-    let backup_ok = home_ready && super::backup::exercise(ad, display, i2c, sd, delay);
+    let backup_ok = home_ready && super::backup::exercise(ad, display, i2c, delay);
     let mut failure_mask = 0u16;
     if !wallet_ok {
         failure_mask |= 1u16 << 0;

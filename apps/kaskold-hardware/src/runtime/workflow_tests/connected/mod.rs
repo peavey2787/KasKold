@@ -44,17 +44,15 @@ pub(super) fn redraw_step(
     ad: &mut crate::runtime::data::AppData,
     display: &mut crate::hw::display::BootDisplay<'_>,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd: &Option<crate::hw::sdcard::SdCardType>,
 ) {
     #[cfg(feature = "workflow-runtime-auto")]
-    crate::ui::redraw::redraw_screen(ad, display, i2c, sd);
+    crate::ui::redraw::redraw_screen(ad, display, i2c);
 
     #[cfg(not(feature = "workflow-runtime-auto"))]
     {
         let _ = ad;
         let _ = display;
         let _ = i2c;
-        let _ = sd;
     }
 }
 
@@ -70,7 +68,6 @@ type ConnectedTranche = for<'display, 'hal> fn(
     &mut crate::runtime::data::AppData,
     &mut crate::hw::display::BootDisplay<'display>,
     &mut esp_hal::i2c::master::I2c<'hal, esp_hal::Blocking>,
-    &Option<crate::hw::sdcard::SdCardType>,
     &mut esp_hal::delay::Delay,
 ) -> bool;
 
@@ -93,7 +90,6 @@ pub(super) fn run(
     ad: &mut crate::runtime::data::AppData,
     boot_display: &mut crate::hw::display::BootDisplay<'_>,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<crate::hw::sdcard::SdCardType>,
     delay: &mut esp_hal::delay::Delay,
     dvp_camera_opt: &mut Option<esp_hal::lcd_cam::cam::Camera<'_>>,
     cam_dma_buf_opt: &mut Option<esp_hal::dma::DmaRxBuf>,
@@ -113,18 +109,11 @@ pub(super) fn run(
     log!("KASKOLD_WORKFLOW_TESTS: TOUCH PROBE OK");
 
     #[cfg(all(feature = "m5stack", feature = "workflow-hil-auto"))]
-    if !sd_media::prepare_and_verify(i2c, sd_card_type, delay) {
+    if !sd_media::prepare_and_verify(i2c, delay) {
         return false;
     }
     #[cfg(all(feature = "m5stack", not(feature = "workflow-hil-auto")))]
-    if !sd_media::prepare_controller_e2e(sd_card_type) {
-        return false;
-    }
-    // Plain integration builds compile neither the M5Stack SD probe nor the
-    // workflow-HIL media path. Keep the uniform connected-runner signature
-    // while making that single profile's intentionally unused handle explicit.
-    #[cfg(all(not(feature = "m5stack"), not(feature = "workflow-hil-auto")))]
-    let _ = sd_card_type;
+    sd_media::prepare_controller_e2e();
 
     #[cfg(not(all(feature = "m5stack", feature = "workflow-runtime-auto")))]
     {
@@ -149,18 +138,16 @@ pub(super) fn run(
     // Controller E2E is intentionally media-independent.  Keep the real boot
     // probe above for hardware diagnostics, but do not let an inserted, flaky,
     // or half-initialized card redirect controller-only tests into physical I/O.
-    // workflow-hil-auto keeps the real media handle and remains the authority
-    // for scans, read/write/delete, format, lock recovery, and other SD HIL.
-    #[cfg(feature = "workflow-hil-auto")]
-    let controller_sd = sd_card_type;
+    // workflow-hil-auto keeps the real slot and remains the authority for
+    // scans, read/write/delete, format, lock recovery, and other SD HIL.
     #[cfg(not(feature = "workflow-hil-auto"))]
-    let no_controller_sd = None;
-    #[cfg(not(feature = "workflow-hil-auto"))]
-    let controller_sd = &no_controller_sd;
-    #[cfg(not(feature = "workflow-hil-auto"))]
-    log!("KASKOLD_WORKFLOW_TESTS: CONTROLLER SD VIEW FORCED UNAVAILABLE; PHYSICAL SD REMAINS HIL-ONLY");
+    {
+        use crate::services::storage_device::workflow_view::{show, CardView};
+        show(CardView::Shown(None));
+        log!("KASKOLD_WORKFLOW_TESTS: CONTROLLER SD VIEW FORCED UNAVAILABLE; PHYSICAL SD REMAINS HIL-ONLY");
+    }
 
-    if !run_all_connected_tranches(ad, boot_display, i2c, controller_sd, delay) {
+    if !run_all_connected_tranches(ad, boot_display, i2c, delay) {
         return false;
     }
 
@@ -173,7 +160,6 @@ pub(super) fn run(
         ad,
         boot_display,
         i2c,
-        sd_card_type,
         delay,
         dvp_camera_opt,
         cam_dma_buf_opt,
@@ -196,7 +182,6 @@ fn run_all_connected_tranches(
     ad: &mut crate::runtime::data::AppData,
     boot_display: &mut crate::hw::display::BootDisplay<'_>,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<crate::hw::sdcard::SdCardType>,
     delay: &mut esp_hal::delay::Delay,
 ) -> bool {
     let start_index = configured_start_index();
@@ -231,7 +216,7 @@ fn run_all_connected_tranches(
         // earlier independent tranches legitimately consumed CPU time.
         log!("KASKOLD_WORKFLOW_TESTS: CONNECTED TRANCHE DEADLINE REFRESH");
         log!("KASKOLD_WORKFLOW_TESTS: CONNECTED TRANCHE {}/{} {} BEGIN", index + 1, CONNECTED_TRANCHES.len(), name,);
-        let result = tranche(ad, boot_display, i2c, sd_card_type, delay);
+        let result = tranche(ad, boot_display, i2c, delay);
         if result {
             passed += 1;
             log!("KASKOLD_WORKFLOW_TESTS: CONNECTED TRANCHE {}/{} {} PASS", index + 1, CONNECTED_TRANCHES.len(), name,);

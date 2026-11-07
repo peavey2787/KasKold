@@ -161,11 +161,19 @@ def scan_exceptions(root: Path = ROOT) -> tuple[list[ExceptionEntry], list[str]]
     return entries, errors
 
 
+DENIED_CRATE_LINTS = (
+    "#![deny(dead_code)]",
+    "#![deny(unused_variables, unused_assignments, unused_mut)]",
+    "#![deny(static_mut_refs)]",
+)
+
+
 def _check_main_source(main_source: str, errors: list[str]) -> None:
     if "#![deny(unused_imports)]" not in main_source:
         errors.append("firmware crate must deny unused_imports in every feature set")
-    if "#![warn(dead_code)]" not in main_source:
-        errors.append("firmware crate must retain dead-code diagnostics in every feature set")
+    for attribute in DENIED_CRATE_LINTS:
+        if attribute not in main_source:
+            errors.append(f"firmware crate must keep {attribute} so source-level levels cannot weaken the lint gate")
 
 
 def _check_hil_dead_code_scope(root: Path, main_source: str, errors: list[str]) -> None:
@@ -297,7 +305,7 @@ def main() -> int:
         return 1
     entries, _ = scan_exceptions(ROOT)
     print(
-        "PASS: firmware denies unused imports, keeps dead-code diagnostics enabled in every feature set, and has "
+        "PASS: firmware denies unused imports and dead code in every feature set, and has "
         f"{len(entries)} item-scoped lint exceptions"
     )
     return 0

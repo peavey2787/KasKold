@@ -1,5 +1,5 @@
 use crate::{
-    hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
+    hw::{display::BootDisplay, touch::TouchZone},
     runtime::{data::AppData, input::AppState},
 };
 use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
@@ -8,7 +8,6 @@ struct ReceiveContext<'ctx, 'display, 'hal> {
     ad: &'ctx mut AppData,
     display: &'ctx mut BootDisplay<'display>,
     i2c: &'ctx mut I2c<'hal, Blocking>,
-    sd: &'ctx Option<SdCardType>,
     delay: &'ctx mut Delay,
     list: [TouchZone; 4],
     up: TouchZone,
@@ -25,7 +24,6 @@ impl ReceiveContext<'_, '_, '_> {
                 delay: &mut *self.delay,
                 liveness: &mut || {},
                 i2c: &mut *self.i2c,
-                sd_card_type: self.sd,
                 list_zones: &self.list,
                 page_up_zone: &self.up,
                 page_down_zone: &self.down,
@@ -36,7 +34,7 @@ impl ReceiveContext<'_, '_, '_> {
     }
 
     fn redraw(&mut self) {
-        super::redraw_step(&mut *self.ad, &mut *self.display, &mut *self.i2c, self.sd);
+        super::redraw_step(&mut *self.ad, &mut *self.display, &mut *self.i2c);
     }
 
     fn show_step(&mut self) {
@@ -50,11 +48,10 @@ pub(super) fn exercise(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
-    let mut ctx = ReceiveContext { ad, display, i2c, sd, delay, list, up, down };
+    let mut ctx = ReceiveContext { ad, display, i2c, delay, list, up, down };
     log!("KASKOLD_WORKFLOW_TESTS: RECEIVE CONTROLS BEGIN");
 
     // workflow-runtime-auto deliberately disables the old public-key fixture.

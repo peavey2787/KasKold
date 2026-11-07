@@ -56,9 +56,8 @@ fn scan_rule_plan(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    card_present: bool,
 ) {
-    scan_by_rule(ad, boot_display, delay, i2c, card_present, IMPORT_RULES[rule_index]);
+    scan_by_rule(ad, boot_display, delay, i2c, IMPORT_RULES[rule_index]);
 }
 
 fn dispatch_import_scan(
@@ -67,12 +66,11 @@ fn dispatch_import_scan(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    card_present: bool,
 ) {
     let Some(plan): Option<ImportScanPlan> = import_scan_plan(item) else {
         return;
     };
-    scan_rule_plan(plan.rule_index(), ad, boot_display, delay, i2c, card_present);
+    scan_rule_plan(plan.rule_index(), ad, boot_display, delay, i2c);
 }
 
 pub(crate) fn scan_wallet_backup_files(
@@ -80,9 +78,8 @@ pub(crate) fn scan_wallet_backup_files(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    card_present: bool,
 ) {
-    scan_by_rule(ad, boot_display, delay, i2c, card_present, WALLET_BACKUP_RULE);
+    scan_by_rule(ad, boot_display, delay, i2c, WALLET_BACKUP_RULE);
 }
 
 pub(crate) fn scan_multisig_descriptor_files(
@@ -90,9 +87,8 @@ pub(crate) fn scan_multisig_descriptor_files(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    card_present: bool,
 ) {
-    scan_by_rule(ad, boot_display, delay, i2c, card_present, MULTISIG_DESCRIPTOR_RULE);
+    scan_by_rule(ad, boot_display, delay, i2c, MULTISIG_DESCRIPTOR_RULE);
 }
 
 pub(crate) fn handle_sd_import_menu(ctx: SdImportMenuContext<'_, '_, '_>) -> bool {
@@ -101,7 +97,6 @@ pub(crate) fn handle_sd_import_menu(ctx: SdImportMenuContext<'_, '_, '_>) -> boo
         boot_display,
         delay,
         i2c,
-        sd_card_type,
         list_zones,
         page_up_zone,
         page_down_zone,
@@ -124,7 +119,7 @@ pub(crate) fn handle_sd_import_menu(ctx: SdImportMenuContext<'_, '_, '_>) -> boo
             true
         }
         PagedMenuAction::Selected(item) => {
-            dispatch_import_scan(item, ad, boot_display, delay, i2c, sd_card_type.is_some());
+            dispatch_import_scan(item, ad, boot_display, delay, i2c);
             true
         }
         PagedMenuAction::None => false,

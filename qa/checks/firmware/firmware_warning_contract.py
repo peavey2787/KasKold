@@ -41,8 +41,8 @@ def _check_main_lint_attributes(root: Path, errors: list[str]) -> None:
     )
     _require(
         errors,
-        '#![warn(dead_code)]' in main,
-        "signer-firmware: dead-code diagnostics must remain enabled in every feature set",
+        '#![deny(dead_code)]' in main and not re.search(r"#!\s*\[\s*warn\s*\(", main),
+        "signer-firmware: dead code must stay denied; a crate-level warn would override the lint gate's -D",
     )
     _require(
         errors,
@@ -345,11 +345,11 @@ def _check_battery_voltage_field(root: Path, errors: list[str]) -> None:
 
 def _check_sd_absence_owner(root: Path, errors: list[str]) -> None:
     fat32_types = _read(root, "apps/kaskold-hardware/src/hw/shared/storage/fat32/types.rs")
-    m5_storage = _read(root, "apps/kaskold-hardware/src/hw/m5stack/storage/mod.rs")
+    card_state = _read(root, "apps/kaskold-hardware/src/hw/m5stack/storage/card_state.rs")
     _require(
         errors,
         "None" not in fat32_types
-        and "manual_unlock_session_card_type() -> Option<SdCardType>" in m5_storage,
+        and "manual_unlock_session_card_type() -> Option<SdCardType>" in card_state,
         "SD-card absence must remain private to the CoreS3 transport/session owner",
     )
 
@@ -516,10 +516,11 @@ def _check_event_runner(root: Path, errors: list[str]) -> None:
         and "super::run!(" in event_runner,
         "event-loop macro complexity exception must stay on the focused ownership runner",
     )
+    storage_device = _read(root, "apps/kaskold-hardware/src/services/hardware/storage_device.rs")
     _require(
         errors,
-        "sd_card_type: Option<SdCardType>," in event_runner,
-        "event-loop ownership runner must preserve optional SD-card availability",
+        "sd_card_type" not in event_runner and "pub(crate) fn detect_card(" in storage_device,
+        "event loop must not snapshot SD-card presence at boot; cards are detected when needed",
     )
 
 

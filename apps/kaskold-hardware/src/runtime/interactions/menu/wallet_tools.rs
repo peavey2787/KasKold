@@ -21,7 +21,6 @@ pub(super) fn handle(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    sd_card_type: &Option<crate::services::storage_device::SdCardType>,
     list_zones: &[touch::TouchZone; 4],
     x: u16,
     y: u16,
@@ -31,14 +30,9 @@ pub(super) fn handle(
     }
     match selected_visible_item(&ad.navigation.production.wallet_advanced_menu, list_zones, x, y) {
         Some(HIDDEN_KEY_ADDRESS) => open_hidden_key_address(ad, boot_display, delay, liveness),
-        Some(KPUB_TO_SD) => crate::runtime::interactions::export::export_kpub_to_sd(
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            i2c,
-            sd_card_type,
-        ),
+        Some(KPUB_TO_SD) => {
+            crate::runtime::interactions::export::export_kpub_to_sd(ad, boot_display, delay, liveness, i2c)
+        }
         _ => return Some(false),
     }
     Some(true)

@@ -24,7 +24,7 @@ fn physical_card_scan_when_hil(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool 
 
 #[cfg(feature = "workflow-hil-auto")]
 fn import_menu_card_scan(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool {
-    if ctx.sd.is_none() {
+    if crate::services::storage_device::known_card().is_none() {
         return false;
     }
     if !ctx.enter_import_menu() {

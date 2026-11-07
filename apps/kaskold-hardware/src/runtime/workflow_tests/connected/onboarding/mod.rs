@@ -1,5 +1,5 @@
 use crate::{
-    hw::{display::BootDisplay, sdcard::SdCardType},
+    hw::display::BootDisplay,
     runtime::interactions::TouchInput,
     runtime::{data::AppData, input::AppState},
 };
@@ -17,13 +17,12 @@ pub(super) struct OnboardingContext<'ctx, 'display, 'hal> {
     pub(super) ad: &'ctx mut AppData,
     pub(super) display: &'ctx mut BootDisplay<'display>,
     pub(super) i2c: &'ctx mut I2c<'hal, Blocking>,
-    pub(super) sd: &'ctx Option<SdCardType>,
     pub(super) delay: &'ctx mut Delay,
 }
 
 impl OnboardingContext<'_, '_, '_> {
     pub(super) fn redraw(&mut self) {
-        super::redraw_step(self.ad, self.display, self.i2c, self.sd);
+        super::redraw_step(self.ad, self.display, self.i2c);
     }
 
     pub(super) fn redraw_step(&mut self) {
@@ -84,14 +83,13 @@ pub(super) fn exercise(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
     FAILURE_MASK.store(0, Ordering::Relaxed);
     if !super::root::home_ok(ad) {
         return false;
     }
-    let mut ctx = OnboardingContext { ad, display, i2c, sd, delay };
+    let mut ctx = OnboardingContext { ad, display, i2c, delay };
     log!("KASKOLD_WORKFLOW_TESTS: ONBOARDING/CREATE TRANCHE BEGIN");
     let mut summary = super::probe_status::ProbeSummary::new("ONBOARDING");
 
@@ -126,7 +124,7 @@ pub(super) fn exercise(
     summary.record("FINISH-SESSION", finish_ok);
 
     summary.begin("RESTORE-IMPORT");
-    let restore_ok = restore::exercise(ctx.ad, ctx.display, ctx.i2c, ctx.sd, ctx.delay);
+    let restore_ok = restore::exercise(ctx.ad, ctx.display, ctx.i2c, ctx.delay);
     summary.record("RESTORE-IMPORT", restore_ok);
     let mut failure_mask = 0u16;
     if !welcome_ok {

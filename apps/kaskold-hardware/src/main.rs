@@ -7,9 +7,9 @@
 // Clippy complexity exceptions are allowed only on the exact item and must carry
 // a `LINT-JUSTIFICATION:` comment enforced by check_architecture.py.
 #![deny(unused_imports)]
-#![warn(dead_code)]
-#![warn(unused_variables, unused_assignments, unused_mut)]
-#![warn(static_mut_refs)]
+#![deny(dead_code)]
+#![deny(unused_variables, unused_assignments, unused_mut)]
+#![deny(static_mut_refs)]
 // hardware-tests intentionally omits the production event loop. Its root subsystems use
 // module-scoped dead-code allowances below; crate-wide diagnostics remain enabled.
 // Hardware entry point; platform exclusivity lives in feature_policy.rs.
@@ -140,7 +140,7 @@ fn firmware_main() -> ! {
     // M5Stack workflow/HIL images initialize the same board resources as interactive firmware.
     #[cfg_attr(feature = "hardware-tests", allow(unused_variables))]
     #[cfg(feature = "m5stack")]
-    let (i2c, mut boot_display, dvp_camera_opt, cam_dma_buf_opt, cam_status, sd_card_type, runtime_audio) =
+    let (i2c, mut boot_display, dvp_camera_opt, cam_dma_buf_opt, cam_status, runtime_audio) =
         boot::m5stack::initialize!(peripherals, delay);
     #[cfg(all(feature = "m5stack", not(feature = "hardware-tests")))]
     let mut runtime_audio = runtime_audio;
@@ -237,7 +237,6 @@ fn firmware_main() -> ! {
         boot_display,
         delay,
         i2c,
-        sd_card_type,
         (dvp_camera_opt, cam_dma_buf_opt, cam_status),
         #[cfg(not(feature = "workflow-test-auto"))]
         tracker,

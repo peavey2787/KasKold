@@ -1,5 +1,5 @@
 use crate::{
-    hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
+    hw::{display::BootDisplay, touch::TouchZone},
     runtime::interactions::{sd::SdTouchContext, TouchInput},
     runtime::{data::AppData, input::AppState},
 };
@@ -15,7 +15,6 @@ pub(super) struct SdWorkflowContext<'ctx, 'display, 'hal> {
     pub(super) ad: &'ctx mut AppData,
     pub(super) display: &'ctx mut BootDisplay<'display>,
     pub(super) i2c: &'ctx mut I2c<'hal, Blocking>,
-    pub(super) sd: &'ctx Option<SdCardType>,
     pub(super) delay: &'ctx mut Delay,
     pub(super) list: [TouchZone; 4],
     pub(super) up: TouchZone,
@@ -31,7 +30,6 @@ impl SdWorkflowContext<'_, '_, '_> {
             delay: &mut *self.delay,
             liveness: &mut || {},
             i2c: &mut *self.i2c,
-            sd_card_type: self.sd,
             backup_device: &mut self.backup_device,
             list_zones: &self.list,
             page_up_zone: &self.up,
@@ -91,7 +89,6 @@ pub(super) fn exercise(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
     FAILURE_MASK.store(0, Ordering::Relaxed);
@@ -103,7 +100,6 @@ pub(super) fn exercise(
         ad,
         display,
         i2c,
-        sd,
         delay,
         list,
         up,

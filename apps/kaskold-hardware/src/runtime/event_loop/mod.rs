@@ -17,7 +17,7 @@ pub(crate) mod touch_routes;
 #[cfg(not(feature = "workflow-test-auto"))]
 macro_rules! run {
     ($ad:ident, $persistent_wallet:ident, $boot_display:ident, $delay:ident, $i2c:ident,
-     $sd_card_type:ident, $dvp_camera_opt:ident,
+     $dvp_camera_opt:ident,
      $cam_dma_buf_opt:ident, $cam_status:ident, $tracker:ident, $runtime_audio:ident,
      $watchdog_feed:ident, $grid_zones:ident, $list_zones:ident, $page_up_zone:ident, $page_down_zone:ident) => {
         let mut wake_debounce: u32 = $crate::runtime::event_loop::INITIAL_WAKE_DEBOUNCE;
@@ -50,15 +50,15 @@ macro_rules! run {
             }
             #[cfg(feature = "m5stack")]
             $crate::runtime::event_loop::navigation_dispatch::log_main_tap_boundary($ad, action, "dispatch BEGIN");
-            $crate::runtime::event_loop::dispatch::handle_action!(action, $ad, $persistent_wallet, $boot_display, $delay, $i2c, $sd_card_type, $dvp_camera_opt, $cam_dma_buf_opt, $tracker, $runtime_audio, $watchdog_feed, $grid_zones, $list_zones, $page_up_zone, $page_down_zone, wake_debounce);
+            $crate::runtime::event_loop::dispatch::handle_action!(action, $ad, $persistent_wallet, $boot_display, $delay, $i2c, $dvp_camera_opt, $cam_dma_buf_opt, $tracker, $runtime_audio, $watchdog_feed, $grid_zones, $list_zones, $page_up_zone, $page_down_zone, wake_debounce);
             #[cfg(feature = "m5stack")]
-            $crate::runtime::event_loop::navigation_dispatch::render_priority_operation($ad, &mut $boot_display, &mut $i2c, &$sd_card_type, &mut $tracker, &mut $watchdog_feed);
+            $crate::runtime::event_loop::navigation_dispatch::render_priority_operation($ad, &mut $boot_display, &mut $i2c, &mut $tracker, &mut $watchdog_feed);
             #[cfg(feature = "argon2-bench")]
             $crate::runtime::event_loop::runner::service_navigation_request($ad, &mut $boot_display, &mut $delay, &mut $watchdog_feed);
             #[cfg(not(feature = "argon2-bench"))]
             $crate::runtime::event_loop::runner::service_navigation_request($ad, &mut $watchdog_feed);
             $crate::runtime::power_state::apply_requested_brightness($ad, &mut $i2c, &mut applied_brightness);
-            $crate::runtime::event_loop::frame::finish_frame!($ad, $persistent_wallet, $boot_display, $delay, $i2c, $sd_card_type, $tracker, $watchdog_feed, $list_zones, $page_up_zone, $page_down_zone);
+            $crate::runtime::event_loop::frame::finish_frame!($ad, $persistent_wallet, $boot_display, $delay, $i2c, $tracker, $watchdog_feed, $list_zones, $page_up_zone, $page_down_zone);
             $crate::runtime::event_loop::operation_engine::service(&mut operation_engine, $ad, &mut $persistent_wallet, &mut $boot_display, &mut $delay, &mut $i2c, &mut $watchdog_feed);
             $crate::runtime::event_loop::runner::service_deferred($ad);
             $crate::runtime::event_loop::camera::run_step!($ad, $boot_display, $delay, $i2c, camera_session, $dvp_camera_opt, $cam_dma_buf_opt, $cam_status, $watchdog_feed);

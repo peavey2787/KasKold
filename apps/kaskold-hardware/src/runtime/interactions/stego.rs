@@ -55,7 +55,6 @@ pub fn handle_stego_touch(context: StegoTouchContext<'_, '_, '_>) -> Option<bool
         delay,
         liveness,
         i2c,
-        sd_card_type,
         backup_device,
         list_zones,
         page_up_zone,
@@ -70,7 +69,7 @@ pub fn handle_stego_touch(context: StegoTouchContext<'_, '_, '_>) -> Option<bool
             }
         };
     }
-    handled!(mode::handle(ad, boot_display, delay, i2c, sd_card_type, x, y, is_back));
+    handled!(mode::handle(ad, boot_display, delay, i2c, x, y, is_back));
     handled!(export_description::handle(StegoFileContext {
         ad: &mut *ad,
         boot_display: &mut *boot_display,

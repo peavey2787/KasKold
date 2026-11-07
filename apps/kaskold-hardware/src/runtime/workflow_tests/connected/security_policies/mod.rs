@@ -1,5 +1,5 @@
 use crate::{
-    hw::{display::BootDisplay, sdcard::SdCardType, touch::TouchZone},
+    hw::{display::BootDisplay, touch::TouchZone},
     runtime::{data::AppData, input::AppState},
 };
 use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
@@ -14,7 +14,6 @@ pub(super) struct SecurityContext<'ctx, 'display, 'hal> {
     pub(super) ad: &'ctx mut AppData,
     pub(super) display: &'ctx mut BootDisplay<'display>,
     pub(super) i2c: &'ctx mut I2c<'hal, Blocking>,
-    pub(super) sd: &'ctx Option<SdCardType>,
     pub(super) delay: &'ctx mut Delay,
     pub(super) list: [TouchZone; 4],
     pub(super) up: TouchZone,
@@ -23,7 +22,7 @@ pub(super) struct SecurityContext<'ctx, 'display, 'hal> {
 
 impl SecurityContext<'_, '_, '_> {
     pub(super) fn redraw_step(&mut self) {
-        super::redraw_step(self.ad, self.display, self.i2c, self.sd);
+        super::redraw_step(self.ad, self.display, self.i2c);
         super::show_step(self.delay);
     }
 
@@ -59,14 +58,13 @@ pub(super) fn exercise(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
     if !super::signing::fixture::install_wallet(ad) || !enter_security(ad) {
         return false;
     }
     let (_, list, up, down) = crate::runtime::touch_dispatch::touch_zones();
-    let mut ctx = SecurityContext { ad, display, i2c, sd, delay, list, up, down };
+    let mut ctx = SecurityContext { ad, display, i2c, delay, list, up, down };
     log!("KASKOLD_WORKFLOW_TESTS: SECURITY POLICIES TRANCHE BEGIN");
     let mut summary = super::probe_status::ProbeSummary::new("SECURITY-POLICIES");
 

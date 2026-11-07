@@ -1,5 +1,5 @@
 use crate::{
-    hw::{display::BootDisplay, sdcard::SdCardType},
+    hw::display::BootDisplay,
     runtime::interactions::TouchInput,
     runtime::{data::AppData, input::AppState},
 };
@@ -116,7 +116,6 @@ pub(super) fn exercise(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
     FAILED_PROBES.store(0, Ordering::Relaxed);
@@ -126,7 +125,7 @@ pub(super) fn exercise(
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: MULTISIG MNEMONIC FIXTURE READY 5");
-    let mut ctx = MultisigContext::new(ad, display, i2c, sd, delay);
+    let mut ctx = MultisigContext::new(ad, display, i2c, delay);
     log!("KASKOLD_WORKFLOW_TESTS: MULTISIG TRANCHE BEGIN");
     let mut summary = super::probe_status::ProbeSummary::new("MULTISIG");
 

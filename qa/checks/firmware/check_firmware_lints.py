@@ -17,6 +17,7 @@ from firmware_lint_policy import check_policy  # noqa: E402
 # defects, dead/unused code, and the architectural complexity limits selected by
 # this repository. Item-level exceptions remain visible and review-locked.
 LINT_ARGS = (
+    "-D", "warnings",
     "-A", "clippy::all",
     "-D", "clippy::correctness",
     "-D", "clippy::suspicious",

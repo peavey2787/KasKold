@@ -5,7 +5,7 @@
 //! fault injection remains owned by the explicit HIL profile.
 
 use crate::{
-    hw::{display::BootDisplay, sdcard::SdCardType},
+    hw::display::BootDisplay,
     runtime::interactions::TouchInput,
     runtime::{data::AppData, input::AppState},
 };
@@ -18,7 +18,6 @@ pub(super) fn exercise(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
     log!("KASKOLD_WORKFLOW_TESTS: REMAINING PRODUCTION SURFACES BEGIN");
@@ -29,7 +28,7 @@ pub(super) fn exercise(
     summary.run("FIRMWARE-UPDATE", || firmware_update::exercise(ad));
     summary.run("MISSING-KEY", || missing_key_fail_closed(ad));
     summary.run("UNLOCK-GUARDS", || unlock_navigation_guards(ad));
-    summary.run("DEVICE-BOUND-SD", || device_bound_sd_routing(ad, display, i2c, sd, delay));
+    summary.run("DEVICE-BOUND-SD", || device_bound_sd_routing(ad, display, i2c, delay));
     summary.run("FINISH-HOME", || finish(ad));
     summary.finish(8)
 }
@@ -169,7 +168,6 @@ fn device_bound_sd_routing(
     ad: &mut AppData,
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
-    sd: &Option<SdCardType>,
     delay: &mut Delay,
 ) -> bool {
     use crate::ui::screens::device::advanced_security::{ADV_CARD_X, SD_STORAGE_Y};
@@ -243,7 +241,7 @@ fn device_bound_sd_routing(
     {
         return false;
     }
-    super::redraw_step(ad, display, i2c, sd);
+    super::redraw_step(ad, display, i2c);
     log!("KASKOLD_WORKFLOW_TESTS: DEVICE-BOUND SD SETUP/ACK/CANCEL ROUTING PASS");
     true
 }
