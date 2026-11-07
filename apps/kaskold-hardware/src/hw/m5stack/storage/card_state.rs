@@ -23,29 +23,18 @@ const CARD_LOCK_UNKNOWN: u8 = 0;
 const CARD_LOCK_UNLOCKED: u8 = 1;
 const CARD_LOCK_LOCKED: u8 = 2;
 static CARD_LOCK_STATUS: AtomicU8 = AtomicU8::new(CARD_LOCK_UNKNOWN);
+/// Stored when no card is known; every card type stores its non-zero discriminant.
 const NO_CARD: u8 = 0;
-const CARD_SDV1: u8 = 1;
-const CARD_SDV2_SC: u8 = 2;
-const CARD_SDV2_HC: u8 = 3;
+const CARD_TYPES: [SdCardType; 3] = [SdCardType::SdV1, SdCardType::SdV2Sc, SdCardType::SdV2Hc];
 static MANUAL_UNLOCK_SESSION: AtomicU8 = AtomicU8::new(NO_CARD);
 static KNOWN_CARD: AtomicU8 = AtomicU8::new(NO_CARD);
 
 fn encode_card(card: Option<SdCardType>) -> u8 {
-    match card {
-        None => NO_CARD,
-        Some(SdCardType::SdV1) => CARD_SDV1,
-        Some(SdCardType::SdV2Sc) => CARD_SDV2_SC,
-        Some(SdCardType::SdV2Hc) => CARD_SDV2_HC,
-    }
+    card.map_or(NO_CARD, |card| card as u8)
 }
 
 fn decode_card(value: u8) -> Option<SdCardType> {
-    match value {
-        CARD_SDV1 => Some(SdCardType::SdV1),
-        CARD_SDV2_SC => Some(SdCardType::SdV2Sc),
-        CARD_SDV2_HC => Some(SdCardType::SdV2Hc),
-        _ => None,
-    }
+    CARD_TYPES.into_iter().find(|card| *card as u8 == value)
 }
 
 pub(crate) fn record_card_lock_status(locked: bool) {
