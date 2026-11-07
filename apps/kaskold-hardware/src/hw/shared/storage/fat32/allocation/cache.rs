@@ -80,6 +80,18 @@ pub(super) fn extend_chain(cache: &mut FatSectorCache<'_>, first: u32, count: u3
     Ok(previous)
 }
 
+/// Overwrite a cluster's blocks with zeros, so nothing of a freed file stays
+/// readable on the card.
+fn zero_cluster(card_type: SdCardType, fat32: &Fat32Info, cluster: u32) -> Result<(), &'static str> {
+    let zeros = [0u8; 512];
+    let first = fat32.cluster_to_sector(cluster);
+    for sector in 0..u32::from(fat32.sectors_per_cluster) {
+        sd_write_block(card_type, first + sector, &zeros)?;
+    }
+    Ok(())
+}
+
+/// Free a chain, zeroing each cluster before the table lets it go.
 pub(in crate::hw::shared::storage::fat32) fn release_chain(
     card_type: SdCardType,
     fat32: &Fat32Info,
@@ -97,6 +109,7 @@ pub(in crate::hw::shared::storage::fat32) fn release_chain(
             return Err("FAT chain contains invalid cluster");
         }
         let next = cache.read_entry(cluster)?;
+        zero_cluster(card_type, fat32, cluster)?;
         cache.write_entry(cluster, 0)?;
         if next >= 0x0FFF_FFF8 || next < 2 {
             cache.flush()?;

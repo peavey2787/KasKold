@@ -307,6 +307,30 @@ pub(crate) fn read_file(name: &[u8; 11]) -> Option<Vec<u8>> {
     Some(contents)
 }
 
+/// Every block a file in the card's root directory occupies.
+pub(crate) fn blocks_of(name: &[u8; 11]) -> Vec<usize> {
+    let volume = volume();
+    let (first, _) = volume.find_entry(name).expect("the file is on the card");
+    volume
+        .chain_of(first)
+        .into_iter()
+        .flat_map(|cluster| {
+            let start = volume.first_block(cluster);
+            start..start + volume.per_cluster
+        })
+        .collect()
+}
+
+/// Fails unless every one of these blocks holds only zeros.
+pub(crate) fn expect_blank(blocks: &[usize]) {
+    for &block in blocks {
+        assert!(
+            sd::read_block(block).iter().all(|byte| *byte == 0),
+            "block {block} still holds a deleted file's bytes"
+        );
+    }
+}
+
 /// Erases the card and formats it the way a computer does: a partition table, and a
 /// volume that starts later on the card with large clusters.
 pub(crate) fn format_like_a_computer() {

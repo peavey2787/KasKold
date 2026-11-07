@@ -44,7 +44,7 @@ journey!(
     sign_the_long_named_transaction,
 );
 journey!(
-    deleting_a_long_named_file_leaves_no_trace_of_its_name:
+    deleting_a_long_named_file_leaves_no_trace_of_its_name_or_contents:
     restore_the_known_wallet,
     a_computer_prepares_the_card,
     delete_the_long_named_transaction,
@@ -159,6 +159,7 @@ fn sign_the_long_named_transaction() {
 
 fn delete_the_long_named_transaction() {
     let device = Device::boot_with_card();
+    let held = card::blocks_of(SHORT_TX_NAME);
     open_the_transaction_list(&device);
     device.tap_at(DELETE_ICON.0, DELETE_ICON.1);
     device.wait_for_text("DELETE BACKUP?");
@@ -168,6 +169,7 @@ fn delete_the_long_named_transaction() {
     device.hold("HOLD 4s", DELETE_HOLD);
     device.settle();
     assert!(card::read_file(SHORT_TX_NAME).is_none());
+    card::expect_blank(&held);
     assert_eq!(
         card::read_file(SHORT_NOTE_NAME).as_deref(),
         Some(BYSTANDER),

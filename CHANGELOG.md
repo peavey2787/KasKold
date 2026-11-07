@@ -19,7 +19,7 @@
 - Device: the second button on the description screens now says "Load .TXT from SD", which is what it does. It said "Scan message QR", so a description kept in a text file looked impossible to use.
 - Device: a refused text file now says why, such as that it is empty, instead of "Read failed". A description must be readable text.
 - Device: the photo, backup and text file lists say when a card holds more than the 8 files they can show. The extra files used to go unmentioned.
-- Device: deleting a file with a long name now removes that name from the card too. A computer could still read it afterwards. The file's contents stay in freed clusters until they are overwritten.
+- Device: deleting a file with a long name now removes that name from the card too. A computer could still read it afterwards. Its clusters are zeroed before they are freed, so its contents do not stay on the card either.
 - Device: "Descriptor saved" and similar messages stay up for a full second.
 - KIP-22 hidden-key addresses: recovery-phrase wallets can show and spend P2SH addresses at `m/22'/111111'/0'/change/index`, which keep the public key off chain until the first spend. The device and Vault prove KIP-22 change belongs to the wallet before labelling it, within 20 addresses per chain; anything further shows as a payment. KIP-22 is still a draft, and KasKold exports no KIP-22 kpub because it would reveal every key in the account.
 - Vault Android's Keystore key now requires the device credential, confirmed within the last 60 seconds, on an unlocked device; before, only the app's own UI asked for it. Saves that fall outside that window prompt and retry, and removing the device lock tells the user to restore from recovery words. Vault Android now requires Android 11.
