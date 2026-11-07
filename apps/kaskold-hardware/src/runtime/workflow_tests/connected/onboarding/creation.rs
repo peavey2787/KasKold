@@ -82,7 +82,7 @@ fn begin_create(ctx: &mut OnboardingContext<'_, '_, '_>, word_count: u8) -> bool
     ctx.redraw_step();
     if crate::runtime::interactions::menu::seed_generation::workflow_stage_word_count(
         ctx.ad,
-        TouchInput::new(10, 20, false),
+        TouchInput::new(160, 20, false),
     ) || ctx.ad.navigation.app.state != (AppState::StorageSeedWordCountChoice { action: 0 })
     {
         return false;

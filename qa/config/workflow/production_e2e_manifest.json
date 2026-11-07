@@ -6386,6 +6386,7 @@
         "apps/kaskold-hardware/src/runtime/interactions/export/private_key/index_input.rs::append_digit",
         "apps/kaskold-hardware/src/runtime/interactions/export/xprv.rs::handle_menu",
         "apps/kaskold-hardware/src/runtime/interactions/export/xprv.rs::handle_pure",
+        "apps/kaskold-hardware/src/runtime/interactions/export/xprv.rs::leave_menu",
         "apps/kaskold-hardware/src/runtime/interactions/menu.rs::handle_menu_touch",
         "apps/kaskold-hardware/src/runtime/interactions/menu.rs::handle_navigation_touch",
         "apps/kaskold-hardware/src/runtime/interactions/menu.rs::handle_root_touch",
@@ -8008,7 +8009,8 @@
         "catalog_workflows": [],
         "highest_level": "connected",
         "implemented_scenarios": [
-          "connected-advanced-key-exports"
+          "connected-advanced-key-exports",
+          "qa-production-exhaustiveness-gate"
         ]
       },
       "apps/kaskold-hardware/src/runtime/interactions/menu.rs::handle_menu_touch": {

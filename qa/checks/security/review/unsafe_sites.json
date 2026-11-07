@@ -522,23 +522,31 @@
     },
     {
       "path": "apps/kaskold-hardware/src/runtime/interactions/camera_loop/cycle.rs",
-      "line": 103,
+      "line": 100,
       "source": "unsafe {",
-      "fingerprint": "81f1a049825270e38d8682abd3088d43b62c0747c6deae13903e389da4a84e32",
-      "rationale": "Reviewed unsafe boundary: required for embedded FFI/raw hardware interaction; the surrounding safe wrapper establishes pointer validity, bounds, lifetime, and exclusive-access invariants before entry.",
+      "fingerprint": "ce04a7757dfca1d9cb9944b4ec67790a762f98f71a32f157d0a97f187cf11ed3",
+      "rationale": "Reviewed DVP capture call: prepare_cycle has just returned the camera-loop-owned decode (320x240) and crop (240x180) scratch buffers for this cycle, which satisfies run_capture's contract of valid, non-overlapping, exclusively owned storage for the capture.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/runtime/interactions/camera_loop/dvp_capture.rs",
-      "line": 89,
-      "source": "unsafe fn process_captured_frame<'cam>(",
-      "fingerprint": "04838e5309e7dcf2b1dd653fcb6395e6cd0f43f4032b0f8af57f9f9fb2d03a09",
-      "rationale": "Reviewed camera scratch-buffer boundary: the camera loop owns independent decode (320x240) and crop (240x180) allocations for the capture lifetime; this function converts those caller-provided raw pointers once into fixed-size exclusive mutable slices before safe rendering/decoding helpers use them.",
+      "line": 95,
+      "source": "unsafe fn render_captured_frame(",
+      "fingerprint": "842e1c1889a045679490e75e28f7a35b7c66fc74b26cd9c55214d29f52987f92",
+      "rationale": "Reviewed camera scratch-buffer boundary: the camera loop owns independent decode (320x240) and crop (240x180) allocations for the capture lifetime; this function converts those caller-provided raw pointers once into fixed-size exclusive mutable slices that end when it returns, before safe rendering helpers use them.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/runtime/interactions/camera_loop/dvp_capture.rs",
-      "line": 160,
+      "line": 135,
+      "source": "unsafe fn decode_captured_frame(",
+      "fingerprint": "f9d2a8aa4975f91af4dfafd74671b5abb81f282469586017922427fb966b2681",
+      "rationale": "Reviewed camera decode boundary: re-forms the same fixed-size decode slice only after render_captured_frame has returned and the camera has released its DMA frame, so it is the sole live view; all compaction and QR decoding stay within the 320x240 bounds.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/interactions/camera_loop/dvp_capture.rs",
+      "line": 166,
       "source": "pub(super) unsafe fn run_capture(",
       "fingerprint": "d7332e0a644ab63affa85aa579d07f2dca553e0a16902f18a2982bb45c6a4419",
       "rationale": "Reviewed DVP capture boundary: callers provide the camera-loop-owned decode/crop scratch pointers with their fixed allocation sizes, non-overlap, validity, and exclusive-access lifetime; the raw pointers are forwarded only to the bounded conversion boundary after DMA ownership is recovered.",
@@ -613,7 +621,7 @@
       "line": 47,
       "source": "unsafe {",
       "fingerprint": "9fca258016cc09585d91ed4a2a458cdb07cd96c20b1bbf02b124a32d953fab20",
-      "rationale": "Reviewed Argon2 workspace cast: PsramAllocation now validates the requested PasswordKdfBlock alignment and runtime PSRAM provenance and zero-initializes the complete raw allocation before any reference is exposed. All-zero bytes are a valid argon2::Block representation, and the exact block-count \u00d7 block-size length is checked before forming the exclusive typed slice.",
+      "rationale": "Reviewed Argon2 workspace cast: PsramAllocation now validates the requested PasswordKdfBlock alignment and runtime PSRAM provenance and zero-initializes the complete raw allocation before any reference is exposed. All-zero bytes are a valid argon2::Block representation, and the exact block-count × block-size length is checked before forming the exclusive typed slice.",
       "reviewed": true
     },
     {
@@ -668,7 +676,7 @@
       "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
       "line": 141,
       "source": "unsafe { HEAP.dealloc(ptr, layout) };",
-      "fingerprint": "d4ea394f6b0d5646aaca72ed80e074e808ce6100d0d58462d02064dee3ea6ca5",
+      "fingerprint": "6814dbed2ec110e5db234bf28a641702e1c8efb20d3ba02b82b6bfc809f42036",
       "rationale": "Reviewed fail-closed allocation cleanup: ptr/layout are the exact pair returned by the immediately preceding esp-alloc allocation and have not been exposed to callers; the same Layout is used to release a provenance- or alignment-rejected allocation.",
       "reviewed": true
     },
@@ -739,8 +747,8 @@
     {
       "path": "apps/kaskold-hardware/src/services/verify/mapped_segment.rs",
       "line": 81,
-      "source": "let val = unsafe { core::ptr::read_volatile(&data[i] as *const u8) };",
-      "fingerprint": "75a0e8c869b675befbab9b874cffda2cf85b8c2a79f4bab7b0b289e93cd111a1",
+      "source": "let val = unsafe { core::ptr::read_volatile(byte as *const u8) };",
+      "fingerprint": "36d1d541d5590a64c005242f2fc0ec7edc24ac1c443f55e4193ecabb4052ebb7",
       "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     },
