@@ -38,10 +38,9 @@ fn finish_card_operation<T>(result: &Result<T, &'static str>) {
 }
 
 fn initialize_unlocked_card(delay: &mut Delay) -> Result<SdCardType, &'static str> {
-    let card_type = initialize_card(delay).map_err(|error| {
+    let card_type = initialize_card(delay).inspect_err(|&error| {
         crate::log!("[SD] with_sd_card init failed: {}", error);
         record_card(None);
-        error
     })?;
     record_card(Some(card_type));
     require_unlocked_card()?;

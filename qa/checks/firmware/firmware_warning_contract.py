@@ -94,7 +94,7 @@ def _check_m5stack_test_profile(root: Path, errors: list[str]) -> None:
         errors,
         '#[cfg_attr(feature = "hardware-tests", allow(unused_variables))]\n'
         '    #[cfg(feature = "m5stack")]\n'
-        '    let (i2c, mut boot_display, dvp_camera_opt, cam_dma_buf_opt,' in main,
+        '    let (i2c, mut boot_display, camera, runtime_audio) = boot::m5stack::initialize!(peripherals, delay);' in main,
         "M5Stack hardware-test profile must locally suppress only intentionally retained peripheral owners",
     )
 

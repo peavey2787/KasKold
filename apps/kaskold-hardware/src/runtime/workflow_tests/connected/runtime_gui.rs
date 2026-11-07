@@ -6,11 +6,12 @@
 //! production CoreS3 watchdog is armed immediately before these probes.
 mod firmware;
 
+use crate::services::camera_device::CameraPort;
 use crate::{
-    hw::{camera::CameraStatus, display::BootDisplay},
+    hw::display::BootDisplay,
     runtime::{self, data::AppData, input::AppState, interactions::TouchInput},
 };
-use esp_hal::{delay::Delay, dma::DmaRxBuf, i2c::master::I2c, lcd_cam::cam::Camera, Blocking};
+use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 const KDF_PASSWORD: &[u8] = b"CorrectHorse9";
 const KDF_SALT: [u8; 16] =
     [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f];
@@ -372,9 +373,7 @@ pub(super) fn exercise(
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
     delay: &mut Delay,
-    camera: &mut Option<Camera<'_>>,
-    camera_dma: &mut Option<DmaRxBuf>,
-    camera_status: &mut CameraStatus,
+    camera: &mut CameraPort<'_>,
     persistent_wallet: &mut crate::services::persistent_wallet::PersistentWallet<'_>,
     watchdog_feed: &mut impl FnMut(),
 ) -> bool {
@@ -390,7 +389,7 @@ pub(super) fn exercise(
 
     if !probe_view_words(ad, display, i2c, delay, watchdog_feed)
         || !firmware::probe_firmware_update_guidance(ad, display, i2c, delay, watchdog_feed)
-        || !firmware::probe_scan_qr_camera(ad, display, i2c, delay, camera, camera_dma, camera_status, watchdog_feed)
+        || !firmware::probe_scan_qr_camera(ad, display, i2c, delay, camera, watchdog_feed)
         || !probe_pop_it(ad, display, i2c, delay, watchdog_feed)
         || !probe_receive_change(ad, display, i2c, delay, watchdog_feed)
         || !probe_connect_companion(ad, display, i2c, delay, watchdog_feed)

@@ -77,8 +77,8 @@ impl FirmwareInfo {
         // Verify not all zeros
         let mut all_00 = true;
         let check_len = core::cmp::min(256, data.len());
-        for i in 0..check_len {
-            let val = unsafe { core::ptr::read_volatile(&data[i] as *const u8) };
+        for byte in &data[..check_len] {
+            let val = unsafe { core::ptr::read_volatile(byte as *const u8) };
             if val != 0x00 {
                 all_00 = false;
                 break;

@@ -9,7 +9,7 @@
 #[cfg(not(feature = "workflow-test-auto"))]
 macro_rules! route_touch {
     ($page_only:expr, $input:expr, $ad:ident, $persistent_wallet:ident, $boot_display:ident, $delay:ident,
-     $watchdog_feed:ident, $i2c:ident, $dvp_camera_opt:ident, $cam_dma_buf_opt:ident,
+     $watchdog_feed:ident, $i2c:ident, $camera:ident,
      $grid_zones:ident, $list_zones:ident, $page_up_zone:ident, $page_down_zone:ident) => {{
         let input = $input;
         if $crate::runtime::navigation::is_onboarding($ad) {
@@ -21,8 +21,7 @@ macro_rules! route_touch {
                     delay: &mut $delay,
                     liveness: &mut $watchdog_feed,
                     i2c: &mut $i2c,
-                    dvp_camera_opt: &mut $dvp_camera_opt,
-                    cam_dma_buf_opt: &mut $cam_dma_buf_opt,
+                    camera: &mut $camera,
                     list_zones: &$list_zones,
                     page_up_zone: &$page_up_zone,
                     page_down_zone: &$page_down_zone,
@@ -49,8 +48,7 @@ macro_rules! route_touch {
                                 delay: &mut $delay,
                                 liveness: &mut $watchdog_feed,
                                 i2c: &mut $i2c,
-                                dvp_camera_opt: &mut $dvp_camera_opt,
-                                cam_dma_buf_opt: &mut $cam_dma_buf_opt,
+                                camera: &mut $camera,
                                 list_zones: &$list_zones,
                                 input,
                             },

@@ -55,11 +55,14 @@ fn setup_slot(ad: &AppData) -> Result<Option<u8>, PersistError> {
     Ok(ad.runtime.pending_wallet_protection_update().and_then(|slot| u8::try_from(slot).ok()))
 }
 
+/// Wallet slot, credential salt and verifier for a pending wallet activation.
+type VerificationMaterial = (u8, [u8; SALT_SIZE], [u8; 32]);
+
 fn wallet_verification_material(
     ad: &AppData,
     kind: CredentialKind,
     persistence: &mut PersistentWallet<'_>,
-) -> Result<Option<(u8, [u8; SALT_SIZE], [u8; 32])>, PersistError> {
+) -> Result<Option<VerificationMaterial>, PersistError> {
     let Some(slot) = ad.runtime.pending_wallet_activation() else {
         return Ok(None);
     };

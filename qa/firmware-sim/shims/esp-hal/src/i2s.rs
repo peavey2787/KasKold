@@ -81,9 +81,9 @@ pub mod master {
     pub struct I2sTx<'d, Dm>(PhantomData<(&'d (), Dm)>);
 
     impl<'d, Dm> I2sTx<'d, Dm> {
-        pub fn write_dma_circular<'t>(
+        pub fn write_dma_circular<'t, TxBuf: ?Sized>(
             &'t mut self,
-            _words: &'t [u8],
+            _words: &'t TxBuf,
         ) -> Result<DmaTransferTxCircular<'t, Self>, I2sError> {
             Ok(DmaTransferTxCircular {
                 _transmitter: PhantomData,

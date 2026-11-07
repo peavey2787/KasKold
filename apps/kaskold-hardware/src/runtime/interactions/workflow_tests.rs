@@ -46,7 +46,7 @@ fn handle_root(
     match handle_paged_menu_touch(&mut ad.navigation.workflow_tests_menu, zones, page_up, page_down, input.x, input.y) {
         PagedMenuAction::PageChanged => true,
         PagedMenuAction::Selected(0) => {
-            let summary = workflow_tests::execute(workflow_tests::WorkflowCommand::RunAll, liveness);
+            let summary = workflow_tests::execute(workflow_tests::WorkflowCommand::All, liveness);
             store_result(ad, summary, true);
             true
         }
@@ -94,7 +94,7 @@ fn handle_category(
     ) {
         PagedMenuAction::PageChanged => true,
         PagedMenuAction::Selected(0) => {
-            let summary = workflow_tests::execute(workflow_tests::WorkflowCommand::RunCategory(category), liveness);
+            let summary = workflow_tests::execute(workflow_tests::WorkflowCommand::Category(category), liveness);
             store_result(ad, summary, false);
             true
         }
@@ -102,7 +102,7 @@ fn handle_category(
             let Some(spec) = workflow_tests::workflow_at(category, index) else {
                 return false;
             };
-            let summary = workflow_tests::execute(workflow_tests::WorkflowCommand::RunOne(spec), liveness);
+            let summary = workflow_tests::execute(workflow_tests::WorkflowCommand::One(spec), liveness);
             store_result(ad, summary, false);
             true
         }

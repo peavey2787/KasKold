@@ -236,7 +236,7 @@ pub(in crate::services::persistent_wallet) fn read_multisig_store(
 ) -> Result<offline_signer::transaction::model::MultisigStore, FlashError> {
     let bytes =
         current_config(device)?.map(|header| header.multisig_descriptors).unwrap_or([0; MULTISIG_DESCRIPTOR_BYTES]);
-    Ok(decode_multisig_store(&bytes).unwrap_or_else(offline_signer::transaction::model::MultisigStore::new))
+    Ok(decode_multisig_store(&bytes).unwrap_or_default())
 }
 
 pub(in crate::services::persistent_wallet) fn write_multisig_store(

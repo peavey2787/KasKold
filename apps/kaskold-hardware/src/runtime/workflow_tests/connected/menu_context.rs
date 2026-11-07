@@ -38,23 +38,18 @@ impl MenuWorkflowContext<'_, '_, '_> {
         super::show_step(self.delay);
     }
 
-    pub(super) fn menu_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
+    pub(super) fn menu_touch(&mut self, input: TouchInput) -> Option<bool> {
         crate::runtime::interactions::menu::handle_navigation_touch(
-            self.ad,
-            &self.grid,
-            &self.list,
-            &self.up,
-            &self.down,
-            TouchInput::new(x, y, is_back),
+            self.ad, &self.grid, &self.list, &self.up, &self.down, input,
         )
     }
 
-    pub(super) fn tx_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
-        self.tx_touch_with(TouchInput::new(x, y, is_back))
+    pub(super) fn tx_touch(&mut self, input: TouchInput) -> Option<bool> {
+        self.tx_touch_with(input)
     }
 
-    pub(super) fn tx_touch_without_sd(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
-        while_showing(None, || self.tx_touch_with(TouchInput::new(x, y, is_back)))
+    pub(super) fn tx_touch_without_sd(&mut self, input: TouchInput) -> Option<bool> {
+        while_showing(None, || self.tx_touch_with(input))
     }
 
     fn tx_touch_with(&mut self, input: TouchInput) -> Option<bool> {
@@ -71,18 +66,18 @@ impl MenuWorkflowContext<'_, '_, '_> {
     }
 
     /// Touch the export controller directly, as the multisig export screens see it.
-    pub(super) fn export_screen_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
-        self.export_touch_with(TouchInput::new(x, y, is_back))
+    pub(super) fn export_screen_touch(&mut self, input: TouchInput) -> Option<bool> {
+        self.export_touch_with(input)
     }
 
     /// Touch the export menus first, then the export controller, as the
     /// single-signature advanced-tool screens see it.
-    pub(super) fn export_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
-        self.export_menu_touch_with(TouchInput::new(x, y, is_back))
+    pub(super) fn export_touch(&mut self, input: TouchInput) -> Option<bool> {
+        self.export_menu_touch_with(input)
     }
 
-    pub(super) fn export_touch_without_sd(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
-        while_showing(None, || self.export_menu_touch_with(TouchInput::new(x, y, is_back)))
+    pub(super) fn export_touch_without_sd(&mut self, input: TouchInput) -> Option<bool> {
+        while_showing(None, || self.export_menu_touch_with(input))
     }
 
     fn export_menu_touch_with(&mut self, input: TouchInput) -> Option<bool> {

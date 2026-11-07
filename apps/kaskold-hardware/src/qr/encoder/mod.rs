@@ -12,7 +12,7 @@ mod matrix;
 mod modes;
 
 #[cfg(not(feature = "qemu"))]
-pub use matrix::matrix::QrCode;
+pub use matrix::code::QrCode;
 pub use modes::byte_mode::encode;
 #[cfg(not(feature = "qemu"))]
 pub use modes::numeric_mode::encode_numeric;

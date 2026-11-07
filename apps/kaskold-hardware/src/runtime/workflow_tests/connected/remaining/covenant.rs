@@ -211,10 +211,10 @@ fn covenant_known_round_trip(
         && ad.signing.covenant.phase == CovenantSigningPhase::FinalResponse
 }
 
-fn prepare_known_covenant_binding(
-    ad: &mut AppData,
-    request_wire: &mut [u8; 512],
-) -> Option<([u8; 32], [u8; 32], [u8; 67], [u8; 32])> {
+/// Key id, commitment, locking script and binding token of the known-scheme covenant.
+type KnownCovenantBinding = ([u8; 32], [u8; 32], [u8; 67], [u8; 32]);
+
+fn prepare_known_covenant_binding(ad: &mut AppData, request_wire: &mut [u8; 512]) -> Option<KnownCovenantBinding> {
     use crate::runtime::data::CovenantSigningMode;
     use shared_signer::covenant_sign::{self as wire, BindingHint, CovenantSignRequest, KnownScheme, RequestKind};
     let key_info = CovenantSignRequest {
@@ -238,9 +238,7 @@ fn prepare_known_covenant_binding(
     let key_id = ad.signing.covenant.pending_key_id;
     let pubkey = ad.signing.covenant.pending_pubkey_x;
     let context = b"workflow known covenant";
-    let Some(commitment) = wire::recompute_known_commitment(KnownScheme::Sha256Preimage, context) else {
-        return None;
-    };
+    let commitment = wire::recompute_known_commitment(KnownScheme::Sha256Preimage, context)?;
     let mut script = [0u8; 67];
     script[0] = 0x20;
     script[1..33].copy_from_slice(&commitment);

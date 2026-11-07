@@ -65,7 +65,7 @@ pub(crate) fn prepare_multisig_kpub_qr(
             crate::runtime::input::AppState::MultisigMenu => 2,
             _ => return false,
         };
-        return crate::runtime::effects::menu_select(ad, index);
+        crate::runtime::effects::menu_select(ad, index)
     }
 
     #[cfg(all(feature = "workflow-test-auto", not(feature = "workflow-runtime-auto")))]

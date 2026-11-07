@@ -18,7 +18,7 @@ pub(super) fn log_pre_force_erase_status() -> Result<(), &'static str> {
 }
 
 pub(super) fn probe_due(elapsed_ms: u64) -> bool {
-    matches!(elapsed_ms, 100 | 1_000 | 5_000) || (elapsed_ms >= 30_000 && elapsed_ms % 30_000 == 0)
+    matches!(elapsed_ms, 100 | 1_000 | 5_000) || (elapsed_ms >= 30_000 && elapsed_ms.is_multiple_of(30_000))
 }
 
 pub(super) fn log_provenance_samples(elapsed_ms: u64, samples: [u8; 3]) {

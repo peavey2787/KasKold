@@ -244,7 +244,7 @@ pub(crate) fn is_advanced_state(state: AppState) -> bool {
     }
     #[cfg(feature = "m5stack")]
     {
-        return matches!(
+        matches!(
             state,
             AppState::AdvancedRtcEntry
                 | AppState::AdvancedTimeLockWarning
@@ -253,7 +253,7 @@ pub(crate) fn is_advanced_state(state: AppState) -> bool {
                 | AppState::AdvancedWeeklyWarning
                 | AppState::AdvancedWeeklyEntry
                 | AppState::AdvancedWeeklyConfirm
-        );
+        )
     }
     #[cfg(not(feature = "m5stack"))]
     false

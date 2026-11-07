@@ -37,7 +37,7 @@ pub fn handle_settings_menu_navigation(
     if ad.navigation.app.state != crate::runtime::input::AppState::SettingsMenu {
         return None;
     }
-    Some(handle_settings_menu(ad, list_zones, page_up_zone, page_down_zone, input.x, input.y, input.is_back))
+    Some(handle_settings_menu(ad, list_zones, page_up_zone, page_down_zone, input))
 }
 
 #[cfg(feature = "m5stack")]
@@ -46,7 +46,7 @@ pub fn handle_display_settings_navigation(ad: &mut AppData, input: TouchInput) -
     if ad.navigation.app.state != crate::runtime::input::AppState::DisplaySettings {
         return None;
     }
-    Some(handle_display_settings(ad, input.x, input.y, input.is_back))
+    Some(handle_display_settings(ad, input))
 }
 
 #[cfg(feature = "m5stack")]
@@ -56,7 +56,7 @@ pub fn handle_audio_settings_navigation(ad: &mut AppData, input: TouchInput) -> 
     if ad.navigation.app.state != crate::runtime::input::AppState::AudioSettings {
         return None;
     }
-    Some(handle_audio_settings(ad, input.x, input.y, input.is_back))
+    Some(handle_audio_settings(ad, input))
 }
 
 /// Route About without borrowing board hardware.
@@ -94,13 +94,10 @@ pub fn handle_sd_settings_navigation(ad: &mut AppData, input: TouchInput) -> Opt
 #[inline(never)]
 pub fn handle_settings_touch(context: SettingsTouchContext<'_, '_, '_>) -> Option<bool> {
     let SettingsTouchContext { ad, boot_display, delay, i2c, input } = context;
-    let TouchInput { x, y, is_back } = input;
     let needs_redraw = match ad.navigation.app.state {
-        crate::runtime::input::AppState::SdCardSettings => {
-            handle_sd_card_settings(ad, boot_display, delay, i2c, x, y, is_back)
-        }
+        crate::runtime::input::AppState::SdCardSettings => handle_sd_card_settings(ad, boot_display, delay, i2c, input),
         crate::runtime::input::AppState::SdCardUnlockPassword => {
-            storage::handle_unlock_password(ad, boot_display, delay, i2c, x, y, is_back)
+            storage::handle_unlock_password(ad, boot_display, delay, i2c, input)
         }
         _ => return None,
     };

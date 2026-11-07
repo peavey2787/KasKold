@@ -1,4 +1,5 @@
 use super::SigningContext;
+use crate::controllers::TouchInput;
 use crate::runtime::{
     data::{ModalState, OperationPhase},
     input::AppState,
@@ -52,7 +53,7 @@ pub(super) fn sign_and_present(ctx: &mut SigningContext<'_, '_, '_>, expected_ma
         }
     } else if ctx.ad.navigation.app.state == AppState::ShowQR {
         FAILURE_STAGE.store(5, Ordering::Relaxed);
-        if ctx.menu_touch(160, 120, false) != Some(true) {
+        if ctx.menu_touch(TouchInput::new(160, 120, false)) != Some(true) {
             return false;
         }
     } else {
@@ -84,7 +85,7 @@ pub(super) fn replay_failure_stage() {
 fn manual_multiframe(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
     let frames = ctx.ad.qr.outgoing.frame_count;
     if frames <= 1
-        || ctx.sd_touch(220, 160, false) != Some(true)
+        || ctx.sd_touch(TouchInput::new(220, 160, false)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::ShowQR
         || !ctx.ad.qr.outgoing.manual_frames
     {
@@ -92,11 +93,13 @@ fn manual_multiframe(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
     }
     ctx.redraw_step();
     for expected in 1..frames {
-        if ctx.menu_touch(160, 120, false) != Some(true) || ctx.ad.qr.outgoing.frame != expected {
+        if ctx.menu_touch(TouchInput::new(160, 120, false)) != Some(true) || ctx.ad.qr.outgoing.frame != expected {
             return false;
         }
     }
-    if ctx.menu_touch(160, 120, false) != Some(true) || ctx.ad.navigation.app.state != AppState::ShowQrPopup {
+    if ctx.menu_touch(TouchInput::new(160, 120, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::ShowQrPopup
+    {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: SIGN TX SIGNED-QR MANUAL FRAMES PASS {}", frames);
@@ -107,16 +110,18 @@ fn close_popup(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
     if ctx.ad.navigation.app.state != AppState::ShowQrPopup {
         return false;
     }
-    if ctx.sd_touch(220, 160, false) != Some(true) || ctx.ad.navigation.app.state != AppState::ShowQR {
+    if ctx.sd_touch(TouchInput::new(220, 160, false)) != Some(true) || ctx.ad.navigation.app.state != AppState::ShowQR {
         return false;
     }
     if !reopen_manual_popup(ctx) {
         return false;
     }
-    if ctx.sd_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::ShowQrModeChoice {
+    if ctx.sd_touch(TouchInput::new(20, 20, true)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::ShowQrModeChoice
+    {
         return false;
     }
-    if ctx.sd_touch(20, 20, true) != Some(true) || !super::super::root::home_ok(ctx.ad) {
+    if ctx.sd_touch(TouchInput::new(20, 20, true)) != Some(true) || !super::super::root::home_ok(ctx.ad) {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: SIGN TX SIGNED-QR POPUP/BACK PASS");
@@ -130,13 +135,14 @@ fn reopen_manual_popup(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
     if ctx.ad.qr.outgoing.manual_frames && ctx.ad.qr.outgoing.frame_count > 1 && !replay_manual_frames(ctx) {
         return false;
     }
-    ctx.menu_touch(160, 120, false) == Some(true) && ctx.ad.navigation.app.state == AppState::ShowQrPopup
+    ctx.menu_touch(TouchInput::new(160, 120, false)) == Some(true)
+        && ctx.ad.navigation.app.state == AppState::ShowQrPopup
 }
 
 fn replay_manual_frames(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
     let frames = ctx.ad.qr.outgoing.frame_count;
     for expected in 1..frames {
-        if ctx.menu_touch(160, 120, false) != Some(true)
+        if ctx.menu_touch(TouchInput::new(160, 120, false)) != Some(true)
             || ctx.ad.qr.outgoing.frame != expected
             || ctx.ad.navigation.app.state != AppState::ShowQR
         {

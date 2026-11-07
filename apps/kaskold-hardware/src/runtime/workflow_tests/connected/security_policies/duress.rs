@@ -1,4 +1,5 @@
 use super::SecurityContext;
+use crate::controllers::TouchInput;
 use crate::{runtime::input::AppState, services::persistent_wallet::PersistError};
 
 const CANCEL_X: u16 = 82;
@@ -25,14 +26,14 @@ pub(super) fn exercise(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
 fn open_entry(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     ctx.open_card(duress_y()) == Some(true)
         && ctx.ad.navigation.app.state == AppState::AdvancedDuressWarning
-        && ctx.advanced_touch(CONTINUE_X, WARNING_Y, false) == Some(true)
+        && ctx.advanced_touch(TouchInput::new(CONTINUE_X, WARNING_Y, false)) == Some(true)
         && ctx.ad.navigation.app.state == AppState::AdvancedDuressEntry
 }
 
 fn cancel_warning(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     if ctx.open_card(duress_y()) != Some(true)
         || ctx.ad.navigation.app.state != AppState::AdvancedDuressWarning
-        || ctx.advanced_touch(CANCEL_X, WARNING_Y, false) != Some(true)
+        || ctx.advanced_touch(TouchInput::new(CANCEL_X, WARNING_Y, false)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::AdvancedFeatures
     {
         return false;
@@ -64,7 +65,7 @@ fn invalid_and_mismatch(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if ctx.advanced_touch(back_xy().0, back_xy().1, true) != Some(true)
+    if ctx.advanced_touch(TouchInput::new(back_xy().0, back_xy().1, true)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::AdvancedFeatures
     {
         return false;
@@ -90,7 +91,7 @@ fn persistence_error(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     if result.is_ok() || ctx.ad.navigation.app.state != AppState::AdvancedDuressEntry {
         return false;
     }
-    if ctx.advanced_touch(back_xy().0, back_xy().1, true) != Some(true)
+    if ctx.advanced_touch(TouchInput::new(back_xy().0, back_xy().1, true)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::AdvancedFeatures
     {
         return false;

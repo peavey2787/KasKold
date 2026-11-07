@@ -1,7 +1,9 @@
 use super::AppData;
+use crate::controllers::TouchInput;
 use crate::runtime::input::AppState;
 
-pub(super) fn handle(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> Option<bool> {
+pub(super) fn handle(ad: &mut AppData, input: TouchInput) -> Option<bool> {
+    let TouchInput { x, y, is_back } = input;
     match ad.navigation.app.state {
         AppState::ShowQR => {
             advance_or_close(ad);

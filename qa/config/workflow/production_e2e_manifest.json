@@ -3,11 +3,11 @@
     "actions": {
       "backlog": 0,
       "catalog": 0,
-      "connected": 120,
+      "connected": 121,
       "hil": 2,
       "manual-hil": 0,
       "qa": 80,
-      "total": 202
+      "total": 203
     },
     "menu_items": {
       "backlog": 0,
@@ -6177,6 +6177,7 @@
       "actions": [
         "apps/kaskold-hardware/src/runtime/interactions/export.rs::handle_export_touch",
         "apps/kaskold-hardware/src/runtime/interactions/export/xprv.rs::handle_menu",
+        "apps/kaskold-hardware/src/runtime/interactions/export/xprv.rs::leave_menu",
         "apps/kaskold-hardware/src/runtime/interactions/export/private_key/index_input.rs::append_digit"
       ],
       "id": "connected-advanced-key-exports",
@@ -8000,6 +8001,14 @@
         "highest_level": "qa",
         "implemented_scenarios": [
           "qa-production-exhaustiveness-gate"
+        ]
+      },
+      "apps/kaskold-hardware/src/runtime/interactions/export/xprv.rs::leave_menu": {
+        "baseline": false,
+        "catalog_workflows": [],
+        "highest_level": "connected",
+        "implemented_scenarios": [
+          "connected-advanced-key-exports"
         ]
       },
       "apps/kaskold-hardware/src/runtime/interactions/menu.rs::handle_menu_touch": {

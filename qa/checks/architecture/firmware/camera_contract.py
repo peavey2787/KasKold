@@ -91,7 +91,7 @@ def _payload_precedence_ok(dispatch_source: str) -> bool:
         "QrPayloadKind::AntiKlepto", "QrPayloadKind::KaspaAddress", "QrPayloadKind::CompactKspt",
         "QrPayloadKind::StandardPskt", "QrPayloadKind::SeedQr", "QrPayloadKind::RawSeedEntropy",
         "QrPayloadKind::StealthRequest", "QrPayloadKind::FirmwareUpdate", "QrPayloadKind::CovenantRaw",
-        "QrPayloadKind::CovenantHex", "QrPayloadKind::Unknown => dispatch_unknown",
+        "QrPayloadKind::CovenantHex", "if kind == QrPayloadKind::Unknown {",
     )
     payload_positions = [routed.find(marker) for marker in payload_order]
     return (
@@ -121,7 +121,7 @@ def _check_camera_api(camera_facade: Path, camera_production_files: list[Path], 
         "\n".join(camera_signatures).encode()
     ).hexdigest()
     if len(camera_signatures) != 1 or camera_signature_hash != (
-        "08afb5374041983627e2ead8835a36de9bd5f0bc9cfabcd9b3f47d7bf3bfdd77"
+        "91a6f83b63c50e13d1a5e04227831ebd031251272321f73008f2eca6ca5790b6"
     ):
         errors.append(
             f"firmware camera API changed: expected run_camera_cycle with the locked digest, got "

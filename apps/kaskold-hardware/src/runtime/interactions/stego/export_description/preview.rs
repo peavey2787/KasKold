@@ -1,6 +1,8 @@
+use crate::controllers::TouchInput;
 use crate::runtime::data::AppData;
 
-pub(super) fn handle(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+pub(super) fn handle(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoJpegDescChoice));
         return true;

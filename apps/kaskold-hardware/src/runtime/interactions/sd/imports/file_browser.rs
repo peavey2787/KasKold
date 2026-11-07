@@ -1,4 +1,5 @@
 use super::super::common::context::{SdFileListContext, SdIoContext};
+use crate::controllers::TouchInput;
 // SD controller workflow: file browser.
 use super::super::{run_sd_file_list_context, sound, FileListWorkflow};
 use super::selected_file;
@@ -16,7 +17,8 @@ pub(crate) fn handle_sd_file_list(context: SdFileListContext<'_, '_, '_>) -> boo
 }
 
 pub(crate) fn handle_sd_delete_confirm(ctx: SdIoContext<'_, '_, '_>) -> bool {
-    let SdIoContext { ad, x, y, is_back, .. } = ctx;
+    let SdIoContext { ad, input, .. } = ctx;
+    let TouchInput { x, y, is_back } = input;
     let return_state = ad.storage.confirmation.delete_return;
     let cancel_pressed = CANCEL_BUTTON.contains(x, y);
     if is_back || cancel_pressed {

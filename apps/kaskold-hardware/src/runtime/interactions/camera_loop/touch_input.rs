@@ -24,12 +24,9 @@ pub(crate) fn route_camera_back(ad: &mut AppData) {
     } else if ad.navigation.app.state == crate::runtime::input::AppState::SignMsgScan {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SignMsgChoice));
     } else if ad.navigation.app.state == crate::runtime::input::AppState::ScanQR
-        && ad.navigation.owner == crate::runtime::navigation::NavigationOwner::Settings
-    {
-        crate::runtime::effects::back(ad);
-    } else if (ad.storage.persistence.device_storage_intent.is_seed_onboarding()
-        || ad.wallet.seeds.pending_add_wallet_is_restore())
-        && ad.navigation.app.state == crate::runtime::input::AppState::ScanQR
+        && (ad.navigation.owner == crate::runtime::navigation::NavigationOwner::Settings
+            || ad.storage.persistence.device_storage_intent.is_seed_onboarding()
+            || ad.wallet.seeds.pending_add_wallet_is_restore())
     {
         crate::runtime::effects::back(ad);
     } else {

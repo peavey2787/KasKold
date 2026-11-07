@@ -6,6 +6,7 @@
 //! the event-loop destructive service after a continuous hold confirmation.
 
 use super::{sound, AppData, RedrawFlag};
+use crate::controllers::TouchInput;
 use crate::runtime::{
     destructive::{self, DestructiveAction, TouchRect},
     input::AppState,
@@ -13,7 +14,8 @@ use crate::runtime::{
 
 const DELETE_BUTTON: TouchRect = TouchRect::new(170, 180, 290, 230);
 
-pub(super) fn handle(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> Option<bool> {
+pub(super) fn handle(ad: &mut AppData, input: TouchInput) -> Option<bool> {
+    let TouchInput { x, y, is_back } = input;
     if ad.navigation.app.state != AppState::ConfirmDeleteSeed {
         return None;
     }

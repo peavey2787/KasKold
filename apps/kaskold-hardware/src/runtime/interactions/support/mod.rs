@@ -4,6 +4,7 @@
 
 //! Shared controller-level input and feedback utilities.
 
+pub(crate) mod device_io;
 pub(crate) mod feedback;
 pub(crate) mod keyboard;
 pub(crate) mod menu_selection;

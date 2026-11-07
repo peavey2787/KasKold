@@ -3,7 +3,7 @@ use super::super::{
     constants::VERSION_TABLE,
     ecc::codewords::{build_matrix, finish_data_codewords, interleave_with_error_correction},
     error::QrError,
-    matrix::matrix::QrCode,
+    matrix::code::QrCode,
     matrix::version::select_version,
 };
 

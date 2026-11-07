@@ -1,6 +1,7 @@
 // KasKold — Air-gapped offline signing device for Kaspa
 // License: GPL-3.0-or-later.
 
+use crate::controllers::TouchInput;
 mod carrier;
 
 use super::{display, sound, AppData};
@@ -18,10 +19,9 @@ pub(super) fn handle(
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     backup_device: &mut dyn BackupDevice,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
+    let TouchInput { x, y, is_back } = input;
     if ad.navigation.app.state != AppState::StegoJpegConfirm {
         return None;
     }
@@ -71,21 +71,13 @@ fn confirm_export(
     let descriptor = &ad.stego.export_flow.jpeg_desc_buf[..descriptor_len];
     let hint = &ad.stego.hint.buffer[..ad.stego.hint.length];
     let portable_password = ad.stego.session.portable.password();
-    let result = stego::pack_payload(
-        ad.stego.export_flow.security,
-        carrier,
-        &indices,
-        word_count,
-        hint,
-        descriptor,
-        portable_password,
-        backup_device,
-        &mut payload,
-    )
-    .and_then(|payload_length| {
-        sound::task_done();
-        carrier::write(ad, delay, i2c, &payload[..payload_length])
-    });
+    let protection = stego::StegoProtection { security: ad.stego.export_flow.security, descriptor, portable_password };
+    let secret = stego::StegoSecret { indices: &indices, word_count, hint };
+    let result =
+        stego::pack_payload(protection, carrier, secret, backup_device, &mut payload).and_then(|payload_length| {
+            sound::task_done();
+            carrier::write(ad, delay, i2c, &payload[..payload_length])
+        });
     zeroize_u16(&mut indices);
     zeroize_bytes(&mut payload);
     clear_hint(ad);

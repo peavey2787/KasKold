@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 // tx controller — multisig setup workflow facade.
+use crate::controllers::TouchInput;
 mod configuration;
 mod key_source;
 pub(crate) mod seed_picker;
@@ -26,15 +27,13 @@ pub(super) fn handle(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
     let redraw = match ad.navigation.app.state {
-        AppState::MultisigChooseMN => configuration::handle(ad, x, y, is_back),
-        AppState::MultisigAddKey { key_idx } => key_source::handle(ad, boot_display, delay, key_idx, x, y, is_back),
+        AppState::MultisigChooseMN => configuration::handle(ad, input),
+        AppState::MultisigAddKey { key_idx } => key_source::handle(ad, boot_display, delay, key_idx, input),
         AppState::MultisigPickSeed { key_idx } => {
-            seed_picker::handle(ad, boot_display, delay, liveness, key_idx, x, y, is_back)
+            seed_picker::handle(ad, boot_display, delay, liveness, key_idx, input)
         }
         _ => return None,
     };

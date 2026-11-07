@@ -13,21 +13,14 @@ pub(super) fn handle(
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     list_zones: &[touch::TouchZone; 4],
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
     let changed = match ad.navigation.app.state {
-        crate::runtime::input::AppState::SignMsgChoice => menu::handle(ad, boot_display, delay, i2c, x, y, is_back),
-        crate::runtime::input::AppState::SignMsgType => typed::handle(ad, boot_display, delay, x, y, is_back),
-        crate::runtime::input::AppState::SignMsgFile => sd_files::handle(TextFileSelectionContext {
-            ad,
-            boot_display,
-            delay,
-            i2c,
-            list_zones,
-            input: TouchInput::new(x, y, is_back),
-        }),
+        crate::runtime::input::AppState::SignMsgChoice => menu::handle(ad, boot_display, delay, i2c, input),
+        crate::runtime::input::AppState::SignMsgType => typed::handle(ad, boot_display, delay, input),
+        crate::runtime::input::AppState::SignMsgFile => {
+            sd_files::handle(TextFileSelectionContext { ad, boot_display, delay, i2c, list_zones, input })
+        }
         _ => return None,
     };
     let mut needs_redraw = RedrawFlag::default();

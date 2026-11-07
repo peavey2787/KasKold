@@ -21,15 +21,13 @@ impl<'a> BootDisplay<'a> {
         scroll: u8,
         config: SeedSlotListConfig,
     ) {
-        let (loaded, loaded_count) = loaded_seed_slots(seed_mgr);
-        let can_add = config.include_add_slot && seed_mgr.find_free().is_some();
+        let slots = VisibleSeedSlots::new(seed_mgr, config.include_add_slot);
         let scroll_offset = usize::from(scroll);
         for visible_index in 0..MAX_VISIBLE_SEED_SLOTS {
             let row_y = config.start_y + visible_index as i32 * (SEED_CARD_HEIGHT + SEED_CARD_GAP);
-            let list_index = scroll_offset + visible_index;
-            self.draw_seed_slot_row(seed_mgr, &loaded, loaded_count, can_add, list_index, row_y, &config);
+            self.draw_seed_slot_row(seed_mgr, &slots, scroll_offset + visible_index, row_y, &config);
         }
-        let visible_total = loaded_count + usize::from(can_add);
+        let visible_total = slots.total();
         draw_seed_slot_arrows(&mut self.display, visible_total, scroll_offset, config.start_y);
         draw_seed_slot_pages(&mut self.display, visible_total, scroll_offset);
     }
@@ -37,24 +35,19 @@ impl<'a> BootDisplay<'a> {
     fn draw_seed_slot_row(
         &mut self,
         seed_mgr: &crate::wallet::seed_manager::SeedManager,
-        loaded: &[usize; crate::wallet::seed_manager::MAX_SLOTS],
-        loaded_count: usize,
-        can_add: bool,
+        slots: &VisibleSeedSlots,
         list_index: usize,
         row_y: i32,
         config: &SeedSlotListConfig,
     ) {
         let rectangle = seed_card_rectangle(row_y);
-        if can_add && list_index == 0 {
-            draw_add_seed_slot(&mut self.display, rectangle, row_y);
-            return;
+        match slots.row(list_index) {
+            SeedSlotRow::Add => draw_add_seed_slot(&mut self.display, rectangle, row_y),
+            SeedSlotRow::Wallet { wallet_index, slot_index } => {
+                draw_loaded_seed_slot(&mut self.display, seed_mgr, slot_index, wallet_index, rectangle, row_y, config);
+            }
+            SeedSlotRow::Empty => {}
         }
-        let wallet_index = list_index.saturating_sub(usize::from(can_add));
-        if wallet_index >= loaded_count {
-            return;
-        }
-        let slot_index = loaded[wallet_index];
-        draw_loaded_seed_slot(&mut self.display, seed_mgr, slot_index, wallet_index, rectangle, row_y, config);
     }
 }
 
@@ -64,18 +57,46 @@ const SEED_CARD_WIDTH: u32 = 232;
 const SEED_CARD_START_X: i32 = 44;
 const MAX_VISIBLE_SEED_SLOTS: usize = 3;
 
-fn loaded_seed_slots(
-    seed_mgr: &crate::wallet::seed_manager::SeedManager,
-) -> ([usize; crate::wallet::seed_manager::MAX_SLOTS], usize) {
-    let mut loaded = [0usize; crate::wallet::seed_manager::MAX_SLOTS];
-    let mut count = 0usize;
-    for index in 0..crate::wallet::seed_manager::MAX_SLOTS {
-        if seed_mgr.slot_visible(index) {
-            loaded[count] = index;
-            count += 1;
+/// Wallet slots shown in the list, in slot order, behind an optional Add row.
+struct VisibleSeedSlots {
+    loaded: [usize; crate::wallet::seed_manager::MAX_SLOTS],
+    count: usize,
+    can_add: bool,
+}
+
+enum SeedSlotRow {
+    Add,
+    Wallet { wallet_index: usize, slot_index: usize },
+    Empty,
+}
+
+impl VisibleSeedSlots {
+    fn new(seed_mgr: &crate::wallet::seed_manager::SeedManager, include_add_slot: bool) -> Self {
+        let mut loaded = [0usize; crate::wallet::seed_manager::MAX_SLOTS];
+        let mut count = 0usize;
+        for index in 0..crate::wallet::seed_manager::MAX_SLOTS {
+            if seed_mgr.slot_visible(index) {
+                loaded[count] = index;
+                count += 1;
+            }
+        }
+        Self { loaded, count, can_add: include_add_slot && seed_mgr.find_free().is_some() }
+    }
+
+    fn total(&self) -> usize {
+        self.count + usize::from(self.can_add)
+    }
+
+    fn row(&self, list_index: usize) -> SeedSlotRow {
+        if self.can_add && list_index == 0 {
+            return SeedSlotRow::Add;
+        }
+        let wallet_index = list_index.saturating_sub(usize::from(self.can_add));
+        match self.loaded[..self.count].get(wallet_index) {
+            Some(&slot_index) => SeedSlotRow::Wallet { wallet_index, slot_index },
+            None => SeedSlotRow::Empty,
         }
     }
-    (loaded, count)
 }
 
 fn seed_card_rectangle(row_y: i32) -> Rectangle {

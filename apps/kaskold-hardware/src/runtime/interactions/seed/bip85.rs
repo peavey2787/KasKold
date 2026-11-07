@@ -2,6 +2,7 @@
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
 // License: GPL-3.0
 
+use crate::controllers::TouchInput;
 use crate::hw::display;
 use crate::runtime::data::AppData;
 use crate::runtime::input::AppState;
@@ -39,10 +40,9 @@ fn handle_index(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     word_count: u8,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SeedTool);
         return true;
@@ -82,14 +82,11 @@ pub(super) fn handle(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
+    let TouchInput { is_back, .. } = input;
     match ad.navigation.app.state {
-        AppState::Bip85Index { word_count } => {
-            Some(handle_index(ad, boot_display, delay, liveness, word_count, x, y, is_back))
-        }
+        AppState::Bip85Index { word_count } => Some(handle_index(ad, boot_display, delay, liveness, word_count, input)),
         AppState::Bip85ShowWord { word_idx, word_count } => {
             navigation::advance_word(ad, word_idx, word_count, is_back);
             Some(true)

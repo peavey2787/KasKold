@@ -55,8 +55,8 @@ pub fn run_tests() -> (u32, u32) {
         data[4] = 0x01; // version
         data[5] = 0x01; // 1 signature
                         // Fill rest with test pattern
-        for i in 6..72 {
-            data[i] = (i & 0xFF) as u8;
+        for (i, byte) in data.iter_mut().enumerate().take(72).skip(6) {
+            *byte = (i & 0xFF) as u8;
         }
 
         if let Ok(qr) = encode(&data) {

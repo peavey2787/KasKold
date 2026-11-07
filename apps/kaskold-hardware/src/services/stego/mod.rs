@@ -19,18 +19,13 @@ pub use jpeg::inject_exif;
 pub const STEGO_PAYLOAD_SIZE: usize = payload::PAYLOAD_SIZE;
 
 pub fn pack_payload(
-    security: StegoSecurity,
+    protection: StegoProtection<'_>,
     carrier: StegoCarrier,
-    indices: &[u16; 24],
-    word_count: u8,
-    hint: &[u8],
-    descriptor: &[u8],
-    portable_password: &[u8],
+    secret: StegoSecret<'_>,
     device: &mut dyn crate::services::backup::BackupDevice,
     output: &mut [u8],
 ) -> Result<usize, &'static str> {
-    payload::pack(security, carrier, indices, word_count, hint, descriptor, portable_password, device, output)
-        .map_err(payload::PayloadError::message)
+    payload::pack(protection, carrier, secret, device, output).map_err(payload::PayloadError::message)
 }
 
 pub fn unpack_device_bound_payload(
@@ -80,6 +75,22 @@ pub fn embed_picture(jpeg: &[u8], payload: &[u8], key: &[u8], output: &mut [u8])
 
 pub fn extract_picture(jpeg: &[u8], key: &[u8], output: &mut [u8]) -> Result<usize, &'static str> {
     stego_picture::extract(jpeg, key, output).map_err(stego_picture::PictureError::message)
+}
+
+/// Recovery words and the optional hint sealed into one stego payload.
+#[derive(Clone, Copy)]
+pub struct StegoSecret<'a> {
+    pub indices: &'a [u16; 24],
+    pub word_count: u8,
+    pub hint: &'a [u8],
+}
+
+/// The security mode and credentials that protect one stego payload.
+#[derive(Clone, Copy)]
+pub struct StegoProtection<'a> {
+    pub security: StegoSecurity,
+    pub descriptor: &'a [u8],
+    pub portable_password: &'a [u8],
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

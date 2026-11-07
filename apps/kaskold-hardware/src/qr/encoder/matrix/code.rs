@@ -69,10 +69,7 @@ impl QrCode {
             let (count, positions) = alignment_positions(self.version);
             for row in 0..count {
                 for column in 0..count {
-                    if (row == 0 && column == 0)
-                        || (row == 0 && column == count - 1)
-                        || (row == count - 1 && column == 0)
-                    {
+                    if (row == 0 && (column == 0 || column == count - 1)) || (row == count - 1 && column == 0) {
                         continue;
                     }
                     self.draw_alignment(positions[row], positions[column]);

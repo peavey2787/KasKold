@@ -1,4 +1,6 @@
 """Focused firmware source-contract checks."""
+import re
+
 from source_contract_support import read, require
 
 def check_internal_visibility_contract(errors: list[str]) -> None:
@@ -12,11 +14,9 @@ def check_internal_visibility_contract(errors: list[str]) -> None:
         "list_zones",
         "page_up_zone",
         "page_down_zone",
-        "x",
-        "y",
-        "is_back",
+        "input",
     ):
-        if f"{field}:" in context:
+        if re.search(rf"\b{field}:", context):
             require(
                 errors,
                 f"pub(in crate::runtime::interactions::sd) {field}:" in context,

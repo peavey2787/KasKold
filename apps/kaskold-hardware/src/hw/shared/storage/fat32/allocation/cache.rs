@@ -111,7 +111,7 @@ pub(in crate::hw::shared::storage::fat32) fn release_chain(
         let next = cache.read_entry(cluster)?;
         zero_cluster(card_type, fat32, cluster)?;
         cache.write_entry(cluster, 0)?;
-        if next >= 0x0FFF_FFF8 || next < 2 {
+        if !(2..0x0FFF_FFF8).contains(&next) {
             cache.flush()?;
             super::fsinfo::update_fsinfo_hint(card_type, fat32, first_cluster);
             return Ok(());

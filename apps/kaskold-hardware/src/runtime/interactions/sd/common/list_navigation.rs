@@ -1,5 +1,6 @@
 //! Paging, hit-testing, selection, and delete routing for four-row SD lists.
 
+use crate::controllers::TouchInput;
 use crate::{
     hw::touch,
     runtime::{data::AppData, input::AppState, navigation::ContinuationRoute},
@@ -45,8 +46,8 @@ pub(crate) fn run_sd_file_list_context<'ctx, 'display, 'hal, R>(
         &mut esp_hal::i2c::master::I2c<'hal, esp_hal::Blocking>,
     ) -> R,
 ) -> bool {
-    let SdFileListContext { ad, boot_display, delay, liveness, i2c, list_zones, x, y, is_back } = context;
-    run_file_list_controller(ad, list_zones, x, y, is_back, workflow, |ad| {
+    let SdFileListContext { ad, boot_display, delay, liveness, i2c, list_zones, input } = context;
+    run_file_list_controller(ad, list_zones, input, workflow, |ad| {
         on_open(ad, boot_display, delay, liveness, i2c);
     })
 }
@@ -57,26 +58,22 @@ pub(crate) fn run_sd_list_context<R>(
     workflow: FileListWorkflow,
     on_open: impl FnOnce(&mut AppData) -> R,
 ) -> bool {
-    let SdListContext { ad, list_zones, x, y, is_back } = context;
-    run_file_list_controller(ad, list_zones, x, y, is_back, workflow, on_open)
+    let SdListContext { ad, list_zones, input } = context;
+    run_file_list_controller(ad, list_zones, input, workflow, on_open)
 }
 
 /// Own the common list lifecycle and delegate only the format-specific open action.
 fn run_file_list_controller<R>(
     ad: &mut AppData,
     list_zones: &[touch::TouchZone; FILES_PER_PAGE],
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
     workflow: FileListWorkflow,
     on_open: impl FnOnce(&mut AppData) -> R,
 ) -> bool {
     let outcome = handle_file_list_touch(
         ad,
         list_zones,
-        x,
-        y,
-        is_back,
+        input,
         workflow.allow_delete,
         workflow.current_state,
         workflow.back_state,
@@ -87,13 +84,12 @@ fn run_file_list_controller<R>(
 fn handle_file_list_touch(
     ad: &mut AppData,
     list_zones: &[touch::TouchZone; FILES_PER_PAGE],
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
     allow_delete: bool,
     current_state: AppState,
     back_state: ContinuationRoute,
 ) -> FileListControllerOutcome {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.storage.browser.file_scroll = 0;
         crate::runtime::effects::continue_to(ad, back_state);

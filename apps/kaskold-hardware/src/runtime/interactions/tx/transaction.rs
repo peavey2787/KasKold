@@ -3,6 +3,7 @@
 // License: GPL-3.0
 
 use super::{display, AppData};
+use crate::controllers::TouchInput;
 use crate::{
     runtime::input::AppState,
     runtime::interactions::feedback::{show_rejection, ErrorSound},
@@ -22,23 +23,22 @@ pub(super) fn handle(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
     if matches!(ad.navigation.app.state, AppState::AntiKleptoRevealGuide) {
-        return Some(handle_anti_klepto_reveal_guide(ad, x, y, is_back));
+        return Some(handle_anti_klepto_reveal_guide(ad, input));
     }
-    if utxo_inspection::handle(ad, x, y, is_back) {
+    if utxo_inspection::handle(ad, input) {
         return Some(true);
     }
     let screen = transaction_screen(ad)?;
-    let decision = reduce_touch(screen, x, y, is_back);
+    let decision = reduce_touch(screen, input.x, input.y, input.is_back);
     apply_decision(ad, boot_display, delay, decision);
     Some(decision.redraw)
 }
 
-fn handle_anti_klepto_reveal_guide(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+fn handle_anti_klepto_reveal_guide(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     use crate::runtime::data::AntiKleptoPhase;
 
     if ad.signing.anti_klepto.phase != AntiKleptoPhase::AwaitingReveal {

@@ -59,8 +59,8 @@ macro_rules! initialize {
         {
             log!("KASKOLD_WORKFLOW_TESTS: OPTIONAL AUDIO/ENTROPY/CAMERA SKIPPED; SD PROBED");
             log!("KASKOLD_WORKFLOW_TESTS: BOARD PHASES COMPLETE");
-            (i2c, boot_display, None::<DvpCamera<'_>>, None::<esp_hal::dma::DmaRxBuf>,
-             hw::camera::CameraStatus::Error, None::<$crate::hw::sound::RuntimeAudio>)
+            let camera = $crate::hw::shared::dvp::CameraPort::new(None, None, hw::camera::CameraStatus::Error);
+            (i2c, boot_display, camera, None::<$crate::hw::sound::RuntimeAudio>)
         }
         #[cfg(any(not(feature = "workflow-test-auto"), feature = "workflow-runtime-auto"))]
         {
@@ -116,7 +116,8 @@ macro_rules! initialize {
                 log!("KASKOLD_WORKFLOW_HIL: DESTRUCTIVE MEDIA PROFILE ENABLED");
                 log!("KASKOLD_WORKFLOW_TESTS: BOARD PHASES COMPLETE");
             }
-            (i2c, boot_display, dvp_camera_opt, cam_dma_buf_opt, cam_status, runtime_audio)
+            let camera = $crate::hw::shared::dvp::CameraPort::new(dvp_camera_opt, cam_dma_buf_opt, cam_status);
+            (i2c, boot_display, camera, runtime_audio)
         }
     }}
 }

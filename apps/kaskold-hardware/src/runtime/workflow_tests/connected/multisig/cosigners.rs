@@ -1,4 +1,5 @@
 use super::MultisigContext;
+use crate::controllers::TouchInput;
 use crate::runtime::input::AppState;
 
 pub(super) fn exercise(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
@@ -6,32 +7,32 @@ pub(super) fn exercise(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
 }
 
 fn local_first(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
-    if ctx.tx_touch(160, 165, false) != Some(true)
+    if ctx.tx_touch(TouchInput::new(160, 165, false)) != Some(true)
         || ctx.ad.navigation.app.state != (AppState::MultisigPickSeed { key_idx: 0 })
     {
         return false;
     }
     ctx.redraw_step();
-    if ctx.tx_touch(300, 112, false) != Some(true) || ctx.ad.signing.multisig.scroll != 3 {
+    if ctx.tx_touch(TouchInput::new(300, 112, false)) != Some(true) || ctx.ad.signing.multisig.scroll != 3 {
         return false;
     }
-    if ctx.tx_touch(300, 112, false) != Some(false) || ctx.ad.signing.multisig.scroll != 3 {
+    if ctx.tx_touch(TouchInput::new(300, 112, false)) != Some(false) || ctx.ad.signing.multisig.scroll != 3 {
         return false;
     }
-    if ctx.tx_touch(20, 112, false) != Some(true) || ctx.ad.signing.multisig.scroll != 0 {
+    if ctx.tx_touch(TouchInput::new(20, 112, false)) != Some(true) || ctx.ad.signing.multisig.scroll != 0 {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: MULTISIG WALLET PICKER PAGING BOUNDARIES PASS");
 
     // The canonical wallet picker exposes the same '+' Add Wallet row as the
     // normal WALLETS screen and Back must resume this exact multisig key slot.
-    if ctx.tx_touch(160, 60, false) != Some(true)
+    if ctx.tx_touch(TouchInput::new(160, 60, false)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::AddWalletChoice
         || ctx.ad.wallet.seeds.pending_multisig_wallet_key != 0
     {
         return false;
     }
-    if ctx.seed_navigation_touch(20, 20, true) != Some(true)
+    if ctx.seed_navigation_touch(TouchInput::new(20, 20, true)) != Some(true)
         || ctx.ad.navigation.app.state != (AppState::MultisigPickSeed { key_idx: 0 })
         || ctx.ad.wallet.seeds.pending_multisig_wallet_key != u8::MAX
     {
@@ -41,7 +42,7 @@ fn local_first(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
 
     // Right-side taps are selection, never an invisible destructive zone.
     ctx.ad.wallet.seeds.pending_delete_slot = u8::MAX;
-    if ctx.tx_touch(250, 112, false) != Some(true)
+    if ctx.tx_touch(TouchInput::new(250, 112, false)) != Some(true)
         || ctx.ad.navigation.app.state != (AppState::MultisigAddKey { key_idx: 1 })
         || ctx.ad.signing.multisig.creating.slot_empty(0)
         || ctx.ad.wallet.seeds.pending_delete_slot != u8::MAX
@@ -53,12 +54,12 @@ fn local_first(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
 }
 
 fn duplicate_local_rejected(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
-    if ctx.tx_touch(160, 165, false) != Some(true)
+    if ctx.tx_touch(TouchInput::new(160, 165, false)) != Some(true)
         || ctx.ad.navigation.app.state != (AppState::MultisigPickSeed { key_idx: 1 })
     {
         return false;
     }
-    if ctx.tx_touch(250, 112, false) != Some(true)
+    if ctx.tx_touch(TouchInput::new(250, 112, false)) != Some(true)
         || ctx.ad.navigation.app.state != (AppState::MultisigPickSeed { key_idx: 1 })
         || !ctx.ad.signing.multisig.creating.slot_empty(1)
         || ctx.ad.wallet.seeds.pending_delete_slot != u8::MAX
@@ -70,7 +71,7 @@ fn duplicate_local_rejected(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
 }
 
 fn local_second(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
-    if ctx.tx_touch(160, 158, false) != Some(true)
+    if ctx.tx_touch(TouchInput::new(160, 158, false)) != Some(true)
         || ctx.ad.navigation.app.state != (AppState::MultisigAddKey { key_idx: 2 })
         || ctx.ad.signing.multisig.creating.slot_empty(1)
     {
@@ -80,7 +81,7 @@ fn local_second(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
 }
 
 fn scanned_third(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
-    if ctx.tx_touch(160, 112, false) != Some(true) || ctx.ad.navigation.app.state != AppState::ScanQR {
+    if ctx.tx_touch(TouchInput::new(160, 112, false)) != Some(true) || ctx.ad.navigation.app.state != AppState::ScanQR {
         return false;
     }
     crate::runtime::interactions::camera_loop::dispatch::workflow_process_kpub_payload(b"not-a-kpub", ctx.ad);

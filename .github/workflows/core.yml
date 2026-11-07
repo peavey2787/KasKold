@@ -37,6 +37,7 @@ jobs:
           rustup run "$KASKOLD_STABLE_RUST" cargo clippy --manifest-path qa/Cargo.toml --all-targets --locked -- -D warnings
           rustup run "$KASKOLD_STABLE_RUST" cargo clippy --manifest-path tools/Cargo.toml --all-targets --locked -- -D warnings
           rustup run "$KASKOLD_STABLE_RUST" cargo clippy --manifest-path apps/kaskold-vault-web/Cargo.toml --all-targets --locked -- -D warnings
+          rustup run "$KASKOLD_STABLE_RUST" cargo clippy --manifest-path qa/firmware-sim/Cargo.toml --all-targets --locked -- -D warnings
       - name: Install pinned ESP Rust toolchain
         uses: esp-rs/xtensa-toolchain@v1.7.0
         with:

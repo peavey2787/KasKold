@@ -50,6 +50,29 @@ pub(super) struct RecordHeader {
     ciphertext_start: usize,
 }
 
+/// A stretched wallet credential with the kind and salt that produced it.
+#[derive(Clone, Copy)]
+pub(super) struct WalletCredential<'a> {
+    pub kind: CredentialKind,
+    pub key: &'a [u8; 32],
+    pub salt: &'a [u8; SALT_SIZE],
+}
+
+impl<'a> WalletCredential<'a> {
+    pub(super) fn envelope(self, nonce: &'a [u8; bound::NONCE_SIZE], aad: &'a [u8]) -> bound::Envelope<'a> {
+        bound::Envelope { stretched_credential: self.key, salt: self.salt, nonce, authenticated_header: aad }
+    }
+}
+
+/// Removable backups always stretch a password; the purpose must name a backup.
+fn backup_parameters(purpose: StoragePurpose) -> Result<KdfParameters, PersistError> {
+    if matches!(purpose, StoragePurpose::SdSeedBackup | StoragePurpose::SdXprvBackup | StoragePurpose::StegoWallet) {
+        Ok(KdfParameters::current(purpose, CredentialKind::Password))
+    } else {
+        Err(PersistError::InvalidWallet)
+    }
+}
+
 pub(super) struct DeviceCrypto<'d> {
     hmac: Hmac<'d>,
 }
@@ -77,7 +100,7 @@ impl<'d> DeviceCrypto<'d> {
         #[cfg(all(feature = "m5stack", not(feature = "production")))]
         {
             crate::log!("   [DEV] using software TEST device-storage identity");
-            return Some(dev_storage::KEY_SLOT);
+            Some(dev_storage::KEY_SLOT)
         }
         #[cfg(not(all(feature = "m5stack", not(feature = "production"))))]
         None
@@ -88,13 +111,11 @@ impl<'d> DeviceCrypto<'d> {
         plaintext: &[u8; PAYLOAD_SIZE],
         sequence: u32,
         key_slot: u8,
-        credential_kind: CredentialKind,
         device_only: bool,
-        credential_key: &[u8; 32],
-        salt: &[u8; SALT_SIZE],
+        credential: WalletCredential<'_>,
         record: &mut AlignedBytes<RECORD_SIZE>,
     ) -> Result<(), PersistError> {
-        record::prepare_header(record, sequence, key_slot, credential_kind, device_only, salt)?;
+        record::prepare_header(record, sequence, key_slot, credential.kind, device_only, credential.salt)?;
         let mut nonce = [0u8; bound::NONCE_SIZE];
         nonce.copy_from_slice(&record.0[31..43]);
         let mut aad = [0u8; CURRENT_AAD_SIZE];
@@ -104,11 +125,8 @@ impl<'d> DeviceCrypto<'d> {
         let mut provider = SlotHmac { crypto: self, key_slot };
         let mut tag = bound::seal_in_place(
             &mut provider,
-            KdfParameters::current(StoragePurpose::InternalWallet, credential_kind),
-            credential_key,
-            salt,
-            &nonce,
-            &aad,
+            KdfParameters::current(StoragePurpose::InternalWallet, credential.kind),
+            credential.envelope(&nonce, &aad),
             ciphertext,
         )
         .map_err(map_bound_error)?;
@@ -130,18 +148,14 @@ impl<'d> DeviceCrypto<'d> {
         plaintext.copy_from_slice(&record.0[header.ciphertext_start..body_end]);
         let mut tag = [0u8; TAG_SIZE];
         tag.copy_from_slice(&record.0[header.aad_size..header.ciphertext_start]);
+        let credential = WalletCredential { kind: header.credential_kind, key: credential_key, salt: &header.salt };
         let result = {
             let mut provider = SlotHmac { crypto: self, key_slot: header.key_slot };
             bound::open_in_place(
                 &mut provider,
-                bound::OpenRequest {
-                    parameters: KdfParameters::current(StoragePurpose::InternalWallet, header.credential_kind),
-                    stretched_credential: credential_key,
-                    salt: &header.salt,
-                    nonce: &header.nonce,
-                    authenticated_header: &record.0[..header.aad_size],
-                    tag: &tag,
-                },
+                KdfParameters::current(StoragePurpose::InternalWallet, header.credential_kind),
+                credential.envelope(&header.nonce, &record.0[..header.aad_size]),
+                &tag,
                 plaintext,
             )
         };
@@ -153,109 +167,62 @@ impl<'d> DeviceCrypto<'d> {
     pub(super) fn seal_sd(
         &mut self,
         kind: CredentialKind,
-        credential_key: &[u8; 32],
-        salt: &[u8; SALT_SIZE],
-        nonce: &[u8; bound::NONCE_SIZE],
-        aad: &[u8],
+        envelope: bound::Envelope<'_>,
         ciphertext: &mut [u8],
-    ) -> Result<[u8; bound::TAG_SIZE], PersistError> {
-        let key_slot = self.available_key_slot().ok_or(PersistError::DeviceKeyMissing)?;
-        let mut provider = SlotHmac { crypto: self, key_slot };
-        bound::seal_in_place(
-            &mut provider,
-            KdfParameters::current(StoragePurpose::SdWallet, kind),
-            credential_key,
-            salt,
-            nonce,
-            aad,
-            ciphertext,
-        )
-        .map_err(map_bound_error)
+    ) -> Result<[u8; TAG_SIZE], PersistError> {
+        self.seal_bound(KdfParameters::current(StoragePurpose::SdWallet, kind), envelope, ciphertext)
     }
 
     pub(super) fn open_sd(
         &mut self,
         kind: CredentialKind,
-        credential_key: &[u8; 32],
-        salt: &[u8; SALT_SIZE],
-        nonce: &[u8; bound::NONCE_SIZE],
-        aad: &[u8],
+        envelope: bound::Envelope<'_>,
         ciphertext: &mut [u8],
-        tag: &[u8; bound::TAG_SIZE],
+        tag: &[u8; TAG_SIZE],
     ) -> Result<(), PersistError> {
-        let key_slot = self.available_key_slot().ok_or(PersistError::DeviceKeyMissing)?;
-        let mut provider = SlotHmac { crypto: self, key_slot };
-        bound::open_in_place(
-            &mut provider,
-            bound::OpenRequest {
-                parameters: KdfParameters::current(StoragePurpose::SdWallet, kind),
-                stretched_credential: credential_key,
-                salt,
-                nonce,
-                authenticated_header: aad,
-                tag,
-            },
-            ciphertext,
-        )
-        .map_err(map_bound_error)
+        self.open_bound(KdfParameters::current(StoragePurpose::SdWallet, kind), envelope, ciphertext, tag)
     }
 
     pub(super) fn seal_backup(
         &mut self,
         purpose: StoragePurpose,
-        credential_key: &[u8; 32],
-        salt: &[u8; SALT_SIZE],
-        nonce: &[u8; bound::NONCE_SIZE],
-        aad: &[u8],
+        envelope: bound::Envelope<'_>,
         ciphertext: &mut [u8],
-    ) -> Result<[u8; bound::TAG_SIZE], PersistError> {
-        if !matches!(purpose, StoragePurpose::SdSeedBackup | StoragePurpose::SdXprvBackup | StoragePurpose::StegoWallet)
-        {
-            return Err(PersistError::InvalidWallet);
-        }
-        let key_slot = self.available_key_slot().ok_or(PersistError::DeviceKeyMissing)?;
-        let mut provider = SlotHmac { crypto: self, key_slot };
-        bound::seal_in_place(
-            &mut provider,
-            KdfParameters::current(purpose, CredentialKind::Password),
-            credential_key,
-            salt,
-            nonce,
-            aad,
-            ciphertext,
-        )
-        .map_err(map_bound_error)
+    ) -> Result<[u8; TAG_SIZE], PersistError> {
+        self.seal_bound(backup_parameters(purpose)?, envelope, ciphertext)
     }
 
     pub(super) fn open_backup(
         &mut self,
         purpose: StoragePurpose,
-        credential_key: &[u8; 32],
-        salt: &[u8; SALT_SIZE],
-        nonce: &[u8; bound::NONCE_SIZE],
-        aad: &[u8],
+        envelope: bound::Envelope<'_>,
         ciphertext: &mut [u8],
-        tag: &[u8; bound::TAG_SIZE],
+        tag: &[u8; TAG_SIZE],
     ) -> Result<(), PersistError> {
-        if !matches!(purpose, StoragePurpose::SdSeedBackup | StoragePurpose::SdXprvBackup | StoragePurpose::StegoWallet)
-        {
-            return Err(PersistError::InvalidWallet);
-        }
+        self.open_bound(backup_parameters(purpose)?, envelope, ciphertext, tag)
+    }
+
+    fn seal_bound(
+        &mut self,
+        parameters: KdfParameters,
+        envelope: bound::Envelope<'_>,
+        ciphertext: &mut [u8],
+    ) -> Result<[u8; TAG_SIZE], PersistError> {
         let key_slot = self.available_key_slot().ok_or(PersistError::DeviceKeyMissing)?;
         let mut provider = SlotHmac { crypto: self, key_slot };
-        bound::open_in_place(
-            &mut provider,
-            bound::OpenRequest {
-                parameters: KdfParameters::current(purpose, CredentialKind::Password),
-                stretched_credential: credential_key,
-                salt,
-                nonce,
-                authenticated_header: aad,
-                tag,
-            },
-            ciphertext,
-        )
-        .map_err(map_bound_error)
+        bound::seal_in_place(&mut provider, parameters, envelope, ciphertext).map_err(map_bound_error)
+    }
+
+    fn open_bound(
+        &mut self,
+        parameters: KdfParameters,
+        envelope: bound::Envelope<'_>,
+        ciphertext: &mut [u8],
+        tag: &[u8; TAG_SIZE],
+    ) -> Result<(), PersistError> {
+        let key_slot = self.available_key_slot().ok_or(PersistError::DeviceKeyMissing)?;
+        let mut provider = SlotHmac { crypto: self, key_slot };
+        bound::open_in_place(&mut provider, parameters, envelope, tag, ciphertext).map_err(map_bound_error)
     }
 
     pub(super) fn policy_tag(&mut self, key_slot: u8, sequence: u32, encoded: &[u8]) -> Result<[u8; 32], PersistError> {
@@ -399,7 +366,7 @@ pub(super) fn valid_key_slot(slot: u8) -> bool {
     }
     #[cfg(all(feature = "m5stack", not(feature = "production")))]
     {
-        return slot == dev_storage::KEY_SLOT;
+        slot == dev_storage::KEY_SLOT
     }
     #[cfg(not(all(feature = "m5stack", not(feature = "production"))))]
     false

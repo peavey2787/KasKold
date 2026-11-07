@@ -152,8 +152,8 @@ impl<'d> PersistentWallet<'d> {
         let mut key = *self.credential_key.as_ref().ok_or(PersistError::CredentialRequired)?;
         let mut record = AlignedBytes::<RECORD_SIZE>::zeroed();
         self.build_record_into(manager, 1, &mut record)?;
-        let write =
-            super::sd_backend::write_slot(&mut self.crypto, kind, &key, &self.credential_salt, 0, &record, i2c, delay);
+        let credential = super::crypto::WalletCredential { kind, key: &key, salt: &self.credential_salt };
+        let write = super::sd_backend::write_slot(&mut self.crypto, credential, 0, &record, i2c, delay);
         zeroize_buf(&mut key);
         zeroize_buf(&mut record.0);
         write?;

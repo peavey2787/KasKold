@@ -17,6 +17,7 @@
 //! Commit-reveal result and decrypted-secret result interactions.
 
 use super::{display, AppData, RedrawFlag};
+use crate::controllers::TouchInput;
 use crate::runtime::input::AppState;
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use shared_signer::bytes::zeroize_bytes;
@@ -25,10 +26,9 @@ pub(super) fn handle(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
+    let TouchInput { x, y, is_back } = input;
     let mut needs_redraw = RedrawFlag::default();
     match ad.navigation.app.state {
         AppState::CommitRevealResult => {

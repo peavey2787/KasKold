@@ -63,7 +63,7 @@ pub fn restore(image: &[u8]) {
     let (present, blocks) = image.split_first().expect("card image");
     with_card(|card| {
         card.present = *present != 0;
-        for entry in blocks.chunks_exact(8 + BLOCK) {
+        for entry in blocks.as_chunks::<{ 8 + BLOCK }>().0 {
             let (block, data) = entry.split_at(8);
             let block = u64::from_le_bytes(block.try_into().expect("eight bytes")) as usize;
             card.blocks

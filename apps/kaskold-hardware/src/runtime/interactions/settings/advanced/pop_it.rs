@@ -151,45 +151,61 @@ fn handle_confirm(
         ad.pop_it.error = Some("Enter POP IT, then press OK");
         return Some(true);
     }
-    #[cfg(all(feature = "m5stack", not(feature = "production")))]
-    {
-        let _ = persistence;
-        let _ = display;
-        boot_security::enable_dev_pop_it_indicator_demo();
-        ad.wallet.seeds.pp_input.reset();
-        ad.pop_it.error = None;
-        crate::runtime::effects::home(ad);
+    apply_confirmed(ad, persistence, display)
+}
+
+/// Development images only light the Pop It indicator; nothing is burned.
+#[cfg(all(feature = "m5stack", not(feature = "production")))]
+fn apply_confirmed(
+    ad: &mut AppData,
+    persistence: &mut PersistentWallet<'_>,
+    display: &mut BootDisplay<'_>,
+) -> Option<bool> {
+    let _ = persistence;
+    let _ = display;
+    boot_security::enable_dev_pop_it_indicator_demo();
+    ad.wallet.seeds.pp_input.reset();
+    ad.pop_it.error = None;
+    crate::runtime::effects::home(ad);
+    Some(true)
+}
+
+/// Arm the Secure Boot request and restart so the bootloader applies it.
+#[cfg(all(feature = "secure-provisioning-core", not(all(feature = "m5stack", not(feature = "production")))))]
+fn apply_confirmed(
+    ad: &mut AppData,
+    persistence: &mut PersistentWallet<'_>,
+    display: &mut BootDisplay<'_>,
+) -> Option<bool> {
+    if cfg!(feature = "secure-owner-only") && !boot_security::owner_authority_enrolled() {
+        ad.pop_it.error = Some("Enroll the owner key before Pop It");
+        return Some(true);
+    }
+    if let Err(error) = boot_security::pop_it_preflight() {
+        ad.pop_it.error = Some(error.message());
+        return Some(true);
+    }
+    if persistence.request_pop_it().is_err() {
+        ad.pop_it.error = Some("Could not arm Secure Boot request");
         return Some(true);
     }
 
-    #[cfg(feature = "secure-provisioning-core")]
-    {
-        if cfg!(feature = "secure-owner-only") && !boot_security::owner_authority_enrolled() {
-            ad.pop_it.error = Some("Enroll the owner key before Pop It");
-            return Some(true);
-        }
-        if let Err(error) = boot_security::pop_it_preflight() {
-            ad.pop_it.error = Some(error.message());
-            return Some(true);
-        }
-        if persistence.request_pop_it().is_err() {
-            ad.pop_it.error = Some("Could not arm Secure Boot request");
-            return Some(true);
-        }
+    ad.wallet.seeds.pp_input.reset();
+    ad.pop_it.error = None;
+    display.draw_pop_it_applying();
+    esp_hal::system::software_reset();
+}
 
-        ad.wallet.seeds.pp_input.reset();
-        ad.pop_it.error = None;
-        display.draw_pop_it_applying();
-        esp_hal::system::software_reset();
-    }
-
-    #[cfg(not(feature = "m5stack"))]
-    {
-        let _ = persistence;
-        let _ = display;
-        ad.pop_it.error = Some("Pop It preview requires CoreS3");
-        Some(true)
-    }
+#[cfg(not(any(feature = "m5stack", feature = "secure-provisioning-core")))]
+fn apply_confirmed(
+    ad: &mut AppData,
+    persistence: &mut PersistentWallet<'_>,
+    display: &mut BootDisplay<'_>,
+) -> Option<bool> {
+    let _ = persistence;
+    let _ = display;
+    ad.pop_it.error = Some("Pop It preview requires CoreS3");
+    Some(true)
 }
 
 fn return_to_saved_state(ad: &mut AppData) {

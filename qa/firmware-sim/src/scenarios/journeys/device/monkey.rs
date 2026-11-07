@@ -36,7 +36,7 @@ impl Taps {
     }
 
     fn next_point(&mut self) -> (u16, u16) {
-        if self.next() % BACK_ONE_TAP_IN == 0 {
+        if self.next().is_multiple_of(BACK_ONE_TAP_IN) {
             return BACK_ZONE_CENTRE;
         }
         (

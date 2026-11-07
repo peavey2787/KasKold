@@ -1,3 +1,4 @@
+use crate::controllers::TouchInput;
 use crate::{
     hw::{display::BootDisplay, touch::TouchZone},
     runtime::{data::AppData, input::AppState},
@@ -34,14 +35,14 @@ impl SecurityContext<'_, '_, '_> {
         self.ad.wallet.seeds.pp_input.cursor = length;
     }
 
-    pub(super) fn advanced_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
-        let input = crate::runtime::touch_dispatch::workflow_touch_input(x, y, is_back)?;
+    pub(super) fn advanced_touch(&mut self, input: TouchInput) -> Option<bool> {
+        let input = crate::runtime::touch_dispatch::workflow_touch_input(input)?;
         crate::runtime::interactions::settings::handle_advanced_navigation(self.ad, input)
     }
 
     pub(super) fn open_card(&mut self, y: u16) -> Option<bool> {
         crate::runtime::interactions::settings::advanced::workflow::open_card(
-            crate::runtime::touch_dispatch::workflow_touch_input(160, y, false)?,
+            crate::runtime::touch_dispatch::workflow_touch_input(TouchInput::new(160, y, false))?,
             self.ad,
             self.display,
             self.delay,

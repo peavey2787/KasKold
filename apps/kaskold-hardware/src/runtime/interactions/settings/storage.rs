@@ -1,5 +1,6 @@
 // KasKold — Air-gapped offline signing device for Kaspa
 // Focused SD-card settings facade.
+use crate::controllers::TouchInput;
 mod format;
 mod test;
 
@@ -21,10 +22,9 @@ pub(super) fn handle_sd_card_settings(
     boot_display: &mut hw_display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SettingsMenu));
         return true;
@@ -66,10 +66,9 @@ pub(super) fn handle_unlock_password(
     display: &mut hw_display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.wallet.seeds.pp_input.reset();
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SdCardSettings));

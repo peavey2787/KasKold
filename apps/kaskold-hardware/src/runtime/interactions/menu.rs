@@ -48,22 +48,22 @@ pub fn handle_root_touch(ad: &mut AppData, x: u16, y: u16) -> bool {
 /// declined the event.
 #[inline(never)]
 pub fn handle_menu_touch(context: MenuTouchContext<'_, '_, '_, '_>) -> Option<bool> {
-    let MenuTouchContext { ad, boot_display, delay, liveness, i2c, list_zones, .. } = context;
-    let MenuTouchContext { dvp_camera_opt: camera, cam_dma_buf_opt: dma, input, .. } = context;
-    let TouchInput { x, y, is_back } = input;
-    if let Some(result) = wallet_tools::handle(ad, boot_display, delay, liveness, i2c, list_zones, x, y) {
+    let MenuTouchContext { ad, boot_display, delay, liveness, i2c, camera, list_zones, input } = context;
+    let mut io = crate::runtime::interactions::DeviceIo { boot_display, delay, i2c, liveness };
+    if let Some(result) = wallet_tools::handle(ad, &mut io, list_zones, input) {
         return Some(result);
     }
-    if let Some(result) = seed_generation::handle(ad, boot_display, delay, liveness, i2c, camera, dma, x, y, is_back) {
+    if let Some(result) = seed_generation::handle(ad, &mut io, camera, input) {
         return Some(result);
     }
+    let crate::runtime::interactions::DeviceIo { boot_display, delay, i2c, liveness } = io;
     if ad.navigation.app.state == crate::runtime::input::AppState::CovBackupName {
-        return Some(cov_backup_name::handle(ad, boot_display, x, y, is_back));
+        return Some(cov_backup_name::handle(ad, boot_display, input));
     }
-    if let Some(result) = signing::handle(ad, boot_display, delay, liveness, i2c, list_zones, x, y, is_back) {
+    if let Some(result) = signing::handle(ad, boot_display, delay, liveness, i2c, list_zones, input) {
         return Some(result);
     }
-    if let Some(result) = qr::handle(ad, x, y, is_back) {
+    if let Some(result) = qr::handle(ad, input) {
         return Some(result);
     }
     None
@@ -77,8 +77,7 @@ pub fn handle_signing_feedback_touch(
     list_zones: &[touch::TouchZone; 4],
     input: TouchInput,
 ) -> Option<bool> {
-    let TouchInput { x, y, is_back } = input;
-    signing::handle_feedback(ad, boot_display, delay, liveness, list_zones, x, y, is_back)
+    signing::handle_feedback(ad, boot_display, delay, liveness, list_zones, input)
 }
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) fn handle_connected_root_probe(ad: &mut AppData, x: u16, y: u16) -> bool {

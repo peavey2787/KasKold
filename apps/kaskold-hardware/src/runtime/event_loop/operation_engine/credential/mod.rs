@@ -39,7 +39,11 @@ impl CredentialDriver {
         crate::services::audio::resume_credential_cues();
     }
 
-    pub(super) fn service(
+    /// Publish the credential task for the next exclusive frame, or finish
+    /// with its setup error. Arming is deliberately cheap: returning here
+    /// guarantees one real watchdog acknowledgement before the first
+    /// foreground KDF begins on the next frame.
+    pub(super) fn arm(
         &mut self,
         ad: &mut AppData,
         kind: OperationKind,
@@ -47,47 +51,43 @@ impl CredentialDriver {
         display: &mut BootDisplay<'_>,
         delay: &mut esp_hal::delay::Delay,
         i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
+    ) {
+        // Flush the submit cue before entering the exclusive memory-hard lane.
+        crate::services::audio::suspend_credential_cues();
+        match Task::begin(ad, kind, persistence, delay, i2c) {
+            Ok(task) => {
+                self.task = Some(task);
+                crate::log!("   Credential foreground-exclusive lane ARMED");
+            }
+            Err(error) => {
+                ad.wallet.seeds.pp_input.reset();
+                crate::services::audio::resume_credential_cues();
+                result::finish(ad, kind, error, display, delay, persistence);
+            }
+        }
+    }
+
+    /// Run one exclusive frame of the armed task.
+    pub(super) fn advance(
+        &mut self,
+        ad: &mut AppData,
+        persistence: &mut PersistentWallet<'_>,
+        display: &mut BootDisplay<'_>,
+        delay: &mut esp_hal::delay::Delay,
+        i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
         liveness: &mut (impl FnMut() + ?Sized),
     ) {
-        if self.task.is_none() {
-            // Flush the submit cue before entering the exclusive memory-hard
-            // lane. Task publication itself is deliberately cheap; returning
-            // here guarantees one real watchdog acknowledgement immediately
-            // before the first foreground KDF begins on the next frame.
-            crate::services::audio::suspend_credential_cues();
-            match Task::begin(ad, kind, persistence, delay, i2c) {
-                Ok(task) => {
-                    self.task = Some(task);
-                    crate::log!("   Credential foreground-exclusive lane ARMED");
-                    return;
-                }
-                Err(error) => {
-                    ad.wallet.seeds.pp_input.reset();
-                    crate::services::audio::resume_credential_cues();
-                    result::finish(ad, kind, error, display, delay, persistence);
-                    return;
-                }
-            }
-        }
-        let step = {
-            let Some(task) = self.task.as_mut() else {
-                return;
-            };
-            task.step(ad, persistence, display, delay, i2c, liveness)
+        let Some(task) = self.task.as_mut() else {
+            return;
         };
-        match step {
-            Step::Continue => {}
-            Step::Complete { kind, result } => {
-                self.task = None;
-                let result = if task::is_unlock(kind) {
-                    persistence.conclude_unlock_attempt(result, ad, i2c, delay)
-                } else {
-                    result
-                };
-                crate::services::audio::resume_credential_cues();
-                crate::log!("   Credential foreground-exclusive lane RELEASED");
-                result::finish_result(ad, kind, result, display, delay, persistence);
-            }
-        }
+        let Step::Complete { kind, result } = task.step(ad, persistence, display, delay, i2c, liveness) else {
+            return;
+        };
+        self.task = None;
+        let result =
+            if task::is_unlock(kind) { persistence.conclude_unlock_attempt(result, ad, i2c, delay) } else { result };
+        crate::services::audio::resume_credential_cues();
+        crate::log!("   Credential foreground-exclusive lane RELEASED");
+        result::finish_result(ad, kind, result, display, delay, persistence);
     }
 }

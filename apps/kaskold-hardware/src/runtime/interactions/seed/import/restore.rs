@@ -1,5 +1,6 @@
 //! Recovery-word restore with automatic 12/24-word detection.
 
+use crate::controllers::TouchInput;
 use crate::{
     hw::display,
     runtime::data::AppData,
@@ -11,12 +12,10 @@ pub(super) fn handle(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
     word_idx: u8,
 ) -> bool {
-    match super::word_entry::read_event(ad, boot_display, x, y, is_back) {
+    match super::word_entry::read_event(ad, boot_display, input) {
         super::word_entry::WordEntryEvent::Pending => false,
         super::word_entry::WordEntryEvent::Cancelled => true,
         super::word_entry::WordEntryEvent::Accepted(index) => accept_word(ad, boot_display, delay, word_idx, index),

@@ -1,5 +1,6 @@
 // Seed-list controller facade.
 
+use crate::controllers::TouchInput;
 mod list;
 
 use super::{display, AppData};
@@ -8,18 +9,17 @@ pub(super) fn handle(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
     liveness: &mut dyn FnMut(),
 ) -> Option<bool> {
     if !matches!(ad.navigation.app.state, crate::runtime::input::AppState::SeedList) {
         return None;
     }
-    Some(list::handle(ad, boot_display, delay, x, y, is_back, liveness))
+    Some(list::handle(ad, boot_display, delay, input, liveness))
 }
 
-pub(super) fn handle_add_wallet_choice(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> Option<bool> {
+pub(super) fn handle_add_wallet_choice(ad: &mut AppData, input: TouchInput) -> Option<bool> {
+    let TouchInput { x, y, is_back } = input;
     use crate::runtime::input::AppState;
     use crate::ui::screens::device::persistence::{BUTTON_X, FRESH_BUTTON_Y, SAVE_BUTTON_Y};
     if ad.navigation.app.state != AppState::AddWalletChoice {

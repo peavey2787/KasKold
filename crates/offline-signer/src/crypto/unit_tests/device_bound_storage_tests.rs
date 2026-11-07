@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 use super::{
     derive_aes_key, generate_fresh_material, open_in_place, seal_in_place, DeviceBoundError,
-    EntropySource, HardwareHmac, KdfParameters, OpenRequest, StoragePurpose, FORMAT_VERSION,
+    EntropySource, Envelope, HardwareHmac, KdfParameters, StoragePurpose, FORMAT_VERSION,
     KDF_ID_DEVICE_HMAC_SHA256, NONCE_SIZE,
 };
 
@@ -254,24 +254,26 @@ fn same_device_roundtrip_succeeds_and_tampering_fails_with_zeroized_plaintext() 
     let tag = seal_in_place(
         &mut provider,
         parameters,
-        &stretched,
-        &SALT,
-        &NONCE,
-        HEADER,
+        Envelope {
+            stretched_credential: &stretched,
+            salt: &SALT,
+            nonce: &NONCE,
+            authenticated_header: HEADER,
+        },
         &mut ciphertext,
     )
     .unwrap();
     assert_ne!(&ciphertext, b"device-bound-wallet-payload");
     open_in_place(
         &mut provider,
-        OpenRequest {
-            parameters,
+        parameters,
+        Envelope {
             stretched_credential: &stretched,
             salt: &SALT,
             nonce: &NONCE,
             authenticated_header: HEADER,
-            tag: &tag,
         },
+        &tag,
         &mut ciphertext,
     )
     .unwrap();
@@ -282,10 +284,12 @@ fn same_device_roundtrip_succeeds_and_tampering_fails_with_zeroized_plaintext() 
     let mut tag = seal_in_place(
         &mut provider,
         parameters,
-        &stretched,
-        &SALT,
-        &NONCE,
-        HEADER,
+        Envelope {
+            stretched_credential: &stretched,
+            salt: &SALT,
+            nonce: &NONCE,
+            authenticated_header: HEADER,
+        },
         &mut tampered,
     )
     .unwrap();
@@ -293,14 +297,14 @@ fn same_device_roundtrip_succeeds_and_tampering_fails_with_zeroized_plaintext() 
     assert_eq!(
         open_in_place(
             &mut provider,
-            OpenRequest {
-                parameters,
+            parameters,
+            Envelope {
                 stretched_credential: &stretched,
                 salt: &SALT,
                 nonce: &NONCE,
-                authenticated_header: HEADER,
-                tag: &tag,
+                authenticated_header: HEADER
             },
+            &tag,
             &mut tampered,
         ),
         Err(DeviceBoundError::AuthenticationFailed),
@@ -312,10 +316,12 @@ fn same_device_roundtrip_succeeds_and_tampering_fails_with_zeroized_plaintext() 
     let tag = seal_in_place(
         &mut provider,
         parameters,
-        &stretched,
-        &SALT,
-        &NONCE,
-        HEADER,
+        Envelope {
+            stretched_credential: &stretched,
+            salt: &SALT,
+            nonce: &NONCE,
+            authenticated_header: HEADER,
+        },
         &mut ciphertext,
     )
     .unwrap();
@@ -323,14 +329,14 @@ fn same_device_roundtrip_succeeds_and_tampering_fails_with_zeroized_plaintext() 
     assert_eq!(
         open_in_place(
             &mut provider,
-            OpenRequest {
-                parameters,
+            parameters,
+            Envelope {
                 stretched_credential: &stretched,
                 salt: &SALT,
                 nonce: &NONCE,
-                authenticated_header: HEADER,
-                tag: &tag,
+                authenticated_header: HEADER
             },
+            &tag,
             &mut ciphertext,
         ),
         Err(DeviceBoundError::AuthenticationFailed),
@@ -348,10 +354,12 @@ fn wrong_password_and_wrong_device_are_rejected() {
     let tag = seal_in_place(
         &mut provider,
         parameters,
-        &stretched,
-        &SALT,
-        &NONCE,
-        HEADER,
+        Envelope {
+            stretched_credential: &stretched,
+            salt: &SALT,
+            nonce: &NONCE,
+            authenticated_header: HEADER,
+        },
         &mut ciphertext,
     )
     .unwrap();
@@ -361,14 +369,14 @@ fn wrong_password_and_wrong_device_are_rejected() {
     assert_eq!(
         open_in_place(
             &mut same_device,
-            OpenRequest {
-                parameters,
+            parameters,
+            Envelope {
                 stretched_credential: &wrong,
                 salt: &SALT,
                 nonce: &NONCE,
-                authenticated_header: HEADER,
-                tag: &tag,
+                authenticated_header: HEADER
             },
+            &tag,
             &mut wrong_password_copy,
         ),
         Err(DeviceBoundError::AuthenticationFailed),
@@ -379,14 +387,14 @@ fn wrong_password_and_wrong_device_are_rejected() {
     assert_eq!(
         open_in_place(
             &mut other_device,
-            OpenRequest {
-                parameters,
+            parameters,
+            Envelope {
                 stretched_credential: &stretched,
                 salt: &SALT,
                 nonce: &NONCE,
-                authenticated_header: HEADER,
-                tag: &tag,
+                authenticated_header: HEADER
             },
+            &tag,
             &mut cross_device_copy,
         ),
         Err(DeviceBoundError::AuthenticationFailed),
@@ -404,10 +412,12 @@ fn altered_authenticated_header_is_rejected() {
     let tag = seal_in_place(
         &mut provider,
         parameters,
-        &stretched,
-        &SALT,
-        &NONCE,
-        HEADER,
+        Envelope {
+            stretched_credential: &stretched,
+            salt: &SALT,
+            nonce: &NONCE,
+            authenticated_header: HEADER,
+        },
         &mut ciphertext,
     )
     .unwrap();
@@ -416,14 +426,14 @@ fn altered_authenticated_header_is_rejected() {
     assert_eq!(
         open_in_place(
             &mut provider,
-            OpenRequest {
-                parameters,
+            parameters,
+            Envelope {
                 stretched_credential: &stretched,
                 salt: &SALT,
                 nonce: &NONCE,
-                authenticated_header: b"KSWLT004-tampered-header",
-                tag: &tag,
+                authenticated_header: b"KSWLT004-tampered-header"
             },
+            &tag,
             &mut copy,
         ),
         Err(DeviceBoundError::AuthenticationFailed),
@@ -437,14 +447,14 @@ fn altered_authenticated_header_is_rejected() {
     assert_eq!(
         open_in_place(
             &mut provider,
-            OpenRequest {
-                parameters,
+            parameters,
+            Envelope {
                 stretched_credential: &stretched,
                 salt: &changed_salt,
                 nonce: &NONCE,
-                authenticated_header: HEADER,
-                tag: &tag,
+                authenticated_header: HEADER
             },
+            &tag,
             &mut salt_copy,
         ),
         Err(DeviceBoundError::AuthenticationFailed),
@@ -467,11 +477,13 @@ fn missing_hmac_service_fails_closed_and_zeroizes_buffers() {
         seal_in_place(
             &mut provider,
             parameters,
-            &stretched,
-            &SALT,
-            &NONCE,
-            HEADER,
-            &mut plaintext,
+            Envelope {
+                stretched_credential: &stretched,
+                salt: &SALT,
+                nonce: &NONCE,
+                authenticated_header: HEADER
+            },
+            &mut plaintext
         ),
         Err(DeviceBoundError::HardwareHmacUnavailable),
     );
@@ -482,14 +494,14 @@ fn missing_hmac_service_fails_closed_and_zeroizes_buffers() {
     assert_eq!(
         open_in_place(
             &mut provider,
-            OpenRequest {
-                parameters,
+            parameters,
+            Envelope {
                 stretched_credential: &stretched,
                 salt: &SALT,
                 nonce: &NONCE,
-                authenticated_header: HEADER,
-                tag: &tag,
+                authenticated_header: HEADER
             },
+            &tag,
             &mut ciphertext,
         ),
         Err(DeviceBoundError::HardwareHmacUnavailable),

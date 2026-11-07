@@ -1,3 +1,4 @@
+use crate::controllers::TouchInput;
 use crate::{
     hw::display,
     runtime::data::AppData,
@@ -13,11 +14,10 @@ pub(super) fn handle(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
     liveness: &mut dyn FnMut(),
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.wallet.seeds.seed_list_scroll = 0;
         // WALLETS is a required-selection surface whenever inventory exists but

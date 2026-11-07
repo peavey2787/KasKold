@@ -1,4 +1,5 @@
 use super::BackupContext;
+use crate::controllers::TouchInput;
 use crate::runtime::input::AppState;
 
 pub(super) fn exercise(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
@@ -40,17 +41,19 @@ fn word_zero_back_boundary(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
     }
     ctx.redraw();
     ctx.show_step();
-    ctx.export_touch(20, 20, true) == Some(true) && ctx.ad.navigation.app.state == AppState::WalletBackupMethodsMenu
+    ctx.export_touch(TouchInput::new(20, 20, true)) == Some(true)
+        && ctx.ad.navigation.app.state == AppState::WalletBackupMethodsMenu
 }
 
 fn word_one_back_boundary(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
     if !ctx.menu_select(0)
-        || ctx.export_touch(160, 120, false) != Some(true)
+        || ctx.export_touch(TouchInput::new(160, 120, false)) != Some(true)
         || ctx.ad.navigation.app.state != (AppState::SeedBackup { word_idx: 1 })
     {
         return false;
     }
-    ctx.export_touch(20, 20, true) == Some(true) && ctx.ad.navigation.app.state == AppState::WalletBackupMethodsMenu
+    ctx.export_touch(TouchInput::new(20, 20, true)) == Some(true)
+        && ctx.ad.navigation.app.state == AppState::WalletBackupMethodsMenu
 }
 
 fn walk_recovery_words(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
@@ -58,12 +61,13 @@ fn walk_recovery_words(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
         return false;
     }
     for next in 1u8..12 {
-        if ctx.export_touch(160, 120, false) != Some(true)
+        if ctx.export_touch(TouchInput::new(160, 120, false)) != Some(true)
             || ctx.ad.navigation.app.state != (AppState::SeedBackup { word_idx: next })
         {
             return false;
         }
         ctx.redraw();
     }
-    ctx.export_touch(160, 120, false) == Some(true) && ctx.ad.navigation.app.state == AppState::WalletBackupMethodsMenu
+    ctx.export_touch(TouchInput::new(160, 120, false)) == Some(true)
+        && ctx.ad.navigation.app.state == AppState::WalletBackupMethodsMenu
 }

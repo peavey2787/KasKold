@@ -64,8 +64,11 @@ pub(crate) fn service(
     }
 
     match kind.execution() {
+        OperationExecution::ForegroundExclusive if engine.credential.owns_exclusive_frame() => {
+            engine.credential.advance(ad, persistence, display, delay, i2c, liveness);
+        }
         OperationExecution::ForegroundExclusive => {
-            engine.credential.service(ad, kind, persistence, display, delay, i2c, liveness);
+            engine.credential.arm(ad, kind, persistence, display, delay, i2c);
         }
         OperationExecution::Stepped => {
             engine.credential.cancel(ad);

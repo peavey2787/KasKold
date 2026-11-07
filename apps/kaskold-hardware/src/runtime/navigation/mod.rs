@@ -229,7 +229,7 @@ pub(crate) fn begin_add_wallet(ad: &mut AppData, action: u8) -> bool {
         ad.navigation.production.restore_menu.reset();
         route!(StorageSeedSourceChoice)
     } else {
-        route!(ChooseWordCount { action: action })
+        route!(ChooseWordCount { action })
     };
     let routed = kernel::dispatch(ad, UiEvent::Route(destination));
     if !routed {

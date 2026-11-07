@@ -30,15 +30,9 @@ impl WalletContext<'_, '_, '_> {
         super::show_step(self.delay);
     }
 
-    fn seed_list_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
+    fn seed_list_touch(&mut self, input: TouchInput) -> Option<bool> {
         let mut feed = || {};
-        crate::runtime::interactions::seed::handle_inventory_touch(
-            self.ad,
-            self.display,
-            self.delay,
-            &mut feed,
-            TouchInput::new(x, y, is_back),
-        )
+        crate::runtime::interactions::seed::handle_inventory_touch(self.ad, self.display, self.delay, &mut feed, input)
     }
 
     fn open_wallet_item(&mut self, item: usize, expected: AppState) -> bool {
@@ -308,7 +302,7 @@ fn wallet_details_delete_cancel(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if ctx.seed_list_touch(20, 20, true) != Some(true) || !ctx.return_wallet_menu() {
+    if ctx.seed_list_touch(TouchInput::new(20, 20, true)) != Some(true) || !ctx.return_wallet_menu() {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: WALLET DETAILS DELETE CANCEL OK");
@@ -322,18 +316,19 @@ fn wallet_inventory(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
     ctx.redraw();
     ctx.show_step();
     mark_failure_stage(40);
-    if ctx.seed_list_touch(300, 112, false) != Some(true) || ctx.ad.wallet.seeds.seed_list_scroll != 3 {
+    if ctx.seed_list_touch(TouchInput::new(300, 112, false)) != Some(true) || ctx.ad.wallet.seeds.seed_list_scroll != 3
+    {
         return false;
     }
     mark_failure_stage(41);
-    if ctx.seed_list_touch(20, 112, false) != Some(true) || ctx.ad.wallet.seeds.seed_list_scroll != 0 {
+    if ctx.seed_list_touch(TouchInput::new(20, 112, false)) != Some(true) || ctx.ad.wallet.seeds.seed_list_scroll != 0 {
         return false;
     }
     // WALLETS renders Add Wallet first, then loaded wallets. With scroll=0,
     // slot 0 is row 1 and slot 1 is row 2. Select the third visible row so
     // this probe actually exercises a wallet switch instead of re-selecting 0.
     mark_failure_stage(42);
-    if ctx.seed_list_touch(160, 158, false) != Some(true) || ctx.ad.wallet.seeds.seed_mgr.active != 1 {
+    if ctx.seed_list_touch(TouchInput::new(160, 158, false)) != Some(true) || ctx.ad.wallet.seeds.seed_mgr.active != 1 {
         return false;
     }
     mark_failure_stage(43);
@@ -355,7 +350,7 @@ fn open_add_wallet_menu(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
     if !ctx.open_wallet_item(4, AppState::SeedList)
         // Add Wallet is the first canonical WALLETS row whenever capacity is
         // available; do not page away from item 0 before selecting it.
-        || ctx.seed_list_touch(160, 66, false) != Some(true)
+        || ctx.seed_list_touch(TouchInput::new(160, 66, false)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::AddWalletChoice
     {
         return false;
@@ -427,7 +422,7 @@ fn exercise_add_wallet_back(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if ctx.seed_list_touch(20, 20, true) != Some(true) || !ctx.return_wallet_menu() {
+    if ctx.seed_list_touch(TouchInput::new(20, 20, true)) != Some(true) || !ctx.return_wallet_menu() {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: ADD WALLET CREATE/RESTORE/BACK OK");

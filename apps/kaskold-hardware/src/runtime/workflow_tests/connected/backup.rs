@@ -1,4 +1,3 @@
-use crate::services::credential_policy::SALT_SIZE;
 use crate::{
     hw::{display::BootDisplay, touch::TouchZone},
     runtime::interactions::{sd::SdTouchContext, stego::StegoTouchContext, TouchInput},
@@ -10,7 +9,7 @@ use aes_gcm::{
     Aes256Gcm,
 };
 use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
-use offline_signer::crypto::device_bound_storage::{StoragePurpose, NONCE_SIZE, TAG_SIZE};
+use offline_signer::crypto::device_bound_storage::{Envelope, StoragePurpose, TAG_SIZE};
 
 mod recovery_words;
 mod seedqr;
@@ -46,17 +45,18 @@ impl BackupDevice for WorkflowBackupDevice {
     fn seal_backup_key(
         &mut self,
         purpose: StoragePurpose,
-        credential_key: &[u8; 32],
-        salt: &[u8; SALT_SIZE],
-        nonce: &[u8; NONCE_SIZE],
-        aad: &[u8],
+        envelope: Envelope<'_>,
         ciphertext: &mut [u8],
     ) -> Result<[u8; TAG_SIZE], BackupError> {
         core::hint::black_box(purpose);
-        core::hint::black_box(salt);
-        let cipher = Aes256Gcm::new(GenericArray::from_slice(credential_key));
+        core::hint::black_box(envelope.salt);
+        let cipher = Aes256Gcm::new(GenericArray::from_slice(envelope.stretched_credential));
         let tag = cipher
-            .encrypt_in_place_detached(GenericArray::from_slice(nonce), aad, ciphertext)
+            .encrypt_in_place_detached(
+                GenericArray::from_slice(envelope.nonce),
+                envelope.authenticated_header,
+                ciphertext,
+            )
             .map_err(|_| BackupError::EncryptionFailed)?;
         let mut out = [0u8; TAG_SIZE];
         out.copy_from_slice(&tag);
@@ -66,18 +66,20 @@ impl BackupDevice for WorkflowBackupDevice {
     fn open_backup_key(
         &mut self,
         purpose: StoragePurpose,
-        credential_key: &[u8; 32],
-        salt: &[u8; SALT_SIZE],
-        nonce: &[u8; NONCE_SIZE],
-        aad: &[u8],
+        envelope: Envelope<'_>,
         ciphertext: &mut [u8],
         tag: &[u8; TAG_SIZE],
     ) -> Result<(), BackupError> {
         core::hint::black_box(purpose);
-        core::hint::black_box(salt);
-        let cipher = Aes256Gcm::new(GenericArray::from_slice(credential_key));
+        core::hint::black_box(envelope.salt);
+        let cipher = Aes256Gcm::new(GenericArray::from_slice(envelope.stretched_credential));
         cipher
-            .decrypt_in_place_detached(GenericArray::from_slice(nonce), aad, ciphertext, GenericArray::from_slice(tag))
+            .decrypt_in_place_detached(
+                GenericArray::from_slice(envelope.nonce),
+                envelope.authenticated_header,
+                ciphertext,
+                GenericArray::from_slice(tag),
+            )
             .map_err(|_| BackupError::AuthenticationFailed)
     }
 }
@@ -133,7 +135,7 @@ impl BackupContext<'_, '_, '_> {
         crate::runtime::navigation::handle_back(self.ad)
     }
 
-    fn export_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
+    fn export_touch(&mut self, input: TouchInput) -> Option<bool> {
         crate::runtime::interactions::export::handle_export_touch(
             crate::runtime::interactions::export::ExportTouchContext {
                 ad: &mut *self.ad,
@@ -144,12 +146,12 @@ impl BackupContext<'_, '_, '_> {
                 list_zones: &self.list,
                 page_up_zone: &self.up,
                 page_down_zone: &self.down,
-                input: TouchInput::new(x, y, is_back),
+                input,
             },
         )
     }
 
-    fn sd_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
+    fn sd_touch(&mut self, input: TouchInput) -> Option<bool> {
         crate::runtime::interactions::sd::handle_sd_touch(SdTouchContext {
             ad: &mut *self.ad,
             boot_display: &mut *self.display,
@@ -160,7 +162,7 @@ impl BackupContext<'_, '_, '_> {
             list_zones: &self.list,
             page_up_zone: &self.up,
             page_down_zone: &self.down,
-            input: TouchInput::new(x, y, is_back),
+            input,
         })
     }
 
@@ -270,7 +272,7 @@ fn backup_recovery_split(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if ctx.sd_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::SeedsMenu {
+    if ctx.sd_touch(TouchInput::new(20, 20, true)) != Some(true) || ctx.ad.navigation.app.state != AppState::SeedsMenu {
         return false;
     }
     crate::runtime::interactions::menu::primary::workflow_wallet_select(ctx.ad, 1)
@@ -298,13 +300,15 @@ fn encrypted_sd_entry(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
         return false;
     }
     ctx.redraw();
-    if ctx.sd_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::WalletBackupMethodsMenu {
+    if ctx.sd_touch(TouchInput::new(20, 20, true)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::WalletBackupMethodsMenu
+    {
         return false;
     }
     if !ctx.menu_select(2)
         || !continue_seed_backup_without_scope_leak(ctx)
         || ctx.ad.navigation.app.state != AppState::SdSeedFilename
-        || ctx.sd_touch(20, 20, true) != Some(true)
+        || ctx.sd_touch(TouchInput::new(20, 20, true)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::WalletBackupMethodsMenu
     {
         return false;
@@ -313,17 +317,16 @@ fn encrypted_sd_entry(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
     true
 }
 
+/// HIL images continue through the real card; controller catalogs prepare the filename directly.
+#[cfg(feature = "workflow-hil-auto")]
 fn continue_seed_backup_without_scope_leak(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
-    #[cfg(feature = "workflow-hil-auto")]
-    {
-        let (x, y) = crate::ui::layout::zone_center(crate::ui::layout::MODAL_LEFT_BUTTON_ZONE);
-        return crate::services::storage_device::known_card().is_some() && ctx.sd_touch(x, y, false) == Some(true);
-    }
+    let (x, y) = crate::ui::layout::zone_center(crate::ui::layout::MODAL_LEFT_BUTTON_ZONE);
+    crate::services::storage_device::known_card().is_some() && ctx.sd_touch(TouchInput::new(x, y, false)) == Some(true)
+}
 
-    #[cfg(not(feature = "workflow-hil-auto"))]
-    {
-        crate::runtime::interactions::sd::workflow_prepare_seed_backup_filename(ctx.ad)
-    }
+#[cfg(not(feature = "workflow-hil-auto"))]
+fn continue_seed_backup_without_scope_leak(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
+    crate::runtime::interactions::sd::workflow_prepare_seed_backup_filename(ctx.ad)
 }
 
 fn advanced_backup_routes(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
@@ -346,16 +349,19 @@ fn advanced_compact(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
         return false;
     }
     ctx.redraw();
-    if ctx.export_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::BackupRecoveryMenu {
+    if ctx.export_touch(TouchInput::new(20, 20, true)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::BackupRecoveryMenu
+    {
         return false;
     }
     if !ctx.menu_select(0)
-        || ctx.export_touch(160, 120, false) != Some(true)
+        || ctx.export_touch(TouchInput::new(160, 120, false)) != Some(true)
         || ctx.ad.navigation.app.state != (AppState::SeedQrGrid { pan_x: 0, pan_y: 0, compact: true })
     {
         return false;
     }
-    ctx.export_touch(20, 20, true) == Some(true) && ctx.ad.navigation.app.state == AppState::BackupRecoveryMenu
+    ctx.export_touch(TouchInput::new(20, 20, true)) == Some(true)
+        && ctx.ad.navigation.app.state == AppState::BackupRecoveryMenu
 }
 
 fn advanced_plain(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
@@ -363,7 +369,8 @@ fn advanced_plain(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
         return false;
     }
     ctx.redraw();
-    ctx.export_touch(160, 120, false) == Some(true) && ctx.ad.navigation.app.state == AppState::BackupRecoveryMenu
+    ctx.export_touch(TouchInput::new(160, 120, false)) == Some(true)
+        && ctx.ad.navigation.app.state == AppState::BackupRecoveryMenu
 }
 
 fn advanced_stego(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
@@ -384,7 +391,8 @@ fn advanced_xprv(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
     if !ctx.menu_select(3) || ctx.ad.navigation.app.state != AppState::XprvExportMenu {
         return false;
     }
-    ctx.export_touch(20, 20, true) == Some(true) && ctx.ad.navigation.app.state == AppState::BackupRecoveryMenu
+    ctx.export_touch(TouchInput::new(20, 20, true)) == Some(true)
+        && ctx.ad.navigation.app.state == AppState::BackupRecoveryMenu
 }
 
 fn raw_key_rejections(ctx: &mut BackupContext<'_, '_, '_>) -> bool {

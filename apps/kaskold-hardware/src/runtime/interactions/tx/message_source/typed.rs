@@ -1,4 +1,5 @@
 use super::super::{display, AppData};
+use crate::controllers::TouchInput;
 use crate::runtime::interactions::{
     feedback::{show_rejection, ErrorSound},
     keyboard::{handle_passphrase_keyboard, KeyboardAction},
@@ -8,10 +9,9 @@ pub(super) fn handle(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.wallet.seeds.pp_input.reset();
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SignMsgChoice));

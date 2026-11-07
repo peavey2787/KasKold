@@ -38,7 +38,8 @@ fn sd_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     if ctx.card_source_touch() != Some(true) {
         return false;
     }
-    if ctx.base.ad.navigation.app.state == AppState::SdWalletBackupFileList && ctx.sd_touch(20, 20, true) != Some(true)
+    if ctx.base.ad.navigation.app.state == AppState::SdWalletBackupFileList
+        && ctx.sd_touch(TouchInput::new(20, 20, true)) != Some(true)
     {
         return false;
     }
@@ -83,7 +84,8 @@ fn raw_key_back(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     if ctx.advanced_touch(3) != Some(true) || ctx.base.ad.navigation.app.state != AppState::ImportPrivKey {
         return false;
     }
-    ctx.base.seed_touch(20, 20, true) == Some(true) && ctx.base.ad.navigation.app.state == AppState::AdvancedRestoreMenu
+    ctx.base.seed_touch(TouchInput::new(20, 20, true)) == Some(true)
+        && ctx.base.ad.navigation.app.state == AppState::AdvancedRestoreMenu
 }
 
 /// A card holding photos opens the picker and back returns; anything else never leaves the menu.

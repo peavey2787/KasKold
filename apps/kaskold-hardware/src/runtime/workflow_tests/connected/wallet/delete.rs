@@ -32,7 +32,7 @@ fn delete_release_cancel(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: WALLET DELETE RELEASE CANCEL OK");
-    ctx.seed_list_touch(20, 20, true) == Some(true) && ctx.return_wallet_menu()
+    ctx.seed_list_touch(TouchInput::new(20, 20, true)) == Some(true) && ctx.return_wallet_menu()
 }
 
 fn delete_commit(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
@@ -71,7 +71,7 @@ fn delete_commit(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
     super::mark_failure_stage(8);
     // The current workflow deliberately leaves WALLETS unresolved after deleting the active
     // wallet. Back/Home must stay trapped until a surviving wallet is selected.
-    if ctx.seed_list_touch(20, 20, true) != Some(true)
+    if ctx.seed_list_touch(TouchInput::new(20, 20, true)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::SeedList
         || ctx.ad.wallet.seeds.seed_mgr.active_slot().is_some()
     {
@@ -79,7 +79,7 @@ fn delete_commit(ctx: &mut WalletContext<'_, '_, '_>) -> bool {
     }
     log!("KASKOLD_WORKFLOW_TESTS: WALLET DELETE REQUIRED-SELECTION BACK GUARD OK");
     // Slot 1 is gone: Add Wallet is row 0 and surviving slot 0 is row 1.
-    if ctx.seed_list_touch(160, 112, false) != Some(true)
+    if ctx.seed_list_touch(TouchInput::new(160, 112, false)) != Some(true)
         || ctx.ad.wallet.seeds.seed_mgr.active != 0
         || !ctx.return_wallet_menu()
     {

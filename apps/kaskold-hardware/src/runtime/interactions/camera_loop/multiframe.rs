@@ -7,19 +7,16 @@
 use super::dispatch::process_confirmed_qr;
 use super::state::{CameraSessionState, MultiFrameState, MF_BUF_SIZE, MF_MAX_FRAMES, MF_SLOT_SIZE};
 use super::{display, sound, AppData};
+use crate::runtime::interactions::DeviceIo;
 
 #[inline(never)]
 pub(super) fn process_multiframe(
     session: &mut CameraSessionState,
     data: &[u8],
-    length: usize,
     ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    liveness: &mut (impl FnMut() + ?Sized),
+    io: &mut DeviceIo<'_, '_, '_>,
 ) {
-    let frame = match shared_signer::qr_frame::parse_frame(&data[..length.min(data.len())]) {
+    let frame = match shared_signer::qr_frame::parse_frame(data) {
         Ok(frame) => frame,
         Err(_) => return,
     };
@@ -75,23 +72,20 @@ pub(super) fn process_multiframe(
 
     let received_count = multiframe.received[..total].iter().filter(|received| **received).count();
     log!("   → Frame {}/{} ({} bytes), {}/{}", frame_index + 1, total, frame.fragment.len(), received_count, total,);
-    draw_mf_counter(boot_display, &multiframe.received, frame.total_frames);
+    draw_mf_counter(io.boot_display, &multiframe.received, frame.total_frames);
 
     if !multiframe.received[..total].iter().all(|received| *received) {
         return;
     }
 
-    process_complete_session(multiframe, total, ad, boot_display, delay, i2c, liveness);
+    process_complete_session(multiframe, total, ad, io);
 }
 
 fn process_complete_session(
     multiframe: &mut MultiFrameState,
     total: usize,
     ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    liveness: &mut (impl FnMut() + ?Sized),
+    io: &mut DeviceIo<'_, '_, '_>,
 ) {
     let Ok(mut assembled) = crate::services::memory::zeroed_bytes(MF_BUF_SIZE) else {
         log!("   multiframe assembly: PSRAM allocation failed");
@@ -117,12 +111,12 @@ fn process_complete_session(
     log!("   → Complete QR session: {} frames, {} bytes", total, position);
     multiframe.reset();
     if ad.signing.anti_klepto.phase == crate::runtime::data::AntiKleptoPhase::AwaitingReveal {
-        boot_display.draw_loading_wait_screen("Finalizing signature...");
+        io.boot_display.draw_loading_wait_screen("Finalizing signature...");
     } else {
-        boot_display.draw_loading_screen("Processing QR...");
+        io.boot_display.draw_loading_screen("Processing QR...");
     }
     log!("   QR processing UI shown after multi-frame assembly");
-    process_confirmed_qr(&assembled[..position], position, ad, boot_display, delay, i2c, liveness);
+    process_confirmed_qr(&assembled[..position], ad, io);
 }
 
 /// Draw one progress dot per expected frame, up to the 64-frame protocol maximum.

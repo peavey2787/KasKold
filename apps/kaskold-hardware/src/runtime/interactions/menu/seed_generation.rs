@@ -14,67 +14,40 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 // menu controller — seed generation workflow.
+use crate::controllers::TouchInput;
 mod additive;
 use super::{display, AppData};
 use crate::{
     runtime::interactions::feedback::{show_rejection, ErrorSound},
     wallet::mnemonic,
 };
-use esp_hal::{dma::DmaRxBuf, lcd_cam::cam::Camera as DvpCamera};
+use crate::{runtime::interactions::DeviceIo, services::camera_device::CameraPort};
 pub(crate) fn handle(
     ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    liveness: &mut dyn FnMut(),
-    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    dvp_camera_opt: &mut Option<DvpCamera<'_>>,
-    cam_dma_buf_opt: &mut Option<DmaRxBuf>,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    io: &mut DeviceIo<'_, '_, '_>,
+    camera: &mut CameraPort<'_>,
+    input: TouchInput,
 ) -> Option<bool> {
+    let TouchInput { is_back, .. } = input;
     match ad.navigation.app.state {
         crate::runtime::input::AppState::ChooseWordCount { action }
-        | crate::runtime::input::AppState::StorageSeedWordCountChoice { action } => Some(handle_word_count(
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            i2c,
-            dvp_camera_opt,
-            cam_dma_buf_opt,
-            x,
-            y,
-            is_back,
-            action,
-        )),
-        crate::runtime::input::AppState::SeedEntropyUnavailable { word_count } => Some(handle_entropy_recovery(
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            i2c,
-            dvp_camera_opt,
-            cam_dma_buf_opt,
-            x,
-            y,
-            is_back,
-            word_count,
-        )),
-        crate::runtime::input::AppState::StorageSeedDiceChoice => Some(additive::handle_dice_choice(ad, x, y, is_back)),
-        crate::runtime::input::AppState::StorageSeedDiceCountChoice => {
-            Some(additive::handle_dice_count(ad, x, y, is_back))
+        | crate::runtime::input::AppState::StorageSeedWordCountChoice { action } => {
+            Some(handle_word_count(ad, io, camera, input, action))
         }
-        crate::runtime::input::AppState::StorageSeedTouchChoice => {
-            Some(additive::handle_touch_choice(ad, x, y, is_back))
+        crate::runtime::input::AppState::SeedEntropyUnavailable { word_count } => {
+            Some(handle_entropy_recovery(ad, io, camera, input, word_count))
         }
+        crate::runtime::input::AppState::StorageSeedDiceChoice => Some(additive::handle_dice_choice(ad, input)),
+        crate::runtime::input::AppState::StorageSeedDiceCountChoice => Some(additive::handle_dice_count(ad, input)),
+        crate::runtime::input::AppState::StorageSeedTouchChoice => Some(additive::handle_touch_choice(ad, input)),
         crate::runtime::input::AppState::TouchEntropy => Some(handle_touch_entropy(ad, is_back)),
         _ => None,
     }
 }
 
 #[cfg(feature = "workflow-test-auto")]
-pub(crate) fn workflow_stage_word_count(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+pub(crate) fn workflow_stage_word_count(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageModeChoice));
         return true;
@@ -90,18 +63,18 @@ pub(crate) fn workflow_stage_word_count(ad: &mut AppData, x: u16, y: u16, is_bac
 }
 
 #[cfg(feature = "workflow-test-auto")]
-pub(crate) fn workflow_dice_choice(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
-    additive::handle_dice_choice(ad, x, y, is_back)
+pub(crate) fn workflow_dice_choice(ad: &mut AppData, input: TouchInput) -> bool {
+    additive::handle_dice_choice(ad, input)
 }
 
 #[cfg(feature = "workflow-test-auto")]
-pub(crate) fn workflow_dice_count(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
-    additive::handle_dice_count(ad, x, y, is_back)
+pub(crate) fn workflow_dice_count(ad: &mut AppData, input: TouchInput) -> bool {
+    additive::handle_dice_count(ad, input)
 }
 
 #[cfg(feature = "workflow-test-auto")]
-pub(crate) fn workflow_touch_choice(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
-    additive::handle_touch_choice(ad, x, y, is_back)
+pub(crate) fn workflow_touch_choice(ad: &mut AppData, input: TouchInput) -> bool {
+    additive::handle_touch_choice(ad, input)
 }
 
 #[cfg(feature = "workflow-test-auto")]
@@ -110,7 +83,8 @@ pub(crate) fn workflow_touch_back(ad: &mut AppData, is_back: bool) -> bool {
 }
 
 #[cfg(feature = "workflow-test-auto")]
-pub(crate) fn workflow_existing_tool_word_count(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+pub(crate) fn workflow_existing_tool_word_count(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     let crate::runtime::input::AppState::ChooseWordCount { action } = ad.navigation.app.state else {
         return false;
     };
@@ -130,17 +104,12 @@ pub(crate) fn workflow_existing_tool_word_count(ad: &mut AppData, x: u16, y: u16
 
 fn handle_word_count(
     ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    liveness: &mut dyn FnMut(),
-    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    dvp_camera_opt: &mut Option<DvpCamera<'_>>,
-    cam_dma_buf_opt: &mut Option<DmaRxBuf>,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    io: &mut DeviceIo<'_, '_, '_>,
+    camera: &mut CameraPort<'_>,
+    input: TouchInput,
     action: u8,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         if ad.storage.persistence.device_storage_intent.is_seed_onboarding() {
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageModeChoice));
@@ -155,65 +124,35 @@ fn handle_word_count(
     // The event loop acknowledges the 12/24-word selection before entering
     // this long-running handler, so entropy collection cannot delay the beep.
     log!("   Onboarding mnemonic length selected: {} words", word_count);
-    start_word_count_action(
-        ad,
-        boot_display,
-        delay,
-        liveness,
-        i2c,
-        dvp_camera_opt,
-        cam_dma_buf_opt,
-        word_count,
-        action,
-    );
+    start_word_count_action(ad, io, camera, word_count, action);
     true
 }
 
 fn start_word_count_action(
     ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    liveness: &mut dyn FnMut(),
-    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    dvp_camera_opt: &mut Option<DvpCamera<'_>>,
-    cam_dma_buf_opt: &mut Option<DmaRxBuf>,
+    io: &mut DeviceIo<'_, '_, '_>,
+    camera: &mut CameraPort<'_>,
     word_count: u8,
     action: u8,
 ) {
     match action {
-        0 => generate_random_seed(ad, boot_display, delay, liveness, i2c, dvp_camera_opt, cam_dma_buf_opt, word_count),
+        0 => generate_random_seed(ad, io, camera, word_count),
         4 => start_bip85(ad, word_count),
         _ => {}
     }
 }
 
-fn generate_random_seed(
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    liveness: &mut dyn FnMut(),
-    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    dvp_camera_opt: &mut Option<DvpCamera<'_>>,
-    cam_dma_buf_opt: &mut Option<DmaRxBuf>,
-    word_count: u8,
-) {
+fn generate_random_seed(ad: &mut AppData, io: &mut DeviceIo<'_, '_, '_>, camera: &mut CameraPort<'_>, word_count: u8) {
     // Every attempt starts from a clean staged pool. Failed camera-health windows
     // must never leave prior entropy material eligible for a later retry.
     ad.wallet.seeds.clear_pending_seed_entropy();
-    draw_entropy_status(boot_display);
-    match crate::services::entropy::collect(
-        delay,
-        liveness,
-        i2c,
-        ad.runtime.idle_ticks,
-        dvp_camera_opt,
-        cam_dma_buf_opt,
-    ) {
+    draw_entropy_status(io.boot_display);
+    match crate::services::entropy::collect(io.delay, io.liveness, io.i2c, ad.runtime.idle_ticks, camera) {
         Ok(mut pool) => {
             ad.wallet.seeds.stage_seed_entropy(&mut pool, word_count);
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageSeedDiceChoice));
         }
-        Err(error) => reject_entropy(ad, boot_display, delay, error, word_count),
+        Err(error) => reject_entropy(ad, io.boot_display, io.delay, error, word_count),
     }
 }
 
@@ -286,17 +225,12 @@ fn reject_entropy(
 
 fn handle_entropy_recovery(
     ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    liveness: &mut dyn FnMut(),
-    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    dvp_camera_opt: &mut Option<DvpCamera<'_>>,
-    cam_dma_buf_opt: &mut Option<DmaRxBuf>,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    io: &mut DeviceIo<'_, '_, '_>,
+    camera: &mut CameraPort<'_>,
+    input: TouchInput,
     word_count: u8,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     let choice = if is_back {
         Some(crate::ui::screens::EntropyRecoveryChoice::Cancel)
     } else {
@@ -305,7 +239,7 @@ fn handle_entropy_recovery(
     match choice {
         Some(crate::ui::screens::EntropyRecoveryChoice::Retry) => {
             log!("   Camera entropy user retry: {} words", word_count);
-            generate_random_seed(ad, boot_display, delay, liveness, i2c, dvp_camera_opt, cam_dma_buf_opt, word_count);
+            generate_random_seed(ad, io, camera, word_count);
             true
         }
         Some(crate::ui::screens::EntropyRecoveryChoice::Cancel) => {

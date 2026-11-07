@@ -1,3 +1,4 @@
+use crate::controllers::TouchInput;
 use crate::{
     hw::display::BootDisplay,
     runtime::data::AppData,
@@ -16,10 +17,9 @@ pub(super) fn handle(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     key_idx: u8,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.wallet.seeds.clear_multisig_wallet_return();
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigAddKey { key_idx }));

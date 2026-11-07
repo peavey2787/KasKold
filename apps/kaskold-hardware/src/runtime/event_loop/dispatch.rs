@@ -5,7 +5,7 @@
 #[cfg(not(feature = "workflow-test-auto"))]
 macro_rules! handle_action {
     ($action:ident, $ad:ident, $persistent_wallet:ident, $boot_display:ident, $delay:ident, $i2c:ident,
-     $dvp_camera_opt:ident, $cam_dma_buf_opt:ident,
+     $camera:ident,
      $tracker:ident, $runtime_audio:ident, $watchdog_feed:ident, $grid_zones:ident, $list_zones:ident,
      $page_up_zone:ident, $page_down_zone:ident, $wake_debounce:ident) => {
         // ─── Touch dispatch ──────────────────────────────────────
@@ -181,7 +181,7 @@ macro_rules! handle_action {
 
             let result = $crate::runtime::event_loop::touch_routes::route_touch!(
                 false, input, $ad, $persistent_wallet, $boot_display, $delay, $watchdog_feed, $i2c,
-                $dvp_camera_opt, $cam_dma_buf_opt, $grid_zones, $list_zones,
+                $camera, $grid_zones, $list_zones,
                 $page_up_zone, $page_down_zone
             );
             let handled = result.is_some();

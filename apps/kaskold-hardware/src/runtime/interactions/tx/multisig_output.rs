@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 // tx controller — multisig output workflow.
 use super::{AppData, RedrawFlag};
+use crate::controllers::TouchInput;
 use crate::runtime::input::AppState;
 
 fn build_multisig_descriptor(ad: &mut AppData) {
@@ -28,22 +29,20 @@ pub(super) fn handle(
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     mut persistent_wallet: Option<&mut crate::services::persistent_wallet::PersistentWallet<'_>>,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
     let redraw = match ad.navigation.app.state {
-        AppState::MultisigShowAddress => handle_address(ad, x, y, is_back),
+        AppState::MultisigShowAddress => handle_address(ad, input),
         AppState::MultisigShowAddressQR => handle_address_qr(ad),
         AppState::MultisigSaveDescriptorAsk => {
-            handle_descriptor_save_prompt(ad, boot_display, delay, persistent_wallet.as_deref_mut(), x, y, is_back)
+            handle_descriptor_save_prompt(ad, boot_display, delay, persistent_wallet.as_deref_mut(), input)
         }
-        AppState::MultisigSaveAddrAsk => handle_save_prompt(ad, i2c, delay, x, y, is_back),
+        AppState::MultisigSaveAddrAsk => handle_save_prompt(ad, i2c, delay, input),
         AppState::MultisigDescriptor => {
-            handle_descriptor(ad, boot_display, delay, i2c, persistent_wallet.as_deref_mut(), x, y, is_back)
+            handle_descriptor(ad, boot_display, delay, i2c, persistent_wallet.as_deref_mut(), input)
         }
         AppState::MultisigDescriptorList { action } => {
-            handle_descriptor_list(ad, boot_display, delay, i2c, persistent_wallet.as_deref_mut(), action, y, is_back)
+            handle_descriptor_list(ad, boot_display, delay, i2c, persistent_wallet, action, input)
         }
         _ => return None,
     };
@@ -52,7 +51,8 @@ pub(super) fn handle(
     Some(flag.value())
 }
 
-fn handle_address(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+fn handle_address(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         let route = if ad.signing.multisig.creating.active {
             crate::runtime::navigation::route!(MultisigMenu)
@@ -131,10 +131,9 @@ fn handle_descriptor_save_prompt(
     boot_display: &mut crate::hw::display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     persistent_wallet: Option<&mut crate::services::persistent_wallet::PersistentWallet<'_>>,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigShowAddress));
         return true;
@@ -163,7 +162,7 @@ fn save_descriptor(
     persistent_wallet: Option<&mut crate::services::persistent_wallet::PersistentWallet<'_>>,
 ) -> bool {
     let saved = crate::runtime::interactions::multisig_config::save_creating_descriptor(ad)
-        .and_then(|_| persistent_wallet)
+        .and(persistent_wallet)
         .is_some_and(|wallet| wallet.persist_multisig_store(ad).is_ok());
     if saved {
         crate::runtime::interactions::feedback::show_success(boot_display, delay, "Descriptor saved", 1_000);
@@ -194,10 +193,9 @@ fn handle_save_prompt(
     ad: &mut AppData,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigShowAddress));
         return true;
@@ -227,10 +225,9 @@ fn handle_descriptor(
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     persistent_wallet: Option<&mut crate::services::persistent_wallet::PersistentWallet<'_>>,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         if ad.signing.multisig.creating.active {
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigShowAddress));
@@ -270,9 +267,9 @@ fn handle_descriptor_list(
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     persistent_wallet: Option<&mut crate::services::persistent_wallet::PersistentWallet<'_>>,
     action: u8,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { y, is_back, .. } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigDescriptorsMenu));
         return true;

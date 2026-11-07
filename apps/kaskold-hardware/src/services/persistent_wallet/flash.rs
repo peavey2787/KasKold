@@ -94,7 +94,7 @@ impl<'d> DeviceFlash<'d> {
 }
 
 fn validate_sector_address(address: u32) -> Result<(), FlashError> {
-    if address % SECTOR_SIZE == 0 {
+    if address.is_multiple_of(SECTOR_SIZE) {
         Ok(())
     } else {
         Err(FlashError::Alignment)
@@ -103,7 +103,7 @@ fn validate_sector_address(address: u32) -> Result<(), FlashError> {
 
 fn validate_sector_write<const N: usize>(address: u32) -> Result<(), FlashError> {
     validate_sector_address(address)?;
-    if N != 0 && N <= SECTOR_SIZE as usize && N % 4 == 0 {
+    if N != 0 && N <= SECTOR_SIZE as usize && N.is_multiple_of(4) {
         Ok(())
     } else {
         Err(FlashError::Alignment)

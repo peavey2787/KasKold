@@ -36,14 +36,15 @@ pub use context::ExportTouchContext;
 /// Handle touch events for export/display screens.
 #[inline(never)]
 pub fn handle_export_touch(mut context: ExportTouchContext<'_, '_, '_>) -> Option<bool> {
-    let TouchInput { x, y, is_back } = context.input;
+    let input = context.input;
+    let TouchInput { x, is_back, .. } = input;
     if let Some(result) = seed_backup::handle(context.ad, is_back) {
         return Some(result);
     }
-    if let Some(result) = address::handle(context.ad, context.boot_display, x, y, is_back) {
+    if let Some(result) = address::handle(context.ad, context.boot_display, input) {
         return Some(result);
     }
-    if let Some(result) = seed_qr::handle(context.ad, x, y, is_back) {
+    if let Some(result) = seed_qr::handle(context.ad, input) {
         return Some(result);
     }
     if let Some(result) = kpub::handle(context.ad, context.delay, context.i2c, x, is_back) {
@@ -53,5 +54,5 @@ pub fn handle_export_touch(mut context: ExportTouchContext<'_, '_, '_>) -> Optio
         return Some(result);
     }
     let ExportTouchContext { ad, boot_display, delay, liveness, .. } = context;
-    private_key::handle(ad, boot_display, delay, liveness, x, y, is_back)
+    private_key::handle(ad, boot_display, delay, liveness, input)
 }

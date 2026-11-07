@@ -6,6 +6,7 @@
 //! dispatch, frame, and camera stages remain owned by their dedicated modules.
 
 mod deferred;
+mod hardware;
 mod liveness;
 #[cfg(feature = "m5stack")]
 mod startup_audio;
@@ -31,28 +32,27 @@ pub(crate) use liveness::acknowledge_runtime;
 pub(crate) use liveness::sync_watchdog_budget;
 
 #[cfg(not(feature = "workflow-test-auto"))]
-use crate::{hw::touch::TouchTracker, runtime::touch_dispatch::NavigationZones};
+pub(crate) use hardware::InteractiveInput;
+pub(crate) use hardware::RuntimeHardware;
 
-use super::camera::CameraHardware;
-use crate::{hw::display::BootDisplay, runtime::data::AppData, services::persistent_wallet::PersistentWallet};
-use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
+use crate::runtime::data::AppData;
 
 // LINT-JUSTIFICATION: Clippy scores four focused event-loop macro stages after expansion as one function even though touch, dispatch, frame, and camera policy remain separately owned modules.
 #[allow(clippy::cognitive_complexity)]
 pub(crate) fn run(
     ad: &mut AppData,
-    mut persistent_wallet: PersistentWallet<'_>,
-    mut boot_display: BootDisplay<'_>,
-    delay: Delay,
-    mut i2c: I2c<'_, Blocking>,
-    camera: CameraHardware<'_>,
-    #[cfg(not(feature = "workflow-test-auto"))] mut tracker: TouchTracker,
-    #[cfg(all(feature = "m5stack", not(feature = "workflow-test-auto")))] mut runtime_audio: Option<
-        crate::hw::sound::RuntimeAudio,
-    >,
+    hardware: RuntimeHardware<'_>,
+    #[cfg(not(feature = "workflow-test-auto"))] input: InteractiveInput,
     #[cfg(feature = "m5stack")] watchdog_feed: impl FnMut(),
-    #[cfg(not(feature = "workflow-test-auto"))] zones: NavigationZones,
 ) -> ! {
+    let RuntimeHardware { mut persistent_wallet, mut boot_display, delay, mut i2c, camera } = hardware;
+    #[cfg(not(feature = "workflow-test-auto"))]
+    let InteractiveInput {
+        mut tracker,
+        #[cfg(feature = "m5stack")]
+        mut runtime_audio,
+        zones,
+    } = input;
     #[cfg(not(feature = "workflow-test-auto"))]
     let mut delay = delay;
     let startup = persistent_wallet.prepare_startup(ad);
@@ -69,7 +69,7 @@ pub(crate) fn run(
     workflow_auto::run(ad, boot_display, i2c, delay, camera, persistent_wallet, watchdog_feed);
     #[cfg(not(feature = "workflow-test-auto"))]
     {
-        let (mut dvp_camera_opt, mut cam_dma_buf_opt, mut cam_status) = camera;
+        let mut camera = camera;
         let (grid_zones, list_zones, page_up_zone, page_down_zone) = zones;
         super::run!(
             ad,
@@ -77,9 +77,7 @@ pub(crate) fn run(
             boot_display,
             delay,
             i2c,
-            dvp_camera_opt,
-            cam_dma_buf_opt,
-            cam_status,
+            camera,
             tracker,
             runtime_audio,
             watchdog_feed,

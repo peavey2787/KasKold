@@ -9,6 +9,7 @@
 //! Commit-reveal touch workflow.
 
 use super::{display, sound, AppData, RedrawFlag};
+use crate::controllers::TouchInput;
 use crate::runtime::interactions::{
     feedback::{show_rejection, ErrorSound},
     keyboard::{handle_passphrase_keyboard, KeyboardAction},
@@ -51,10 +52,9 @@ fn handle_secret_entry(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.wallet.seeds.pp_input.reset();
         crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SigningTool);
@@ -166,10 +166,9 @@ fn handle_preview(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(CommitRevealType));
         return true;
@@ -185,16 +184,12 @@ pub(super) fn handle(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
     let changed = match ad.navigation.app.state {
-        crate::runtime::input::AppState::CommitRevealType => {
-            handle_secret_entry(ad, boot_display, delay, x, y, is_back)
-        }
+        crate::runtime::input::AppState::CommitRevealType => handle_secret_entry(ad, boot_display, delay, input),
         crate::runtime::input::AppState::CommitRevealPreview => {
-            handle_preview(ad, boot_display, delay, liveness, x, y, is_back)
+            handle_preview(ad, boot_display, delay, liveness, input)
         }
         _ => return None,
     };

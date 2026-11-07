@@ -3,8 +3,11 @@ pub mod master {
 
     use crate::{board, peripherals::I2C0, time::Rate, Blocking};
 
+    /// Opaque like esp-hal's, whose configuration has private fields.
     #[derive(Clone, Copy, Debug, Default)]
-    pub struct Config;
+    pub struct Config {
+        _private: (),
+    }
 
     impl Config {
         pub fn with_frequency(self, _frequency: Rate) -> Self {

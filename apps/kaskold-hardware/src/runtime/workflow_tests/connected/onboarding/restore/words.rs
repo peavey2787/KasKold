@@ -1,3 +1,4 @@
+use crate::controllers::TouchInput;
 use crate::runtime::input::AppState;
 
 use super::{
@@ -115,40 +116,40 @@ fn enter_abandon_repeated(ctx: &mut RestoreIo<'_, '_, '_>, count: usize) -> bool
 fn enter_abandon(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     tap_pending(ctx, KEY_A)
         && tap_pending(ctx, KEY_B)
-        && ctx.base.seed_touch(SUGGESTION_FIRST.0, SUGGESTION_FIRST.1, false) == Some(true)
+        && ctx.base.seed_touch(TouchInput::new(SUGGESTION_FIRST.0, SUGGESTION_FIRST.1, false)) == Some(true)
 }
 
 fn enter_about(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     tap_pending(ctx, KEY_A)
         && tap_pending(ctx, KEY_B)
         && tap_pending(ctx, KEY_O)
-        && ctx.base.seed_touch(SUGGESTION_FIRST.0, SUGGESTION_FIRST.1, false) == Some(true)
+        && ctx.base.seed_touch(TouchInput::new(SUGGESTION_FIRST.0, SUGGESTION_FIRST.1, false)) == Some(true)
 }
 
 fn enter_almost(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     tap_pending(ctx, KEY_A)
         && tap_pending(ctx, KEY_L)
         && tap_pending(ctx, KEY_M)
-        && ctx.base.seed_touch(KEY_OK.0, KEY_OK.1, false) == Some(true)
+        && ctx.base.seed_touch(TouchInput::new(KEY_OK.0, KEY_OK.1, false)) == Some(true)
 }
 
 fn tap_pending(ctx: &mut RestoreIo<'_, '_, '_>, key: (u16, u16)) -> bool {
-    ctx.base.seed_touch(key.0, key.1, false) == Some(false)
+    ctx.base.seed_touch(TouchInput::new(key.0, key.1, false)) == Some(false)
 }
 
 fn choose_passphrase_a1(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    if ctx.base.seed_touch(BUTTON_X, 193, false) != Some(true)
+    if ctx.base.seed_touch(TouchInput::new(BUTTON_X, 193, false)) != Some(true)
         || ctx.base.ad.navigation.app.state != AppState::PassphraseEntry
     {
         return false;
     }
-    if ctx.base.seed_touch(18, 97, false) != Some(false)
-        || ctx.base.seed_touch(18, 170, false) != Some(false)
-        || ctx.base.seed_touch(18, 170, false) != Some(false)
-        || ctx.base.seed_touch(18, 97, false) != Some(false)
+    if ctx.base.seed_touch(TouchInput::new(18, 97, false)) != Some(false)
+        || ctx.base.seed_touch(TouchInput::new(18, 170, false)) != Some(false)
+        || ctx.base.seed_touch(TouchInput::new(18, 170, false)) != Some(false)
+        || ctx.base.seed_touch(TouchInput::new(18, 97, false)) != Some(false)
     {
         return false;
     }
-    ctx.base.seed_touch(KEY_OK.0, KEY_OK.1, false) == Some(true)
+    ctx.base.seed_touch(TouchInput::new(KEY_OK.0, KEY_OK.1, false)) == Some(true)
         && ctx.base.ad.navigation.app.state == (AppState::WalletNameEntry { purpose: 3 })
 }

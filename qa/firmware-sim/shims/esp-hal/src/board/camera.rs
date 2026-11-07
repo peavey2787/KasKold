@@ -56,7 +56,7 @@ impl Scene {
 }
 
 fn copy_upside_down(picture: &[u8], frame: &mut [u8]) {
-    for (row, line) in picture.chunks_exact(WIDTH).rev().enumerate() {
+    for (row, line) in picture.as_chunks::<WIDTH>().0.iter().rev().enumerate() {
         let start = row * WIDTH;
         if let Some(target) = frame.get_mut(start..start + WIDTH) {
             target.copy_from_slice(line);

@@ -1,5 +1,6 @@
 //! Manual raw-private-key import.
 
+use crate::controllers::TouchInput;
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use crate::services::audio as sound;
 use crate::services::raw_key::{decode_and_install, decode_and_install_transient, RawKeyImportError};
@@ -107,10 +108,9 @@ pub(super) fn handle(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         return apply_back(ad);
     }
@@ -129,10 +129,8 @@ pub(super) fn handle(
                 boot_display.update_import_privkey_input(&ad.wallet.keys.hex_input, ad.wallet.keys.hex_input_len);
             }
         }
-        KeyAction::Ok => {
-            if ad.wallet.keys.hex_input_len == 64 {
-                return finish_import(ad, boot_display, delay);
-            }
+        KeyAction::Ok if ad.wallet.keys.hex_input_len == 64 => {
+            return finish_import(ad, boot_display, delay);
         }
         _ => {}
     }

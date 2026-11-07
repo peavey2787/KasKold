@@ -116,10 +116,8 @@ pub(super) fn add_all_cosigners(device: &Device, own_key: &[u8]) {
     device.tap("NEXT");
     scan_cosigner(device, 1, own_key);
     let others = cosigner_words().map(kpub_of);
-    let mut position = 2;
-    for kpub in others.iter().filter(|kpub| !is_same_key(kpub, own_key)) {
+    for (position, kpub) in (2..).zip(others.iter().filter(|kpub| !is_same_key(kpub, own_key))) {
         scan_cosigner(device, position, kpub);
-        position += 1;
     }
     device.wait_for_text("MULTISIG WALLET");
 }

@@ -55,7 +55,9 @@ fn begin_create(ctx: &mut OnboardingContext<'_, '_, '_>, word_count: u8) -> bool
     {
         return false;
     }
-    if ctx.seed_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StorageModeChoice {
+    if ctx.seed_touch(TouchInput::new(20, 20, true)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::StorageModeChoice
+    {
         return false;
     }
     if crate::runtime::interactions::persistence::workflow_handle_mode_choice(
@@ -70,7 +72,7 @@ fn begin_create(ctx: &mut OnboardingContext<'_, '_, '_>, word_count: u8) -> bool
     for byte in b"QA Wallet" {
         ctx.ad.wallet.seeds.pp_input.push_char(*byte);
     }
-    if ctx.seed_touch(300, 210, false) != Some(true)
+    if ctx.seed_touch(TouchInput::new(300, 210, false)) != Some(true)
         || ctx.ad.navigation.app.state != (AppState::StorageSeedWordCountChoice { action: 0 })
         || ctx.ad.wallet.seeds.pending_wallet_name_len == 0
     {
@@ -78,16 +80,16 @@ fn begin_create(ctx: &mut OnboardingContext<'_, '_, '_>, word_count: u8) -> bool
     }
     log!("KASKOLD_WORKFLOW_TESTS: CREATE WALLET NAME BACK/SUBMIT OK");
     ctx.redraw_step();
-    if crate::runtime::interactions::menu::seed_generation::workflow_stage_word_count(ctx.ad, 10, 20, false)
-        || ctx.ad.navigation.app.state != (AppState::StorageSeedWordCountChoice { action: 0 })
+    if crate::runtime::interactions::menu::seed_generation::workflow_stage_word_count(
+        ctx.ad,
+        TouchInput::new(10, 20, false),
+    ) || ctx.ad.navigation.app.state != (AppState::StorageSeedWordCountChoice { action: 0 })
     {
         return false;
     }
     if !crate::runtime::interactions::menu::seed_generation::workflow_stage_word_count(
         ctx.ad,
-        WORD_COUNT_X,
-        if word_count == 24 { WORD_COUNT_24_Y } else { WORD_COUNT_12_Y },
-        false,
+        TouchInput::new(WORD_COUNT_X, if word_count == 24 { WORD_COUNT_24_Y } else { WORD_COUNT_12_Y }, false),
     ) || ctx.ad.navigation.app.state != AppState::StorageSeedDiceChoice
         || ctx.ad.wallet.seeds.word_count != word_count
         || !ctx.ad.wallet.seeds.pending_seed_entropy_valid
@@ -112,7 +114,7 @@ fn exercise_additive_choices(ctx: &mut OnboardingContext<'_, '_, '_>, word_count
 }
 
 fn restart_staged_entropy(ctx: &mut OnboardingContext<'_, '_, '_>, word_count: u8) -> bool {
-    if ctx.additive_touch(20, 20, true) != Some(true)
+    if ctx.additive_touch(TouchInput::new(20, 20, true)) != Some(true)
         || ctx.ad.navigation.app.state != (AppState::StorageSeedWordCountChoice { action: 0 })
         || ctx.ad.wallet.seeds.pending_seed_entropy_valid
     {
@@ -120,34 +122,34 @@ fn restart_staged_entropy(ctx: &mut OnboardingContext<'_, '_, '_>, word_count: u
     }
     crate::runtime::interactions::menu::seed_generation::workflow_stage_word_count(
         ctx.ad,
-        WORD_COUNT_X,
-        if word_count == 24 { WORD_COUNT_24_Y } else { WORD_COUNT_12_Y },
-        false,
+        TouchInput::new(WORD_COUNT_X, if word_count == 24 { WORD_COUNT_24_Y } else { WORD_COUNT_12_Y }, false),
     ) && ctx.ad.navigation.app.state == AppState::StorageSeedDiceChoice
 }
 
 fn enter_dice_count(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
-    ctx.additive_touch(BUTTON_X, 129, false) == Some(true)
+    ctx.additive_touch(TouchInput::new(BUTTON_X, 129, false)) == Some(true)
         && ctx.ad.navigation.app.state == AppState::StorageSeedDiceCountChoice
 }
 
 fn touch_choice_matrix(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
-    if ctx.additive_touch(BUTTON_X, 75, false) != Some(true)
+    if ctx.additive_touch(TouchInput::new(BUTTON_X, 75, false)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::StorageSeedTouchChoice
     {
         return false;
     }
-    if ctx.additive_touch(BUTTON_X, 129, false) != Some(true) || ctx.ad.navigation.app.state != AppState::TouchEntropy {
+    if ctx.additive_touch(TouchInput::new(BUTTON_X, 129, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::TouchEntropy
+    {
         return false;
     }
     ctx.redraw_step();
-    if ctx.additive_touch(20, 20, true) != Some(true)
+    if ctx.additive_touch(TouchInput::new(20, 20, true)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::StorageSeedTouchChoice
         || !ctx.ad.wallet.seeds.pending_seed_entropy_valid
     {
         return false;
     }
-    ctx.additive_touch(BUTTON_X, 75, false) == Some(true)
+    ctx.additive_touch(TouchInput::new(BUTTON_X, 75, false)) == Some(true)
         && ctx.ad.navigation.app.state == AppState::PassphraseChoice
         && !ctx.ad.wallet.seeds.pending_seed_entropy_valid
 }
@@ -155,13 +157,15 @@ fn touch_choice_matrix(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
 fn dice_count_matrix(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
     const CASES: [(u16, usize); 4] = [(65, 25), (107, 50), (149, 100), (191, 200)];
     for (y, target) in CASES {
-        if ctx.additive_touch(BUTTON_X, y, false) != Some(true)
+        if ctx.additive_touch(TouchInput::new(BUTTON_X, y, false)) != Some(true)
             || ctx.ad.navigation.app.state != AppState::DiceRoll
             || ctx.ad.wallet.seeds.dice_collector.target != target
         {
             return false;
         }
-        if !ctx.dice_touch(20, 20, true) || ctx.ad.navigation.app.state != AppState::StorageSeedDiceCountChoice {
+        if !ctx.dice_touch(TouchInput::new(20, 20, true))
+            || ctx.ad.navigation.app.state != AppState::StorageSeedDiceCountChoice
+        {
             return false;
         }
     }
@@ -169,39 +173,45 @@ fn dice_count_matrix(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
 }
 
 fn dice_input_matrix(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
-    if ctx.additive_touch(BUTTON_X, 65, false) != Some(true) || ctx.ad.navigation.app.state != AppState::DiceRoll {
+    if ctx.additive_touch(TouchInput::new(BUTTON_X, 65, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::DiceRoll
+    {
         return false;
     }
     const DICE: [(u16, u16); 6] = [(60, 102), (160, 102), (260, 102), (60, 167), (160, 167), (260, 167)];
     for (index, (x, y)) in DICE.into_iter().enumerate() {
-        if ctx.dice_touch(x, y, false) || ctx.ad.wallet.seeds.dice_collector.count != index + 1 {
+        if ctx.dice_touch(TouchInput::new(x, y, false)) || ctx.ad.wallet.seeds.dice_collector.count != index + 1 {
             return false;
         }
     }
-    if ctx.dice_touch(5, 50, false) || ctx.ad.wallet.seeds.dice_collector.count != 6 {
+    if ctx.dice_touch(TouchInput::new(5, 50, false)) || ctx.ad.wallet.seeds.dice_collector.count != 6 {
         return false;
     }
-    if ctx.dice_touch(160, 210, false) || ctx.ad.wallet.seeds.dice_collector.count != 5 {
+    if ctx.dice_touch(TouchInput::new(160, 210, false)) || ctx.ad.wallet.seeds.dice_collector.count != 5 {
         return false;
     }
-    if !ctx.dice_touch(20, 20, true) || ctx.ad.navigation.app.state != AppState::StorageSeedDiceCountChoice {
+    if !ctx.dice_touch(TouchInput::new(20, 20, true))
+        || ctx.ad.navigation.app.state != AppState::StorageSeedDiceCountChoice
+    {
         return false;
     }
-    ctx.additive_touch(20, 20, true) == Some(true) && ctx.ad.navigation.app.state == AppState::StorageSeedDiceChoice
+    ctx.additive_touch(TouchInput::new(20, 20, true)) == Some(true)
+        && ctx.ad.navigation.app.state == AppState::StorageSeedDiceChoice
 }
 
 fn exercise_passphrase_back(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
-    if ctx.seed_touch(20, 20, true) != Some(true)
+    if ctx.seed_touch(TouchInput::new(20, 20, true)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::StorageSeedTouchChoice
         || !ctx.ad.wallet.seeds.pending_seed_entropy_valid
     {
         return false;
     }
-    ctx.additive_touch(BUTTON_X, 75, false) == Some(true) && ctx.ad.navigation.app.state == AppState::PassphraseChoice
+    ctx.additive_touch(TouchInput::new(BUTTON_X, 75, false)) == Some(true)
+        && ctx.ad.navigation.app.state == AppState::PassphraseChoice
 }
 
 fn choose_no_passphrase(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
-    if ctx.seed_touch(BUTTON_X, 143, false) != Some(true)
+    if ctx.seed_touch(TouchInput::new(BUTTON_X, 143, false)) != Some(true)
         || ctx.ad.navigation.app.state != (AppState::SeedBackup { word_idx: 0 })
         || !ctx.ad.wallet.seeds.seed_loaded
     {
@@ -214,7 +224,7 @@ fn choose_no_passphrase(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    ctx.seed_touch(BUTTON_X, 143, false) == Some(true)
+    ctx.seed_touch(TouchInput::new(BUTTON_X, 143, false)) == Some(true)
         && ctx.ad.navigation.app.state == (AppState::SeedBackup { word_idx: 0 })
         && ctx.ad.wallet.seeds.seed_loaded
 }
@@ -223,7 +233,7 @@ fn choose_passphrase(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
     if !enter_passphrase_with_back(ctx) || !type_passphrase_a1(ctx) {
         return false;
     }
-    if ctx.seed_touch(295, 210, false) != Some(true)
+    if ctx.seed_touch(TouchInput::new(295, 210, false)) != Some(true)
         || ctx.ad.navigation.app.state != (AppState::SeedBackup { word_idx: 0 })
     {
         return false;
@@ -233,35 +243,40 @@ fn choose_passphrase(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
 }
 
 fn enter_passphrase_with_back(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
-    if ctx.seed_touch(BUTTON_X, 193, false) != Some(true) || ctx.ad.navigation.app.state != AppState::PassphraseEntry {
+    if ctx.seed_touch(TouchInput::new(BUTTON_X, 193, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::PassphraseEntry
+    {
         return false;
     }
     ctx.redraw_step();
-    if ctx.seed_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::PassphraseChoice {
+    if ctx.seed_touch(TouchInput::new(20, 20, true)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::PassphraseChoice
+    {
         return false;
     }
-    ctx.seed_touch(BUTTON_X, 193, false) == Some(true) && ctx.ad.navigation.app.state == AppState::PassphraseEntry
+    ctx.seed_touch(TouchInput::new(BUTTON_X, 193, false)) == Some(true)
+        && ctx.ad.navigation.app.state == AppState::PassphraseEntry
 }
 
 fn type_passphrase_a1(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
-    if ctx.seed_touch(18, 97, false) != Some(false) || ctx.ad.wallet.seeds.pp_input.len != 1 {
+    if ctx.seed_touch(TouchInput::new(18, 97, false)) != Some(false) || ctx.ad.wallet.seeds.pp_input.len != 1 {
         return false;
     }
     if !advance_passphrase_pages(ctx) {
         return false;
     }
-    if ctx.seed_touch(18, 97, false) != Some(false) || ctx.ad.wallet.seeds.pp_input.len != 2 {
+    if ctx.seed_touch(TouchInput::new(18, 97, false)) != Some(false) || ctx.ad.wallet.seeds.pp_input.len != 2 {
         return false;
     }
-    if ctx.seed_touch(20, 210, false) != Some(false) || ctx.ad.wallet.seeds.pp_input.len != 1 {
+    if ctx.seed_touch(TouchInput::new(20, 210, false)) != Some(false) || ctx.ad.wallet.seeds.pp_input.len != 1 {
         return false;
     }
-    ctx.seed_touch(18, 97, false) == Some(false) && ctx.ad.wallet.seeds.pp_input.len == 2
+    ctx.seed_touch(TouchInput::new(18, 97, false)) == Some(false) && ctx.ad.wallet.seeds.pp_input.len == 2
 }
 
 fn advance_passphrase_pages(ctx: &mut OnboardingContext<'_, '_, '_>) -> bool {
-    ctx.seed_touch(18, 170, false) == Some(false)
-        && ctx.seed_touch(18, 170, false) == Some(false)
+    ctx.seed_touch(TouchInput::new(18, 170, false)) == Some(false)
+        && ctx.seed_touch(TouchInput::new(18, 170, false)) == Some(false)
         && ctx.ad.wallet.seeds.pp_input.page == 2
 }
 

@@ -1,3 +1,4 @@
+use crate::controllers::TouchInput;
 use crate::runtime::input::AppState;
 
 use super::AdvancedToolsContext;
@@ -14,7 +15,10 @@ fn choose_tool_word_count(ctx: &mut AdvancedToolsContext<'_, '_, '_>, item: usiz
     if !install_parent(ctx) || !ctx.open_advanced_item(item, AppState::ChooseWordCount { action: 4 }) {
         return false;
     }
-    crate::runtime::interactions::menu::seed_generation::workflow_existing_tool_word_count(ctx.ad, 160, y, false)
+    crate::runtime::interactions::menu::seed_generation::workflow_existing_tool_word_count(
+        ctx.ad,
+        TouchInput::new(160, y, false),
+    )
 }
 
 fn bip85(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
@@ -38,15 +42,15 @@ fn bip85_first_child(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if ctx.seed_touch(105, 115, false) != Some(false) || ctx.ad.wallet.seeds.bip85_index != 0 {
+    if ctx.seed_touch(TouchInput::new(105, 115, false)) != Some(false) || ctx.ad.wallet.seeds.bip85_index != 0 {
         return false;
     }
     ctx.ad.wallet.seeds.bip85_index = 99;
-    if ctx.seed_touch(215, 115, false) != Some(false) || ctx.ad.wallet.seeds.bip85_index != 99 {
+    if ctx.seed_touch(TouchInput::new(215, 115, false)) != Some(false) || ctx.ad.wallet.seeds.bip85_index != 99 {
         return false;
     }
     ctx.ad.wallet.seeds.bip85_index = 0;
-    ctx.seed_touch(160, 166, false) == Some(true)
+    ctx.seed_touch(TouchInput::new(160, 166, false)) == Some(true)
         && ctx.ad.navigation.app.state == (AppState::Bip85ShowWord { word_idx: 0, word_count: 12 })
 }
 
@@ -63,7 +67,7 @@ fn bip85_determinism(ctx: &mut AdvancedToolsContext<'_, '_, '_>, child_zero: &[u
 fn bip85_24_words(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     choose_tool_word_count(ctx, 0, 180)
         && ctx.ad.navigation.app.state == (AppState::Bip85Index { word_count: 24 })
-        && ctx.seed_touch(160, 166, false) == Some(true)
+        && ctx.seed_touch(TouchInput::new(160, 166, false)) == Some(true)
         && walk_bip85_words(ctx, 24)
 }
 
@@ -72,13 +76,13 @@ fn derive_bip85(ctx: &mut AdvancedToolsContext<'_, '_, '_>, index: u8) -> bool {
         return false;
     }
     ctx.ad.wallet.seeds.bip85_index = index;
-    ctx.seed_touch(160, 166, false) == Some(true)
+    ctx.seed_touch(TouchInput::new(160, 166, false)) == Some(true)
         && matches!(ctx.ad.navigation.app.state, AppState::Bip85ShowWord { word_idx: 0, word_count: 12 })
 }
 
 fn walk_bip85_words(ctx: &mut AdvancedToolsContext<'_, '_, '_>, count: u8) -> bool {
     for _ in 0..count {
-        if ctx.seed_touch(160, 120, false) != Some(true) {
+        if ctx.seed_touch(TouchInput::new(160, 120, false)) != Some(true) {
             return false;
         }
     }

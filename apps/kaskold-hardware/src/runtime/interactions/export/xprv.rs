@@ -17,22 +17,12 @@ pub(super) fn handle_pure(
     list_zones: &[touch::TouchZone; 4],
     page_up_zone: &touch::TouchZone,
     page_down_zone: &touch::TouchZone,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
+    let TouchInput { x, y, is_back } = input;
     match ad.navigation.app.state {
-        AppState::ExportXprv => {
-            shared_signer::bytes::zeroize_bytes(&mut ad.export.xprv_data);
-            ad.export.xprv_len = 0;
-            crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::KeyExport);
-            Some(true)
-        }
-        AppState::XprvExportMenu if is_back => {
-            ad.navigation.xprv_export_menu.reset();
-            crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::KeyExport);
-            Some(true)
-        }
+        AppState::ExportXprv => Some(discard_xprv(ad)),
+        AppState::XprvExportMenu if is_back => Some(leave_menu(ad)),
         AppState::XprvExportMenu => match handle_paged_menu_touch(
             &mut ad.navigation.xprv_export_menu,
             list_zones,
@@ -52,6 +42,27 @@ pub(super) fn handle_pure(
 }
 
 pub(super) fn handle(context: ExportStorageContext<'_, '_, '_>) -> Option<bool> {
+    match context.ad.navigation.app.state {
+        AppState::ExportXprv => Some(discard_xprv(context.ad)),
+        AppState::XprvExportMenu => Some(handle_menu(context)),
+        _ => None,
+    }
+}
+
+fn discard_xprv(ad: &mut AppData) -> bool {
+    shared_signer::bytes::zeroize_bytes(&mut ad.export.xprv_data);
+    ad.export.xprv_len = 0;
+    crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::KeyExport);
+    true
+}
+
+fn leave_menu(ad: &mut AppData) -> bool {
+    ad.navigation.xprv_export_menu.reset();
+    crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::KeyExport);
+    true
+}
+
+fn handle_menu(context: ExportStorageContext<'_, '_, '_>) -> bool {
     let ExportStorageContext {
         ad,
         boot_display,
@@ -64,47 +75,8 @@ pub(super) fn handle(context: ExportStorageContext<'_, '_, '_>) -> Option<bool> 
         input,
     } = context;
     let TouchInput { x, y, is_back } = input;
-    match ad.navigation.app.state {
-        AppState::ExportXprv => {
-            shared_signer::bytes::zeroize_bytes(&mut ad.export.xprv_data);
-            ad.export.xprv_len = 0;
-            crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::KeyExport);
-            Some(true)
-        }
-        AppState::XprvExportMenu => Some(handle_menu(
-            ad,
-            boot_display,
-            delay,
-            liveness,
-            i2c,
-            list_zones,
-            page_up_zone,
-            page_down_zone,
-            x,
-            y,
-            is_back,
-        )),
-        _ => None,
-    }
-}
-
-fn handle_menu(
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    liveness: &mut dyn FnMut(),
-    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    list_zones: &[touch::TouchZone; 4],
-    page_up_zone: &touch::TouchZone,
-    page_down_zone: &touch::TouchZone,
-    x: u16,
-    y: u16,
-    is_back: bool,
-) -> bool {
     if is_back {
-        ad.navigation.xprv_export_menu.reset();
-        crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::KeyExport);
-        return true;
+        return leave_menu(ad);
     }
 
     match handle_paged_menu_touch(&mut ad.navigation.xprv_export_menu, list_zones, page_up_zone, page_down_zone, x, y) {

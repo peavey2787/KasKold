@@ -16,12 +16,12 @@ pub fn cycle_signed_qr(ad: &mut AppData, boot_display: &mut display::BootDisplay
         if ad.qr.outgoing.frame_count > 1 && !ad.qr.outgoing.manual_frames {
             // Auto-cycle: Phone/Companion = ~400ms, KasKold = ~2s
             let cycle_interval = if ad.qr.presentation.via_density { 2000u32 } else { 400u32 };
-            if ad.runtime.idle_ticks % cycle_interval != 0 {
+            if !ad.runtime.idle_ticks.is_multiple_of(cycle_interval) {
                 return;
             }
             ad.qr.outgoing.frame = (ad.qr.outgoing.frame + 1) % ad.qr.outgoing.frame_count;
             let n_frames = ad.qr.outgoing.frame_count as usize;
-            let balanced = (ad.qr.outgoing.length + n_frames - 1) / n_frames;
+            let balanced = ad.qr.outgoing.length.div_ceil(n_frames);
             let offset = ad.qr.outgoing.frame as usize * balanced;
             let remaining = ad.qr.outgoing.length.saturating_sub(offset);
             let frag_len = remaining.min(balanced);

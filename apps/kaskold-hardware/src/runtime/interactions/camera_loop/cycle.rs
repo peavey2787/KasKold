@@ -7,8 +7,10 @@
 use super::dvp_capture::CaptureOutcome;
 use super::session::prepare_cycle;
 use super::state::CameraSessionState;
-use super::{camera, display, AppData, DmaRxBuf, DvpCamera};
+use super::{camera, AppData};
 use crate::runtime::data::CameraScanFault;
+use crate::runtime::interactions::DeviceIo;
+use crate::services::camera_device::CameraPort;
 
 const CAPTURE_OUTCOME_FAULT: [CameraScanFault; 4] = [
     CameraScanFault::None,
@@ -37,11 +39,11 @@ fn latch_fault(ad: &mut AppData, fault: CameraScanFault) {
     crate::runtime::presentation::show_error_spec_to(ad, return_to, fault_error(fault));
 }
 
-fn m5_preflight_fault(status: camera::CameraStatus, camera_ready: bool, dma_ready: bool) -> CameraScanFault {
+fn m5_preflight_fault(status: camera::CameraStatus, stream_ready: bool) -> CameraScanFault {
     if status == camera::CameraStatus::Error {
         return CameraScanFault::StartupUnavailable;
     }
-    if !camera_ready || !dma_ready {
+    if !stream_ready {
         return CameraScanFault::RuntimeResources;
     }
     CameraScanFault::None
@@ -72,20 +74,15 @@ fn camera_entry_reset(session: &mut CameraSessionState, ad: &mut AppData) -> boo
 pub fn run_camera_cycle(
     session: &mut CameraSessionState,
     ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    dvp_camera_opt: &mut Option<DvpCamera<'_>>,
-    cam_status: &mut camera::CameraStatus,
-    cam_dma_buf_opt: &mut Option<DmaRxBuf>,
-    liveness: &mut (impl FnMut() + ?Sized),
+    io: &mut DeviceIo<'_, '_, '_>,
+    camera: &mut CameraPort<'_>,
 ) {
     let reset_entry = camera_entry_reset(session, ad);
     if ad.qr.scan.has_camera_fault() {
         return;
     }
 
-    let fault = m5_preflight_fault(*cam_status, dvp_camera_opt.is_some(), cam_dma_buf_opt.is_some());
+    let fault = m5_preflight_fault(camera.status, camera.is_ready());
     if fault.is_fault() {
         latch_fault(ad, fault);
         return;
@@ -93,7 +90,7 @@ pub fn run_camera_cycle(
 
     let buffers = {
         let mut platform = super::session::CyclePlatform::new(ad);
-        prepare_cycle(session, &mut platform, boot_display, cam_status, reset_entry)
+        prepare_cycle(session, &mut platform, io.boot_display, &mut camera.status, reset_entry)
     };
     let Some(buffers) = buffers else {
         latch_fault(ad, CameraScanFault::MemoryUnavailable);
@@ -101,18 +98,7 @@ pub fn run_camera_cycle(
     };
 
     unsafe {
-        let outcome = super::dvp_capture::run_capture(
-            session,
-            ad,
-            boot_display,
-            delay,
-            i2c,
-            dvp_camera_opt,
-            cam_dma_buf_opt,
-            buffers.db_ptr,
-            buffers.crop_ptr,
-            liveness,
-        );
+        let outcome = super::dvp_capture::run_capture(session, ad, io, camera, &buffers);
         handle_m5_outcome(session, ad, outcome);
     }
 }

@@ -1189,14 +1189,9 @@ pub fn draw_prop_text<D: DrawTarget<Color = Rgb565>>(
     x: i32,
     y: i32, // baseline y position
     color: Rgb565,
-    widths: &[u8],
-    offsets: &[u16],
-    data: &[u8],
-    height: u8,
-    ascent: u8,
-    first_char: u8,
-    last_char: u8,
+    font: &PropFont,
 ) -> i32 {
+    let PropFont { widths, offsets, data, height, ascent, first_char, last_char } = *font;
     let mut cx = x;
     let top_y = y - ascent as i32;
 
@@ -1216,7 +1211,7 @@ pub fn draw_prop_text<D: DrawTarget<Color = Rgb565>>(
         };
         let cw = width as usize;
         let offset = offset as usize;
-        let row_bytes = (cw + 7) / 8;
+        let row_bytes = cw.div_ceil(8);
 
         // Submit one row-major pixel iterator per glyph. mipidsi's DrawTarget
         // batches contiguous pixels inside a draw_iter call; calling draw_iter
@@ -1256,14 +1251,9 @@ pub fn draw_prop_text_opaque<D: DrawTarget<Color = Rgb565>>(
     y: i32, // baseline y position
     fg: Rgb565,
     bg: Rgb565,
-    widths: &[u8],
-    offsets: &[u16],
-    data: &[u8],
-    height: u8,
-    ascent: u8,
-    first_char: u8,
-    last_char: u8,
+    font: &PropFont,
 ) -> i32 {
+    let PropFont { widths, offsets, data, height, ascent, first_char, last_char } = *font;
     use embedded_graphics::primitives::Rectangle;
     let mut cx = x;
     let top_y = y - ascent as i32;
@@ -1290,7 +1280,7 @@ pub fn draw_prop_text_opaque<D: DrawTarget<Color = Rgb565>>(
         };
         let cw = width as usize;
         let offset = offset as usize;
-        let row_bytes = (cw + 7) / 8;
+        let row_bytes = cw.div_ceil(8);
 
         // Include the one-pixel inter-glyph spacing in the same contiguous
         // cell transfer. That keeps opaque text to exactly one display submit
@@ -1325,7 +1315,8 @@ pub fn draw_prop_text_opaque<D: DrawTarget<Color = Rgb565>>(
 }
 
 /// Measure text width without drawing
-pub fn measure_prop_text(text: &str, widths: &[u8], first_char: u8, last_char: u8, height: u8) -> i32 {
+pub fn measure_prop_text(text: &str, font: &PropFont) -> i32 {
+    let PropFont { widths, height, first_char, last_char, .. } = *font;
     // UI measurement must never panic.  Font metadata is generated, but a
     // malformed table or unexpectedly large label should degrade to a bounded
     // width rather than taking down the signer while rendering navigation.
@@ -1588,3 +1579,85 @@ pub const LATO_22_DATA: [u8; 4128] = [
     0x3f, 0xfe, 0x30, 0xf8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00,
 ];
+
+/// Glyph tables of one proportional bitmap font covering ASCII `first_char..=last_char`.
+#[derive(Clone, Copy)]
+pub struct PropFont {
+    pub widths: &'static [u8],
+    pub offsets: &'static [u16],
+    pub data: &'static [u8],
+    pub height: u8,
+    pub ascent: u8,
+    pub first_char: u8,
+    pub last_char: u8,
+}
+
+pub const LATO_15: PropFont = PropFont {
+    widths: &LATO_15_WIDTHS,
+    offsets: &LATO_15_OFFSETS,
+    data: &LATO_15_DATA,
+    height: LATO_15_HEIGHT,
+    ascent: LATO_15_ASCENT,
+    first_char: LATO_15_FIRST,
+    last_char: LATO_15_LAST,
+};
+
+pub const LATO_18: PropFont = PropFont {
+    widths: &LATO_18_WIDTHS,
+    offsets: &LATO_18_OFFSETS,
+    data: &LATO_18_DATA,
+    height: LATO_18_HEIGHT,
+    ascent: LATO_18_ASCENT,
+    first_char: LATO_18_FIRST,
+    last_char: LATO_18_LAST,
+};
+
+pub const LATO_BOLD_18: PropFont = PropFont {
+    widths: &LATO_BOLD_18_WIDTHS,
+    offsets: &LATO_BOLD_18_OFFSETS,
+    data: &LATO_BOLD_18_DATA,
+    height: LATO_BOLD_18_HEIGHT,
+    ascent: LATO_BOLD_18_ASCENT,
+    first_char: LATO_BOLD_18_FIRST,
+    last_char: LATO_BOLD_18_LAST,
+};
+
+pub const LATO_12: PropFont = PropFont {
+    widths: &LATO_12_WIDTHS,
+    offsets: &LATO_12_OFFSETS,
+    data: &LATO_12_DATA,
+    height: LATO_12_HEIGHT,
+    ascent: LATO_12_ASCENT,
+    first_char: LATO_12_FIRST,
+    last_char: LATO_12_LAST,
+};
+
+pub const RUBIK_BOLD_26: PropFont = PropFont {
+    widths: &RUBIK_BOLD_26_WIDTHS,
+    offsets: &RUBIK_BOLD_26_OFFSETS,
+    data: &RUBIK_BOLD_26_DATA,
+    height: RUBIK_BOLD_26_HEIGHT,
+    ascent: RUBIK_BOLD_26_ASCENT,
+    first_char: RUBIK_BOLD_26_FIRST,
+    last_char: RUBIK_BOLD_26_LAST,
+};
+
+pub const OSWALD_BOLD_22: PropFont = PropFont {
+    widths: &OSWALD_BOLD_22_WIDTHS,
+    offsets: &OSWALD_BOLD_22_OFFSETS,
+    data: &OSWALD_BOLD_22_DATA,
+    height: OSWALD_BOLD_22_HEIGHT,
+    ascent: OSWALD_BOLD_22_ASCENT,
+    first_char: OSWALD_BOLD_22_FIRST,
+    last_char: OSWALD_BOLD_22_LAST,
+};
+
+pub const LATO_22: PropFont = PropFont {
+    widths: &LATO_22_WIDTHS,
+    offsets: &LATO_22_OFFSETS,
+    data: &LATO_22_DATA,
+    height: LATO_22_HEIGHT,
+    ascent: LATO_22_ASCENT,
+    first_char: LATO_22_FIRST,
+    last_char: LATO_22_LAST,
+};

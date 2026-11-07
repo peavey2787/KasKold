@@ -5,8 +5,11 @@
 //! ESP-HAL DVP capture path for the CoreS3 camera.
 
 use super::decoder::{handle_decode_result, rqrr_decode};
+use super::session::CycleBuffers;
 use super::state::CameraSessionState;
-use super::{display, AppData, DmaRxBuf, DvpCamera};
+use super::{display, AppData};
+use crate::runtime::interactions::DeviceIo;
+use crate::services::camera_device::{CameraPort, FrameCaptureStatus};
 
 #[repr(usize)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -44,7 +47,7 @@ fn platform_bytes_per_line() -> usize {
 }
 
 fn is_dvp_decode_frame(session: &CameraSessionState) -> bool {
-    session.frame.number % 2 == 0
+    session.frame.number.is_multiple_of(2)
 }
 
 fn render_dvp_view(
@@ -86,35 +89,25 @@ fn copy_dvp_decode_frame(data: &[u8], decode: &mut [u8], bpl: usize, full_h: usi
     }
 }
 
-unsafe fn process_captured_frame<'cam>(
+/// Render the captured frame and copy it into the decode buffer.
+///
+/// Returns the frame height when this frame should be QR-decoded.
+unsafe fn render_captured_frame(
     session: &mut CameraSessionState,
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    dvp_camera_opt: &mut Option<DvpCamera<'cam>>,
-    cam_dma_buf_opt: &mut Option<DmaRxBuf>,
-    db_ptr: *mut u8,
-    crop_ptr: *mut u8,
-    cam_back: DvpCamera<'cam>,
-    buf_back: DmaRxBuf,
-    liveness: &mut (impl FnMut() + ?Sized),
-) {
-    let data = buf_back.as_slice();
+    buffers: &CycleBuffers,
+    data: &[u8],
+) -> Option<usize> {
     // SAFETY: the camera loop allocates independent decode (320x240) and
     // viewfinder crop (240x180) buffers for the lifetime of this capture.
     // Convert the raw storage once at the reviewed boundary; helpers below
     // operate only on bounded slices.
-    let decode = core::slice::from_raw_parts_mut(db_ptr, 320 * 240);
-    let crop = core::slice::from_raw_parts_mut(crop_ptr, 240 * 180);
+    let decode = core::slice::from_raw_parts_mut(buffers.db_ptr, 320 * 240);
+    let crop = core::slice::from_raw_parts_mut(buffers.crop_ptr, 240 * 180);
     let (full_h, frame_ok, is_decode_frame) = render_and_copy_frame(session, ad, boot_display, data, decode, crop);
-
-    // ── Release DMA buffer + camera for next capture ──
-    *cam_dma_buf_opt = Some(buf_back);
-    *dvp_camera_opt = Some(cam_back);
-
     if !frame_ok {
-        return;
+        return None;
     }
 
     // Handle error cooldown
@@ -124,91 +117,77 @@ unsafe fn process_captured_frame<'cam>(
         } else {
             session.decoder.error_showing = false;
         }
-        return;
+        return None;
     }
 
     // Skip QR decode on display-only frames
     if !is_decode_frame {
-        return;
+        return None;
     }
-
     if session.decoder.cooldown > 0 {
         session.decoder.cooldown -= 1;
+        return None;
+    }
+    Some(full_h)
+}
+
+/// Decode the centre 240x240 window of a rendered frame and route any QR result.
+unsafe fn decode_captured_frame(
+    session: &mut CameraSessionState,
+    ad: &mut AppData,
+    io: &mut DeviceIo<'_, '_, '_>,
+    buffers: &CycleBuffers,
+    full_h: usize,
+) {
+    // SAFETY: same reviewed decode buffer as `render_captured_frame`; the
+    // camera DMA buffer has already been released, so this is the only view.
+    let decode = core::slice::from_raw_parts_mut(buffers.db_ptr, 320 * 240);
+    // m5stack: crop center 240x240 from 320x240 for rqrr.
+    // Compact rows in-place in DB buffer.
+    let rqw: usize = 240;
+    let rqh: usize = full_h.min(240);
+    let x0: usize = 40; // (320 - 240) / 2
+    for ry in 0..rqh {
+        let src = ry * 320 + x0;
+        let dst = ry * rqw;
+        if src != dst {
+            decode.copy_within(src..src + rqw, dst);
+        }
+    }
+    let crop_slice = &decode[..rqw * rqh];
+    let results = rqrr_decode(crop_slice, rqw, rqh);
+    if let Some((ver, ref decoded)) = results.first() {
+        handle_decode_result(session, *ver, decoded, ad, io);
     } else {
-        // m5stack: crop center 240x240 from 320x240 for rqrr.
-        // Compact rows in-place in DB buffer.
-        let rqw: usize = 240;
-        let rqh: usize = full_h.min(240);
-        let x0: usize = 40; // (320 - 240) / 2
-        for ry in 0..rqh {
-            let src = ry * 320 + x0;
-            let dst = ry * rqw;
-            if src != dst {
-                decode.copy_within(src..src + rqw, dst);
-            }
-        }
-        let crop_slice = &decode[..rqw * rqh];
-        let results = rqrr_decode(crop_slice, rqw, rqh);
-        if let Some((ver, ref decoded)) = results.first() {
-            handle_decode_result(session, *ver, decoded, decoded.len(), ad, boot_display, delay, i2c, liveness);
-        } else {
-            session.decoder.finders_beeped = false;
-        }
+        session.decoder.finders_beeped = false;
     }
 }
 
 pub(super) unsafe fn run_capture(
     session: &mut CameraSessionState,
     ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    dvp_camera_opt: &mut Option<DvpCamera<'_>>,
-    cam_dma_buf_opt: &mut Option<DmaRxBuf>,
-    db_ptr: *mut u8,
-    crop_ptr: *mut u8,
-    liveness: &mut (impl FnMut() + ?Sized),
+    io: &mut DeviceIo<'_, '_, '_>,
+    camera: &mut CameraPort<'_>,
+    buffers: &CycleBuffers,
 ) -> CaptureOutcome {
-    let Some(cam) = dvp_camera_opt.take() else {
-        return CaptureOutcome::ResourcesUnavailable;
-    };
-    let cam_dma_buf = match cam_dma_buf_opt.take() {
-        Some(buffer) => buffer,
-        None => {
-            *dvp_camera_opt = Some(cam);
-            return CaptureOutcome::ResourcesUnavailable;
-        }
-    };
-
-    let (status, cam_back, buf_back) = crate::services::camera_device::receive_full_frame(cam, cam_dma_buf, delay);
+    let mut decode_rows = None;
+    let status = camera.capture(io.delay, |frame| {
+        decode_rows = render_captured_frame(session, ad, io.boot_display, buffers, frame);
+    });
     match status {
-        crate::services::camera_device::FrameCaptureStatus::Complete => {
-            process_captured_frame(
-                session,
-                ad,
-                boot_display,
-                delay,
-                i2c,
-                dvp_camera_opt,
-                cam_dma_buf_opt,
-                db_ptr,
-                crop_ptr,
-                cam_back,
-                buf_back,
-                liveness,
-            );
+        None => CaptureOutcome::ResourcesUnavailable,
+        Some(FrameCaptureStatus::Complete) => {
+            if let Some(full_h) = decode_rows {
+                decode_captured_frame(session, ad, io, buffers, full_h);
+            }
             CaptureOutcome::Captured
         }
-        crate::services::camera_device::FrameCaptureStatus::TimedOut => {
+        Some(FrameCaptureStatus::TimedOut) => {
             log!("   dvp: transfer timeout — partial frame rejected");
-            *cam_dma_buf_opt = Some(buf_back);
-            *dvp_camera_opt = Some(cam_back);
             CaptureOutcome::TimedOut
         }
-        crate::services::camera_device::FrameCaptureStatus::ReceiveFailed => {
+        Some(FrameCaptureStatus::ReceiveFailed) => {
             log!("   dvp: receive failed");
-            *cam_dma_buf_opt = Some(buf_back);
-            *dvp_camera_opt = Some(cam_back);
             CaptureOutcome::ReceiveFailed
         }
     }

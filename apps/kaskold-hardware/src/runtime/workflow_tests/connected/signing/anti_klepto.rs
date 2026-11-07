@@ -1,4 +1,5 @@
 use super::{fixture, review, SigningContext};
+use crate::controllers::TouchInput;
 use crate::runtime::{data::AntiKleptoPhase, input::AppState};
 use alloc::vec;
 
@@ -111,14 +112,14 @@ fn sign_to_commitment(
 }
 
 fn enter_reveal_scan(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
-    if ctx.menu_touch(160, 120, false) != Some(true)
+    if ctx.menu_touch(TouchInput::new(160, 120, false)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::AntiKleptoRevealGuide
         || ctx.ad.signing.anti_klepto.phase != AntiKleptoPhase::AwaitingReveal
     {
         return false;
     }
     let ok = crate::ui::layout::ERROR_OK_ZONE;
-    ctx.tx_touch(ok.x + ok.w / 2, ok.y + ok.h / 2, false) == Some(true)
+    ctx.tx_touch(TouchInput::new(ok.x + ok.w / 2, ok.y + ok.h / 2, false)) == Some(true)
         && ctx.ad.navigation.app.state == AppState::ScanQR
         && ctx.ad.signing.anti_klepto.phase == AntiKleptoPhase::AwaitingReveal
 }
@@ -225,7 +226,7 @@ fn successful_round_trip(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
     }
     // Anti-klepto already fixes the peer/protocol. The only remaining choice is
     // final QR presentation mode; choose Auto Cycle for the workflow probe.
-    if ctx.sd_touch(80, 160, false) != Some(true)
+    if ctx.sd_touch(TouchInput::new(80, 160, false)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::ShowQR
         || ctx.ad.qr.outgoing.manual_frames
     {
@@ -244,7 +245,7 @@ fn successful_round_trip(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
 
 fn replay_reject(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
     let session = ctx.ad.signing.anti_klepto.session_id;
-    if ctx.menu_touch(160, 120, false) != Some(true) || !super::super::root::home_ok(ctx.ad) {
+    if ctx.menu_touch(TouchInput::new(160, 120, false)) != Some(true) || !super::super::root::home_ok(ctx.ad) {
         return false;
     }
     let scan = crate::ui::layout::HOME_GRID_ZONES[1];

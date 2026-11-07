@@ -76,10 +76,8 @@ impl PersistentWallet<'_> {
         let mut record = AlignedBytes::<RECORD_SIZE>::zeroed();
         let read = sd_backend::read_slot(
             &mut self.crypto,
-            kind,
+            crypto::WalletCredential { kind, key: &key, salt: &self.credential_salt },
             self.credential_kdf,
-            &key,
-            &self.credential_salt,
             self.sd_active_slot,
             &mut record,
             i2c,

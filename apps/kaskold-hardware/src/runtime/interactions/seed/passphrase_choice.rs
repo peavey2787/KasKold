@@ -1,16 +1,16 @@
 //! Explicit BIP39 passphrase opt-in after mnemonic creation/import.
 
 use super::{display, AppData};
+use crate::controllers::TouchInput;
 use crate::runtime::input::AppState;
 
 pub(super) fn handle(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
+    let TouchInput { x, y, is_back } = input;
     if ad.navigation.app.state != AppState::PassphraseChoice {
         return None;
     }

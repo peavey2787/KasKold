@@ -1,6 +1,6 @@
 //! Separate JPEG selection and descriptor-text workflows for stego import.
 
-use super::{context::StegoFileContext, TouchInput};
+use super::context::StegoFileContext;
 use crate::{runtime::input::AppState, runtime::interactions::text_files::TextFileSelectionContext};
 
 mod descriptor;
@@ -8,10 +8,9 @@ mod jpeg;
 
 pub(super) fn handle(context: StegoFileContext<'_, '_, '_>) -> Option<bool> {
     let StegoFileContext { ad, boot_display, delay, i2c, list_zones, page_up_zone, page_down_zone, input } = context;
-    let TouchInput { x, y, is_back } = input;
     let redraw = match ad.navigation.app.state {
-        AppState::StegoImportPick => jpeg::handle(ad, list_zones, page_up_zone, page_down_zone, x, y, is_back),
-        AppState::StegoImportDescChoice => descriptor::handle_choice(ad, boot_display, delay, i2c, x, y, is_back),
+        AppState::StegoImportPick => jpeg::handle(ad, list_zones, page_up_zone, page_down_zone, input),
+        AppState::StegoImportDescChoice => descriptor::handle_choice(ad, boot_display, delay, i2c, input),
         AppState::StegoImportDescFile => {
             descriptor::handle_file(TextFileSelectionContext { ad, boot_display, delay, i2c, list_zones, input })
         }

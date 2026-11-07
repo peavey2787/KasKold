@@ -1,6 +1,7 @@
 // KasKold — Air-gapped offline signing device for Kaspa
 // Focused settings controller component.
 use super::AppData;
+use crate::controllers::TouchInput;
 use crate::ui::screens::device::{DISPLAY_DIM_ROW_Y, DISPLAY_PIN_ROW_Y};
 
 fn persistent_controls(ad: &AppData) -> bool {
@@ -14,7 +15,8 @@ fn pin_lock_available(ad: &AppData) -> bool {
 }
 
 #[cfg(feature = "m5stack")]
-pub(super) fn handle_display_settings(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+pub(super) fn handle_display_settings(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SettingsMenu));
         return true;

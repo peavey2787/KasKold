@@ -5,6 +5,7 @@ use super::{
     context::SdIoContext,
     overwrite::execute_pending_action,
 };
+use crate::controllers::TouchInput;
 use crate::{
     runtime::interactions::keyboard::{handle_keyboard, KeyboardAction, KeyboardPolicy},
     runtime::{data::PendingStorageAction, input::AppState, navigation::ContinuationRoute},
@@ -28,7 +29,8 @@ pub(crate) fn run_filename_action_workflow(
     workflow: FilenameWorkflow,
     action: PendingStorageAction,
 ) -> bool {
-    let SdIoContext { ad, boot_display, delay, i2c, x, y, is_back, .. } = ctx;
+    let SdIoContext { ad, boot_display, delay, i2c, input, .. } = ctx;
+    let TouchInput { x, y, is_back } = input;
 
     if is_back {
         ad.wallet.seeds.pp_input.reset();

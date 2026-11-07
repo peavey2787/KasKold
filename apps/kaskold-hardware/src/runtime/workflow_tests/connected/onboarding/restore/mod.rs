@@ -86,7 +86,7 @@ impl RestoreIo<'_, '_, '_> {
         )
     }
 
-    pub(super) fn sd_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
+    pub(super) fn sd_touch(&mut self, input: TouchInput) -> Option<bool> {
         crate::runtime::interactions::sd::handle_sd_touch(SdTouchContext {
             ad: &mut *self.base.ad,
             boot_display: &mut *self.base.display,
@@ -97,7 +97,7 @@ impl RestoreIo<'_, '_, '_> {
             list_zones: &self.list,
             page_up_zone: &self.up,
             page_down_zone: &self.down,
-            input: TouchInput::new(x, y, is_back),
+            input,
         })
     }
 
@@ -170,7 +170,7 @@ pub(super) fn begin_restore(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
 }
 
 pub(super) fn choose_no_passphrase(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    ctx.base.seed_touch(BUTTON_X, 143, false) == Some(true)
+    ctx.base.seed_touch(TouchInput::new(BUTTON_X, 143, false)) == Some(true)
         && ctx.base.ad.navigation.app.state == (AppState::WalletNameEntry { purpose: 3 })
 }
 
@@ -179,7 +179,7 @@ pub(super) fn name_restored_wallet(ctx: &mut RestoreIo<'_, '_, '_>, name: &[u8])
     for byte in name {
         ctx.base.ad.wallet.seeds.pp_input.push_char(*byte);
     }
-    ctx.base.seed_touch(KEY_OK.0, KEY_OK.1, false) == Some(true)
+    ctx.base.seed_touch(TouchInput::new(KEY_OK.0, KEY_OK.1, false)) == Some(true)
         && ctx.base.ad.navigation.app.state == AppState::StorageFinalizeChoice
 }
 

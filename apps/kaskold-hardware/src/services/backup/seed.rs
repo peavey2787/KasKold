@@ -56,13 +56,12 @@ pub fn decrypt_backup_progress(
         if length != 1 + words * 2 {
             return Err(BackupError::InvalidLength);
         }
-        for index in 0..words {
-            let offset = 1 + index * 2;
-            let word = u16::from_le_bytes([plaintext[offset], plaintext[offset + 1]]);
+        for (slot, bytes) in out_indices.iter_mut().zip(plaintext[1..=words * 2].chunks_exact(2)) {
+            let word = u16::from_le_bytes([bytes[0], bytes[1]]);
             if word >= 2048 {
                 return Err(BackupError::InvalidMnemonic);
             }
-            out_indices[index] = word;
+            *slot = word;
         }
         if !crate::wallet::mnemonic::validate(out_indices, word_count) {
             return Err(BackupError::InvalidMnemonic);

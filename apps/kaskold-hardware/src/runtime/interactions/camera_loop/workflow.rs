@@ -25,7 +25,8 @@ pub(crate) fn process_multiframe(
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
 ) {
     let mut no_checkpoint = || {};
-    super::multiframe::process_multiframe(session, data, data.len(), ad, boot_display, delay, i2c, &mut no_checkpoint);
+    let mut io = crate::runtime::interactions::DeviceIo { boot_display, delay, i2c, liveness: &mut no_checkpoint };
+    super::multiframe::process_multiframe(session, data, ad, &mut io);
 }
 
 pub(crate) fn validate_stealth_request(data: &[u8], length: usize) -> Result<usize, &'static str> {

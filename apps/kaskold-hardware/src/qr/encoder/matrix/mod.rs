@@ -1,9 +1,9 @@
+pub(super) mod code;
 pub(super) mod format;
 pub(super) mod masking;
-pub(super) mod matrix;
 pub(super) mod version;
 
-use matrix::QrCode;
+use code::QrCode;
 
 pub(crate) fn build(version: u8, codewords: &[u8]) -> QrCode {
     let mut qr = QrCode::new(version);

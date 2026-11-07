@@ -18,7 +18,7 @@ QR_MODULE_LIMITS = {
     "matrix/format.rs": 120,
     "ecc/gf.rs": 80,
     "matrix/masking.rs": 180,
-    "matrix/matrix.rs": 240,
+    "matrix/code.rs": 240,
     "modes/numeric_mode.rs": 140,
     "ecc/reed_solomon.rs": 100,
     "matrix/version.rs": 80,
@@ -69,7 +69,7 @@ def _check_qr_facade(qr_facade: str) -> list[str]:
     errors: list[str] = []
     for contract in (
         "pub use modes::byte_mode::encode;",
-        "pub use matrix::matrix::QrCode;",
+        "pub use matrix::code::QrCode;",
         "pub use modes::numeric_mode::encode_numeric;",
     ):
         if contract not in qr_facade:

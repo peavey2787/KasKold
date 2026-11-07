@@ -408,9 +408,10 @@ def _check_restore_sources(errors: list[str]) -> None:
     restore_qr = _read("apps/kaskold-hardware/src/runtime/interactions/camera_loop/dispatch/seed.rs")
     _require(
         errors,
-        "installed::apply_pending_wallet_name(ad, slot);" in restore_passphrase
-        and "pub(super) fn apply_pending_wallet_name" in restore_installed,
-        "wallet recovery: pending restored-wallet naming helper must be parent-visible and called through the installed submodule",
+        "fn apply_pending_wallet_name(ad: &mut AppData, slot: usize)" in restore_passphrase
+        and "super::apply_pending_wallet_name(ad, slot);" in restore_installed
+        and (restore_passphrase + restore_installed).count("pending_wallet_name[..name_len]") == 1,
+        "wallet recovery: every Add Wallet path must name its slot through the one parent naming helper",
     )
     _require(
         errors,

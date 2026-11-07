@@ -19,20 +19,7 @@ pub(crate) fn draw_lato_title<D: DrawTarget<Color = Rgb565>>(
     y: i32,
     color: Rgb565,
 ) -> i32 {
-    prop_fonts::draw_prop_text(
-        d,
-        text,
-        x,
-        y,
-        color,
-        &prop_fonts::LATO_BOLD_18_WIDTHS,
-        &prop_fonts::LATO_BOLD_18_OFFSETS,
-        &prop_fonts::LATO_BOLD_18_DATA,
-        prop_fonts::LATO_BOLD_18_HEIGHT,
-        prop_fonts::LATO_BOLD_18_ASCENT,
-        prop_fonts::LATO_BOLD_18_FIRST,
-        prop_fonts::LATO_BOLD_18_LAST,
-    )
+    prop_fonts::draw_prop_text(d, text, x, y, color, &prop_fonts::LATO_BOLD_18)
 }
 
 pub(crate) fn draw_lato_title_opaque<D: DrawTarget<Color = Rgb565>>(
@@ -43,21 +30,7 @@ pub(crate) fn draw_lato_title_opaque<D: DrawTarget<Color = Rgb565>>(
     fg: Rgb565,
     bg: Rgb565,
 ) -> i32 {
-    prop_fonts::draw_prop_text_opaque(
-        d,
-        text,
-        x,
-        y,
-        fg,
-        bg,
-        &prop_fonts::LATO_BOLD_18_WIDTHS,
-        &prop_fonts::LATO_BOLD_18_OFFSETS,
-        &prop_fonts::LATO_BOLD_18_DATA,
-        prop_fonts::LATO_BOLD_18_HEIGHT,
-        prop_fonts::LATO_BOLD_18_ASCENT,
-        prop_fonts::LATO_BOLD_18_FIRST,
-        prop_fonts::LATO_BOLD_18_LAST,
-    )
+    prop_fonts::draw_prop_text_opaque(d, text, x, y, fg, bg, &prop_fonts::LATO_BOLD_18)
 }
 
 pub(crate) fn draw_lato_body<D: DrawTarget<Color = Rgb565>>(
@@ -67,54 +40,15 @@ pub(crate) fn draw_lato_body<D: DrawTarget<Color = Rgb565>>(
     y: i32,
     color: Rgb565,
 ) -> i32 {
-    prop_fonts::draw_prop_text(
-        d,
-        text,
-        x,
-        y,
-        color,
-        &prop_fonts::LATO_15_WIDTHS,
-        &prop_fonts::LATO_15_OFFSETS,
-        &prop_fonts::LATO_15_DATA,
-        prop_fonts::LATO_15_HEIGHT,
-        prop_fonts::LATO_15_ASCENT,
-        prop_fonts::LATO_15_FIRST,
-        prop_fonts::LATO_15_LAST,
-    )
+    prop_fonts::draw_prop_text(d, text, x, y, color, &prop_fonts::LATO_15)
 }
 
 pub(crate) fn draw_lato_18<D: DrawTarget<Color = Rgb565>>(d: &mut D, text: &str, x: i32, y: i32, color: Rgb565) -> i32 {
-    prop_fonts::draw_prop_text(
-        d,
-        text,
-        x,
-        y,
-        color,
-        &prop_fonts::LATO_18_WIDTHS,
-        &prop_fonts::LATO_18_OFFSETS,
-        &prop_fonts::LATO_18_DATA,
-        prop_fonts::LATO_18_HEIGHT,
-        prop_fonts::LATO_18_ASCENT,
-        prop_fonts::LATO_18_FIRST,
-        prop_fonts::LATO_18_LAST,
-    )
+    prop_fonts::draw_prop_text(d, text, x, y, color, &prop_fonts::LATO_18)
 }
 
 pub(crate) fn draw_lato_22<D: DrawTarget<Color = Rgb565>>(d: &mut D, text: &str, x: i32, y: i32, color: Rgb565) -> i32 {
-    prop_fonts::draw_prop_text(
-        d,
-        text,
-        x,
-        y,
-        color,
-        &prop_fonts::LATO_22_WIDTHS,
-        &prop_fonts::LATO_22_OFFSETS,
-        &prop_fonts::LATO_22_DATA,
-        prop_fonts::LATO_22_HEIGHT,
-        prop_fonts::LATO_22_ASCENT,
-        prop_fonts::LATO_22_FIRST,
-        prop_fonts::LATO_22_LAST,
-    )
+    prop_fonts::draw_prop_text(d, text, x, y, color, &prop_fonts::LATO_22)
 }
 
 pub(crate) fn draw_lato_22_opaque<D: DrawTarget<Color = Rgb565>>(
@@ -125,21 +59,7 @@ pub(crate) fn draw_lato_22_opaque<D: DrawTarget<Color = Rgb565>>(
     fg: Rgb565,
     bg: Rgb565,
 ) -> i32 {
-    prop_fonts::draw_prop_text_opaque(
-        d,
-        text,
-        x,
-        y,
-        fg,
-        bg,
-        &prop_fonts::LATO_22_WIDTHS,
-        &prop_fonts::LATO_22_OFFSETS,
-        &prop_fonts::LATO_22_DATA,
-        prop_fonts::LATO_22_HEIGHT,
-        prop_fonts::LATO_22_ASCENT,
-        prop_fonts::LATO_22_FIRST,
-        prop_fonts::LATO_22_LAST,
-    )
+    prop_fonts::draw_prop_text_opaque(d, text, x, y, fg, bg, &prop_fonts::LATO_22)
 }
 
 pub(crate) fn draw_lato_hint<D: DrawTarget<Color = Rgb565>>(
@@ -149,20 +69,7 @@ pub(crate) fn draw_lato_hint<D: DrawTarget<Color = Rgb565>>(
     y: i32,
     color: Rgb565,
 ) -> i32 {
-    prop_fonts::draw_prop_text(
-        d,
-        text,
-        x,
-        y,
-        color,
-        &prop_fonts::LATO_12_WIDTHS,
-        &prop_fonts::LATO_12_OFFSETS,
-        &prop_fonts::LATO_12_DATA,
-        prop_fonts::LATO_12_HEIGHT,
-        prop_fonts::LATO_12_ASCENT,
-        prop_fonts::LATO_12_FIRST,
-        prop_fonts::LATO_12_LAST,
-    )
+    prop_fonts::draw_prop_text(d, text, x, y, color, &prop_fonts::LATO_12)
 }
 
 pub(crate) fn draw_oswald_header<D: DrawTarget<Color = Rgb565>>(
@@ -180,20 +87,7 @@ pub(crate) fn draw_oswald_header<D: DrawTarget<Color = Rgb565>>(
         return draw_lato_body(d, text, crate::ui::layout::nav_header_x((320 - narrow) / 2, narrow), y, color);
     }
     let x = if in_nav_rail { crate::ui::layout::nav_header_x(centered_x, width) } else { x };
-    prop_fonts::draw_prop_text(
-        d,
-        text,
-        x,
-        y,
-        color,
-        &prop_fonts::OSWALD_BOLD_22_WIDTHS,
-        &prop_fonts::OSWALD_BOLD_22_OFFSETS,
-        &prop_fonts::OSWALD_BOLD_22_DATA,
-        prop_fonts::OSWALD_BOLD_22_HEIGHT,
-        prop_fonts::OSWALD_BOLD_22_ASCENT,
-        prop_fonts::OSWALD_BOLD_22_FIRST,
-        prop_fonts::OSWALD_BOLD_22_LAST,
-    )
+    prop_fonts::draw_prop_text(d, text, x, y, color, &prop_fonts::OSWALD_BOLD_22)
 }
 
 pub(crate) fn draw_rubik_big<D: DrawTarget<Color = Rgb565>>(
@@ -203,86 +97,31 @@ pub(crate) fn draw_rubik_big<D: DrawTarget<Color = Rgb565>>(
     y: i32,
     color: Rgb565,
 ) -> i32 {
-    prop_fonts::draw_prop_text(
-        d,
-        text,
-        x,
-        y,
-        color,
-        &prop_fonts::RUBIK_BOLD_26_WIDTHS,
-        &prop_fonts::RUBIK_BOLD_26_OFFSETS,
-        &prop_fonts::RUBIK_BOLD_26_DATA,
-        prop_fonts::RUBIK_BOLD_26_HEIGHT,
-        prop_fonts::RUBIK_BOLD_26_ASCENT,
-        prop_fonts::RUBIK_BOLD_26_FIRST,
-        prop_fonts::RUBIK_BOLD_26_LAST,
-    )
+    prop_fonts::draw_prop_text(d, text, x, y, color, &prop_fonts::RUBIK_BOLD_26)
 }
 pub(crate) fn measure_title(text: &str) -> i32 {
-    prop_fonts::measure_prop_text(
-        text,
-        &prop_fonts::LATO_BOLD_18_WIDTHS,
-        prop_fonts::LATO_BOLD_18_FIRST,
-        prop_fonts::LATO_BOLD_18_LAST,
-        prop_fonts::LATO_BOLD_18_HEIGHT,
-    )
+    prop_fonts::measure_prop_text(text, &prop_fonts::LATO_BOLD_18)
 }
 
 pub(crate) fn measure_body(text: &str) -> i32 {
-    prop_fonts::measure_prop_text(
-        text,
-        &prop_fonts::LATO_15_WIDTHS,
-        prop_fonts::LATO_15_FIRST,
-        prop_fonts::LATO_15_LAST,
-        prop_fonts::LATO_15_HEIGHT,
-    )
+    prop_fonts::measure_prop_text(text, &prop_fonts::LATO_15)
 }
 
 pub(crate) fn measure_18(text: &str) -> i32 {
-    prop_fonts::measure_prop_text(
-        text,
-        &prop_fonts::LATO_18_WIDTHS,
-        prop_fonts::LATO_18_FIRST,
-        prop_fonts::LATO_18_LAST,
-        prop_fonts::LATO_18_HEIGHT,
-    )
+    prop_fonts::measure_prop_text(text, &prop_fonts::LATO_18)
 }
 
 pub(crate) fn measure_22(text: &str) -> i32 {
-    prop_fonts::measure_prop_text(
-        text,
-        &prop_fonts::LATO_22_WIDTHS,
-        prop_fonts::LATO_22_FIRST,
-        prop_fonts::LATO_22_LAST,
-        prop_fonts::LATO_22_HEIGHT,
-    )
+    prop_fonts::measure_prop_text(text, &prop_fonts::LATO_22)
 }
 
 pub(crate) fn measure_header(text: &str) -> i32 {
-    prop_fonts::measure_prop_text(
-        text,
-        &prop_fonts::OSWALD_BOLD_22_WIDTHS,
-        prop_fonts::OSWALD_BOLD_22_FIRST,
-        prop_fonts::OSWALD_BOLD_22_LAST,
-        prop_fonts::OSWALD_BOLD_22_HEIGHT,
-    )
+    prop_fonts::measure_prop_text(text, &prop_fonts::OSWALD_BOLD_22)
 }
 
 pub(crate) fn measure_big(text: &str) -> i32 {
-    prop_fonts::measure_prop_text(
-        text,
-        &prop_fonts::RUBIK_BOLD_26_WIDTHS,
-        prop_fonts::RUBIK_BOLD_26_FIRST,
-        prop_fonts::RUBIK_BOLD_26_LAST,
-        prop_fonts::RUBIK_BOLD_26_HEIGHT,
-    )
+    prop_fonts::measure_prop_text(text, &prop_fonts::RUBIK_BOLD_26)
 }
 pub(crate) fn measure_hint(text: &str) -> i32 {
-    prop_fonts::measure_prop_text(
-        text,
-        &prop_fonts::LATO_12_WIDTHS,
-        prop_fonts::LATO_12_FIRST,
-        prop_fonts::LATO_12_LAST,
-        prop_fonts::LATO_12_HEIGHT,
-    )
+    prop_fonts::measure_prop_text(text, &prop_fonts::LATO_12)
 }

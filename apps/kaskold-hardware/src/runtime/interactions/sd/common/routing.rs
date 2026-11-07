@@ -1,4 +1,4 @@
-use crate::{runtime::input::AppState, runtime::interactions::TouchInput};
+use crate::runtime::input::AppState;
 
 use super::super::{
     backup::xprv,
@@ -42,39 +42,34 @@ pub fn handle_sd_touch(context: SdTouchContext<'_, '_, '_>) -> Option<bool> {
         page_down_zone,
         input,
     } = context;
-    let TouchInput { x, y, is_back } = input;
     Some(match group {
         SdRouteGroup::Signature => {
-            handle_signature_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back })
+            handle_signature_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, input })
         }
         SdRouteGroup::File => {
-            handle_file_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back })
+            handle_file_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, input })
         }
         SdRouteGroup::SeedBackup => {
-            handle_seed_backup_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back })
+            handle_seed_backup_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, input })
         }
         SdRouteGroup::Xprv => {
-            handle_xprv_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back })
+            handle_xprv_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, input })
         }
         SdRouteGroup::Kspt => {
-            handle_kspt_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back })
+            handle_kspt_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, input })
         }
         SdRouteGroup::Kpub => {
-            handle_kpub_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back })
+            handle_kpub_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, input })
         }
         SdRouteGroup::Multisig => {
-            handle_multisig_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back })
+            handle_multisig_io(SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, input })
         }
-        SdRouteGroup::Action => qr::handle_show_qr_mode_choice(SdActionContext { ad, x, y, is_back }),
-        SdRouteGroup::WalletBackupList => super::super::backup::import::handle_wallet_backup_file_list(SdListContext {
-            ad,
-            list_zones,
-            x,
-            y,
-            is_back,
-        }),
+        SdRouteGroup::Action => qr::handle_show_qr_mode_choice(SdActionContext { ad, input }),
+        SdRouteGroup::WalletBackupList => {
+            super::super::backup::import::handle_wallet_backup_file_list(SdListContext { ad, list_zones, input })
+        }
         SdRouteGroup::FileList => {
-            handle_file_list(SdFileListContext { ad, boot_display, delay, liveness, i2c, list_zones, x, y, is_back })
+            handle_file_list(SdFileListContext { ad, boot_display, delay, liveness, i2c, list_zones, input })
         }
         SdRouteGroup::ImportMenu => import_menu::handle_sd_import_menu(SdImportMenuContext {
             ad,
@@ -84,9 +79,7 @@ pub fn handle_sd_touch(context: SdTouchContext<'_, '_, '_>) -> Option<bool> {
             list_zones,
             page_up_zone,
             page_down_zone,
-            x,
-            y,
-            is_back,
+            input,
         }),
     })
 }

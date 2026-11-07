@@ -5,7 +5,7 @@ use shared_signer::bytes::{zeroize_bytes, zeroize_u16};
 use crate::services::backup::BackupError;
 
 use super::{
-    portable, PayloadError, StegoCarrier, StegoSecurity, MAX_HINT_SIZE, PLAINTEXT_SIZE, SECURITY_DEVICE,
+    portable, PayloadError, StegoCarrier, StegoSecret, StegoSecurity, MAX_HINT_SIZE, PLAINTEXT_SIZE, SECURITY_DEVICE,
     SECURITY_PORTABLE, WORD_BYTES, WORD_SLOTS,
 };
 
@@ -14,14 +14,9 @@ pub(super) fn reset_outputs(indices: &mut [u16; WORD_SLOTS], hint: &mut [u8; MAX
     zeroize_bytes(hint);
 }
 
-pub(super) fn validate_inputs(
-    indices: &[u16; WORD_SLOTS],
-    word_count: u8,
-    hint: &[u8],
-    descriptor: &[u8],
-) -> Result<(), PayloadError> {
-    if !crate::wallet::mnemonic::validate(indices, word_count)
-        || hint.len() > MAX_HINT_SIZE
+pub(super) fn validate_inputs(secret: StegoSecret<'_>, descriptor: &[u8]) -> Result<(), PayloadError> {
+    if !crate::wallet::mnemonic::validate(secret.indices, secret.word_count)
+        || secret.hint.len() > MAX_HINT_SIZE
         || descriptor.is_empty()
         || descriptor.len() > 96
     {
@@ -31,13 +26,8 @@ pub(super) fn validate_inputs(
     }
 }
 
-pub(super) fn encode_plaintext(
-    format_version: u8,
-    indices: &[u16; WORD_SLOTS],
-    word_count: u8,
-    hint: &[u8],
-    output: &mut [u8; PLAINTEXT_SIZE],
-) {
+pub(super) fn encode_plaintext(format_version: u8, secret: StegoSecret<'_>, output: &mut [u8; PLAINTEXT_SIZE]) {
+    let StegoSecret { indices, word_count, hint } = secret;
     output.fill(0);
     output[0] = format_version;
     output[1] = word_count;
@@ -80,14 +70,13 @@ fn decode_plaintext(
         _ => return Err(PayloadError::InvalidInput),
     };
 
-    for index in 0..WORD_SLOTS {
-        let offset = 2 + index * 2;
-        let word = u16::from_le_bytes([plaintext[offset], plaintext[offset + 1]]);
+    for (index, (slot, bytes)) in indices.iter_mut().zip(plaintext[2..2 + WORD_SLOTS * 2].chunks_exact(2)).enumerate() {
+        let word = u16::from_le_bytes([bytes[0], bytes[1]]);
         if index < words {
             if word >= 2048 {
                 return Err(PayloadError::InvalidInput);
             }
-            indices[index] = word;
+            *slot = word;
         } else if word != 0 {
             return Err(PayloadError::InvalidInput);
         }

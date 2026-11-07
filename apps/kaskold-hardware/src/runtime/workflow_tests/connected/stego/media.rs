@@ -1,5 +1,6 @@
 use super::StegoContext;
-use crate::services::stego::{self, StegoCarrier, StegoSecurity};
+use crate::controllers::TouchInput;
+use crate::services::stego::{self, StegoCarrier, StegoProtection, StegoSecret, StegoSecurity};
 use alloc::vec::Vec;
 use offline_signer::crypto::{device_bound_storage::NONCE_SIZE, password_kdf::SALT_SIZE};
 
@@ -34,7 +35,7 @@ pub(super) fn exercise(ctx: &mut StegoContext<'_, '_, '_>) -> Option<MediaArtifa
     ctx.ad.stego.session.result_ok = true;
     crate::runtime::effects::route(ctx.ad, crate::runtime::navigation::route!(StegoResult));
     ctx.redraw_step();
-    if ctx.touch(160, 120, false, true) != Some(true)
+    if ctx.touch(TouchInput::new(160, 120, false), true) != Some(true)
         || !crate::runtime::workflow_tests::connected::root::home_ok(ctx.ad)
     {
         return None;
@@ -51,13 +52,9 @@ fn build_artifacts(ctx: &mut StegoContext<'_, '_, '_>) -> Option<MediaArtifacts>
     let word_count = slot.mnemonic_word_count()?;
     let mut device_descriptor_payload = [0u8; stego::STEGO_PAYLOAD_SIZE];
     stego::pack_for_test(
-        StegoSecurity::DeviceBound,
+        StegoProtection { security: StegoSecurity::DeviceBound, descriptor: DESCRIPTOR, portable_password: b"" },
         StegoCarrier::Descriptor,
-        &original_indices,
-        word_count,
-        HINT,
-        DESCRIPTOR,
-        b"",
+        StegoSecret { indices: &original_indices, word_count, hint: HINT },
         &mut ctx.backup_device,
         &SALT,
         &NONCE,
@@ -66,13 +63,9 @@ fn build_artifacts(ctx: &mut StegoContext<'_, '_, '_>) -> Option<MediaArtifacts>
     .ok()?;
     let mut portable_picture_payload = [0u8; stego::STEGO_PAYLOAD_SIZE];
     stego::pack_for_test(
-        StegoSecurity::Portable,
+        StegoProtection { security: StegoSecurity::Portable, descriptor: DESCRIPTOR, portable_password: PASSWORD },
         StegoCarrier::Picture,
-        &original_indices,
-        word_count,
-        b"",
-        DESCRIPTOR,
-        PASSWORD,
+        StegoSecret { indices: &original_indices, word_count, hint: b"" },
         &mut ctx.backup_device,
         &SALT,
         &NONCE,

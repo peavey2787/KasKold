@@ -6,19 +6,14 @@
 
 use crate::services::credential_policy::CredentialKind;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WalletProtection {
     /// No user credential; activation is intentionally available to anyone
     /// holding the device, while at-rest storage remains device-bound encrypted.
+    #[default]
     DeviceOnly,
     Pin,
     Password,
-}
-
-impl Default for WalletProtection {
-    fn default() -> Self {
-        Self::DeviceOnly
-    }
 }
 
 impl WalletProtection {

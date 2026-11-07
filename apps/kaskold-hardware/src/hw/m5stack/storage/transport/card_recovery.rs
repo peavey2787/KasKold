@@ -92,7 +92,7 @@ where
 }
 
 fn rail_diagnostic_due(elapsed_ms: u64) -> bool {
-    matches!(elapsed_ms, 1_000 | 5_000) || elapsed_ms % 30_000 == 0
+    matches!(elapsed_ms, 1_000 | 5_000) || elapsed_ms.is_multiple_of(30_000)
 }
 
 #[cfg(all(feature = "workflow-hil-auto", feature = "m5stack"))]

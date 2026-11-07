@@ -35,5 +35,6 @@ mod support;
 pub mod tx;
 #[cfg(feature = "workflow-tests")]
 pub(crate) mod workflow_tests;
+pub(crate) use support::device_io::DeviceIo;
 pub(crate) use support::{feedback, keyboard, menu_selection};
 mod text_files;

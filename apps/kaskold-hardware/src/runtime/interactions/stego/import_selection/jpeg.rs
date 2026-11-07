@@ -1,14 +1,14 @@
 use super::super::{touch, AppData};
+use crate::controllers::TouchInput;
 
 pub(super) fn handle(
     ad: &mut AppData,
     list_zones: &[touch::TouchZone; 4],
     page_up_zone: &touch::TouchZone,
     page_down_zone: &touch::TouchZone,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(AdvancedRestoreMenu));
         return true;

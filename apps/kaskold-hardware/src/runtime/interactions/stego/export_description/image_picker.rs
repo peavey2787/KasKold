@@ -1,3 +1,4 @@
+use crate::controllers::TouchInput;
 use crate::{hw::touch::TouchZone, runtime::data::AppData};
 
 const PAGE_SIZE: u8 = 4;
@@ -7,10 +8,9 @@ pub(super) fn handle(
     list_zones: &[TouchZone; 4],
     page_up_zone: &TouchZone,
     page_down_zone: &TouchZone,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoSecuritySelect));
         return true;

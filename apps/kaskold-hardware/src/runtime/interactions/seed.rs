@@ -43,16 +43,14 @@ pub fn handle_inventory_touch(
     if !matches!(ad.navigation.app.state, crate::runtime::input::AppState::SeedList) {
         return None;
     }
-    let TouchInput { x, y, is_back } = input;
-    seed_list::handle(ad, boot_display, delay, x, y, is_back, liveness)
+    seed_list::handle(ad, boot_display, delay, input, liveness)
 }
 
 /// Route navigation-only seed screens before the capability-rich generic
 /// Seed controller. Keeping Add Wallet here gives its two choice buttons the
 /// same deterministic pre-dispatch path as the other hardware-free menus.
 pub fn handle_navigation_touch(ad: &mut AppData, input: TouchInput) -> Option<bool> {
-    let TouchInput { x, y, is_back } = input;
-    seed_list::handle_add_wallet_choice(ad, x, y, is_back)
+    seed_list::handle_add_wallet_choice(ad, input)
 }
 
 /// Handle touch events for seed management screens (BIP85, import, passphrase).
@@ -64,23 +62,22 @@ pub fn handle_seed_touch(
     liveness: &mut dyn FnMut(),
     input: TouchInput,
 ) -> Option<bool> {
-    let TouchInput { x, y, is_back } = input;
-    if let Some(result) = bip85::handle(ad, boot_display, delay, liveness, x, y, is_back) {
+    if let Some(result) = bip85::handle(ad, boot_display, delay, liveness, input) {
         return Some(result);
     }
-    if let Some(result) = import::handle(ad, boot_display, delay, x, y, is_back) {
+    if let Some(result) = import::handle(ad, boot_display, delay, input) {
         return Some(result);
     }
-    if let Some(result) = wallet_name::handle(ad, boot_display, delay, x, y, is_back) {
+    if let Some(result) = wallet_name::handle(ad, boot_display, delay, input) {
         return Some(result);
     }
-    if let Some(result) = passphrase_choice::handle(ad, boot_display, delay, x, y, is_back) {
+    if let Some(result) = passphrase_choice::handle(ad, boot_display, delay, input) {
         return Some(result);
     }
-    if let Some(result) = passphrase::handle(ad, boot_display, delay, x, y, is_back) {
+    if let Some(result) = passphrase::handle(ad, boot_display, delay, input) {
         return Some(result);
     }
-    if let Some(result) = delete_seed::handle(ad, x, y, is_back) {
+    if let Some(result) = delete_seed::handle(ad, input) {
         return Some(result);
     }
     None

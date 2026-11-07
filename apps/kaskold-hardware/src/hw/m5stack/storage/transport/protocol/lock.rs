@@ -376,7 +376,7 @@ fn force_erase_poll_limit(timeout_ms: Option<u32>) -> u64 {
 }
 
 fn service_force_erase_liveness(liveness: &mut dyn FnMut(), poll: u64) {
-    if poll % 100 == 0 {
+    if poll.is_multiple_of(100) {
         liveness();
     }
 }
@@ -441,5 +441,5 @@ fn nominal_extension_log_due(elapsed_ms: u64) -> bool {
 }
 
 fn periodic_progress_log_due(elapsed_ms: u64) -> bool {
-    elapsed_ms != 0 && elapsed_ms % u64::from(FORCE_ERASE_PROGRESS_MS) == 0
+    elapsed_ms != 0 && elapsed_ms.is_multiple_of(u64::from(FORCE_ERASE_PROGRESS_MS))
 }

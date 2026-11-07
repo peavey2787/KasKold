@@ -49,34 +49,36 @@ pub(super) fn restore(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
 }
 
 fn case_normalization(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    if ctx.base.seed_touch(HEX_UPPER_A.0, HEX_UPPER_A.1, false) != Some(false)
+    if ctx.base.seed_touch(TouchInput::new(HEX_UPPER_A.0, HEX_UPPER_A.1, false)) != Some(false)
         || ctx.base.ad.wallet.keys.hex_input_len != 1
         || ctx.base.ad.wallet.keys.hex_input[0] != b'a'
     {
         return false;
     }
-    ctx.base.seed_touch(HEX_BACKSPACE.0, HEX_BACKSPACE.1, false) == Some(false)
+    ctx.base.seed_touch(TouchInput::new(HEX_BACKSPACE.0, HEX_BACKSPACE.1, false)) == Some(false)
         && ctx.base.ad.wallet.keys.hex_input_len == 0
 }
 
 fn zero_rejection(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
     for _ in 0..64 {
-        if ctx.base.seed_touch(HEX_ZERO.0, HEX_ZERO.1, false) != Some(false) {
+        if ctx.base.seed_touch(TouchInput::new(HEX_ZERO.0, HEX_ZERO.1, false)) != Some(false) {
             return false;
         }
     }
-    if ctx.base.seed_touch(HEX_ONE.0, HEX_ONE.1, false) != Some(false) || ctx.base.ad.wallet.keys.hex_input_len != 64 {
+    if ctx.base.seed_touch(TouchInput::new(HEX_ONE.0, HEX_ONE.1, false)) != Some(false)
+        || ctx.base.ad.wallet.keys.hex_input_len != 64
+    {
         return false;
     }
-    ctx.base.seed_touch(HEX_OK.0, HEX_OK.1, false) == Some(true)
+    ctx.base.seed_touch(TouchInput::new(HEX_OK.0, HEX_OK.1, false)) == Some(true)
         && ctx.base.ad.navigation.app.state == AppState::ImportPrivKey
         && ctx.base.ad.wallet.keys.hex_input_len == 64
 }
 
 fn valid_one(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
-    ctx.base.seed_touch(HEX_BACKSPACE.0, HEX_BACKSPACE.1, false) == Some(false)
-        && ctx.base.seed_touch(HEX_ONE.0, HEX_ONE.1, false) == Some(false)
-        && ctx.base.seed_touch(HEX_OK.0, HEX_OK.1, false) == Some(true)
+    ctx.base.seed_touch(TouchInput::new(HEX_BACKSPACE.0, HEX_BACKSPACE.1, false)) == Some(false)
+        && ctx.base.seed_touch(TouchInput::new(HEX_ONE.0, HEX_ONE.1, false)) == Some(false)
+        && ctx.base.seed_touch(TouchInput::new(HEX_OK.0, HEX_OK.1, false)) == Some(true)
 }
 
 fn import_ready(ctx: &RestoreIo<'_, '_, '_>) -> bool {
@@ -107,11 +109,11 @@ fn reimport_valid_one(ctx: &mut RestoreIo<'_, '_, '_>) -> bool {
         return false;
     }
     for _ in 0..63 {
-        if ctx.base.seed_touch(HEX_ZERO.0, HEX_ZERO.1, false) != Some(false) {
+        if ctx.base.seed_touch(TouchInput::new(HEX_ZERO.0, HEX_ZERO.1, false)) != Some(false) {
             return false;
         }
     }
-    ctx.base.seed_touch(HEX_ONE.0, HEX_ONE.1, false) == Some(false)
-        && ctx.base.seed_touch(HEX_OK.0, HEX_OK.1, false) == Some(true)
+    ctx.base.seed_touch(TouchInput::new(HEX_ONE.0, HEX_ONE.1, false)) == Some(false)
+        && ctx.base.seed_touch(TouchInput::new(HEX_OK.0, HEX_OK.1, false)) == Some(true)
         && import_ready(ctx)
 }

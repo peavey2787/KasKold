@@ -2,10 +2,11 @@
 
 use super::{begin, fail, open_advanced, open_root, pass, render};
 use crate::{
-    hw::{camera::CameraStatus, display::BootDisplay},
+    hw::display::BootDisplay,
     runtime::{self, data::AppData, input::AppState},
+    services::camera_device::CameraPort,
 };
-use esp_hal::{delay::Delay, dma::DmaRxBuf, i2c::master::I2c, lcd_cam::cam::Camera, Blocking};
+use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
 pub(super) fn probe_firmware_update_guidance(
     ad: &mut AppData,
@@ -36,9 +37,7 @@ pub(super) fn probe_scan_qr_camera(
     display: &mut BootDisplay<'_>,
     i2c: &mut I2c<'_, Blocking>,
     delay: &mut Delay,
-    camera: &mut Option<Camera<'_>>,
-    camera_dma: &mut Option<DmaRxBuf>,
-    camera_status: &mut CameraStatus,
+    camera: &mut CameraPort<'_>,
     watchdog_feed: &mut impl FnMut(),
 ) -> bool {
     const NAME: &str = "scan-qr-camera";
@@ -51,17 +50,8 @@ pub(super) fn probe_scan_qr_camera(
     render(ad, display, i2c, delay, watchdog_feed);
     let mut camera_session = runtime::interactions::camera_loop::CameraSessionState::new();
     watchdog_feed();
-    runtime::interactions::camera_loop::run_camera_cycle(
-        &mut camera_session,
-        ad,
-        display,
-        delay,
-        i2c,
-        camera,
-        camera_status,
-        camera_dma,
-        watchdog_feed,
-    );
+    let mut camera_io = runtime::interactions::DeviceIo { boot_display: display, delay, i2c, liveness: watchdog_feed };
+    runtime::interactions::camera_loop::run_camera_cycle(&mut camera_session, ad, &mut camera_io, camera);
     watchdog_feed();
     pass(NAME);
     true

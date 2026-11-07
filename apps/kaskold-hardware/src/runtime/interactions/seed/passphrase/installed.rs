@@ -3,18 +3,19 @@
 use crate::runtime::data::AppData;
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use crate::services::audio as sound;
-use crate::wallet::seed_manager::WalletProtection;
 
+/// Promote the reserved transient slot and stage the protection the pending
+/// Add Wallet flow already collected.
 pub(super) fn commit_add_wallet(
     ad: &mut AppData,
     persistence: &mut crate::services::persistent_wallet::PersistentWallet<'_>,
     boot_display: &mut crate::hw::display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     slot: usize,
-    protection: WalletProtection,
-    salt: [u8; crate::services::credential_policy::SALT_SIZE],
-    verifier: [u8; 32],
 ) -> bool {
+    let protection = ad.wallet.seeds.pending_wallet_protection;
+    let salt = ad.wallet.seeds.pending_wallet_activation_salt;
+    let verifier = ad.wallet.seeds.pending_wallet_activation_verifier;
     if !transient_slot_ready(ad, slot) {
         reject_creation(boot_display, delay);
         return false;
@@ -24,7 +25,7 @@ pub(super) fn commit_add_wallet(
         reject_creation(boot_display, delay);
         return false;
     }
-    apply_pending_wallet_name(ad, slot);
+    super::apply_pending_wallet_name(ad, slot);
     if !ad.wallet.seeds.seed_mgr.set_slot_protection(slot, protection) {
         cancel_installed_restore(ad, slot);
         reject_creation(boot_display, delay);
@@ -54,7 +55,7 @@ pub(super) fn finish_session_wallet(
         reject_creation(boot_display, delay);
         return false;
     }
-    apply_pending_wallet_name(ad, slot);
+    super::apply_pending_wallet_name(ad, slot);
     sound::success();
     ad.wallet.seeds.finish_pending_add_wallet_commit();
     ad.wallet.seeds.clear_pending_wallet_name();
@@ -68,18 +69,6 @@ fn transient_slot_ready(ad: &AppData, slot: usize) -> bool {
     slot < crate::wallet::seed_manager::MAX_SLOTS
         && !ad.wallet.seeds.seed_mgr.slots[slot].is_empty()
         && ad.wallet.seeds.seed_mgr.slots[slot].transient
-}
-
-pub(super) fn apply_pending_wallet_name(ad: &mut AppData, slot: usize) {
-    let name_len =
-        usize::from(ad.wallet.seeds.pending_wallet_name_len).min(crate::wallet::seed_manager::WALLET_NAME_MAX);
-    if name_len == 0 {
-        return;
-    }
-    let mut name = [0u8; crate::wallet::seed_manager::WALLET_NAME_MAX];
-    name[..name_len].copy_from_slice(&ad.wallet.seeds.pending_wallet_name[..name_len]);
-    let _ = ad.wallet.seeds.seed_mgr.set_slot_name(slot, &name[..name_len]);
-    shared_signer::bytes::zeroize_bytes(&mut name);
 }
 
 fn cancel_installed_restore(ad: &mut AppData, slot: usize) {

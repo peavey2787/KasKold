@@ -1,17 +1,18 @@
 // Entropy-source orchestration and final whitening.
 
-use esp_hal::{delay::Delay, dma::DmaRxBuf, i2c::master::I2c, lcd_cam::cam::Camera, Blocking};
+use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
+
+use crate::hw::shared::dvp::CameraPort;
 use sha2::{Digest, Sha256};
 
 use super::{ambient, camera, health::EntropyError, imu, mixer, platform, seed, trng};
 /// Collect a seed-generation pool. Camera entropy is mandatory.
-pub fn collect<'a>(
+pub fn collect(
     delay: &mut Delay,
     liveness: &mut dyn FnMut(),
     i2c: &mut I2c<'_, Blocking>,
     idle_ticks: u32,
-    camera_device: &mut Option<Camera<'a>>,
-    dma_buffer: &mut Option<DmaRxBuf>,
+    camera: &mut CameraPort<'_>,
 ) -> Result<[u8; 32], EntropyError> {
     trng::enable_hardware_rng()?;
     let imu_initialized = imu::initialize(i2c, delay);
@@ -30,8 +31,7 @@ pub fn collect<'a>(
         delay,
         liveness,
         idle_ticks,
-        camera_device,
-        dma_buffer,
+        camera,
         #[cfg(feature = "e12-capture")]
         e12_capture.as_mut(),
     );

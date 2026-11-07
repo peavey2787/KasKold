@@ -262,7 +262,7 @@ impl<'a> BootDisplay<'a> {
         const STRIP_W: u32 = 320;
 
         // Visible window: always left-aligned, scroll only when cursor exceeds it
-        let vis_start = if cursor <= max_vis { 0 } else { cursor - max_vis };
+        let vis_start = cursor.saturating_sub(max_vis);
         let vis_end = (vis_start + max_vis).min(pp.len());
         let vis_text = &pp[vis_start..vis_end];
 

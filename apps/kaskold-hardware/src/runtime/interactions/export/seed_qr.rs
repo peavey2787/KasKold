@@ -4,13 +4,15 @@
 
 //! SeedQR export and grid navigation.
 
+use crate::controllers::TouchInput;
 use crate::{
     runtime::{data::AppData, input::AppState},
     wallet::seed_manager,
 };
 use kaskold_hardware_core::presentation::seed_qr_grid::{reduce_grid, SeedQrGridEffect, SeedQrGridState};
 
-pub(super) fn handle(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> Option<bool> {
+pub(super) fn handle(ad: &mut AppData, input: TouchInput) -> Option<bool> {
+    let TouchInput { is_back, .. } = input;
     let state = ad.navigation.app.state;
     match state {
         AppState::ExportSeedQR => {
@@ -44,7 +46,8 @@ pub(super) fn handle(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> Option<
                 };
                 size
             };
-            let effect = reduce_grid(SeedQrGridState { pan_x, pan_y, compact }, qr_size, x, y, is_back);
+            let effect =
+                reduce_grid(SeedQrGridState { pan_x, pan_y, compact }, qr_size, input.x, input.y, input.is_back);
             Some(apply_grid_effect(ad, effect))
         }
         AppState::ExportPlainWordsQR => {

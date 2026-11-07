@@ -1,6 +1,7 @@
 //! Password controller for explicit encrypted-file import and export operations.
 
 use super::super::super::SdIoContext;
+use crate::controllers::TouchInput;
 use crate::{
     runtime::data::EncryptedFileOperation,
     runtime::interactions::{
@@ -12,7 +13,8 @@ use crate::{
 use super::{load::load_encrypted_payload, navigation::navigate_from_password, save::save_encrypted_payload};
 
 pub(crate) fn handle_sd_kspt_encrypt_pass(ctx: SdIoContext<'_, '_, '_>) -> bool {
-    let SdIoContext { ad, boot_display, delay, liveness, i2c, x, y, is_back, .. } = ctx;
+    let SdIoContext { ad, boot_display, delay, liveness, i2c, input, .. } = ctx;
+    let TouchInput { x, y, is_back } = input;
     let operation = ad.storage.export_file.encrypted_operation;
 
     if is_back {

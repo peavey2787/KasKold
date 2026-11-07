@@ -91,9 +91,7 @@ pub(super) fn run(
     boot_display: &mut crate::hw::display::BootDisplay<'_>,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     delay: &mut esp_hal::delay::Delay,
-    dvp_camera_opt: &mut Option<esp_hal::lcd_cam::cam::Camera<'_>>,
-    cam_dma_buf_opt: &mut Option<esp_hal::dma::DmaRxBuf>,
-    cam_status: &mut crate::hw::camera::CameraStatus,
+    camera: &mut crate::services::camera_device::CameraPort<'_>,
     persistent_wallet: &mut crate::services::persistent_wallet::PersistentWallet<'_>,
     watchdog_feed: &mut impl FnMut(),
 ) -> bool {
@@ -117,9 +115,7 @@ pub(super) fn run(
 
     #[cfg(not(all(feature = "m5stack", feature = "workflow-runtime-auto")))]
     {
-        let _ = dvp_camera_opt;
-        let _ = cam_dma_buf_opt;
-        let _ = cam_status;
+        let _ = camera;
     }
 
     #[cfg(not(feature = "workflow-runtime-auto"))]
@@ -156,17 +152,7 @@ pub(super) fn run(
     // real LCD/camera/derivation/KDF paths under the same 30-second watchdog
     // budget as production, without making destructive SD/eFuse changes.
     #[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))]
-    if !runtime_gui::exercise(
-        ad,
-        boot_display,
-        i2c,
-        delay,
-        dvp_camera_opt,
-        cam_dma_buf_opt,
-        cam_status,
-        persistent_wallet,
-        watchdog_feed,
-    ) {
+    if !runtime_gui::exercise(ad, boot_display, i2c, delay, camera, persistent_wallet, watchdog_feed) {
         return false;
     }
     #[cfg(not(all(feature = "m5stack", feature = "workflow-runtime-auto")))]

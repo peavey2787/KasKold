@@ -27,12 +27,7 @@ pub fn test_seedqr_roundtrip_12() -> bool {
     if wc != 12 {
         return false;
     }
-    for i in 0..11 {
-        if decoded[i] != 0 {
-            return false;
-        }
-    }
-    decoded[11] == 3
+    decoded[..11].iter().all(|&word| word == 0) && decoded[11] == 3
 }
 
 #[cfg(any(test, feature = "verbose-boot"))]
@@ -71,13 +66,8 @@ pub fn test_compact_seedqr_12() -> bool {
     if wc != 12 {
         return false;
     }
-    for i in 0..11 {
-        if indices[i] != 0 {
-            return false;
-        }
-    }
     // Last word should be "about" = index 3
-    indices[11] == 3
+    indices[..11].iter().all(|&word| word == 0) && indices[11] == 3
 }
 
 #[cfg(any(test, feature = "verbose-boot"))]

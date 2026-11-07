@@ -3,8 +3,9 @@
 
 use crate::services::backup::{self, BackupDevice, BackupError, BackupKind};
 use crate::services::credential_policy::CredentialKind;
+use crate::services::stego::{StegoProtection, StegoSecret};
 use offline_signer::crypto::device_bound_storage::{
-    open_in_place, seal_in_place, DeviceBoundError, HardwareHmac, KdfParameters, OpenRequest, StoragePurpose, TAG_SIZE,
+    open_in_place, seal_in_place, DeviceBoundError, Envelope, HardwareHmac, KdfParameters, StoragePurpose, TAG_SIZE,
 };
 use sha2::{Digest, Sha256};
 
@@ -31,19 +32,13 @@ impl BackupDevice for MockBackupDevice {
     fn seal_backup_key(
         &mut self,
         purpose: StoragePurpose,
-        credential_key: &[u8; 32],
-        salt: &[u8; 16],
-        nonce: &[u8; 12],
-        aad: &[u8],
+        envelope: Envelope<'_>,
         ciphertext: &mut [u8],
     ) -> Result<[u8; TAG_SIZE], BackupError> {
         seal_in_place(
             &mut MockHmac(self.0),
             KdfParameters::current(purpose, CredentialKind::Password),
-            credential_key,
-            salt,
-            nonce,
-            aad,
+            envelope,
             ciphertext,
         )
         .map_err(map_device_error)
@@ -51,23 +46,15 @@ impl BackupDevice for MockBackupDevice {
     fn open_backup_key(
         &mut self,
         purpose: StoragePurpose,
-        credential_key: &[u8; 32],
-        salt: &[u8; 16],
-        nonce: &[u8; 12],
-        aad: &[u8],
+        envelope: Envelope<'_>,
         ciphertext: &mut [u8],
         tag: &[u8; TAG_SIZE],
     ) -> Result<(), BackupError> {
         open_in_place(
             &mut MockHmac(self.0),
-            OpenRequest {
-                parameters: KdfParameters::current(purpose, CredentialKind::Password),
-                stretched_credential: credential_key,
-                salt,
-                nonce,
-                authenticated_header: aad,
-                tag,
-            },
+            KdfParameters::current(purpose, CredentialKind::Password),
+            envelope,
+            tag,
             ciphertext,
         )
         .map_err(map_device_error)
@@ -148,13 +135,13 @@ fn current_stego_device_roundtrip() -> bool {
     let mut device = MockBackupDevice(DEVICE_A);
     let mut payload = [0u8; crate::services::stego::STEGO_PAYLOAD_SIZE];
     if crate::services::stego::pack_for_test(
-        crate::services::stego::StegoSecurity::DeviceBound,
+        StegoProtection {
+            security: crate::services::stego::StegoSecurity::DeviceBound,
+            descriptor: b"Family photo 7",
+            portable_password: b"",
+        },
         crate::services::stego::StegoCarrier::Descriptor,
-        &indices,
-        12,
-        b"favorite song",
-        b"Family photo 7",
-        b"",
+        StegoSecret { indices: &indices, word_count: 12, hint: b"favorite song" },
         &mut device,
         &SALT,
         &NONCE,
@@ -183,13 +170,13 @@ fn portable_roundtrip_cross_device_and_tamper() -> bool {
     let mut device = MockBackupDevice(DEVICE_A);
     let mut payload = [0u8; crate::services::stego::STEGO_PAYLOAD_SIZE];
     if crate::services::stego::pack_for_test(
-        crate::services::stego::StegoSecurity::Portable,
+        StegoProtection {
+            security: crate::services::stego::StegoSecurity::Portable,
+            descriptor: b"Travel photo 4",
+            portable_password: PASSWORD,
+        },
         crate::services::stego::StegoCarrier::Picture,
-        &indices,
-        12,
-        b"portable hint",
-        b"Travel photo 4",
-        PASSWORD,
+        StegoSecret { indices: &indices, word_count: 12, hint: b"portable hint" },
         &mut device,
         &SALT,
         &NONCE,
@@ -257,13 +244,13 @@ fn stego_modes_separated() -> bool {
     let mut device = [0u8; crate::services::stego::STEGO_PAYLOAD_SIZE];
     let mut portable = [0u8; crate::services::stego::STEGO_PAYLOAD_SIZE];
     if crate::services::stego::pack_for_test(
-        crate::services::stego::StegoSecurity::DeviceBound,
+        StegoProtection {
+            security: crate::services::stego::StegoSecurity::DeviceBound,
+            descriptor: b"Park photo 5",
+            portable_password: b"",
+        },
         crate::services::stego::StegoCarrier::Picture,
-        &indices,
-        12,
-        b"",
-        b"Park photo 5",
-        b"",
+        StegoSecret { indices: &indices, word_count: 12, hint: b"" },
         &mut backup_device,
         &SALT,
         &NONCE,
@@ -274,13 +261,13 @@ fn stego_modes_separated() -> bool {
         return false;
     }
     if crate::services::stego::pack_for_test(
-        crate::services::stego::StegoSecurity::Portable,
+        StegoProtection {
+            security: crate::services::stego::StegoSecurity::Portable,
+            descriptor: b"Park photo 5",
+            portable_password: PASSWORD,
+        },
         crate::services::stego::StegoCarrier::Picture,
-        &indices,
-        12,
-        b"",
-        b"Park photo 5",
-        PASSWORD,
+        StegoSecret { indices: &indices, word_count: 12, hint: b"" },
         &mut backup_device,
         &SALT,
         &NONCE,
@@ -369,13 +356,13 @@ fn portable_jpeg_rejects_all_authenticated_header_tampering_and_clears_outputs()
     let mut device = MockBackupDevice(DEVICE_A);
     let mut payload = [0u8; crate::services::stego::STEGO_PAYLOAD_SIZE];
     crate::services::stego::pack_for_test(
-        crate::services::stego::StegoSecurity::Portable,
+        StegoProtection {
+            security: crate::services::stego::StegoSecurity::Portable,
+            descriptor: b"Travel photo 4",
+            portable_password: PASSWORD,
+        },
         crate::services::stego::StegoCarrier::Picture,
-        &indices,
-        12,
-        b"portable hint",
-        b"Travel photo 4",
-        PASSWORD,
+        StegoSecret { indices: &indices, word_count: 12, hint: b"portable hint" },
         &mut device,
         &SALT,
         &NONCE,

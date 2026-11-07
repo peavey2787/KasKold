@@ -1,9 +1,11 @@
+use crate::controllers::TouchInput;
 use crate::runtime::data::AppData;
 
 const MIN_PARTICIPANTS: u8 = 1;
 const MAX_PARTICIPANTS: u8 = 5;
 
-pub(super) fn handle(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+pub(super) fn handle(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.wallet.seeds.clear_multisig_wallet_return();
         ad.signing.multisig.creating.n = 0;

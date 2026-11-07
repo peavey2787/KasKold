@@ -54,7 +54,7 @@ impl<'a> BootDisplay<'a> {
         draw_lato_body(&mut self.display, progress.as_str(), (320 - pw) / 2, 100, COLOR_TEXT);
 
         // Progress bar
-        let bar_width = if total_inputs > 0 { (240 * (current_input + 1) / total_inputs) as u32 } else { 0 };
+        let bar_width = (240 * (current_input + 1)).checked_div(total_inputs).unwrap_or(0) as u32;
         Rectangle::new(Point::new(40, 130), Size::new(240, 20))
             .into_styled(PrimitiveStyle::with_stroke(COLOR_TEXT, 1))
             .draw(&mut self.display)

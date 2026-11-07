@@ -1,3 +1,4 @@
+use crate::controllers::TouchInput;
 use crate::{
     hw::display,
     runtime::interactions::feedback::{show_rejection, ErrorSound},
@@ -12,18 +13,14 @@ pub(super) fn handle(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
     match ad.navigation.app.state {
-        AppState::CovenantSignReview => Some(handle_known(ad, boot_display, delay, liveness, x, y, is_back)),
-        AppState::CovenantSignOpaqueWarning => Some(handle_opaque_warning(ad, x, y, is_back)),
-        AppState::CovenantSignOpaqueConfirm => {
-            Some(handle_opaque_confirm(ad, boot_display, delay, liveness, x, y, is_back))
-        }
-        AppState::CovenantKeyResult => Some(handle_key_result(ad, boot_display, delay, x, y, is_back)),
-        AppState::CovenantSignResult => Some(handle_sign_result(ad, boot_display, delay, x, y, is_back)),
+        AppState::CovenantSignReview => Some(handle_known(ad, boot_display, delay, liveness, input)),
+        AppState::CovenantSignOpaqueWarning => Some(handle_opaque_warning(ad, input)),
+        AppState::CovenantSignOpaqueConfirm => Some(handle_opaque_confirm(ad, boot_display, delay, liveness, input)),
+        AppState::CovenantKeyResult => Some(handle_key_result(ad, boot_display, delay, input)),
+        AppState::CovenantSignResult => Some(handle_sign_result(ad, boot_display, delay, input)),
         _ => None,
     }
 }
@@ -33,10 +30,9 @@ fn handle_known(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         if ad.signing.covenant.context_page > 0 {
             ad.signing.covenant.context_page -= 1;
@@ -57,7 +53,8 @@ fn handle_known(
     false
 }
 
-fn handle_opaque_warning(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+fn handle_opaque_warning(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.signing.covenant.reset();
         crate::runtime::effects::home(ad);
@@ -75,10 +72,9 @@ fn handle_opaque_confirm(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(CovenantSignOpaqueWarning));
         return true;
@@ -122,10 +118,9 @@ fn handle_key_result(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.signing.covenant.reset();
         crate::runtime::effects::home(ad);
@@ -142,10 +137,9 @@ fn handle_sign_result(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.signing.covenant.reset();
         crate::runtime::effects::home(ad);

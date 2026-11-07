@@ -3,6 +3,7 @@
 
 use super::photo_scan::{self, PhotoList};
 use super::{display, AppData, RedrawFlag};
+use crate::controllers::TouchInput;
 use crate::runtime::interactions::feedback::{card_inserted, show_rejection, ErrorSound};
 use crate::{
     runtime::input::AppState,
@@ -14,13 +15,11 @@ pub(super) fn handle(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
     let changed = match ad.navigation.app.state {
-        AppState::StegoModeSelect => handle_carrier_select(ad, boot_display, delay, i2c, x, y, is_back),
-        AppState::StegoSecuritySelect => handle_security_select(ad, boot_display, delay, i2c, x, y, is_back),
+        AppState::StegoModeSelect => handle_carrier_select(ad, boot_display, delay, i2c, input),
+        AppState::StegoSecuritySelect => handle_security_select(ad, boot_display, delay, i2c, input),
         AppState::StegoResult => {
             ad.wallet.seeds.pp_input.reset();
             ad.stego.export_flow.clear_portable_confirmation();
@@ -40,10 +39,9 @@ fn handle_carrier_select(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::SeedBackup);
         return true;
@@ -80,10 +78,9 @@ fn handle_security_select(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoModeSelect));
         return true;

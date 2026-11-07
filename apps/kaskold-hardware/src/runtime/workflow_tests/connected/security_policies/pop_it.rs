@@ -1,4 +1,5 @@
 use super::SecurityContext;
+use crate::controllers::TouchInput;
 use crate::{
     runtime::input::AppState,
     ui::screens::device::pop_it::{
@@ -47,7 +48,9 @@ fn owner_warning(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if ctx.advanced_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::AdvancedMenu {
+    if ctx.advanced_touch(TouchInput::new(20, 20, true)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::AdvancedMenu
+    {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: SECURITY POP-IT OWNER WARNING PASS");
@@ -60,12 +63,11 @@ fn enter(ctx: &mut SecurityContext<'_, '_, '_>) {
 
 fn explain_and_no(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     enter(ctx);
-    if ctx.ad.navigation.app.state != AppState::PopItPrompt
-        || ctx.advanced_touch(center(&EXPLAIN_BUTTON_X), prompt_y(), false) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::PopItExplain
-        || ctx.advanced_touch(20, 20, true) != Some(true)
-        || ctx.ad.navigation.app.state != AppState::PopItPrompt
-    {
+    let explained = ctx.ad.navigation.app.state == AppState::PopItPrompt
+        && ctx.advanced_touch(TouchInput::new(center(&EXPLAIN_BUTTON_X), prompt_y(), false)) == Some(true)
+        && ctx.ad.navigation.app.state == AppState::PopItExplain;
+    let returned = explained && ctx.advanced_touch(TouchInput::new(20, 20, true)) == Some(true);
+    if !returned || ctx.ad.navigation.app.state != AppState::PopItPrompt {
         return false;
     }
     if crate::runtime::interactions::settings::advanced::workflow::pop_it_prompt(
@@ -114,7 +116,9 @@ fn phrase_and_failures(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if ctx.advanced_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::AdvancedMenu {
+    if ctx.advanced_touch(TouchInput::new(20, 20, true)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::AdvancedMenu
+    {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: SECURITY POP-IT PHRASE/PREFLIGHT/ARM-FAIL PASS");

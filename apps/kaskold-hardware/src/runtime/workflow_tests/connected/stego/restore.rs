@@ -2,6 +2,7 @@ use super::{
     media::{MediaArtifacts, DESCRIPTOR, HINT, PASSWORD, WRONG_PASSWORD},
     StegoContext,
 };
+use crate::controllers::TouchInput;
 use crate::{
     runtime::input::AppState,
     services::stego::{self, StegoCarrier},
@@ -26,15 +27,18 @@ fn import_picker_navigation(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
     }
     ctx.ad.stego.import.jpeg_count = 5;
     ctx.ad.stego.import.jpeg_selected = 0;
-    if ctx.touch(ctx.down.x + 10, ctx.down.y + 10, false, true) != Some(true) || ctx.ad.stego.import.jpeg_selected != 4
+    if ctx.touch(TouchInput::new(ctx.down.x + 10, ctx.down.y + 10, false), true) != Some(true)
+        || ctx.ad.stego.import.jpeg_selected != 4
     {
         return false;
     }
-    if ctx.touch(ctx.up.x + 10, ctx.up.y + 10, false, true) != Some(true) || ctx.ad.stego.import.jpeg_selected != 0 {
+    if ctx.touch(TouchInput::new(ctx.up.x + 10, ctx.up.y + 10, false), true) != Some(true)
+        || ctx.ad.stego.import.jpeg_selected != 0
+    {
         return false;
     }
     let zone = ctx.list[0];
-    ctx.touch(zone.x + zone.w / 2, zone.y + zone.h / 2, false, true) == Some(true)
+    ctx.touch(TouchInput::new(zone.x + zone.w / 2, zone.y + zone.h / 2, false), true) == Some(true)
         && ctx.ad.navigation.app.state == AppState::StegoImportDescChoice
 }
 
@@ -52,13 +56,18 @@ fn descriptor_file_validation(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
 }
 
 fn import_back_owners(ctx: &mut StegoContext<'_, '_, '_>) -> bool {
-    if ctx.touch(20, 20, true, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoImportDescChoice {
+    if ctx.touch(TouchInput::new(20, 20, true), true) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::StegoImportDescChoice
+    {
         return false;
     }
-    if ctx.touch(20, 20, true, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoImportPick {
+    if ctx.touch(TouchInput::new(20, 20, true), true) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::StegoImportPick
+    {
         return false;
     }
-    ctx.touch(20, 20, true, true) == Some(true) && ctx.ad.navigation.app.state == AppState::AdvancedRestoreMenu
+    ctx.touch(TouchInput::new(20, 20, true), true) == Some(true)
+        && ctx.ad.navigation.app.state == AppState::AdvancedRestoreMenu
 }
 
 fn device_bound_round_trip(ctx: &mut StegoContext<'_, '_, '_>, artifacts: &MediaArtifacts) -> bool {
@@ -78,18 +87,19 @@ fn device_bound_round_trip(ctx: &mut StegoContext<'_, '_, '_>, artifacts: &Media
         StegoCarrier::Descriptor,
         &payload,
         DESCRIPTOR,
-        None,
     ) || ctx.ad.navigation.app.state != AppState::StegoHintReveal
         || &ctx.ad.stego.import.recovered_hint[..ctx.ad.stego.import.recovered_hint_len] != HINT
     {
         return false;
     }
-    if ctx.touch(160, 120, false, true) != Some(true) || ctx.ad.navigation.app.state != AppState::StegoHintPassphrase {
+    if ctx.touch(TouchInput::new(160, 120, false), true) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::StegoHintPassphrase
+    {
         return false;
     }
     // Mnemonic restores order passphrase before name, so a hint restore staged
     // in onboarding continues to the same naming step as every other restore.
-    if ctx.touch(20, 20, true, true) != Some(true)
+    if ctx.touch(TouchInput::new(20, 20, true), true) != Some(true)
         || ctx.ad.navigation.app.state != (AppState::WalletNameEntry { purpose: 3 })
         || !staged_matches(ctx, artifacts)
     {
@@ -123,14 +133,14 @@ fn portable_round_trip(ctx: &mut StegoContext<'_, '_, '_>, artifacts: &MediaArti
         return false;
     }
     ctx.set_text(WRONG_PASSWORD);
-    if ctx.touch(290, 215, false, true) != Some(true)
+    if ctx.touch(TouchInput::new(290, 215, false), true) != Some(true)
         || ctx.ad.navigation.app.state != AppState::StegoImportPortablePassword
         || ctx.ad.wallet.seeds.seed_mgr.active_slot().is_some()
     {
         return false;
     }
     ctx.set_text(PASSWORD);
-    if ctx.touch(290, 215, false, true) != Some(true)
+    if ctx.touch(TouchInput::new(290, 215, false), true) != Some(true)
         || ctx.ad.navigation.app.state != AppState::PassphraseChoice
         || !staged_matches(ctx, artifacts)
     {

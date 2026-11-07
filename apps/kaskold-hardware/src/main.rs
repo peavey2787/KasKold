@@ -63,10 +63,11 @@ mod version;
 mod wallet;
 #[cfg(all(not(feature = "qemu"), any(not(feature = "hardware-tests"), feature = "m5stack")))]
 use crate::runtime::data::AppData;
-#[cfg(not(feature = "qemu"))]
-use esp_hal::lcd_cam::cam::Camera as DvpCamera;
 #[cfg(all(feature = "m5stack", any(not(feature = "workflow-test-auto"), feature = "workflow-runtime-auto")))]
-use esp_hal::lcd_cam::{cam::Config as CamConfig, LcdCam};
+use esp_hal::lcd_cam::{
+    cam::{Camera as DvpCamera, Config as CamConfig},
+    LcdCam,
+};
 use esp_hal::main;
 #[cfg(not(feature = "qemu"))]
 use esp_hal::{
@@ -140,8 +141,7 @@ fn firmware_main() -> ! {
     // M5Stack workflow/HIL images initialize the same board resources as interactive firmware.
     #[cfg_attr(feature = "hardware-tests", allow(unused_variables))]
     #[cfg(feature = "m5stack")]
-    let (i2c, mut boot_display, dvp_camera_opt, cam_dma_buf_opt, cam_status, runtime_audio) =
-        boot::m5stack::initialize!(peripherals, delay);
+    let (i2c, mut boot_display, camera, runtime_audio) = boot::m5stack::initialize!(peripherals, delay);
     #[cfg(all(feature = "m5stack", not(feature = "hardware-tests")))]
     let mut runtime_audio = runtime_audio;
     #[cfg(all(feature = "m5stack", not(feature = "hardware-tests")))]
@@ -233,17 +233,13 @@ fn firmware_main() -> ! {
     #[cfg(all(not(feature = "hardware-tests"), feature = "m5stack"))]
     runtime::event_loop::runner::run(
         ad,
-        persistent_wallet,
-        boot_display,
-        delay,
-        i2c,
-        (dvp_camera_opt, cam_dma_buf_opt, cam_status),
+        runtime::event_loop::runner::RuntimeHardware { persistent_wallet, boot_display, delay, i2c, camera },
         #[cfg(not(feature = "workflow-test-auto"))]
-        tracker,
-        #[cfg(not(feature = "workflow-test-auto"))]
-        runtime_audio,
+        runtime::event_loop::runner::InteractiveInput {
+            tracker,
+            runtime_audio,
+            zones: (grid_zones, list_zones, page_up_zone, page_down_zone),
+        },
         runtime_watchdog,
-        #[cfg(not(feature = "workflow-test-auto"))]
-        (grid_zones, list_zones, page_up_zone, page_down_zone),
     );
 }

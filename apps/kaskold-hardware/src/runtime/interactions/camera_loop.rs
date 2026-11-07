@@ -27,8 +27,6 @@ use crate::{
     services::audio as sound,
     wallet::seed_manager,
 };
-use esp_hal::dma::DmaRxBuf;
-use esp_hal::lcd_cam::cam::Camera as DvpCamera;
 
 extern crate alloc;
 use alloc::vec::Vec;

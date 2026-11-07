@@ -1,8 +1,9 @@
 // QR presentation routing.
 use super::AppData;
+use crate::controllers::TouchInput;
 
 mod presentation;
 
-pub(super) fn handle(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> Option<bool> {
-    presentation::handle(ad, x, y, is_back)
+pub(super) fn handle(ad: &mut AppData, input: TouchInput) -> Option<bool> {
+    presentation::handle(ad, input)
 }

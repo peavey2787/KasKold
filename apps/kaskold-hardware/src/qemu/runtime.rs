@@ -22,7 +22,7 @@ pub(crate) fn run(mut display: ConsoleDisplay, mut touch: ScriptedTouch, mut del
             display.show_touch(event);
         }
 
-        if iteration % HEARTBEAT_INTERVAL == 0 {
+        if iteration.is_multiple_of(HEARTBEAT_INTERVAL) {
             display.show_heartbeat(iteration);
         }
 

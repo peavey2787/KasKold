@@ -1,5 +1,6 @@
 // Address private-key export controller facade.
 
+use crate::controllers::TouchInput;
 mod derivation;
 mod index_input;
 
@@ -22,12 +23,10 @@ pub(super) fn handle(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
     match ad.navigation.app.state {
-        AppState::ExportPrivKeyIndex => Some(index_input::handle(ad, boot_display, delay, liveness, x, y, is_back)),
+        AppState::ExportPrivKeyIndex => Some(index_input::handle(ad, boot_display, delay, liveness, input)),
         AppState::ExportPrivKey => {
             shared_signer::bytes::zeroize_bytes(&mut ad.export.export_key_hex);
             crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::KeyExport);

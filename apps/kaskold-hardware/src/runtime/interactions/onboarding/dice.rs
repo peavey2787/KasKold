@@ -1,3 +1,4 @@
+use crate::controllers::TouchInput;
 use crate::{hw::display, runtime::data::AppData, wallet::mnemonic};
 
 const DICE_X: [u16; 3] = [10, 110, 210];
@@ -8,10 +9,9 @@ const DIE_HEIGHT: u16 = 65;
 pub(crate) fn handle_dice_roll(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.wallet.seeds.dice_collector.zeroize();
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageSeedDiceCountChoice));

@@ -7,7 +7,7 @@
 use crate::services::credential_policy::{self, CredentialKind, SALT_SIZE};
 use offline_signer::crypto::{
     container_framing::{self, BackupPayloadKind, FramingError},
-    device_bound_storage::{StoragePurpose, KDF_ID_DEVICE_HMAC_SHA256, NONCE_SIZE, TAG_SIZE},
+    device_bound_storage::{Envelope, StoragePurpose, KDF_ID_DEVICE_HMAC_SHA256, NONCE_SIZE, TAG_SIZE},
     password_kdf::{self, PasswordKdfParams, PasswordKdfPurpose},
 };
 use shared_signer::bytes::zeroize_bytes;
@@ -79,16 +79,16 @@ fn seal_with_material(
             .map_err(map_kdf_error)?;
     let (header, body_and_tag) = out[..total].split_at_mut(CURRENT_HEADER_SIZE);
     body_and_tag[..plaintext.len()].copy_from_slice(plaintext);
-    let tag_result =
-        device.seal_backup_key(kind.purpose(), &key, salt, nonce, header, &mut body_and_tag[..plaintext.len()]);
+    let tag_result = device.seal_backup_key(
+        kind.purpose(),
+        Envelope { stretched_credential: &key, salt, nonce, authenticated_header: header },
+        &mut body_and_tag[..plaintext.len()],
+    );
     zeroize_bytes(&mut key);
-    let mut tag = match tag_result {
-        Ok(tag) => tag,
-        Err(error) => {
-            out.fill(0);
-            return Err(error);
-        }
-    };
+    let mut tag = tag_result.inspect_err(|_| {
+        header.fill(0);
+        body_and_tag.fill(0);
+    })?;
     body_and_tag[plaintext.len()..plaintext.len() + TAG_SIZE].copy_from_slice(&tag);
     zeroize_bytes(&mut tag);
     Ok(total)
@@ -132,19 +132,18 @@ pub(crate) fn open(
     let mut key = derive_reader_key(password, &header)?;
     let result = device.open_backup_key(
         kind.purpose(),
-        &key,
-        &header.salt,
-        &header.nonce,
-        &input[..header.header_size],
+        Envelope {
+            stretched_credential: &key,
+            salt: &header.salt,
+            nonce: &header.nonce,
+            authenticated_header: &input[..header.header_size],
+        },
         &mut plaintext[..header.payload_len],
         &tag,
     );
     zeroize_bytes(&mut key);
     zeroize_bytes(&mut tag);
-    if let Err(error) = result {
-        plaintext.fill(0);
-        return Err(error);
-    }
+    result.inspect_err(|_| plaintext.fill(0))?;
     Ok(header.payload_len)
 }
 
@@ -214,6 +213,7 @@ fn validate_plaintext(plaintext: &[u8], out: &mut [u8]) -> Result<(), BackupErro
         Ok(())
     }
 }
+
 fn map_kdf_error(_: password_kdf::PasswordKdfError) -> BackupError {
     BackupError::UnsupportedFormat
 }

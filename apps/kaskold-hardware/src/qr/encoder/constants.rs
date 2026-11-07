@@ -1,7 +1,7 @@
 /// Maximum QR version supported by the firmware encoder.
 pub(super) const MAX_SIZE: usize = 41;
 pub(super) const MAX_MODULES: usize = MAX_SIZE * MAX_SIZE;
-pub(super) const BITMAP_BYTES: usize = (MAX_MODULES + 7) / 8;
+pub(super) const BITMAP_BYTES: usize = MAX_MODULES.div_ceil(8);
 
 /// Version info: version, size, data codewords, EC codewords, EC blocks.
 pub(super) const VERSION_TABLE: [(u8, u8, u16, u16, u8); 6] = [

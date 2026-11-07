@@ -1,8 +1,19 @@
 use super::super::common::context::{SdActionContext, SdIoContext};
+use crate::controllers::TouchInput;
 // SD controller workflow: qr.
 use super::super::{format_auto_name, scan_auto_increment};
+/// Offer an auto-numbered 8.3 name as the editable export file name.
+fn stage_export_name(ad: &mut crate::runtime::data::AppData, name: [u8; 11]) {
+    ad.storage.export_file.filename = name;
+    ad.wallet.seeds.pp_input.reset();
+    for &byte in name[..8].iter().filter(|&&byte| byte != b' ') {
+        ad.wallet.seeds.pp_input.push_char(byte);
+    }
+}
+
 pub(crate) fn handle_show_qr_popup(ctx: SdIoContext<'_, '_, '_>) -> bool {
-    let SdIoContext { ad, delay, i2c, x, y, is_back, .. } = ctx;
+    let SdIoContext { ad, delay, i2c, input, .. } = ctx;
+    let TouchInput { x, y, is_back } = input;
     let mut needs_redraw = false;
 
     if is_back {
@@ -16,25 +27,11 @@ pub(crate) fn handle_show_qr_popup(ctx: SdIoContext<'_, '_, '_>) -> bool {
             let outgoing = &ad.qr.outgoing.buffer[..ad.qr.outgoing.length];
             if kaskold_protocol::wire::multisig_descriptor::looks_like_descriptor(outgoing) {
                 let next = scan_auto_increment(i2c, delay, b"MD", b"TXT");
-                let name = format_auto_name(b"MD", next, b"TXT");
-                ad.storage.export_file.filename = name;
-                ad.wallet.seeds.pp_input.reset();
-                for j in 0..8usize {
-                    if name[j] != b' ' {
-                        ad.wallet.seeds.pp_input.push_char(name[j]);
-                    }
-                }
+                stage_export_name(ad, format_auto_name(b"MD", next, b"TXT"));
                 crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SdMsDescFilename));
             } else {
                 let next = scan_auto_increment(i2c, delay, b"TX", b"KSP");
-                let name = format_auto_name(b"TX", next, b"KSP");
-                ad.storage.export_file.filename = name;
-                ad.wallet.seeds.pp_input.reset();
-                for j in 0..8usize {
-                    if name[j] != b' ' {
-                        ad.wallet.seeds.pp_input.push_char(name[j]);
-                    }
-                }
+                stage_export_name(ad, format_auto_name(b"TX", next, b"KSP"));
                 crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SdKsptFilename));
             }
             needs_redraw = true;
@@ -51,7 +48,8 @@ pub(crate) fn handle_show_qr_popup(ctx: SdIoContext<'_, '_, '_>) -> bool {
 }
 
 pub(crate) fn handle_show_qr_mode_choice(ctx: SdActionContext<'_>) -> bool {
-    let SdActionContext { ad, x, y, is_back, .. } = ctx;
+    let SdActionContext { ad, input, .. } = ctx;
+    let TouchInput { x, y, is_back } = input;
 
     if is_back {
         ad.qr.outgoing.frame_count = 0;

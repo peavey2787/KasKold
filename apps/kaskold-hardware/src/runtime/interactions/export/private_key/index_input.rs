@@ -1,3 +1,4 @@
+use crate::controllers::TouchInput;
 use crate::runtime::interactions::feedback::{show_rejection, ErrorSound};
 use crate::{hw::display, runtime::data::AppData};
 
@@ -9,10 +10,9 @@ pub(super) fn handle(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         reset_input(ad);
         crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::KeyExport);

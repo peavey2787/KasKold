@@ -1,5 +1,6 @@
 //! Seed import workflow façade.
 use super::{display, AppData};
+use crate::controllers::TouchInput;
 
 mod private_key;
 mod restore;
@@ -9,14 +10,12 @@ pub(super) fn handle(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
     let redraw = match ad.navigation.app.state {
-        crate::runtime::input::AppState::ImportPrivKey => private_key::handle(ad, boot_display, delay, x, y, is_back),
+        crate::runtime::input::AppState::ImportPrivKey => private_key::handle(ad, boot_display, delay, input),
         crate::runtime::input::AppState::RestoreWord { word_idx } => {
-            restore::handle(ad, boot_display, delay, x, y, is_back, word_idx)
+            restore::handle(ad, boot_display, delay, input, word_idx)
         }
         _ => return None,
     };

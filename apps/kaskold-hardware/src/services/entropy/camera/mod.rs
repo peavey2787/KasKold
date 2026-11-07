@@ -1,6 +1,8 @@
 //! Camera-entropy façade: checked capture windows, retry policy, and mixing.
 
-use esp_hal::{delay::Delay, dma::DmaRxBuf, lcd_cam::cam::Camera};
+use esp_hal::delay::Delay;
+
+use crate::hw::shared::dvp::CameraPort;
 use sha2::{Digest, Sha256};
 
 use kaskold_hardware_core::entropy::frame_noise::{
@@ -13,14 +15,13 @@ mod dvp;
 const FRAMES_PER_WINDOW: u8 = 8;
 const INTER_FRAME_DELAY_MS: u32 = 10;
 const RETRY_SETTLE_MS: u32 = 150;
-pub(crate) fn mix_frames<'a>(
+pub(crate) fn mix_frames(
     pool: &mut [u8; 32],
     #[cfg(feature = "m5stack")] i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     delay: &mut Delay,
     liveness: &mut dyn FnMut(),
     idle_ticks: u32,
-    camera: &mut Option<Camera<'a>>,
-    dma_buffer: &mut Option<DmaRxBuf>,
+    camera: &mut CameraPort<'_>,
     #[cfg(feature = "e12-capture")] capture: Option<&mut crate::diagnostics::e12_capture::Capture>,
 ) -> CameraEntropyReport {
     #[cfg(feature = "m5stack")]
@@ -39,7 +40,6 @@ pub(crate) fn mix_frames<'a>(
             idle_ticks,
             delay,
             camera,
-            dma_buffer,
             window_index,
             #[cfg(feature = "e12-capture")]
             capture.as_deref_mut(),
@@ -67,12 +67,11 @@ pub(crate) fn mix_frames<'a>(
     }
     report
 }
-fn mix_window<'a>(
+fn mix_window(
     pool: &mut [u8; 32],
     idle_ticks: u32,
     delay: &mut Delay,
-    camera: &mut Option<Camera<'a>>,
-    dma_buffer: &mut Option<DmaRxBuf>,
+    camera: &mut CameraPort<'_>,
     window_index: u8,
     #[cfg(feature = "e12-capture")] capture: Option<&mut crate::diagnostics::e12_capture::Capture>,
 ) -> CameraEntropyReport {
@@ -87,7 +86,6 @@ fn mix_window<'a>(
             idle_ticks,
             delay,
             camera,
-            dma_buffer,
             &mut tracker,
             #[cfg(feature = "e12-capture")]
             capture.as_deref_mut(),

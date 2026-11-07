@@ -8,7 +8,8 @@ use super::dispatch::process_confirmed_qr;
 use super::multiframe::{is_multiframe, process_multiframe};
 use super::state::CameraSessionState;
 use super::timing::systick;
-use super::{display, sound, AppData, Vec};
+use super::{sound, AppData, Vec};
+use crate::runtime::interactions::DeviceIo;
 
 /// Decode QR codes from a grayscale image using rqrr.
 /// Returns `(version, raw_bytes)` for each detected QR.
@@ -47,13 +48,10 @@ pub(super) fn handle_decode_result(
     session: &mut CameraSessionState,
     ver: u8,
     decoded: &[u8],
-    len: usize,
     ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    liveness: &mut (impl FnMut() + ?Sized),
+    io: &mut DeviceIo<'_, '_, '_>,
 ) {
+    let len = decoded.len();
     if !session.decoder.finders_beeped {
         sound::qr_found();
         session.decoder.finders_beeped = true;
@@ -64,7 +62,7 @@ pub(super) fn handle_decode_result(
     }
 
     if is_multiframe(decoded, len) {
-        process_multiframe(session, decoded, len, ad, boot_display, delay, i2c, liveness);
+        process_multiframe(session, decoded, ad, io);
         return;
     }
 
@@ -79,10 +77,10 @@ pub(super) fn handle_decode_result(
     session.decoder.finders_beeped = false;
     log!("   rqrr QR OK: {} bytes (V{})", len, ver);
     if ad.signing.anti_klepto.phase == crate::runtime::data::AntiKleptoPhase::AwaitingReveal {
-        boot_display.draw_loading_wait_screen("Finalizing signature...");
+        io.boot_display.draw_loading_wait_screen("Finalizing signature...");
     } else {
-        boot_display.draw_loading_screen("Processing QR...");
+        io.boot_display.draw_loading_screen("Processing QR...");
     }
     log!("   QR processing UI shown");
-    process_confirmed_qr(decoded, len, ad, boot_display, delay, i2c, liveness);
+    process_confirmed_qr(decoded, ad, io);
 }

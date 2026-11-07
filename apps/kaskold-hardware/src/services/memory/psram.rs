@@ -137,7 +137,7 @@ impl PsramAllocation {
             unsafe { HEAP.dealloc(ptr, layout) };
             return Err(PsramError::ProvenanceFailed);
         }
-        if allocation.start() % layout.align() != 0 {
+        if !allocation.start().is_multiple_of(layout.align()) {
             unsafe { HEAP.dealloc(ptr, layout) };
             return Err(PsramError::MisalignedAllocation);
         }
@@ -188,7 +188,7 @@ pub(crate) fn probe_largest_allocatable(cap: usize, granularity: usize) -> usize
     let mut low = 0usize;
     let mut high = upper;
     while low < high {
-        let mid = (low + high + 1) / 2;
+        let mid = (low + high).div_ceil(2);
         if can_allocate(mid * granularity) {
             low = mid;
         } else {

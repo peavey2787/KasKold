@@ -23,7 +23,7 @@ pub(super) struct SdWorkflowContext<'ctx, 'display, 'hal> {
 }
 
 impl SdWorkflowContext<'_, '_, '_> {
-    pub(super) fn sd_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
+    pub(super) fn sd_touch(&mut self, input: TouchInput) -> Option<bool> {
         crate::runtime::interactions::sd::handle_sd_touch(SdTouchContext {
             ad: &mut *self.ad,
             boot_display: &mut *self.display,
@@ -34,7 +34,7 @@ impl SdWorkflowContext<'_, '_, '_> {
             list_zones: &self.list,
             page_up_zone: &self.up,
             page_down_zone: &self.down,
-            input: TouchInput::new(x, y, is_back),
+            input,
         })
     }
 

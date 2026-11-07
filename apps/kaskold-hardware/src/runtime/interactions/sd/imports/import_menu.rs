@@ -1,4 +1,5 @@
 use super::super::common::context::SdImportMenuContext;
+use crate::controllers::TouchInput;
 // SD controller workflow: import menu.
 use super::super::{display, scan_by_rule, AppData, ImportScanRule};
 use crate::runtime::data::TextFileKind;
@@ -92,19 +93,8 @@ pub(crate) fn scan_multisig_descriptor_files(
 }
 
 pub(crate) fn handle_sd_import_menu(ctx: SdImportMenuContext<'_, '_, '_>) -> bool {
-    let SdImportMenuContext {
-        ad,
-        boot_display,
-        delay,
-        i2c,
-        list_zones,
-        page_up_zone,
-        page_down_zone,
-        x,
-        y,
-        is_back,
-        ..
-    } = ctx;
+    let SdImportMenuContext { ad, boot_display, delay, i2c, list_zones, page_up_zone, page_down_zone, input, .. } = ctx;
+    let TouchInput { x, y, is_back } = input;
 
     if is_back {
         ad.navigation.sd_import_menu.reset();

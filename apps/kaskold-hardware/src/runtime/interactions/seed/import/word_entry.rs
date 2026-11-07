@@ -1,5 +1,6 @@
 //! Shared BIP39 word-entry keyboard and suggestion handling.
 
+use crate::controllers::TouchInput;
 use crate::{hw::display, runtime::data::AppData, ui::keyboard::suggestion_chip};
 
 pub(super) enum WordEntryEvent {
@@ -11,10 +12,9 @@ pub(super) enum WordEntryEvent {
 pub(super) fn read_event(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> WordEntryEvent {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.wallet.seeds.word_input.reset();
         if ad.wallet.seeds.pending_add_wallet_is_restore()

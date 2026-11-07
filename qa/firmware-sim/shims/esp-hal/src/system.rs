@@ -56,6 +56,7 @@ pub fn reset_reason() -> Option<SocResetReason> {
     Some(SocResetReason::ChipPowerOn)
 }
 
+#[derive(Default)]
 pub struct Stack<const SIZE: usize>;
 
 impl<const SIZE: usize> Stack<SIZE> {
@@ -65,6 +66,11 @@ impl<const SIZE: usize> Stack<SIZE> {
 }
 
 pub struct AppCoreGuard;
+
+/// esp-hal parks the app core when its guard drops; the simulator has no second core to park.
+impl Drop for AppCoreGuard {
+    fn drop(&mut self) {}
+}
 
 #[derive(Clone, Copy, Debug)]
 pub enum Error {

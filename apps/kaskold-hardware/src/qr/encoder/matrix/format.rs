@@ -1,4 +1,4 @@
-use super::matrix::QrCode;
+use super::code::QrCode;
 
 impl QrCode {
     pub(super) fn write_format_info(&mut self, mask: u8) {

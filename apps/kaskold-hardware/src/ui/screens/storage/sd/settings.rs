@@ -84,13 +84,7 @@ impl<'a> BootDisplay<'a> {
             draw_lato_hint(
                 &mut self.display,
                 h1,
-                (320 - prop_fonts::measure_prop_text(
-                    h1,
-                    &prop_fonts::LATO_12_WIDTHS,
-                    prop_fonts::LATO_12_FIRST,
-                    prop_fonts::LATO_12_LAST,
-                    prop_fonts::LATO_12_HEIGHT,
-                )) / 2,
+                (320 - prop_fonts::measure_prop_text(h1, &prop_fonts::LATO_12)) / 2,
                 170,
                 COLOR_TEXT_DIM,
             );
@@ -98,13 +92,7 @@ impl<'a> BootDisplay<'a> {
             draw_lato_hint(
                 &mut self.display,
                 h2,
-                (320 - prop_fonts::measure_prop_text(
-                    h2,
-                    &prop_fonts::LATO_12_WIDTHS,
-                    prop_fonts::LATO_12_FIRST,
-                    prop_fonts::LATO_12_LAST,
-                    prop_fonts::LATO_12_HEIGHT,
-                )) / 2,
+                (320 - prop_fonts::measure_prop_text(h2, &prop_fonts::LATO_12)) / 2,
                 188,
                 COLOR_TEXT_DIM,
             );

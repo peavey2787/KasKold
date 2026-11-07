@@ -97,7 +97,7 @@ fn keep_host_entry(tiff: &[u8], ifd0: usize, entry_index: usize, little_endian: 
 }
 
 fn aligned_copyforward_position(output: &mut [u8], mut position: usize, tiff_output: usize) -> Option<usize> {
-    if (position - tiff_output) % 2 == 0 {
+    if (position - tiff_output).is_multiple_of(2) {
         return Some(position);
     }
     let byte = output.get_mut(position)?;

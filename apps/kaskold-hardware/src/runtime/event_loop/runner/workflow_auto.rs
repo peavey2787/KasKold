@@ -2,8 +2,8 @@
 
 use crate::{
     hw::display::BootDisplay,
-    runtime::{data::AppData, event_loop::camera::CameraHardware},
-    services::persistent_wallet::PersistentWallet,
+    runtime::data::AppData,
+    services::{camera_device::CameraPort, persistent_wallet::PersistentWallet},
 };
 use esp_hal::{delay::Delay, i2c::master::I2c, Blocking};
 
@@ -12,19 +12,16 @@ pub(super) fn run(
     mut display: BootDisplay<'_>,
     mut i2c: I2c<'_, Blocking>,
     mut delay: Delay,
-    camera: CameraHardware<'_>,
+    mut camera: CameraPort<'_>,
     mut persistent_wallet: PersistentWallet<'_>,
     mut watchdog_feed: impl FnMut(),
 ) -> ! {
-    let (mut camera, mut camera_dma, mut camera_status) = camera;
     crate::runtime::workflow_tests::run_connected_gate(
         ad,
         &mut display,
         &mut i2c,
         &mut delay,
         &mut camera,
-        &mut camera_dma,
-        &mut camera_status,
         &mut persistent_wallet,
         &mut watchdog_feed,
     );

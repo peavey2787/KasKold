@@ -1,4 +1,5 @@
 // tx controller — message-signing workflow facade.
+use crate::controllers::TouchInput;
 mod export;
 mod preview;
 mod result;
@@ -17,13 +18,11 @@ pub(super) fn handle(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
     let redraw = match ad.navigation.app.state {
-        AppState::SignMsgPreview => preview::handle(ad, boot_display, delay, liveness, x, y, is_back),
-        AppState::SignMsgResult => result::handle(ad, boot_display, delay, i2c, x, y, is_back),
+        AppState::SignMsgPreview => preview::handle(ad, boot_display, delay, liveness, input),
+        AppState::SignMsgResult => result::handle(ad, boot_display, delay, i2c, input),
         AppState::SignMsgResultQr => result::close_qr(ad),
         _ => return None,
     };

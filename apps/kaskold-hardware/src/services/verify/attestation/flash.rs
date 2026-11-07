@@ -15,7 +15,7 @@ pub(super) fn read_fixed<const N: usize>(address: u32) -> Result<raw_flash::Alig
 }
 
 pub(super) fn hash_flash(start: u32, length: u32) -> Result<[u8; 32], AttestationError> {
-    if length > MAX_APP_IMAGE_SPAN || length % 4 != 0 {
+    if length > MAX_APP_IMAGE_SPAN || !length.is_multiple_of(4) {
         return Err(AttestationError::ImageLayout);
     }
     let mut hasher = Sha256::new();
@@ -47,7 +47,7 @@ fn read_chunk(
     buffer: &mut raw_flash::AlignedBytes<HASH_CHUNK_SIZE>,
     length: usize,
 ) -> Result<(), AttestationError> {
-    if length == 0 || length % 4 != 0 {
+    if length == 0 || !length.is_multiple_of(4) {
         return Err(AttestationError::ImageLayout);
     }
     let mut chunk = raw_flash::AlignedBytes::<HASH_CHUNK_SIZE>::zeroed();

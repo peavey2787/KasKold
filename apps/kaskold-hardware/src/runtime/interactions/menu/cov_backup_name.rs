@@ -1,13 +1,9 @@
 use super::{display, AppData};
+use crate::controllers::TouchInput;
 use crate::runtime::interactions::keyboard::{handle_keyboard, KeyboardAction, KeyboardPolicy};
 
-pub(super) fn handle(
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    x: u16,
-    y: u16,
-    is_back: bool,
-) -> bool {
+pub(super) fn handle(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.wallet.seeds.pp_input.reset();
         ad.qr.outgoing.covenant_backup_length = 0;

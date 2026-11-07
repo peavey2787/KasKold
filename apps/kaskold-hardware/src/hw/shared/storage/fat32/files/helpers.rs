@@ -7,7 +7,7 @@ pub(super) fn clusters_for_file(fat32: &Fat32Info, file_size: u32) -> u32 {
         return 0;
     }
     let cluster_bytes = fat32.cluster_bytes();
-    (file_size + cluster_bytes - 1) / cluster_bytes
+    file_size.div_ceil(cluster_bytes)
 }
 
 pub(super) fn allocate_file_chain(

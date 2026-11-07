@@ -8,17 +8,12 @@
 ///
 /// Testnet-10 and Testnet-12 share Kaspa's testnet address prefix, but remain
 /// separate local namespaces so saved wallets cannot be selected across them.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum WalletNetwork {
+    #[default]
     Mainnet,
     Testnet10,
     Testnet12,
-}
-
-impl Default for WalletNetwork {
-    fn default() -> Self {
-        Self::Mainnet
-    }
 }
 
 impl WalletNetwork {

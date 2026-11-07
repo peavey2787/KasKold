@@ -11,7 +11,7 @@ use crate::{
     hw::display, runtime::data::AppData, runtime::interactions::TouchInput,
     services::persistent_wallet::PersistentWallet,
 };
-use esp_hal::{dma::DmaRxBuf, lcd_cam::cam::Camera as DvpCamera};
+use crate::{runtime::interactions::DeviceIo, services::camera_device::CameraPort};
 
 pub struct OnboardingTouchContext<'ctx, 'display, 'hal, 'camera, 'wallet> {
     pub ad: &'ctx mut AppData,
@@ -20,8 +20,7 @@ pub struct OnboardingTouchContext<'ctx, 'display, 'hal, 'camera, 'wallet> {
     pub delay: &'ctx mut esp_hal::delay::Delay,
     pub liveness: &'ctx mut dyn FnMut(),
     pub i2c: &'ctx mut esp_hal::i2c::master::I2c<'hal, esp_hal::Blocking>,
-    pub dvp_camera_opt: &'ctx mut Option<DvpCamera<'camera>>,
-    pub cam_dma_buf_opt: &'ctx mut Option<DmaRxBuf>,
+    pub camera: &'ctx mut CameraPort<'camera>,
     pub list_zones: &'ctx [crate::hw::touch::TouchZone; 4],
     pub page_up_zone: &'ctx crate::hw::touch::TouchZone,
     pub page_down_zone: &'ctx crate::hw::touch::TouchZone,
@@ -38,35 +37,24 @@ pub fn handle_onboarding_touch(context: OnboardingTouchContext<'_, '_, '_, '_, '
         delay,
         liveness,
         i2c,
-        dvp_camera_opt,
-        cam_dma_buf_opt,
+        camera,
         list_zones,
         page_up_zone,
         page_down_zone,
         input,
     } = context;
-    let TouchInput { x, y, is_back } = input;
+    let TouchInput { is_back, .. } = input;
 
     match crate::runtime::navigation::onboarding_route(ad) {
         Some(crate::runtime::navigation::OnboardingRoute::Persistence) => {
             crate::runtime::interactions::persistence::handle(input, ad, persistent_wallet, boot_display, delay, i2c)
         }
         Some(crate::runtime::navigation::OnboardingRoute::Generation) => {
-            crate::runtime::interactions::menu::seed_generation::handle(
-                ad,
-                boot_display,
-                delay,
-                liveness,
-                i2c,
-                dvp_camera_opt,
-                cam_dma_buf_opt,
-                x,
-                y,
-                is_back,
-            )
+            let mut io = DeviceIo { boot_display, delay, i2c, liveness };
+            crate::runtime::interactions::menu::seed_generation::handle(ad, &mut io, camera, input)
         }
         Some(crate::runtime::navigation::OnboardingRoute::Dice) => {
-            Some(dice::handle_dice_roll(ad, boot_display, x, y, is_back))
+            Some(dice::handle_dice_roll(ad, boot_display, input))
         }
         Some(crate::runtime::navigation::OnboardingRoute::SeedEntry) => {
             crate::runtime::interactions::seed::handle_seed_touch(ad, boot_display, delay, liveness, input)

@@ -179,7 +179,10 @@ def check_security_integration_contract(root: Path, errors: list[str]) -> None:
     require(
         "MAX_CAMERA_HEALTH_WINDOWS" in camera_entropy
         and "should_retry_camera_window" in camera_entropy
-        and "receive_full_frame" in camera_dvp
+        and "camera.capture(delay," in camera_dvp
+        and "Some(FrameCaptureStatus::TimedOut)" in camera_dvp
+        and "partial buffer rejected" in camera_dvp
+        and "receive_full_frame(camera, buffer, delay)" in shared_dvp
         and "transfer.is_done()" in shared_dvp
         and "FrameCaptureStatus::TimedOut" in shared_dvp
         and "partial transfer is stopped and must not be consumed" in shared_dvp,

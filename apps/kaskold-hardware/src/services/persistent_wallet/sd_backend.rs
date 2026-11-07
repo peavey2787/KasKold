@@ -4,7 +4,7 @@
 //! nonce and slot identity. Only the current Argon2id-backed envelope is accepted;
 //! retired pre-production PBKDF2 SD-slot layouts are intentionally unsupported.
 
-use crate::services::credential_policy::{CredentialKind, SALT_SIZE};
+use crate::services::credential_policy::SALT_SIZE;
 use offline_signer::{
     crypto::password_kdf::{self, METADATA_SIZE},
     derivation::hmac::zeroize_buf,
@@ -14,7 +14,7 @@ use sha2::{Digest, Sha256};
 use crate::hw::sdcard;
 
 use super::{
-    crypto::{DeviceCrypto, RECORD_SIZE},
+    crypto::{DeviceCrypto, WalletCredential, RECORD_SIZE},
     flash::AlignedBytes,
     kdf::CredentialKdf,
     PersistError,
@@ -34,9 +34,7 @@ const SLOT_AAD: [&[u8]; 2] =
 #[inline(never)]
 pub(super) fn write_slot(
     crypto: &mut DeviceCrypto<'_>,
-    kind: CredentialKind,
-    credential_key: &[u8; 32],
-    salt: &[u8; SALT_SIZE],
+    credential: WalletCredential<'_>,
     slot: u8,
     record: &AlignedBytes<RECORD_SIZE>,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
@@ -44,8 +42,8 @@ pub(super) fn write_slot(
 ) -> Result<(), PersistError> {
     let index = slot_index(slot)?;
     let mut envelope = AlignedBytes::<CURRENT_ENVELOPE_SIZE>::zeroed();
-    seal_current(crypto, kind, credential_key, salt, index, record, &mut envelope)?;
-    let expected = Sha256::digest(&envelope.0);
+    seal_current(crypto, credential, index, record, &mut envelope)?;
+    let expected = Sha256::digest(envelope.0);
     let write_result = sdcard::with_sd_card!(i2c, delay, |card| {
         let fat = sdcard::mount_fat32(card)?;
         sdcard::overwrite_file(card, &fat, &SLOT_FILES[index], &envelope.0)?;
@@ -58,7 +56,7 @@ pub(super) fn write_slot(
 
     zeroize_buf(&mut envelope.0);
     read_raw_exact(index, &mut envelope.0, i2c, delay)?;
-    let actual = Sha256::digest(&envelope.0);
+    let actual = Sha256::digest(envelope.0);
     let verified = expected[..] == actual[..];
     zeroize_buf(&mut envelope.0);
     if verified {
@@ -71,10 +69,8 @@ pub(super) fn write_slot(
 #[inline(never)]
 pub(super) fn read_slot(
     crypto: &mut DeviceCrypto<'_>,
-    kind: CredentialKind,
+    credential: WalletCredential<'_>,
     credential_kdf: CredentialKdf,
-    credential_key: &[u8; 32],
-    salt: &[u8; SALT_SIZE],
     slot: u8,
     out: &mut AlignedBytes<RECORD_SIZE>,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
@@ -83,8 +79,7 @@ pub(super) fn read_slot(
     let index = slot_index(slot)?;
     let mut envelope = AlignedBytes::<CURRENT_ENVELOPE_SIZE>::zeroed();
     read_raw_exact(index, &mut envelope.0, i2c, delay)?;
-    let result =
-        open_current(crypto, kind, credential_kdf.parameters(), credential_key, salt, index, &mut envelope, out);
+    let result = open_current(crypto, credential, credential_kdf.parameters(), index, &mut envelope, out);
     zeroize_buf(&mut envelope.0);
     result
 }
@@ -134,9 +129,7 @@ fn read_raw_exact(
 
 fn seal_current(
     crypto: &mut DeviceCrypto<'_>,
-    kind: CredentialKind,
-    credential_key: &[u8; 32],
-    salt: &[u8; SALT_SIZE],
+    credential: WalletCredential<'_>,
     index: usize,
     record: &AlignedBytes<RECORD_SIZE>,
     envelope: &mut AlignedBytes<CURRENT_ENVELOPE_SIZE>,
@@ -146,14 +139,15 @@ fn seal_current(
     let metadata =
         password_kdf::encode_metadata(password_kdf::PasswordKdfParams::current()).map_err(|_| PersistError::Crypto)?;
     envelope.0[4..16].copy_from_slice(&metadata);
-    envelope.0[16..32].copy_from_slice(salt);
+    envelope.0[16..32].copy_from_slice(credential.salt);
     crate::services::entropy::fill(&mut envelope.0[32..44]).map_err(|_| PersistError::Entropy)?;
     envelope.0[CURRENT_HEADER_SIZE..].copy_from_slice(&record.0);
 
     let mut nonce = [0u8; NONCE_SIZE];
     nonce.copy_from_slice(&envelope.0[32..44]);
     let aad = aad_digest(index, &envelope.0[..44]);
-    let mut tag = crypto.seal_sd(kind, credential_key, salt, &nonce, &aad, &mut envelope.0[CURRENT_HEADER_SIZE..])?;
+    let mut tag =
+        crypto.seal_sd(credential.kind, credential.envelope(&nonce, &aad), &mut envelope.0[CURRENT_HEADER_SIZE..])?;
     envelope.0[44..60].copy_from_slice(&tag);
     zeroize_buf(&mut nonce);
     zeroize_buf(&mut tag);
@@ -162,10 +156,8 @@ fn seal_current(
 
 fn open_current(
     crypto: &mut DeviceCrypto<'_>,
-    kind: CredentialKind,
+    credential: WalletCredential<'_>,
     parameters: password_kdf::PasswordKdfParams,
-    credential_key: &[u8; 32],
-    expected_salt: &[u8; SALT_SIZE],
     index: usize,
     envelope: &mut AlignedBytes<CURRENT_ENVELOPE_SIZE>,
     out: &mut AlignedBytes<RECORD_SIZE>,
@@ -174,7 +166,7 @@ fn open_current(
         return Err(PersistError::SdStorageCorrupt);
     }
     let parsed = password_kdf::parse_metadata(&envelope.0[4..16]).map_err(|_| PersistError::SdStorageCorrupt)?;
-    if parsed != parameters || &envelope.0[16..32] != expected_salt {
+    if parsed != parameters || &envelope.0[16..32] != credential.salt {
         return Err(PersistError::SdStorageCorrupt);
     }
 
@@ -183,8 +175,12 @@ fn open_current(
     let mut tag = [0u8; TAG_SIZE];
     tag.copy_from_slice(&envelope.0[44..60]);
     let aad = aad_digest(index, &envelope.0[..44]);
-    let result =
-        crypto.open_sd(kind, credential_key, expected_salt, &nonce, &aad, &mut envelope.0[CURRENT_HEADER_SIZE..], &tag);
+    let result = crypto.open_sd(
+        credential.kind,
+        credential.envelope(&nonce, &aad),
+        &mut envelope.0[CURRENT_HEADER_SIZE..],
+        &tag,
+    );
     zeroize_buf(&mut nonce);
     zeroize_buf(&mut tag);
     if result.is_err() {

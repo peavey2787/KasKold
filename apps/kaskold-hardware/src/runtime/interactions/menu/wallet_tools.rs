@@ -4,6 +4,7 @@ use crate::hw::{display, touch};
 use crate::runtime::interactions::{
     feedback::{show_rejection, ErrorSound},
     menu_selection::selected_visible_item,
+    DeviceIo, TouchInput,
 };
 use crate::runtime::{data::AppData, input::AppState};
 
@@ -17,18 +18,15 @@ pub(super) fn owns_item(item: u8) -> bool {
 
 pub(super) fn handle(
     ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    liveness: &mut dyn FnMut(),
-    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
+    io: &mut DeviceIo<'_, '_, '_>,
     list_zones: &[touch::TouchZone; 4],
-    x: u16,
-    y: u16,
+    input: TouchInput,
 ) -> Option<bool> {
     if ad.navigation.app.state != AppState::WalletAdvancedMenu {
         return None;
     }
-    match selected_visible_item(&ad.navigation.production.wallet_advanced_menu, list_zones, x, y) {
+    let DeviceIo { boot_display, delay, i2c, liveness } = io;
+    match selected_visible_item(&ad.navigation.production.wallet_advanced_menu, list_zones, input.x, input.y) {
         Some(HIDDEN_KEY_ADDRESS) => open_hidden_key_address(ad, boot_display, delay, liveness),
         Some(KPUB_TO_SD) => {
             crate::runtime::interactions::export::export_kpub_to_sd(ad, boot_display, delay, liveness, i2c)

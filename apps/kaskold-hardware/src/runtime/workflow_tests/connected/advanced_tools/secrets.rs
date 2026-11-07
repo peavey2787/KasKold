@@ -1,3 +1,4 @@
+use crate::controllers::TouchInput;
 use crate::runtime::input::AppState;
 
 use super::AdvancedToolsContext;
@@ -40,7 +41,8 @@ fn commit_secret_preview(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    ctx.tx_touch(20, 20, true) == Some(true) && ctx.ad.navigation.app.state == AppState::CommitRevealType
+    ctx.tx_touch(TouchInput::new(20, 20, true)) == Some(true)
+        && ctx.ad.navigation.app.state == AppState::CommitRevealType
 }
 
 fn commit_secret_encrypt(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
@@ -52,9 +54,9 @@ fn commit_secret_encrypt(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
 }
 
 fn commit_secret_qr(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
-    ctx.tx_touch(160, 168, false) == Some(false)
+    ctx.tx_touch(TouchInput::new(160, 168, false)) == Some(false)
         && ctx.ad.navigation.app.state == AppState::CommitRevealResultQr
-        && ctx.tx_touch(160, 120, false) == Some(true)
+        && ctx.tx_touch(TouchInput::new(160, 120, false)) == Some(true)
         && ctx.ad.navigation.app.state == AppState::CommitRevealResult
 }
 
@@ -78,7 +80,7 @@ fn decrypt_secret(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
 }
 
 fn begin_decrypt_and_reject_malformed(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
-    if ctx.tx_touch(20, 20, true) != Some(true)
+    if ctx.tx_touch(TouchInput::new(20, 20, true)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::WalletAdvancedMenu
         || !ctx.open_advanced_item(3, AppState::DecryptSecretScan)
     {
@@ -98,11 +100,11 @@ fn decrypt_valid_payload(ctx: &mut AdvancedToolsContext<'_, '_, '_>, ciphertext_
 }
 
 fn decrypt_result_navigation(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
-    ctx.tx_touch(160, 168, false) == Some(false)
+    ctx.tx_touch(TouchInput::new(160, 168, false)) == Some(false)
         && ctx.ad.navigation.app.state == AppState::DecryptSecretResultQr
-        && ctx.tx_touch(160, 120, false) == Some(true)
+        && ctx.tx_touch(TouchInput::new(160, 120, false)) == Some(true)
         && ctx.ad.navigation.app.state == AppState::DecryptSecretResult
-        && ctx.tx_touch(20, 20, true) == Some(true)
+        && ctx.tx_touch(TouchInput::new(20, 20, true)) == Some(true)
         && ctx.ad.navigation.app.state == AppState::WalletAdvancedMenu
         && ctx.ad.signing.commit_reveal.plaintext_len == 0
 }

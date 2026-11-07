@@ -1,4 +1,4 @@
-use super::matrix::QrCode;
+use super::code::QrCode;
 
 impl QrCode {
     pub(super) fn apply_best_mask(&mut self) {
@@ -36,8 +36,8 @@ impl QrCode {
                     3 => (y + x) % 3 == 0,
                     4 => (y / 2 + x / 3) % 2 == 0,
                     5 => product % 2 + product % 3 == 0,
-                    6 => (product % 2 + product % 3) % 2 == 0,
-                    7 => ((y + x) as u16 % 2 + product % 3) % 2 == 0,
+                    6 => (product % 2 + product % 3).is_multiple_of(2),
+                    7 => ((y + x) as u16 % 2 + product % 3).is_multiple_of(2),
                     _ => false,
                 };
                 if invert {

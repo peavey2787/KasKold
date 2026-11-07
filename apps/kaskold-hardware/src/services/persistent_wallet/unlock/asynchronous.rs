@@ -18,7 +18,7 @@ impl SecretKey {
         Self(key)
     }
     fn take(&mut self) -> [u8; 32] {
-        core::mem::replace(&mut self.0, [0u8; 32])
+        core::mem::take(&mut self.0)
     }
 }
 
@@ -209,7 +209,7 @@ impl PersistentWallet<'_> {
         i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
         delay: &mut esp_hal::delay::Delay,
     ) -> Result<AsyncUnlockApply, PersistError> {
-        let actual = self.crypto.duress_verifier(policy.key_slot, policy.kind, &policy.salt, &*key);
+        let actual = self.crypto.duress_verifier(policy.key_slot, policy.kind, &policy.salt, &key);
         zeroize_buf(&mut *key);
         let matched =
             actual.map(|value| shared_signer::bytes::constant_time_eq(&value, &policy.verifier)).unwrap_or(false);
@@ -231,7 +231,7 @@ impl PersistentWallet<'_> {
         let mut record = AlignedBytes::<RECORD_SIZE>::zeroed();
         let read = journal::read_wallet(&mut self.flash, address, &mut record)?;
         let result = if read == Some(header) {
-            self.restore_record_with_key(&record, &*key, ad)
+            self.restore_record_with_key(&record, &key, ad)
         } else {
             Err(PersistError::InvalidWallet)
         };
@@ -265,7 +265,7 @@ impl PersistentWallet<'_> {
                 return Ok(complete_apply_error(session, error));
             }
         };
-        let restored = self.restore_record_with_key(&record, &*key, ad);
+        let restored = self.restore_record_with_key(&record, &key, ad);
         zeroize_buf(&mut record.0);
         if let Err(error) = restored {
             return Ok(complete_apply_error(session, error));
@@ -291,10 +291,8 @@ impl PersistentWallet<'_> {
     ) -> Result<(crypto::RecordHeader, security_policy::SecurityPolicy), PersistError> {
         sd_backend::read_slot(
             &mut self.crypto,
-            kind,
+            crypto::WalletCredential { kind, key, salt: &self.credential_salt },
             self.credential_kdf,
-            &**key,
-            &self.credential_salt,
             self.sd_active_slot,
             record,
             i2c,

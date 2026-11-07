@@ -2,6 +2,7 @@
 // License: GPL-3.0-or-later.
 
 use super::{display, sdcard, sound, stego, AppData};
+use crate::controllers::TouchInput;
 use crate::{
     runtime::input::AppState,
     runtime::interactions::{
@@ -19,16 +20,14 @@ pub(super) fn handle(
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     backup_device: &mut dyn BackupDevice,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
     match ad.navigation.app.state {
         AppState::StegoImportPass => {
-            handle_descriptor_entry(ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back)
+            handle_descriptor_entry(ad, boot_display, delay, liveness, i2c, backup_device, input)
         }
         AppState::StegoImportPortablePassword => {
-            handle_portable_password(ad, boot_display, delay, liveness, i2c, x, y, is_back)
+            handle_portable_password(ad, boot_display, delay, liveness, i2c, input)
         }
         _ => None,
     }
@@ -41,10 +40,9 @@ fn handle_descriptor_entry(
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     backup_device: &mut dyn BackupDevice,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.wallet.seeds.pp_input.reset();
         clear_import_secret(ad);
@@ -147,10 +145,9 @@ fn handle_portable_password(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.wallet.seeds.pp_input.reset();
         clear_import_secret(ad);

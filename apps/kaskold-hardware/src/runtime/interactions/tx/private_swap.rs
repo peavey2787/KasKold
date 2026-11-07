@@ -1,3 +1,4 @@
+use crate::controllers::TouchInput;
 use crate::{
     hw::display,
     runtime::interactions::feedback::{show_rejection, ErrorSound},
@@ -12,14 +13,12 @@ pub(super) fn handle(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
     match ad.navigation.app.state {
-        AppState::PrivateSwapReview => Some(handle_review(ad, boot_display, delay, liveness, x, y, is_back)),
-        AppState::PrivateSwapKeyResult => Some(handle_key(ad, boot_display, delay, x, y, is_back)),
-        AppState::PrivateSwapResult => Some(handle_result(ad, boot_display, delay, x, y, is_back)),
+        AppState::PrivateSwapReview => Some(handle_review(ad, boot_display, delay, liveness, input)),
+        AppState::PrivateSwapKeyResult => Some(handle_key(ad, boot_display, delay, input)),
+        AppState::PrivateSwapResult => Some(handle_result(ad, boot_display, delay, input)),
         _ => None,
     }
 }
@@ -29,10 +28,9 @@ fn handle_review(
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         reset_to_home(ad);
         return true;
@@ -65,10 +63,9 @@ fn handle_key(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         reset_to_home(ad);
         return true;
@@ -84,10 +81,9 @@ fn handle_result(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         reset_to_home(ad);
         return true;

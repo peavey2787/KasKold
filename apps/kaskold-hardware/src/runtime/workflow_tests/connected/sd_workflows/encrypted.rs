@@ -1,4 +1,5 @@
 use super::SdWorkflowContext;
+use crate::controllers::TouchInput;
 use crate::runtime::{
     data::{EncryptedFileOperation, PendingStorageAction},
     input::AppState,
@@ -39,7 +40,9 @@ fn encrypted_transaction(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool {
         return false;
     }
     ctx.set_password(WRONG);
-    if ctx.sd_touch(290, 215, false) != Some(true) || ctx.ad.navigation.app.state != AppState::SdKsptFileList {
+    if ctx.sd_touch(TouchInput::new(290, 215, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::SdKsptFileList
+    {
         return false;
     }
     crate::runtime::interactions::sd::workflow_import_transaction_payload(
@@ -49,7 +52,9 @@ fn encrypted_transaction(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool {
         &envelope[..length],
     );
     ctx.set_password(PASSWORD);
-    if ctx.sd_touch(290, 215, false) != Some(true) || ctx.ad.navigation.app.state != AppState::ConfirmTx {
+    if ctx.sd_touch(TouchInput::new(290, 215, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::ConfirmTx
+    {
         return false;
     }
     ctx.home();
@@ -124,13 +129,13 @@ fn overwrite_decision(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool {
     ctx.ad.storage.confirmation.overwrite_action =
         PendingStorageAction::Navigate(crate::runtime::navigation::continuation!(SdKsptEncryptAsk));
     if !crate::runtime::effects::route(ctx.ad, crate::runtime::navigation::route!(SdOverwriteWarning))
-        || ctx.sd_touch(230, 160, false) != Some(true)
+        || ctx.sd_touch(TouchInput::new(230, 160, false)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::SdKsptFilename
     {
         return false;
     }
     if !crate::runtime::effects::route(ctx.ad, crate::runtime::navigation::route!(SdOverwriteWarning))
-        || ctx.sd_touch(90, 160, false) != Some(true)
+        || ctx.sd_touch(TouchInput::new(90, 160, false)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::SdKsptEncryptAsk
     {
         return false;

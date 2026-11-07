@@ -1,10 +1,12 @@
 //! Shared overwrite confirmation and pending-write dispatch.
 
 use super::context::SdIoContext;
+use crate::controllers::TouchInput;
 use crate::runtime::data::PendingStorageAction;
 
 pub(crate) fn handle_sd_overwrite_warning(ctx: SdIoContext<'_, '_, '_>) -> bool {
-    let SdIoContext { ad, boot_display, delay, i2c, x, y, is_back, .. } = ctx;
+    let SdIoContext { ad, boot_display, delay, i2c, input, .. } = ctx;
+    let TouchInput { x, y, is_back } = input;
 
     if is_back || ((165..=290).contains(&x) && (140..=185).contains(&y)) {
         crate::runtime::effects::resume(ad, crate::runtime::navigation::ResumeTarget::StorageOverwriteBack);

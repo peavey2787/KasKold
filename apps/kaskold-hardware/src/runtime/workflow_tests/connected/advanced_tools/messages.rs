@@ -1,3 +1,4 @@
+use crate::controllers::TouchInput;
 use crate::runtime::input::AppState;
 
 use super::AdvancedToolsContext;
@@ -22,25 +23,29 @@ fn open_choice(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
 
 fn choice_and_typed(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     if !open_choice(ctx)
-        || ctx.tx_touch(310, 100, false) != Some(false)
+        || ctx.tx_touch(TouchInput::new(310, 100, false)) != Some(false)
         || ctx.ad.navigation.app.state != AppState::SignMsgChoice
-        || ctx.tx_touch(160, 90, false) != Some(true)
+        || ctx.tx_touch(TouchInput::new(160, 90, false)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::SignMsgType
     {
         return false;
     }
     ctx.ad.wallet.seeds.pp_input.reset();
-    if ctx.tx_touch(KEY_OK.0, KEY_OK.1, false) != Some(true) || ctx.ad.navigation.app.state != AppState::SignMsgType {
+    if ctx.tx_touch(TouchInput::new(KEY_OK.0, KEY_OK.1, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::SignMsgType
+    {
         return false;
     }
     ctx.set_text(MESSAGE);
-    if ctx.tx_touch(KEY_OK.0, KEY_OK.1, false) != Some(true)
+    if ctx.tx_touch(TouchInput::new(KEY_OK.0, KEY_OK.1, false)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::SignMsgPreview
         || &ctx.ad.signing.message.payload[..ctx.ad.signing.message.payload_len] != MESSAGE
     {
         return false;
     }
-    if ctx.tx_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::SignMsgChoice {
+    if ctx.tx_touch(TouchInput::new(20, 20, true)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::SignMsgChoice
+    {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: ADVANCED SIGN-MESSAGE TYPED EMPTY-REJECT/PREVIEW/BACK PASS");
@@ -51,7 +56,9 @@ fn qr_source(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     if !open_choice(ctx) {
         return false;
     }
-    if ctx.tx_touch(160, 136, false) != Some(true) || ctx.ad.navigation.app.state != AppState::SignMsgScan {
+    if ctx.tx_touch(TouchInput::new(160, 136, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::SignMsgScan
+    {
         return false;
     }
     if !crate::runtime::interactions::camera_loop::workflow_process_pending_payload(b"", ctx.ad)
@@ -75,7 +82,9 @@ fn qr_source(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if ctx.tx_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::SignMsgChoice {
+    if ctx.tx_touch(TouchInput::new(20, 20, true)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::SignMsgChoice
+    {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: ADVANCED SIGN-MESSAGE QR EMPTY/CONTROL/OVERSIZE/VALID PASS");
@@ -96,7 +105,9 @@ fn sd_source(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     {
         return false;
     }
-    if ctx.tx_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::SignMsgChoice {
+    if ctx.tx_touch(TouchInput::new(20, 20, true)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::SignMsgChoice
+    {
         return false;
     }
     log!("KASKOLD_WORKFLOW_TESTS: ADVANCED SIGN-MESSAGE SD CONTENT BOUNDARIES/PREVIEW PASS");
@@ -106,7 +117,7 @@ fn sd_source(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
 fn sign_and_result(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     crate::runtime::effects::route(ctx.ad, crate::runtime::navigation::route!(SignMsgType));
     ctx.set_text(MESSAGE);
-    if ctx.tx_touch(KEY_OK.0, KEY_OK.1, false) != Some(true)
+    if ctx.tx_touch(TouchInput::new(KEY_OK.0, KEY_OK.1, false)) != Some(true)
         || !crate::runtime::interactions::tx::workflow_sign_message_preview(ctx.ad)
         || ctx.ad.navigation.app.state != AppState::SignMsgResult
         || ctx.ad.signing.message.signature.iter().all(|byte| *byte == 0)
@@ -116,14 +127,16 @@ fn sign_and_result(ctx: &mut AdvancedToolsContext<'_, '_, '_>) -> bool {
     }
     // Exercise the production no-card branch deterministically. The board may
     // have a physical QA card inserted, but controller E2E must not mutate it.
-    if ctx.tx_touch_without_sd(90, 170, false) != Some(true) || ctx.ad.navigation.app.state != AppState::SignMsgResult {
+    if ctx.tx_touch_without_sd(TouchInput::new(90, 170, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::SignMsgResult
+    {
         return false;
     }
-    if ctx.tx_touch(235, 170, false) != Some(false)
+    if ctx.tx_touch(TouchInput::new(235, 170, false)) != Some(false)
         || ctx.ad.navigation.app.state != AppState::SignMsgResultQr
-        || ctx.tx_touch(160, 120, false) != Some(true)
+        || ctx.tx_touch(TouchInput::new(160, 120, false)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::SignMsgResult
-        || ctx.tx_touch(20, 20, true) != Some(true)
+        || ctx.tx_touch(TouchInput::new(20, 20, true)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::WalletAdvancedMenu
     {
         return false;

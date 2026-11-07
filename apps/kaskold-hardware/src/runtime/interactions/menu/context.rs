@@ -4,8 +4,8 @@
 
 //! Capabilities supplied by the firmware router to the menu façade.
 
+use crate::services::camera_device::CameraPort;
 use crate::{hw::display, hw::touch, runtime::data::AppData, runtime::interactions::TouchInput};
-use esp_hal::{dma::DmaRxBuf, lcd_cam::cam::Camera as DvpCamera};
 
 pub struct MenuTouchContext<'ctx, 'display, 'hal, 'camera> {
     pub ad: &'ctx mut AppData,
@@ -13,8 +13,7 @@ pub struct MenuTouchContext<'ctx, 'display, 'hal, 'camera> {
     pub delay: &'ctx mut esp_hal::delay::Delay,
     pub liveness: &'ctx mut dyn FnMut(),
     pub i2c: &'ctx mut esp_hal::i2c::master::I2c<'hal, esp_hal::Blocking>,
-    pub dvp_camera_opt: &'ctx mut Option<DvpCamera<'camera>>,
-    pub cam_dma_buf_opt: &'ctx mut Option<DmaRxBuf>,
+    pub camera: &'ctx mut CameraPort<'camera>,
     pub list_zones: &'ctx [touch::TouchZone; 4],
     pub input: TouchInput,
 }

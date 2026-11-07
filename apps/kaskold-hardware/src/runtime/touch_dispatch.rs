@@ -32,17 +32,15 @@ pub(crate) fn physical_touch_input(x: u16, y: u16) -> crate::runtime::interactio
 
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) fn workflow_touch_input(
-    x: u16,
-    y: u16,
-    expected_back: bool,
+    expected: crate::runtime::interactions::TouchInput,
 ) -> Option<crate::runtime::interactions::TouchInput> {
-    let input = physical_touch_input(x, y);
-    if input.is_back != expected_back {
+    let input = physical_touch_input(expected.x, expected.y);
+    if input.is_back != expected.is_back {
         crate::log!(
             "KASKOLD_WORKFLOW_TESTS: TOUCH PARITY FAIL ({},{}) expected_back={} production_back={}",
-            x,
-            y,
-            expected_back,
+            expected.x,
+            expected.y,
+            expected.is_back,
             input.is_back,
         );
         return None;

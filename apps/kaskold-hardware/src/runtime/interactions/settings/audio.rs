@@ -1,11 +1,13 @@
 // KasKold — Air-gapped offline signing device for Kaspa
 // Focused settings controller component.
 use super::AppData;
+use crate::controllers::TouchInput;
 use crate::{services::audio as sound, ui::screens::device::AUDIO_STARTUP_ROW_Y};
 
 /// Handle CoreS3 audio settings without borrowing display/I2C/storage/camera
 /// resources. The shared frame stage performs the redraw after a value change.
-pub(super) fn handle_audio_settings(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+pub(super) fn handle_audio_settings(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SettingsMenu));
         return true;

@@ -12,15 +12,15 @@ use super::super::{
 };
 
 pub(crate) fn handle_seed_backup_warning(ctx: SdIoContext<'_, '_, '_>) -> bool {
-    if ctx.is_back {
+    if ctx.input.is_back {
         crate::runtime::effects::return_to(ctx.ad, crate::runtime::navigation::ReturnScope::SeedBackup);
         return true;
     }
-    if crate::ui::layout::MODAL_RIGHT_BUTTON_ZONE.contains(ctx.x, ctx.y) {
+    if crate::ui::layout::MODAL_RIGHT_BUTTON_ZONE.contains(ctx.input.x, ctx.input.y) {
         crate::runtime::effects::return_to(ctx.ad, crate::runtime::navigation::ReturnScope::SeedBackup);
         return true;
     }
-    if !crate::ui::layout::MODAL_LEFT_BUTTON_ZONE.contains(ctx.x, ctx.y) {
+    if !crate::ui::layout::MODAL_LEFT_BUTTON_ZONE.contains(ctx.input.x, ctx.input.y) {
         return false;
     }
     if !card_inserted(ctx.boot_display, ctx.delay, ctx.i2c) {

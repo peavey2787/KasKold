@@ -38,9 +38,7 @@ pub(crate) fn run_connected_gate(
     boot_display: &mut crate::hw::display::BootDisplay<'_>,
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     delay: &mut esp_hal::delay::Delay,
-    dvp_camera_opt: &mut Option<esp_hal::lcd_cam::cam::Camera<'_>>,
-    cam_dma_buf_opt: &mut Option<esp_hal::dma::DmaRxBuf>,
-    cam_status: &mut crate::hw::camera::CameraStatus,
+    camera: &mut crate::services::camera_device::CameraPort<'_>,
     persistent_wallet: &mut crate::services::persistent_wallet::PersistentWallet<'_>,
     watchdog_feed: &mut impl FnMut(),
 ) {
@@ -49,17 +47,7 @@ pub(crate) fn run_connected_gate(
     log!("KASKOLD_WORKFLOW_TESTS: RUNTIME GUI NAVIGATION BEGIN");
     #[cfg(not(feature = "workflow-runtime-auto"))]
     log!("KASKOLD_WORKFLOW_TESTS: CONTROLLER NAVIGATION BEGIN");
-    if connected::run(
-        ad,
-        boot_display,
-        i2c,
-        delay,
-        dvp_camera_opt,
-        cam_dma_buf_opt,
-        cam_status,
-        persistent_wallet,
-        watchdog_feed,
-    ) {
+    if connected::run(ad, boot_display, i2c, delay, camera, persistent_wallet, watchdog_feed) {
         log!("KASKOLD_WORKFLOW_TESTS: CONNECTED ROOT NAV PASS 4/4");
         log!("KASKOLD_WORKFLOW_TESTS: PASS ALL");
     } else {

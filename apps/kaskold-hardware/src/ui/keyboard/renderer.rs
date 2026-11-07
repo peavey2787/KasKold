@@ -31,12 +31,11 @@ pub fn draw_keyboard(display: &mut impl DrawTarget<Color = Rgb565>, mode: Keyboa
     let shown_page = display_page(mode, page);
     let rows = rows_for_mode(mode, page);
 
-    for row_index in 0..2usize {
-        let row = rows[row_index];
+    for (&row, &row_y) in rows[..2].iter().zip(&layout.row_y) {
         let start_x = row_start(row.len());
         for (column, &character) in row.iter().enumerate() {
             let x = start_x + column as i32 * (KEY_WIDTH as i32 + KEY_GAP);
-            draw_character_key(display, x, layout.row_y[row_index], layout.key_height, character, mode, key_corner);
+            draw_character_key(display, x, row_y, layout.key_height, character, mode, key_corner);
         }
     }
 

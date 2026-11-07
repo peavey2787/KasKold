@@ -6,9 +6,9 @@ use super::{
 };
 
 pub(crate) enum WorkflowCommand<'a> {
-    RunAll,
-    RunCategory(WorkflowCategory),
-    RunOne(&'a WorkflowSpec),
+    All,
+    Category(WorkflowCategory),
+    One(&'a WorkflowSpec),
 }
 
 /// Execute an on-device workflow command without coupling the catalog/runner
@@ -16,8 +16,8 @@ pub(crate) enum WorkflowCommand<'a> {
 /// boundary used between individual workflow validations.
 pub(crate) fn execute(command: WorkflowCommand<'_>, liveness: &mut dyn FnMut()) -> WorkflowSummary {
     match command {
-        WorkflowCommand::RunAll => runner::run_all(liveness),
-        WorkflowCommand::RunCategory(category) => runner::run_category(category, liveness),
-        WorkflowCommand::RunOne(spec) => runner::run_one(spec, liveness),
+        WorkflowCommand::All => runner::run_all(liveness),
+        WorkflowCommand::Category(category) => runner::run_category(category, liveness),
+        WorkflowCommand::One(spec) => runner::run_one(spec, liveness),
     }
 }

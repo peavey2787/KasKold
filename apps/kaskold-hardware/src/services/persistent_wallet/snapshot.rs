@@ -10,7 +10,7 @@ use crate::{
 
 use super::{
     codec::{self, PAYLOAD_SIZE},
-    crypto::{self, RECORD_SIZE},
+    crypto::{self, WalletCredential, RECORD_SIZE},
     flash::AlignedBytes,
     journal, security_policy, PersistError, PersistentWallet,
 };
@@ -103,16 +103,8 @@ impl PersistentWallet<'_> {
         self.build_record_into(manager, sequence, &mut record)?;
         let kind = self.credential_kind.ok_or(PersistError::CredentialRequired)?;
         let mut key = *self.credential_key.as_ref().ok_or(PersistError::CredentialRequired)?;
-        let result = super::sd_backend::write_slot(
-            &mut self.crypto,
-            kind,
-            &key,
-            &self.credential_salt,
-            next_slot,
-            &record,
-            i2c,
-            delay,
-        );
+        let credential = WalletCredential { kind, key: &key, salt: &self.credential_salt };
+        let result = super::sd_backend::write_slot(&mut self.crypto, credential, next_slot, &record, i2c, delay);
         zeroize_buf(&mut key);
         zeroize_buf(&mut record.0);
         result?;
@@ -148,16 +140,8 @@ impl PersistentWallet<'_> {
         codec::encode(manager, &mut payload);
         record.0.fill(0);
         let result = (|| {
-            self.crypto.seal(
-                &payload,
-                sequence,
-                key_slot,
-                kind,
-                self.device_only,
-                credential_key,
-                &self.credential_salt,
-                record,
-            )?;
+            let credential = WalletCredential { kind, key: credential_key, salt: &self.credential_salt };
+            self.crypto.seal(&payload, sequence, key_slot, self.device_only, credential, record)?;
             let header = crypto::parse_header(record).ok_or(PersistError::InvalidWallet)?;
             security_policy::encode(&mut self.crypto, header, self.security_policy, record)
         })();

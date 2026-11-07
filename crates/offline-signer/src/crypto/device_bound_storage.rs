@@ -148,22 +148,38 @@ pub fn derive_aes_key(
     Ok(result)
 }
 
+/// Stretched credential, salt and AEAD framing for one device-bound record.
+#[derive(Clone, Copy)]
+pub struct Envelope<'a> {
+    pub stretched_credential: &'a [u8; KEY_SIZE],
+    pub salt: &'a [u8; SALT_SIZE],
+    pub nonce: &'a [u8; NONCE_SIZE],
+    pub authenticated_header: &'a [u8],
+}
+
+impl Envelope<'_> {
+    fn aes_key(
+        self,
+        hmac: &mut impl HardwareHmac,
+        parameters: KdfParameters,
+    ) -> Result<[u8; KEY_SIZE], DeviceBoundError> {
+        derive_aes_key(
+            hmac,
+            parameters,
+            self.stretched_credential,
+            self.salt,
+            self.authenticated_header,
+        )
+    }
+}
+
 pub fn seal_in_place(
     hmac: &mut impl HardwareHmac,
     parameters: KdfParameters,
-    stretched_credential: &[u8; KEY_SIZE],
-    salt: &[u8; SALT_SIZE],
-    nonce: &[u8; NONCE_SIZE],
-    authenticated_header: &[u8],
+    envelope: Envelope<'_>,
     plaintext: &mut [u8],
 ) -> Result<[u8; TAG_SIZE], DeviceBoundError> {
-    let mut key = match derive_aes_key(
-        hmac,
-        parameters,
-        stretched_credential,
-        salt,
-        authenticated_header,
-    ) {
+    let mut key = match envelope.aes_key(hmac, parameters) {
         Ok(key) => key,
         Err(error) => {
             zeroize_buf(plaintext);
@@ -172,8 +188,8 @@ pub fn seal_in_place(
     };
     let cipher = Aes256Gcm::new(GenericArray::from_slice(&key));
     let result = cipher.encrypt_in_place_detached(
-        GenericArray::from_slice(nonce),
-        authenticated_header,
+        GenericArray::from_slice(envelope.nonce),
+        envelope.authenticated_header,
         plaintext,
     );
     zeroize_buf(&mut key);
@@ -190,27 +206,14 @@ pub fn seal_in_place(
     }
 }
 
-pub struct OpenRequest<'a> {
-    pub parameters: KdfParameters,
-    pub stretched_credential: &'a [u8; KEY_SIZE],
-    pub salt: &'a [u8; SALT_SIZE],
-    pub nonce: &'a [u8; NONCE_SIZE],
-    pub authenticated_header: &'a [u8],
-    pub tag: &'a [u8; TAG_SIZE],
-}
-
 pub fn open_in_place(
     hmac: &mut impl HardwareHmac,
-    request: OpenRequest<'_>,
+    parameters: KdfParameters,
+    envelope: Envelope<'_>,
+    tag: &[u8; TAG_SIZE],
     ciphertext: &mut [u8],
 ) -> Result<(), DeviceBoundError> {
-    let mut key = match derive_aes_key(
-        hmac,
-        request.parameters,
-        request.stretched_credential,
-        request.salt,
-        request.authenticated_header,
-    ) {
+    let mut key = match envelope.aes_key(hmac, parameters) {
         Ok(key) => key,
         Err(error) => {
             zeroize_buf(ciphertext);
@@ -219,10 +222,10 @@ pub fn open_in_place(
     };
     let cipher = Aes256Gcm::new(GenericArray::from_slice(&key));
     let result = cipher.decrypt_in_place_detached(
-        GenericArray::from_slice(request.nonce),
-        request.authenticated_header,
+        GenericArray::from_slice(envelope.nonce),
+        envelope.authenticated_header,
         ciphertext,
-        GenericArray::from_slice(request.tag),
+        GenericArray::from_slice(tag),
     );
     zeroize_buf(&mut key);
     if result.is_err() {

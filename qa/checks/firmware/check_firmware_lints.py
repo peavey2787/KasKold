@@ -12,16 +12,13 @@ sys.path.insert(0, str(ROOT))
 from tools.build.firmware.matrix_runner import run_firmware_matrix  # noqa: E402
 from firmware_lint_policy import check_policy  # noqa: E402
 
-# Clippy's style and pedantic groups are intentionally not suppressed in source.
-# The project lint target explicitly enforces correctness, suspicious/performance
-# defects, dead/unused code, and the architectural complexity limits selected by
-# this repository. Item-level exceptions remain visible and review-locked.
+# Every default Clippy group (correctness, suspicious, complexity, perf and
+# style) is denied across the whole firmware matrix, plus the architectural
+# size, complexity and boolean-state limits this repository selects from the
+# pedantic group. Item-level exceptions remain visible and review-locked.
 LINT_ARGS = (
     "-D", "warnings",
-    "-A", "clippy::all",
-    "-D", "clippy::correctness",
-    "-D", "clippy::suspicious",
-    "-D", "clippy::perf",
+    "-D", "clippy::all",
     "-D", "clippy::too_many_lines",
     "-D", "clippy::cognitive_complexity",
     "-D", "clippy::struct_excessive_bools",

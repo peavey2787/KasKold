@@ -1,3 +1,4 @@
+use crate::controllers::TouchInput;
 use crate::{
     runtime::interactions::keyboard::{handle_passphrase_keyboard, KeyboardAction},
     runtime::navigation::ContinuationRoute,
@@ -25,7 +26,8 @@ pub(in crate::runtime::interactions::sd) fn run_device_bound_passphrase_workflow
     workflow: PassphraseWorkflow,
     submit: DeviceSubmitHandler,
 ) -> bool {
-    let SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back, .. } = ctx;
+    let SdIoContext { ad, boot_display, delay, liveness, i2c, backup_device, input, .. } = ctx;
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.wallet.seeds.pp_input.reset();
         crate::runtime::effects::continue_to(ad, workflow.back_state);

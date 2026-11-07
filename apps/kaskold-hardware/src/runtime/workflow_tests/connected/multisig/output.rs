@@ -1,4 +1,5 @@
 use super::MultisigContext;
+use crate::controllers::TouchInput;
 use crate::runtime::{data::TextFileKind, input::AppState};
 use core::sync::atomic::{AtomicU8, Ordering};
 
@@ -57,24 +58,26 @@ fn address_controls(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
         return fail(1, "ADDRESS-ENTRY");
     }
     let original_cosigner = ctx.ad.signing.multisig.creating.cosigner_index;
-    if ctx.tx_touch(85, 210, false) != Some(true)
+    if ctx.tx_touch(TouchInput::new(85, 210, false)) != Some(true)
         || ctx.ad.signing.multisig.creating.cosigner_index == original_cosigner
     {
         return fail(2, "ADDRESS-FAMILY");
     }
-    if ctx.tx_touch(138, 210, false) != Some(true) || ctx.ad.signing.multisig.creating.chain != 1 {
+    if ctx.tx_touch(TouchInput::new(138, 210, false)) != Some(true) || ctx.ad.signing.multisig.creating.chain != 1 {
         return fail(3, "ADDRESS-CHAIN");
     }
-    if ctx.tx_touch(205, 210, false) != Some(true) || ctx.ad.navigation.app.state != AppState::AddrIndexPicker {
+    if ctx.tx_touch(TouchInput::new(205, 210, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::AddrIndexPicker
+    {
         return fail(4, "INDEX-PICKER-ENTRY");
     }
     // Numeric entry updates the picker field in place. Normal connected E2E
     // suppresses the physical LCD mutation but preserves this Some(false)
     // production redraw contract; HIL/production still render the field.
-    if ctx.export_screen_touch(72, 82, false) != Some(false) {
+    if ctx.export_screen_touch(TouchInput::new(72, 82, false)) != Some(false) {
         return fail(5, "INDEX-DIGIT");
     }
-    if ctx.export_screen_touch(235, 192, false) != Some(true) {
+    if ctx.export_screen_touch(TouchInput::new(235, 192, false)) != Some(true) {
         return fail(6, "INDEX-SUBMIT");
     }
     if ctx.ad.navigation.app.state != AppState::MultisigShowAddress || ctx.ad.signing.multisig.creating.addr_index != 1
@@ -86,36 +89,49 @@ fn address_controls(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
 }
 
 fn qr_and_descriptor(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
-    if ctx.tx_touch(160, 120, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigShowAddressQR {
+    if ctx.tx_touch(TouchInput::new(160, 120, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::MultisigShowAddressQR
+    {
         return fail(8, "ADDRESS-QR");
     }
     ctx.redraw_step();
-    if ctx.tx_touch(160, 120, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigSaveDescriptorAsk
+    if ctx.tx_touch(TouchInput::new(160, 120, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::MultisigSaveDescriptorAsk
     {
         return fail(9, "DESCRIPTOR-SAVE-PROMPT");
     }
-    if ctx.tx_touch(230, 160, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigSaveAddrAsk {
+    if ctx.tx_touch(TouchInput::new(230, 160, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::MultisigSaveAddrAsk
+    {
         return fail(10, "ADDRESS-SAVE-PROMPT");
     }
     log!("KASKOLD_WORKFLOW_TESTS: MULTISIG DESCRIPTOR SAVE PROMPT PASS");
-    if ctx.tx_touch(230, 160, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigDescriptor {
+    if ctx.tx_touch(TouchInput::new(230, 160, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::MultisigDescriptor
+    {
         return fail(11, "DESCRIPTOR-ENTRY");
     }
     if !crate::runtime::navigation::handle_back(ctx.ad) || ctx.ad.navigation.app.state != AppState::MultisigShowAddress
     {
         return fail(10, "DESCRIPTOR-BACK");
     }
-    if ctx.tx_touch(160, 120, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigShowAddressQR {
+    if ctx.tx_touch(TouchInput::new(160, 120, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::MultisigShowAddressQR
+    {
         return fail(10, "DESCRIPTOR-BACK-REENTER-QR");
     }
     ctx.redraw_step();
-    if ctx.tx_touch(160, 120, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigSaveAddrAsk {
+    if ctx.tx_touch(TouchInput::new(160, 120, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::MultisigSaveAddrAsk
+    {
         return fail(11, "DESCRIPTOR-BACK-REENTER-SAVE");
     }
-    if ctx.tx_touch(230, 160, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigDescriptor {
+    if ctx.tx_touch(TouchInput::new(230, 160, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::MultisigDescriptor
+    {
         return fail(11, "DESCRIPTOR-BACK-REENTER");
     }
-    if ctx.tx_touch(80, 210, false) != Some(true)
+    if ctx.tx_touch(TouchInput::new(80, 210, false)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::ShowQR
         || ctx.ad.qr.outgoing.length == 0
     {
@@ -125,10 +141,12 @@ fn qr_and_descriptor(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
     if kaskold_protocol::wire::multisig_descriptor::parse_multisig_descriptor(descriptor).is_err() {
         return fail(13, "DESCRIPTOR-PARSE");
     }
-    if ctx.menu_touch(160, 120, false) != Some(true) || ctx.ad.navigation.app.state != AppState::MultisigDescriptor {
+    if ctx.menu_touch(TouchInput::new(160, 120, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::MultisigDescriptor
+    {
         return fail(12, "DESCRIPTOR-QR");
     }
-    if ctx.tx_touch(80, 210, false) != Some(true)
+    if ctx.tx_touch(TouchInput::new(80, 210, false)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::ShowQR
         || ctx.ad.qr.outgoing.length == 0
     {

@@ -54,32 +54,31 @@ pub struct TxTouchContext<'ctx, 'display, 'hal, 'wallet> {
 #[inline(never)]
 pub fn handle_tx_touch(context: TxTouchContext<'_, '_, '_, '_>) -> Option<bool> {
     let TxTouchContext { ad, boot_display, delay, i2c, persistent_wallet, liveness, list_zones, input } = context;
-    let TouchInput { x, y, is_back } = input;
-    if let Some(result) = transaction::handle(ad, boot_display, delay, x, y, is_back) {
+    if let Some(result) = transaction::handle(ad, boot_display, delay, input) {
         return Some(result);
     }
-    if let Some(result) = multisig_setup::handle(ad, boot_display, delay, liveness, x, y, is_back) {
+    if let Some(result) = multisig_setup::handle(ad, boot_display, delay, liveness, input) {
         return Some(result);
     }
-    if let Some(result) = multisig_output::handle(ad, boot_display, delay, i2c, persistent_wallet, x, y, is_back) {
+    if let Some(result) = multisig_output::handle(ad, boot_display, delay, i2c, persistent_wallet, input) {
         return Some(result);
     }
-    if let Some(result) = message_source::handle(ad, boot_display, delay, i2c, list_zones, x, y, is_back) {
+    if let Some(result) = message_source::handle(ad, boot_display, delay, i2c, list_zones, input) {
         return Some(result);
     }
-    if let Some(result) = message_signing::handle(ad, boot_display, delay, liveness, i2c, x, y, is_back) {
+    if let Some(result) = message_signing::handle(ad, boot_display, delay, liveness, i2c, input) {
         return Some(result);
     }
-    if let Some(result) = covenant_signing::handle(ad, boot_display, delay, liveness, x, y, is_back) {
+    if let Some(result) = covenant_signing::handle(ad, boot_display, delay, liveness, input) {
         return Some(result);
     }
-    if let Some(result) = private_swap::handle(ad, boot_display, delay, liveness, x, y, is_back) {
+    if let Some(result) = private_swap::handle(ad, boot_display, delay, liveness, input) {
         return Some(result);
     }
-    if let Some(result) = commit_reveal::handle(ad, boot_display, delay, liveness, x, y, is_back) {
+    if let Some(result) = commit_reveal::handle(ad, boot_display, delay, liveness, input) {
         return Some(result);
     }
-    if let Some(result) = commit_results::handle(ad, boot_display, delay, x, y, is_back) {
+    if let Some(result) = commit_results::handle(ad, boot_display, delay, input) {
         return Some(result);
     }
     None

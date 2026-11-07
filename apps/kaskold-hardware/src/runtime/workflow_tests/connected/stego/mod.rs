@@ -23,7 +23,7 @@ pub(super) struct StegoContext<'ctx, 'display, 'hal> {
 }
 
 impl StegoContext<'_, '_, '_> {
-    pub(super) fn touch(&mut self, x: u16, y: u16, is_back: bool, media_present: bool) -> Option<bool> {
+    pub(super) fn touch(&mut self, input: TouchInput, media_present: bool) -> Option<bool> {
         while_showing(media_present.then_some(SdCardType::SdV2Hc), || {
             crate::runtime::interactions::stego::handle_stego_touch(StegoTouchContext {
                 ad: self.ad,
@@ -35,7 +35,7 @@ impl StegoContext<'_, '_, '_> {
                 list_zones: &self.list,
                 page_up_zone: &self.up,
                 page_down_zone: &self.down,
-                input: TouchInput::new(x, y, is_back),
+                input,
             })
         })
     }
@@ -75,12 +75,10 @@ impl StegoContext<'_, '_, '_> {
     /// restore hierarchy. This keeps Onboarding ownership intact for every
     /// import screen and catches production transition-policy drift.
     pub(super) fn enter_onboarding_import_picker(&mut self) -> bool {
-        if !super::root::home_ok(self.ad) {
-            if !crate::runtime::navigation::workflow_cleanup_onboarding_to_home(self.ad) {
-                crate::runtime::effects::home(self.ad);
-                if !super::root::home_ok(self.ad) {
-                    return false;
-                }
+        if !super::root::home_ok(self.ad) && !crate::runtime::navigation::workflow_cleanup_onboarding_to_home(self.ad) {
+            crate::runtime::effects::home(self.ad);
+            if !super::root::home_ok(self.ad) {
+                return false;
             }
         }
         crate::runtime::interactions::persistence::enter_storage_choice(self.ad);
@@ -109,7 +107,7 @@ impl StegoContext<'_, '_, '_> {
         self.ad.stego.import.jpeg_count = 1;
         self.ad.stego.import.jpeg_selected = 0;
         let zone = self.list[0];
-        self.touch(zone.x + zone.w / 2, zone.y + zone.h / 2, false, true) == Some(true)
+        self.touch(TouchInput::new(zone.x + zone.w / 2, zone.y + zone.h / 2, false), true) == Some(true)
             && self.ad.navigation.app.state == AppState::StegoImportDescChoice
             && crate::runtime::navigation::reconcile(self.ad)
     }

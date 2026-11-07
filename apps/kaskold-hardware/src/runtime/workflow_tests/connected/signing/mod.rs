@@ -1,3 +1,4 @@
+use crate::controllers::TouchInput;
 use crate::{
     hw::{display::BootDisplay, touch::TouchZone},
     runtime::interactions::{sd::SdTouchContext, tx::TxTouchContext},
@@ -39,8 +40,8 @@ impl SigningContext<'_, '_, '_> {
         }
         crate::runtime::signing::workflow_activate_signing_operation(self.ad)
     }
-    fn tx_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
-        let input = crate::runtime::touch_dispatch::workflow_touch_input(x, y, is_back)?;
+    fn tx_touch(&mut self, input: TouchInput) -> Option<bool> {
+        let input = crate::runtime::touch_dispatch::workflow_touch_input(input)?;
         crate::runtime::interactions::tx::handle_tx_touch(TxTouchContext {
             ad: &mut *self.ad,
             boot_display: &mut *self.display,
@@ -52,17 +53,17 @@ impl SigningContext<'_, '_, '_> {
             input,
         })
     }
-    fn menu_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
+    fn menu_touch(&mut self, input: TouchInput) -> Option<bool> {
         crate::runtime::interactions::menu::handle_navigation_touch(
             self.ad,
             &crate::ui::layout::HOME_GRID_ZONES,
             &self.list,
             &self.up,
             &self.down,
-            crate::runtime::touch_dispatch::workflow_touch_input(x, y, is_back)?,
+            crate::runtime::touch_dispatch::workflow_touch_input(input)?,
         )
     }
-    fn sd_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
+    fn sd_touch(&mut self, input: TouchInput) -> Option<bool> {
         crate::runtime::interactions::sd::handle_sd_touch(SdTouchContext {
             ad: &mut *self.ad,
             boot_display: &mut *self.display,
@@ -73,13 +74,13 @@ impl SigningContext<'_, '_, '_> {
             list_zones: &self.list,
             page_up_zone: &self.up,
             page_down_zone: &self.down,
-            input: crate::runtime::touch_dispatch::workflow_touch_input(x, y, is_back)?,
+            input: crate::runtime::touch_dispatch::workflow_touch_input(input)?,
         })
     }
 
     fn dismiss_rejected_to(&mut self, expected: AppState) -> bool {
         let (x, y) = crate::ui::layout::zone_center(crate::ui::layout::ERROR_OK_ZONE);
-        self.menu_touch(x, y, false) == Some(true) && self.ad.navigation.app.state == expected
+        self.menu_touch(TouchInput::new(x, y, false)) == Some(true) && self.ad.navigation.app.state == expected
     }
 
     fn dismiss_scan_rejection_to_home(&mut self) -> bool {

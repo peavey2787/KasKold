@@ -14,14 +14,8 @@ pub(super) type AdvancedToolsContext<'ctx, 'display, 'hal> =
     super::menu_context::MenuWorkflowContext<'ctx, 'display, 'hal>;
 
 impl AdvancedToolsContext<'_, '_, '_> {
-    pub(super) fn seed_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
-        crate::runtime::interactions::seed::handle_seed_touch(
-            self.ad,
-            self.display,
-            self.delay,
-            &mut || {},
-            TouchInput::new(x, y, is_back),
-        )
+    pub(super) fn seed_touch(&mut self, input: TouchInput) -> Option<bool> {
+        crate::runtime::interactions::seed::handle_seed_touch(self.ad, self.display, self.delay, &mut || {}, input)
     }
 
     pub(super) fn set_text(&mut self, value: &[u8]) {
@@ -40,13 +34,13 @@ impl AdvancedToolsContext<'_, '_, '_> {
             return false;
         }
         self.ad.navigation.production.wallet_menu.reset();
-        if self.menu_touch(self.down.x + 20, self.down.y + 20, false) != Some(true) {
+        if self.menu_touch(TouchInput::new(self.down.x + 20, self.down.y + 20, false)) != Some(true) {
             return false;
         }
         // Wallet -> Advanced is absolute item 6. After paging the seven-item
         // Wallet menu to scroll=4, item 6 occupies visible row 2.
         let zone = self.list[2];
-        self.menu_touch(zone.x + zone.w / 2, zone.y + zone.h / 2, false) == Some(true)
+        self.menu_touch(TouchInput::new(zone.x + zone.w / 2, zone.y + zone.h / 2, false)) == Some(true)
             && self.ad.navigation.app.state == AppState::WalletAdvancedMenu
     }
 
@@ -66,11 +60,11 @@ impl AdvancedToolsContext<'_, '_, '_> {
             return false;
         }
         self.ad.navigation.production.backup_recovery_menu.reset();
-        if item >= 4 && self.menu_touch(self.down.x + 20, self.down.y + 20, false) != Some(true) {
+        if item >= 4 && self.menu_touch(TouchInput::new(self.down.x + 20, self.down.y + 20, false)) != Some(true) {
             return false;
         }
         let zone = self.list[item % 4];
-        self.menu_touch(zone.x + zone.w / 2, zone.y + zone.h / 2, false) == Some(true)
+        self.menu_touch(TouchInput::new(zone.x + zone.w / 2, zone.y + zone.h / 2, false)) == Some(true)
             && self.ad.navigation.app.state == expected
     }
 
@@ -80,7 +74,7 @@ impl AdvancedToolsContext<'_, '_, '_> {
         }
         self.ad.navigation.production.wallet_advanced_menu.reset();
         let zone = self.list[item];
-        self.menu_touch(zone.x + zone.w / 2, zone.y + zone.h / 2, false) == Some(true)
+        self.menu_touch(TouchInput::new(zone.x + zone.w / 2, zone.y + zone.h / 2, false)) == Some(true)
             && self.ad.navigation.app.state == expected
     }
 }

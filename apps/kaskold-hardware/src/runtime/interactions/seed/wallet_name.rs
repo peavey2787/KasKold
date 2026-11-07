@@ -1,6 +1,7 @@
 //! Wallet-name entry for new wallets and Wallet Details edits.
 
 use super::{display, AppData};
+use crate::controllers::TouchInput;
 use crate::runtime::input::AppState;
 use crate::runtime::interactions::{
     feedback::{show_rejection, ErrorSound},
@@ -12,10 +13,9 @@ pub(super) fn handle(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
+    let TouchInput { x, y, is_back } = input;
     let AppState::WalletNameEntry { purpose } = ad.navigation.app.state else {
         return None;
     };

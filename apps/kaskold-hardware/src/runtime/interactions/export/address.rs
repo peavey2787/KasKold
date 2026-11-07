@@ -16,29 +16,26 @@
 
 // Address display and derivation-index navigation.
 
+use crate::controllers::TouchInput;
 use crate::runtime::input::AppState;
 use crate::runtime::signing::{derive_change_pubkey_from_acct, derive_pubkey_from_acct};
 use crate::{hw::display, runtime::data::AppData};
 
 use super::index_keypad::{self, IndexKey};
 
-pub(super) fn handle_pure(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> Option<bool> {
+pub(super) fn handle_pure(ad: &mut AppData, input: TouchInput) -> Option<bool> {
+    let TouchInput { is_back, .. } = input;
     match ad.navigation.app.state {
-        AppState::ShowAddress => Some(handle_address_view(ad, x, y, is_back)),
+        AppState::ShowAddress => Some(handle_address_view(ad, input)),
         AppState::ShowAddressQR => Some(if is_back { crate::runtime::effects::back(ad) } else { false }),
         _ => None,
     }
 }
 
-pub(super) fn handle(
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    x: u16,
-    y: u16,
-    is_back: bool,
-) -> Option<bool> {
+pub(super) fn handle(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, input: TouchInput) -> Option<bool> {
+    let TouchInput { is_back, .. } = input;
     let redraw = match ad.navigation.app.state {
-        AppState::ShowAddress => handle_address_view(ad, x, y, is_back),
+        AppState::ShowAddress => handle_address_view(ad, input),
         AppState::ShowAddressQR => {
             if is_back {
                 crate::runtime::effects::back(ad)
@@ -46,13 +43,14 @@ pub(super) fn handle(
                 false
             }
         }
-        AppState::AddrIndexPicker => handle_index_picker(ad, boot_display, x, y, is_back),
+        AppState::AddrIndexPicker => handle_index_picker(ad, boot_display, input),
         _ => return None,
     };
     Some(redraw)
 }
 
-fn handle_address_view(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+fn handle_address_view(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.wallet.addresses.view_is_change = false;
         crate::runtime::effects::return_to(ad, crate::runtime::navigation::ReturnScope::Address);
@@ -127,31 +125,27 @@ fn step_address_index(ad: &mut AppData, delta: i32) -> bool {
 fn refresh_extended_pubkey(ad: &mut AppData) {
     let index = ad.wallet.addresses.current_addr_index;
     if ad.wallet.addresses.view_is_change {
-        if index >= 5 && ad.wallet.addresses.extra_change_pubkey_index != index {
-            if derive_change_pubkey_from_acct(
+        if index >= 5
+            && ad.wallet.addresses.extra_change_pubkey_index != index
+            && derive_change_pubkey_from_acct(
                 &ad.wallet.keys.acct_key_raw,
                 index,
                 &mut ad.wallet.addresses.extra_change_pubkey,
             )
             .is_ok()
-            {
-                ad.wallet.addresses.extra_change_pubkey_index = index;
-            }
+        {
+            ad.wallet.addresses.extra_change_pubkey_index = index;
         }
-    } else if index >= 20 && ad.wallet.addresses.extra_pubkey_index != index {
-        if derive_pubkey_from_acct(&ad.wallet.keys.acct_key_raw, index, &mut ad.wallet.addresses.extra_pubkey).is_ok() {
-            ad.wallet.addresses.extra_pubkey_index = index;
-        }
+    } else if index >= 20
+        && ad.wallet.addresses.extra_pubkey_index != index
+        && derive_pubkey_from_acct(&ad.wallet.keys.acct_key_raw, index, &mut ad.wallet.addresses.extra_pubkey).is_ok()
+    {
+        ad.wallet.addresses.extra_pubkey_index = index;
     }
 }
 
-fn handle_index_picker(
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    x: u16,
-    y: u16,
-    is_back: bool,
-) -> bool {
+fn handle_index_picker(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         leave_index_picker(ad);
         return true;

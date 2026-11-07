@@ -8,6 +8,7 @@
 //! the original precedence and the stable camera-controller call surface.
 
 use super::{display, sound, AppData};
+use crate::runtime::interactions::DeviceIo;
 use kaskold_hardware_core::qr::classification::{classify_qr_payload, QrPayloadKind};
 
 mod address;
@@ -25,20 +26,13 @@ mod text;
 mod transaction;
 
 #[inline(never)]
-pub(super) fn process_confirmed_qr(
-    data: &[u8],
-    len: usize,
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    liveness: &mut (impl FnMut() + ?Sized),
-) {
+pub(super) fn process_confirmed_qr(data: &[u8], ad: &mut AppData, io: &mut DeviceIo<'_, '_, '_>) {
+    let len = data.len();
     sound::qr_decoded();
-    if process_pending(data, len, ad, boot_display, delay, liveness) {
+    if process_pending(data, len, ad, io.boot_display, io.delay, &mut *io.liveness) {
         return;
     }
-    dispatch_payload(classify_qr_payload(data, len), data, len, ad, boot_display, delay, i2c, liveness);
+    dispatch_payload(classify_qr_payload(data, len), data, len, ad, io);
 }
 
 fn process_pending(
@@ -60,16 +54,9 @@ fn process_pending(
     false
 }
 
-fn dispatch_payload(
-    kind: QrPayloadKind,
-    data: &[u8],
-    len: usize,
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    delay: &mut esp_hal::delay::Delay,
-    i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
-    liveness: &mut (impl FnMut() + ?Sized),
-) {
+fn dispatch_payload(kind: QrPayloadKind, data: &[u8], len: usize, ad: &mut AppData, io: &mut DeviceIo<'_, '_, '_>) {
+    let DeviceIo { boot_display, delay, i2c, liveness } = io;
+    let liveness = &mut **liveness;
     if dispatch_identity(kind, data, len, ad, i2c, liveness) {
         return;
     }
@@ -203,9 +190,8 @@ fn dispatch_last(
     ad: &mut AppData,
     liveness: &mut (impl FnMut() + ?Sized),
 ) {
-    match kind {
-        QrPayloadKind::Unknown => dispatch_unknown(data, len, ad, liveness),
-        _ => {}
+    if kind == QrPayloadKind::Unknown {
+        dispatch_unknown(data, len, ad, liveness)
     }
 }
 

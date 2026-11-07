@@ -105,12 +105,7 @@ impl SeedManager {
 
     /// Find first free slot. Returns None if all full.
     pub fn find_free(&self) -> Option<usize> {
-        for i in 0..MAX_SLOTS {
-            if self.slots[i].is_empty() {
-                return Some(i);
-            }
-        }
-        None
+        self.slots.iter().position(|slot| slot.is_empty())
     }
 
     /// Number of populated slots used by the embedded self-test suite.

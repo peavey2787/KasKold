@@ -1815,6 +1815,7 @@
       "actions": [
         "apps/kaskold-hardware/src/runtime/interactions/export.rs::handle_export_touch",
         "apps/kaskold-hardware/src/runtime/interactions/export/xprv.rs::handle_menu",
+        "apps/kaskold-hardware/src/runtime/interactions/export/xprv.rs::leave_menu",
         "apps/kaskold-hardware/src/runtime/interactions/export/private_key/index_input.rs::append_digit"
       ],
       "id": "connected-advanced-key-exports",

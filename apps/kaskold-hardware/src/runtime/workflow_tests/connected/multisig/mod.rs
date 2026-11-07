@@ -96,18 +96,18 @@ pub(super) fn replay_failures() {
 pub(super) type MultisigContext<'ctx, 'display, 'hal> = super::menu_context::MenuWorkflowContext<'ctx, 'display, 'hal>;
 
 impl MultisigContext<'_, '_, '_> {
-    pub(super) fn seed_navigation_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
-        crate::runtime::interactions::seed::handle_navigation_touch(self.ad, TouchInput::new(x, y, is_back))
+    pub(super) fn seed_navigation_touch(&mut self, input: TouchInput) -> Option<bool> {
+        crate::runtime::interactions::seed::handle_navigation_touch(self.ad, input)
     }
 
-    pub(super) fn signing_feedback_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
+    pub(super) fn signing_feedback_touch(&mut self, input: TouchInput) -> Option<bool> {
         crate::runtime::interactions::menu::handle_signing_feedback_touch(
             self.ad,
             self.display,
             self.delay,
             &mut || {},
             &self.list,
-            TouchInput::new(x, y, is_back),
+            input,
         )
     }
 }

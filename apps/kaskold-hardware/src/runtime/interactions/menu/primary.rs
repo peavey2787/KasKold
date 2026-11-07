@@ -3,6 +3,7 @@
 // License: GPL-3.0
 
 use super::{touch, AppData};
+use crate::controllers::TouchInput;
 use crate::runtime::input::AppState;
 
 mod production;
@@ -13,19 +14,18 @@ pub(super) fn handle(
     list_zones: &[touch::TouchZone; 4],
     page_up: &touch::TouchZone,
     page_down: &touch::TouchZone,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
-    if let Some(result) = production::handle(ad, list_zones, page_up, page_down, x, y, is_back) {
+    let TouchInput { x, y, .. } = input;
+    if let Some(result) = production::handle(ad, list_zones, page_up, page_down, input) {
         return Some(result);
     }
     match ad.navigation.app.state {
         AppState::MainMenu => Some(handle_main_menu(ad, grid_zones, x, y)),
         AppState::MultisigMenu | AppState::MultisigDescriptorsMenu => {
-            super::signing::handle_pure(ad, list_zones, x, y, is_back)
+            super::signing::handle_pure(ad, list_zones, input)
         }
-        AppState::ShowQR | AppState::Rejected => super::qr::handle(ad, x, y, is_back),
+        AppState::ShowQR | AppState::Rejected => super::qr::handle(ad, input),
         _ => None,
     }
 }
@@ -38,8 +38,7 @@ pub(super) fn handle_navigation_touch(
     page_down: &touch::TouchZone,
     input: super::TouchInput,
 ) -> Option<bool> {
-    let super::TouchInput { x, y, is_back } = input;
-    handle(ad, grid_zones, list_zones, page_up, page_down, x, y, is_back)
+    handle(ad, grid_zones, list_zones, page_up, page_down, input)
 }
 
 #[cfg(feature = "workflow-test-auto")]

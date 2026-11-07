@@ -137,7 +137,7 @@ pub(in crate::hw::shared::storage::fat32) fn replace_dir_entry_at(
     offset: usize,
     entry: &DirEntry,
 ) -> Result<(), &'static str> {
-    if offset.checked_add(32).map_or(true, |end| end > 512) {
+    if offset.checked_add(32).is_none_or(|end| end > 512) {
         return Err("Directory entry offset out of range");
     }
     let mut buf = [0u8; 512];

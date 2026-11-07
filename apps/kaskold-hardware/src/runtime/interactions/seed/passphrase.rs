@@ -4,6 +4,7 @@
 
 //! Seed passphrase workflow.
 
+use crate::controllers::TouchInput;
 mod installed;
 
 use super::{display, sound, AppData, RedrawFlag};
@@ -15,10 +16,9 @@ pub(super) fn handle(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
+    let TouchInput { x, y, is_back } = input;
     if ad.navigation.app.state != AppState::PassphraseEntry {
         return None;
     }
@@ -101,14 +101,7 @@ pub(crate) fn workflow_commit_staged_onboarding_import(ad: &mut AppData) -> bool
     ) else {
         return false;
     };
-    let name_len =
-        usize::from(ad.wallet.seeds.pending_wallet_name_len).min(crate::wallet::seed_manager::WALLET_NAME_MAX);
-    if name_len > 0 {
-        let mut name = [0u8; crate::wallet::seed_manager::WALLET_NAME_MAX];
-        name[..name_len].copy_from_slice(&ad.wallet.seeds.pending_wallet_name[..name_len]);
-        let _ = ad.wallet.seeds.seed_mgr.set_slot_name(slot_index, &name[..name_len]);
-        shared_signer::bytes::zeroize_bytes(&mut name);
-    }
+    apply_pending_wallet_name(ad, slot_index);
     if crate::services::wallet_session::activate_slot(ad, slot_index).is_err() {
         ad.wallet.seeds.seed_mgr.delete(slot_index);
         return false;
@@ -133,21 +126,12 @@ pub(crate) fn commit_staged_add_wallet(
     if reserved >= crate::wallet::seed_manager::MAX_SLOTS {
         return false;
     }
+    if ad.wallet.seeds.pending_add_wallet_has_installed_source() {
+        return installed::commit_add_wallet(ad, persistence, boot_display, delay, reserved);
+    }
     let protection = ad.wallet.seeds.pending_wallet_protection;
     let salt = ad.wallet.seeds.pending_wallet_activation_salt;
     let verifier = ad.wallet.seeds.pending_wallet_activation_verifier;
-    if ad.wallet.seeds.pending_add_wallet_has_installed_source() {
-        return installed::commit_add_wallet(
-            ad,
-            persistence,
-            boot_display,
-            delay,
-            reserved,
-            protection,
-            salt,
-            verifier,
-        );
-    }
     let bip39_len = usize::from(ad.wallet.seeds.pending_bip39_passphrase_len);
     if ad
         .wallet
@@ -244,7 +228,7 @@ pub(crate) fn commit_staged_session_wallet(
         show_rejection(boot_display, delay, "Wallet creation failed", 1_800, ErrorSound::Silent);
         return false;
     }
-    installed::apply_pending_wallet_name(ad, slot);
+    apply_pending_wallet_name(ad, slot);
     if let Err(error) = crate::services::wallet_session::activate_slot(ad, slot) {
         ad.wallet.seeds.seed_mgr.delete(slot);
         show_rejection(boot_display, delay, error.message(), 2_000, ErrorSound::Silent);
@@ -309,14 +293,7 @@ fn commit_current_seed(
         return false;
     };
 
-    let name_len =
-        usize::from(ad.wallet.seeds.pending_wallet_name_len).min(crate::wallet::seed_manager::WALLET_NAME_MAX);
-    if name_len > 0 {
-        let mut name = [0u8; crate::wallet::seed_manager::WALLET_NAME_MAX];
-        name[..name_len].copy_from_slice(&ad.wallet.seeds.pending_wallet_name[..name_len]);
-        let _ = ad.wallet.seeds.seed_mgr.set_slot_name(slot_index, &name[..name_len]);
-        shared_signer::bytes::zeroize_bytes(&mut name);
-    }
+    apply_pending_wallet_name(ad, slot_index);
     ad.wallet.seeds.clear_pending_wallet_name();
 
     if let Err(error) = crate::services::wallet_session::activate_slot(ad, slot_index) {
@@ -402,4 +379,17 @@ fn first_empty_multisig_key(ad: &AppData) -> u8 {
     (0..ad.signing.multisig.creating.n)
         .find(|index| ad.signing.multisig.creating.slot_empty(*index as usize))
         .unwrap_or(0)
+}
+
+/// Copy the name typed during Add Wallet onto the committed slot.
+fn apply_pending_wallet_name(ad: &mut AppData, slot: usize) {
+    let name_len =
+        usize::from(ad.wallet.seeds.pending_wallet_name_len).min(crate::wallet::seed_manager::WALLET_NAME_MAX);
+    if name_len == 0 {
+        return;
+    }
+    let mut name = [0u8; crate::wallet::seed_manager::WALLET_NAME_MAX];
+    name[..name_len].copy_from_slice(&ad.wallet.seeds.pending_wallet_name[..name_len]);
+    let _ = ad.wallet.seeds.seed_mgr.set_slot_name(slot, &name[..name_len]);
+    shared_signer::bytes::zeroize_bytes(&mut name);
 }

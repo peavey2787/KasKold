@@ -1,5 +1,6 @@
 //! Optional additive entropy choices layered on mandatory checked device entropy.
 
+use crate::controllers::TouchInput;
 use crate::{
     runtime::data::AppData,
     ui::screens::device::persistence::{
@@ -9,7 +10,8 @@ use crate::{
     wallet::mnemonic,
 };
 
-pub(super) fn handle_dice_choice(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+pub(super) fn handle_dice_choice(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         restart_generation(ad);
         return true;
@@ -27,7 +29,8 @@ pub(super) fn handle_dice_choice(ad: &mut AppData, x: u16, y: u16, is_back: bool
     true
 }
 
-pub(super) fn handle_dice_count(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+pub(super) fn handle_dice_count(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StorageSeedDiceChoice));
         return true;
@@ -55,7 +58,8 @@ pub(super) fn handle_dice_count(ad: &mut AppData, x: u16, y: u16, is_back: bool)
     true
 }
 
-pub(super) fn handle_touch_choice(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+pub(super) fn handle_touch_choice(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         restart_generation(ad);
         return true;

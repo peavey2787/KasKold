@@ -1,6 +1,7 @@
 //! Shared optional-encryption workflows for SD exports.
 
 use super::super::{display, sound, write_file_to_sd, AppData, SdIoContext};
+use crate::controllers::TouchInput;
 use crate::runtime::interactions::feedback::{show_rejection, show_success, ErrorSound};
 use crate::runtime::{
     data::{EncryptedFileOperation, EncryptedPayloadKind, TextFileKind},
@@ -37,7 +38,8 @@ pub(crate) struct EncryptionPromptWorkflow {
     pub success_message: &'static str,
 }
 
-fn encryption_prompt_action(x: u16, y: u16, is_back: bool) -> EncryptionPromptAction {
+fn encryption_prompt_action(input: TouchInput) -> EncryptionPromptAction {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         EncryptionPromptAction::Back
     } else if (30..=155).contains(&x) && (140..=185).contains(&y) {
@@ -89,8 +91,8 @@ fn navigate(ad: &mut AppData, destination: PromptDestination) {
 }
 
 pub(crate) fn run_encryption_prompt(ctx: SdIoContext<'_, '_, '_>, workflow: EncryptionPromptWorkflow) -> bool {
-    let SdIoContext { ad, boot_display, delay, i2c, x, y, is_back, .. } = ctx;
-    match encryption_prompt_action(x, y, is_back) {
+    let SdIoContext { ad, boot_display, delay, i2c, input, .. } = ctx;
+    match encryption_prompt_action(input) {
         EncryptionPromptAction::Back => {
             let _ = crate::runtime::effects::continue_to(ad, workflow.back_state);
         }

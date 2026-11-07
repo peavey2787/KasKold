@@ -19,10 +19,10 @@ pub(crate) fn handle_navigation_touch(
     if let Some(result) = super::seed_backup::handle(ad, input.is_back) {
         return Some(result);
     }
-    if let Some(result) = super::seed_qr::handle(ad, input.x, input.y, input.is_back) {
+    if let Some(result) = super::seed_qr::handle(ad, input) {
         return Some(result);
     }
-    if let Some(result) = super::address::handle_pure(ad, input.x, input.y, input.is_back) {
+    if let Some(result) = super::address::handle_pure(ad, input) {
         return Some(result);
     }
     if let Some(result) = super::kpub::handle_pure(ad, input.x, input.is_back) {
@@ -31,5 +31,5 @@ pub(crate) fn handle_navigation_touch(
     if let Some(result) = super::private_key::handle_pure(ad) {
         return Some(result);
     }
-    super::xprv::handle_pure(ad, list_zones, page_up_zone, page_down_zone, input.x, input.y, input.is_back)
+    super::xprv::handle_pure(ad, list_zones, page_up_zone, page_down_zone, input)
 }

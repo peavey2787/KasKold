@@ -453,7 +453,7 @@ class _CoreCiLog:
         raise subprocess.CalledProcessError(status, stage)
 
 
-_CORE_CI_GATES = ("FORMAT", "CLIPPY", "QA CLIPPY", "TOOLS CLIPPY", "VAULT WEB CLIPPY", "TEST")
+_CORE_CI_GATES = ("FORMAT", "CLIPPY", "QA CLIPPY", "TOOLS CLIPPY", "VAULT WEB CLIPPY", "FIRMWARE SIM CLIPPY", "TEST")
 
 
 def _core_ci_commands(stable: str) -> list[list[str]]:
@@ -464,6 +464,7 @@ def _core_ci_commands(stable: str) -> list[list[str]]:
         ["rustup", "run", stable, "cargo", "clippy", "--manifest-path", "qa/Cargo.toml", "--all-targets", "--locked", "--", "-D", "warnings"],
         ["rustup", "run", stable, "cargo", "clippy", "--manifest-path", "tools/Cargo.toml", "--all-targets", "--locked", "--", "-D", "warnings"],
         ["rustup", "run", stable, "cargo", "clippy", "--manifest-path", "apps/kaskold-vault-web/Cargo.toml", "--all-targets", "--locked", "--", "-D", "warnings"],
+        ["rustup", "run", stable, "cargo", "clippy", "--manifest-path", "qa/firmware-sim/Cargo.toml", "--all-targets", "--locked", "--", "-D", "warnings"],
         ["make", "test", "STRICT_LOCKFILES=1"],
         ["git", "diff", "--check"],
     ]

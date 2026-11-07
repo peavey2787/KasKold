@@ -7,8 +7,8 @@ use super::super::{sound, AppData};
 pub(super) fn process(data: &[u8], len: usize, ad: &mut AppData) {
     // Kaspa address — lowercase and store
     let copy_len = len.min(data.len()).min(ad.qr.scan.address.len());
-    for i in 0..copy_len {
-        ad.qr.scan.address[i] = if data[i] >= b'A' && data[i] <= b'Z' { data[i] + 32 } else { data[i] };
+    for (slot, &byte) in ad.qr.scan.address.iter_mut().zip(&data[..copy_len]) {
+        *slot = byte.to_ascii_lowercase();
     }
     ad.qr.scan.address_length = copy_len;
 

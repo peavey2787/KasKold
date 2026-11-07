@@ -45,7 +45,7 @@ impl<'a> BootDisplay<'a> {
         let total_len = bytes.len();
         let chars_per_line: usize = 25;
         let line_h: i32 = 26;
-        let num_lines = ((total_len + chars_per_line - 1) / chars_per_line) as i32;
+        let num_lines = total_len.div_ceil(chars_per_line) as i32;
         let text_block_h = num_lines * line_h;
         let avail_top: i32 = 60;
         let avail_bottom: i32 = 195; // was 225; shrunk to reserve y=210..238 for nav
@@ -147,8 +147,7 @@ impl<'a> BootDisplay<'a> {
         // Show each pubkey truncated — using title font (bold, readable)
         let hex_chars = b"0123456789abcdef";
         let mut y_pos: i32 = 79;
-        for i in 0..n.min(5) as usize {
-            let pk = &pubkeys[i];
+        for (i, pk) in pubkeys.iter().take(n.min(5) as usize).enumerate() {
             let mut line: heapless::String<28> = heapless::String::new();
             core::fmt::Write::write_fmt(&mut line, format_args!("{}: ", i + 1)).ok();
             // First 3 bytes hex

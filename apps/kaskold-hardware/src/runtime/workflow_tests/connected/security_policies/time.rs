@@ -1,4 +1,5 @@
 use super::SecurityContext;
+use crate::controllers::TouchInput;
 use crate::{runtime::input::AppState, services::persistent_wallet::PersistError};
 
 const CANCEL_X: u16 = 82;
@@ -17,7 +18,9 @@ fn rtc(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     if !open_rtc(ctx) {
         return false;
     }
-    if ctx.advanced_touch(20, 20, true) != Some(true) || ctx.ad.navigation.app.state != AppState::AdvancedFeatures {
+    if ctx.advanced_touch(TouchInput::new(20, 20, true)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::AdvancedFeatures
+    {
         return false;
     }
     if !open_rtc(ctx) {
@@ -55,14 +58,14 @@ fn no_sign_before(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
 fn no_sign_cancel(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     ctx.open_card(93) == Some(true)
         && ctx.ad.navigation.app.state == AppState::AdvancedTimeLockWarning
-        && ctx.advanced_touch(CANCEL_X, WARNING_Y, false) == Some(true)
+        && ctx.advanced_touch(TouchInput::new(CANCEL_X, WARNING_Y, false)) == Some(true)
         && ctx.ad.navigation.app.state == AppState::AdvancedFeatures
 }
 
 fn open_time_lock_entry(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     ctx.open_card(93) == Some(true)
         && ctx.ad.navigation.app.state == AppState::AdvancedTimeLockWarning
-        && ctx.advanced_touch(CONTINUE_X, WARNING_Y, false) == Some(true)
+        && ctx.advanced_touch(TouchInput::new(CONTINUE_X, WARNING_Y, false)) == Some(true)
         && ctx.ad.navigation.app.state == AppState::AdvancedTimeLockEntry
 }
 
@@ -81,7 +84,7 @@ fn no_sign_input_boundaries(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     if !stage_future(ctx) {
         return false;
     }
-    ctx.advanced_touch(CANCEL_X, WARNING_Y, false) == Some(true)
+    ctx.advanced_touch(TouchInput::new(CANCEL_X, WARNING_Y, false)) == Some(true)
         && ctx.ad.navigation.app.state == AppState::AdvancedFeatures
 }
 
@@ -96,7 +99,7 @@ fn no_sign_persistence_error(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     )
     .is_err()
         && ctx.ad.navigation.app.state == AppState::AdvancedTimeLockConfirm;
-    rejected && ctx.advanced_touch(CANCEL_X, WARNING_Y, false) == Some(true)
+    rejected && ctx.advanced_touch(TouchInput::new(CANCEL_X, WARNING_Y, false)) == Some(true)
 }
 
 fn no_sign_activate_readonly(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
@@ -131,7 +134,7 @@ fn weekly(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
 fn open_weekly_entry(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     ctx.open_card(131) == Some(true)
         && ctx.ad.navigation.app.state == AppState::AdvancedWeeklyWarning
-        && ctx.advanced_touch(CONTINUE_X, WARNING_Y, false) == Some(true)
+        && ctx.advanced_touch(TouchInput::new(CONTINUE_X, WARNING_Y, false)) == Some(true)
         && ctx.ad.navigation.app.state == AppState::AdvancedWeeklyEntry
 }
 
@@ -142,7 +145,7 @@ fn weekly_invalid(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     ctx.set_text(b"MON 09:00-10:00;MON 09:30-10:30");
     let rejected = crate::runtime::interactions::settings::advanced::workflow::submit_weekly(ctx.ad).is_err();
     if rejected {
-        ctx.advanced_touch(20, 20, true) == Some(true)
+        ctx.advanced_touch(TouchInput::new(20, 20, true)) == Some(true)
     } else {
         false
     }
@@ -152,7 +155,7 @@ fn weekly_cancel(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     if !open_weekly_entry(ctx) || !stage_weekly(ctx) {
         return false;
     }
-    ctx.advanced_touch(CANCEL_X, WARNING_Y, false) == Some(true)
+    ctx.advanced_touch(TouchInput::new(CANCEL_X, WARNING_Y, false)) == Some(true)
         && ctx.ad.navigation.app.state == AppState::AdvancedFeatures
 }
 
@@ -167,7 +170,7 @@ fn weekly_persistence_error(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {
     )
     .is_err()
         && ctx.ad.navigation.app.state == AppState::AdvancedWeeklyConfirm;
-    rejected && ctx.advanced_touch(CANCEL_X, WARNING_Y, false) == Some(true)
+    rejected && ctx.advanced_touch(TouchInput::new(CANCEL_X, WARNING_Y, false)) == Some(true)
 }
 
 fn weekly_activate(ctx: &mut SecurityContext<'_, '_, '_>) -> bool {

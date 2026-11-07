@@ -63,7 +63,7 @@ pub(crate) fn with_other_core_parked<T>(operation: impl FnOnce() -> T) -> T {
 }
 
 fn validate_word_access<const N: usize>(address: u32) -> Result<(), FlashIoError> {
-    if address % 4 == 0 && N != 0 && N % 4 == 0 {
+    if address.is_multiple_of(4) && N != 0 && N.is_multiple_of(4) {
         Ok(())
     } else {
         Err(FlashIoError::Alignment)

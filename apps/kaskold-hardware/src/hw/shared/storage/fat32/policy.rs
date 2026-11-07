@@ -93,7 +93,7 @@ pub(super) fn checked_fat_entry_location(fat32: &Fat32Info, cluster: u32) -> Res
     let fat_offset = cluster.checked_mul(4).ok_or("FAT offset overflow")?;
     let sector = fat32.fat_start_sector.checked_add(fat_offset / FAT32_SECTOR_BYTES).ok_or("FAT sector overflow")?;
     let offset = (fat_offset % FAT32_SECTOR_BYTES) as usize;
-    if offset.checked_add(4).map_or(true, |end| end > FAT32_SECTOR_BYTES as usize) {
+    if offset.checked_add(4).is_none_or(|end| end > FAT32_SECTOR_BYTES as usize) {
         return Err("FAT offset out of range");
     }
     Ok((sector, offset))

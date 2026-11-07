@@ -7,7 +7,7 @@
 //! it with the non-exportable device HMAC key; the original device is required.
 
 use offline_signer::crypto::{
-    device_bound_storage::{StoragePurpose, NONCE_SIZE, TAG_SIZE},
+    device_bound_storage::{Envelope, StoragePurpose, NONCE_SIZE, TAG_SIZE},
     password_kdf::{self, PasswordKdfParams, METADATA_SIZE, SALT_SIZE},
 };
 use sha2::{Digest, Sha256};
@@ -15,7 +15,7 @@ use shared_signer::bytes::zeroize_bytes;
 
 use crate::services::{backup::BackupDevice, entropy};
 
-use super::{portable, StegoCarrier, StegoSecurity};
+use super::{portable, StegoCarrier, StegoProtection, StegoSecret, StegoSecurity};
 
 mod helpers;
 use helpers::{
@@ -68,13 +68,9 @@ impl PayloadError {
 }
 
 pub fn pack(
-    security: StegoSecurity,
+    protection: StegoProtection<'_>,
     carrier: StegoCarrier,
-    indices: &[u16; WORD_SLOTS],
-    word_count: u8,
-    hint: &[u8],
-    descriptor: &[u8],
-    portable_password: &[u8],
+    secret: StegoSecret<'_>,
     device: &mut dyn BackupDevice,
     output: &mut [u8],
 ) -> Result<usize, PayloadError> {
@@ -87,39 +83,24 @@ pub fn pack(
         return Err(PayloadError::EntropyUnavailable);
     }
 
-    let result = pack_with_material(
-        security,
-        carrier,
-        indices,
-        word_count,
-        hint,
-        descriptor,
-        portable_password,
-        device,
-        &salt,
-        &nonce,
-        output,
-    );
+    let result = pack_with_material(protection, carrier, secret, device, &salt, &nonce, output);
     zeroize_bytes(&mut salt);
     zeroize_bytes(&mut nonce);
     result
 }
 
 fn pack_with_material(
-    security: StegoSecurity,
+    protection: StegoProtection<'_>,
     carrier: StegoCarrier,
-    indices: &[u16; WORD_SLOTS],
-    word_count: u8,
-    hint: &[u8],
-    descriptor: &[u8],
-    portable_password: &[u8],
+    secret: StegoSecret<'_>,
     device: &mut dyn BackupDevice,
     salt: &[u8; SALT_SIZE],
     nonce: &[u8; NONCE_SIZE],
     output: &mut [u8],
 ) -> Result<usize, PayloadError> {
+    let StegoProtection { security, descriptor, portable_password } = protection;
     output.fill(0);
-    validate_inputs(indices, word_count, hint, descriptor)?;
+    validate_inputs(secret, descriptor)?;
     if output.len() < PAYLOAD_SIZE {
         return Err(PayloadError::InvalidLength);
     }
@@ -134,7 +115,7 @@ fn pack_with_material(
     let format = if security == StegoSecurity::Portable { PORTABLE_FORMAT_VERSION } else { DEVICE_FORMAT_VERSION };
 
     let mut plaintext = [0u8; PLAINTEXT_SIZE];
-    encode_plaintext(format, indices, word_count, hint, &mut plaintext);
+    encode_plaintext(format, secret, &mut plaintext);
     output[CIPHERTEXT_OFFSET..TAG_OFFSET].copy_from_slice(&plaintext);
     let aad = build_aad(&output[..HEADER_SIZE], descriptor);
 
@@ -147,10 +128,7 @@ fn pack_with_material(
             let mut key = descriptor_credential(descriptor);
             let result = device.seal_backup_key(
                 StoragePurpose::StegoWallet,
-                &key,
-                salt,
-                nonce,
-                &aad,
+                Envelope { stretched_credential: &key, salt, nonce, authenticated_header: &aad },
                 &mut output[CIPHERTEXT_OFFSET..TAG_OFFSET],
             );
             zeroize_bytes(&mut key);
@@ -185,10 +163,12 @@ pub fn unpack_device_bound(
     let mut key = descriptor_credential(descriptor);
     let result = device.open_backup_key(
         StoragePurpose::StegoWallet,
-        &key,
-        &envelope.salt,
-        &envelope.nonce,
-        &envelope.aad,
+        Envelope {
+            stretched_credential: &key,
+            salt: &envelope.salt,
+            nonce: &envelope.nonce,
+            authenticated_header: &envelope.aad,
+        },
         &mut plaintext,
         &envelope.tag,
     );
@@ -217,7 +197,7 @@ pub fn unpack_portable(
     finish_decode(PORTABLE_FORMAT_VERSION, &mut plaintext, indices, hint)
 }
 
-struct Envelope {
+struct ParsedEnvelope {
     metadata: [u8; METADATA_SIZE],
     salt: [u8; SALT_SIZE],
     nonce: [u8; NONCE_SIZE],
@@ -231,7 +211,7 @@ fn parse_envelope(
     descriptor: &[u8],
     expected_security: StegoSecurity,
     expected_carrier: StegoCarrier,
-) -> Result<Envelope, PayloadError> {
+) -> Result<ParsedEnvelope, PayloadError> {
     validate_envelope_shape(input, descriptor)?;
     let security = validate_envelope_header(input, expected_security, expected_carrier)?;
     let metadata = parse_envelope_metadata(input, security)?;
@@ -242,7 +222,7 @@ fn parse_envelope(
     let mut tag = [0u8; TAG_SIZE];
     tag.copy_from_slice(&input[TAG_OFFSET..PAYLOAD_SIZE]);
     let aad = build_aad(&input[..HEADER_SIZE], descriptor);
-    Ok(Envelope { metadata, salt, nonce, ciphertext, tag, aad })
+    Ok(ParsedEnvelope { metadata, salt, nonce, ciphertext, tag, aad })
 }
 
 fn validate_envelope_shape(input: &[u8], descriptor: &[u8]) -> Result<(), PayloadError> {
@@ -346,29 +326,13 @@ fn descriptor_credential(descriptor: &[u8]) -> [u8; 32] {
 
 #[cfg(any(test, feature = "workflow-test-auto"))]
 pub(crate) fn pack_for_test(
-    security: StegoSecurity,
+    protection: StegoProtection<'_>,
     carrier: StegoCarrier,
-    indices: &[u16; WORD_SLOTS],
-    word_count: u8,
-    hint: &[u8],
-    descriptor: &[u8],
-    portable_password: &[u8],
+    secret: StegoSecret<'_>,
     device: &mut dyn BackupDevice,
     salt: &[u8; SALT_SIZE],
     nonce: &[u8; NONCE_SIZE],
     output: &mut [u8],
 ) -> Result<usize, PayloadError> {
-    pack_with_material(
-        security,
-        carrier,
-        indices,
-        word_count,
-        hint,
-        descriptor,
-        portable_password,
-        device,
-        salt,
-        nonce,
-        output,
-    )
+    pack_with_material(protection, carrier, secret, device, salt, nonce, output)
 }

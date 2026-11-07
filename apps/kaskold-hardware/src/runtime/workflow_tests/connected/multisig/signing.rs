@@ -1,4 +1,5 @@
 use super::MultisigContext;
+use crate::controllers::TouchInput;
 use crate::runtime::input::AppState;
 use core::sync::atomic::{AtomicU8, Ordering};
 use offline_signer::{
@@ -124,19 +125,23 @@ fn fixture_import_ok(ad: &crate::runtime::data::AppData, expected_hint: Ms45Hint
 fn drive_review(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
     let review_pages = ctx.ad.navigation.app.review_pages;
     if ctx.ad.navigation.app.state != AppState::ConfirmTx
-        || ctx.tx_touch(160, 208, false) != Some(true)
+        || ctx.tx_touch(TouchInput::new(160, 208, false)) != Some(true)
         || !review_entry_ok(ctx, review_pages)
     {
         log!("KASKOLD_WORKFLOW_TESTS: MULTISIG SIGN REVIEW ENTRY FAILED");
         return false;
     }
     for page in 1..review_pages {
-        if ctx.tx_touch(260, 210, false) != Some(true) || ctx.ad.navigation.app.state != (AppState::ReviewTx { page }) {
+        if ctx.tx_touch(TouchInput::new(260, 210, false)) != Some(true)
+            || ctx.ad.navigation.app.state != (AppState::ReviewTx { page })
+        {
             log!("KASKOLD_WORKFLOW_TESTS: MULTISIG SIGN REVIEW PAGE FAILED page={}", page);
             return false;
         }
     }
-    if ctx.tx_touch(260, 210, false) != Some(true) || ctx.ad.navigation.app.state != AppState::ConfirmTx {
+    if ctx.tx_touch(TouchInput::new(260, 210, false)) != Some(true)
+        || ctx.ad.navigation.app.state != AppState::ConfirmTx
+    {
         log!("KASKOLD_WORKFLOW_TESTS: MULTISIG SIGN CONFIRM ENTRY FAILED");
         return false;
     }
@@ -151,7 +156,7 @@ fn review_entry_ok(ctx: &MultisigContext<'_, '_, '_>, review_pages: u8) -> bool 
 }
 
 fn authorize_signing(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
-    let accepted = ctx.tx_touch(60, 208, false) == Some(true)
+    let accepted = ctx.tx_touch(TouchInput::new(60, 208, false)) == Some(true)
         && ctx.ad.navigation.app.state == AppState::ConfirmTx
         && crate::runtime::presentation::operation_active(ctx.ad, crate::runtime::data::OperationKind::SignTransaction)
         && crate::runtime::presentation::operation_cursor(ctx.ad) == 0

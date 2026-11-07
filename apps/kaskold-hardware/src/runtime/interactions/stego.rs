@@ -17,7 +17,6 @@
 // controllers/stego.rs — Touch handlers for steganography states
 //
 use crate::runtime::interactions::feedback::RedrawFlag;
-use crate::runtime::interactions::TouchInput;
 use crate::{
     hw::{display, touch},
     runtime::data::AppData,
@@ -61,7 +60,6 @@ pub fn handle_stego_touch(context: StegoTouchContext<'_, '_, '_>) -> Option<bool
         page_down_zone,
         input,
     } = context;
-    let TouchInput { x, y, is_back } = input;
     macro_rules! handled {
         ($expression:expr) => {
             if let Some(result) = $expression {
@@ -69,7 +67,7 @@ pub fn handle_stego_touch(context: StegoTouchContext<'_, '_, '_>) -> Option<bool
             }
         };
     }
-    handled!(mode::handle(ad, boot_display, delay, i2c, x, y, is_back));
+    handled!(mode::handle(ad, boot_display, delay, i2c, input));
     handled!(export_description::handle(StegoFileContext {
         ad: &mut *ad,
         boot_display: &mut *boot_display,
@@ -80,8 +78,8 @@ pub fn handle_stego_touch(context: StegoTouchContext<'_, '_, '_>) -> Option<bool
         page_down_zone,
         input,
     }));
-    handled!(export_security::handle(ad, boot_display, delay, x, y, is_back));
-    handled!(export_confirm::handle(ad, boot_display, delay, i2c, backup_device, x, y, is_back));
+    handled!(export_security::handle(ad, boot_display, delay, input));
+    handled!(export_confirm::handle(ad, boot_display, delay, i2c, backup_device, input));
     handled!(import_selection::handle(StegoFileContext {
         ad: &mut *ad,
         boot_display: &mut *boot_display,
@@ -92,7 +90,7 @@ pub fn handle_stego_touch(context: StegoTouchContext<'_, '_, '_>) -> Option<bool
         page_down_zone,
         input,
     }));
-    handled!(import_decrypt::handle(ad, boot_display, delay, liveness, i2c, backup_device, x, y, is_back,));
-    handled!(import_finish::handle(ad, boot_display, delay, x, y, is_back));
+    handled!(import_decrypt::handle(ad, boot_display, delay, liveness, i2c, backup_device, input,));
+    handled!(import_finish::handle(ad, boot_display, delay, input));
     None
 }

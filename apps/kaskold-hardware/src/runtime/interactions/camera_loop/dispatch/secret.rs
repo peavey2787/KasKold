@@ -15,7 +15,7 @@ pub(super) fn is_pending(ad: &AppData) -> bool {
 #[cfg(feature = "workflow-test-auto")]
 pub(super) fn workflow_process(data: &[u8], ad: &mut AppData) {
     let hex = core::str::from_utf8(data).unwrap_or("").trim();
-    if hex.len() < 122 || hex.len() % 2 != 0 {
+    if hex.len() < 122 || !hex.len().is_multiple_of(2) {
         crate::runtime::effects::redraw(ad);
         return;
     }
@@ -58,7 +58,7 @@ pub(super) fn process(
 ) {
     let input_len = len.min(data.len());
     let hex = core::str::from_utf8(&data[..input_len]).unwrap_or("").trim();
-    if hex.len() < 122 || hex.len() % 2 != 0 {
+    if hex.len() < 122 || !hex.len().is_multiple_of(2) {
         reject(ad, boot_display, delay, "Invalid ciphertext hex", 1_500);
         return;
     }

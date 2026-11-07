@@ -7,17 +7,10 @@
 #[cfg(not(feature = "workflow-test-auto"))]
 pub(crate) use crate::runtime::input::is_scan_state;
 
-/// Camera peripheral, its DMA receive buffer, and its init status, handed from
-/// the entry point to the event loop as one hardware bundle.
-#[cfg(not(feature = "hardware-tests"))]
-pub(crate) type CameraHardware<'camera> =
-    (Option<esp_hal::lcd_cam::cam::Camera<'camera>>, Option<esp_hal::dma::DmaRxBuf>, crate::hw::camera::CameraStatus);
-
 #[cfg(not(feature = "workflow-test-auto"))]
 macro_rules! run_step {
     ($ad:ident, $boot_display:ident, $delay:ident, $i2c:ident,
-     $camera_session:ident, $dvp_camera_opt:ident, $cam_dma_buf_opt:ident,
-     $cam_status:ident, $watchdog_feed:ident) => {
+     $camera_session:ident, $camera:ident, $watchdog_feed:ident) => {
         // ─── Camera loop ─────────────────────────────────────────
         let camera_screen_active = matches!(
             $ad.navigation.app.state,
@@ -34,10 +27,14 @@ macro_rules! run_step {
         if camera_active {
             // Always enter the camera controller while on a camera screen. It
             // owns preflight failure rendering as well as healthy capture.
+            let mut camera_io = $crate::runtime::interactions::DeviceIo {
+                boot_display: &mut $boot_display,
+                delay: &mut $delay,
+                i2c: &mut $i2c,
+                liveness: &mut $watchdog_feed,
+            };
             $crate::runtime::interactions::camera_loop::run_camera_cycle(
-                &mut $camera_session, $ad, &mut $boot_display, &mut $delay, &mut $i2c,
-                &mut $dvp_camera_opt, &mut $cam_status,
-                &mut $cam_dma_buf_opt, &mut $watchdog_feed,
+                &mut $camera_session, $ad, &mut camera_io, &mut $camera,
             );
 
         } else {

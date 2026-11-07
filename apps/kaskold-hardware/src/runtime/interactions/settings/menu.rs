@@ -1,6 +1,7 @@
 //! Production Settings root controller.
 
 use super::{touch, AppData};
+use crate::controllers::TouchInput;
 use crate::runtime::interactions::menu_selection::{handle_paged_menu_touch, PagedMenuAction};
 
 pub(super) fn handle_settings_menu(
@@ -8,10 +9,9 @@ pub(super) fn handle_settings_menu(
     list_zones: &[touch::TouchZone; 4],
     page_up_zone: &touch::TouchZone,
     page_down_zone: &touch::TouchZone,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.navigation.settings_menu.reset();
         crate::runtime::effects::home(ad);

@@ -17,21 +17,30 @@ pub(crate) const BACKUP_RECOVERY_ITEMS: &[&str] = ui_graph::BACKUP_RECOVERY_LABE
 pub(crate) const RESTORE_ITEMS: &[&str] = ui_graph::RESTORE_LABELS;
 pub(crate) const ADVANCED_RESTORE_ITEMS: &[&str] = ui_graph::ADVANCED_RESTORE_LABELS;
 
-#[cfg(feature = "provisioning-ui")]
+#[cfg(all(feature = "provisioning-ui", feature = "m5stack", feature = "secure-provisioning-core"))]
 pub(crate) fn pop_it_available() -> bool {
-    #[cfg(all(feature = "provisioning-ui", feature = "m5stack", feature = "secure-provisioning-core"))]
-    {
-        return !crate::services::verify::boot_security::secure_boot_enabled();
-    }
-    #[cfg(all(feature = "provisioning-ui", feature = "m5stack", not(feature = "production")))]
-    {
-        return !crate::services::verify::boot_security::secure_boot_enabled()
-            && !crate::services::verify::boot_security::dev_pop_it_indicator_demo_active();
-    }
-    #[cfg(not(any(
-        all(feature = "provisioning-ui", feature = "m5stack", feature = "secure-provisioning-core"),
-        all(feature = "provisioning-ui", feature = "m5stack", not(feature = "production"))
-    )))]
+    !crate::services::verify::boot_security::secure_boot_enabled()
+}
+
+#[cfg(all(
+    feature = "provisioning-ui",
+    feature = "m5stack",
+    not(feature = "production"),
+    not(feature = "secure-provisioning-core")
+))]
+pub(crate) fn pop_it_available() -> bool {
+    !crate::services::verify::boot_security::secure_boot_enabled()
+        && !crate::services::verify::boot_security::dev_pop_it_indicator_demo_active()
+}
+
+#[cfg(all(
+    feature = "provisioning-ui",
+    not(any(
+        all(feature = "m5stack", feature = "secure-provisioning-core"),
+        all(feature = "m5stack", not(feature = "production"))
+    ))
+))]
+pub(crate) fn pop_it_available() -> bool {
     false
 }
 

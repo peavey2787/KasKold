@@ -34,9 +34,8 @@ pub(crate) fn sd_file_exists(
 pub(crate) fn build_filename_83(pp_buf: &[u8], pp_len: usize, ext: &[u8; 3]) -> [u8; 11] {
     let mut name = [b' '; 11];
     let len = pp_len.min(8);
-    for j in 0..len {
-        let c = pp_buf[j];
-        name[j] = if c >= b'a' && c <= b'z' { c - 32 } else { c };
+    for (slot, &c) in name.iter_mut().zip(&pp_buf[..len]) {
+        *slot = c.to_ascii_uppercase();
     }
     name[8] = ext[0];
     name[9] = ext[1];
@@ -94,7 +93,7 @@ pub(crate) fn scan_auto_increment(
                 let mut valid = true;
                 for k in 2..8usize {
                     let c = entry.name[k];
-                    if c >= b'0' && c <= b'9' {
+                    if c.is_ascii_digit() {
                         n = n * 10 + (c - b'0') as u32;
                     } else if c == b' ' {
                         break;

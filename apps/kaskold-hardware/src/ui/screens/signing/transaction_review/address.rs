@@ -54,72 +54,31 @@ impl<'a> BootDisplay<'a> {
     fn draw_address_block(&mut self, address: &str, is_p2sh: bool) {
         let bytes = address.as_bytes();
         let total_len = bytes.len();
-        let colon = bytes.iter().position(|&byte| byte == b':').map(|position| position + 1).unwrap_or(0);
-        let highlight_a_start = colon;
-        let highlight_a_end = core::cmp::min(colon + 8, total_len);
-        let highlight_b_start = total_len.saturating_sub(8);
+        let emphasis = Emphasis::for_address(bytes);
         let (available_top, available_bottom) = if is_p2sh { (90i32, 188i32) } else { (70i32, 188i32) };
 
         if total_len < 30 {
             let width = measure_title(address);
             let y = available_top + (available_bottom - available_top) / 2;
-            self.draw_addr_line_emph(
-                address,
-                0,
-                highlight_a_start,
-                highlight_a_end,
-                highlight_b_start,
-                (320 - width) / 2,
-                y,
-            );
+            self.draw_addr_line_emph(address, 0, emphasis, (320 - width) / 2, y);
             return;
         }
 
-        let third = (total_len + 2) / 3;
+        let third = total_len.div_ceil(3);
         let first_end = third;
         let second_end = core::cmp::min(2 * third, total_len);
         let line_height = 26i32;
         let block_height = 3 * line_height;
         let y = available_top + (available_bottom - available_top - block_height) / 2 + line_height;
-        self.draw_address_line(&bytes[..first_end], 0, highlight_a_start, highlight_a_end, highlight_b_start, y);
-        self.draw_address_line(
-            &bytes[first_end..second_end],
-            first_end,
-            highlight_a_start,
-            highlight_a_end,
-            highlight_b_start,
-            y + line_height,
-        );
-        self.draw_address_line(
-            &bytes[second_end..],
-            second_end,
-            highlight_a_start,
-            highlight_a_end,
-            highlight_b_start,
-            y + 2 * line_height,
-        );
+        self.draw_address_line(&bytes[..first_end], 0, emphasis, y);
+        self.draw_address_line(&bytes[first_end..second_end], first_end, emphasis, y + line_height);
+        self.draw_address_line(&bytes[second_end..], second_end, emphasis, y + 2 * line_height);
     }
 
-    fn draw_address_line(
-        &mut self,
-        bytes: &[u8],
-        line_start: usize,
-        highlight_a_start: usize,
-        highlight_a_end: usize,
-        highlight_b_start: usize,
-        y: i32,
-    ) {
+    fn draw_address_line(&mut self, bytes: &[u8], line_start: usize, emphasis: Emphasis, y: i32) {
         if let Ok(line) = core::str::from_utf8(bytes) {
             let width = measure_title(line);
-            self.draw_addr_line_emph(
-                line,
-                line_start,
-                highlight_a_start,
-                highlight_a_end,
-                highlight_b_start,
-                (320 - width) / 2,
-                y,
-            );
+            self.draw_addr_line_emph(line, line_start, emphasis, (320 - width) / 2, y);
         }
     }
 
@@ -134,27 +93,17 @@ impl<'a> BootDisplay<'a> {
     }
 
     /// Draw one line of an address while emphasizing the two verification zones.
-    fn draw_addr_line_emph(
-        &mut self,
-        line: &str,
-        line_start: usize,
-        highlight_a_start: usize,
-        highlight_a_end: usize,
-        highlight_b_start: usize,
-        x: i32,
-        y: i32,
-    ) {
+    fn draw_addr_line_emph(&mut self, line: &str, line_start: usize, emphasis: Emphasis, x: i32, y: i32) {
         let bytes = line.as_bytes();
         if bytes.is_empty() {
             return;
         }
-        let highlighted =
-            |global: usize| (global >= highlight_a_start && global < highlight_a_end) || global >= highlight_b_start;
         let mut cursor = x;
         let mut segment_start = 0usize;
-        let mut current_highlight = highlighted(line_start);
+        let mut current_highlight = emphasis.covers(line_start);
         for index in 1..=bytes.len() {
-            let next_highlight = if index < bytes.len() { highlighted(line_start + index) } else { !current_highlight };
+            let next_highlight =
+                if index < bytes.len() { emphasis.covers(line_start + index) } else { !current_highlight };
             if next_highlight == current_highlight {
                 continue;
             }
@@ -165,5 +114,30 @@ impl<'a> BootDisplay<'a> {
             segment_start = index;
             current_highlight = next_highlight;
         }
+    }
+}
+
+/// The two address zones a reviewer compares against the receiver: the eight
+/// characters after the prefix and the final eight characters.
+#[derive(Clone, Copy)]
+struct Emphasis {
+    prefix_start: usize,
+    prefix_end: usize,
+    suffix_start: usize,
+}
+
+impl Emphasis {
+    fn for_address(bytes: &[u8]) -> Self {
+        let total_len = bytes.len();
+        let colon = bytes.iter().position(|&byte| byte == b':').map(|position| position + 1).unwrap_or(0);
+        Self {
+            prefix_start: colon,
+            prefix_end: core::cmp::min(colon + 8, total_len),
+            suffix_start: total_len.saturating_sub(8),
+        }
+    }
+
+    fn covers(self, global: usize) -> bool {
+        (self.prefix_start..self.prefix_end).contains(&global) || global >= self.suffix_start
     }
 }

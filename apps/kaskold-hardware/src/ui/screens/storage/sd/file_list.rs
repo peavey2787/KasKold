@@ -82,12 +82,7 @@ impl<'a> BootDisplay<'a> {
                 let file_fp = extract_fingerprint_from_filename(&files[abs as usize]);
                 let mut matched_seed: Option<usize> = None;
                 if let Some(fp) = file_fp {
-                    for s in 0..seed_count as usize {
-                        if seed_fps[s][0] == fp[0] && seed_fps[s][1] == fp[1] {
-                            matched_seed = Some(s);
-                            break;
-                        }
-                    }
+                    matched_seed = seed_fps[..seed_count as usize].iter().position(|seed| seed[..2] == fp[..2]);
                 }
 
                 // Draw filename — centered vertically if no seed label, shifted up if label present

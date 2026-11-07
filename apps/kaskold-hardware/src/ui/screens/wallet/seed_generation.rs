@@ -20,6 +20,11 @@ use super::super::{
     COLOR_RED_BTN, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_ACCENT, KASPA_TEAL,
 };
 
+/// Width in pixels of the 260-pixel entropy progress bar after `count` of `target` samples.
+fn entropy_progress_width(count: usize, target: usize) -> usize {
+    (260 * count).checked_div(target).map_or(0, |width| width.min(260))
+}
+
 impl<'a> BootDisplay<'a> {
     // ═══════════════════════════════════════════════════════════════
     /// Draw mnemonic word display (one word at a time for secure backup)
@@ -104,7 +109,7 @@ impl<'a> BootDisplay<'a> {
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
             .draw(&mut self.display)
             .ok();
-        let progress_w = if target > 0 { (260 * count / target).min(260) } else { 0 };
+        let progress_w = entropy_progress_width(count, target);
         if progress_w > 0 {
             Rectangle::new(Point::new(30, 35), Size::new(progress_w as u32, 8))
                 .into_styled(PrimitiveStyle::with_fill(KASPA_ACCENT))
@@ -129,8 +134,8 @@ impl<'a> BootDisplay<'a> {
                 .draw(&mut self.display)
                 .ok();
         }
-        let now = if target > 0 { (260 * count / target).min(260) } else { 0 };
-        let previous = if target > 0 { (260 * count.saturating_sub(1) / target).min(260) } else { 0 };
+        let now = entropy_progress_width(count, target);
+        let previous = entropy_progress_width(count.saturating_sub(1), target);
         if now > previous {
             Rectangle::new(Point::new(30 + previous as i32, 35), Size::new((now - previous) as u32, 8))
                 .into_styled(PrimitiveStyle::with_fill(KASPA_ACCENT))
@@ -197,7 +202,7 @@ impl<'a> BootDisplay<'a> {
         draw_oswald_header(&mut self.display, &title_buf, (320 - tw) / 2, 25, COLOR_TEXT);
 
         // Progress bar
-        let progress_w = if target > 0 { (260 * count / target).min(260) } else { 0 };
+        let progress_w = entropy_progress_width(count, target);
         Rectangle::new(Point::new(30, 35), Size::new(260, 8))
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
             .draw(&mut self.display)
@@ -277,7 +282,7 @@ impl<'a> BootDisplay<'a> {
             .into_styled(PrimitiveStyle::with_stroke(KASPA_TEAL, 1))
             .draw(&mut self.display)
             .ok();
-        let progress_w = if target > 0 { (260 * count / target).min(260) } else { 0 };
+        let progress_w = entropy_progress_width(count, target);
         if progress_w > 0 {
             Rectangle::new(Point::new(30, 35), Size::new(progress_w as u32, 8))
                 .into_styled(PrimitiveStyle::with_fill(KASPA_ACCENT))

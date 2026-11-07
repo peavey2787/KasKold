@@ -38,6 +38,9 @@ FEATURE_MATRIX = (
     FirmwareBuild("m5stack-lite,workflow-tests"),
     FirmwareBuild("m5stack,workflow-test-auto"),
     FirmwareBuild("m5stack-lite,workflow-test-auto"),
+    # Runtime-HIL images drive production screens and the real card on hardware.
+    FirmwareBuild("m5stack,workflow-runtime-auto"),
+    FirmwareBuild("m5stack,workflow-hil-auto"),
     FirmwareBuild("qemu"),
     FirmwareBuild("qemu-tests"),
 )

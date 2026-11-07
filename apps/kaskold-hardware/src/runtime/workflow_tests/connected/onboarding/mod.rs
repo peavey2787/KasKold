@@ -30,27 +30,22 @@ impl OnboardingContext<'_, '_, '_> {
         super::show_step(self.delay);
     }
 
-    pub(super) fn seed_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
-        crate::runtime::interactions::seed::handle_seed_touch(
-            self.ad,
-            self.display,
-            self.delay,
-            &mut || {},
-            TouchInput::new(x, y, is_back),
-        )
+    pub(super) fn seed_touch(&mut self, input: TouchInput) -> Option<bool> {
+        crate::runtime::interactions::seed::handle_seed_touch(self.ad, self.display, self.delay, &mut || {}, input)
     }
 
-    pub(super) fn additive_touch(&mut self, x: u16, y: u16, is_back: bool) -> Option<bool> {
+    pub(super) fn additive_touch(&mut self, input: TouchInput) -> Option<bool> {
+        let TouchInput { is_back, .. } = input;
         use AppState::*;
         let handled = match self.ad.navigation.app.state {
             StorageSeedDiceChoice => {
-                crate::runtime::interactions::menu::seed_generation::workflow_dice_choice(self.ad, x, y, is_back)
+                crate::runtime::interactions::menu::seed_generation::workflow_dice_choice(self.ad, input)
             }
             StorageSeedDiceCountChoice => {
-                crate::runtime::interactions::menu::seed_generation::workflow_dice_count(self.ad, x, y, is_back)
+                crate::runtime::interactions::menu::seed_generation::workflow_dice_count(self.ad, input)
             }
             StorageSeedTouchChoice => {
-                crate::runtime::interactions::menu::seed_generation::workflow_touch_choice(self.ad, x, y, is_back)
+                crate::runtime::interactions::menu::seed_generation::workflow_touch_choice(self.ad, input)
             }
             TouchEntropy => crate::runtime::interactions::menu::seed_generation::workflow_touch_back(self.ad, is_back),
             _ => return None,
@@ -58,8 +53,8 @@ impl OnboardingContext<'_, '_, '_> {
         Some(handled)
     }
 
-    pub(super) fn dice_touch(&mut self, x: u16, y: u16, is_back: bool) -> bool {
-        crate::runtime::interactions::onboarding::dice::handle_dice_roll(self.ad, self.display, x, y, is_back)
+    pub(super) fn dice_touch(&mut self, input: TouchInput) -> bool {
+        crate::runtime::interactions::onboarding::dice::handle_dice_roll(self.ad, self.display, input)
     }
 }
 

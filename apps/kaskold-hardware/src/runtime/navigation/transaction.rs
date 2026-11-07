@@ -33,7 +33,7 @@ pub(crate) fn advance_inspection(ad: &mut AppData) -> bool {
     match ad.navigation.app.state {
         AppState::InspectUtxoSummary => begin_inspection(ad),
         AppState::InspectUtxo { index, address_page: false } => {
-            let _ = dispatch(ad, UiEvent::Route(route!(InspectUtxo { index: index, address_page: true })));
+            let _ = dispatch(ad, UiEvent::Route(route!(InspectUtxo { index, address_page: true })));
         }
         AppState::InspectUtxo { index, address_page: true } => advance_input(ad, index),
         _ => return false,
@@ -58,7 +58,7 @@ fn advance_input(ad: &mut AppData, index: usize) {
 }
 
 pub(crate) fn confirm_transaction(ad: &mut AppData, cursor: u8) -> bool {
-    if !matches!(cursor, 0 | 1 | 2) || !signing_route_ready(ad, AppState::ConfirmTx) {
+    if !matches!(cursor, 0..=2) || !signing_route_ready(ad, AppState::ConfirmTx) {
         return false;
     }
     ad.navigation.app.menu.cursor = cursor;

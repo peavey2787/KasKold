@@ -39,7 +39,7 @@ where
     let raw_coin: ImageRawLE<Rgb565> = ImageRawLE::new(coin, 90);
     Image::new(&raw_coin, Point::new(10, 6)).draw(display).ok();
 
-    attestation::draw_attestation_details(display, version, commit, image_hash, phrase, 125, 155, hardware_secure_boot)
+    attestation::draw_attestation_details(display, version, commit, image_hash, phrase, hardware_secure_boot)
 }
 
 fn show_logo_screen<D>(display: &mut D) -> Result<(), &'static str>

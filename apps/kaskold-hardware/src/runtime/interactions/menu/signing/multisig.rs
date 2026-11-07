@@ -1,16 +1,12 @@
+use crate::controllers::TouchInput;
 use crate::hw::{display, touch};
 use crate::runtime::data::AppData;
 use crate::runtime::input::AppState;
 
 use super::common::selected_item;
 
-pub(super) fn handle_pure(
-    ad: &mut AppData,
-    list_zones: &[touch::TouchZone; 4],
-    x: u16,
-    y: u16,
-    is_back: bool,
-) -> Option<bool> {
+pub(super) fn handle_pure(ad: &mut AppData, list_zones: &[touch::TouchZone; 4], input: TouchInput) -> Option<bool> {
+    let TouchInput { x, y, is_back } = input;
     if !matches!(ad.navigation.app.state, AppState::MultisigMenu) {
         return None;
     }
@@ -32,14 +28,12 @@ pub(super) fn handle(
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     list_zones: &[touch::TouchZone; 4],
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
     match ad.navigation.app.state {
-        AppState::MultisigMenu => handle_root_menu(ad, boot_display, delay, liveness, list_zones, x, y, is_back),
+        AppState::MultisigMenu => handle_root_menu(ad, boot_display, delay, liveness, list_zones, input),
         AppState::MultisigDescriptorsMenu => {
-            handle_descriptors_menu(ad, boot_display, delay, liveness, i2c, list_zones, x, y, is_back)
+            handle_descriptors_menu(ad, boot_display, delay, liveness, i2c, list_zones, input)
         }
         _ => false,
     }
@@ -51,10 +45,9 @@ fn handle_root_menu(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     list_zones: &[touch::TouchZone; 4],
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         return route_back(ad);
     }
@@ -73,10 +66,9 @@ fn handle_descriptors_menu(
     liveness: &mut dyn FnMut(),
     i2c: &mut esp_hal::i2c::master::I2c<'_, esp_hal::Blocking>,
     list_zones: &[touch::TouchZone; 4],
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.navigation.multisig_descriptors_menu.reset();
         crate::runtime::effects::back(ad);
@@ -118,14 +110,12 @@ pub(super) fn handle_without_storage(
     delay: &mut esp_hal::delay::Delay,
     liveness: &mut dyn FnMut(),
     list_zones: &[touch::TouchZone; 4],
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> bool {
     if !matches!(ad.navigation.app.state, AppState::MultisigMenu) {
         return false;
     }
-    handle_root_menu(ad, boot_display, delay, liveness, list_zones, x, y, is_back)
+    handle_root_menu(ad, boot_display, delay, liveness, list_zones, input)
 }
 
 fn route_back(ad: &mut AppData) -> bool {

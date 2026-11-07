@@ -5,13 +5,13 @@ pub(crate) fn finish_data_codewords(writer: &mut BitWriter<'_>, data_codewords: 
     let total_bits = data_codewords * 8;
     let terminator_length = 4.min(total_bits.saturating_sub(writer.bit_pos));
     writer.write_bits(0, terminator_length);
-    while writer.bit_pos % 8 != 0 {
+    while !writer.bit_pos.is_multiple_of(8) {
         writer.write_bits(0, 1);
     }
 
     let mut pad_index = 0usize;
     while writer.bit_pos / 8 < data_codewords {
-        writer.write_bits(if pad_index % 2 == 0 { 0xEC } else { 0x11 }, 8);
+        writer.write_bits(if pad_index.is_multiple_of(2) { 0xEC } else { 0x11 }, 8);
         pad_index += 1;
     }
 }
@@ -58,6 +58,6 @@ pub(crate) fn interleave_with_error_correction(
     data_codewords + ec_codewords
 }
 
-pub(crate) fn build_matrix(version: u8, codewords: &[u8]) -> super::super::matrix::matrix::QrCode {
+pub(crate) fn build_matrix(version: u8, codewords: &[u8]) -> super::super::matrix::code::QrCode {
     super::super::matrix::build(version, codewords)
 }

@@ -1,5 +1,6 @@
 use super::{commit_recovery, display, stego, zeroize_bytes, AppData, BackupDevice};
 
+/// Open a device-bound payload exactly as the descriptor-import screen does.
 pub(crate) fn workflow_open_payload(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
@@ -8,21 +9,14 @@ pub(crate) fn workflow_open_payload(
     carrier: stego::StegoCarrier,
     payload: &[u8],
     descriptor: &[u8],
-    portable_password: Option<&[u8]>,
 ) -> bool {
     if !stage(ad, carrier, payload, descriptor) {
         return false;
     }
     let mut indices = [0u16; 24];
     let mut hint = [0u8; 64];
-    let result = match portable_password {
-        Some(password) => {
-            stego::unpack_portable_payload(carrier, payload, descriptor, password, &mut indices, &mut hint)
-        }
-        None => {
-            stego::unpack_device_bound_payload(carrier, payload, descriptor, backup_device, &mut indices, &mut hint)
-        }
-    };
+    let result =
+        stego::unpack_device_bound_payload(carrier, payload, descriptor, backup_device, &mut indices, &mut hint);
     commit_recovery(ad, boot_display, delay, carrier, result, &mut indices, &mut hint)
 }
 

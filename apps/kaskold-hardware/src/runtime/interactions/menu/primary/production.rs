@@ -1,5 +1,6 @@
 //! Hardware-free production intent menus.
 
+use crate::controllers::TouchInput;
 use crate::{
     hw::touch::TouchZone,
     runtime::interactions::menu_selection::{handle_paged_menu_touch, selected_visible_item, PagedMenuAction},
@@ -14,14 +15,13 @@ pub(super) fn handle(
     list: &[TouchZone; 4],
     page_up: &TouchZone,
     page_down: &TouchZone,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
+    let TouchInput { x, y, is_back } = input;
     match ad.navigation.app.state {
-        AppState::SeedsMenu => Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::Wallet)),
+        AppState::SeedsMenu => Some(handle_menu(ad, list, page_up, page_down, input, MenuKind::Wallet)),
         AppState::WalletBackupMethodsMenu => {
-            Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::WalletBackupMethods))
+            Some(handle_menu(ad, list, page_up, page_down, input, MenuKind::WalletBackupMethods))
         }
         AppState::WalletAdvancedMenu => {
             let hardware_item = selected_visible_item(&ad.navigation.production.wallet_advanced_menu, list, x, y)
@@ -29,21 +29,19 @@ pub(super) fn handle(
             if !is_back && hardware_item {
                 return None;
             }
-            Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::WalletAdvanced))
+            Some(handle_menu(ad, list, page_up, page_down, input, MenuKind::WalletAdvanced))
         }
-        AppState::AdvancedMenu => Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::Advanced)),
+        AppState::AdvancedMenu => Some(handle_menu(ad, list, page_up, page_down, input, MenuKind::Advanced)),
         #[cfg(feature = "provisioning-ui")]
-        AppState::OwnerFirmwareMenu => {
-            Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::OwnerFirmware))
-        }
+        AppState::OwnerFirmwareMenu => Some(handle_menu(ad, list, page_up, page_down, input, MenuKind::OwnerFirmware)),
         AppState::BackupRecoveryMenu => {
-            Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::BackupRecovery))
+            Some(handle_menu(ad, list, page_up, page_down, input, MenuKind::BackupRecovery))
         }
         #[cfg(feature = "developer-ui")]
-        AppState::DeveloperMenu => Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::Developer)),
+        AppState::DeveloperMenu => Some(handle_menu(ad, list, page_up, page_down, input, MenuKind::Developer)),
         #[cfg(feature = "developer-ui")]
-        AppState::NetworkMenu => Some(handle_menu(ad, list, page_up, page_down, x, y, is_back, MenuKind::Network)),
-        AppState::WalletDetails => Some(handle_wallet_details(ad, x, y, is_back)),
+        AppState::NetworkMenu => Some(handle_menu(ad, list, page_up, page_down, input, MenuKind::Network)),
+        AppState::WalletDetails => Some(handle_wallet_details(ad, input)),
         _ => None,
     }
 }
@@ -68,11 +66,10 @@ fn handle_menu(
     list: &[TouchZone; 4],
     up: &TouchZone,
     down: &TouchZone,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
     kind: MenuKind,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         route_back(ad, kind);
         return true;
@@ -168,12 +165,12 @@ pub(super) fn workflow_wallet_select(ad: &mut AppData, item: usize) -> bool {
 
 #[cfg(feature = "workflow-test-auto")]
 pub(super) fn workflow_wallet_details_edit(ad: &mut AppData) -> bool {
-    handle_wallet_details(ad, 160, 169, false)
+    handle_wallet_details(ad, TouchInput::new(160, 169, false))
 }
 
 #[cfg(feature = "workflow-test-auto")]
 pub(super) fn workflow_wallet_details_delete(ad: &mut AppData) -> bool {
-    handle_wallet_details(ad, 160, 207, false)
+    handle_wallet_details(ad, TouchInput::new(160, 207, false))
 }
 
 #[cfg(feature = "workflow-test-auto")]
@@ -370,7 +367,8 @@ fn route_network(ad: &mut AppData, item: usize) {
     crate::runtime::interactions::persistence::enter_required_wallet_selection(ad);
 }
 
-fn handle_wallet_details(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+fn handle_wallet_details(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedsMenu));
         return true;

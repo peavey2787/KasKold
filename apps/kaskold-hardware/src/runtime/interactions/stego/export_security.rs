@@ -3,6 +3,7 @@
 // License: GPL-3.0
 
 use super::{display, stego, AppData};
+use crate::controllers::TouchInput;
 use crate::runtime::input::AppState;
 use crate::runtime::interactions::{
     feedback::{show_rejection, ErrorSound},
@@ -15,24 +16,21 @@ pub(super) fn handle(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
 ) -> Option<bool> {
     let redraw = match ad.navigation.app.state {
-        AppState::StegoJpegPpAsk => handle_prompt(ad, x, y, is_back),
-        AppState::StegoJpegPpInfo => handle_hint_choice(ad, x, y, is_back),
-        AppState::StegoJpegPpEntry => handle_custom_hint(ad, boot_display, x, y, is_back),
-        AppState::StegoPortablePassword => handle_portable_password(ad, boot_display, delay, x, y, is_back, false),
-        AppState::StegoPortablePasswordConfirm => {
-            handle_portable_password(ad, boot_display, delay, x, y, is_back, true)
-        }
+        AppState::StegoJpegPpAsk => handle_prompt(ad, input),
+        AppState::StegoJpegPpInfo => handle_hint_choice(ad, input),
+        AppState::StegoJpegPpEntry => handle_custom_hint(ad, boot_display, input),
+        AppState::StegoPortablePassword => handle_portable_password(ad, boot_display, delay, input, false),
+        AppState::StegoPortablePasswordConfirm => handle_portable_password(ad, boot_display, delay, input, true),
         _ => return None,
     };
     Some(redraw)
 }
 
-fn handle_prompt(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+fn handle_prompt(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoJpegDescPreview));
         return true;
@@ -52,7 +50,8 @@ fn handle_prompt(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
     false
 }
 
-fn handle_hint_choice(ad: &mut AppData, x: u16, y: u16, is_back: bool) -> bool {
+fn handle_hint_choice(ad: &mut AppData, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoJpegPpAsk));
         return true;
@@ -83,13 +82,8 @@ fn hint_row(x: u16, y: u16) -> Option<u8> {
     })
 }
 
-fn handle_custom_hint(
-    ad: &mut AppData,
-    boot_display: &mut display::BootDisplay<'_>,
-    x: u16,
-    y: u16,
-    is_back: bool,
-) -> bool {
+fn handle_custom_hint(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>, input: TouchInput) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.wallet.seeds.pp_input.reset();
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoJpegPpInfo));
@@ -120,11 +114,10 @@ fn handle_portable_password(
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
     delay: &mut esp_hal::delay::Delay,
-    x: u16,
-    y: u16,
-    is_back: bool,
+    input: TouchInput,
     confirming: bool,
 ) -> bool {
+    let TouchInput { x, y, is_back } = input;
     if is_back {
         ad.wallet.seeds.pp_input.reset();
         if confirming {

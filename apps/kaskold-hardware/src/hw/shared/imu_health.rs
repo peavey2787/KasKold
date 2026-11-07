@@ -29,7 +29,7 @@ pub(crate) fn axis_distinct(bytes: &[u8]) -> [u32; 3] {
 /// Require independent diversity on every gyro axis at the point of use.
 pub(crate) fn buffer_is_healthy(bytes: &[u8]) -> bool {
     let per_axis = (bytes.len() / 3) as u32;
-    if per_axis < 4 || bytes.len() % 3 != 0 {
+    if per_axis < 4 || !bytes.len().is_multiple_of(3) {
         return false;
     }
     let required = per_axis * HEALTHY_DISTINCT_PCT / 100;

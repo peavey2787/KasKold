@@ -1533,9 +1533,9 @@ F	apps/kaskold-hardware/src/qr/encoder/ecc/gf.rs
 F	apps/kaskold-hardware/src/qr/encoder/ecc/mod.rs
 F	apps/kaskold-hardware/src/qr/encoder/ecc/reed_solomon.rs
 F	apps/kaskold-hardware/src/qr/encoder/error.rs
+F	apps/kaskold-hardware/src/qr/encoder/matrix/code.rs
 F	apps/kaskold-hardware/src/qr/encoder/matrix/format.rs
 F	apps/kaskold-hardware/src/qr/encoder/matrix/masking.rs
-F	apps/kaskold-hardware/src/qr/encoder/matrix/matrix.rs
 F	apps/kaskold-hardware/src/qr/encoder/matrix/mod.rs
 F	apps/kaskold-hardware/src/qr/encoder/matrix/version.rs
 F	apps/kaskold-hardware/src/qr/encoder/mod.rs
@@ -1603,6 +1603,7 @@ F	apps/kaskold-hardware/src/runtime/event_loop/runner/deferred.rs
 F	apps/kaskold-hardware/src/runtime/event_loop/runner/deferred/address_cache.rs
 F	apps/kaskold-hardware/src/runtime/event_loop/runner/deferred/kpub.rs
 F	apps/kaskold-hardware/src/runtime/event_loop/runner/deferred/kpub/cancel.rs
+F	apps/kaskold-hardware/src/runtime/event_loop/runner/hardware.rs
 F	apps/kaskold-hardware/src/runtime/event_loop/runner/liveness.rs
 F	apps/kaskold-hardware/src/runtime/event_loop/runner/startup_audio.rs
 F	apps/kaskold-hardware/src/runtime/event_loop/runner/startup_ui.rs
@@ -1771,6 +1772,7 @@ F	apps/kaskold-hardware/src/runtime/interactions/stego/import_selection/jpeg.rs
 F	apps/kaskold-hardware/src/runtime/interactions/stego/import_selection/mod.rs
 F	apps/kaskold-hardware/src/runtime/interactions/stego/mode.rs
 F	apps/kaskold-hardware/src/runtime/interactions/stego/photo_scan.rs
+F	apps/kaskold-hardware/src/runtime/interactions/support/device_io.rs
 F	apps/kaskold-hardware/src/runtime/interactions/support/feedback.rs
 F	apps/kaskold-hardware/src/runtime/interactions/support/keyboard.rs
 F	apps/kaskold-hardware/src/runtime/interactions/support/menu_selection.rs

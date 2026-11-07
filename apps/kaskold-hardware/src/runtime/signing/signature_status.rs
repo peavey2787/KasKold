@@ -15,9 +15,9 @@ pub(crate) fn rollback_added_signatures(ad: &mut AppData, initial_counts: &[u8])
     use offline_signer::transaction::model::InputSig;
 
     let input_count = ad.signing.transaction.active.num_inputs;
-    for input_index in 0..input_count {
-        let input = &mut ad.signing.transaction.active.inputs[input_index];
-        let keep = usize::from(initial_counts[input_index]).min(input.sigs.len());
+    let inputs = &mut ad.signing.transaction.active.inputs[..input_count];
+    for (input, &initial) in inputs.iter_mut().zip(initial_counts) {
+        let keep = usize::from(initial).min(input.sigs.len());
         let current = usize::from(input.sig_count).min(input.sigs.len());
         for signature in &mut input.sigs[keep..current] {
             *signature = InputSig::empty();
