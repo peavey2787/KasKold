@@ -115,6 +115,7 @@ def check_platform(errors):
 
 def check_tests(errors):
     required = (
+        APP / "app/src/test/java/com/kaskold/companion/domain/OverlayPolicyTest.kt",
         APP / "app/src/test/java/com/kaskold/companion/domain/WeatherUnlockPolicyTest.kt",
         APP / "app/src/test/java/com/kaskold/companion/infrastructure/PersistenceRobolectricTest.kt",
         APP / "app/src/test/java/com/kaskold/companion/infrastructure/WeatherServiceRobolectricTest.kt",

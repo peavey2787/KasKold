@@ -12,6 +12,14 @@
       "commands": [
         "make android-qa"
       ],
+      "path": "apps/kaskold-companion-android/app/src/test/java/com/kaskold/companion/domain/OverlayPolicyTest.kt",
+      "role": "test",
+      "step": "android-qa"
+    },
+    {
+      "commands": [
+        "make android-qa"
+      ],
       "path": "apps/kaskold-companion-android/app/src/test/java/com/kaskold/companion/domain/WeatherUnlockPolicyTest.kt",
       "role": "test",
       "step": "android-qa"
