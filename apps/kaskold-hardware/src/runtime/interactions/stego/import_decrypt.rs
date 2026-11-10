@@ -85,13 +85,27 @@ fn identify_and_open(
     ad.wallet.seeds.pp_input.reset();
     ad.stego.import.carrier = None;
 
+    let has_descriptor_payload = extract_descriptor_payload(ad, jpeg.as_bytes());
+    liveness();
+    let mut picture_payload = [0u8; 256];
+    let picture_len = stego::extract_picture(
+        jpeg.as_bytes(),
+        &ad.stego.import.descriptor_buf[..descriptor_len],
+        &mut picture_payload,
+    )
+    .unwrap_or(0);
+    // Both payloads are copied out, so the photo's PSRAM goes back before any
+    // key derivation needs it for the Argon2 workspace.
+    drop(jpeg);
+
     let mut fallback_payload = [0u8; 256];
     let mut fallback_len = 0usize;
     let mut fallback_carrier = None;
 
-    if extract_descriptor_payload(ad, jpeg.as_bytes()) {
+    if has_descriptor_payload {
         if open_device_bound(ad, boot_display, delay, stego::StegoCarrier::Descriptor, backup_device) {
             liveness();
+            zeroize_bytes(&mut picture_payload);
             clear_import_secret(ad);
             return true;
         }
@@ -101,13 +115,9 @@ fn identify_and_open(
     }
 
     zeroize_bytes(&mut ad.stego.import.embedded_payload);
-    liveness();
-    ad.stego.import.embedded_payload_len = stego::extract_picture(
-        jpeg.as_bytes(),
-        &ad.stego.import.descriptor_buf[..descriptor_len],
-        &mut ad.stego.import.embedded_payload,
-    )
-    .unwrap_or(0);
+    ad.stego.import.embedded_payload[..picture_len].copy_from_slice(&picture_payload[..picture_len]);
+    ad.stego.import.embedded_payload_len = picture_len;
+    zeroize_bytes(&mut picture_payload);
     if ad.stego.import.embedded_payload_len == stego::STEGO_PAYLOAD_SIZE {
         if open_device_bound(ad, boot_display, delay, stego::StegoCarrier::Picture, backup_device) {
             liveness();
@@ -263,6 +273,8 @@ fn try_alternate_picture_portable(
         &mut ad.stego.import.embedded_payload,
     )
     .unwrap_or(0);
+    // Free the photo's PSRAM before the password derivation in `open_portable`.
+    drop(jpeg);
     ad.stego.import.carrier = Some(stego::StegoCarrier::Picture);
     if ad.stego.import.embedded_payload_len == stego::STEGO_PAYLOAD_SIZE && open_portable(ad, boot_display, delay) {
         zeroize_bytes(&mut descriptor_payload);

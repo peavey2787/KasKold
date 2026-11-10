@@ -8,13 +8,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class FirmwareBuild:
     features: str
-    environment: tuple[tuple[str, str], ...] = ()
 
-    def env_overrides(self) -> dict[str, str]:
-        return dict(self.environment)
-
-
-PSRAM_OCTAL = (("ESP_HAL_CONFIG_PSRAM_MODE", "octal"),)
 
 FEATURE_MATRIX = (
     FirmwareBuild("m5stack"),

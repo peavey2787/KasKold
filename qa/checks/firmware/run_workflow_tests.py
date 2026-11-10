@@ -18,12 +18,12 @@ ROOT = Path(__file__).resolve().parents[3]
 FIRMWARE = ROOT / "apps" / "kaskold-hardware"
 TARGET = FIRMWARE / "target" / "xtensa-esp32s3-none-elf" / "release"
 HASH_SOURCE = FIRMWARE / "src" / "firmware_hash.rs"
-HASH_BUILDER = ROOT / "tools" / "build" / "firmware" / "build_with_hash.sh"
 CHECKS_DIR = Path(__file__).resolve().parent
 if str(CHECKS_DIR) not in sys.path:
     sys.path.insert(0, str(CHECKS_DIR))
 
 from run_hardware_tests import flash_and_monitor, wait_for_explicit_port  # noqa: E402
+from hash_builder import hash_builder_command  # noqa: E402
 from hil_evidence import HilEvidence, reportable_interruptions  # noqa: E402
 
 PASS_MARKER = "KASKOLD_WORKFLOW_TESTS: PASS ALL"
@@ -350,24 +350,10 @@ def validate_host_contracts() -> None:
     print_coverage_status()
     qualification = ROOT / "qa" / "checks" / "firmware" / "production_runtime_qualification.py"
     subprocess.run([sys.executable, str(qualification)], cwd=ROOT, check=True)
-    tests = [
-        ROOT / "qa" / "tests" / "tooling" / "test_hardware_device_runner.py",
-        ROOT / "qa" / "tests" / "tooling" / "test_firmware_board_layout.py",
-    ]
-    regression_dir = ROOT / "qa" / "tests" / "regression"
-    registered = {path.resolve() for path in tests}
-    for path in sorted(regression_dir.glob("test_*.py")):
-        if path.resolve() not in registered:
-            tests.append(path)
-            registered.add(path.resolve())
-    print(
-        f"  Pre-flash regression coverage: {len(tests)} test module(s) "
-        "(all qa/tests/regression modules plus hardware/board tooling contracts)",
-        flush=True,
-    )
-    command = [sys.executable, "-m", "unittest", *(str(path) for path in tests)]
-    print("  +", " ".join(command), flush=True)
-    subprocess.run(command, cwd=ROOT, check=True)
+    # The same runner run-all uses, so pre-flash coverage cannot drift from the
+    # tooling and regression modules the repository actually holds.
+    python_qa = ROOT / "qa" / "checks" / "workspace" / "run_repository_python_qa.py"
+    subprocess.run([sys.executable, str(python_qa), "--scope", "shared"], cwd=ROOT, check=True)
 
 
 
@@ -465,18 +451,13 @@ def build(
     # repository TEST key rather than bypassing verification.
     env["KASKOLD_SIGNING_KEY"] = str(ROOT / "tools" / "build" / "firmware" / "dev_test_signing_key.bin")
     env["KASKOLD_WORKFLOW_E2E_FROM"] = str(resume_from)
-    env.setdefault("ESP_HAL_CONFIG_PSRAM_MODE", "octal")
     feature = board
     original_hash_source = HASH_SOURCE.read_bytes()
-    command = [
-        str(HASH_BUILDER),
-        "--board",
+    command = hash_builder_command(
         board,
         f"{board}-workflow-tests",
-        "--no-default-features",
-        "--features",
-        f"{feature},{profile}",
-    ]
+        ["--no-default-features", "--features", f"{feature},{profile}"],
+    )
     print("  +", " ".join(command), flush=True)
     print(f"  Full compiler log: {BUILD_LOG}", flush=True)
     try:

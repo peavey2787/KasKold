@@ -146,10 +146,18 @@ def _prepare_output(output):
     for name,data in contents.items():
         if data is not None: (output/name).write_bytes(data)
 
+# Windows caps a command line at 32,767 characters. Past that cargo hands rustc an
+# @argfile, where the cargo-llvm-cov wrapper cannot see the crate name and so
+# instruments nothing. RUSTFLAGS reach rustc however cargo passes the arguments,
+# but they also instrument the shared crates an app shell depends on by path, so
+# each shell's report leaves those to the root workspace's coverage.
+LLVM_COV=['llvm-cov','--no-rustc-wrapper']
+SHELL_IGNORE=r'unit_tests|[\\/]crates[\\/]'
+
 def _coverage_commands(toolchain,branch,art):
-    cov=['cargo',f'+{toolchain}','llvm-cov','--workspace','--lcov','--ignore-filename-regex',r'unit_tests|online-watcher[\\/]src[\\/]wasm_api[\\/]mod\.rs$','--output-path',str(art.lcov)]
-    companion_cov=['cargo',f'+{toolchain}','llvm-cov','--manifest-path',str(ROOT/'apps/kaskold-companion-web/Cargo.toml'),'--workspace','--lib','--lcov','--ignore-filename-regex','unit_tests','--output-path',str(art.companion_lcov)]
-    vault_cov=['cargo',f'+{toolchain}','llvm-cov','--manifest-path',str(ROOT/'apps/kaskold-vault-web/Cargo.toml'),'--workspace','--lib','--lcov','--ignore-filename-regex','unit_tests','--output-path',str(art.vault_lcov)]
+    cov=['cargo',f'+{toolchain}',*LLVM_COV,'--workspace','--lcov','--ignore-filename-regex',r'unit_tests|online-watcher[\\/]src[\\/]wasm_api[\\/]mod\.rs$','--output-path',str(art.lcov)]
+    companion_cov=['cargo',f'+{toolchain}',*LLVM_COV,'--manifest-path',str(ROOT/'apps/kaskold-companion-web/Cargo.toml'),'--workspace','--lib','--lcov','--ignore-filename-regex',SHELL_IGNORE,'--output-path',str(art.companion_lcov)]
+    vault_cov=['cargo',f'+{toolchain}',*LLVM_COV,'--manifest-path',str(ROOT/'apps/kaskold-vault-web/Cargo.toml'),'--workspace','--lib','--lcov','--ignore-filename-regex',SHELL_IGNORE,'--output-path',str(art.vault_lcov)]
     if branch:
         for cmd in (cov,companion_cov,vault_cov): cmd.append('--branch')
     return cov,companion_cov,vault_cov

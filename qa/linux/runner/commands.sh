@@ -356,10 +356,8 @@ run_cargo_test() {
 run_firmware_unit_compilation() {
     require_command cargo || return
     local firmware="${ROOT_DIR}/apps/kaskold-hardware"
-    run_in_directory "$firmware" env ESP_HAL_CONFIG_PSRAM_MODE=octal \
-        cargo check --locked --no-default-features --features m5stack,verbose-boot || return $?
-    run_in_directory "$firmware" env ESP_HAL_CONFIG_PSRAM_MODE=octal \
-        cargo check --locked --no-default-features --features m5stack-lite,verbose-boot || return $?
+    run_in_directory "$firmware" cargo check --locked --no-default-features --features m5stack,verbose-boot || return $?
+    run_in_directory "$firmware" cargo check --locked --no-default-features --features m5stack-lite,verbose-boot || return $?
 }
 
 registered_fuzz_targets() {

@@ -8,6 +8,8 @@ pub use kaspa_portal::crypto::{
 pub mod container_framing;
 pub mod credential;
 pub mod device_bound_storage;
+#[cfg(any(test, feature = "verbose-boot"))]
+pub mod kdf_calibration;
 
 #[cfg(test)]
 #[path = "unit_tests/external_input_hardening.rs"]

@@ -1,5 +1,13 @@
 <!-- KasKold: Kaspa signing and wallet platform -->
 
+- Device: passwords and PINs work on the CoreS3 again. Encrypted card exports, steganographic backups and restores, and a wallet saved with a PIN or password all failed with an allocation error. Each derived an 8 MiB Argon2id key, which could never fit in the device's 8 MiB of PSRAM because that memory is also its heap. Kaspa Portal's embedded profile is now 6 MiB. Encrypted files and saved wallets made before this change do not open. A steganographic restore also releases the photo's memory before deriving the key.
+
+- `make test-hardware` and `make workflow-e2e` now run on Windows. They used to start the Bash build script directly and stop with "not a valid Win32 application".
+- Every firmware build now uses the CoreS3's quad PSRAM. The hardware and workflow test runners used to force octal mode, where no PSRAM is mapped and the device halts at boot. The test runner now also stops on a firmware `FATAL:` line instead of waiting out its timeout.
+- `make workflow-e2e` runs the repository's full Python QA before it flashes. It used to run a hand-written list of test files that had since moved, so it stopped before reaching the device, and its regression pattern matched no files at all.
+- The Windows CRAP gate measures the Companion web shell again. Its test build command outgrew Windows' 32,767-character limit, so cargo passed it in a file that the coverage wrapper could not read. Nothing was instrumented and the step failed for lack of coverage data. Windows coverage no longer uses that wrapper, and the Companion shell has its first unit tests.
+- The on-device Argon2 benchmark compares against the outputs of the Kaspa Portal KDF the device actually uses. Its expected values predated that KDF, so it failed on a correct device. The values now live in `offline-signer` with a host test that recomputes them, and they match the reference libargon2.
+
 - Covenant spends from the Companion now complete. Every one was refused before: the transaction carried no selector path, so the signer returned no signatures and the finalizer rejected it. Each spend path of every covenant type has now been made on testnet-10.
 - Escrow, shipment and partial covenant documents are built by Rust instead of JavaScript. The JavaScript versions failed in the real encoder, and test stubs had hidden that.
 - Whitelist, commit-reveal, oracle and private swap claims can be reviewed and signed. They used to fail their summary until they already held a signature.

@@ -68,6 +68,7 @@ D	apps/kaskold-companion-ios/Tests/KasKoldAppTests
 D	apps/kaskold-companion-ios/Tests/KasKoldUITests
 D	apps/kaskold-companion-web
 D	apps/kaskold-companion-web/src
+D	apps/kaskold-companion-web/src/unit_tests
 D	apps/kaskold-companion-web/web
 D	apps/kaskold-companion-web/web/css
 D	apps/kaskold-companion-web/web/css/app
@@ -914,6 +915,7 @@ F	apps/kaskold-companion-web/build.ps1
 F	apps/kaskold-companion-web/build.sh
 F	apps/kaskold-companion-web/rustfmt.toml
 F	apps/kaskold-companion-web/src/lib.rs
+F	apps/kaskold-companion-web/src/unit_tests/mod.rs
 F	apps/kaskold-companion-web/web/css/app.css
 F	apps/kaskold-companion-web/web/css/app/components/buttons.css
 F	apps/kaskold-companion-web/web/css/app/components/cards.css
@@ -2438,11 +2440,13 @@ F	crates/offline-signer/Cargo.toml
 F	crates/offline-signer/src/crypto/container_framing.rs
 F	crates/offline-signer/src/crypto/credential.rs
 F	crates/offline-signer/src/crypto/device_bound_storage.rs
+F	crates/offline-signer/src/crypto/kdf_calibration.rs
 F	crates/offline-signer/src/crypto/mod.rs
 F	crates/offline-signer/src/crypto/unit_tests/container_framing_tests.rs
 F	crates/offline-signer/src/crypto/unit_tests/credential_tests.rs
 F	crates/offline-signer/src/crypto/unit_tests/device_bound_storage_tests.rs
 F	crates/offline-signer/src/crypto/unit_tests/external_input_hardening.rs
+F	crates/offline-signer/src/crypto/unit_tests/kdf_calibration_tests.rs
 F	crates/offline-signer/src/facade.rs
 F	crates/offline-signer/src/facade/unit_tests/mod.rs
 F	crates/offline-signer/src/lib.rs
@@ -3474,6 +3478,7 @@ F	tools/build/firmware/build_production.sh
 F	tools/build/firmware/build_with_hash.ps1
 F	tools/build/firmware/build_with_hash.sh
 F	tools/build/firmware/dev_test_signing_key.bin
+F	tools/build/firmware/hash_builder.py
 F	tools/build/firmware/lib/release_policy.sh
 F	tools/build/firmware/matrix_runner.py
 F	tools/build/firmware/owner_authority.py

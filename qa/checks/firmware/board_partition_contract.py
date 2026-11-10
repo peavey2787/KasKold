@@ -42,6 +42,14 @@ def check_board_partition_contract(root: Path, errors: list[str]) -> None:
     _check_boot_verification(root, errors)
     _check_hash_builder(root, errors)
     _check_dockerfile(root, errors)
+    _check_psram_mode(root, errors)
+
+
+def _check_psram_mode(root: Path, errors: list[str]) -> None:
+    """Every firmware build must use the CoreS3's quad PSRAM; octal maps nothing."""
+    config = _read(root, "apps/kaskold-hardware/.cargo/config.toml")
+    if 'ESP_HAL_CONFIG_PSRAM_MODE = { value = "quad", force = true }' not in config:
+        errors.append("firmware cargo config must force ESP_HAL_CONFIG_PSRAM_MODE to quad for every build")
 
 
 def _check_m5stack_layout(errors: list[str], m5) -> None:
@@ -105,8 +113,8 @@ def _check_hil_runner(root: Path, errors: list[str]) -> None:
         errors,
         hil,
         (
-            "HASH_BUILDER",
-            '"--board",\n        board,',
+            "from hash_builder import hash_builder_command",
+            "command = hash_builder_command(\n        board,",
             "layout.espflash_args()",
             "validate_layout(layout)",
             "original_hash_source = HASH_SOURCE.read_bytes()",

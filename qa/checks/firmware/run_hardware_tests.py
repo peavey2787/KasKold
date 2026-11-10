@@ -23,7 +23,6 @@ ROOT = Path(__file__).resolve().parents[3]
 FIRMWARE = ROOT / "apps" / "kaskold-hardware"
 TARGET = FIRMWARE / "target" / "xtensa-esp32s3-none-elf" / "release"
 HASH_SOURCE = FIRMWARE / "src" / "firmware_hash.rs"
-HASH_BUILDER = ROOT / "tools" / "build" / "firmware" / "build_with_hash.sh"
 BOARD_HELPER_DIR = ROOT / "tools" / "build" / "firmware"
 if str(BOARD_HELPER_DIR) not in sys.path:
     sys.path.insert(0, str(BOARD_HELPER_DIR))
@@ -35,6 +34,7 @@ if str(SERIAL_HELPER_DIR) not in sys.path:
     sys.path.insert(0, str(SERIAL_HELPER_DIR))
 
 from board_layout import layout_for, validate_layout  # noqa: E402
+from hash_builder import hash_builder_command  # noqa: E402
 from serial_access import (  # noqa: E402
     SerialAccessError,
     prepare_serial_command,
@@ -89,18 +89,13 @@ def build(board: str) -> Path:
     if not hil_signing_key.is_file() or hil_signing_key.stat().st_size != 32:
         raise RuntimeError(f"HIL development signing key is missing or invalid: {hil_signing_key}")
     env["KASKOLD_SIGNING_KEY"] = str(hil_signing_key)
-    env.setdefault("ESP_HAL_CONFIG_PSRAM_MODE", "octal")
     feature = board
     original_hash_source = HASH_SOURCE.read_bytes()
-    command = [
-        str(HASH_BUILDER),
-        "--board",
+    command = hash_builder_command(
         board,
         f"{board}-hardware-tests",
-        "--no-default-features",
-        "--features",
-        f"{feature},hardware-tests",
-    ]
+        ["--no-default-features", "--features", f"{feature},hardware-tests"],
+    )
     print("  +", " ".join(command), flush=True)
     try:
         subprocess.run(command, cwd=ROOT, env=env, check=True)
@@ -544,10 +539,13 @@ class _MonitorTimers:
 
 
 _Outcome = tuple[int, bool, bool, bool]
+# The firmware's fail-closed halts log "FATAL: " and then spin forever, so they
+# end the run like a panic instead of waiting out the test timeout.
 _PANIC_MARKERS = (
     "====================== PANIC",
     "panicked at ",
     "Guru Meditation Error",
+    "FATAL: ",
 )
 
 
@@ -618,7 +616,7 @@ class _FlashMonitorAttempt:
         timers = self._timers
         if timers.panic_diagnostic_deadline is not None and now >= timers.panic_diagnostic_deadline:
             print(
-                f"FAIL: connected ESP device panicked during {self._config.success_label}; "
+                f"FAIL: connected ESP device panicked or halted during {self._config.success_label}; "
                 "diagnostic tail captured",
                 file=sys.stderr,
             )

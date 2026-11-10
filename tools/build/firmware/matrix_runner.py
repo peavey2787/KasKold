@@ -30,7 +30,6 @@ def run_firmware_matrix(
 
     for build in FEATURE_MATRIX:
         environment = os.environ.copy()
-        environment.update(build.env_overrides())
         if operation == "check":
             rustflags = environment.get("RUSTFLAGS", "").strip()
             if "-Dwarnings" not in rustflags.split():

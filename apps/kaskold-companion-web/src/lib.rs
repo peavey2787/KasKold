@@ -67,3 +67,7 @@ fn complete_sdk_request(
 ) -> Result<kaskold_sdk::SignedPskt, WasmJsValue> {
     kaskold_sdk::complete(request, response_hex).map_err(sdk_error)
 }
+
+#[cfg(test)]
+#[path = "unit_tests/mod.rs"]
+mod unit_tests;

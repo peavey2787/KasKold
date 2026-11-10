@@ -649,7 +649,7 @@ def _ensure_esp_toolchain(ns: argparse.Namespace) -> None:
 def _cargo_check_firmware(features: str) -> StepHandler:
     def handler(ns: argparse.Namespace) -> None:
         run(["cargo", "check", "--locked", "--no-default-features", "--features", features],
-            cwd=ROOT / "apps/kaskold-hardware", env={"ESP_HAL_CONFIG_PSRAM_MODE": "octal"}, dry=ns.dry_run)
+            cwd=ROOT / "apps/kaskold-hardware", dry=ns.dry_run)
     return handler
 
 
