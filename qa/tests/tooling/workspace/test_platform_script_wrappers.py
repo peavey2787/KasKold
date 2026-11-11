@@ -361,7 +361,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
     def test_make_helpers_have_one_common_owner(self) -> None:
         helper = COMMON / "lib/make_tasks.py"
         self.assertTrue(helper.is_file())
-        for name in ("make_tasks.py", "serial_access.py", "esp_toolchain.py", "make_public.py", "make_clean.py"):
+        for name in ("make_tasks.py", "serial_access.py", "esp_toolchain.py", "make_public.py", "make_clean.py", "python_encoding.py"):
             self.assertTrue((COMMON / "lib" / name).is_file())
             self.assertFalse((LINUX / "lib" / name).exists())
             self.assertFalse((WINDOWS / "lib" / name).exists())
@@ -471,6 +471,20 @@ class PlatformScriptWrapperTests(unittest.TestCase):
         self.assertIn('"$TARGET" != *".."*', (LINUX / "lib/_invoke.sh").read_text(encoding="utf-8"))
         windows = (WINDOWS / "lib/_invoke.ps1").read_text(encoding="utf-8")
         self.assertIn("[System.IO.Path]::IsPathRooted($Target)", windows)
+
+    def test_make_targets_run_python_tools_in_utf8_mode(self) -> None:
+        module = _load_module("python_encoding", COMMON / "lib/python_encoding.py")
+        environment = {"PYTHONUTF8": "0", "PATH": "unchanged"}
+        module.use_utf8_python_children(environment)
+        self.assertEqual(
+            environment,
+            {"PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8", "PATH": "unchanged"},
+        )
+        source = (COMMON / "lib/make_tasks.py").read_text(encoding="utf-8")
+        self.assertLess(
+            source.index("use_utf8_python_children(os.environ)"),
+            source.index("args = _build_parser().parse_args(argv)"),
+        )
 
     def test_make_helper_maps_to_organized_platform_paths(self) -> None:
         helper = COMMON / "lib/make_tasks.py"

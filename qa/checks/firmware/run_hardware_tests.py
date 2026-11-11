@@ -1008,7 +1008,10 @@ def _run_flash_monitor_attempt(
                 stdin=monitor_stdin,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True,
+                # The device can print any byte; one that is not UTF-8 must not
+                # stop the reader and turn a finished run into a timeout.
+                encoding="utf-8",
+                errors="replace",
                 bufsize=1,
                 start_new_session=(os.name != "nt"),
             )

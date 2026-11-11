@@ -262,6 +262,22 @@ class QaOrchestrationCatalogTests(unittest.TestCase):
         self.assertEqual(len(result.skipped), 1)
         self.assertEqual(result.skipped[0][1], "platform-only test module")
 
+    def test_repository_python_qa_reruns_itself_in_utf8_mode(self) -> None:
+        runner_path = ROOT / "qa/checks/workspace/run_repository_python_qa.py"
+        spec = importlib.util.spec_from_file_location("repository_python_qa_utf8", runner_path)
+        assert spec and spec.loader
+        runner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
+
+        with mock.patch.object(runner.sys, "flags", mock.Mock(utf8_mode=0)):
+            command = runner.utf8_rerun(["--scope", "shared"])
+        self.assertEqual(
+            command,
+            [sys.executable, "-X", "utf8", str(runner_path.resolve()), "--scope", "shared"],
+        )
+        with mock.patch.object(runner.sys, "flags", mock.Mock(utf8_mode=1)):
+            self.assertIsNone(runner.utf8_rerun(["--scope", "shared"]))
+
     def test_repository_python_qa_persists_and_echoes_detailed_failures(self) -> None:
         source = (ROOT / "qa/checks/workspace/run_repository_python_qa.py").read_text(encoding="utf-8")
         self.assertIn('ROOT / "target/qa/repository-python-qa"', source)

@@ -22,6 +22,7 @@ from make_public import release_build, run_all_profile, test_hardware
 from make_clean import clean_workspace
 from make_firmware_profiles import owner_firmware_profile, secure_release_profile
 from make_flash import flash_firmware as run_flash_firmware, flash_release as run_flash_release
+from python_encoding import use_utf8_python_children
 ROOT = Path(__file__).resolve().parents[3]
 IS_WINDOWS = os.name == "nt" or sys.platform.startswith("win")
 IS_MACOS = sys.platform == "darwin"
@@ -436,6 +437,7 @@ def _command_handlers() -> dict[str, Callable[[argparse.Namespace], int]]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    use_utf8_python_children(os.environ)
     args = _build_parser().parse_args(argv)
     handler = _command_handlers().get(args.command)
     if handler is None:

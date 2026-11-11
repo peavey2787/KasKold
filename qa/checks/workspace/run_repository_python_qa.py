@@ -305,5 +305,21 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
 
+def utf8_rerun(argv: list[str]) -> list[str] | None:
+    """Return the command that reruns this runner in UTF-8 mode, or None if it is in it.
+
+    Repository sources, docs and fixtures are UTF-8, and the tests read them with
+    the default encoding. A Windows console defaults to its ANSI code page, so a
+    caller such as `make workflow-e2e` must not decide how the suite reads files.
+    """
+    if sys.flags.utf8_mode:
+        return None
+    return [sys.executable, "-X", "utf8", str(Path(__file__).resolve()), *argv]
+
+
 if __name__ == "__main__":
+    rerun = utf8_rerun(sys.argv[1:])
+    if rerun is not None:
+        utf8_environment = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
+        raise SystemExit(subprocess.run(rerun, env=utf8_environment, check=False).returncode)
     raise SystemExit(main())

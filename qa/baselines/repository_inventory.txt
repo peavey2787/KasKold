@@ -3380,6 +3380,7 @@ F	scripts/common/lib/make_flash.py
 F	scripts/common/lib/make_help.txt
 F	scripts/common/lib/make_public.py
 F	scripts/common/lib/make_tasks.py
+F	scripts/common/lib/python_encoding.py
 F	scripts/common/lib/serial_access.py
 F	scripts/linux/build/android-build.sh
 F	scripts/linux/build/android-runtime-sync.sh
