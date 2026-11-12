@@ -10,26 +10,26 @@ fn test_bresenham_straight() {
 
     let scan_up = BresenhamScan::new(&middle, &up);
     for (i, p) in scan_up.enumerate() {
-        assert_eq!(100 + i as i32, p.y);
+        assert_eq!(100 + i32::try_from(i).unwrap(), p.y);
         assert_eq!(100, p.x);
     }
 
     let scan_down = BresenhamScan::new(&up, &middle);
     for (i, p) in scan_down.enumerate() {
-        assert_eq!(200 - i as i32, p.y);
+        assert_eq!(200 - i32::try_from(i).unwrap(), p.y);
         assert_eq!(100, p.x);
     }
 
     let scan_right = BresenhamScan::new(&middle, &right);
     for (i, p) in scan_right.enumerate() {
         assert_eq!(100, p.y);
-        assert_eq!(100 + i as i32, p.x);
+        assert_eq!(100 + i32::try_from(i).unwrap(), p.x);
     }
 
     let scan_right = BresenhamScan::new(&right, &middle);
     for (i, p) in scan_right.enumerate() {
         assert_eq!(100, p.y);
-        assert_eq!(300 - i as i32, p.x);
+        assert_eq!(300 - i32::try_from(i).unwrap(), p.x);
     }
 }
 

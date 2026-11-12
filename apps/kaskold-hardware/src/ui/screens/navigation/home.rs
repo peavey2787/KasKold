@@ -20,31 +20,6 @@ use super::super::{
     COLOR_TEXT, KASPA_TEAL,
 };
 
-fn draw_rgb565_with_black_transparency<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    bytes: &[u8],
-    width: u32,
-    height: u32,
-    top_left: Point,
-) {
-    use embedded_graphics::Pixel;
-
-    let pixels = bytes.chunks_exact(2).enumerate().filter_map(|(index, chunk)| {
-        let raw = u16::from_le_bytes([chunk[0], chunk[1]]);
-        if raw == 0 {
-            return None;
-        }
-        let color = Rgb565::new(((raw >> 11) & 0x1f) as u8, ((raw >> 5) & 0x3f) as u8, (raw & 0x1f) as u8);
-        let x = (index as u32 % width) as i32;
-        let y = (index as u32 / width) as i32;
-        if y >= height as i32 {
-            return None;
-        }
-        Some(Pixel(Point::new(top_left.x + x, top_left.y + y), color))
-    });
-    display.draw_iter(pixels).ok();
-}
-
 impl<'a> BootDisplay<'a> {
     /// Draw the 2x2 home screen grid (Connect, Scan QR, Wallet, Settings).
     pub fn draw_home_grid(&mut self, title: &str) {
@@ -92,7 +67,7 @@ impl<'a> BootDisplay<'a> {
 
             // Icon (56x56) centered horizontally in card
             let icon_pos = Point::new(px + 46, py + 2);
-            draw_rgb565_with_black_transparency(&mut self.display, icons[i], 56, 56, icon_pos);
+            crate::ui::display::draw_icon_over(&mut self.display, icons[i], 56, icon_pos);
 
             // Label — Lato Bold 18px centered below icon
             let label = labels[i];

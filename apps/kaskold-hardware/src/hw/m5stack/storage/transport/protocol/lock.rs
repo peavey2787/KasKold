@@ -52,7 +52,7 @@ fn lock_block_len(card_type: SdCardType, required: usize) -> Result<usize, &'sta
     if matches!(card_type, SdCardType::SdV2Hc) {
         return Ok(512);
     }
-    set_block_length(required as u32)?;
+    set_block_length(u32::try_from(required).map_err(|_| "CMD42 block length too large")?)?;
     Ok(required)
 }
 
@@ -82,18 +82,19 @@ fn require_unlock_command(response: u8) -> Result<(), &'static str> {
 
 fn send_unlock_data(spi: &mut Spi<'static, Blocking>, password: &[u8], block_len: usize) -> Result<(), &'static str> {
     let mut payload = [0u8; 512];
-    build_unlock_payload(&mut payload, password);
-    let result = write_lock_payload(spi, &payload[..block_len], "CMD42 unlock payload flush failed")
+    let result = build_unlock_payload(&mut payload, password)
+        .and_then(|_| write_lock_payload(spi, &payload[..block_len], "CMD42 unlock payload flush failed"))
         .and_then(|_| poll_data_response(spi))
         .and_then(validate_unlock_data_response);
     shared_signer::bytes::zeroize_bytes(&mut payload);
     result
 }
 
-fn build_unlock_payload(payload: &mut [u8; 512], password: &[u8]) {
+fn build_unlock_payload(payload: &mut [u8; 512], password: &[u8]) -> Result<(), &'static str> {
     payload[0] = UNLOCK_MODE;
-    payload[1] = password.len() as u8;
+    payload[1] = u8::try_from(password.len()).map_err(|_| "CMD42 password too long")?;
     payload[2..2 + password.len()].copy_from_slice(password);
+    Ok(())
 }
 
 fn write_lock_payload(
@@ -104,7 +105,7 @@ fn write_lock_payload(
     let crc = crc16_ccitt(payload);
     write_all(spi, &[0xFE])?;
     write_all(spi, payload)?;
-    write_all(spi, &[(crc >> 8) as u8, crc as u8])?;
+    write_all(spi, &crc.to_be_bytes())?;
     embedded_hal::spi::SpiBus::flush(spi).map_err(|_| flush_error)
 }
 

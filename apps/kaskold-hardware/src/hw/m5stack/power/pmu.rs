@@ -120,7 +120,7 @@ pub fn set_brightness_value(i2c: &mut I2c<'_, esp_hal::Blocking>, brightness: u8
     let reg_val = if brightness <= 1 {
         REG_MIN
     } else {
-        let step = (brightness as u16 * RANGE as u16 / 255) as u8;
+        let step = u8::try_from(brightness as u16 * RANGE as u16 / 255).unwrap_or(u8::MAX);
         REG_MIN + step.min(RANGE)
     };
     let _ = i2c.write(AXP2101_ADDR, &[AXP_REG_DLDO1_VOLT, reg_val]);

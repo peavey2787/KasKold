@@ -59,6 +59,7 @@ pub fn update_optional_unique_id(hasher: &mut impl Digest) {
 
 pub fn update_adc_noise(hasher: &mut impl Digest, samples: usize) {
     for _ in 0..samples {
+        // SAFETY: SAR ADC data register 0x6004_0868 is a documented ESP32-S3 read-only register.
         let value = unsafe { crate::hw::shared::mmio::read(0x6004_0868) };
         hasher.update(value.to_le_bytes());
     }
@@ -79,5 +80,5 @@ fn systimer_words() -> (u32, u32) {
     // fixed spin delay can observe the previous latch value on real CoreS3
     // hardware and falsely fail the timing-entropy health requirement.
     let value = SystemTimer::unit_value(Unit::Unit0);
-    (value as u32, (value >> 32) as u32)
+    ((value & 0xFFFF_FFFF) as u32, (value >> 32) as u32)
 }

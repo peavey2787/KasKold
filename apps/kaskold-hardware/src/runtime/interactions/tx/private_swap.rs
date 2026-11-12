@@ -3,7 +3,7 @@ use crate::{
     hw::display,
     runtime::interactions::feedback::{show_rejection, ErrorSound},
     runtime::{
-        data::{AppData, PrivateSwapMode, PrivateSwapPhase},
+        data::{AppData, PrivateSwapAction, PrivateSwapPhase},
         input::AppState,
     },
 };
@@ -40,11 +40,13 @@ fn handle_review(
     }
 
     boot_display.draw_saving_screen("Private Swap authorization...");
-    let result = match ad.signing.private_swap.mode {
-        PrivateSwapMode::Bind => crate::services::private_swap::complete_binding(ad, liveness),
-        PrivateSwapMode::PreSign => crate::services::private_swap::begin_presign(ad),
-        PrivateSwapMode::Complete => crate::services::private_swap::complete_claim(ad, liveness),
-        _ => return false,
+    let PrivateSwapPhase::Prepared(action) = ad.signing.private_swap.phase else {
+        return false;
+    };
+    let result = match action {
+        PrivateSwapAction::Bind => crate::services::private_swap::complete_binding(ad, liveness),
+        PrivateSwapAction::PreSign => crate::services::private_swap::begin_presign(ad),
+        PrivateSwapAction::Complete => crate::services::private_swap::complete_claim(ad, liveness),
     };
     match result {
         Ok(()) => {
@@ -91,12 +93,16 @@ fn handle_result(
     if !(178..=224).contains(&y) || !(55..=265).contains(&x) {
         return false;
     }
-    if ad.signing.private_swap.phase == PrivateSwapPhase::AwaitingReveal && ad.signing.private_swap.nonce_qr_shown {
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ScanQR));
-        return true;
+    match ad.signing.private_swap.phase {
+        PrivateSwapPhase::AwaitingReveal { nonce_shown: true } => {
+            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ScanQR));
+            return true;
+        }
+        PrivateSwapPhase::AwaitingReveal { nonce_shown: false } => {
+            ad.signing.private_swap.phase = PrivateSwapPhase::AwaitingReveal { nonce_shown: true };
+        }
+        _ => {}
     }
-
-    ad.signing.private_swap.nonce_qr_shown = ad.signing.private_swap.phase == PrivateSwapPhase::AwaitingReveal;
     show_response(ad, boot_display, delay, crate::runtime::navigation::continuation!(PrivateSwapResult));
     true
 }

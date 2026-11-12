@@ -206,7 +206,7 @@ impl Device {
         touch::press(x, y);
         control::run_polls(2);
         for _ in 0..time.as_millis() / HOLD_SLICE_MILLIS {
-            clock::advance_micros(HOLD_SLICE_MILLIS as u64 * 1_000);
+            clock::advance_micros(u64::try_from(HOLD_SLICE_MILLIS * 1_000).unwrap());
             control::run_polls(2);
         }
         touch::release();
@@ -280,7 +280,7 @@ impl Device {
 
     /// Lets wall-clock time pass on the device with nobody touching it.
     pub(crate) fn let_time_pass(&self, time: std::time::Duration) {
-        clock::advance_micros(time.as_micros() as u64);
+        clock::advance_micros(u64::try_from(time.as_micros()).unwrap());
         control::run_polls(WAIT_POLLS);
     }
 

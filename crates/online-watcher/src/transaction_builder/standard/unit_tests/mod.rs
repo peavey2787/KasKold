@@ -45,7 +45,13 @@ fn signer_input_count_follows_the_public_signer_capability() {
 fn selected_utxo_sends_are_bounded_by_the_signer_before_building() {
     let destination = crate::account::address::encode_p2pk_address(&[0x66; 32], "kaspa");
     let too_many = (0..=SIGNER_MAX_INPUTS)
-        .map(|index| utxo((index as u8).wrapping_add(1), index as u32, 1_000_000))
+        .map(|index| {
+            utxo(
+                u8::try_from(index).unwrap().wrapping_add(1),
+                u32::try_from(index).unwrap(),
+                1_000_000,
+            )
+        })
         .collect::<Vec<_>>();
     assert!(
         create_pskb_with_utxos(&wallet(), &destination, 20_000_000, 300_000, too_many)

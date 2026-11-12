@@ -1,29 +1,32 @@
 //! Persistent current-format multisig descriptor codec.
 
 use super::{MULTISIG_DESCRIPTOR_BYTES, MULTISIG_DESCRIPTOR_ENTRY_SIZE};
-use offline_signer::transaction::model::{MultisigConfig, MultisigStore, MAX_MULTISIG_KEYS};
+use offline_signer::transaction::model::{MultisigConfig, MultisigFamily, MultisigStore, MAX_MULTISIG_KEYS};
 
 pub(super) fn encode_multisig_store(store: &MultisigStore, out: &mut [u8; MULTISIG_DESCRIPTOR_BYTES]) {
     out.fill(0);
     for (slot, config) in store.configs.iter().enumerate() {
-        if !encodable(config) {
-            continue;
+        if let Some(config) = config.as_ref().filter(|config| encodable(config)) {
+            encode_slot(config, slot * MULTISIG_DESCRIPTOR_ENTRY_SIZE, out);
         }
-        encode_slot(config, slot * MULTISIG_DESCRIPTOR_ENTRY_SIZE, out);
     }
 }
 
+/// Only current-format 45' wallets are persisted.
 fn encodable(config: &MultisigConfig) -> bool {
-    config.active && config.v45 && config.n > 0 && usize::from(config.n) <= MAX_MULTISIG_KEYS
+    config.family.is_hd45() && config.n > 0 && usize::from(config.n) <= MAX_MULTISIG_KEYS
 }
 
 fn encode_slot(config: &MultisigConfig, base: usize, out: &mut [u8; MULTISIG_DESCRIPTOR_BYTES]) {
+    let MultisigFamily::Hd45 { cosigner_index, chain } = config.family else {
+        return;
+    };
     out[base] = 1;
     out[base + 1] = config.m;
     out[base + 2] = config.n;
     out[base + 3] = 1;
-    out[base + 4] = config.cosigner_index;
-    out[base + 5] = config.chain;
+    out[base + 4] = cosigner_index;
+    out[base + 5] = chain;
     out[base + 6..base + 10].copy_from_slice(&config.addr_index.to_le_bytes());
     for index in 0..usize::from(config.n) {
         encode_cosigner(config, index, base + 10 + index * 74, out);
@@ -42,9 +45,7 @@ pub(super) fn decode_multisig_store(input: &[u8; MULTISIG_DESCRIPTOR_BYTES]) -> 
     let mut store = MultisigStore::new();
     for slot in 0..store.configs.len() {
         let base = slot * MULTISIG_DESCRIPTOR_ENTRY_SIZE;
-        if let Some(config) = decode_multisig_slot(input, base)? {
-            store.configs[slot] = config;
-        }
+        store.configs[slot] = decode_multisig_slot(input, base)?;
     }
     Some(store)
 }
@@ -66,9 +67,7 @@ fn decode_multisig_slot(input: &[u8; MULTISIG_DESCRIPTOR_BYTES], base: usize) ->
     let mut config = MultisigConfig::new();
     config.m = m;
     config.n = n;
-    config.v45 = true;
-    config.cosigner_index = input[base + 4];
-    config.chain = input[base + 5];
+    config.family = MultisigFamily::Hd45 { cosigner_index: input[base + 4], chain: input[base + 5] };
     config.addr_index = u32::from_le_bytes(input[base + 6..base + 10].try_into().ok()?);
     if !decode_multisig_cosigners(input, base, &mut config) {
         return None;
@@ -77,7 +76,6 @@ fn decode_multisig_slot(input: &[u8; MULTISIG_DESCRIPTOR_BYTES], base: usize) ->
     if !multisig_tail_clear(input, tail, base + MULTISIG_DESCRIPTOR_ENTRY_SIZE) {
         return None;
     }
-    config.active = true;
     (config.build_script() != 0).then_some(Some(config))
 }
 

@@ -1,3 +1,4 @@
+use crate::geometry::coordinate;
 use alloc::vec::Vec;
 
 use crate::prepare::{AreaFiller, ImageBuffer, PixelColor};
@@ -185,8 +186,12 @@ fn is_capstone<S>(img: &mut PreparedImage<S>, linepos: &LinePosition, y: usize) 
 where
     S: ImageBuffer,
 {
-    let ring_reg = img.get_region((linepos.right, y));
-    let stone_reg = img.get_region((linepos.stone, y));
+    let (Some(ring_reg), Some(stone_reg)) = (
+        img.get_region((linepos.right, y)),
+        img.get_region((linepos.stone, y)),
+    ) else {
+        return false;
+    };
 
     if img.get_pixel_at(linepos.left, y) != img.get_pixel_at(linepos.right, y) {
         return false;
@@ -224,16 +229,13 @@ where
     S: ImageBuffer,
 {
     /* Find the corners of the ring */
-    let start_point = Point {
-        x: linepos.right as i32,
-        y: y as i32,
-    };
+    let start_point = Point::at(linepos.right, y);
     let first_corner_finder = FirstCornerFinder::new(start_point);
     let first_corner_finder =
-        img.repaint_and_apply((linepos.right, y), PixelColor::Tmp1, first_corner_finder);
+        img.repaint_and_apply((linepos.right, y), PixelColor::Tmp1, first_corner_finder)?;
     let all_corner_finder = AllCornerFinder::new(start_point, first_corner_finder.best());
     let all_corner_finder =
-        img.repaint_and_apply((linepos.right, y), PixelColor::CapStone, all_corner_finder);
+        img.repaint_and_apply((linepos.right, y), PixelColor::CapStone, all_corner_finder)?;
     let corners = all_corner_finder.best();
 
     /* Set up the perspective transform and find the center */
@@ -267,27 +269,21 @@ impl FirstCornerFinder {
 
 impl AreaFiller for FirstCornerFinder {
     fn update(&mut self, row: Row) {
-        let dy = (row.y as i32) - self.initial.y;
-        let l_dx = (row.left as i32) - self.initial.x;
-        let r_dx = (row.right as i32) - self.initial.x;
+        let dy = coordinate(row.y) - self.initial.y;
+        let l_dx = coordinate(row.left) - self.initial.x;
+        let r_dx = coordinate(row.right) - self.initial.x;
 
         let l_dist = l_dx * l_dx + dy * dy;
         let r_dist = r_dx * r_dx + dy * dy;
 
         if l_dist > self.score {
             self.score = l_dist;
-            self.best = Point {
-                x: row.left as i32,
-                y: row.y as i32,
-            }
+            self.best = Point::at(row.left, row.y)
         }
 
         if r_dist > self.score {
             self.score = r_dist;
-            self.best = Point {
-                x: row.right as i32,
-                y: row.y as i32,
-            }
+            self.best = Point::at(row.right, row.y)
         }
     }
 }
@@ -329,29 +325,27 @@ impl AllCornerFinder {
 
 impl AreaFiller for AllCornerFinder {
     fn update(&mut self, row: Row) {
-        let l_par_score = (row.left as i32) * self.baseline.x + (row.y as i32) * self.baseline.y;
-        let l_ort_score = -(row.left as i32) * self.baseline.y + (row.y as i32) * self.baseline.x;
+        let l_par_score =
+            coordinate(row.left) * self.baseline.x + coordinate(row.y) * self.baseline.y;
+        let l_ort_score =
+            -coordinate(row.left) * self.baseline.y + coordinate(row.y) * self.baseline.x;
         let l_scores = [l_par_score, l_ort_score, -l_par_score, -l_ort_score];
 
-        let r_par_score = (row.right as i32) * self.baseline.x + (row.y as i32) * self.baseline.y;
-        let r_ort_score = -(row.right as i32) * self.baseline.y + (row.y as i32) * self.baseline.x;
+        let r_par_score =
+            coordinate(row.right) * self.baseline.x + coordinate(row.y) * self.baseline.y;
+        let r_ort_score =
+            -coordinate(row.right) * self.baseline.y + coordinate(row.y) * self.baseline.x;
         let r_scores = [r_par_score, r_ort_score, -r_par_score, -r_ort_score];
 
         for j in 0..4 {
             if l_scores[j] > self.scores[j] {
                 self.scores[j] = l_scores[j];
-                self.best[j] = Point {
-                    x: row.left as i32,
-                    y: row.y as i32,
-                }
+                self.best[j] = Point::at(row.left, row.y)
             }
 
             if r_scores[j] > self.scores[j] {
                 self.scores[j] = r_scores[j];
-                self.best[j] = Point {
-                    x: row.right as i32,
-                    y: row.y as i32,
-                }
+                self.best[j] = Point::at(row.right, row.y)
             }
         }
     }

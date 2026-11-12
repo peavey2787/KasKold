@@ -288,11 +288,10 @@ fn decode_dc(reader: &mut BitReader<'_>, table: &HuffmanTable) -> Result<i16, Pi
     if bits > 15 {
         return Err(PictureError::Malformed);
     }
-    Ok(if bits == 0 {
-        0
-    } else {
-        extend(reader.bits(bits), bits) as i16
-    })
+    if bits == 0 {
+        return Ok(0);
+    }
+    i16::try_from(extend(reader.bits(bits), bits)).map_err(|_| PictureError::Malformed)
 }
 
 fn decode_ac(
@@ -341,7 +340,8 @@ fn decode_ac_value(
     let target = coefficients
         .get_mut(target_index)
         .ok_or(PictureError::Malformed)?;
-    *target = extend(reader.bits(size), size) as i16;
+    *target =
+        i16::try_from(extend(reader.bits(size), size)).map_err(|_| PictureError::Malformed)?;
     target_index.checked_add(1).ok_or(PictureError::Malformed)
 }
 
@@ -361,7 +361,10 @@ fn encode_dc(
     dc: i32,
 ) -> Result<(), PictureError> {
     let bits = magnitude_category(dc);
-    writer.code(table, bits as u8)?;
+    writer.code(
+        table,
+        u8::try_from(bits).map_err(|_| PictureError::Malformed)?,
+    )?;
     if bits != 0 {
         writer.bits(magnitude_bits(dc, bits), bits);
     }
@@ -409,7 +412,10 @@ fn write_ac_value(
     value: i32,
 ) -> Result<(), PictureError> {
     let size = magnitude_category(value);
-    writer.code(table, ((run << 4) | size) as u8)?;
+    writer.code(
+        table,
+        u8::try_from((run << 4) | size).map_err(|_| PictureError::Malformed)?,
+    )?;
     writer.bits(magnitude_bits(value, size), size);
     Ok(())
 }

@@ -217,27 +217,27 @@ fn camera_photo(little_endian: bool) -> Vec<u8> {
     let mut tiff = Vec::new();
     tiff.extend_from_slice(if little_endian { b"II" } else { b"MM" });
     tiff.extend_from_slice(&u16_bytes(42));
-    tiff.extend_from_slice(&u32_bytes(FIRST_DIRECTORY as u32));
+    tiff.extend_from_slice(&u32_bytes(u32::try_from(FIRST_DIRECTORY).unwrap()));
     let mut entry = |tiff: &mut Vec<u8>, tag: u16, kind: u16, count: usize, value: [u8; 4]| {
         tiff.extend_from_slice(&u16_bytes(tag));
         tiff.extend_from_slice(&u16_bytes(kind));
-        tiff.extend_from_slice(&u32_bytes(count as u32));
+        tiff.extend_from_slice(&u32_bytes(u32::try_from(count).unwrap()));
         tiff.extend_from_slice(&value);
     };
-    tiff.extend_from_slice(&u16_bytes(FIRST_ENTRIES as u16));
+    tiff.extend_from_slice(&u16_bytes(u16::try_from(FIRST_ENTRIES).unwrap()));
     entry(
         &mut tiff,
         TAG_IMAGE_DESCRIPTION,
         ASCII,
         OLD_CAPTION.len(),
-        u32_bytes(caption_at as u32),
+        u32_bytes(u32::try_from(caption_at).unwrap()),
     );
     entry(
         &mut tiff,
         TAG_MAKE,
         ASCII,
         CAMERA_MAKER.len(),
-        u32_bytes(maker_at as u32),
+        u32_bytes(u32::try_from(maker_at).unwrap()),
     );
     let [low, high] = u16_bytes(LANDSCAPE);
     entry(&mut tiff, TAG_ORIENTATION, SHORT, 1, [low, high, 0, 0]);
@@ -246,16 +246,16 @@ fn camera_photo(little_endian: bool) -> Vec<u8> {
         TAG_EXIF_IFD,
         LONG,
         1,
-        u32_bytes(exif_directory as u32),
+        u32_bytes(u32::try_from(exif_directory).unwrap()),
     );
     tiff.extend_from_slice(&[0; 4]);
-    tiff.extend_from_slice(&u16_bytes(EXIF_ENTRIES as u16));
+    tiff.extend_from_slice(&u16_bytes(u16::try_from(EXIF_ENTRIES).unwrap()));
     entry(
         &mut tiff,
         TAG_TAKEN_AT,
         ASCII,
         TAKEN_AT.len(),
-        u32_bytes(taken_at as u32),
+        u32_bytes(u32::try_from(taken_at).unwrap()),
     );
     tiff.extend_from_slice(&[0; 4]);
     tiff.extend_from_slice(CAMERA_MAKER);
@@ -264,7 +264,7 @@ fn camera_photo(little_endian: bool) -> Vec<u8> {
 
     let mut photo = NOISE_PHOTO[..JFIF_END].to_vec();
     photo.extend_from_slice(&[0xFF, 0xE1]);
-    photo.extend_from_slice(&((2 + 6 + tiff.len()) as u16).to_be_bytes());
+    photo.extend_from_slice(&(u16::try_from(2 + 6 + tiff.len()).unwrap()).to_be_bytes());
     photo.extend_from_slice(b"Exif\0\0");
     photo.extend_from_slice(&tiff);
     photo.extend_from_slice(&NOISE_PHOTO[JFIF_END..]);

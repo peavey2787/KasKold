@@ -36,7 +36,7 @@ pub(super) fn encode_plaintext(format_version: u8, secret: StegoSecret<'_>, outp
         let offset = 2 + index * 2;
         output[offset..offset + 2].copy_from_slice(&word.to_le_bytes());
     }
-    output[2 + WORD_BYTES] = hint.len() as u8;
+    output[2 + WORD_BYTES] = u8::try_from(hint.len()).unwrap_or(u8::MAX);
     output[3 + WORD_BYTES..3 + WORD_BYTES + hint.len()].copy_from_slice(hint);
 }
 

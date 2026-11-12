@@ -10,6 +10,7 @@ use super::menu::Menu;
 #[cfg(any(test, all(feature = "verbose-boot", not(feature = "skip-tests"))))]
 use super::state::CONFIRM_MENU_ITEMS;
 use super::state::{AppState, MAIN_MENU_ITEMS};
+use kaskold_hardware_core::security::TransactionReview;
 
 /// Result of handling a button event
 #[cfg(any(test, all(feature = "verbose-boot", not(feature = "skip-tests"))))]
@@ -30,8 +31,9 @@ pub struct WalletApp {
     pub review_pages: u8,
     /// Total inputs to sign
     pub total_inputs: usize,
-    /// Set only after the explicit transaction confirmation action.
-    pub review_authorized: bool,
+    /// The owner's review of the loaded transaction; approval is set only by
+    /// the explicit confirmation action and names the reviewed transaction.
+    pub review: TransactionReview,
     /// Host-model operation cursor; production runtime stores this in PresentationState.
     signing_input_idx: Option<usize>,
 }
@@ -44,7 +46,7 @@ impl WalletApp {
             menu: Menu::from_items(MAIN_MENU_ITEMS),
             review_pages: 0,
             total_inputs: 0,
-            review_authorized: false,
+            review: TransactionReview::Idle,
             signing_input_idx: None,
         }
     }
@@ -140,12 +142,12 @@ impl WalletApp {
         if let Some(selected) = self.menu.handle(event) {
             self.state = match selected {
                 0 => {
-                    self.review_authorized = true;
+                    self.review = self.review.approve();
                     self.signing_input_idx = Some(0);
                     AppState::ConfirmTx
                 }
                 1 => {
-                    self.review_authorized = false;
+                    self.end_review();
                     AppState::Rejected
                 }
                 2 => AppState::ReviewTx { page: 0 },
@@ -167,11 +169,11 @@ impl WalletApp {
 
     /// Start reviewing a transaction
     #[cfg(any(test, all(feature = "verbose-boot", not(feature = "skip-tests"))))]
-    pub fn start_review(&mut self, num_outputs: u8, num_inputs: usize) {
+    pub fn start_review(&mut self, num_outputs: u8, num_inputs: usize, digest: [u8; 32]) {
         // review_pages = 1 summary + num_outputs (confirm is separate state)
         self.review_pages = 1 + num_outputs;
         self.total_inputs = num_inputs;
-        self.review_authorized = false;
+        self.review = TransactionReview::Showing(digest);
         self.menu = Menu::from_items(CONFIRM_MENU_ITEMS);
         self.state = AppState::ConfirmTx;
     }
@@ -184,7 +186,7 @@ impl WalletApp {
         };
         let next = input_idx + 1;
         if next >= self.total_inputs {
-            self.review_authorized = false;
+            self.end_review();
             self.signing_input_idx = None;
             self.state = AppState::ShowQR;
         } else {
@@ -196,8 +198,18 @@ impl WalletApp {
     /// Reset main-menu presentation state without changing the screen.
     pub(crate) fn prepare_main_menu(&mut self) {
         self.menu = Menu::from_items(MAIN_MENU_ITEMS);
-        self.review_authorized = false;
+        self.end_review();
         self.signing_input_idx = None;
+    }
+
+    /// Forget any review or approval; nothing can be signed until a new review.
+    pub(crate) fn end_review(&mut self) {
+        self.review = TransactionReview::Idle;
+    }
+
+    /// Whether the owner approved the transaction they were shown.
+    pub(crate) fn review_approved(&self) -> bool {
+        self.review.approval().is_some()
     }
 
     /// Host-test helper. Runtime AppData navigation uses the central state machine.

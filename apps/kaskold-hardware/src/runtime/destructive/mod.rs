@@ -123,7 +123,7 @@ fn advance_hold(
         ad.runtime.destructive.started_at_ms = now.max(1);
     }
     let elapsed = now.saturating_sub(ad.runtime.destructive.started_at_ms);
-    let step = ((elapsed.saturating_mul(u64::from(PROGRESS_STEPS))) / HOLD_MILLIS).min(u64::from(PROGRESS_STEPS)) as u8;
+    let step = hold_step(elapsed);
     if step != ad.runtime.destructive.progress_step {
         ad.runtime.destructive.progress_step = step;
         draw_progress(display, action, step, PROGRESS_STEPS);
@@ -308,7 +308,7 @@ pub(crate) fn workflow_fast_forward_active_hold(ad: &mut AppData, delay: &mut es
     // the production hold, which only time can complete, so it really waits.
     hold.progress_step = PROGRESS_STEPS;
     if cfg!(feature = "workflow-hil-auto") {
-        delay.delay_millis(HOLD_MILLIS as u32);
+        delay.delay_millis(shared_signer::narrow!(u32, HOLD_MILLIS));
     }
     true
 }
@@ -379,11 +379,16 @@ fn workflow_advance_hold(
         ad.runtime.destructive.started_at_ms = now.max(1);
     }
     let elapsed = now.saturating_sub(ad.runtime.destructive.started_at_ms);
-    ad.runtime.destructive.progress_step =
-        ((elapsed.saturating_mul(u64::from(PROGRESS_STEPS))) / HOLD_MILLIS).min(u64::from(PROGRESS_STEPS)) as u8;
+    ad.runtime.destructive.progress_step = hold_step(elapsed);
     if elapsed >= HOLD_MILLIS {
         complete(ad, display, delay, i2c, liveness, action);
     }
+}
+
+/// Progress steps completed after holding for `elapsed` milliseconds.
+fn hold_step(elapsed: u64) -> u8 {
+    let step = elapsed.saturating_mul(u64::from(PROGRESS_STEPS)) / HOLD_MILLIS;
+    u8::try_from(step).map_or(PROGRESS_STEPS, |step| step.min(PROGRESS_STEPS))
 }
 
 fn confirm_rect(action: DestructiveAction) -> TouchRect {

@@ -115,14 +115,22 @@ pub const fn display_page(mode: KeyboardMode, page: u8) -> u8 {
     }
 }
 
+/// Horizontal distance from one key's left edge to the next key's.
+const KEY_PITCH: i32 = KEY_WIDTH as i32 + KEY_GAP;
+
+/// Left edge of the key `column` keys right of `start_x`.
+fn key_offset(column: usize) -> i32 {
+    i32::try_from(column).map_or(i32::MAX, |column| column.saturating_mul(KEY_PITCH))
+}
+
 pub fn row_start(key_count: usize) -> i32 {
-    let width = key_count as i32 * (KEY_WIDTH as i32 + KEY_GAP) - KEY_GAP;
+    let width = key_offset(key_count) - KEY_GAP;
     (SCREEN_WIDTH - width) / 2
 }
 
 pub fn third_row_start(key_count: usize) -> i32 {
-    let letter_width = key_count as i32 * (KEY_WIDTH as i32 + KEY_GAP) - KEY_GAP;
-    let total = KEY_WIDTH as i32 + KEY_GAP + letter_width;
+    let letter_width = key_offset(key_count) - KEY_GAP;
+    let total = KEY_PITCH + letter_width;
     (SCREEN_WIDTH - total) / 2
 }
 
@@ -234,7 +242,7 @@ fn character_action(x: i32, row: &[u8], start_x: i32, mode: KeyboardMode) -> Opt
         .copied()
         .enumerate()
         .find_map(|(column, character)| {
-            let key_x = start_x + column as i32 * (KEY_WIDTH as i32 + KEY_GAP);
+            let key_x = start_x.saturating_add(key_offset(column));
             (x >= key_x && x < key_x + KEY_WIDTH as i32).then(|| {
                 if is_active(character, mode) {
                     KeyAction::Char(character)
@@ -254,10 +262,14 @@ pub fn suggestion_hit_test(
     if !(72..=96).contains(&y) || suggestion_count <= 1 {
         return None;
     }
-    (0..usize::from(suggestion_count.min(3)).min(suggestions.len())).find_map(|index| {
-        let left = 4 + index as u16 * 106;
-        (x >= left && x < left + 102).then_some(suggestions[index])
-    })
+    suggestions
+        .iter()
+        .take(usize::from(suggestion_count.min(3)))
+        .zip(0u16..)
+        .find_map(|(&suggestion, slot)| {
+            let left = 4 + slot * 106;
+            (x >= left && x < left + 102).then_some(suggestion)
+        })
 }
 
 fn rows_for_page(page: u8) -> [&'static [u8]; 3] {

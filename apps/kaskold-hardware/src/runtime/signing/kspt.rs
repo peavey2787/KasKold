@@ -120,8 +120,12 @@ pub(super) fn finalize_anti_klepto_with_checkpoint(
     host_secret: &[u8; 32],
     checkpoint: &mut (impl FnMut() + ?Sized),
 ) -> Result<(), offline_signer::transaction::kspt::PsktError> {
-    let session_id = ad.signing.anti_klepto.session_id;
-    let initial_counts = ad.signing.anti_klepto.initial_sig_counts;
+    let session = ad
+        .signing
+        .anti_klepto
+        .session_in(crate::runtime::data::AntiKleptoPhase::AwaitingReveal)
+        .ok_or(offline_signer::transaction::kspt::PsktError::InvalidSignatureState)?;
+    let (session_id, initial_counts) = (session.session_id, session.initial_sig_counts);
     match strategy {
         super::strategy::SigningStrategy::RawKey => {
             let mut key = [0u8; 32];

@@ -1,8 +1,9 @@
 //! Continuous structural health tests for a 32-word hardware RNG window.
 
-pub const HEALTH_SAMPLE_COUNT: usize = 32;
-pub const MIN_ONES: u32 = 256;
-pub const MAX_ONES: u32 = 768;
+pub const HEALTH_SAMPLE_COUNT: usize = HEALTH_SAMPLES as usize;
+const HEALTH_SAMPLES: u8 = 32;
+pub const MIN_ONES: u16 = 256;
+pub const MAX_ONES: u16 = 768;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RngHealthError {
@@ -29,20 +30,19 @@ pub fn inspect(samples: &[u32; HEALTH_SAMPLE_COUNT]) -> Result<RngHealthReport, 
     if samples.iter().all(|sample| *sample == samples[0]) {
         return Err(RngHealthError::StuckRegister);
     }
-    let repeated_words = samples.windows(2).filter(|pair| pair[0] == pair[1]).count() as u8;
-    if repeated_words != 0 {
+    if samples.windows(2).any(|pair| pair[0] == pair[1]) {
         return Err(RngHealthError::RepetitionCount);
     }
 
     let distinct_words = distinct_count(samples);
-    if distinct_words != HEALTH_SAMPLE_COUNT as u8 {
+    if distinct_words != HEALTH_SAMPLES {
         return Err(RngHealthError::LowDiversity);
     }
 
-    let ones = samples.iter().map(|value| value.count_ones()).sum::<u32>();
-    if !(MIN_ONES..=MAX_ONES).contains(&ones) {
-        return Err(RngHealthError::AdaptiveProportion);
-    }
+    let ones = u16::try_from(samples.iter().map(|value| value.count_ones()).sum::<u32>())
+        .ok()
+        .filter(|ones| (MIN_ONES..=MAX_ONES).contains(ones))
+        .ok_or(RngHealthError::AdaptiveProportion)?;
 
     let counter_pattern = fixed_step(samples);
     if counter_pattern {
@@ -60,9 +60,9 @@ pub fn inspect(samples: &[u32; HEALTH_SAMPLE_COUNT]) -> Result<RngHealthReport, 
     }
 
     Ok(RngHealthReport {
-        repeated_words,
+        repeated_words: 0,
         distinct_words,
-        ones: ones as u16,
+        ones,
         stuck_bits,
         counter_pattern,
         monotonic,

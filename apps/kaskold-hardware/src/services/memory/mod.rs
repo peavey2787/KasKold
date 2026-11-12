@@ -6,6 +6,8 @@
 
 pub(crate) mod password_kdf;
 pub(crate) mod psram;
+#[cfg(feature = "argon2-bench")]
+pub(crate) mod psram_probe;
 
 /// Allocate a bounded zeroed runtime byte buffer without invoking the OOM handler.
 pub(crate) fn zeroed_bytes(len: usize) -> Result<alloc::vec::Vec<u8>, ()> {

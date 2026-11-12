@@ -152,7 +152,7 @@ pub(crate) fn category_menu(category: WorkflowCategory) -> Menu {
     for (index, workflow) in workflows.iter().take(count).enumerate() {
         menu.items[index + 1] = workflow.label;
     }
-    menu.count = (count + 1) as u8;
+    menu.count = u8::try_from(count + 1).unwrap_or(u8::MAX);
     menu
 }
 

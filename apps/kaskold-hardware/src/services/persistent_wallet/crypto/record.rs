@@ -24,7 +24,7 @@ pub(super) fn prepare_header(
     record.0[10] = credential_kind as u8;
     record.0[11] = 1;
     record.0[12..16].copy_from_slice(&sequence.to_le_bytes());
-    record.0[16..18].copy_from_slice(&(PAYLOAD_SIZE as u16).to_le_bytes());
+    record.0[16..18].copy_from_slice(&shared_signer::narrow!(u16, PAYLOAD_SIZE).to_le_bytes());
     record.0[18] = DEVICE_KDF_ID;
     let metadata =
         password_kdf::encode_metadata(password_kdf::PasswordKdfParams::current()).map_err(|_| PersistError::Crypto)?;

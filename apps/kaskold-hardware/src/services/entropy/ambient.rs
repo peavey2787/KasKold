@@ -29,7 +29,7 @@ fn fold(data: &[u8], source_tag: u8) {
         hasher.update(word.load(Ordering::Relaxed).to_le_bytes());
     }
     hasher.update(data);
-    hasher.update((data.len() as u32).to_le_bytes());
+    hasher.update(u32::try_from(data.len()).unwrap_or(u32::MAX).to_le_bytes());
     hasher.update([source_tag]);
     let digest: [u8; 32] = hasher.finalize().into();
     for (index, word) in STAGE.iter().enumerate() {

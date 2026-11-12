@@ -17,6 +17,7 @@
 // ui/mod.rs — Presentation, rendering, and touch-interface modules.
 
 #![cfg_attr(feature = "hardware-tests", allow(dead_code))]
+pub(crate) mod coordinates;
 pub mod display;
 pub mod keyboard;
 pub(crate) mod layout;

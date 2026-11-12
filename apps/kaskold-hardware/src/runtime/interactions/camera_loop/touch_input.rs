@@ -7,7 +7,9 @@ use super::AppData;
 /// The event loop is the sole touch transport/gesture owner. Camera capture
 /// code never polls the touchscreen directly.
 pub(crate) fn route_camera_back(ad: &mut AppData) {
-    if ad.signing.multisig.creating.n > 0 && !ad.signing.multisig.creating.active {
+    if ad.signing.multisig.creating.n > 0
+        && ad.signing.multisig.draft == crate::runtime::data::MultisigDraft::Assembling
+    {
         let mut key_idx = 0u8;
         for index in 0..ad.signing.multisig.creating.n {
             if ad.signing.multisig.creating.slot_empty(index as usize) {
@@ -16,7 +18,7 @@ pub(crate) fn route_camera_back(ad: &mut AppData) {
             }
         }
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigAddKey { key_idx }));
-    } else if ad.signing.covenant.phase == crate::runtime::data::CovenantSigningPhase::AwaitingReveal {
+    } else if ad.signing.covenant.phase.awaiting_reveal() {
         ad.signing.covenant.reset();
         crate::runtime::effects::home(ad);
     } else if ad.navigation.app.state == crate::runtime::input::AppState::DecryptSecretScan {

@@ -16,7 +16,13 @@
 // tx controller — multisig output workflow.
 use super::{AppData, RedrawFlag};
 use crate::controllers::TouchInput;
+use crate::runtime::data::MultisigDraft;
 use crate::runtime::input::AppState;
+use offline_signer::transaction::model::MultisigFamily;
+
+fn draft_kept(ad: &AppData) -> bool {
+    ad.signing.multisig.draft == MultisigDraft::Kept
+}
 
 fn build_multisig_descriptor(ad: &mut AppData) {
     let config = &ad.signing.multisig.creating;
@@ -54,7 +60,7 @@ pub(super) fn handle(
 fn handle_address(ad: &mut AppData, input: TouchInput) -> bool {
     let TouchInput { x, y, is_back } = input;
     if is_back {
-        let route = if ad.signing.multisig.creating.active {
+        let route = if draft_kept(ad) {
             crate::runtime::navigation::route!(MultisigMenu)
         } else {
             crate::runtime::navigation::route!(SdImportMenu)
@@ -66,28 +72,39 @@ fn handle_address(ad: &mut AppData, input: TouchInput) -> bool {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigShowAddressQR));
         return true;
     }
-    if !ad.signing.multisig.creating.active {
+    if !draft_kept(ad) {
         return false;
     }
-    if ad.signing.multisig.creating.v45 && (62..=110).contains(&x) {
-        let count = ad.signing.multisig.creating.n;
-        if count > 0 {
-            ad.signing.multisig.creating.cosigner_index = (ad.signing.multisig.creating.cosigner_index + 1) % count;
-            rebuild_and_persist(ad);
-        }
-    } else if ad.signing.multisig.creating.v45 && (118..=158).contains(&x) {
-        ad.signing.multisig.creating.chain ^= 1;
-        rebuild_and_persist(ad);
-    } else if ad.signing.multisig.creating.v45 && (166..=250).contains(&x) {
-        open_index_picker(ad);
-    } else if x <= 90 {
-        change_address_index(ad, -1);
-    } else if x >= 230 {
-        change_address_index(ad, 1);
-    } else {
-        open_index_picker(ad);
+    let hd45 = ad.signing.multisig.creating.family.is_hd45();
+    match x {
+        62..=110 if hd45 => next_cosigner(ad),
+        118..=158 if hd45 => toggle_chain(ad),
+        166..=250 if hd45 => open_index_picker(ad),
+        ..=90 => change_address_index(ad, -1),
+        230.. => change_address_index(ad, 1),
+        _ => open_index_picker(ad),
     }
     true
+}
+
+fn next_cosigner(ad: &mut AppData) {
+    let count = ad.signing.multisig.creating.n;
+    let MultisigFamily::Hd45 { cosigner_index, .. } = &mut ad.signing.multisig.creating.family else {
+        return;
+    };
+    if count == 0 {
+        return;
+    }
+    *cosigner_index = (*cosigner_index + 1) % count;
+    rebuild_and_persist(ad);
+}
+
+fn toggle_chain(ad: &mut AppData) {
+    let MultisigFamily::Hd45 { chain, .. } = &mut ad.signing.multisig.creating.family else {
+        return;
+    };
+    *chain ^= 1;
+    rebuild_and_persist(ad);
 }
 
 fn change_address_index(ad: &mut AppData, direction: i32) {
@@ -113,7 +130,7 @@ fn rebuild_and_persist(ad: &mut AppData) {
 }
 
 fn handle_address_qr(ad: &mut AppData) -> bool {
-    let route = if ad.signing.multisig.creating.active {
+    let route = if draft_kept(ad) {
         if ad.signing.multisig.descriptor_save_prompted {
             crate::runtime::navigation::route!(MultisigSaveAddrAsk)
         } else {
@@ -184,9 +201,10 @@ fn keep_reviewed_descriptor(
     delay: &mut esp_hal::delay::Delay,
     persistent_wallet: Option<&mut crate::services::persistent_wallet::PersistentWallet<'_>>,
 ) {
-    ad.signing.multisig.creating.active = true;
     ad.signing.multisig.descriptor_save_prompted = true;
-    ad.signing.multisig.creating.active = save_descriptor(ad, boot_display, delay, persistent_wallet);
+    if save_descriptor(ad, boot_display, delay, persistent_wallet) {
+        ad.signing.multisig.draft = MultisigDraft::Kept;
+    }
 }
 
 fn handle_save_prompt(
@@ -229,7 +247,7 @@ fn handle_descriptor(
 ) -> bool {
     let TouchInput { x, y, is_back } = input;
     if is_back {
-        if ad.signing.multisig.creating.active {
+        if draft_kept(ad) {
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigShowAddress));
         } else {
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigDescriptorsMenu));
@@ -288,16 +306,16 @@ fn handle_descriptor_list(
         return false;
     }
     let slot = usize::from(ad.signing.multisig.descriptor_indices[row]);
-    let Some(config) = ad.signing.multisig.store.configs.get(slot).cloned() else {
+    let Some(config) = ad.signing.multisig.store.configs.get(slot).and_then(Option::as_ref).cloned() else {
         return false;
     };
     match action {
         0 => {
-            ad.signing.multisig.creating = config;
+            ad.signing.multisig.begin(config, MultisigDraft::Kept);
             crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigDescriptor));
         }
         1 => {
-            ad.signing.multisig.creating = config;
+            ad.signing.multisig.begin(config, MultisigDraft::Kept);
             build_multisig_descriptor(ad);
             prepare_filename(ad, i2c, delay, b"MD", crate::runtime::navigation::route!(SdMsDescFilename));
         }

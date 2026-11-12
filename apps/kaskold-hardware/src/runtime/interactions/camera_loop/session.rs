@@ -7,7 +7,7 @@
 //! The camera loop owns scanner entry rendering and camera lifecycle. Generic
 //! screen redraw code must not manipulate LCD_CAM or camera-session state.
 
-use super::state::CameraSessionState;
+use super::state::{CameraSessionState, CycleBuffers};
 use super::{camera, display, AppData};
 
 pub(super) struct CyclePlatform {
@@ -19,7 +19,7 @@ impl CyclePlatform {
     pub(super) fn new(ad: &AppData) -> Self {
         Self {
             show_home: crate::runtime::navigation::home_shortcut_visible(ad),
-            anti_klepto_reveal: ad.signing.anti_klepto.phase == crate::runtime::data::AntiKleptoPhase::AwaitingReveal,
+            anti_klepto_reveal: ad.signing.anti_klepto.phase() == crate::runtime::data::AntiKleptoPhase::AwaitingReveal,
         }
     }
 
@@ -35,11 +35,6 @@ impl CyclePlatform {
     }
 }
 
-pub(super) struct CycleBuffers {
-    pub(super) db_ptr: *mut u8,
-    pub(super) crop_ptr: *mut u8,
-}
-
 pub(super) fn prepare_cycle(
     session: &mut CameraSessionState,
     platform: &mut CyclePlatform,
@@ -52,8 +47,6 @@ pub(super) fn prepare_cycle(
         return None;
     }
 
-    let db_ptr = session.frame.db_ptr();
-    let crop_ptr = session.frame.crop_ptr();
     if session.frame.number == 0 {
         log!("   CAMERA buffers ready: decode=76KB crop=43KB");
     }
@@ -70,5 +63,5 @@ pub(super) fn prepare_cycle(
         log!("   CAMERA streaming: QVGA Y-only 320x240 / rqrr");
     }
 
-    Some(CycleBuffers { db_ptr, crop_ptr })
+    Some(session.frame.lend_buffers())
 }

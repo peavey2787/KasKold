@@ -54,9 +54,9 @@ fn import_menu_card_scan(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool {
 }
 
 fn paging_and_delete_cancel(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool {
-    for index in 0..8usize {
+    for (index, digit) in (0..8usize).zip(b'0'..) {
         let mut name = *b"FILE000 TXT";
-        name[4] = b'0' + index as u8;
+        name[4] = digit;
         ctx.ad.storage.browser.file_list[index] = name;
     }
     ctx.ad.storage.browser.file_count = 8;

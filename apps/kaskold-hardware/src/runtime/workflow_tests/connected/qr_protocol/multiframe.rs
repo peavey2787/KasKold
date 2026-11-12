@@ -86,9 +86,9 @@ fn encode_frames(payload: &[u8]) -> Option<alloc::vec::Vec<alloc::vec::Vec<u8>>>
     let total_u8 = u8::try_from(total).ok()?;
     let id = shared_signer::qr_frame::session_id(payload);
     let mut frames = alloc::vec::Vec::with_capacity(total);
-    for (index, fragment) in payload.chunks(FRAGMENT).enumerate() {
+    for (index, fragment) in (0u8..).zip(payload.chunks(FRAGMENT)) {
         let mut frame = vec![0u8; shared_signer::qr_frame::FRAME_HEADER_LEN + fragment.len() + 8];
-        let len = shared_signer::qr_frame::encode_frame(&id, index as u8, total_u8, fragment, &mut frame).ok()?;
+        let len = shared_signer::qr_frame::encode_frame(&id, index, total_u8, fragment, &mut frame).ok()?;
         frame.truncate(len);
         frames.push(frame);
     }

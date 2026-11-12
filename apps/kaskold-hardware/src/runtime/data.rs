@@ -52,8 +52,8 @@ pub use self::qr::{OutgoingQrPurpose, QrState};
 pub use self::runtime::{DestructiveHoldState, RuntimeState};
 pub use self::settings::{ScreenDimTimeout, SettingsState};
 pub use self::signing::{
-    AntiKleptoPhase, CovenantSigningMode, CovenantSigningPhase, OutputOwnership, PrivateSwapMode, PrivateSwapPhase,
-    SigningState,
+    AntiKleptoPhase, CovenantSigningMode, CovenantSigningPhase, MultisigDraft, OutputOwnership, PrivateSwapAction,
+    PrivateSwapPhase, SigningState,
 };
 pub use self::stego::StegoState;
 #[cfg(feature = "m5stack")]

@@ -56,14 +56,7 @@ journey!(a_broken_description_is_refused: restore_the_known_wallet, refuse_a_bro
 journey!(the_largest_description_fits_on_a_card: restore_the_known_wallet, open_the_largest_description);
 
 fn saved_descriptions() -> usize {
-    app_state()
-        .signing
-        .multisig
-        .store
-        .configs
-        .iter()
-        .filter(|config| config.active)
-        .count()
+    app_state().signing.multisig.store.wallets().count()
 }
 
 fn open_descriptors(device: &Device) {

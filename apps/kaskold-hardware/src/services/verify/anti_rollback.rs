@@ -58,7 +58,7 @@ const fn descriptor_bytes() -> [u8; APP_DESC_BYTES] {
     write_cstr(&mut output, 112, 32, esp_bootloader_esp_idf::ESP_IDF_COMPATIBLE_VERSION);
     write_u16(&mut output, 176, 0);
     write_u16(&mut output, 178, u16::MAX);
-    output[180] = esp_bootloader_esp_idf::MMU_PAGE_SIZE.ilog2() as u8;
+    output[180] = shared_signer::narrow!(u8, esp_bootloader_esp_idf::MMU_PAGE_SIZE.ilog2());
     output
 }
 

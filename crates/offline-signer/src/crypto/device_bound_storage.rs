@@ -249,7 +249,11 @@ fn context_digest(
         parameters.credential_kind as u8,
     ]);
     hasher.update(salt);
-    hasher.update((authenticated_header.len() as u32).to_le_bytes());
+    hasher.update(
+        u32::try_from(authenticated_header.len())
+            .unwrap_or(u32::MAX)
+            .to_le_bytes(),
+    );
     hasher.update(authenticated_header);
     hasher.finalize().into()
 }
@@ -263,7 +267,11 @@ trait DomainSeparatedHmac: HardwareHmac {
     ) -> Result<(), DeviceBoundError> {
         let mut digest = Sha256::new();
         digest.update(domain);
-        digest.update((message.len() as u32).to_le_bytes());
+        digest.update(
+            u32::try_from(message.len())
+                .unwrap_or(u32::MAX)
+                .to_le_bytes(),
+        );
         digest.update(message);
         let mut request: [u8; 32] = digest.finalize().into();
         let result = self.hmac_sha256(&request, output);

@@ -14,7 +14,7 @@ fn p2pk(script: &mut [u8], key: u8) -> usize {
 }
 
 fuzz_target!(|data: &[u8]| {
-    let byte = |index: usize| data.get(index).copied().unwrap_or(index as u8);
+    let byte = |index: usize| data.get(index).copied().unwrap_or(index.to_le_bytes()[0]);
     let Ok(mut tx) = Transaction::try_new() else {
         return;
     };

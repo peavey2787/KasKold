@@ -36,9 +36,9 @@ pub fn test_touch_entropy_collector() -> bool {
     }
     let target = collector.target();
     for sample in 1..target {
-        let x = 100u16.wrapping_add((sample & 0x7f) as u16);
-        let y = 100u16.wrapping_add(((sample >> 7) & 0x7f) as u16);
-        if !collector.record((sample as u32).wrapping_mul(977), x, y) {
+        let x = 100u16.wrapping_add(u16::try_from(sample & 0x7f).unwrap());
+        let y = 100u16.wrapping_add(u16::try_from((sample >> 7) & 0x7f).unwrap());
+        if !collector.record((u32::try_from(sample).unwrap()).wrapping_mul(977), x, y) {
             return false;
         }
     }

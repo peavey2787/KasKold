@@ -1,3 +1,4 @@
+use crate::geometry::coordinate;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::cmp;
@@ -380,19 +381,6 @@ where
         groups
     }
 
-    pub fn without_preparation(buf: S) -> Self {
-        for y in 0..buf.height() {
-            for x in 0..buf.width() {
-                assert!(buf.get_pixel(x, y) < 2);
-            }
-        }
-
-        PreparedImage {
-            buffer: buf,
-            cache: FixedLru::new(),
-        }
-    }
-
     /// Return the width of the image
     pub fn width(&self) -> usize {
         self.buffer.width()
@@ -403,41 +391,40 @@ where
         self.buffer.height()
     }
 
-    pub(crate) fn get_region(&mut self, (x, y): (usize, usize)) -> ColoredRegion {
+    /// The region under a pixel, or `None` for a white pixel or a region the
+    /// cache no longer knows, which a hostile frame can provoke.
+    pub(crate) fn get_region(&mut self, (x, y): (usize, usize)) -> Option<ColoredRegion> {
         let color: PixelColor = self.buffer.get_pixel(x, y).into();
-        match color {
-            PixelColor::Discarded(r) => *self.cache.get(&r).unwrap(),
+        let region = match color {
+            PixelColor::Discarded(r) => *self.cache.get(&r)?,
             PixelColor::Black => {
                 let cache_fill = self.cache.len();
                 let reg_idx = if cache_fill == self.cache.cap() {
-                    let (c, reg) = self.cache.pop_lru().expect("fill is at capacity (251)");
-                    #[allow(clippy::single_match)]
-                    match reg {
-                        ColoredRegion::Unclaimed {
+                    let (c, reg) = self.cache.pop_lru()?;
+                    if let ColoredRegion::Unclaimed {
+                        src_x,
+                        src_y,
+                        color,
+                        ..
+                    } = reg
+                    {
+                        let _ = self.flood_fill(
                             src_x,
                             src_y,
-                            color,
-                            ..
-                        } => {
-                            let _ = self.flood_fill(
-                                src_x,
-                                src_y,
-                                color.into(),
-                                PixelColor::Black.into(),
-                                |_| (),
-                            );
-                        }
-                        _ => (),
+                            color.into(),
+                            PixelColor::Black.into(),
+                            |_| (),
+                        );
                     }
                     c
                 } else {
-                    cache_fill as u8
+                    u8::try_from(cache_fill).ok()?
                 };
                 let next_reg_color = PixelColor::Discarded(reg_idx);
                 // Cap flood fill at 5000 pixels — capstones are <2000,
                 // background regions are 10000+ and dominate decode time
                 let counter =
-                    self.repaint_and_apply_max((x, y), next_reg_color, AreaCounter(0), 5000);
+                    self.repaint_and_apply_max((x, y), next_reg_color, AreaCounter(0), 5000)?;
                 let new_reg = ColoredRegion::Unclaimed {
                     color: next_reg_color,
                     src_x: x,
@@ -450,8 +437,9 @@ where
             PixelColor::Tmp1 => ColoredRegion::Tmp1,
             PixelColor::Alignment => ColoredRegion::Alignment,
             PixelColor::CapStone => ColoredRegion::CapStone,
-            PixelColor::White => panic!("Tried to color white patch"),
-        }
+            PixelColor::White => return None,
+        };
+        Some(region)
     }
 
     pub(crate) fn repaint_and_apply<F>(
@@ -459,16 +447,16 @@ where
         (x, y): (usize, usize),
         target_color: PixelColor,
         fill: F,
-    ) -> F
+    ) -> Option<F>
     where
         F: AreaFiller,
     {
         let src = self.buffer.get_pixel(x, y);
         if PixelColor::White == src || target_color == src {
-            panic!("Cannot repaint with white or same color");
+            return None;
         }
 
-        self.flood_fill(x, y, src, target_color.into(), fill)
+        Some(self.flood_fill(x, y, src, target_color.into(), fill))
     }
 
     pub(crate) fn repaint_and_apply_max<F>(
@@ -477,21 +465,21 @@ where
         target_color: PixelColor,
         fill: F,
         max_pixels: usize,
-    ) -> F
+    ) -> Option<F>
     where
         F: AreaFiller,
     {
         let src = self.buffer.get_pixel(x, y);
         if PixelColor::White == src || target_color == src {
-            panic!("Cannot repaint with white or same color");
+            return None;
         }
 
-        self.flood_fill_max(x, y, src, target_color.into(), fill, max_pixels)
+        Some(self.flood_fill_max(x, y, src, target_color.into(), fill, max_pixels))
     }
 
     pub fn get_pixel_at_point(&self, p: Point) -> PixelColor {
-        let x = cmp::max(0, cmp::min((self.width() - 1) as i32, p.x));
-        let y = cmp::max(0, cmp::min((self.height() - 1) as i32, p.y));
+        let x = cmp::max(0, cmp::min(coordinate(self.width() - 1), p.x));
+        let y = cmp::max(0, cmp::min(coordinate(self.height() - 1), p.y));
         self.buffer.get_pixel(x as usize, y as usize).into()
     }
 
@@ -594,42 +582,18 @@ where
 }
 
 impl PreparedImage<BasicImageBuffer> {
-    /// Given a function with binary output, generate a searchable image
-    ///
-    /// If the given function returns `true` the matching pixel will be 'black'.
-    #[inline(never)]
-    pub fn prepare_from_bitmap<F>(w: usize, h: usize, mut fill: F) -> Self
-    where
-        F: FnMut(usize, usize) -> bool,
-    {
-        let capacity = w.checked_mul(h).expect("Image dimensions caused overflow");
-        let mut pixels = Vec::with_capacity(capacity);
-
-        for y in 0..h {
-            for x in 0..w {
-                let col = if fill(x, y) {
-                    PixelColor::Black
-                } else {
-                    PixelColor::White
-                };
-                pixels.push(col.into())
-            }
-        }
-        let pixels = pixels.into_boxed_slice();
-        let buffer = BasicImageBuffer { w, h, pixels };
-        PreparedImage::without_preparation(buffer)
-    }
-
     /// Given a byte valued function, generate a searchable image
     ///
     /// The values returned by the function are interpreted as luminance. i.e. a
     /// value of 0 is black, 255 is white.
     #[inline(never)]
-    pub fn prepare_from_greyscale<F>(w: usize, h: usize, mut fill: F) -> Self
+    ///
+    /// Returns `None` when `w * h` overflows.
+    pub fn prepare_from_greyscale<F>(w: usize, h: usize, mut fill: F) -> Option<Self>
     where
         F: FnMut(usize, usize) -> u8,
     {
-        let capacity = w.checked_mul(h).expect("Image dimensions caused overflow");
+        let capacity = w.checked_mul(h)?;
         let mut data = Vec::with_capacity(capacity);
         for y in 0..h {
             for x in 0..w {
@@ -638,6 +602,6 @@ impl PreparedImage<BasicImageBuffer> {
         }
         let pixels = data.into_boxed_slice();
         let buffer = BasicImageBuffer { w, h, pixels };
-        PreparedImage::prepare(buffer)
+        Some(PreparedImage::prepare(buffer))
     }
 }

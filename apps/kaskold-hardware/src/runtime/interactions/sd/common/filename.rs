@@ -81,5 +81,5 @@ fn prepare_overwrite_prompt(ad: &mut crate::runtime::data::AppData, filename: &[
         prompt[length] = byte;
         length += 1;
     }
-    ad.storage.export_file.overwrite_prompt_len = length as u8;
+    ad.storage.export_file.overwrite_prompt_len = u8::try_from(length).unwrap_or(u8::MAX);
 }

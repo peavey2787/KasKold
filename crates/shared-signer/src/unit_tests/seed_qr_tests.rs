@@ -7,7 +7,7 @@ fn indices_12() -> [u16; 12] {
 fn indices_24() -> [u16; 24] {
     let mut out = [0u16; 24];
     for (index, slot) in out.iter_mut().enumerate() {
-        *slot = ((index * 83) % 2048) as u16;
+        *slot = u16::try_from((index * 83) % 2048).unwrap();
     }
     out
 }

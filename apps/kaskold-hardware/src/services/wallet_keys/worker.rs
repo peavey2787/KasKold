@@ -332,7 +332,7 @@ fn process_kpub_seed(generation: u8, seed: &[u8; 64], multisig: bool) -> KpubWor
 fn fill_address_cache(account: &offline_signer::derivation::bip32::ExtendedPrivKey, out: &mut KpubWorkerResult) {
     out.account_raw.copy_from_slice(&account.to_raw());
     for index in 0..20u32 {
-        MAILBOX.set_progress(88 + (index / 4) as u8);
+        MAILBOX.set_progress(88 + u8::try_from(index / 4).unwrap_or(u8::MAX));
         let Ok(key) = offline_signer::derivation::bip32::derive_address_key(account, index) else {
             out.error = Some("Address key derivation failed");
             return;
@@ -344,7 +344,7 @@ fn fill_address_cache(account: &offline_signer::derivation::bip32::ExtendedPrivK
         out.receive_cache[index as usize] = public;
     }
     for index in 0..5u32 {
-        MAILBOX.set_progress(94 + index as u8);
+        MAILBOX.set_progress(94 + u8::try_from(index).unwrap_or(u8::MAX));
         let Ok(key) = offline_signer::derivation::bip32::derive_change_key(account, index) else {
             out.error = Some("Change key derivation failed");
             return;

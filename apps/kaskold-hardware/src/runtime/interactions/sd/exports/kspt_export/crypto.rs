@@ -48,7 +48,7 @@ pub(super) fn seal_envelope(
     }
     output.fill(0);
     output[..4].copy_from_slice(CURRENT_MAGIC);
-    output[4..6].copy_from_slice(&(data.len() as u16).to_le_bytes());
+    output[4..6].copy_from_slice(&u16::try_from(data.len()).map_err(|_| ())?.to_le_bytes());
     let metadata = password_kdf::encode_metadata(password_kdf::PasswordKdfParams::current()).map_err(|_| ())?;
     output[6..6 + METADATA_SIZE].copy_from_slice(&metadata);
     let salt_start = 6 + METADATA_SIZE;

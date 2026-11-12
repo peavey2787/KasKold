@@ -5,6 +5,7 @@ use super::super::{
     CornerRadii, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size, COLOR_BG,
     COLOR_CARD, COLOR_CARD_BORDER, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_TEAL,
 };
+use crate::ui::coordinates::coord;
 use crate::ui::keyboard::KeyboardMode;
 
 pub(crate) const FRESH_BUTTON_Y: core::ops::RangeInclusive<u16> = 42..=76;
@@ -46,7 +47,7 @@ pub(crate) fn pin_pad_action(x: u16, y: u16) -> Option<PinPadAction> {
     let column = PIN_PAD_X.iter().position(|range| range.contains(&x))?;
     let row = PIN_PAD_Y.iter().position(|range| range.contains(&y))?;
     match (row, column) {
-        (0..=2, 0..=2) => Some(PinPadAction::Digit(b'1' + (row * 3 + column) as u8)),
+        (0..=2, 0..=2) => Some(PinPadAction::Digit(b'1' + u8::try_from(row * 3 + column).ok()?)),
         (3, 0) => Some(PinPadAction::Backspace),
         (3, 1) => Some(PinPadAction::Digit(b'0')),
         (3, 2) => Some(PinPadAction::Submit),
@@ -236,7 +237,7 @@ impl<'a> BootDisplay<'a> {
     fn draw_masked_pin(&mut self, input: &crate::wallet::seed_manager::PassphraseInput) {
         let visible = input.len.min(12);
         let star_width = measure_title("*");
-        let total_width = star_width.saturating_mul(visible as i32);
+        let total_width = star_width.saturating_mul(coord(visible));
         let mut x = (320i32.saturating_sub(total_width) / 2).max(8);
         for _ in 0..visible {
             draw_lato_title(&mut self.display, "*", x, 65, COLOR_TEXT);
@@ -297,7 +298,7 @@ impl<'a> BootDisplay<'a> {
     fn draw_masked_credential(&mut self, input: &crate::wallet::seed_manager::PassphraseInput) {
         let visible = input.len.min(22);
         let star_width = measure_title("*");
-        let total_width = star_width * visible as i32;
+        let total_width = star_width * coord(visible);
         let mut x = ((320 - total_width) / 2).max(8);
         for _ in 0..visible {
             draw_lato_title(&mut self.display, "*", x, 65, COLOR_TEXT);

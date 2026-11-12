@@ -27,8 +27,8 @@ pub(super) fn read_file_cluster(
 ) -> Result<(), &'static str> {
     let base_sector = fat32.cluster_to_sector(cluster);
     let sectors_per_cluster = fat32.sectors_per_cluster as u32;
-    let sectors_needed = (remaining.saturating_add(FAT32_SECTOR_BYTES as usize - 1) / FAT32_SECTOR_BYTES as usize)
-        .min(sectors_per_cluster as usize) as u32;
+    let sectors_needed =
+        u32::try_from(remaining.div_ceil(FAT32_SECTOR_BYTES as usize)).unwrap_or(u32::MAX).min(sectors_per_cluster);
     let transfer_bytes = sectors_needed as usize * FAT32_SECTOR_BYTES as usize;
     if can_read_multi(out.len(), *position, sectors_needed, transfer_bytes) {
         read_cluster_multi(card_type, base_sector, out, position, remaining, sectors_needed, transfer_bytes)

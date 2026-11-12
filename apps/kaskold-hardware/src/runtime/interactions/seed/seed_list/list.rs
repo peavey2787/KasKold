@@ -78,11 +78,13 @@ fn handle_paging(ad: &mut AppData, x: u16, y: u16, scroll: usize, total: usize) 
         return false;
     }
     if x < 40 && scroll > 0 {
-        ad.wallet.seeds.seed_list_scroll = ad.wallet.seeds.seed_list_scroll.saturating_sub(PAGE_SIZE as u8);
+        ad.wallet.seeds.seed_list_scroll =
+            ad.wallet.seeds.seed_list_scroll.saturating_sub(shared_signer::narrow!(u8, PAGE_SIZE));
         return true;
     }
     if x >= 280 && scroll + PAGE_SIZE < total {
-        ad.wallet.seeds.seed_list_scroll = ad.wallet.seeds.seed_list_scroll.saturating_add(PAGE_SIZE as u8);
+        ad.wallet.seeds.seed_list_scroll =
+            ad.wallet.seeds.seed_list_scroll.saturating_add(shared_signer::narrow!(u8, PAGE_SIZE));
         return true;
     }
     false
@@ -94,7 +96,7 @@ fn activate(
     delay: &mut esp_hal::delay::Delay,
     slot: usize,
 ) {
-    if ad.wallet.seeds.seed_mgr.active == slot as u8 {
+    if u8::try_from(slot) == Ok(ad.wallet.seeds.seed_mgr.active) {
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SeedsMenu));
         return;
     }

@@ -16,7 +16,9 @@ use crate::runtime::interactions::DeviceIo;
 #[inline(never)]
 pub(super) fn rqrr_decode(gray: &[u8], w: usize, h: usize) -> Vec<(u8, Vec<u8>)> {
     let t0 = systick();
-    let mut img = rqrr::PreparedImage::prepare_from_greyscale(w, h, |x, y| gray[y * w + x]);
+    let Some(mut img) = rqrr::PreparedImage::prepare_from_greyscale(w, h, |x, y| gray[y * w + x]) else {
+        return Vec::new();
+    };
     let t1 = systick();
 
     let grids = img.detect_grids();
@@ -32,7 +34,7 @@ pub(super) fn rqrr_decode(gray: &[u8], w: usize, h: usize) -> Vec<(u8, Vec<u8>)>
         match grid.decode_to(&mut out) {
             Ok(meta) => {
                 log!("   [rqrr] decoded V{} {} bytes", meta.version.0, out.len());
-                results.push((meta.version.0 as u8, out));
+                results.push((u8::try_from(meta.version.0).unwrap_or(u8::MAX), out));
             }
             Err(e) => {
                 log!("   [rqrr] decode err: {}", e);
@@ -76,7 +78,7 @@ pub(super) fn handle_decode_result(
     session.decoder.cooldown = 90;
     session.decoder.finders_beeped = false;
     log!("   rqrr QR OK: {} bytes (V{})", len, ver);
-    if ad.signing.anti_klepto.phase == crate::runtime::data::AntiKleptoPhase::AwaitingReveal {
+    if ad.signing.anti_klepto.phase() == crate::runtime::data::AntiKleptoPhase::AwaitingReveal {
         io.boot_display.draw_loading_wait_screen("Finalizing signature...");
     } else {
         io.boot_display.draw_loading_screen("Processing QR...");

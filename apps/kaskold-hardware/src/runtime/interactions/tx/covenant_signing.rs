@@ -148,11 +148,16 @@ fn handle_sign_result(
     if !(178..=222).contains(&y) || !(60..=260).contains(&x) {
         return false;
     }
-    if ad.signing.covenant.phase == CovenantSigningPhase::AwaitingReveal && ad.signing.covenant.nonce_qr_shown {
-        crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ScanQR));
-        return true;
+    match ad.signing.covenant.phase {
+        CovenantSigningPhase::AwaitingReveal { nonce_shown: true } => {
+            crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ScanQR));
+            return true;
+        }
+        CovenantSigningPhase::AwaitingReveal { nonce_shown: false } => {
+            ad.signing.covenant.phase = CovenantSigningPhase::AwaitingReveal { nonce_shown: true };
+        }
+        _ => {}
     }
-    ad.signing.covenant.nonce_qr_shown = ad.signing.covenant.phase == CovenantSigningPhase::AwaitingReveal;
     show_response(ad, boot_display, delay, crate::runtime::navigation::continuation!(CovenantSignResult));
     true
 }

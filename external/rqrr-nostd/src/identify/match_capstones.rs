@@ -43,11 +43,7 @@ pub fn find_and_rank_possible_neighbors(capstones: &[CapStone], idx: usize) -> V
         }
     }
 
-    res.sort_unstable_by(|a, b| {
-        (a.score)
-            .partial_cmp(&(b.score))
-            .expect("Neighbor distance should never cause a div by 0")
-    });
+    res.sort_unstable_by(|a, b| a.score.total_cmp(&b.score));
     res.iter().map(|n| (n.h_index, n.v_index)).collect()
 }
 

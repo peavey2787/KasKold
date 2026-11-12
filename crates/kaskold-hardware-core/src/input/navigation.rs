@@ -27,7 +27,7 @@ impl Menu {
         let mut menu = Self::new();
         let count = labels.len().min(MAX_MENU_ITEMS);
         menu.items[..count].copy_from_slice(&labels[..count]);
-        menu.count = count as u8;
+        menu.count = u8::try_from(count).unwrap_or(u8::MAX);
         menu
     }
 

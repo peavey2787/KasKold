@@ -34,13 +34,30 @@ impl FrameState {
         ensure_zeroed_len(&mut self.db, DB_SIZE) && ensure_zeroed_len(&mut self.crop, CROP_SIZE)
     }
 
-    pub(super) fn db_ptr(&mut self) -> *mut u8 {
-        self.db.as_mut_ptr()
+    /// Lend the decode and crop buffers out for one capture, so they can be
+    /// borrowed alongside the session; [`FrameState::return_buffers`] takes
+    /// them back.
+    pub(super) fn lend_buffers(&mut self) -> CycleBuffers {
+        CycleBuffers { decode: core::mem::take(&mut self.db), crop: core::mem::take(&mut self.crop) }
     }
 
-    pub(super) fn crop_ptr(&mut self) -> *mut u8 {
-        self.crop.as_mut_ptr()
+    pub(super) fn return_buffers(&mut self, buffers: CycleBuffers) {
+        self.db = buffers.decode;
+        self.crop = buffers.crop;
     }
+
+    /// Wipe the last captured image, which may show a seed or secret QR.
+    fn wipe(&mut self) {
+        shared_signer::bytes::zeroize_bytes(&mut self.db);
+        shared_signer::bytes::zeroize_bytes(&mut self.crop);
+    }
+}
+
+/// The decode (320x240) and viewfinder crop (240x180) buffers, lent out of the
+/// session for one capture.
+pub(super) struct CycleBuffers {
+    pub(super) decode: Vec<u8>,
+    pub(super) crop: Vec<u8>,
 }
 
 pub(super) struct QrDecoderState {
@@ -140,7 +157,9 @@ impl CameraSessionState {
     }
 
     pub(crate) fn leave_screen(&mut self) {
-        self.active_screen = None;
+        if self.active_screen.take().is_some() {
+            self.frame.wipe();
+        }
         self.capture_failures = 0;
     }
 

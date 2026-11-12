@@ -1956,6 +1956,7 @@ F	apps/kaskold-hardware/src/services/hardware/touch_recovery.rs
 F	apps/kaskold-hardware/src/services/memory/mod.rs
 F	apps/kaskold-hardware/src/services/memory/password_kdf.rs
 F	apps/kaskold-hardware/src/services/memory/psram.rs
+F	apps/kaskold-hardware/src/services/memory/psram_probe.rs
 F	apps/kaskold-hardware/src/services/mod.rs
 F	apps/kaskold-hardware/src/services/persistent_wallet/advanced.rs
 F	apps/kaskold-hardware/src/services/persistent_wallet/attempts.rs
@@ -2016,6 +2017,7 @@ F	apps/kaskold-hardware/src/services/verify/types.rs
 F	apps/kaskold-hardware/src/services/wallet_keys.rs
 F	apps/kaskold-hardware/src/services/wallet_keys/worker.rs
 F	apps/kaskold-hardware/src/services/wallet_session.rs
+F	apps/kaskold-hardware/src/ui/coordinates.rs
 F	apps/kaskold-hardware/src/ui/display/boot.rs
 F	apps/kaskold-hardware/src/ui/display/boot/attestation.rs
 F	apps/kaskold-hardware/src/ui/display/icon_data.rs
@@ -2685,6 +2687,7 @@ F	crates/shared-signer/src/covenant_backup.rs
 F	crates/shared-signer/src/creation_flow.rs
 F	crates/shared-signer/src/credential_policy.rs
 F	crates/shared-signer/src/lib.rs
+F	crates/shared-signer/src/numeric.rs
 F	crates/shared-signer/src/pairing/mod.rs
 F	crates/shared-signer/src/seed_entropy.rs
 F	crates/shared-signer/src/stego_picture/codec.rs

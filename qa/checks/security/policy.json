@@ -79,7 +79,7 @@
         ],
         "terms": [
           "ReviewIncomplete",
-          "review_authorized",
+          "review_approved",
           "assert_eq!"
         ]
       }

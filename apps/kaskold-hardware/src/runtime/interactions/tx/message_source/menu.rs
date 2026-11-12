@@ -19,7 +19,7 @@ pub(super) fn handle(
         ad.signing.message.payload_len = 0;
         crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SignMsgScan));
     } else if (40..280).contains(&x) && (160..204).contains(&y) {
-        let maximum_bytes = ad.signing.message.payload.len() as u32;
+        let maximum_bytes = u32::try_from(ad.signing.message.payload.len()).unwrap_or(u32::MAX);
         return text_files::scan(
             ad,
             boot_display,

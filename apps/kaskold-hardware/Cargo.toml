@@ -108,3 +108,9 @@ overflow-checks = true
 
 [profile.release.package.kaskold-hardware]
 opt-level = "z"
+
+[lints.clippy]
+cast_possible_truncation = "deny"
+fn_params_excessive_bools = "deny"
+struct_excessive_bools = "deny"
+undocumented_unsafe_blocks = "deny"

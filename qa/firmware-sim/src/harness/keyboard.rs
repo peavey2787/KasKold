@@ -91,5 +91,8 @@ fn centre_of(points: impl Iterator<Item = (u16, u16)>) -> (u16, u16) {
         sum_y += u32::from(y);
     }
     assert!(count > 0, "no such key on this screen");
-    ((sum_x / count) as u16, (sum_y / count) as u16)
+    (
+        u16::try_from(sum_x / count).unwrap(),
+        u16::try_from(sum_y / count).unwrap(),
+    )
 }

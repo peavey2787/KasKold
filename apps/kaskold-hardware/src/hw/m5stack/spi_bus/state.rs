@@ -153,5 +153,6 @@ pub(super) fn shared_bus() -> Result<&'static SharedBus, &'static str> {
     if pointer.is_null() {
         return Err("CoreS3 SPI2 owner unavailable");
     }
+    // SAFETY: a non-null pointer was stored once from a leaked `&'static mut SharedBus` and is never freed or replaced.
     Ok(unsafe { &*pointer })
 }

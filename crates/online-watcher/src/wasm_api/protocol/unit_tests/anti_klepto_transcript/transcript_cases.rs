@@ -230,8 +230,7 @@ fn change_payload(transaction: &mut Transaction) {
 }
 
 fn change_stealth_tweak(transaction: &mut Transaction) {
-    transaction.stealth_tweak = [1u8; 32];
-    transaction.has_stealth_tweak = true;
+    transaction.stealth_tweak = Some([1u8; 32]);
 }
 
 fn change_input_count(transaction: &mut Transaction) {

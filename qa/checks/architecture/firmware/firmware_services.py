@@ -133,7 +133,7 @@ def _check_argon2_psram(root: Path) -> list[str]:
     errors = _require_modules(
         root,
         "apps/kaskold-hardware/src/services/memory",
-        {"mod.rs", "password_kdf.rs", "psram.rs"},
+        {"mod.rs", "password_kdf.rs", "psram.rs", "psram_probe.rs"},
         220,
     )
     memory_root = root / "apps/kaskold-hardware/src/services/memory"

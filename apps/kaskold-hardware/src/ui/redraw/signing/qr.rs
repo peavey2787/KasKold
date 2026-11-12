@@ -62,8 +62,8 @@ fn build_frame(
     let identifier = shared_signer::qr_frame::session_id(&ad.qr.outgoing.buffer[..ad.qr.outgoing.length]);
     let display_len = shared_signer::qr_frame::encode_frame(
         &identifier,
-        frame_index as u8,
-        frame_count as u8,
+        u8::try_from(frame_index).ok()?,
+        u8::try_from(frame_count).ok()?,
         &ad.qr.outgoing.buffer[offset..offset + fragment_len],
         &mut bytes,
     )

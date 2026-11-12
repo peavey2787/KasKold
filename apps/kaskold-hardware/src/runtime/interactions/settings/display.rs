@@ -22,14 +22,11 @@ pub(super) fn handle_display_settings(ad: &mut AppData, input: TouchInput) -> bo
         return true;
     }
     if persistent_controls(ad) {
-        let pin_available = pin_lock_available(ad);
-        let changed = ad.settings.apply_persistent_display_tap(
-            DISPLAY_DIM_ROW_Y.contains(&y),
-            DISPLAY_PIN_ROW_Y.contains(&y),
-            x < 160,
-            pin_available,
-        );
-        if changed {
+        if DISPLAY_DIM_ROW_Y.contains(&y) && ad.settings.step_screen_dim_timeout(x < 160) {
+            return true;
+        }
+        if DISPLAY_PIN_ROW_Y.contains(&y) && pin_lock_available(ad) {
+            ad.settings.toggle_pin_after_dim();
             return true;
         }
     }

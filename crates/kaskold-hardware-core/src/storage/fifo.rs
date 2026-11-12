@@ -1,6 +1,8 @@
 //! Pure block-transfer validation, address calculation, and FIFO decisions.
 
-pub const SECTOR_BYTES: usize = 512;
+use super::fat32_metadata::SECTOR_BYTES as SECTOR_BYTES_U32;
+
+pub const SECTOR_BYTES: usize = SECTOR_BYTES_U32 as usize;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TransferPlanError {
@@ -41,11 +43,11 @@ pub fn plan_transfer(
         block
     } else {
         block
-            .checked_mul(SECTOR_BYTES as u32)
+            .checked_mul(SECTOR_BYTES_U32)
             .ok_or(TransferPlanError::AddressOverflow)?
     };
     let total_bytes_u32 = count
-        .checked_mul(SECTOR_BYTES as u32)
+        .checked_mul(SECTOR_BYTES_U32)
         .ok_or(TransferPlanError::SizeOverflow)?;
     let total_bytes =
         usize::try_from(total_bytes_u32).map_err(|_| TransferPlanError::SizeOverflow)?;

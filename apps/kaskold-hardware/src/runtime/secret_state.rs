@@ -1,6 +1,6 @@
 //! Internal-SRAM ownership for the long-lived secret-bearing application root.
 
-use core::sync::atomic::{AtomicPtr, Ordering};
+use core::sync::atomic::{compiler_fence, AtomicPtr, Ordering};
 
 use super::data::AppData;
 use static_cell::StaticCell;
@@ -32,16 +32,29 @@ pub(crate) fn initialize() -> &'static mut AppData {
     }
 }
 
-/// Hand the root to the fault handler, once.
+/// Wipe the root on a fault, once: first through `zeroize`, which follows the
+/// root into the heap buffers it owns, then every byte of the root itself, so
+/// a field no zeroizer knows about cannot outlive the fault.
 ///
 /// Only a panic or CPU exception calls this, and neither ever returns to the
 /// code that held the root, so the abandoned borrow is never used again. A
 /// fault raised while wiping finds the root already taken and just resets.
-pub(crate) fn take_for_fault() -> Option<&'static mut AppData> {
+pub(crate) fn wipe_for_fault(zeroize: impl FnOnce(&mut AppData)) {
     let root = FAULT_ROOT.swap(core::ptr::null_mut(), Ordering::AcqRel);
     // SAFETY: `root` is null or the `'static` root stored by `initialize`. The
     // swap hands it out at most once, and its previous holder never resumes.
-    unsafe { root.as_mut() }
+    let Some(data) = (unsafe { root.as_mut() }) else {
+        return;
+    };
+    zeroize(data);
+    let bytes = root.cast::<u8>();
+    for offset in 0..core::mem::size_of::<AppData>() {
+        // SAFETY: `root` points at a live, exclusively held `AppData`, so every
+        // byte below its size is writable. The reference above is no longer
+        // used, and the chip resets before anything reads the root again.
+        unsafe { bytes.add(offset).write_volatile(0) };
+    }
+    compiler_fence(Ordering::SeqCst);
 }
 
 /// The virtual-board harness reads the root of a parked firmware thread.

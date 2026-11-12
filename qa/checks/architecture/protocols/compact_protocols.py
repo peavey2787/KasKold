@@ -122,7 +122,7 @@ def check_monetary_arithmetic(root: Path) -> list[str]:
     # The covenant fee shape lives in Portal's mass model.
     covenant_fee = (
         kaskold_source("crates/online-watcher/src/transaction_builder/covenant/fee.rs").read_text(errors="ignore")
-        + portal_text("transaction/mass.rs")
+        + portal_text("transaction/mass/covenant.rs")
     )
     amounts = kaskold_source("crates/online-watcher/src/transaction_builder/planning/amounts.rs").read_text(errors="ignore")
     shipping_script = kaskold_source(

@@ -1,6 +1,7 @@
 use super::super::{
     draw_lato_body, draw_lato_title, measure_body, measure_title, BootDisplay, COLOR_TEXT, COLOR_TEXT_DIM,
 };
+use crate::ui::coordinates::coord;
 
 impl<'a> BootDisplay<'a> {
     pub(crate) fn draw_centered_wrapped_title(
@@ -28,7 +29,7 @@ impl<'a> BootDisplay<'a> {
                 &mut self.display,
                 line,
                 (320 - width) / 2,
-                start_y + line_index as i32 * line_step + baseline_offset,
+                start_y + coord(line_index) * line_step + baseline_offset,
                 COLOR_TEXT,
             );
         }

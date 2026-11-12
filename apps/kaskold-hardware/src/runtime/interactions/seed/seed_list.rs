@@ -47,7 +47,7 @@ pub(super) fn handle_add_wallet_choice(ad: &mut AppData, input: TouchInput) -> O
 pub(super) fn return_after_add_wallet(ad: &mut AppData) {
     let pending_multisig_key = ad.wallet.seeds.multisig_wallet_return();
     let multisig_key = pending_multisig_key.filter(|key_idx| {
-        !ad.signing.multisig.creating.active
+        ad.signing.multisig.draft == crate::runtime::data::MultisigDraft::Assembling
             && *key_idx < ad.signing.multisig.creating.n
             && ad.signing.multisig.creating.slot_empty(*key_idx as usize)
     });

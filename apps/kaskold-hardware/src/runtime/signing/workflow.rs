@@ -10,12 +10,14 @@ use super::{kspt, output, pskt, strategy};
 
 pub(super) fn prepare_anti_klepto_commitment(ad: &mut AppData) {
     use crate::runtime::data::AntiKleptoPhase;
-    if ad.signing.anti_klepto.phase != AntiKleptoPhase::Reviewing {
+    let Some(session) = ad.signing.anti_klepto.session_in(AntiKleptoPhase::Reviewing) else {
         return;
-    }
+    };
+    let (session_id, transaction_digest, initial_counts) =
+        (session.session_id, session.transaction_digest, session.initial_sig_counts);
     let records = match offline_signer::transaction::kspt::nonce_commitment_records(
         &ad.signing.transaction.active,
-        &ad.signing.anti_klepto.initial_sig_counts,
+        &initial_counts,
     ) {
         Ok(records) => records,
         Err(error) => {
@@ -29,23 +31,21 @@ pub(super) fn prepare_anti_klepto_commitment(ad: &mut AppData) {
         reject_signing(ad);
         return;
     }
-    let session_id = ad.signing.anti_klepto.session_id;
-    let transaction_digest = ad.signing.anti_klepto.transaction_digest;
     match shared_signer::anti_klepto::encode_commitment(
         &session_id,
         &transaction_digest,
         &records,
         &mut ad.qr.outgoing.buffer,
     ) {
-        Ok(length) => {
+        Ok(length) if ad.signing.anti_klepto.await_reveal() => {
             ad.qr.outgoing.length = length;
-            ad.signing.anti_klepto.phase = AntiKleptoPhase::AwaitingReveal;
             log!("   → anti-klepto nonce commitment: {} proof(s)", records.len());
         }
         Err(error) => {
             log!("   ✗ Anti-klepto commitment encoding failed: {:?}", error);
             reject_signing(ad);
         }
+        Ok(_) => reject_signing(ad),
     }
 }
 
@@ -100,7 +100,7 @@ pub fn handle_signing_operation_step(
     let completed = input_idx.saturating_add(1);
     let total = ad.signing.transaction.active.num_inputs.max(1);
     let progress = completed.saturating_mul(100) / total;
-    crate::runtime::presentation::set_progress(ad, progress.min(100) as u8);
+    crate::runtime::presentation::set_progress(ad, u8::try_from(progress.min(100)).unwrap_or(u8::MAX));
 
     let is_final = input_idx + 1 == ad.signing.transaction.active.num_inputs;
     liveness();
@@ -123,11 +123,11 @@ pub fn handle_signing_operation_step(
 /// Anti-klepto review signs only after the host's nonce commitment comes back.
 fn added_a_signature(ad: &AppData) -> bool {
     let transaction = &ad.signing.transaction;
-    ad.signing.anti_klepto.phase == crate::runtime::data::AntiKleptoPhase::Reviewing
+    ad.signing.anti_klepto.phase() == crate::runtime::data::AntiKleptoPhase::Reviewing
         || transaction.active.inputs[..transaction.active.num_inputs]
             .iter()
             .zip(&transaction.initial_signature_counts)
-            .any(|(input, initial)| input.sig_count > *initial)
+            .any(|(input, initial)| input.sigs.count() > *initial)
 }
 
 #[inline(never)]
@@ -168,7 +168,7 @@ fn finish_transaction(
         if !pskt::serialize_transaction(ad) {
             return false;
         }
-    } else if ad.signing.anti_klepto.phase == crate::runtime::data::AntiKleptoPhase::Reviewing {
+    } else if ad.signing.anti_klepto.phase() == crate::runtime::data::AntiKleptoPhase::Reviewing {
         prepare_anti_klepto_commitment(ad);
     } else if !kspt::serialize_transaction(ad) {
         return false;
@@ -216,7 +216,8 @@ fn authorize_policy_time(
 fn authorize_review(ad: &mut AppData, input_idx: usize) -> bool {
     let authorization = SigningAuthorization {
         seed_loaded: ad.wallet.seeds.seed_loaded,
-        review_authorized: ad.navigation.app.review_authorized,
+        review: ad.navigation.app.review,
+        transaction_digest: ad.signing.transaction.active.review_digest(),
         reviewed_inputs: ad.navigation.app.total_inputs,
         transaction_inputs: ad.signing.transaction.active.num_inputs,
         signing_input_index: input_idx,
@@ -268,7 +269,7 @@ pub(super) fn rollback_session(ad: &mut AppData) {
 }
 
 fn anti_klepto_is_pending(ad: &AppData) -> bool {
-    ad.signing.anti_klepto.phase == crate::runtime::data::AntiKleptoPhase::AwaitingReveal
+    ad.signing.anti_klepto.phase() == crate::runtime::data::AntiKleptoPhase::AwaitingReveal
 }
 
 fn reject_signing(ad: &mut AppData) {
@@ -277,7 +278,7 @@ fn reject_signing(ad: &mut AppData) {
 
 fn reject_signing_with(ad: &mut AppData, error: crate::runtime::presentation::ErrorSpec) {
     ad.qr.outgoing.length = 0;
-    ad.navigation.app.review_authorized = false;
+    ad.navigation.app.end_review();
     if crate::runtime::presentation::operation_active(ad, crate::runtime::data::OperationKind::SignTransaction) {
         crate::runtime::presentation::fail_recoverable_spec(ad, error);
     } else {
@@ -294,6 +295,6 @@ pub(super) fn advance_after_signing(ad: &mut AppData) {
 /// Any signatures added during the current session are rolled back first.
 pub(super) fn cancel_signing_operation(ad: &mut AppData) {
     rollback_session(ad);
-    ad.navigation.app.review_authorized = false;
+    ad.navigation.app.end_review();
     ad.qr.outgoing.length = 0;
 }

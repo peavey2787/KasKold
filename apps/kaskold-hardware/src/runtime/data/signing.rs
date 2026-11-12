@@ -38,9 +38,21 @@ impl TransactionSigningState {
         })
     }
 }
+/// Where the multisig wallet being edited stands.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MultisigDraft {
+    /// Cosigner keys are still being collected.
+    Assembling,
+    /// A descriptor from outside the device awaits its owner's look; `own` says
+    /// whether it names the open wallet, the only case that may be kept.
+    Reviewing { own: bool },
+    /// A kept wallet the owner can browse and re-index.
+    Kept,
+}
 pub struct MultisigState {
     pub store: offline_signer::transaction::model::MultisigStore,
     pub creating: offline_signer::transaction::model::MultisigConfig,
+    pub draft: MultisigDraft,
     pub threshold: u8,
     pub participant_count: u8,
     pub scroll: u8,
@@ -48,15 +60,21 @@ pub struct MultisigState {
     pub descriptor_count: u8,
     pub descriptor_persisted: [bool; offline_signer::transaction::model::MAX_MULTISIG_WALLETS],
     pub descriptor_save_prompted: bool,
-    pub reviewing_own_descriptor: bool,
     /// `255` routes to the multisig wallet index; `0` routes to normal address selection.
     pub picking_key: u8,
 }
 impl MultisigState {
+    /// Start editing `config` at stage `draft`; the two always change together.
+    pub fn begin(&mut self, config: offline_signer::transaction::model::MultisigConfig, draft: MultisigDraft) {
+        self.creating = config;
+        self.draft = draft;
+    }
+
     fn new() -> Self {
         Self {
             store: offline_signer::transaction::model::MultisigStore::new(),
             creating: offline_signer::transaction::model::MultisigConfig::new(),
+            draft: MultisigDraft::Assembling,
             threshold: 2,
             participant_count: 3,
             scroll: 0,
@@ -64,7 +82,6 @@ impl MultisigState {
             descriptor_count: 0,
             descriptor_persisted: [false; offline_signer::transaction::model::MAX_MULTISIG_WALLETS],
             descriptor_save_prompted: false,
-            reviewing_own_descriptor: false,
             picking_key: 0,
         }
     }
@@ -84,7 +101,7 @@ mod covenant;
 mod security;
 pub use self::covenant::{CovenantSigningMode, CovenantSigningPhase, CovenantSigningState};
 mod private_swap;
-pub use self::private_swap::{PrivateSwapMode, PrivateSwapPhase, PrivateSwapState};
+pub use self::private_swap::{PrivateSwapAction, PrivateSwapPhase, PrivateSwapState};
 pub struct CommitRevealState {
     pub plaintext: [u8; 128],
     pub plaintext_len: usize,

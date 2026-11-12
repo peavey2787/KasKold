@@ -77,7 +77,7 @@ pub fn run_tests() -> (u32, u32) {
         portable_roundtrip_cross_device_and_tamper(),
         stego_modes_separated(),
     ];
-    (tests.iter().filter(|value| **value).count() as u32, tests.len() as u32)
+    (u32::try_from(tests.iter().filter(|value| **value).count()).unwrap(), u32::try_from(tests.len()).unwrap())
 }
 
 fn make_container(kind: BackupKind, device: &mut MockBackupDevice) -> Option<([u8; 256], usize)> {

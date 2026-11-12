@@ -111,7 +111,7 @@ pub fn fill(output: &mut [u8]) -> Result<(), EntropyError> {
     for (counter, chunk) in output.chunks_mut(32).enumerate() {
         let mut expansion = Sha256::new();
         expansion.update(seed);
-        expansion.update((counter as u32).to_le_bytes());
+        expansion.update(u32::try_from(counter).unwrap_or(u32::MAX).to_le_bytes());
         let block = expansion.finalize();
         chunk.copy_from_slice(&block[..chunk.len()]);
     }

@@ -158,11 +158,11 @@ fn navigate_file_list(
     let count = usize::from(file_count);
 
     if x < 40 && y >= 42 && scroll_offset > 0 {
-        *scroll = scroll.saturating_sub(FILES_PER_PAGE as u8);
+        *scroll = scroll.saturating_sub(shared_signer::narrow!(u8, FILES_PER_PAGE));
         return FileListAction::PageChanged;
     }
     if x >= 280 && y >= 42 && scroll_offset.saturating_add(FILES_PER_PAGE) < count {
-        *scroll = scroll.saturating_add(FILES_PER_PAGE as u8);
+        *scroll = scroll.saturating_add(shared_signer::narrow!(u8, FILES_PER_PAGE));
         return FileListAction::PageChanged;
     }
 

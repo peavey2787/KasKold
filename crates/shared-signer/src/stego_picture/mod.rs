@@ -84,11 +84,12 @@ pub fn embed(
     key: &[u8],
     output: &mut [u8],
 ) -> Result<usize, PictureError> {
-    if payload.is_empty() || payload.len() > u16::MAX as usize {
+    let length = u16::try_from(payload.len()).map_err(|_| PictureError::NoCapacity)?;
+    if length == 0 {
         return Err(PictureError::NoCapacity);
     }
     let mut stream = try_vec_capacity(LENGTH_PREFIX_BYTES + payload.len())?;
-    stream.extend_from_slice(&(payload.len() as u16).to_be_bytes());
+    stream.extend_from_slice(&length.to_be_bytes());
     stream.extend_from_slice(payload);
     let embedded = embed_stream(jpeg, &stream, key, output);
     crate::bytes::zeroize_bytes(&mut stream);
@@ -209,7 +210,7 @@ fn consume_embedding_rank(
     if !bit_get(present, rank) {
         return false;
     }
-    let Some(value) = coefficients.get(rank as usize).copied().map(i32::from) else {
+    let Some(value) = coefficients.get(rank as usize).copied() else {
         return false;
     };
     if value == 0 {
@@ -226,7 +227,7 @@ fn consume_embedding_rank(
     let Some(slot) = coefficients.get_mut(rank as usize) else {
         return false;
     };
-    *slot = changed_value as i16;
+    *slot = changed_value;
     bit_set(changed, rank);
     changed_value != 0
 }

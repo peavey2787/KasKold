@@ -40,7 +40,7 @@ def check_security_integration_contract(root: Path, errors: list[str]) -> None:
     )
     for pattern in ("StuckRegister", "StuckHalfWord", "CounterPattern"):
         require(pattern in health, f"security integration: firmware entropy adapter missing {pattern}")
-    for pattern in ("HEALTH_SAMPLE_COUNT: usize = 32", "RepetitionCount", "LowDiversity", "AdaptiveProportion", "StuckBits", "CounterPattern", "Monotonic"):
+    for pattern in ("HEALTH_SAMPLES: u8 = 32", "HEALTH_SAMPLE_COUNT: usize = HEALTH_SAMPLES as usize", "RepetitionCount", "LowDiversity", "AdaptiveProportion", "StuckBits", "CounterPattern", "Monotonic"):
         require(pattern in shared_rng_health, f"security integration: shared RNG health model missing {pattern}")
 
     kspt_facade = read("crates/offline-signer/src/transaction/kspt/mod.rs")

@@ -19,6 +19,7 @@
 // Lato Bold 18px (titles) | Lato Regular 15px (body) | Lato Regular 12px (hints)
 // Auto-generated from TTF. SIL Open Font License.
 
+use crate::ui::coordinates::{coord, extent};
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
 
@@ -1223,11 +1224,11 @@ pub fn draw_prop_text<D: DrawTarget<Color = Rgb565>>(
                 let byte_val = data.get(byte_off).copied().unwrap_or(0);
                 let mask = 0x80 >> (col % 8);
                 (byte_val & mask != 0)
-                    .then_some(embedded_graphics::Pixel(Point::new(cx + col as i32, top_y + row as i32), color))
+                    .then_some(embedded_graphics::Pixel(Point::new(cx + coord(col), top_y + coord(row)), color))
             })
         });
         let _ = display.draw_iter(pixels);
-        cx = cx.saturating_add((cw as i32).saturating_add(1)); // +1 pixel letter spacing
+        cx = cx.saturating_add((coord(cw)).saturating_add(1)); // +1 pixel letter spacing
     }
     cx.saturating_sub(x)
 }
@@ -1286,7 +1287,7 @@ pub fn draw_prop_text_opaque<D: DrawTarget<Color = Rgb565>>(
         // cell transfer. That keeps opaque text to exactly one display submit
         // per character while also erasing stale pixels in the spacing column.
         let cell_width = cw.saturating_add(1);
-        let area = Rectangle::new(Point::new(cx, top_y), Size::new(cell_width as u32, height as u32));
+        let area = Rectangle::new(Point::new(cx, top_y), Size::new(extent(cell_width), height as u32));
         let data_ref = data;
         let pixel_iter = (0..(height as usize)).flat_map(move |row| {
             (0..cell_width).map(move |col| {
@@ -1294,7 +1295,7 @@ pub fn draw_prop_text_opaque<D: DrawTarget<Color = Rgb565>>(
                     return bg;
                 }
                 let bi = col / 8;
-                let bit = (col % 8) as u8;
+                let bit = col % 8;
                 let byte_off = offset + row * row_bytes + bi;
                 data_ref.get(byte_off).copied().map_or(
                     bg,
@@ -1309,7 +1310,7 @@ pub fn draw_prop_text_opaque<D: DrawTarget<Color = Rgb565>>(
             })
         });
         let _ = display.fill_contiguous(&area, pixel_iter);
-        cx = cx.saturating_add(cell_width as i32);
+        cx = cx.saturating_add(coord(cell_width));
     }
     cx.saturating_sub(x)
 }

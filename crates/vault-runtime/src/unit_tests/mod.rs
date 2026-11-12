@@ -6,7 +6,10 @@ use offline_signer::{
         bip32::{derive_account_key, derive_address_key},
         bip39::{self, Mnemonic12},
     },
-    transaction::{kspt::serialize_compact_kspt_vec, model::Transaction},
+    transaction::{
+        kspt::serialize_compact_kspt_vec,
+        model::{Derivation, Transaction},
+    },
     OfflineSigner,
 };
 
@@ -41,9 +44,10 @@ fn owned_compact_kspt(payload_len: usize) -> Vec<u8> {
     transaction.inputs[0].sequence = u64::MAX;
     transaction.inputs[0].sig_op_count = 1;
     transaction.inputs[0].utxo_entry.amount = 80_000;
-    transaction.inputs[0].has_derivation_hint = true;
-    transaction.inputs[0].derivation_branch = 0;
-    transaction.inputs[0].derivation_index = 0;
+    transaction.inputs[0].derivation_hint = Some(Derivation {
+        branch: 0,
+        index: 0,
+    });
     {
         let script = &mut transaction.inputs[0].utxo_entry.script_public_key;
         script.script[0] = 0x20;
@@ -78,9 +82,13 @@ pub(super) fn copy_ffi_result(
     let mut output = vec![0u8; usize::try_from(-needed).expect("required capacity")];
     if !output.is_empty() {
         // One byte short of the required capacity still reports the full size.
+        // SAFETY: the handle is live (or null, which every export rejects) and each
+        // pointer/length pair borrows a buffer that outlives the call.
         let short = unsafe { copier(handle, output.as_mut_ptr(), output.len() - 1) };
         assert_eq!(short, needed);
     }
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     let written = unsafe { copier(handle, output.as_mut_ptr(), output.len()) };
     assert_eq!(written, isize::try_from(output.len()).expect("length"));
     output
@@ -904,7 +912,7 @@ fn runtime_swap_push_int(script: &mut Vec<u8>, value: u64) {
         return;
     }
     if value <= 16 {
-        script.push(0x50 + value as u8);
+        script.push(0x50 + u8::try_from(value).unwrap());
         return;
     }
     let mut bytes = value.to_le_bytes().to_vec();

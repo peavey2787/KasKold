@@ -58,7 +58,7 @@ pub(super) fn write_cluster_data(
     position: &mut usize,
     remaining: &mut usize,
 ) -> Result<(), &'static str> {
-    let full_sectors = (*remaining / 512).min(sectors_per_cluster as usize) as u32;
+    let full_sectors = u32::try_from(*remaining / 512).unwrap_or(u32::MAX).min(sectors_per_cluster);
     if full_sectors > 0 {
         let write_bytes = full_sectors as usize * 512;
         fast_write_multi_block(card_type, base_sector, &data[*position..*position + write_bytes], full_sectors)?;
@@ -93,7 +93,7 @@ pub(super) fn file_entry(name_83: &[u8; 11], first_cluster: u32, file_size: u32)
         name: *name_83,
         attr: 0x20,
         cluster_hi: (first_cluster >> 16) as u16,
-        cluster_lo: first_cluster as u16,
+        cluster_lo: (first_cluster & 0xFFFF) as u16,
         file_size,
     }
 }
@@ -106,7 +106,7 @@ pub(super) fn replace_existing_file(
     existing: (DirEntry, u32, usize),
 ) -> Result<(), &'static str> {
     let (old_entry, sector, offset) = existing;
-    let file_size = data.len() as u32;
+    let file_size = u32::try_from(data.len()).map_err(|_| "File too large for FAT32")?;
     let first_cluster = allocate_file_chain(card_type, fat32, clusters_for_file(fat32, file_size))?;
     if let Err(error) = write_new_file_payload(card_type, fat32, first_cluster, data, &mut |_, _| {}) {
         let _ = super::super::allocation::release_chain(card_type, fat32, first_cluster);

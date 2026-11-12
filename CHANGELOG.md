@@ -1,5 +1,35 @@
 <!-- KasKold: Kaspa signing and wallet platform -->
 
+- Device: a signature now covers only the transaction that was reviewed. Approving the review keeps Kaspa Portal's `review_digest` of everything on the screen: inputs, outputs, hints, covenant data, payload and network. The signer refuses a transaction that no longer matches it. Only a review that is on screen can be approved. The flag that used to stand for "reviewed" is gone.
+- Device: anti-klepto signing keeps its session ID, host commitment and starting signature counts only while a session is open, and wipes them when it ends. Its phase moves only forward, from review to awaiting the reveal to the final response. Ending a session for any reason takes back the signatures it added.
+- Device: Private Swap's phase alone says which request is in flight. A key handout, a bind, a pre-signature and a claim completion each have their own phase. Only a pre-signature can wait for a host reveal. Covenant signing tracks whether its nonce QR was shown as part of that wait, so the flag cannot outlive it.
+- Device: a multisig wallet being assembled, reviewed or kept is one explicit draft state. It replaces the `active` and `reviewing_own_descriptor` flags, and a reviewed description is marked kept only after it saves.
+- Device: a panic or CPU exception wipes the wallet state through its own zeroizers and then zeros every byte of the application root, so a field no zeroizer knows about cannot survive the fault.
+- Device: a hostile camera frame can no longer crash the QR decoder. The bundled rqrr fork rejects such a frame instead of panicking: a white or forgotten region, an image size that overflows, an unknown mask or a degenerate capstone. Its unused bitmap constructor was removed.
+- Device: the touch release barrier's progress is one explicit stage instead of three flags.
+- Every KasKold crate denies `clippy::cast_possible_truncation`, `undocumented_unsafe_blocks`, `struct_excessive_bools` and `fn_params_excessive_bools`.
+  - A value that might not fit is now converted with a checked step, which refuses it or caps it. It used to wrap silently: a FAT32 file over 4 GiB, a CMD42 password over 255 bytes, a card export over 64 KiB or an oversized EXIF directory each now fail cleanly.
+  - Constants are narrowed at compile time with `shared_signer::narrow!`.
+  - Firmware FAT32 code uses the shared sector-size constant from `kaskold-hardware-core`.
+  - Every `unsafe` block states why it is sound.
+- Device: the CMD42 card-unlock buffer, which holds the card password, is wiped on every path. Before, a password that was too long returned before the wipe.
+- Device: the QR camera lends its decode and crop buffers to each capture cycle instead of sharing them through raw pointers, and it wipes them when the camera screen closes. The last scanned frame no longer stays in memory.
+- Device: display coordinates go through one saturating helper, and the device has one icon drawer instead of three copies.
+- Device: the screen-dim and PIN-after-dim settings have their own actions instead of one handler that took four flags.
+- rqrr: pixel coordinates saturate instead of wrapping. The Galois-field tables use byte arithmetic. An oversized Kanji character is a decode error instead of a truncated one. An ECI designator is skipped by its declared length.
+- The firmware simulator's SD card model tracks a block write as one explicit state (awaiting the data token, then collecting the payload) instead of three fields that could disagree.
+- `run-all` lints the Companion web shell and the bundled rqrr fork with warnings denied on Windows and Linux. Before, only their CI workflows did.
+- The firmware simulator's encrypted-export tests take the PSRAM heap one at a time, as the device does. Run in parallel, two 6 MiB Argon2 workspaces could not both fit in the 8 MiB heap, so the tests failed at random.
+- `rustix` 1.1.6 in the `qa` and `tools` lockfiles clears RUSTSEC-2026-0486.
+- The CRAP report parser reads reports as UTF-8. On Windows without `PYTHONUTF8` it used the locale encoding, so it misread the report's box-drawing characters and said the summary was missing.
+- The security evidence checks follow the new review state. They now require the wallet app to approve and revoke `TransactionReview`, and the input tests to check `review_approved`.
+- The firmware's lint and build matrices cover every feature profile. The owner-firmware, secure-provisioning, secure-owner-only, mirror, skip-tests and hardware-tests profiles were never linted, and some had rotted: unchecked casts, `unsafe` blocks with no stated reason, an owner build that still compiled the release-key check, and on-device workflow tests that read a field that no longer exists. Each now builds and lints with warnings denied.
+- Device: owner firmware is staged one 4 KiB sector at a time. An image larger than the install request can describe is refused instead of wrapping its length.
+- Device: the developer screenshot mirror no longer holds a second, unused framebuffer copy, and it cannot panic when its memory layout is refused. The shadow framebuffer writes only pixels that lie on the panel.
+- Device: the destructive-action hold timer computes its progress in one place. The PSRAM benchmark probe moved into its own module, which only the benchmark build includes.
+- The architecture contracts follow the new state types: the multisig draft, the anti-klepto session, both derivation hints that anti-klepto binds, and the Portal covenant mass module.
+- `online-watcher` no longer has a `browser-api` feature. Only the fuzz targets turned it off, and that build had rotted into 278 dead-code warnings.
+
 - Device: passwords and PINs work on the CoreS3 again. Encrypted card exports, steganographic backups and restores, and a wallet saved with a PIN or password all failed with an allocation error. Each derived an 8 MiB Argon2id key, which could never fit in the device's 8 MiB of PSRAM because that memory is also its heap. Kaspa Portal's embedded profile is now 6 MiB. Encrypted files and saved wallets made before this change do not open. A steganographic restore also releases the photo's memory before deriving the key.
 
 - `make test-hardware` and `make workflow-e2e` now run on Windows. They used to start the Bash build script directly and stop with "not a valid Win32 application".

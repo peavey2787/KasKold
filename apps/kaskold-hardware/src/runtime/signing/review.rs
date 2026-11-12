@@ -61,7 +61,8 @@ pub fn verify_transaction_output_ownership_with_checkpoint(
     use crate::runtime::data::OutputOwnership;
     let mut ownership = [OutputOwnership::External; offline_signer::transaction::model::MAX_OUTPUTS];
 
-    let hinted = ad.signing.transaction.active.outputs().iter().filter(|output| output.has_derivation_hint).count();
+    let hinted =
+        ad.signing.transaction.active.outputs().iter().filter(|output| output.derivation_hint.is_some()).count();
     if hinted > 0 {
         let slot = ad.wallet.seeds.seed_mgr.active_slot().ok_or("No active wallet for output verification")?;
         let account = super::derivation::derive_slot_account_key_with_checkpoint(slot, checkpoint)
@@ -69,26 +70,25 @@ pub fn verify_transaction_output_ownership_with_checkpoint(
         checkpoint();
 
         for (index, output) in ad.signing.transaction.active.outputs().iter().enumerate() {
-            if !output.has_derivation_hint {
+            let Some(hint) = output.derivation_hint else {
                 continue;
-            }
-            if output.derivation_branch > 1 {
+            };
+            if hint.branch > 1 {
                 return Err("Invalid wallet output derivation hint");
             }
             checkpoint();
-            let xonly = hinted_output_xonly(&account, output).ok_or("Wallet output derivation failed")?;
+            let xonly = hinted_output_xonly(&account, hint).ok_or("Wallet output derivation failed")?;
             checkpoint();
             let matches = p2pk_matches(&output.script_public_key, &xonly);
             crate::log!(
                 "   TX ownership hint output={} branch={} index={} match={}",
                 index,
-                output.derivation_branch,
-                output.derivation_index,
+                hint.branch,
+                hint.index,
                 matches,
             );
             if matches {
-                ownership[index] =
-                    if output.derivation_branch == 1 { OutputOwnership::Change } else { OutputOwnership::Receive };
+                ownership[index] = if hint.branch == 1 { OutputOwnership::Change } else { OutputOwnership::Receive };
                 continue;
             }
 
@@ -100,15 +100,15 @@ pub fn verify_transaction_output_ownership_with_checkpoint(
                 p2pk_xonly(&output.script_public_key).ok_or("Hinted wallet output is not a P2PK script")?;
             checkpoint();
             let Some((actual_index, is_change)) =
-                find_owned_output_with_checkpoint(&account, &target_xonly, output.derivation_branch, checkpoint)
+                find_owned_output_with_checkpoint(&account, &target_xonly, hint.branch, checkpoint)
             else {
                 return Err("Transaction output does not belong to active wallet");
             };
             crate::log!(
                 "   TX ownership hint corrected output={} hinted={}/{} actual={}/{}",
                 index,
-                output.derivation_branch,
-                output.derivation_index,
+                hint.branch,
+                hint.index,
                 u8::from(is_change),
                 actual_index,
             );
@@ -116,11 +116,7 @@ pub fn verify_transaction_output_ownership_with_checkpoint(
         }
     }
 
-    verify_multisig_output_ownership(
-        &ad.signing.transaction.active,
-        &ad.signing.multisig.store.configs,
-        &mut ownership,
-    )?;
+    verify_multisig_output_ownership(&ad.signing.transaction.active, &ad.signing.multisig.store, &mut ownership)?;
     verify_kip22_output_ownership(ad, &mut ownership, checkpoint)?;
     ad.signing.transaction.output_ownership = ownership;
     Ok(())
@@ -169,14 +165,14 @@ fn verify_kip22_output_ownership(
 
 fn verify_multisig_output_ownership(
     tx: &offline_signer::transaction::model::Transaction,
-    configs: &[offline_signer::transaction::model::MultisigConfig],
+    store: &offline_signer::transaction::model::MultisigStore,
     ownership: &mut [OutputOwnership; offline_signer::transaction::model::MAX_OUTPUTS],
 ) -> Result<(), &'static str> {
-    if offline_signer::transaction::model::find_forged_change(tx, configs).is_some() {
+    if offline_signer::transaction::model::find_forged_change(tx, store).is_some() {
         return Err("Invalid multisig output derivation hint");
     }
     for (index, slot) in ownership.iter_mut().enumerate().take(tx.num_outputs) {
-        let Some(chain) = offline_signer::transaction::model::trusted_multisig_output_chain(tx, configs, index) else {
+        let Some(chain) = offline_signer::transaction::model::trusted_multisig_output_chain(tx, store, index) else {
             continue;
         };
         *slot = if chain == 1 { OutputOwnership::Change } else { OutputOwnership::Receive };
@@ -223,15 +219,12 @@ fn find_owned_output_with_checkpoint(
 
 fn hinted_output_xonly(
     account: &offline_signer::derivation::bip32::ExtendedPrivKey,
-    output: &offline_signer::transaction::model::TransactionOutput,
+    hint: offline_signer::transaction::model::Derivation,
 ) -> Option<[u8; 32]> {
-    if !output.has_derivation_hint || output.derivation_branch > 1 {
-        return None;
-    }
-    let child = if output.derivation_branch == 1 {
-        offline_signer::derivation::bip32::derive_change_key(account, output.derivation_index)
-    } else {
-        offline_signer::derivation::bip32::derive_address_key(account, output.derivation_index)
+    let child = match hint.branch {
+        0 => offline_signer::derivation::bip32::derive_address_key(account, hint.index),
+        1 => offline_signer::derivation::bip32::derive_change_key(account, hint.index),
+        _ => return None,
     }
     .ok()?;
     child.public_key_x_only().ok()

@@ -5,12 +5,14 @@
 #[cfg(target_arch = "xtensa")]
 #[inline(always)]
 pub(crate) unsafe fn read(address: u32) -> u32 {
+    // SAFETY: the caller guarantees `address` is a mapped, 4-byte-aligned peripheral register.
     unsafe { core::ptr::read_volatile(address as *const u32) }
 }
 
 #[cfg(target_arch = "xtensa")]
 #[inline(always)]
 pub(crate) unsafe fn write(address: u32, value: u32) {
+    // SAFETY: the caller guarantees `address` is a mapped, 4-byte-aligned peripheral register.
     unsafe { core::ptr::write_volatile(address as *mut u32, value) };
 }
 
@@ -20,10 +22,12 @@ pub(crate) use esp_hal::board::mmio::{read, write};
 
 #[inline(always)]
 pub(crate) unsafe fn set_bits(address: u32, mask: u32) {
+    // SAFETY: the caller guarantees `address` is a mapped, 4-byte-aligned peripheral register.
     unsafe { write(address, read(address) | mask) };
 }
 
 #[inline(always)]
 pub(crate) unsafe fn clear_bits(address: u32, mask: u32) {
+    // SAFETY: the caller guarantees `address` is a mapped, 4-byte-aligned peripheral register.
     unsafe { write(address, read(address) & !mask) };
 }

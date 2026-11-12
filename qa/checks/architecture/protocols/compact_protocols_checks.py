@@ -407,9 +407,8 @@ FIRMWARE_CORE_DEPENDENCY = (
 ANTI_KLEPTO_BINDINGS = (
     "left.network",
     "right.network",
-    "left.has_derivation_hint",
-    "left.derivation_branch",
-    "left.derivation_index",
+    "left.derivation_hint",
+    "right.derivation_hint",
 )
 
 

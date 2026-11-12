@@ -40,7 +40,7 @@ fn picture_error_messages_cover_every_public_error() {
 #[test]
 fn picture_fixture_round_trip_exercises_real_frame_huffman_and_codec_paths() {
     let payload = [0x5au8; 179];
-    let required = ((payload.len() + 2) * 8) as u32;
+    let required = u32::try_from((payload.len() + 2) * 8).unwrap();
     assert!(capacity_bits(NOISE_JPEG, KEY).expect("noise capacity") >= required);
     assert!(capacity_bits(FLAT_JPEG, KEY).expect("flat capacity") < required);
 
@@ -357,7 +357,7 @@ fn huffman_bit_io_and_permutation_cover_canonical_boundaries() {
 fn codec_block_helpers_cover_dc_ac_zero_run_and_encoding_boundaries() {
     fn table(symbols: &[u8], length: usize) -> huffman::HuffmanTable {
         let mut counts = [0u8; 16];
-        counts[length - 1] = symbols.len() as u8;
+        counts[length - 1] = u8::try_from(symbols.len()).unwrap();
         let mut table = huffman::HuffmanTable::empty();
         table.rebuild(&counts, symbols).expect("test huffman table");
         table

@@ -21,7 +21,7 @@ impl<'a> BootDisplay<'a> {
         ownership: &[crate::runtime::data::OutputOwnership; offline_signer::transaction::model::MAX_OUTPUTS],
     ) {
         self.display.clear(COLOR_BG).ok();
-        let total_pages = 1 + tx.num_outputs as u8;
+        let total_pages = u8::try_from(tx.num_outputs).unwrap_or(u8::MAX).saturating_add(1);
 
         if page == 0 {
             self.draw_tx_summary(tx, ownership);

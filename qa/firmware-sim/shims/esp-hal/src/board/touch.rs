@@ -39,10 +39,12 @@ pub fn read_registers(output: &mut [u8]) {
         };
         finger.reported = true;
         registers[0] = 1;
-        registers[1] = event | (finger.x >> 8) as u8;
-        registers[2] = finger.x as u8;
-        registers[3] = (finger.y >> 8) as u8;
-        registers[4] = finger.y as u8;
+        let [x_high, x_low] = finger.x.to_be_bytes();
+        let [y_high, y_low] = finger.y.to_be_bytes();
+        registers[1] = event | x_high;
+        registers[2] = x_low;
+        registers[3] = y_high;
+        registers[4] = y_low;
     }
     let count = output.len().min(registers.len());
     output[..count].copy_from_slice(&registers[..count]);

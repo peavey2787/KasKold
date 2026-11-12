@@ -56,7 +56,7 @@ impl RawData {
     /// Push a new bit into the bit stream
     pub fn push(&mut self, bit: bool) {
         assert!((self.len / 8) < MAX_PAYLOAD_SIZE);
-        let bitpos = (self.len & 7) as u8;
+        let bitpos = self.len & 7;
         let bytepos = self.len >> 3;
 
         if bit {
@@ -159,19 +159,20 @@ where
         Err(DeQRError::DataUnderflow)?
     }
 
-    let mut _eci = ds.take_bits(8) as u32;
-    if _eci & 0xc0 == 0x80 {
-        if ds.bits_remaining() < 8 {
-            Err(DeQRError::DataUnderflow)?
-        }
-        _eci = (_eci << 8) | (ds.take_bits(8) as u32)
-    } else if _eci & 0xe0 == 0xc0 {
-        if ds.bits_remaining() < 16 {
-            Err(DeQRError::DataUnderflow)?
-        }
-
-        _eci = (_eci << 16) | (ds.take_bits(16) as u32)
+    // The designator is skipped, not applied: read its continuation bytes so
+    // the stream stays aligned on the next segment.
+    let designator = ds.take_bits(8);
+    let continuation = if designator & 0xc0 == 0x80 {
+        8
+    } else if designator & 0xe0 == 0xc0 {
+        16
+    } else {
+        0
+    };
+    if ds.bits_remaining() < continuation {
+        Err(DeQRError::DataUnderflow)?
     }
+    ds.take_bits(continuation);
     Ok(())
 }
 
@@ -195,12 +196,13 @@ where
         let ms_b = d / 0xc0;
         let ls_b = d % 0xc0;
         let intermediate = (ms_b << 8) | ls_b;
-        let sjw = if intermediate + 0x8140 <= 0x9ffc {
+        let offset = if intermediate + 0x8140 <= 0x9ffc {
             /* bytes are in the range 0x8140 to 0x9FFC */
-            (intermediate + 0x8140) as u16
+            0x8140
         } else {
-            (intermediate + 0xc140) as u16
+            0xc140
         };
+        let sjw = u16::try_from(intermediate + offset).map_err(|_| DeQRError::EncodingError)?;
         writer
             .write_all(&[(sjw >> 8) as u8, (sjw & 0xff) as u8])
             .map_err(|_| DeQRError::IoError)?;
@@ -223,7 +225,7 @@ where
     }
 
     for _ in 0..count {
-        let buf = &[ds.take_bits(8) as u8];
+        let buf = &[ds.take_bits(8).to_le_bytes()[0]];
         writer.write_all(buf).map_err(|_| DeQRError::IoError)?;
     }
     Ok(())
@@ -322,7 +324,7 @@ fn numeric_tuple(
     } else {
         let mut tuple = ds.take_bits(nbits);
         for i in (0..digits).rev() {
-            buf[i] = (tuple % 10) as u8 + b'0';
+            buf[i] = (tuple % 10).to_le_bytes()[0] + b'0';
             tuple /= 10;
         }
         Ok(())
@@ -579,8 +581,10 @@ fn read_bit(code: &dyn BitGrid, meta: &MetaData, y: usize, x: usize, remove_mask
     v != 0
 }
 
+/// Whether mask pattern `mask` (only its low three bits name one) flips the
+/// module at row `y`, column `x`.
 fn mask_bit(mask: u16, y: usize, x: usize) -> bool {
-    match mask {
+    match mask & 7 {
         0 => 0 == (y + x) % 2,
         1 => 0 == y % 2,
         2 => 0 == x % 3,
@@ -588,8 +592,7 @@ fn mask_bit(mask: u16, y: usize, x: usize) -> bool {
         4 => 0 == ((y / 2) + (x / 3)) % 2,
         5 => 0 == ((y * x) % 2 + (y * x) % 3),
         6 => 0 == ((y * x) % 2 + (y * x) % 3) % 2,
-        7 => 0 == ((y * x) % 3 + (y + x) % 2) % 2,
-        _ => panic!("Unknown mask value"),
+        _ => 0 == ((y * x) % 3 + (y + x) % 2) % 2,
     }
 }
 

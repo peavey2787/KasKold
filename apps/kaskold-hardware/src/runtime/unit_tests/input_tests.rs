@@ -75,7 +75,7 @@ pub fn run_tests() -> (u32, u32) {
 
         // Go back to main menu, then test review flow
         app.go_main_menu();
-        app.start_review(2, 1);
+        app.start_review(2, 1, [0x11; 32]);
         let ok1 = app.state == AppState::ConfirmTx;
 
         // Inspect is optional: move Confirm → Cancel → Inspect and select.
@@ -93,7 +93,7 @@ pub fn run_tests() -> (u32, u32) {
 
         // Cursor resets to "Confirm" (0); long press authorizes signing.
         app.handle_boot(ButtonEvent::LongPress);
-        let ok5 = app.state == AppState::ConfirmTx && app.review_authorized;
+        let ok5 = app.state == AppState::ConfirmTx && app.review_approved();
 
         // Sign → QR → back to menu
         app.advance_signing();

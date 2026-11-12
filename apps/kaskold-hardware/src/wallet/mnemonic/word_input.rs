@@ -84,7 +84,7 @@ impl WordInput {
 
         let prefix = &self.prefix[..self.prefix_len];
 
-        for (idx, &word) in WORDLIST.iter().enumerate() {
+        for (&word, idx) in WORDLIST.iter().zip(0u16..) {
             let word_bytes = word.as_bytes();
             if word_bytes.len() >= self.prefix_len {
                 let matches = word_bytes[..self.prefix_len].iter().zip(prefix.iter()).all(|(a, b)| *a == *b);
@@ -93,13 +93,13 @@ impl WordInput {
                     self.match_count += 1;
 
                     if (self.num_suggestions as usize) < 4 {
-                        self.suggestions[self.num_suggestions as usize] = idx as u16;
+                        self.suggestions[self.num_suggestions as usize] = idx;
                         self.num_suggestions += 1;
                     }
 
                     // Exact match?
                     if word_bytes.len() == self.prefix_len {
-                        self.matched_index = Some(idx as u16);
+                        self.matched_index = Some(idx);
                     }
                 }
             }

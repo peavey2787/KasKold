@@ -10,7 +10,7 @@ pub(crate) fn delete_seed(ad: &mut AppData) -> bool {
     let index = usize::from(ad.wallet.seeds.pending_delete_slot);
     let mut deleted = false;
     if index < ad.wallet.seeds.seed_mgr.slots.len() && ad.wallet.seeds.seed_mgr.slot_visible(index) {
-        let was_active = ad.wallet.seeds.seed_mgr.active == index as u8;
+        let was_active = u8::try_from(index) == Ok(ad.wallet.seeds.seed_mgr.active);
         ad.wallet.seeds.seed_mgr.delete(index);
         if was_active {
             crate::services::wallet_session::clear_active_wallet(ad);

@@ -22,11 +22,9 @@ macro_rules! sync {
                 $persistent_wallet.record_rtc_floor(floor, &$ad.wallet.seeds.seed_mgr, &mut $i2c, &mut $delay)
             {
                 log!("Advanced signing policy floor save failed: {:?}", error);
-                let initial_counts = $ad.signing.anti_klepto.initial_sig_counts;
-                $crate::runtime::signing::rollback_added_signatures($ad, &initial_counts);
+                $crate::runtime::signing::abandon_anti_klepto($ad);
                 $ad.storage.persistence.pending_rtc_floor_unix = 0;
                 $ad.qr.outgoing.length = 0;
-                $ad.signing.anti_klepto.reset();
                 $crate::runtime::presentation::show_error_spec($ad, $crate::runtime::presentation::POLICY_SAVE);
                 continue;
             }

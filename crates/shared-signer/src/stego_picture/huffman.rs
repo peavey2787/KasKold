@@ -100,7 +100,8 @@ impl HuffmanTable {
         values: &[u8],
         code: i32,
     ) -> Result<(), PictureError> {
-        self.value_pointer[length] = value_index as i32;
+        self.value_pointer[length] =
+            i32::try_from(value_index).map_err(|_| PictureError::Malformed)?;
         self.minimum_code[length] = code;
         for offset in 0..count {
             let symbol = usize::from(
@@ -111,8 +112,9 @@ impl HuffmanTable {
             let offset_i32 = i32::try_from(offset).map_err(|_| PictureError::Malformed)?;
             self.encode_code[symbol] = code
                 .checked_add(offset_i32)
-                .ok_or(PictureError::Malformed)? as u16;
-            self.encode_size[symbol] = length as u8;
+                .and_then(|code| u16::try_from(code).ok())
+                .ok_or(PictureError::Malformed)?;
+            self.encode_size[symbol] = u8::try_from(length).map_err(|_| PictureError::Malformed)?;
         }
         Ok(())
     }
@@ -202,7 +204,7 @@ impl<'a> BitReader<'a> {
 pub(super) struct BitWriter<'a> {
     output: &'a mut [u8],
     pub(super) position: usize,
-    byte: u32,
+    byte: u8,
     remaining: u32,
     pub(super) overflowed: bool,
 }
@@ -228,10 +230,10 @@ impl<'a> BitWriter<'a> {
     }
 
     fn bit(&mut self, bit: u32) {
-        self.byte = (self.byte << 1) | (bit & 1);
+        self.byte = (self.byte << 1) | u8::from(bit & 1 == 1);
         self.remaining += 1;
         if self.remaining == 8 {
-            let byte = self.byte as u8;
+            let byte = self.byte;
             self.put(byte);
             if byte == 0xFF {
                 self.put(0x00);

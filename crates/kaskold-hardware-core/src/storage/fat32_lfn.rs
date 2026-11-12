@@ -1,6 +1,7 @@
 //! Pure FAT32 long-file-name accumulation and directory-entry classification.
 
-const MAX_LFN_PARTS: usize = 4;
+const MAX_LFN_PARTS: usize = MAX_LFN_SEQUENCE as usize;
+const MAX_LFN_SEQUENCE: u8 = 4;
 const UTF16_BYTES_PER_PART: usize = 26;
 const CHARS_PER_PART: usize = 13;
 const MAX_DISPLAY_BYTES: usize = 63;
@@ -52,7 +53,7 @@ impl LfnAccumulator {
             return;
         };
         let sequence = sequence_byte & 0x3F;
-        if !(1..=MAX_LFN_PARTS as u8).contains(&sequence)
+        if !(1..=MAX_LFN_SEQUENCE).contains(&sequence)
             || self.part_count >= MAX_LFN_PARTS
             || raw.len() < 32
         {

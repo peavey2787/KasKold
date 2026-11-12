@@ -40,7 +40,7 @@ impl PersistentWallet<'_> {
         journal::read_wallet_labels(&mut self.flash)?.apply(&mut ad.wallet.seeds.seed_mgr);
         ad.signing.multisig.store = journal::read_multisig_store(&mut self.flash)?;
         for (index, config) in ad.signing.multisig.store.configs.iter().enumerate() {
-            ad.signing.multisig.descriptor_persisted[index] = config.active;
+            ad.signing.multisig.descriptor_persisted[index] = config.is_some();
         }
         self.activate_restored(ad)
     }
@@ -54,7 +54,7 @@ impl PersistentWallet<'_> {
             return Ok(());
         }
         let active = ad.wallet.seeds.seed_mgr.active;
-        if active >= MAX_SLOTS as u8 {
+        if usize::from(active) >= MAX_SLOTS {
             return Ok(());
         }
         let slot = usize::from(active);

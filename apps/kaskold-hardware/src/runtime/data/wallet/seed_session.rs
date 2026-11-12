@@ -51,7 +51,7 @@ impl SeedSession {
         }
         self.clear_pending_wallet_name();
         self.pending_wallet_name[..name.len()].copy_from_slice(name);
-        self.pending_wallet_name_len = name.len() as u8;
+        self.pending_wallet_name_len = u8::try_from(name.len()).unwrap_or(u8::MAX);
         true
     }
 
@@ -73,7 +73,7 @@ impl SeedSession {
         self.clear_pending_bip39_passphrase();
         let len = passphrase.len().min(self.pending_bip39_passphrase.len());
         self.pending_bip39_passphrase[..len].copy_from_slice(&passphrase[..len]);
-        self.pending_bip39_passphrase_len = len as u8;
+        self.pending_bip39_passphrase_len = u8::try_from(len).unwrap_or(u8::MAX);
     }
 
     pub fn clear_pending_wallet_protection(&mut self) {

@@ -36,14 +36,13 @@ impl PersistentWallet<'_> {
             return Err(PersistError::OwnerFirmwareInvalid);
         }
         let digest: [u8; 32] = Sha256::digest(image).into();
-        let sectors = (image.len() + SECTOR_SIZE as usize - 1) / SECTOR_SIZE as usize;
-        for sector in 0..sectors {
+        let mut address = OWNER_STAGE_BASE;
+        for chunk in image.chunks(4096) {
             let mut block = AlignedBytes::<4096>::zeroed();
             block.0.fill(0xff);
-            let start = sector * 4096;
-            let end = core::cmp::min(start + 4096, image.len());
-            block.0[..end - start].copy_from_slice(&image[start..end]);
-            self.flash.replace_sector(OWNER_STAGE_BASE + (sector as u32) * SECTOR_SIZE, &block)?;
+            block.0[..chunk.len()].copy_from_slice(chunk);
+            self.flash.replace_sector(address, &block)?;
+            address += SECTOR_SIZE;
         }
         Ok(digest)
     }

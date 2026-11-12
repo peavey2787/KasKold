@@ -45,7 +45,7 @@ impl SeedManager {
             return None;
         }
         tmp.passphrase[..pp_len].copy_from_slice(&passphrase[..pp_len]);
-        tmp.passphrase_len = pp_len as u8;
+        tmp.passphrase_len = passphrase_len;
         if !tmp.compute_fingerprint() {
             return None;
         }
@@ -69,7 +69,7 @@ impl SeedManager {
             return None;
         }
         slot.passphrase[..pp_len].copy_from_slice(&passphrase[..pp_len]);
-        slot.passphrase_len = pp_len as u8;
+        slot.passphrase_len = passphrase_len;
         slot.fingerprint = tmp.fingerprint;
         slot.transient = transient;
         if !transient {

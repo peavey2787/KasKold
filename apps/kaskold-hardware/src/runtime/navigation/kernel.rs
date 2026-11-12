@@ -367,7 +367,7 @@ fn clear_abandoned_workflow(ad: &mut AppData) {
     #[cfg(not(feature = "hardware-tests"))]
     crate::runtime::event_loop::operation_engine::cancel_abandoned(ad);
     crate::runtime::presentation::clear_recoverable_modal(ad);
-    ad.navigation.app.review_authorized = false;
+    ad.navigation.app.end_review();
     ad.wallet.seeds.pp_input.reset();
     ad.wallet.seeds.touch_collector.reset();
     ad.wallet.seeds.clear_pending_seed_entropy();

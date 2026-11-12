@@ -7,6 +7,7 @@ use super::{
     RoundedRectangle, Size, COLOR_BG, COLOR_CARD, COLOR_CARD_BORDER, COLOR_HINT, COLOR_ORANGE, COLOR_TEXT,
     COLOR_TEXT_DIM, KASPA_TEAL,
 };
+use crate::ui::coordinates::coord;
 
 impl<'a> BootDisplay<'a> {
     /// Choose between metadata and compressed-image seed carriers.
@@ -21,7 +22,7 @@ impl<'a> BootDisplay<'a> {
             .ok();
 
         for (index, carrier) in crate::services::stego::CARRIERS.iter().enumerate() {
-            let top = 60 + index as i32 * 76;
+            let top = 60 + coord(index) * 76;
             let rect = Rectangle::new(Point::new(15, top), Size::new(290, 66));
             let corners = CornerRadii::new(Size::new(6, 6));
             RoundedRectangle::new(rect, corners)
@@ -53,7 +54,7 @@ impl<'a> BootDisplay<'a> {
             ("PORTABLE BACKUP", "Restore: JPEG + Password", "Works on another KasKold"),
         ];
         for (index, (label, description, tradeoff)) in rows.iter().enumerate() {
-            let top = 60 + index as i32 * 76;
+            let top = 60 + coord(index) * 76;
             let rect = Rectangle::new(Point::new(15, top), Size::new(290, 66));
             let corners = CornerRadii::new(Size::new(6, 6));
             RoundedRectangle::new(rect, corners)

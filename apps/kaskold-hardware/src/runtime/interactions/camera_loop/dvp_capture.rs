@@ -5,8 +5,7 @@
 //! ESP-HAL DVP capture path for the CoreS3 camera.
 
 use super::decoder::{handle_decode_result, rqrr_decode};
-use super::session::CycleBuffers;
-use super::state::CameraSessionState;
+use super::state::{CameraSessionState, CycleBuffers};
 use super::{display, AppData};
 use crate::runtime::interactions::DeviceIo;
 use crate::services::camera_device::{CameraPort, FrameCaptureStatus};
@@ -92,20 +91,15 @@ fn copy_dvp_decode_frame(data: &[u8], decode: &mut [u8], bpl: usize, full_h: usi
 /// Render the captured frame and copy it into the decode buffer.
 ///
 /// Returns the frame height when this frame should be QR-decoded.
-unsafe fn render_captured_frame(
+fn render_captured_frame(
     session: &mut CameraSessionState,
     ad: &mut AppData,
     boot_display: &mut display::BootDisplay<'_>,
-    buffers: &CycleBuffers,
+    buffers: &mut CycleBuffers,
     data: &[u8],
 ) -> Option<usize> {
-    // SAFETY: the camera loop allocates independent decode (320x240) and
-    // viewfinder crop (240x180) buffers for the lifetime of this capture.
-    // Convert the raw storage once at the reviewed boundary; helpers below
-    // operate only on bounded slices.
-    let decode = core::slice::from_raw_parts_mut(buffers.db_ptr, 320 * 240);
-    let crop = core::slice::from_raw_parts_mut(buffers.crop_ptr, 240 * 180);
-    let (full_h, frame_ok, is_decode_frame) = render_and_copy_frame(session, ad, boot_display, data, decode, crop);
+    let (full_h, frame_ok, is_decode_frame) =
+        render_and_copy_frame(session, ad, boot_display, data, &mut buffers.decode, &mut buffers.crop);
     if !frame_ok {
         return None;
     }
@@ -132,16 +126,14 @@ unsafe fn render_captured_frame(
 }
 
 /// Decode the centre 240x240 window of a rendered frame and route any QR result.
-unsafe fn decode_captured_frame(
+fn decode_captured_frame(
     session: &mut CameraSessionState,
     ad: &mut AppData,
     io: &mut DeviceIo<'_, '_, '_>,
-    buffers: &CycleBuffers,
+    buffers: &mut CycleBuffers,
     full_h: usize,
 ) {
-    // SAFETY: same reviewed decode buffer as `render_captured_frame`; the
-    // camera DMA buffer has already been released, so this is the only view.
-    let decode = core::slice::from_raw_parts_mut(buffers.db_ptr, 320 * 240);
+    let decode = buffers.decode.as_mut_slice();
     // m5stack: crop center 240x240 from 320x240 for rqrr.
     // Compact rows in-place in DB buffer.
     let rqw: usize = 240;
@@ -163,12 +155,12 @@ unsafe fn decode_captured_frame(
     }
 }
 
-pub(super) unsafe fn run_capture(
+pub(super) fn run_capture(
     session: &mut CameraSessionState,
     ad: &mut AppData,
     io: &mut DeviceIo<'_, '_, '_>,
     camera: &mut CameraPort<'_>,
-    buffers: &CycleBuffers,
+    buffers: &mut CycleBuffers,
 ) -> CaptureOutcome {
     let mut decode_rows = None;
     let status = camera.capture(io.delay, |frame| {

@@ -53,7 +53,8 @@ pub(super) fn process(
     };
     boot_display.update_progress_bar(30);
     let response = match offline_signer::stealth::scan_request_with_progress(&account_key, input, |completed, total| {
-        boot_display.update_progress_bar(30 + (completed * 60 / total) as u8);
+        let step = (completed * 60).checked_div(total).unwrap_or(0).min(60);
+        boot_display.update_progress_bar(30 + u8::try_from(step).unwrap_or(60));
     }) {
         Ok(response) => response,
         Err(error) => {

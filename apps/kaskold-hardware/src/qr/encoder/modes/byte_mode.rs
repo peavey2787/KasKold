@@ -17,7 +17,7 @@ pub fn encode(data: &[u8]) -> Result<QrCode, QrError> {
     let mut data_codewords = [0u8; 160];
     let mut writer = BitWriter::new(&mut data_codewords);
     writer.write_bits(0b0100, 4);
-    writer.write_bits(data.len() as u32, 8);
+    writer.write_bits(u32::try_from(data.len()).map_err(|_| QrError::DataTooLong)?, 8);
     for &byte in data {
         writer.write_bits(byte as u32, 8);
     }

@@ -14,8 +14,18 @@ pub enum CovenantSigningMode {
 pub enum CovenantSigningPhase {
     Idle,
     Prepared,
-    AwaitingReveal,
+    /// The nonce is committed; the host's reveal is due once its QR was shown.
+    AwaitingReveal {
+        nonce_shown: bool,
+    },
     FinalResponse,
+}
+
+impl CovenantSigningPhase {
+    #[must_use]
+    pub const fn awaiting_reveal(self) -> bool {
+        matches!(self, Self::AwaitingReveal { .. })
+    }
 }
 
 pub struct CovenantSigningState {
@@ -37,7 +47,6 @@ pub struct CovenantSigningState {
     pub signature: [u8; 64],
     pub response: [u8; shared_signer::covenant_sign::RESPONSE_LEN],
     pub response_len: usize,
-    pub nonce_qr_shown: bool,
     /// One device-generated, not-yet-bound covenant key allocation. This is
     /// non-secret and intentionally survives workflow resets until it is bound
     /// or replaced by a newer key allocation.
@@ -66,7 +75,6 @@ impl CovenantSigningState {
             signature: [0; 64],
             response: [0; shared_signer::covenant_sign::RESPONSE_LEN],
             response_len: 0,
-            nonce_qr_shown: false,
             pending_key_id: [0; 32],
             pending_pubkey_x: [0; 32],
         }
@@ -94,7 +102,6 @@ impl CovenantSigningState {
         self.context_len = 0;
         self.context_page = 0;
         self.response_len = 0;
-        self.nonce_qr_shown = false;
     }
 
     pub fn replace_pending_allocation(&mut self, key_id: [u8; 32], pubkey_x: [u8; 32]) {

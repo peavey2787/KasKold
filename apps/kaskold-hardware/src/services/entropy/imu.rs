@@ -44,7 +44,7 @@ pub(super) fn mix_seed_sample(
         // Fixed domain separator: changing it changes every derived seed.
         hasher.update(b"KasSigner-seed-imu-v2");
         hasher.update(*sample);
-        hasher.update((count as u32).to_le_bytes());
+        hasher.update(u32::try_from(count).unwrap_or(u32::MAX).to_le_bytes());
         hasher.update([source_tag]);
         mixer::xor_digest(pool, &hasher.finalize());
     }

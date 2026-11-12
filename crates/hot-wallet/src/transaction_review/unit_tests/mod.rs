@@ -4,7 +4,7 @@ use offline_signer::{
     derivation::bip32::{
         derive_account_key, derive_address_key, derive_change_key, ADDR_SCAN_DEPTH,
     },
-    transaction::model::{SigHashType, TransactionInput, TransactionOutput},
+    transaction::model::{Derivation, SigHashType, TransactionInput, TransactionOutput},
 };
 
 const MNEMONIC: &str =
@@ -38,9 +38,7 @@ fn p2sh(hash: &[u8; 32]) -> Vec<u8> {
 
 fn hinted_output(branch: u8, index: u32, xonly: &[u8; 32]) -> TransactionOutput {
     let mut output = TransactionOutput::empty();
-    output.has_derivation_hint = true;
-    output.derivation_branch = branch;
-    output.derivation_index = index;
+    output.derivation_hint = Some(Derivation { branch, index });
     output.script_public_key = script(&p2pk(xonly));
     output
 }
@@ -123,11 +121,25 @@ fn hinted_keys_follow_the_hinted_branch() {
         .unwrap();
     assert_ne!(receive, change);
     assert_eq!(
-        hinted_output_xonly(&account, &hinted_output(0, 3, &receive)).unwrap(),
+        hinted_output_xonly(
+            &account,
+            Derivation {
+                branch: 0,
+                index: 3
+            }
+        )
+        .unwrap(),
         receive
     );
     assert_eq!(
-        hinted_output_xonly(&account, &hinted_output(1, 3, &change)).unwrap(),
+        hinted_output_xonly(
+            &account,
+            Derivation {
+                branch: 1,
+                index: 3
+            }
+        )
+        .unwrap(),
         change
     );
 
@@ -153,7 +165,7 @@ fn verified_hints_beyond_the_scan_window_still_label_owned_outputs() {
 
     // A hint naming a non-wallet branch is not trusted, and the scan window
     // does not reach this index, so the output stays external.
-    transaction.outputs[0].derivation_branch = 2;
+    transaction.outputs[0] = hinted_output(2, index, &receive);
     let mut ownership = [OutputOwnership::External];
     verify_account_hints(&transaction, &account, &mut ownership).unwrap();
     assert_eq!(ownership, [OutputOwnership::External]);

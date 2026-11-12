@@ -80,7 +80,7 @@ fn scan_request(ctx: &mut SigningContext<'_, '_, '_>) -> Option<[u8; shared_sign
     let request = request_wire(ctx, &HOST_SECRET)?;
     let session = shared_signer::anti_klepto::parse_request(&request).ok()?.session_id;
     crate::runtime::interactions::camera_loop::workflow_process_anti_klepto_payload(&request, ctx.ad);
-    (ctx.ad.signing.anti_klepto.phase == AntiKleptoPhase::Reviewing
+    (ctx.ad.signing.anti_klepto.phase() == AntiKleptoPhase::Reviewing
         && ctx.ad.navigation.app.state == AppState::ConfirmTx)
         .then_some(session)
 }
@@ -94,7 +94,7 @@ fn sign_to_commitment(
     }
     if !crate::runtime::signing::workflow_signing_step(ctx.ad)
         || !crate::runtime::signing::workflow_signing_step(ctx.ad)
-        || ctx.ad.signing.anti_klepto.phase != AntiKleptoPhase::AwaitingReveal
+        || ctx.ad.signing.anti_klepto.phase() != AntiKleptoPhase::AwaitingReveal
         || ctx.ad.navigation.app.state != AppState::ShowQR
     {
         return false;
@@ -114,14 +114,14 @@ fn sign_to_commitment(
 fn enter_reveal_scan(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
     if ctx.menu_touch(TouchInput::new(160, 120, false)) != Some(true)
         || ctx.ad.navigation.app.state != AppState::AntiKleptoRevealGuide
-        || ctx.ad.signing.anti_klepto.phase != AntiKleptoPhase::AwaitingReveal
+        || ctx.ad.signing.anti_klepto.phase() != AntiKleptoPhase::AwaitingReveal
     {
         return false;
     }
     let ok = crate::ui::layout::ERROR_OK_ZONE;
     ctx.tx_touch(TouchInput::new(ok.x + ok.w / 2, ok.y + ok.h / 2, false)) == Some(true)
         && ctx.ad.navigation.app.state == AppState::ScanQR
-        && ctx.ad.signing.anti_klepto.phase == AntiKleptoPhase::AwaitingReveal
+        && ctx.ad.signing.anti_klepto.phase() == AntiKleptoPhase::AwaitingReveal
 }
 
 fn reveal_wire(
@@ -185,7 +185,7 @@ fn reveal_session_reject(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
     if !process_reveal(ctx, &session, &HOST_SECRET) {
         return false;
     }
-    let rolled_back = (0..2).all(|index| ctx.ad.signing.transaction.active.inputs[index].sig_count == 0);
+    let rolled_back = (0..2).all(|index| ctx.ad.signing.transaction.active.inputs[index].sigs.is_empty());
     let ok = ctx.ad.navigation.app.state == AppState::Rejected && rolled_back && ctx.dismiss_scan_rejection_to_home();
     if ok {
         log!("KASKOLD_WORKFLOW_TESTS: ANTI-KLEPTO SESSION-MISMATCH/ROLLBACK PASS");
@@ -219,7 +219,7 @@ fn successful_round_trip(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
         return false;
     }
     if ctx.ad.navigation.app.state != AppState::ShowQrModeChoice
-        || ctx.ad.signing.anti_klepto.phase != AntiKleptoPhase::FinalResponse
+        || ctx.ad.signing.anti_klepto.phase() != AntiKleptoPhase::FinalResponse
         || ctx.ad.qr.outgoing.frame_count <= 1
     {
         return false;
@@ -244,7 +244,9 @@ fn successful_round_trip(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
 }
 
 fn replay_reject(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
-    let session = ctx.ad.signing.anti_klepto.session_id;
+    let Some(session) = ctx.ad.signing.anti_klepto.session().map(|session| session.session_id) else {
+        return false;
+    };
     if ctx.menu_touch(TouchInput::new(160, 120, false)) != Some(true) || !super::super::root::home_ok(ctx.ad) {
         return false;
     }

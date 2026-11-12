@@ -34,14 +34,15 @@ pub struct GF256(pub u8);
 // EXP[255] = EXP[0] = 1 for wrap-around
 const GF256_EXP: [u8; 512] = {
     let mut exp = [0u8; 512];
-    let mut val: u16 = 1;
+    let mut val: u8 = 1;
     let mut i = 0;
     while i < 255 {
-        exp[i] = val as u8;
-        exp[i + 255] = val as u8;
+        exp[i] = val;
+        exp[i + 255] = val;
+        let carry = val & 0x80 != 0;
         val <<= 1;
-        if val & 0x100 != 0 {
-            val ^= 0x11D; // modulus
+        if carry {
+            val ^= 0x1D; // modulus 0x11D, its x^8 term shifted out
         }
         i += 1;
     }
@@ -51,9 +52,9 @@ const GF256_EXP: [u8; 512] = {
 // Log table: inverse of exp. LOG[0] is undefined (set to 0).
 const GF256_LOG: [u8; 256] = {
     let mut log = [0u8; 256];
-    let mut i = 0;
+    let mut i: u8 = 0;
     while i < 255 {
-        log[GF256_EXP[i] as usize] = i as u8;
+        log[GF256_EXP[i as usize] as usize] = i;
         i += 1;
     }
     log
@@ -133,11 +134,11 @@ pub struct GF16(pub u8);
 // Exp table: GENERATOR^i for i=0..14
 const GF16_EXP: [u8; 30] = {
     let mut exp = [0u8; 30];
-    let mut val: u16 = 1;
+    let mut val: u8 = 1;
     let mut i = 0;
     while i < 15 {
-        exp[i] = val as u8;
-        exp[i + 15] = val as u8;
+        exp[i] = val;
+        exp[i + 15] = val;
         val <<= 1;
         if val & 0x10 != 0 {
             val ^= 0x13; // modulus
@@ -149,9 +150,9 @@ const GF16_EXP: [u8; 30] = {
 
 const GF16_LOG: [u8; 16] = {
     let mut log = [0u8; 16];
-    let mut i = 0;
+    let mut i: u8 = 0;
     while i < 15 {
-        log[GF16_EXP[i] as usize] = i as u8;
+        log[GF16_EXP[i as usize] as usize] = i;
         i += 1;
     }
     log

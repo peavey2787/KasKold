@@ -56,23 +56,28 @@ fn exercise_secret_bearing_stack_path() {
     STACK_PROBE_LOW.store(low, Ordering::Relaxed);
     STACK_PROBE_HIGH.store(low.saturating_add(STACK_PROBE_BYTES), Ordering::Release);
     for (offset, byte) in SENTINEL.iter().copied().enumerate() {
+        // SAFETY: offsets 128..160 lie inside the 2048-byte `scratch` array this frame owns.
         unsafe {
             core::ptr::write_volatile(scratch.as_mut_ptr().add(128 + offset), byte);
         }
+        // SAFETY: offsets 896..928 lie inside the 2048-byte `scratch` array this frame owns.
         unsafe {
             core::ptr::write_volatile(scratch.as_mut_ptr().add(896 + offset), byte);
         }
+        // SAFETY: offsets 1664..1696 lie inside the 2048-byte `scratch` array this frame owns.
         unsafe {
             core::ptr::write_volatile(scratch.as_mut_ptr().add(1664 + offset), byte);
         }
     }
     let digest: [u8; 32] = Sha256::digest(&scratch[896..928]).into();
     for (offset, byte) in digest.iter().copied().enumerate() {
+        // SAFETY: offsets 1408..1440 lie inside the 2048-byte `scratch` array this frame owns.
         unsafe {
             core::ptr::write_volatile(scratch.as_mut_ptr().add(1408 + offset), byte);
         }
     }
     // Keep the whole stack object observable until the frame returns.
+    // SAFETY: offset 1664 lies inside `scratch`, which was fully initialized above.
     let observed = unsafe { core::ptr::read_volatile(scratch.as_ptr().add(1664)) };
     core::hint::black_box(observed);
     core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
@@ -116,7 +121,10 @@ fn count_stack_remanence() -> usize {
 
 fn marker_at(address: usize) -> bool {
     for index in 0..SENTINEL.len() {
+        // SAFETY: `count_stack_remanence` passes only addresses whose whole marker window lies in
+        // `remanence_bounds`: the retired probe frame, below the live stack pointer and its margin.
         let stack_byte = unsafe { core::ptr::read_volatile((address + index) as *const u8) };
+        // SAFETY: `index` is below `SENTINEL.len()`, so the read stays inside the static marker.
         let marker_byte = unsafe { core::ptr::read_volatile(SENTINEL.as_ptr().add(index)) };
         if stack_byte != marker_byte {
             return false;
@@ -131,6 +139,8 @@ fn wipe_unused_stack_remanence() {
     };
     let mut address = low;
     while address < high {
+        // SAFETY: `address` lies in `remanence_bounds`: the retired probe frame, below the live
+        // stack pointer and its margin, so no live object owns it.
         unsafe {
             core::ptr::write_volatile(address as *mut u8, 0);
         }

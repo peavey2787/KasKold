@@ -29,17 +29,17 @@ fn csd_sector_count_handles_v1_and_v2() {
     let mut v2 = [0u8; 16];
     v2[0] = 1 << 6;
     let c_size = 0x3fff_u32;
-    v2[7] = ((c_size >> 16) as u8) & 0x3f;
-    v2[8] = (c_size >> 8) as u8;
-    v2[9] = c_size as u8;
+    v2[7] = ((c_size >> 16).to_le_bytes()[0]) & 0x3f;
+    v2[8] = (c_size >> 8).to_le_bytes()[0];
+    v2[9] = c_size.to_le_bytes()[0];
     assert_eq!(csd_sector_count(&v2), Ok(16_777_216));
 
     let mut v1 = [0u8; 16];
     v1[5] = 9; // READ_BL_LEN = 512 bytes
     let c_size = 1023_u32;
-    v1[6] = ((c_size >> 10) as u8) & 0x03;
-    v1[7] = (c_size >> 2) as u8;
-    v1[8] = ((c_size & 0x03) << 6) as u8;
+    v1[6] = ((c_size >> 10).to_le_bytes()[0]) & 0x03;
+    v1[7] = (c_size >> 2).to_le_bytes()[0];
+    v1[8] = ((c_size & 0x03) << 6).to_le_bytes()[0];
     let mult = 7_u8;
     v1[9] = (mult >> 1) & 0x03;
     v1[10] = (mult & 1) << 7;

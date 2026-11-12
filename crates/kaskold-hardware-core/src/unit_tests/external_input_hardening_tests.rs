@@ -12,7 +12,7 @@ fn externally_controlled_firmware_parsers_are_total_over_truncated_and_noise_inp
         let mut bytes = std::vec![0u8; len];
         for byte in &mut bytes {
             seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
-            *byte = (seed >> 32) as u8;
+            *byte = (seed >> 32).to_le_bytes()[0];
         }
         let data = bytes.as_slice();
         let result = std::panic::catch_unwind(|| {
@@ -41,7 +41,7 @@ fn fat32_and_esp_metadata_parsers_are_total_over_noise() {
             seed = seed
                 .wrapping_mul(2862933555777941757)
                 .wrapping_add(3037000493);
-            *byte = (seed >> 24) as u8;
+            *byte = (seed >> 24).to_le_bytes()[0];
         }
         let result = std::panic::catch_unwind(|| {
             let _ = fat32_metadata::parse_boot_sector(&sector);

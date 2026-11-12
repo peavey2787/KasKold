@@ -63,10 +63,11 @@ fn start_key_collection(ad: &mut AppData) -> bool {
     }
 
     ad.wallet.seeds.clear_multisig_wallet_return();
-    ad.signing.multisig.creating = offline_signer::transaction::model::MultisigConfig::new();
-    ad.signing.multisig.creating.m = threshold;
-    ad.signing.multisig.creating.n = participants;
-    ad.signing.multisig.creating.v45 = true;
+    let mut config = offline_signer::transaction::model::MultisigConfig::new();
+    config.m = threshold;
+    config.n = participants;
+    config.family = offline_signer::transaction::model::MultisigFamily::HD45_UNRESOLVED;
+    ad.signing.multisig.begin(config, crate::runtime::data::MultisigDraft::Assembling);
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigAddKey { key_idx: 0 }));
     true
 }

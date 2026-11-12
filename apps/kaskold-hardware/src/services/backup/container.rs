@@ -175,7 +175,7 @@ fn write_current_header(
     out[9] = kind.code();
     out[10] = KDF_ID_DEVICE_HMAC_SHA256;
     out[11] = CredentialKind::Password as u8;
-    out[12..14].copy_from_slice(&(payload_len as u16).to_le_bytes());
+    out[12..14].copy_from_slice(&u16::try_from(payload_len).map_err(|_| BackupError::InvalidLength)?.to_le_bytes());
     let metadata = password_kdf::encode_metadata(PasswordKdfParams::current()).map_err(map_kdf_error)?;
     out[16..28].copy_from_slice(&metadata);
     out[28..44].copy_from_slice(salt);

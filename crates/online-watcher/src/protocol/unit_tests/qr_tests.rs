@@ -71,7 +71,10 @@ fn qr_generation_covers_invalid_empty_single_multi_and_oversized_payloads() {
     assert!(multi
         .iter()
         .enumerate()
-        .all(|(index, frame)| frame.frame_num == index as u8 && frame.total_frames == 3));
+        .all(
+            |(index, frame)| frame.frame_num == u8::try_from(index).unwrap()
+                && frame.total_frames == 3
+        ));
 
     let oversized = vec![
         0x33;

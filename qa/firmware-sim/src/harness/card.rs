@@ -16,7 +16,8 @@ const COMPUTER_PARTITION_START: usize = 8192;
 const COMPUTER_RESERVED_BLOCKS: u16 = 32;
 const COMPUTER_BLOCKS_PER_CLUSTER: u8 = 64;
 const COMPUTER_FAT_BLOCKS: u32 = 2048;
-const COMPUTER_TOTAL_BLOCKS: u32 = 16 * 1024 * 1024 - COMPUTER_PARTITION_START as u32;
+const COMPUTER_TOTAL_BLOCKS: u32 =
+    16 * 1024 * 1024 - shared_signer::narrow!(u32, COMPUTER_PARTITION_START);
 const ROOT_CLUSTER: u32 = 2;
 const BOOT_SIGNATURE_AT: usize = 510;
 const FAT32_LBA_PARTITION: u8 = 0x0C;
@@ -38,8 +39,8 @@ struct Volume {
     root_cluster: u32,
 }
 
-fn little_u16(block: &[u8], at: usize) -> usize {
-    usize::from(u16::from_le_bytes([block[at], block[at + 1]]))
+fn little_u16(block: &[u8], at: usize) -> u16 {
+    u16::from_le_bytes([block[at], block[at + 1]])
 }
 
 fn little_u32(block: &[u8], at: usize) -> u32 {
@@ -59,7 +60,7 @@ fn volume() -> Volume {
         FILESYSTEM_MARK,
         "the card holds no FAT32 volume"
     );
-    let fat = start + little_u16(&boot, 14);
+    let fat = start + usize::from(little_u16(&boot, 14));
     let fats = usize::from(boot[16]);
     let fat_blocks = little_u32(&boot, 36) as usize;
     Volume {
@@ -147,9 +148,10 @@ impl Volume {
         let mut entry = [0u8; DIRECTORY_ENTRY];
         entry[..11].copy_from_slice(name);
         entry[11] = kind;
-        entry[20..22].copy_from_slice(&((first_cluster >> 16) as u16).to_le_bytes());
-        entry[26..28].copy_from_slice(&(first_cluster as u16).to_le_bytes());
-        entry[28..32].copy_from_slice(&(size as u32).to_le_bytes());
+        let [low0, low1, high0, high1] = first_cluster.to_le_bytes();
+        entry[20..22].copy_from_slice(&[high0, high1]);
+        entry[26..28].copy_from_slice(&[low0, low1]);
+        entry[28..32].copy_from_slice(&u32::try_from(size).unwrap().to_le_bytes());
         self.append_raw_entry(&entry);
     }
 
@@ -175,7 +177,7 @@ impl Volume {
         let parts = long.encode_utf16().count().div_ceil(LONG_PART_CHARS);
         for part in (0..parts).rev() {
             let mut entry = [0xFFu8; DIRECTORY_ENTRY];
-            let sequence = part as u8 + 1;
+            let sequence = u8::try_from(part).unwrap() + 1;
             entry[0] = sequence | if part + 1 == parts { LAST_LONG_PART } else { 0 };
             entry[11] = LONG_NAME;
             entry[12] = 0;
@@ -229,7 +231,7 @@ impl Volume {
                 continue;
             }
             let name = String::from_utf8_lossy(&entry[..11]).into_owned();
-            let first = (little_u16(entry, 20) as u32) << 16 | little_u16(entry, 26) as u32;
+            let first = u32::from(little_u16(entry, 20)) << 16 | u32::from(little_u16(entry, 26));
             let chain = self.chain_of(first);
             for cluster in &chain {
                 if let Some(other) = owners.insert(*cluster, name.clone()) {
@@ -273,8 +275,8 @@ impl Volume {
                 let block = sd::read_block(block_at);
                 let entry = &block[offset..offset + DIRECTORY_ENTRY];
                 (&entry[..11] == name).then(|| {
-                    let high = little_u16(entry, 20) as u32;
-                    let low = little_u16(entry, 26) as u32;
+                    let high = u32::from(little_u16(entry, 20));
+                    let low = u32::from(little_u16(entry, 26));
                     (high << 16 | low, little_u32(entry, 28) as usize)
                 })
             })
@@ -337,7 +339,7 @@ pub(crate) fn format_like_a_computer() {
     let mut table = [0u8; BLOCK];
     table[446 + 4] = FAT32_LBA_PARTITION;
     table[PARTITION_START_AT..PARTITION_START_AT + 4]
-        .copy_from_slice(&(COMPUTER_PARTITION_START as u32).to_le_bytes());
+        .copy_from_slice(&shared_signer::narrow!(u32, COMPUTER_PARTITION_START).to_le_bytes());
     table[PARTITION_START_AT + 4..PARTITION_START_AT + 8]
         .copy_from_slice(&COMPUTER_TOTAL_BLOCKS.to_le_bytes());
     table[BOOT_SIGNATURE_AT..].copy_from_slice(&[0x55, 0xAA]);
@@ -346,7 +348,7 @@ pub(crate) fn format_like_a_computer() {
     let mut boot = [0u8; BLOCK];
     boot[..3].copy_from_slice(&[0xEB, 0x58, 0x90]);
     boot[3..11].copy_from_slice(b"MSDOS5.0");
-    boot[11..13].copy_from_slice(&(BLOCK as u16).to_le_bytes());
+    boot[11..13].copy_from_slice(&shared_signer::narrow!(u16, BLOCK).to_le_bytes());
     boot[13] = COMPUTER_BLOCKS_PER_CLUSTER;
     boot[14..16].copy_from_slice(&COMPUTER_RESERVED_BLOCKS.to_le_bytes());
     boot[16] = 2;

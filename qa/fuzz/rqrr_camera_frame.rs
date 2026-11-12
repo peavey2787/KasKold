@@ -18,9 +18,11 @@ fuzz_target!(|data: &[u8]| {
     }
     let width = 16 + usize::from(width);
     let height = 16 + usize::from(height);
-    let mut image = rqrr::PreparedImage::prepare_from_greyscale(width, height, |x, y| {
+    let Some(mut image) = rqrr::PreparedImage::prepare_from_greyscale(width, height, |x, y| {
         pixels[(y * width + x) % pixels.len()]
-    });
+    }) else {
+        return;
+    };
     for grid in image.detect_grids() {
         let mut decoded = Vec::new();
         let _ = grid.decode_to(&mut decoded);

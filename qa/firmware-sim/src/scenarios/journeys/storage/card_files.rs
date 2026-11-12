@@ -58,7 +58,7 @@ fn sign_a_plain_file() {
     let saved = card::read_file(SAVED_FILE).expect("the signed file on the card");
     let signed = decode_compact_kspt(&saved).expect("a signed transaction");
     assert!(
-        signed.inputs[0].sig_count >= 1,
+        !signed.inputs[0].sigs.is_empty(),
         "the saved file is unsigned"
     );
     assert_eq!(signed.outputs[0].value, 150_000_000);

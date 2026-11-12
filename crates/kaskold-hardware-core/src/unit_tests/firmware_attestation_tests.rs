@@ -56,7 +56,7 @@ fn signature_prefix_extracts_the_secure_boot_image_digest() {
     prefix[0] = 0xE7;
     prefix[1] = 0x02;
     for (index, byte) in prefix[4..36].iter_mut().enumerate() {
-        *byte = index as u8;
+        *byte = u8::try_from(index).unwrap();
     }
     let digest = parse_signature_digest(&prefix).unwrap();
     assert_eq!(digest[0], 0);

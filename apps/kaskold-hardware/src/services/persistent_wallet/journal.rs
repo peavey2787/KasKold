@@ -89,7 +89,7 @@ impl WalletLabels {
                 continue;
             }
             let len = usize::from(slot.name_len).min(WALLET_NAME_MAX);
-            labels.lengths[index] = len as u8;
+            labels.lengths[index] = u8::try_from(len).unwrap_or(u8::MAX);
             labels.names[index][..len].copy_from_slice(&slot.name[..len]);
         }
         labels
@@ -120,34 +120,27 @@ pub(super) struct WalletActivationRecord {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct WalletActivationRecords {
-    present: [bool; MAX_SLOTS],
-    records: [WalletActivationRecord; MAX_SLOTS],
+    records: [Option<WalletActivationRecord>; MAX_SLOTS],
 }
 
 impl WalletActivationRecords {
     pub const fn empty() -> Self {
-        Self {
-            present: [false; MAX_SLOTS],
-            records: [WalletActivationRecord { salt: [0; SALT_SIZE], verifier: [0; 32] }; MAX_SLOTS],
-        }
+        Self { records: [None; MAX_SLOTS] }
     }
     pub fn get(&self, slot: usize) -> Option<WalletActivationRecord> {
-        (slot < MAX_SLOTS && self.present[slot]).then_some(self.records[slot])
+        self.records.get(slot).copied().flatten()
     }
     pub fn set(&mut self, slot: usize, record: WalletActivationRecord) -> bool {
-        if slot >= MAX_SLOTS {
+        let Some(entry) = self.records.get_mut(slot) else {
             return false;
-        }
-        self.present[slot] = true;
-        self.records[slot] = record;
+        };
+        *entry = Some(record);
         true
     }
     pub fn clear(&mut self, slot: usize) {
-        if slot >= MAX_SLOTS {
-            return;
+        if let Some(entry) = self.records.get_mut(slot) {
+            *entry = None;
         }
-        self.present[slot] = false;
-        self.records[slot] = WalletActivationRecord { salt: [0; SALT_SIZE], verifier: [0; 32] };
     }
 }
 

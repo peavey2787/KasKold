@@ -22,7 +22,7 @@ pub(crate) fn test_sram() -> bool {
     if !write_and_verify(&mut buffer, |index, _| 1u8 << (index % 8)) {
         return false;
     }
-    if !write_and_verify(&mut buffer, |index, _| ((index ^ 0xA5) & 0xFF) as u8) {
+    if !write_and_verify(&mut buffer, |index, _| (index ^ 0xA5).to_le_bytes()[0]) {
         return false;
     }
     zeroize_bytes(&mut buffer);
@@ -38,6 +38,7 @@ where
     }
     compiler_fence(Ordering::SeqCst);
     for (index, byte) in buffer.iter().enumerate() {
+        // SAFETY: `byte` is a reference into a live slice, so the pointer is valid and aligned.
         let observed = unsafe { core::ptr::read_volatile(byte as *const u8) };
         if observed != pattern(index, observed) {
             return false;
@@ -47,6 +48,7 @@ where
 }
 
 pub(crate) fn test_mapped_flash() -> bool {
+    // SAFETY: the flash data segment is mapped read-only at DATA_SEGMENT_BASE for the whole run and spans FLASH_TEST_READ_SIZE bytes.
     let data = unsafe { core::slice::from_raw_parts(DATA_SEGMENT_BASE as *const u8, FLASH_TEST_READ_SIZE) };
     let mut all_ff = true;
     let mut all_zero = true;
@@ -54,6 +56,7 @@ pub(crate) fn test_mapped_flash() -> bool {
     let mut unique_count = 0u32;
 
     for byte in data {
+        // SAFETY: `byte` is a reference into a live slice, so the pointer is valid and aligned.
         let value = unsafe { core::ptr::read_volatile(byte as *const u8) };
         all_ff &= value == 0xFF;
         all_zero &= value == 0x00;

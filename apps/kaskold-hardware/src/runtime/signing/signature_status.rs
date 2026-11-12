@@ -11,18 +11,18 @@ pub(super) fn update_pskt(ad: &mut AppData) {
     update(ad, present, required);
 }
 
-pub(crate) fn rollback_added_signatures(ad: &mut AppData, initial_counts: &[u8]) {
-    use offline_signer::transaction::model::InputSig;
+/// End any anti-klepto session and take back the signatures it added.
+pub(crate) fn abandon_anti_klepto(ad: &mut AppData) {
+    if let Some(initial_counts) = ad.signing.anti_klepto.end() {
+        rollback_added_signatures(ad, &initial_counts);
+    }
+}
 
+pub(crate) fn rollback_added_signatures(ad: &mut AppData, initial_counts: &[u8]) {
     let input_count = ad.signing.transaction.active.num_inputs;
     let inputs = &mut ad.signing.transaction.active.inputs[..input_count];
     for (input, &initial) in inputs.iter_mut().zip(initial_counts) {
-        let keep = usize::from(initial).min(input.sigs.len());
-        let current = usize::from(input.sig_count).min(input.sigs.len());
-        for signature in &mut input.sigs[keep..current] {
-            *signature = InputSig::empty();
-        }
-        input.sig_count = keep as u8;
+        input.sigs.truncate(initial);
     }
 }
 

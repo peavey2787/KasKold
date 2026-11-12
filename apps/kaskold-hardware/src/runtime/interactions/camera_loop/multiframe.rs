@@ -66,7 +66,7 @@ pub(super) fn process_multiframe(
     }
 
     multiframe.buffer_mut()[slot_offset..end].copy_from_slice(frame.fragment);
-    multiframe.fragment_sizes[frame_index] = frame.fragment.len() as u16;
+    multiframe.fragment_sizes[frame_index] = u16::try_from(frame.fragment.len()).unwrap_or(u16::MAX);
     multiframe.received[frame_index] = true;
     sound::qr_found();
 
@@ -110,7 +110,7 @@ fn process_complete_session(
 
     log!("   → Complete QR session: {} frames, {} bytes", total, position);
     multiframe.reset();
-    if ad.signing.anti_klepto.phase == crate::runtime::data::AntiKleptoPhase::AwaitingReveal {
+    if ad.signing.anti_klepto.phase() == crate::runtime::data::AntiKleptoPhase::AwaitingReveal {
         io.boot_display.draw_loading_wait_screen("Finalizing signature...");
     } else {
         io.boot_display.draw_loading_screen("Processing QR...");
@@ -169,16 +169,19 @@ fn draw_mf_row(
     use embedded_graphics::prelude::*;
     use embedded_graphics::primitives::{Circle, PrimitiveStyle};
 
-    if count == 0 {
+    let Ok(dots) = i32::try_from(count) else {
+        return;
+    };
+    if dots == 0 {
         return;
     }
-    let total_width = count as i32 * dot_size as i32 + (count as i32 - 1) * gap;
+    let total_width = dots * dot_size as i32 + (dots - 1) * gap;
     let x_start = (320 - total_width) / 2;
     let teal = crate::ui::display::KASPA_TEAL;
     let pending = Rgb565::new(6, 12, 6);
-    for offset in 0..count {
+    for (offset, column) in (0..count).zip(0i32..) {
         let index = start + offset;
-        let x = x_start + offset as i32 * (dot_size as i32 + gap);
+        let x = x_start + column * (dot_size as i32 + gap);
         let color = if received[index] { teal } else { pending };
         Circle::new(embedded_graphics::geometry::Point::new(x, y), dot_size)
             .into_styled(PrimitiveStyle::with_fill(color))

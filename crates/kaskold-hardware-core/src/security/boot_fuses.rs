@@ -69,6 +69,10 @@ pub enum AuthorityProfile {
 
 impl AuthorityProfile {
     const fn owner_slot(self) -> usize {
+        self.owner_slot_u8() as usize
+    }
+
+    const fn owner_slot_u8(self) -> u8 {
         match self {
             Self::DualAuthority => 1,
             Self::OwnerOnly => 0,
@@ -102,9 +106,10 @@ impl AuthorityFuses {
     /// the profile closes is revoked.
     pub fn owner_authority_enrolled(&self, profile: AuthorityProfile) -> bool {
         let owner = profile.owner_slot();
-        let owner_purpose = SECURE_BOOT_DIGEST0_PURPOSE + owner as u8;
-        let owner_revoke_locked =
-            self.write_disable & (1 << (KEY_REVOKE0_WR_DIS_BIT + owner as u32)) != 0;
+        let owner_purpose = SECURE_BOOT_DIGEST0_PURPOSE + profile.owner_slot_u8();
+        let owner_revoke_locked = self.write_disable
+            & (1 << (KEY_REVOKE0_WR_DIS_BIT + u32::from(profile.owner_slot_u8())))
+            != 0;
         self.key_purposes.contains(&owner_purpose)
             && self.key_revoke[owner] == 0
             && owner_revoke_locked

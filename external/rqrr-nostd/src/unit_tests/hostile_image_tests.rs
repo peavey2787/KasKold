@@ -38,8 +38,11 @@ const HOSTILE_FRAMES: [(&str, &[u8], (usize, usize)); 4] = [
 ];
 
 fn decode_all(width: usize, height: usize, pixels: &[u8]) -> usize {
-    let mut image =
-        PreparedImage::prepare_from_greyscale(width, height, |x, y| pixels[y * width + x]);
+    let Some(mut image) =
+        PreparedImage::prepare_from_greyscale(width, height, |x, y| pixels[y * width + x])
+    else {
+        return 0;
+    };
     image
         .detect_grids()
         .into_iter()

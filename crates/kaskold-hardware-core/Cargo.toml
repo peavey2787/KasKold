@@ -24,3 +24,6 @@ simulated-release-identity = []
 shared-signer = { version = "=2.0.0", path = "../shared-signer" }
 kaskold-protocol = { version = "=2.0.0", path = "../kaskold-protocol", default-features = false }
 sha2 = { version = "0.10", default-features = false }
+
+[lints]
+workspace = true

@@ -83,11 +83,9 @@ pub(in crate::scenarios::journeys) fn read_every_frame(device: &Device) -> Vec<u
 }
 
 fn expect_valid_signature(signed: &Transaction, input: usize, key: [u8; 32]) {
-    let signature = &signed.inputs[input].sigs[0];
-    assert!(
-        signed.inputs[input].sig_count >= 1 && signature.present,
-        "input {input} is unsigned"
-    );
+    let Some(signature) = signed.inputs[input].sigs.first() else {
+        panic!("input {input} is unsigned");
+    };
     let digest = calculate_sighash(signed, input, SigHashType::All);
     let bytes = SchnorrSignature {
         bytes: signature.signature,
@@ -106,7 +104,7 @@ fn cancel_by_camera() {
     );
     assert_ne!(app_state().navigation.app.state, AppState::ShowQrModeChoice);
     assert_eq!(
-        app_state().signing.transaction.active.inputs[0].sig_count,
+        app_state().signing.transaction.active.inputs[0].sigs.len(),
         0
     );
     device.expect_text("TX Cancelled");

@@ -25,8 +25,8 @@
         {
           "path": "apps/kaskold-hardware/src/runtime/input/wallet_app.rs",
           "contains": [
-            "review_authorized = true",
-            "review_authorized = false"
+            "self.review = self.review.approve()",
+            "self.review = TransactionReview::Idle"
           ]
         }
       ]

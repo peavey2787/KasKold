@@ -39,7 +39,7 @@ pub fn create_file_progress(
     data: &[u8],
     progress: &mut dyn FnMut(usize, usize),
 ) -> Result<DirEntry, &'static str> {
-    let file_size = data.len() as u32;
+    let file_size = u32::try_from(data.len()).map_err(|_| "File too large for FAT32")?;
     let clusters_needed = clusters_for_file(fat32, file_size);
     let first_cluster = allocate_file_chain(card_type, fat32, clusters_needed)?;
     if let Err(error) = write_new_file_payload(card_type, fat32, first_cluster, data, progress) {

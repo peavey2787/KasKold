@@ -320,11 +320,11 @@ fn format_window(window: SigningWindow, out: &mut [u8; 32]) -> usize {
     };
     out[..3].copy_from_slice(day);
     out[3] = b' ';
-    write_u2((window.start_minute / 60) as u8, &mut out[4..]);
+    write_u2(u8::try_from(window.start_minute / 60).unwrap_or(u8::MAX), &mut out[4..]);
     out[6] = b':';
     write_u2((window.start_minute % 60) as u8, &mut out[7..]);
     out[9] = b'-';
-    write_u2((window.end_minute / 60) as u8, &mut out[10..]);
+    write_u2(u8::try_from(window.end_minute / 60).unwrap_or(u8::MAX), &mut out[10..]);
     out[12] = b':';
     write_u2((window.end_minute % 60) as u8, &mut out[13..]);
     out[15..19].copy_from_slice(b" UTC");

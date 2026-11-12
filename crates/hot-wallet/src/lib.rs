@@ -330,16 +330,17 @@ impl RecoveryMaterial {
         indices: [u16; 24],
         passphrase: &str,
     ) -> Result<Self, HotWalletError> {
-        if passphrase.len() > MAX_BIP39_PASSPHRASE_LEN {
-            return Err(HotWalletError::Bip39PassphraseTooLong);
-        }
+        let passphrase_len = u8::try_from(passphrase.len())
+            .ok()
+            .filter(|len| usize::from(*len) <= MAX_BIP39_PASSPHRASE_LEN)
+            .ok_or(HotWalletError::Bip39PassphraseTooLong)?;
         let mut passphrase_bytes = [0u8; MAX_BIP39_PASSPHRASE_LEN];
         passphrase_bytes[..passphrase.len()].copy_from_slice(passphrase.as_bytes());
         Ok(Self {
             word_count,
             indices,
             passphrase: passphrase_bytes,
-            passphrase_len: passphrase.len() as u8,
+            passphrase_len,
         })
     }
 }

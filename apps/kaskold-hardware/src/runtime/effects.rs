@@ -100,8 +100,8 @@ pub(crate) fn root(ad: &mut AppData, index: usize) -> Option<crate::runtime::inp
 }
 
 #[inline]
-pub(crate) fn start_review(ad: &mut AppData, num_outputs: u8, num_inputs: usize) {
-    crate::runtime::navigation::start_review(ad, num_outputs, num_inputs);
+pub(crate) fn start_review(ad: &mut AppData) {
+    crate::runtime::navigation::start_review(ad);
 }
 
 #[inline]

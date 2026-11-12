@@ -55,13 +55,8 @@ pub const fn classify_card_state(status: u32) -> CardState {
 }
 
 pub const fn command_frame(command: u8, argument: u32) -> [u8; 5] {
-    [
-        0x40 | command,
-        (argument >> 24) as u8,
-        (argument >> 16) as u8,
-        (argument >> 8) as u8,
-        argument as u8,
-    ]
+    let [a3, a2, a1, a0] = argument.to_be_bytes();
+    [0x40 | command, a3, a2, a1, a0]
 }
 
 /// Return the card capacity as 512-byte logical sectors from a 16-byte CSD.

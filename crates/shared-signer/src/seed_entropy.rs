@@ -22,7 +22,7 @@ pub fn mix_additive_dice(pool: &mut [u8; 32], rolls: &[u8]) -> bool {
     }
     let mut hasher = Sha256::new();
     hasher.update(b"KasSigner/additive-dice/v1");
-    hasher.update((rolls.len() as u16).to_le_bytes());
+    hasher.update(u16::try_from(rolls.len()).unwrap_or(u16::MAX).to_le_bytes());
     hasher.update(*pool);
     hasher.update(rolls);
     pool.copy_from_slice(&hasher.finalize());
@@ -51,7 +51,11 @@ pub fn mix_additive_touch_transcript(pool: &mut [u8; 32], transcript: &[u8]) -> 
     }
     let mut hasher = Sha256::new();
     hasher.update(b"KasKold/web-additive-touch/v1");
-    hasher.update((transcript.len() as u32).to_le_bytes());
+    hasher.update(
+        u32::try_from(transcript.len())
+            .unwrap_or(u32::MAX)
+            .to_le_bytes(),
+    );
     hasher.update(*pool);
     hasher.update(transcript);
     pool.copy_from_slice(&hasher.finalize());

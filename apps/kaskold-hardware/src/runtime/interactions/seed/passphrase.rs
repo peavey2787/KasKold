@@ -92,12 +92,13 @@ pub(crate) fn workflow_commit_staged_onboarding_import(ad: &mut AppData) -> bool
     if !imported_onboarding || !matches!(ad.wallet.seeds.word_count, 12 | 24) {
         return false;
     }
-    let passphrase_len = usize::from(ad.wallet.seeds.pending_bip39_passphrase_len);
+    let passphrase_len_u8 = ad.wallet.seeds.pending_bip39_passphrase_len;
+    let passphrase_len = usize::from(passphrase_len_u8);
     let Some(slot_index) = ad.wallet.seeds.seed_mgr.store(
         &ad.wallet.seeds.mnemonic_indices,
         ad.wallet.seeds.word_count,
         &ad.wallet.seeds.pending_bip39_passphrase[..passphrase_len],
-        passphrase_len as u8,
+        passphrase_len_u8,
     ) else {
         return false;
     };
@@ -212,7 +213,7 @@ pub(crate) fn commit_staged_session_wallet(
         &ad.wallet.seeds.mnemonic_indices,
         ad.wallet.seeds.word_count,
         &ad.wallet.seeds.pending_bip39_passphrase[..bip39_len],
-        bip39_len as u8,
+        u8::try_from(bip39_len).unwrap_or(u8::MAX),
     ) else {
         show_rejection(
             boot_display,
@@ -279,7 +280,7 @@ fn commit_current_seed(
         &ad.wallet.seeds.mnemonic_indices,
         ad.wallet.seeds.word_count,
         passphrase,
-        passphrase_len as u8,
+        u8::try_from(passphrase_len).unwrap_or(u8::MAX),
     ) else {
         ad.wallet.seeds.pp_input.reset();
         show_rejection(
@@ -315,7 +316,9 @@ fn commit_current_seed(
 fn finish_seed_commit_navigation(ad: &mut AppData) {
     // SeedBackup routes by onboarding intent; fresh Add Wallet commits through
     // its separate staged recovery-word acknowledgement path above.
-    if ad.signing.multisig.creating.n > 0 && !ad.signing.multisig.creating.active {
+    if ad.signing.multisig.creating.n > 0
+        && ad.signing.multisig.draft == crate::runtime::data::MultisigDraft::Assembling
+    {
         crate::runtime::effects::route(
             ad,
             crate::runtime::navigation::route!(MultisigPickSeed { key_idx: first_empty_multisig_key(ad) }),

@@ -8,7 +8,7 @@ fn current_backup(kind: u8, payload_len: usize) -> std::vec::Vec<u8> {
     bytes[9] = kind;
     bytes[10] = KDF_ID_DEVICE_HMAC_SHA256;
     bytes[11] = CredentialKind::Password as u8;
-    bytes[12..14].copy_from_slice(&(payload_len as u16).to_le_bytes());
+    bytes[12..14].copy_from_slice(&u16::try_from(payload_len).unwrap().to_le_bytes());
     bytes[16..16 + METADATA_SIZE]
         .copy_from_slice(&password_kdf::encode_metadata(PasswordKdfParams::current()).unwrap());
     bytes[28..44].fill(0x31);
@@ -22,7 +22,7 @@ fn current_transport(data_len: usize) -> std::vec::Vec<u8> {
     let total = TRANSPORT_CURRENT_CIPHERTEXT_START + data_len + TRANSPORT_TAG_SIZE;
     let mut bytes = std::vec![0u8; total];
     bytes[..4].copy_from_slice(&TRANSPORT_CURRENT_MAGIC);
-    bytes[4..6].copy_from_slice(&(data_len as u16).to_le_bytes());
+    bytes[4..6].copy_from_slice(&u16::try_from(data_len).unwrap().to_le_bytes());
     bytes[6..6 + METADATA_SIZE]
         .copy_from_slice(&password_kdf::encode_metadata(PasswordKdfParams::current()).unwrap());
     let salt_start = 6 + METADATA_SIZE;

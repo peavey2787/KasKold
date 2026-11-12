@@ -102,7 +102,7 @@ fn descriptor_jpeg(payload: &[u8]) -> Option<Vec<u8>> {
 }
 
 fn picture_jpeg(payload: &[u8]) -> Option<Vec<u8>> {
-    let required = ((payload.len() + 2) * 8) as u32;
+    let required = u32::try_from((payload.len() + 2) * 8).ok()?;
     if stego::capacity_bits(NOISE_JPEG, DESCRIPTOR).ok()? < required {
         return None;
     }
@@ -127,7 +127,7 @@ fn descriptor_carrier(artifacts: &MediaArtifacts) -> bool {
 }
 
 fn picture_carrier(artifacts: &MediaArtifacts) -> bool {
-    let required = ((stego::STEGO_PAYLOAD_SIZE + 2) * 8) as u32;
+    let required = shared_signer::narrow!(u32, (stego::STEGO_PAYLOAD_SIZE + 2) * 8);
     if stego::capacity_bits(FLAT_JPEG, DESCRIPTOR).unwrap_or(0) >= required {
         return false;
     }

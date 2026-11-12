@@ -12,6 +12,7 @@ const WIFI_CLK_RNG_EN: u32 = 1 << 15;
 const SAMPLE_SPACING: u32 = 160;
 
 fn set_and_verify(register: u32, mask: u32) -> bool {
+    // SAFETY: RTC_CLK_CONF, APB_CTRL_WIFI_CLK_EN and RNG_DATA are documented ESP32-S3 registers, accessed as aligned 32-bit words.
     unsafe {
         crate::hw::shared::mmio::set_bits(register, mask);
         crate::hw::shared::mmio::read(register) & mask == mask
@@ -33,6 +34,7 @@ pub fn enable_hardware_rng() -> Result<(), EntropyError> {
 
 #[inline]
 pub fn sample() -> u32 {
+    // SAFETY: RTC_CLK_CONF, APB_CTRL_WIFI_CLK_EN and RNG_DATA are documented ESP32-S3 registers, accessed as aligned 32-bit words.
     unsafe { crate::hw::shared::mmio::read(RNG_DATA_REG) }
 }
 

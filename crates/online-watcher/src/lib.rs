@@ -21,11 +21,9 @@ mod privacy;
 mod protocol;
 pub mod serialization;
 mod transaction_builder;
-#[cfg(feature = "browser-api")]
 mod wasm_api;
 
 pub use account::bip32::WalletData;
 pub use account::{balance::BalanceInfo, utxo::UtxoEntry};
 pub use facade::WatchWallet;
-#[cfg(feature = "browser-api")]
 pub use wasm_api::*;

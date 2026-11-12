@@ -26,7 +26,7 @@ fn verify_card(card_type: sdcard::SdCardType) -> Result<(usize, u32), &'static s
     let _ = sdcard::delete_file(card_type, &fat32, &filename);
     sdcard::create_file(card_type, &fat32, &filename, TEST_DATA)?;
     let (entry, _, _) = sdcard::find_file_in_root(card_type, &fat32, &filename)?;
-    if entry.file_size != TEST_DATA.len() as u32 {
+    if entry.file_size != shared_signer::narrow!(u32, TEST_DATA.len()) {
         return Err("Size mismatch");
     }
 
@@ -52,7 +52,8 @@ fn show_success(boot_display: &mut display::BootDisplay<'_>, bytes: usize, files
     log!("[SD-TEST] PASS: {}/{} bytes, {} files", bytes, TEST_DATA.len(), files);
     let mut first = [0u8; 40];
     let mut second = [0u8; 40];
-    let write_line = format_test_line(&mut first, "Write+Read: ", bytes as u32, " bytes OK");
+    let write_line =
+        format_test_line(&mut first, "Write+Read: ", u32::try_from(bytes).unwrap_or(u32::MAX), " bytes OK");
     let root_line = format_test_line(&mut second, "Root dir: ", files, " files");
     boot_display.draw_sdcard_test_result(&[write_line, root_line, "Data verify: match"], true);
     sound::success();

@@ -57,13 +57,18 @@ fn address_controls(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
     if ctx.ad.navigation.app.state != AppState::MultisigShowAddress {
         return fail(1, "ADDRESS-ENTRY");
     }
-    let original_cosigner = ctx.ad.signing.multisig.creating.cosigner_index;
+    let original_family = ctx.ad.signing.multisig.creating.family;
     if ctx.tx_touch(TouchInput::new(85, 210, false)) != Some(true)
-        || ctx.ad.signing.multisig.creating.cosigner_index == original_cosigner
+        || ctx.ad.signing.multisig.creating.family == original_family
     {
         return fail(2, "ADDRESS-FAMILY");
     }
-    if ctx.tx_touch(TouchInput::new(138, 210, false)) != Some(true) || ctx.ad.signing.multisig.creating.chain != 1 {
+    if ctx.tx_touch(TouchInput::new(138, 210, false)) != Some(true)
+        || !matches!(
+            ctx.ad.signing.multisig.creating.family,
+            offline_signer::transaction::model::MultisigFamily::Hd45 { chain: 1, .. }
+        )
+    {
         return fail(3, "ADDRESS-CHAIN");
     }
     if ctx.tx_touch(TouchInput::new(205, 210, false)) != Some(true)
@@ -177,7 +182,7 @@ fn descriptor_round_trip(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
     );
     let config = &ctx.ad.signing.multisig.creating;
     let ok = ctx.ad.navigation.app.state == AppState::MultisigDescriptor
-        && !config.active
+        && matches!(ctx.ad.signing.multisig.draft, crate::runtime::data::MultisigDraft::Reviewing { .. })
         && config.m == 2
         && config.n == 3
         && config.script_len != 0;

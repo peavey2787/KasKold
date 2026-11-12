@@ -49,23 +49,20 @@ impl QrCode {
     }
 
     fn penalty_score(&self) -> u32 {
-        let size = self.size as usize;
+        let size = self.size;
         let mut penalty = 0u32;
 
         for y in 0..size {
-            penalty += line_run_penalty((0..size).map(|x| self.get(x as u8, y as u8)));
+            penalty += line_run_penalty((0..size).map(|x| self.get(x, y)));
         }
         for x in 0..size {
-            penalty += line_run_penalty((0..size).map(|y| self.get(x as u8, y as u8)));
+            penalty += line_run_penalty((0..size).map(|y| self.get(x, y)));
         }
 
         for y in 0..size - 1 {
             for x in 0..size - 1 {
-                let value = self.get(x as u8, y as u8);
-                if value == self.get(x as u8 + 1, y as u8)
-                    && value == self.get(x as u8, y as u8 + 1)
-                    && value == self.get(x as u8 + 1, y as u8 + 1)
-                {
+                let value = self.get(x, y);
+                if value == self.get(x + 1, y) && value == self.get(x, y + 1) && value == self.get(x + 1, y + 1) {
                     penalty += 3;
                 }
             }
@@ -74,10 +71,10 @@ impl QrCode {
         let mut dark_count = 0u32;
         for y in 0..size {
             for x in 0..size {
-                dark_count += self.get(x as u8, y as u8) as u32;
+                dark_count += u32::from(self.get(x, y));
             }
         }
-        let percentage = dark_count * 100 / (size * size) as u32;
+        let percentage = dark_count * 100 / (u32::from(size) * u32::from(size));
         penalty + (percentage.abs_diff(50) / 5) * 10
     }
 }

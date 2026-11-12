@@ -1,3 +1,4 @@
+use crate::ui::coordinates::coord;
 use embedded_graphics::image::Image;
 use embedded_graphics::pixelcolor::Rgb565;
 use embedded_graphics::prelude::*;
@@ -34,7 +35,7 @@ pub fn draw_keyboard(display: &mut impl DrawTarget<Color = Rgb565>, mode: Keyboa
     for (&row, &row_y) in rows[..2].iter().zip(&layout.row_y) {
         let start_x = row_start(row.len());
         for (column, &character) in row.iter().enumerate() {
-            let x = start_x + column as i32 * (KEY_WIDTH as i32 + KEY_GAP);
+            let x = start_x + coord(column) * (KEY_WIDTH as i32 + KEY_GAP);
             draw_character_key(display, x, row_y, layout.key_height, character, mode, key_corner);
         }
     }
@@ -45,7 +46,7 @@ pub fn draw_keyboard(display: &mut impl DrawTarget<Color = Rgb565>, mode: Keyboa
 
     let letters_start = third_start + KEY_WIDTH as i32 + KEY_GAP;
     for (column, &character) in third_row.iter().enumerate() {
-        let x = letters_start + column as i32 * (KEY_WIDTH as i32 + KEY_GAP);
+        let x = letters_start + coord(column) * (KEY_WIDTH as i32 + KEY_GAP);
         draw_character_key(display, x, layout.row_y[2], layout.key_height, character, mode, key_corner);
     }
 

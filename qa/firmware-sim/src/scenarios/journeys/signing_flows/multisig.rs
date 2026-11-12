@@ -7,7 +7,9 @@ use kaskold_protocol::wire::qr_payload::unwrap_v1_raw;
 use kaspa_portal::crypto::schnorr::{schnorr_verify, SchnorrSignature};
 use kaspa_portal::primitives::address::script_to_p2sh_address;
 use kaspa_portal::transaction::interchange::kspt::decode_compact_kspt;
-use kaspa_portal::transaction::model::{Ms45Hint, MultisigConfig, SigHashType, Transaction};
+use kaspa_portal::transaction::model::{
+    Ms45Derivation, MultisigConfig, MultisigFamily, SigHashType, Transaction,
+};
 use kaspa_portal::transaction::sighash::calculate_sighash;
 use kaspa_portal::wallet::derivation::bip32::{
     derive_multisig_account_key, derive_multisig_address_key,
@@ -69,8 +71,8 @@ fn signing_key_of(words: &[&str]) -> [u8; 32] {
 pub(super) fn shared_config(wallets: &[&[&str]]) -> MultisigConfig {
     let mut config = MultisigConfig::new();
     config.m = 2;
-    config.n = wallets.len() as u8;
-    config.v45 = true;
+    config.n = u8::try_from(wallets.len()).expect("a small shared wallet");
+    config.family = MultisigFamily::HD45_UNRESOLVED;
     for (slot, words) in wallets.iter().enumerate() {
         let parts = parse_kpub_parts(&kpub_of(words)).expect("kpub parts");
         assert!(config.set_cosigner(slot, &parts));
@@ -81,18 +83,20 @@ pub(super) fn shared_config(wallets: &[&[&str]]) -> MultisigConfig {
 
 fn shared_redeem_script() -> Vec<u8> {
     let mut config = shared_config(&cosigner_words());
-    config.cosigner_index = ABOUT_COSIGNER_BRANCH as u8;
+    config.family = MultisigFamily::Hd45 {
+        cosigner_index: u8::try_from(ABOUT_COSIGNER_BRANCH).expect("a cosigner position"),
+        chain: 0,
+    };
     assert_ne!(config.build_script(), 0);
     config.script[..config.script_len].to_vec()
 }
 
 fn shared_transaction() -> Vec<u8> {
-    let hint = Ms45Hint {
-        present: true,
+    let hint = Some(Ms45Derivation {
         cosigner: ABOUT_COSIGNER_BRANCH,
         chain: 0,
         index: 0,
-    };
+    });
     known::transaction_spending_shared(&shared_redeem_script(), hint)
 }
 
@@ -169,7 +173,6 @@ fn expect_signed_by(signed: &Transaction, signers: &[&[&str]]) {
     let present: Vec<SchnorrSignature> = input
         .sigs
         .iter()
-        .filter(|signature| signature.present)
         .map(|signature| SchnorrSignature {
             bytes: signature.signature,
         })
@@ -229,14 +232,7 @@ fn save_the_shared_wallet() {
 }
 
 fn expect_the_shared_wallet_saved() {
-    let saved = app_state()
-        .signing
-        .multisig
-        .store
-        .configs
-        .iter()
-        .filter(|config| config.active)
-        .count();
+    let saved = app_state().signing.multisig.store.wallets().count();
     assert_eq!(saved, 1, "the saved shared wallet did not come back");
 }
 

@@ -6,6 +6,7 @@ use crate::{
     ui::display::{draw_lato_hint, measure_hint, COLOR_TEXT_DIM},
     wallet::seed_manager::MAX_SLOTS,
 };
+use offline_signer::transaction::model::MultisigFamily;
 
 const VISIBLE_ROWS: u8 = 3;
 const ROW_TOP: u16 = 46;
@@ -51,7 +52,7 @@ pub(super) fn handle(
     if wallet_idx >= loaded_count {
         return false;
     }
-    let real_slot = loaded[wallet_idx] as u8;
+    let real_slot = u8::try_from(loaded[wallet_idx]).unwrap_or(u8::MAX);
 
     // Multisig wallet selection intentionally has no destructive touch zone.
     // The whole wallet row selects that wallet; deletion is available only
@@ -150,7 +151,7 @@ fn activate_seed_if_needed(
     if slot.is_raw_key() {
         return Err("Raw keys cannot be multisig cosigners");
     }
-    if ad.signing.multisig.creating.v45 && slot.is_account_key() {
+    if ad.signing.multisig.creating.family.is_hd45() && slot.is_account_key() {
         return Err("xprv slot has no 45' cosigner key");
     }
     if crate::runtime::interactions::feedback::physical_presentation_enabled() {
@@ -194,9 +195,9 @@ pub(crate) fn finish_cosigner_collection(ad: &mut AppData, checkpoint: &mut (imp
     ad.signing.multisig.creating.sort_cosigners();
     let _ = resolve_loaded_cosigner_index(ad, checkpoint);
     ad.signing.multisig.creating.build_script();
-    ad.signing.multisig.creating.active = true;
+    ad.signing.multisig.draft = crate::runtime::data::MultisigDraft::Kept;
     if let Some(slot) = ad.signing.multisig.store.find_free() {
-        ad.signing.multisig.store.configs[slot] = ad.signing.multisig.creating.clone();
+        ad.signing.multisig.store.configs[slot] = Some(ad.signing.multisig.creating.clone());
         ad.signing.multisig.descriptor_persisted[slot] = false;
     }
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(MultisigShowAddress));
@@ -231,13 +232,23 @@ pub(crate) fn resolve_loaded_cosigner_index(ad: &mut AppData, checkpoint: &mut (
         };
         let mut candidate = ad.signing.multisig.creating.clone();
         if candidate.resolve_cosigner_index(&parts) {
-            best = Some(best.map_or(candidate.cosigner_index, |old| old.min(candidate.cosigner_index)));
+            let index = own_cosigner(candidate.family);
+            best = Some(best.map_or(index, |old| old.min(index)));
         }
     }
-    if let Some(index) = best {
-        ad.signing.multisig.creating.cosigner_index = index;
-        true
-    } else {
-        false
+    let Some(index) = best else {
+        return false;
+    };
+    if let MultisigFamily::Hd45 { cosigner_index, .. } = &mut ad.signing.multisig.creating.family {
+        *cosigner_index = index;
+    }
+    true
+}
+
+/// This device's position in the descriptor; a legacy 44' wallet has no positions.
+fn own_cosigner(family: MultisigFamily) -> u8 {
+    match family {
+        MultisigFamily::Hd45 { cosigner_index, .. } => cosigner_index,
+        MultisigFamily::Legacy44 => 0,
     }
 }

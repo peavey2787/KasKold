@@ -20,6 +20,8 @@ fn copy(handle: *mut NativeVault, copier: ResultCopier) -> String {
 }
 
 fn text(handle: *mut NativeVault, operation: &str, input: &str) -> serde_json::Value {
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     let status = unsafe {
         kaskold_vault_workflow_text(
             handle,
@@ -39,6 +41,8 @@ fn text(handle: *mut NativeVault, operation: &str, input: &str) -> serde_json::V
 }
 
 fn text_error(handle: *mut NativeVault, operation: &str, input: &str) -> String {
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     let status = unsafe {
         kaskold_vault_workflow_text(
             handle,
@@ -53,6 +57,8 @@ fn text_error(handle: *mut NativeVault, operation: &str, input: &str) -> String 
 }
 
 fn bytes_error(handle: *mut NativeVault, operation: &str, input: &str, data: &[u8]) -> String {
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     let status = unsafe {
         kaskold_vault_workflow_bytes(
             handle,
@@ -138,6 +144,8 @@ fn inventory_workflows_return_the_wallet_state_they_changed() {
         text_error(handle, "delete_wallet", r#"{"index":99}"#),
         r#""InvalidWalletIndex""#
     );
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     unsafe { kaskold_vault_destroy(handle) };
 }
 
@@ -201,6 +209,8 @@ fn key_workflows_return_normalized_keys_and_multisig_material() {
         ),
         r#""Custody(InvalidToolInput)""#
     );
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     unsafe { kaskold_vault_destroy(handle) };
 }
 
@@ -250,6 +260,8 @@ fn tool_workflows_return_derived_signed_and_decrypted_values() {
         text(handle, "clear_signing_policy", "{}"),
         serde_json::json!({})
     );
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     unsafe { kaskold_vault_destroy(handle) };
 }
 
@@ -279,6 +291,8 @@ fn a_kip22_address_hides_its_key_and_stays_the_same_on_every_ask() {
         ),
         r#""InvalidNetwork""#
     );
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     unsafe { kaskold_vault_destroy(handle) };
 }
 
@@ -288,6 +302,8 @@ fn a_transaction_file_returns_the_review_of_what_it_spends() {
     let operation = "transaction_file";
     let input = "{}";
     let wire = owned_compact_kspt(0);
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     let status = unsafe {
         kaskold_vault_workflow_text_with_bytes(
             handle,
@@ -315,6 +331,8 @@ fn a_transaction_file_returns_the_review_of_what_it_spends() {
     assert_eq!(review["inputs"][0]["amount"], "80000");
     assert_eq!(review["inputs"].as_array().expect("inputs").len(), 1);
     assert_eq!(review["outputs"].as_array().expect("outputs").len(), 1);
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     unsafe { kaskold_vault_destroy(handle) };
 }
 
@@ -340,12 +358,16 @@ fn byte_workflows_report_their_own_failures() {
             "{operation}"
         );
     }
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     unsafe { kaskold_vault_destroy(handle) };
 }
 
 #[test]
 fn text_with_bytes_entry_point_returns_the_byte_workflow_status() {
     let handle = restored();
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     let call = |operation: &str, input: &str, data: &[u8]| unsafe {
         kaskold_vault_workflow_text_with_bytes(
             handle,
@@ -362,6 +384,8 @@ fn text_with_bytes_entry_point_returns_the_byte_workflow_status() {
         call("portable_backup", r#"{"password":"CorrectHorse9"}"#, b""),
         OK
     );
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     unsafe { kaskold_vault_destroy(handle) };
 }
 
@@ -369,6 +393,8 @@ fn text_with_bytes_entry_point_returns_the_byte_workflow_status() {
 fn create_accepts_both_word_counts_and_lock_forgets_the_wallet() {
     let handle = kaskold_vault_new();
     for words in [12u32, 24] {
+        // SAFETY: the handle is live (or null, which every export rejects) and each
+        // pointer/length pair borrows a buffer that outlives the call.
         assert_eq!(unsafe { kaskold_vault_create(handle, words) }, OK);
         let created: serde_json::Value =
             serde_json::from_str(&copy(handle, kaskold_vault_last_text_copy)).expect("JSON");
@@ -381,6 +407,8 @@ fn create_accepts_both_word_counts_and_lock_forgets_the_wallet() {
             words as usize
         );
     }
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     assert_eq!(unsafe { kaskold_vault_create(handle, 18) }, ERROR);
     assert_eq!(
         copy(handle, kaskold_vault_last_error_copy),
@@ -389,22 +417,34 @@ fn create_accepts_both_word_counts_and_lock_forgets_the_wallet() {
 
     let phrase = MNEMONIC.as_bytes();
     assert_eq!(
+        // SAFETY: the handle is live (or null, which every export rejects) and each
+        // pointer/length pair borrows a buffer that outlives the call.
         unsafe {
             kaskold_vault_restore(handle, phrase.as_ptr(), phrase.len(), core::ptr::null(), 0)
         },
         OK
     );
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     assert_eq!(unsafe { kaskold_vault_export_public_account(handle) }, OK);
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     unsafe { kaskold_vault_lock(handle) };
     // Locking clears the last result and the unlocked wallet.
     assert_eq!(
+        // SAFETY: the handle is live (or null, which every export rejects) and each
+        // pointer/length pair borrows a buffer that outlives the call.
         unsafe { kaskold_vault_last_text_copy(handle, core::ptr::null_mut(), 0) },
         0
     );
     assert_eq!(
+        // SAFETY: the handle is live (or null, which every export rejects) and each
+        // pointer/length pair borrows a buffer that outlives the call.
         unsafe { kaskold_vault_export_public_account(handle) },
         ERROR
     );
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     unsafe { kaskold_vault_destroy(handle) };
 }
 
@@ -414,26 +454,38 @@ fn copy_entry_points_fail_closed_without_a_handle_or_a_signing_session() {
 
     let null = core::ptr::null_mut();
     assert_eq!(
+        // SAFETY: the handle is live (or null, which every export rejects) and each
+        // pointer/length pair borrows a buffer that outlives the call.
         unsafe { kaskold_vault_last_text_copy(null, null.cast(), 0) },
         -1
     );
     assert_eq!(
+        // SAFETY: the handle is live (or null, which every export rejects) and each
+        // pointer/length pair borrows a buffer that outlives the call.
         unsafe { kaskold_vault_last_bytes_copy(null, null.cast(), 0) },
         -1
     );
     assert_eq!(
+        // SAFETY: the handle is live (or null, which every export rejects) and each
+        // pointer/length pair borrows a buffer that outlives the call.
         unsafe { kaskold_vault_last_error_copy(null, null.cast(), 0) },
         -1
     );
     assert_eq!(
+        // SAFETY: the handle is live (or null, which every export rejects) and each
+        // pointer/length pair borrows a buffer that outlives the call.
         unsafe { kaskold_vault_response_frame_copy(null, 0, null.cast(), 0) },
         -1
     );
 
     let handle = restored();
     assert_eq!(
+        // SAFETY: the handle is live (or null, which every export rejects) and each
+        // pointer/length pair borrows a buffer that outlives the call.
         unsafe { kaskold_vault_response_frame_copy(handle, 0, core::ptr::null_mut(), 0) },
         -1
     );
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     unsafe { kaskold_vault_destroy(handle) };
 }

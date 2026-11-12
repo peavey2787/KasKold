@@ -66,7 +66,7 @@ fn deterministic_external_input_sweep_is_panic_free() {
             state ^= state << 13;
             state ^= state >> 17;
             state ^= state << 5;
-            *byte = state as u8;
+            *byte = state.to_le_bytes()[0];
         }
         let input = &data[..length];
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {

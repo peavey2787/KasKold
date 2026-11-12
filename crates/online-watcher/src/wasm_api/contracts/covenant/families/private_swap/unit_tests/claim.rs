@@ -11,7 +11,7 @@ fn unsigned_pskt(input_count: usize, partial_sigs: Value) -> String {
                     "scriptPublicKey": format!("000020{}ac", "11".repeat(32))
                 },
                 "previousOutpoint": {
-                    "transactionId": format!("{:02x}", (index as u8).wrapping_add(1)).repeat(32),
+                    "transactionId": format!("{:02x}", u8::try_from(index).unwrap().wrapping_add(1)).repeat(32),
                     "index": index
                 },
                 "sighashType": 1,

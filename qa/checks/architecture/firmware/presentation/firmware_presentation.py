@@ -83,7 +83,7 @@ def _signing_lifecycle_errors(workflow_signing_adapter: str, workflow_signing_re
     errors: list[str] = []
     for token in (
         "OperationPhase::Running | OperationPhase::Progress(_)",
-        "presentation::set_progress(ad, progress.min(100) as u8)",
+        "presentation::set_progress(ad, u8::try_from(progress.min(100)).unwrap_or(100))",
         "workflow_activate_signing_operation",
     ):
         if token not in workflow_signing_adapter:

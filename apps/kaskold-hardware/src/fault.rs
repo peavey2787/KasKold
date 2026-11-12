@@ -20,9 +20,7 @@ fn panic(info: &PanicInfo) -> ! {
 
 #[cfg(not(feature = "qemu"))]
 fn wipe_secret_state() {
-    if let Some(ad) = crate::runtime::secret_state::take_for_fault() {
-        crate::services::device_wipe::zeroize_volatile(ad);
-    }
+    crate::runtime::secret_state::wipe_for_fault(crate::services::device_wipe::zeroize_volatile);
 }
 
 #[cfg(feature = "qemu")]

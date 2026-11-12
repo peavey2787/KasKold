@@ -20,10 +20,16 @@ struct Card {
     response: std::collections::VecDeque<u8>,
     ready: bool,
     app_command: bool,
-    writing: Option<usize>,
-    write_buffer: Vec<u8>,
-    in_write_payload: bool,
+    write: Option<WriteState>,
     present: bool,
+}
+
+/// Where the card is in a single-block write (CMD24).
+enum WriteState {
+    /// Waiting for the data token that opens the payload.
+    AwaitingToken { block: usize },
+    /// Collecting the block payload and its two CRC bytes.
+    Payload { block: usize, bytes: Vec<u8> },
 }
 
 static CARD: Mutex<Option<Card>> = Mutex::new(None);
@@ -65,7 +71,8 @@ pub fn restore(image: &[u8]) {
         card.present = *present != 0;
         for entry in blocks.as_chunks::<{ 8 + BLOCK }>().0 {
             let (block, data) = entry.split_at(8);
-            let block = u64::from_le_bytes(block.try_into().expect("eight bytes")) as usize;
+            let block = usize::try_from(u64::from_le_bytes(block.try_into().expect("eight bytes")))
+                .expect("block index fits in usize");
             card.blocks
                 .insert(block, data.try_into().expect("one block"));
         }
@@ -90,7 +97,7 @@ impl Card {
     }
 
     fn exchange(&mut self, sent: u8) -> u8 {
-        if self.writing.is_some() {
+        if self.write.is_some() {
             return self.exchange_write(sent);
         }
         let out = self.response.pop_front().unwrap_or(IDLE);
@@ -151,12 +158,13 @@ impl Card {
 
     /// CSD v2: capacity = (C_SIZE + 1) * 512 KiB.
     fn send_csd(&mut self) {
-        let size = (CARD_BLOCKS / 1024 - 1) as u32;
+        let size = u32::try_from(CARD_BLOCKS / 1024 - 1).expect("C_SIZE fits in 22 bits");
+        let [_, high, middle, low] = size.to_be_bytes();
         let mut csd = [0u8; 16];
         csd[0] = 0x40;
-        csd[7] = (size >> 16) as u8 & 0x3F;
-        csd[8] = (size >> 8) as u8;
-        csd[9] = size as u8;
+        csd[7] = high & 0x3F;
+        csd[8] = middle;
+        csd[9] = low;
         self.send_register(&csd);
     }
 
@@ -174,28 +182,38 @@ impl Card {
 
     fn begin_write(&mut self, block: usize) {
         self.respond(R1_READY, &[]);
-        self.writing = Some(block);
-        self.write_buffer.clear();
-        self.in_write_payload = false;
+        self.write = Some(WriteState::AwaitingToken { block });
     }
 
     fn exchange_write(&mut self, sent: u8) -> u8 {
         if let Some(out) = self.response.pop_front() {
             return out;
         }
-        if !self.in_write_payload {
-            self.in_write_payload = sent == DATA_TOKEN;
-            return IDLE;
-        }
-        self.write_buffer.push(sent);
-        if self.write_buffer.len() < BLOCK + 2 {
-            return IDLE;
-        }
-        let block = self.writing.take().unwrap_or(0);
+        self.write = match self.write.take() {
+            Some(WriteState::AwaitingToken { block }) if sent == DATA_TOKEN => {
+                Some(WriteState::Payload {
+                    block,
+                    bytes: Vec::with_capacity(BLOCK + 2),
+                })
+            }
+            Some(WriteState::Payload { block, mut bytes }) => {
+                bytes.push(sent);
+                if bytes.len() < BLOCK + 2 {
+                    Some(WriteState::Payload { block, bytes })
+                } else {
+                    self.commit_write(block, &bytes);
+                    None
+                }
+            }
+            waiting => waiting,
+        };
+        IDLE
+    }
+
+    fn commit_write(&mut self, block: usize, bytes: &[u8]) {
         let mut payload = [0; BLOCK];
-        payload.copy_from_slice(&self.write_buffer[..BLOCK]);
+        payload.copy_from_slice(&bytes[..BLOCK]);
         self.blocks.insert(block, payload);
         self.response.push_back(DATA_ACCEPTED);
-        IDLE
     }
 }

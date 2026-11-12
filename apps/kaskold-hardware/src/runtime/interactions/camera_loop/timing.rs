@@ -21,6 +21,7 @@
 #[inline(always)]
 pub(super) fn systick() -> u32 {
     const SYSTIMER_BASE: u32 = 0x6002_3000;
+    // SAFETY: SYSTIMER UNIT0_OP and UNIT0_VALUE_LO are documented ESP32-S3 registers, accessed as aligned 32-bit words.
     unsafe {
         // Trigger UNIT0 value update (bit 30 of UNIT0_OP_REG)
         crate::hw::shared::mmio::write(SYSTIMER_BASE + 0x0004, 1 << 30);

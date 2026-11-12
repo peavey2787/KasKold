@@ -44,26 +44,20 @@ impl SettingsState {
         self.display_preferences.dirty = false;
     }
 
-    pub(crate) fn apply_persistent_display_tap(
-        &mut self,
-        dim_row: bool,
-        pin_row: bool,
-        move_left: bool,
-        pin_lock_available: bool,
-    ) -> bool {
-        if dim_row {
-            let next = if move_left { self.screen_dim_timeout.previous() } else { self.screen_dim_timeout.next() };
-            if next != self.screen_dim_timeout {
-                self.screen_dim_timeout = next;
-                self.mark_device_preferences_dirty();
-                return true;
-            }
+    /// Step the screen-dim timeout one choice back or forward; `false` when
+    /// already at that end of the list.
+    pub(crate) fn step_screen_dim_timeout(&mut self, backward: bool) -> bool {
+        let next = if backward { self.screen_dim_timeout.previous() } else { self.screen_dim_timeout.next() };
+        if next == self.screen_dim_timeout {
+            return false;
         }
-        if pin_row && pin_lock_available {
-            self.display_preferences.require_pin_after_dim = !self.display_preferences.require_pin_after_dim;
-            self.mark_device_preferences_dirty();
-            return true;
-        }
-        false
+        self.screen_dim_timeout = next;
+        self.mark_device_preferences_dirty();
+        true
+    }
+
+    pub(crate) fn toggle_pin_after_dim(&mut self) {
+        self.display_preferences.require_pin_after_dim = !self.display_preferences.require_pin_after_dim;
+        self.mark_device_preferences_dirty();
     }
 }

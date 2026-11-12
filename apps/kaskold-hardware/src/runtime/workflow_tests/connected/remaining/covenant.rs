@@ -102,7 +102,7 @@ fn covenant_opaque_round_trip(
     request_wire: &mut [u8; 512],
     reveal_wire: &mut [u8; shared_signer::covenant_sign::REVEAL_LEN],
 ) -> bool {
-    use crate::runtime::data::{CovenantSigningMode, CovenantSigningPhase};
+    use crate::runtime::data::CovenantSigningMode;
     use shared_signer::covenant_sign::{self as wire, BindingHint, CovenantSignRequest, KnownScheme, RequestKind};
     let Some(key_id) = covenant_key_info(ad, request_wire) else {
         return false;
@@ -132,7 +132,7 @@ fn covenant_opaque_round_trip(
     if crate::services::covenant_sign::prepare_request(ad, &request_wire[..len], &mut || {}).is_err()
         || ad.signing.covenant.mode != CovenantSigningMode::Opaque
         || crate::services::covenant_sign::begin_signing(ad, &mut || {}).is_err()
-        || ad.signing.covenant.phase != CovenantSigningPhase::AwaitingReveal
+        || !ad.signing.covenant.phase.awaiting_reveal()
     {
         return false;
     }
@@ -150,14 +150,14 @@ fn covenant_reveal_matrix(
     use crate::runtime::data::CovenantSigningPhase;
     use shared_signer::covenant_sign::{self as wire, CovenantSignReveal};
     if crate::services::covenant_sign::finalize_reveal(ad, b"CVRV", &mut || {}).is_ok()
-        || ad.signing.covenant.phase != CovenantSigningPhase::AwaitingReveal
+        || !ad.signing.covenant.phase.awaiting_reveal()
     {
         return false;
     }
     let wrong = CovenantSignReveal { session_id: [0x48; wire::SESSION_ID_LEN], key_id, commitment, host_secret };
     if wire::encode_reveal(&wrong, reveal_wire).is_err()
         || crate::services::covenant_sign::finalize_reveal(ad, reveal_wire, &mut || {}).is_ok()
-        || ad.signing.covenant.phase != CovenantSigningPhase::AwaitingReveal
+        || !ad.signing.covenant.phase.awaiting_reveal()
     {
         return false;
     }

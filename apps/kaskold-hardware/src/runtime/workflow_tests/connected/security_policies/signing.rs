@@ -108,7 +108,7 @@ fn prepare_confirmed_transaction(ctx: &mut SecurityContext<'_, '_, '_>) -> bool 
         && ctx.ad.navigation.app.state == AppState::ConfirmTx
         && crate::runtime::presentation::operation_active(ctx.ad, crate::runtime::data::OperationKind::SignTransaction)
         && crate::runtime::presentation::operation_cursor(ctx.ad) == 0
-        && ctx.ad.navigation.app.review_authorized
+        && ctx.ad.navigation.app.review_approved()
         && crate::runtime::signing::workflow_activate_signing_operation(ctx.ad)
 }
 

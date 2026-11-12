@@ -48,7 +48,7 @@ fn guard_allows(ad: &AppData, guard: &str) -> bool {
         // Hardware-present guards are kept fail-closed here. Hardware-owning
         // controllers validate those capabilities before emitting a fixed route;
         // Stage 3 will move those facts into typed operation events.
-        "review_complete" => ad.navigation.app.review_authorized && ad.navigation.app.total_inputs > 0,
+        "review_complete" => ad.navigation.app.review_approved() && ad.navigation.app.total_inputs > 0,
         "review_available" => ad.navigation.app.review_pages > 0,
         "camera_available"
         | "sd_present"

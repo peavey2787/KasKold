@@ -16,7 +16,7 @@ pub fn select_version_numeric(digit_count: usize) -> Result<u8, QrError> {
 fn select_from_capacities(length: usize, capacities: &[usize; 6]) -> Result<u8, QrError> {
     capacities
         .iter()
-        .position(|capacity| length <= *capacity)
-        .map(|index| (index + 1) as u8)
+        .zip(1u8..)
+        .find_map(|(capacity, version)| (length <= *capacity).then_some(version))
         .ok_or(QrError::DataTooLong)
 }

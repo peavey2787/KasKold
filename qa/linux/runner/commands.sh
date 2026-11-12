@@ -172,7 +172,14 @@ core_ci_toolchain_ready() {
 
 
 # Standalone Cargo workspaces outside the root workspace, linted like it.
-SIDE_CLIPPY_MANIFESTS=(qa/Cargo.toml tools/Cargo.toml apps/kaskold-vault-web/Cargo.toml qa/firmware-sim/Cargo.toml)
+SIDE_CLIPPY_MANIFESTS=(
+    qa/Cargo.toml
+    tools/Cargo.toml
+    apps/kaskold-vault-web/Cargo.toml
+    apps/kaskold-companion-web/Cargo.toml
+    qa/firmware-sim/Cargo.toml
+    external/rqrr-nostd/Cargo.toml
+)
 
 run_core_ci_gate() {
     require_command rustup || return

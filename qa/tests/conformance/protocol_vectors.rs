@@ -53,10 +53,10 @@ fn kaskold_privacy_pairing_vector_is_wire_exact() {
         .unwrap();
     let request = AddressBatchRequest::new(
         nonce,
-        pairing["receiveStart"].as_u64().unwrap() as u32,
-        pairing["receiveCount"].as_u64().unwrap() as u8,
-        pairing["changeStart"].as_u64().unwrap() as u32,
-        pairing["changeCount"].as_u64().unwrap() as u8,
+        u32::try_from(pairing["receiveStart"].as_u64().unwrap()).unwrap(),
+        u8::try_from(pairing["receiveCount"].as_u64().unwrap()).unwrap(),
+        u32::try_from(pairing["changeStart"].as_u64().unwrap()).unwrap(),
+        u8::try_from(pairing["changeCount"].as_u64().unwrap()).unwrap(),
     );
     let mut request_wire = vec![0u8; shared_signer::pairing::REQUEST_LEN];
     encode_request(request, &mut request_wire).expect("request encode");

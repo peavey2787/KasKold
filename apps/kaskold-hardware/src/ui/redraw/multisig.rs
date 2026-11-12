@@ -16,7 +16,11 @@
 //! Screen redraw — multisig states.
 
 use super::display;
-use crate::runtime::{data::AppData, input::AppState};
+use crate::runtime::{
+    data::{AppData, MultisigDraft},
+    input::AppState,
+};
+use offline_signer::transaction::model::MultisigFamily;
 
 pub(super) fn redraw(ad: &mut AppData, boot_display: &mut display::BootDisplay<'_>) -> bool {
     redraw_state(ad.navigation.app.state, ad, boot_display)
@@ -52,7 +56,7 @@ fn visible_descriptors(ad: &AppData) -> alloc::vec::Vec<offline_signer::transact
         .descriptor_indices
         .iter()
         .take(ad.signing.multisig.descriptor_count as usize)
-        .filter_map(|index| ad.signing.multisig.store.configs.get(usize::from(*index)))
+        .filter_map(|index| ad.signing.multisig.store.configs.get(usize::from(*index)).and_then(Option::as_ref))
         .cloned()
         .collect()
 }
@@ -98,7 +102,7 @@ fn redraw_output(state: AppState, ad: &mut AppData, boot_display: &mut display::
 }
 
 fn draw_address(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {
-    if !ad.signing.multisig.creating.active {
+    if ad.signing.multisig.draft != MultisigDraft::Kept {
         let address = core::str::from_utf8(&ad.export.kpub_data[..ad.export.kpub_len]).unwrap_or("");
         boot_display.draw_foreign_multisig_address(address);
         return;
@@ -114,16 +118,15 @@ fn draw_address(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {
         label,
         addr,
         ad.signing.multisig.creating.addr_index,
-        ad.signing
-            .multisig
-            .creating
-            .v45
-            .then_some((ad.signing.multisig.creating.cosigner_index, ad.signing.multisig.creating.chain)),
+        match ad.signing.multisig.creating.family {
+            MultisigFamily::Hd45 { cosigner_index, chain } => Some((cosigner_index, chain)),
+            MultisigFamily::Legacy44 => None,
+        },
     );
 }
 
 fn draw_address_qr(ad: &AppData, boot_display: &mut display::BootDisplay<'_>) {
-    if ad.signing.multisig.creating.active && ad.signing.multisig.creating.script_len > 0 {
+    if ad.signing.multisig.draft == MultisigDraft::Kept && ad.signing.multisig.creating.script_len > 0 {
         draw_live_address_qr(ad, boot_display);
     } else if ad.qr.outgoing.length > 0 {
         boot_display.draw_qr_fullscreen(&ad.qr.outgoing.buffer[..ad.qr.outgoing.length]);

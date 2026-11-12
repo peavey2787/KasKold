@@ -5,6 +5,7 @@ use super::super::{
     Primitive, PrimitiveStyle, Rectangle, Rgb565, RoundedRectangle, Size, Triangle, COLOR_CARD, COLOR_CARD_BORDER,
     COLOR_ORANGE, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_ACCENT, KASPA_TEAL,
 };
+use crate::ui::coordinates::coord;
 
 pub(super) struct SeedSlotListConfig {
     pub start_y: i32,
@@ -24,7 +25,7 @@ impl<'a> BootDisplay<'a> {
         let slots = VisibleSeedSlots::new(seed_mgr, config.include_add_slot);
         let scroll_offset = usize::from(scroll);
         for visible_index in 0..MAX_VISIBLE_SEED_SLOTS {
-            let row_y = config.start_y + visible_index as i32 * (SEED_CARD_HEIGHT + SEED_CARD_GAP);
+            let row_y = config.start_y + coord(visible_index) * (SEED_CARD_HEIGHT + SEED_CARD_GAP);
             self.draw_seed_slot_row(seed_mgr, &slots, scroll_offset + visible_index, row_y, &config);
         }
         let visible_total = slots.total();
@@ -128,7 +129,7 @@ fn draw_loaded_seed_slot(
     config: &SeedSlotListConfig,
 ) {
     let slot = &seed_mgr.slots[slot_index];
-    let active = seed_mgr.active == slot_index as u8;
+    let active = u8::try_from(slot_index) == Ok(seed_mgr.active);
     let fill = if active { config.active_fill } else { COLOR_CARD };
     let border = if active { config.active_border } else { COLOR_CARD_BORDER };
     let text = if active { config.active_text } else { COLOR_TEXT };
@@ -183,7 +184,7 @@ fn draw_seed_slot_arrows(
     start_y: i32,
 ) {
     let disabled_teal = Rgb565::new(0b00001, 0b000100, 0b00010);
-    let arrow_y = start_y + (MAX_VISIBLE_SEED_SLOTS as i32 * (SEED_CARD_HEIGHT + SEED_CARD_GAP) - SEED_CARD_GAP) / 2;
+    let arrow_y = start_y + (coord(MAX_VISIBLE_SEED_SLOTS) * (SEED_CARD_HEIGHT + SEED_CARD_GAP) - SEED_CARD_GAP) / 2;
     let previous_color = if scroll_offset > 0 { KASPA_TEAL } else { disabled_teal };
     Triangle::new(Point::new(5, arrow_y), Point::new(30, arrow_y - 17), Point::new(30, arrow_y + 17))
         .into_styled(PrimitiveStyle::with_fill(previous_color))
@@ -206,8 +207,8 @@ fn draw_seed_slot_pages(
         return;
     }
     let disabled_teal = Rgb565::new(0b00001, 0b000100, 0b00010);
-    let pages = visible_total.div_ceil(MAX_VISIBLE_SEED_SLOTS) as u8;
-    let current = (scroll_offset / MAX_VISIBLE_SEED_SLOTS) as u8;
+    let pages = u8::try_from(visible_total.div_ceil(MAX_VISIBLE_SEED_SLOTS)).unwrap_or(u8::MAX);
+    let current = u8::try_from(scroll_offset / MAX_VISIBLE_SEED_SLOTS).unwrap_or(u8::MAX);
     let total_width = i32::from(pages) * 7 + (i32::from(pages) - 1) * 8;
     let start_x = (320 - total_width) / 2;
     for page in 0..pages {

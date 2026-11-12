@@ -100,7 +100,7 @@ fn scanned_third(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
     };
     crate::runtime::interactions::camera_loop::dispatch::workflow_process_kpub_payload(&valid, ctx.ad);
     if ctx.ad.navigation.app.state != AppState::MultisigShowAddress
-        || !ctx.ad.signing.multisig.creating.active
+        || ctx.ad.signing.multisig.draft != crate::runtime::data::MultisigDraft::Kept
         || ctx.ad.signing.multisig.creating.slot_empty(2)
         || ctx.ad.signing.multisig.creating.script_len == 0
     {

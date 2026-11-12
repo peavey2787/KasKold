@@ -194,7 +194,7 @@ fn open_current(
 fn aad_digest(index: usize, header: &[u8]) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(SLOT_AAD[index]);
-    hasher.update((header.len() as u32).to_le_bytes());
+    hasher.update(u32::try_from(header.len()).unwrap_or(u32::MAX).to_le_bytes());
     hasher.update(header);
     hasher.finalize().into()
 }

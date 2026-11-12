@@ -22,7 +22,7 @@ pub(super) fn exercise(ctx: &mut MultisigContext<'_, '_, '_>) -> bool {
         || ctx.ad.navigation.app.state != (AppState::MultisigAddKey { key_idx: 0 })
         || ctx.ad.signing.multisig.creating.m != 2
         || ctx.ad.signing.multisig.creating.n != 3
-        || !ctx.ad.signing.multisig.creating.v45
+        || !ctx.ad.signing.multisig.creating.family.is_hd45()
     {
         return false;
     }

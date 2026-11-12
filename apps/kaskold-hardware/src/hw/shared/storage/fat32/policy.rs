@@ -15,7 +15,7 @@ use read::{checked_chain_step, checked_file_size, read_file_cluster};
 // `fast_read_multi_block`). Keeping this policy in one source file prevents
 // safety checks from drifting between storage transports.
 
-pub(super) const FAT32_SECTOR_BYTES: u32 = 512;
+pub(super) use kaskold_hardware_core::storage::fat32_metadata::SECTOR_BYTES as FAT32_SECTOR_BYTES;
 pub(super) const FAT32_END_OF_CHAIN: u32 = 0x0FFF_FFF8;
 pub(super) const MAX_FAT_CHAIN_STEPS: u32 = 16_384;
 

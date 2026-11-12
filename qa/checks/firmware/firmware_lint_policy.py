@@ -53,6 +53,12 @@ _REQUIRED_FEATURE_SETS = (
     '"m5stack-lite,silent"',
     '"qemu"',
     '"qemu-tests"',
+    '"m5stack,hardware-tests"',
+    '"m5stack,owner-firmware"',
+    '"m5stack,secure-provisioning"',
+    '"m5stack,secure-owner-only"',
+    '"m5stack,mirror"',
+    '"m5stack,skip-tests"',
 )
 _ENFORCED_LINTS = (
     '"unused_imports"',

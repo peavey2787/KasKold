@@ -92,7 +92,7 @@ pub fn scan_request_with_progress(
         .map_err(|_| StealthError::ResponseTooLarge)?;
     response.resize(response_len, 0);
     response[..4].copy_from_slice(&RESPONSE_MAGIC);
-    response[4] = count as u8;
+    response[4] = u8::try_from(count).map_err(|_| StealthError::ResponseTooLarge)?;
     for index in 0..count {
         let request_offset = REQUEST_HEADER_LEN + index * CANDIDATE_LEN;
         let output_offset = REQUEST_HEADER_LEN + index * RESPONSE_RECORD_LEN;

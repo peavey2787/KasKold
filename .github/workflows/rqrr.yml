@@ -42,4 +42,4 @@ jobs:
         run: rustup run "$KASKOLD_STABLE_RUST" cargo test --all-features --locked
       - name: Clippy
         shell: bash
-        run: rustup run "$KASKOLD_STABLE_RUST" cargo clippy --all-targets --all-features --locked -- -D warnings -A unknown_lints
+        run: rustup run "$KASKOLD_STABLE_RUST" cargo clippy --all-targets --all-features --locked -- -D warnings

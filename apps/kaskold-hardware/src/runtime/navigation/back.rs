@@ -36,7 +36,9 @@ fn seed_or_multisig_target(ad: &AppData) -> Option<AppState> {
         MultisigPickSeed { key_idx } => MultisigAddKey { key_idx },
         MultisigDescriptorList { .. } => MultisigDescriptorsMenu,
         MultisigSaveDescriptorAsk => MultisigShowAddress,
-        MultisigDescriptor if ad.signing.multisig.creating.active => MultisigShowAddress,
+        MultisigDescriptor if ad.signing.multisig.draft == crate::runtime::data::MultisigDraft::Kept => {
+            MultisigShowAddress
+        }
         MultisigDescriptor => MultisigDescriptorsMenu,
         _ => return None,
     })

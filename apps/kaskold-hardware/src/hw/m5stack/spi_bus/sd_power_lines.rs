@@ -22,6 +22,7 @@ const MOSI_BIT: u32 = 1 << 5;
 const SHARED_SPI_BITS: u32 = MISO_BIT | SCK_BIT | MOSI_BIT;
 
 pub(super) fn quiesce() {
+    // SAFETY: every address is a documented ESP32-S3 GPIO/IO-matrix register, accessed as an aligned 32-bit word.
     unsafe {
         write_register(GPIO_OUT_W1TC, SD_CS_BIT);
         write_register(GPIO_OUT1_W1TC, SHARED_SPI_BITS);
@@ -34,6 +35,7 @@ pub(super) fn quiesce() {
 }
 
 pub(super) fn restore() {
+    // SAFETY: every address is a documented ESP32-S3 GPIO/IO-matrix register, accessed as an aligned 32-bit word.
     unsafe {
         // Deselect the card before restoring peripheral-driven SCK/MOSI.
         write_register(GPIO_OUT_W1TS, SD_CS_BIT);

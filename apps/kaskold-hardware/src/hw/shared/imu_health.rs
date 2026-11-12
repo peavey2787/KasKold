@@ -28,7 +28,9 @@ pub(crate) fn axis_distinct(bytes: &[u8]) -> [u32; 3] {
 
 /// Require independent diversity on every gyro axis at the point of use.
 pub(crate) fn buffer_is_healthy(bytes: &[u8]) -> bool {
-    let per_axis = (bytes.len() / 3) as u32;
+    let Ok(per_axis) = u32::try_from(bytes.len() / 3) else {
+        return false;
+    };
     if per_axis < 4 || !bytes.len().is_multiple_of(3) {
         return false;
     }

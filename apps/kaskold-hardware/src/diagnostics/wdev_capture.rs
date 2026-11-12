@@ -9,8 +9,8 @@ const SPACINGS: [u32; 5] = [0, 16, 64, 256, 1024];
 
 pub(crate) fn run_and_halt(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) -> ! {
     crate::log!("[wdev-capture] raw measurement mode; {} words x {} spacings", WORDS_PER_CAPTURE, SPACINGS.len());
-    for (run, spacing) in SPACINGS.into_iter().enumerate() {
-        match capture_one(spacing).and_then(|blob| write_one(i2c, delay, run as u8, spacing, &blob)) {
+    for (run, spacing) in (0u8..).zip(SPACINGS) {
+        match capture_one(spacing).and_then(|blob| write_one(i2c, delay, run, spacing, &blob)) {
             Ok(bytes) => crate::log!("[wdev-capture] run {} spacing {} wrote {} bytes", run, spacing, bytes),
             Err(error) => crate::log!("[wdev-capture] FAIL run {} spacing {}: {}", run, spacing, error),
         }

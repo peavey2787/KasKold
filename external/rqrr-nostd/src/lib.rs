@@ -180,7 +180,7 @@ impl SimpleGrid {
         for y in 0..size {
             for x in 0..size {
                 if fill_func(x, y) {
-                    cell_bitmap[c >> 3] |= 1 << (c & 7) as u8;
+                    cell_bitmap[c >> 3] |= 1u8 << (c & 7);
                 }
                 c += 1;
             }
@@ -197,7 +197,7 @@ impl BitGrid for SimpleGrid {
 
     fn bit(&self, y: usize, x: usize) -> bool {
         let c = y * self.size + x;
-        self.cell_bitmap[c >> 3] & (1 << (c & 7) as u8) != 0
+        self.cell_bitmap[c >> 3] & (1u8 << (c & 7)) != 0
     }
 }
 

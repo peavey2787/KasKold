@@ -33,6 +33,7 @@ pub fn run_firmware_verify(boot_display: &mut BootDisplay<'_>, delay: &mut esp_h
     match verify_result {
         VerificationResult::Valid => finish_verified_boot(boot_display, delay, &firmware_info),
         VerificationResult::InvalidHash => fail_boot(boot_display, delay, "HASH INVALID"),
+        #[cfg(not(feature = "secure-owner-only"))]
         VerificationResult::InvalidSignature => fail_boot(boot_display, delay, "SIGNATURE INVALID"),
         VerificationResult::VersionTooOld => fail_boot(boot_display, delay, "SECURITY VERSION OLD"),
         #[cfg(all(feature = "m5stack", feature = "production"))]

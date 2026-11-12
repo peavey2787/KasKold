@@ -47,14 +47,6 @@
       "fingerprint": "9091e14b2db601bf36233ac9d9a65f287a8b65d780f8990f9c4d05044ccdd8af",
       "rationale": "Reviewed fail-stop hardware invariant: continuing after this boot/peripheral invariant fails would be unsafe; the device intentionally halts rather than entering signing operation in a partially initialized state.",
       "reviewed": true
-    },
-    {
-      "path": "apps/kaskold-hardware/src/hw/shared/screenshot.rs",
-      "line": 48,
-      "source": "let layout = alloc::alloc::Layout::from_size_align(BUF_SIZE, 4).expect(\"screenshot framebuffer layout\");",
-      "fingerprint": "948bb55c272d179e387c85086ecc201ec625255b5e582508fc52cc0cdacaafe9",
-      "rationale": "Reviewed fail-stop hardware invariant: continuing after this boot/peripheral invariant fails would be unsafe; the device intentionally halts rather than entering signing operation in a partially initialized state.",
-      "reviewed": true
     }
   ]
 }

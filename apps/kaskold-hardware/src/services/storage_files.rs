@@ -85,7 +85,7 @@ pub fn scan_jpeg_files(
             let copy_len = display_len.min(32);
             display_names[index] = [0u8; 32];
             display_names[index][..copy_len].copy_from_slice(&display_name[..copy_len]);
-            display_lens[index] = copy_len as u8;
+            display_lens[index] = u8::try_from(copy_len).unwrap_or(u8::MAX);
             *file_count += 1;
             true
         })?;
@@ -158,7 +158,7 @@ fn capture_text_file(
     files.file_names[index] = entry.name;
     files.display_names[index] = [0u8; 32];
     files.display_names[index][..copy_len].copy_from_slice(&display_name[..copy_len]);
-    files.display_lens[index] = copy_len as u8;
+    files.display_lens[index] = u8::try_from(copy_len).unwrap_or(u8::MAX);
     files.file_count += 1;
     true
 }

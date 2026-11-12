@@ -98,7 +98,7 @@ fn advance_seed(ad: &mut AppData, watchdog_feed: &mut impl FnMut()) -> bool {
         return false;
     };
     let seed = work.advance(PBKDF2_ROUNDS_PER_STEP);
-    let progress = ((u16::from(work.progress_percent()) * 85) / 100) as u8;
+    let progress = u8::try_from((u16::from(work.progress_percent()) * 85) / 100).unwrap_or(u8::MAX);
     if progress != ad.wallet.addresses.cache_progress {
         ad.wallet.addresses.cache_progress = progress;
         ad.wallet.addresses.cache_last_progress_at_ms = now_millis();

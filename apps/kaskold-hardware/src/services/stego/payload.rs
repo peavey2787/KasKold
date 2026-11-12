@@ -306,7 +306,7 @@ fn write_header(
 fn build_aad(header: &[u8], descriptor: &[u8]) -> [u8; 80] {
     let mut digest = Sha256::new();
     digest.update(AAD_DOMAIN);
-    digest.update((descriptor.len() as u16).to_le_bytes());
+    digest.update(u16::try_from(descriptor.len()).unwrap_or(u16::MAX).to_le_bytes());
     digest.update(descriptor);
     let binding: [u8; 32] = digest.finalize().into();
 
@@ -319,7 +319,7 @@ fn build_aad(header: &[u8], descriptor: &[u8]) -> [u8; 80] {
 fn descriptor_credential(descriptor: &[u8]) -> [u8; 32] {
     let mut digest = Sha256::new();
     digest.update(CREDENTIAL_DOMAIN);
-    digest.update((descriptor.len() as u16).to_le_bytes());
+    digest.update(u16::try_from(descriptor.len()).unwrap_or(u16::MAX).to_le_bytes());
     digest.update(descriptor);
     digest.finalize().into()
 }

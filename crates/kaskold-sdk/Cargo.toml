@@ -32,3 +32,6 @@ js-sys = "0.3.85"
 [dev-dependencies]
 serde_json = "1"
 shared-signer = { version = "=2.0.0", path = "../shared-signer" }
+
+[lints]
+workspace = true

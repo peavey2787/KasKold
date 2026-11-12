@@ -157,7 +157,7 @@ fn signing_policy_validation_covers_shape_overlap_and_time_ranges() {
     policy.weekly_enabled = true;
     assert_eq!(policy.validate(), Err(PolicyError::InvalidWindow));
 
-    policy.weekly_count = (MAX_WEEKLY_WINDOWS + 1) as u8;
+    policy.weekly_count = u8::try_from(MAX_WEEKLY_WINDOWS + 1).unwrap();
     assert_eq!(policy.validate(), Err(PolicyError::TooManyWindows));
 
     let (windows, count) = parse_weekly_windows(b"MON 08:00-09:00;TUE 08:00-09:00").unwrap();

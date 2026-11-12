@@ -19,7 +19,8 @@ fn decode_submission_rejects_overflow_busy_and_buffer_mismatch() {
 fn sample_copy_and_descriptor_planning_are_bounds_safe() {
     let mut output = [0u8; 3];
     assert_eq!(
-        copy_sample_with(&mut output, true, 2, |index| index as u8 + 7),
+        copy_sample_with(&mut output, true, 2, |index| u8::try_from(index).unwrap()
+            + 7),
         2
     );
     assert_eq!(output, [7, 8, 0]);

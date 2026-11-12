@@ -19,6 +19,7 @@ use super::super::{
     Drawable, Point, Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size, COLOR_BG, COLOR_CARD, COLOR_DANGER,
     COLOR_RED_BTN, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_ACCENT, KASPA_TEAL,
 };
+use crate::ui::coordinates::{coord, extent};
 
 /// Width in pixels of the 260-pixel entropy progress bar after `count` of `target` samples.
 fn entropy_progress_width(count: usize, target: usize) -> usize {
@@ -111,7 +112,7 @@ impl<'a> BootDisplay<'a> {
             .ok();
         let progress_w = entropy_progress_width(count, target);
         if progress_w > 0 {
-            Rectangle::new(Point::new(30, 35), Size::new(progress_w as u32, 8))
+            Rectangle::new(Point::new(30, 35), Size::new(extent(progress_w), 8))
                 .into_styled(PrimitiveStyle::with_fill(KASPA_ACCENT))
                 .draw(&mut self.display)
                 .ok();
@@ -137,7 +138,7 @@ impl<'a> BootDisplay<'a> {
         let now = entropy_progress_width(count, target);
         let previous = entropy_progress_width(count.saturating_sub(1), target);
         if now > previous {
-            Rectangle::new(Point::new(30 + previous as i32, 35), Size::new((now - previous) as u32, 8))
+            Rectangle::new(Point::new(30 + coord(previous), 35), Size::new(extent(now - previous), 8))
                 .into_styled(PrimitiveStyle::with_fill(KASPA_ACCENT))
                 .draw(&mut self.display)
                 .ok();
@@ -208,7 +209,7 @@ impl<'a> BootDisplay<'a> {
             .draw(&mut self.display)
             .ok();
         if progress_w > 0 {
-            Rectangle::new(Point::new(30, 35), Size::new(progress_w as u32, 8))
+            Rectangle::new(Point::new(30, 35), Size::new(extent(progress_w), 8))
                 .into_styled(PrimitiveStyle::with_fill(KASPA_ACCENT))
                 .draw(&mut self.display)
                 .ok();
@@ -284,7 +285,7 @@ impl<'a> BootDisplay<'a> {
             .ok();
         let progress_w = entropy_progress_width(count, target);
         if progress_w > 0 {
-            Rectangle::new(Point::new(30, 35), Size::new(progress_w as u32, 8))
+            Rectangle::new(Point::new(30, 35), Size::new(extent(progress_w), 8))
                 .into_styled(PrimitiveStyle::with_fill(KASPA_ACCENT))
                 .draw(&mut self.display)
                 .ok();

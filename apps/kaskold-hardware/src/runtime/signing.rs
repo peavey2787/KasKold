@@ -47,7 +47,7 @@ pub use review::verify_transaction_output_ownership;
 pub use review::{
     totals as transaction_review_totals, verify_transaction_output_ownership_with_checkpoint, ReviewTotals,
 };
-pub(crate) use signature_status::rollback_added_signatures;
+pub(crate) use signature_status::{abandon_anti_klepto, rollback_added_signatures};
 pub use verification::run_firmware_verify;
 #[cfg(not(feature = "hardware-tests"))]
 pub use workflow::handle_signing_operation_step;

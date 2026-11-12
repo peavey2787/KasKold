@@ -22,6 +22,7 @@ static QEMU_TEST_HEAP: StaticCell<[u8; QEMU_TEST_HEAP_BYTES]> = StaticCell::new(
 pub(crate) fn initialize() {
     let heap = QEMU_TEST_HEAP.init_with(|| [0; QEMU_TEST_HEAP_BYTES]);
     unsafe {
+        // SAFETY: `StaticCell::init_with` hands out this heap array once, so the region is exclusively the allocator's.
         esp_alloc::HEAP.add_region(HeapRegion::new(heap.as_mut_ptr(), heap.len(), MemoryCapability::Internal.into()));
     }
 }
@@ -32,11 +33,11 @@ pub(crate) fn probe() -> bool {
 
     let mut buffer = Vec::with_capacity(PROBE_BYTES);
     for index in 0..PROBE_BYTES {
-        buffer.push((index as u8).wrapping_mul(17));
+        buffer.push(index.to_le_bytes()[0].wrapping_mul(17));
     }
 
     buffer.len() == PROBE_BYTES
         && buffer[0] == 0
         && buffer[1] == 17
-        && buffer[PROBE_BYTES - 1] == ((PROBE_BYTES - 1) as u8).wrapping_mul(17)
+        && buffer[PROBE_BYTES - 1] == (PROBE_BYTES - 1).to_le_bytes()[0].wrapping_mul(17)
 }

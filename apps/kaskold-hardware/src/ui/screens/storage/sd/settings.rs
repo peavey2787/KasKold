@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+use crate::ui::coordinates::coord;
 use crate::ui::prop_fonts;
 
 use super::super::super::{
@@ -183,7 +184,7 @@ impl<'a> BootDisplay<'a> {
 
             for (i, line) in lines.iter().enumerate() {
                 let lw = measure_body(line);
-                draw_lato_body(&mut self.display, line, (320 - lw) / 2, 195 + i as i32 * 18, COLOR_TEXT);
+                draw_lato_body(&mut self.display, line, (320 - lw) / 2, 195 + coord(i) * 18, COLOR_TEXT);
             }
         } else {
             self.display.clear(COLOR_BG).ok();
@@ -196,7 +197,7 @@ impl<'a> BootDisplay<'a> {
 
             for (i, line) in lines.iter().enumerate() {
                 let lw = measure_body(line);
-                draw_lato_body(&mut self.display, line, (320 - lw) / 2, 60 + i as i32 * 20, COLOR_TEXT);
+                draw_lato_body(&mut self.display, line, (320 - lw) / 2, 60 + coord(i) * 20, COLOR_TEXT);
             }
         }
     }

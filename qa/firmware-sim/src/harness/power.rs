@@ -19,7 +19,7 @@ pub(crate) fn across_power_cycles(test_path: &str, phases: &[fn()]) {
     match env::var(PHASE) {
         Ok(phase) => {
             let phase = phase.parse::<usize>().expect("phase index");
-            mmio::start_noise_for_power_on(phase as u32);
+            mmio::start_noise_for_power_on(u32::try_from(phase).unwrap());
             power_on_once(phases[phase]);
         }
         Err(_) => run_every_power_on(test_path, phases.len()),

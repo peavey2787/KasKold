@@ -3,15 +3,17 @@ use crate::{
     security::{
         authorize_transaction_signing, device_identity_words_usable, timing_observations_usable,
         validate_seed_entropy, SeedEntropyError, SeedEntropyEvidence, SigningAuthorization,
-        SigningAuthorizationError,
+        SigningAuthorizationError, TransactionReview,
     },
 };
 
 #[test]
 fn signing_authorization_fails_closed_for_every_missing_precondition() {
+    let reviewed = [0x5a; 32];
     let valid = SigningAuthorization {
         seed_loaded: true,
-        review_authorized: true,
+        review: TransactionReview::Showing(reviewed).approve(),
+        transaction_digest: reviewed,
         reviewed_inputs: 2,
         transaction_inputs: 2,
         signing_input_index: 1,
@@ -27,10 +29,24 @@ fn signing_authorization_fails_closed_for_every_missing_precondition() {
         ),
         (
             SigningAuthorization {
-                review_authorized: false,
+                review: TransactionReview::Idle,
                 ..valid
             },
             SigningAuthorizationError::ReviewIncomplete,
+        ),
+        (
+            SigningAuthorization {
+                review: TransactionReview::Showing(reviewed),
+                ..valid
+            },
+            SigningAuthorizationError::ReviewIncomplete,
+        ),
+        (
+            SigningAuthorization {
+                transaction_digest: [0xa5; 32],
+                ..valid
+            },
+            SigningAuthorizationError::ReviewedTransactionChanged,
         ),
         (
             SigningAuthorization {
@@ -66,6 +82,19 @@ fn signing_authorization_fails_closed_for_every_missing_precondition() {
     for (input, expected) in cases {
         assert_eq!(authorize_transaction_signing(input), Err(expected));
     }
+}
+
+#[test]
+fn only_a_review_on_screen_can_be_approved() {
+    assert_eq!(TransactionReview::Idle.approve(), TransactionReview::Idle);
+    assert_eq!(TransactionReview::Idle.approval(), None);
+    let showing = TransactionReview::Showing([7; 32]);
+    assert_eq!(showing.approval(), None);
+    let approved = showing.approve();
+    let approval = approved.approval().expect("approved review");
+    assert!(approval.covers(&[7; 32]));
+    assert!(!approval.covers(&[8; 32]));
+    assert_eq!(approved.approve(), approved);
 }
 
 #[test]

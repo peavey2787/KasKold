@@ -52,7 +52,7 @@ pub fn encode_bm8563(value: UtcDateTime) -> Result<Bm8563Write, Bm8563Error> {
             encode_bcd(value.day),
             weekday,
             encode_bcd(value.month),
-            encode_bcd((value.year - 2000) as u8),
+            encode_bcd(u8::try_from(value.year - 2000).map_err(|_| Bm8563Error::Invalid)?),
         ],
     })
 }

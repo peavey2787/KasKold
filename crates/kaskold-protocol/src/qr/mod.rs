@@ -44,16 +44,18 @@ pub fn encode_frames(payload: &[u8]) -> ProtocolResult<Vec<QrFrame>> {
         let start = index * chunk_size;
         let end = (start + chunk_size).min(payload.len());
         let mut wire = [0u8; 134];
+        let index =
+            u8::try_from(index).map_err(|_| ProtocolError::qr("QR frame index exceeds u8"))?;
         let length = shared_signer::qr_frame::encode_frame(
             &session_id,
-            u8::try_from(index).map_err(|_| ProtocolError::qr("QR frame index exceeds u8"))?,
+            index,
             total,
             &payload[start..end],
             &mut wire,
         )
         .map_err(|error| ProtocolError::qr(format!("QR frame encoding failed: {error:?}")))?;
         frames.push(QrFrame {
-            index: index as u8,
+            index,
             total,
             payload: wire[..length].to_vec(),
         });
@@ -110,11 +112,7 @@ impl QrDecoder {
     pub fn progress(&self) -> QrProgress {
         let total = usize::from(self.total_frames);
         let bits = self.received[..total].to_vec();
-        let received = bits
-            .iter()
-            .filter(|value| **value)
-            .count()
-            .min(u8::MAX as usize) as u8;
+        let received = u8::try_from(bits.iter().filter(|value| **value).count()).unwrap_or(u8::MAX);
         QrProgress {
             total: self.total_frames,
             received,

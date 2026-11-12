@@ -37,7 +37,7 @@ fn qr_generation_accepts_exact_maximum_frame_count() {
     assert_eq!(frames.first().unwrap().frame_num, 0);
     assert_eq!(
         frames.last().unwrap().frame_num,
-        (shared_signer::qr_frame::MAX_FRAMES - 1) as u8,
+        u8::try_from(shared_signer::qr_frame::MAX_FRAMES - 1).unwrap(),
     );
     assert!(frames
         .iter()
@@ -46,7 +46,9 @@ fn qr_generation_accepts_exact_maximum_frame_count() {
 
 #[test]
 fn qr_generation_slices_balanced_fragments_at_exact_offsets() {
-    let payload: Vec<u8> = (0..200u16).map(|value| value as u8).collect();
+    let payload: Vec<u8> = (0..200u16)
+        .map(|value| u8::try_from(value).unwrap())
+        .collect();
     let frames = generate_frames(&hex::encode(&payload)).expect("balanced frames");
     assert_eq!(frames.len(), 3);
 
@@ -59,8 +61,8 @@ fn qr_generation_slices_balanced_fragments_at_exact_offsets() {
     let mut encoded = [0u8; 134];
     let written = shared_signer::qr_frame::encode_frame(
         &identifier,
-        frame_index as u8,
-        frames.len() as u8,
+        u8::try_from(frame_index).unwrap(),
+        u8::try_from(frames.len()).unwrap(),
         &payload[start..end],
         &mut encoded,
     )

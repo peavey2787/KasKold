@@ -19,6 +19,7 @@ fn current_envelope() -> ([u8; 1024], usize) {
 
 #[test]
 fn current_envelope_round_trip_authenticates_kdf_metadata_and_has_no_fallback() {
+    let _psram = crate::services::memory::psram::exclusive_for_unit_test();
     let (encrypted, length) = current_envelope();
     assert_eq!(&encrypted[..4], CURRENT_MAGIC);
     let mut plaintext = [0u8; 1024];
@@ -38,6 +39,7 @@ fn current_envelope_round_trip_authenticates_kdf_metadata_and_has_no_fallback() 
 
 #[test]
 fn current_envelope_rejects_weak_params_malformed_lengths_and_zero_material() {
+    let _psram = crate::services::memory::psram::exclusive_for_unit_test();
     let (encrypted, length) = current_envelope();
     let mut plaintext = [0xa5u8; 1024];
 
@@ -60,6 +62,7 @@ fn current_envelope_rejects_weak_params_malformed_lengths_and_zero_material() {
 
 #[test]
 fn authentication_failure_clears_current_plaintext_region() {
+    let _psram = crate::services::memory::psram::exclusive_for_unit_test();
     let (mut encrypted, length) = current_envelope();
     encrypted[length - 1] ^= 1;
     let mut plaintext = [0xa5u8; 1024];

@@ -223,7 +223,9 @@ fn execute_install(
                 return Some(true);
             }
         };
-        if staged != hash || persistence.request_owner_install(length as u32, &hash).is_err() {
+        if staged != hash
+            || persistence.request_owner_install(u32::try_from(length).unwrap_or(u32::MAX), &hash).is_err()
+        {
             ad.pop_it.error = Some("Could not arm owner firmware install");
             return Some(true);
         }

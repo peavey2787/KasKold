@@ -58,6 +58,8 @@ pub(super) const CANARY_POST_VERIFY: u32 = 0xCAFE_BABE;
 pub enum VerificationResult {
     Valid,
     InvalidHash,
+    // Owner-only builds have no signature check before their RSA root is fused.
+    #[cfg(not(feature = "secure-owner-only"))]
     InvalidSignature,
     VersionTooOld,
     #[cfg(all(feature = "m5stack", feature = "production"))]

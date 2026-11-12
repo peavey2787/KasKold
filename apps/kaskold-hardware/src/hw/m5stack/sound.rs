@@ -217,7 +217,7 @@ pub fn set_volume(vol: u8) {
 
 fn scaled_amplitude(base: i16) -> i16 {
     let vol = VOLUME.load(Ordering::Acquire) as i32;
-    ((base as i32) * vol / 255) as i16
+    i16::try_from((base as i32) * vol / 255).unwrap_or(i16::MAX)
 }
 
 fn aw_write(i2c: &mut I2c<'_, Blocking>, reg: u8, val: u16) -> bool {

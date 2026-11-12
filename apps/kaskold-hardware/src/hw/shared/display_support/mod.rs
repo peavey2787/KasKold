@@ -23,14 +23,21 @@ impl<D> TeeDisplay<D> {
     }
 }
 
-fn write_shadow_pixel(framebuffer: &mut [u8], x: i32, y: i32, color: Rgb565) {
-    if !(0..320).contains(&x) || !(0..240).contains(&y) {
+use crate::hw::screenshot::{H, W};
+
+/// The panel area the shadow framebuffer mirrors.
+const SCREEN: Rectangle =
+    Rectangle::new(Point::zero(), Size::new(shared_signer::narrow!(u32, W), shared_signer::narrow!(u32, H)));
+
+fn write_shadow_pixel(framebuffer: &mut [u8], point: Point, color: Rgb565) {
+    let (Ok(x), Ok(y)) = (usize::try_from(point.x), usize::try_from(point.y)) else {
+        return;
+    };
+    if x >= W || y >= H {
         return;
     }
-    let index = (y as usize * 320 + x as usize) * 2;
-    let raw = RawU16::from(color).into_inner();
-    framebuffer[index] = (raw >> 8) as u8;
-    framebuffer[index + 1] = raw as u8;
+    let index = (y * W + x) * 2;
+    framebuffer[index..index + 2].copy_from_slice(&RawU16::from(color).into_inner().to_be_bytes());
 }
 
 impl<D> DrawTarget for TeeDisplay<D>
@@ -48,7 +55,7 @@ where
         if self.shadow_active {
             let _ = crate::hw::screenshot::with_framebuffer_mut(|framebuffer| {
                 for &Pixel(point, color) in &pixels {
-                    write_shadow_pixel(framebuffer, point.x, point.y, color);
+                    write_shadow_pixel(framebuffer, point, color);
                 }
             });
         }
@@ -62,16 +69,8 @@ where
         let colors: alloc::vec::Vec<Rgb565> = colors.into_iter().collect();
         if self.shadow_active {
             let _ = crate::hw::screenshot::with_framebuffer_mut(|framebuffer| {
-                let mut x = area.top_left.x;
-                let mut y = area.top_left.y;
-                let x_end = area.top_left.x + area.size.width as i32;
-                for &color in &colors {
-                    write_shadow_pixel(framebuffer, x, y, color);
-                    x += 1;
-                    if x >= x_end {
-                        x = area.top_left.x;
-                        y += 1;
-                    }
+                for (point, &color) in area.points().zip(&colors) {
+                    write_shadow_pixel(framebuffer, point, color);
                 }
             });
         }
@@ -81,14 +80,8 @@ where
     fn fill_solid(&mut self, area: &Rectangle, color: Self::Color) -> Result<(), Self::Error> {
         if self.shadow_active {
             let _ = crate::hw::screenshot::with_framebuffer_mut(|framebuffer| {
-                let x_start = area.top_left.x.max(0) as usize;
-                let y_start = area.top_left.y.max(0) as usize;
-                let x_end = (area.top_left.x + area.size.width as i32).min(320).max(0) as usize;
-                let y_end = (area.top_left.y + area.size.height as i32).min(240).max(0) as usize;
-                for y in y_start..y_end {
-                    for x in x_start..x_end {
-                        write_shadow_pixel(framebuffer, x as i32, y as i32, color);
-                    }
+                for point in area.intersection(&SCREEN).points() {
+                    write_shadow_pixel(framebuffer, point, color);
                 }
             });
         }
@@ -97,11 +90,10 @@ where
 
     fn clear(&mut self, color: Self::Color) -> Result<(), Self::Error> {
         if self.shadow_active {
-            let raw = RawU16::from(color).into_inner();
+            let bytes = RawU16::from(color).into_inner().to_be_bytes();
             let _ = crate::hw::screenshot::with_framebuffer_mut(|framebuffer| {
                 for pixel in framebuffer.chunks_exact_mut(2) {
-                    pixel[0] = (raw >> 8) as u8;
-                    pixel[1] = raw as u8;
+                    pixel.copy_from_slice(&bytes);
                 }
             });
         }

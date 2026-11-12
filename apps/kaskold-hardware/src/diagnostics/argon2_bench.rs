@@ -42,7 +42,7 @@ pub(crate) fn run(watchdog_feed: &mut impl FnMut()) -> bool {
 #[inline(never)]
 fn run_candidate(candidate: &Candidate) -> bool {
     let free_before = crate::services::memory::psram::free_bytes();
-    let largest_before = crate::services::memory::psram::probe_largest_allocatable(PROBE_CAP, PROBE_GRANULARITY);
+    let largest_before = crate::services::memory::psram_probe::probe_largest_allocatable(PROBE_CAP, PROBE_GRANULARITY);
     let started = esp_hal::xtensa_lx::timer::get_cycle_count();
     let result = crate::services::memory::password_kdf::derive_benchmark_key_32(
         PURPOSE,
@@ -53,7 +53,7 @@ fn run_candidate(candidate: &Candidate) -> bool {
     let cycles = esp_hal::xtensa_lx::timer::get_cycle_count().wrapping_sub(started);
     let elapsed_ms = u64::from(cycles) / CPU_CYCLES_PER_MS;
     let free_after = crate::services::memory::psram::free_bytes();
-    let largest_after = crate::services::memory::psram::probe_largest_allocatable(PROBE_CAP, PROBE_GRANULARITY);
+    let largest_after = crate::services::memory::psram_probe::probe_largest_allocatable(PROBE_CAP, PROBE_GRANULARITY);
     let liveness_ok = elapsed_ms <= WATCHDOG_BUDGET_MS;
     let status = classify_result(result, &candidate.expected);
     crate::log!(

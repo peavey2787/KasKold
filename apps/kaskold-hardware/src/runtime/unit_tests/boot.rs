@@ -23,12 +23,14 @@ extern crate alloc;
 use crate::services::unit_tests::hardware::{run_all_tests, HardwareTest};
 
 /// Decode QR from grayscale image using rqrr. Returns Option<(data, len)>.
+#[cfg(not(feature = "skip-tests"))]
 #[inline(never)]
 fn rqrr_test_decode(img: &[u8], w: usize, h: usize) -> Option<alloc::vec::Vec<u8>> {
     // rqrr's prepared image contains a large fixed LRU cache. Keep that verbose
     // boot-test fixture off the ProCpu stack; production decoding has its own
     // independently gated memory path.
-    let mut prepared = alloc::boxed::Box::new(rqrr::PreparedImage::prepare_from_greyscale(w, h, |x, y| img[y * w + x]));
+    let mut prepared =
+        alloc::boxed::Box::new(rqrr::PreparedImage::prepare_from_greyscale(w, h, |x, y| img[y * w + x])?);
     let grids = prepared.detect_grids();
     for grid in grids {
         let mut out = alloc::vec::Vec::new();
@@ -93,7 +95,7 @@ pub fn run_boot_tests() -> bool {
                     // Draw QR modules
                     for my in 0..qr_size {
                         for mx in 0..qr_size {
-                            if qr.get(mx as u8, my as u8) {
+                            if qr.get(u8::try_from(mx).unwrap(), u8::try_from(my).unwrap()) {
                                 let px = ox + (mx + 1) * scale;
                                 let py = oy + (my + 1) * scale;
                                 for dy in 0..scale {
@@ -165,7 +167,7 @@ pub fn run_boot_tests() -> bool {
                     }
                     for my in 0..qr_size {
                         for mx in 0..qr_size {
-                            if qr.get(mx as u8, my as u8) {
+                            if qr.get(u8::try_from(mx).unwrap(), u8::try_from(my).unwrap()) {
                                 let px = ox + (mx + 1) * scale;
                                 let py = oy + (my + 1) * scale;
                                 for dy in 0..scale {
@@ -348,8 +350,8 @@ pub fn test_signing_pipeline(ad: &mut crate::runtime::data::AppData) -> bool {
         return false;
     }
 
-    if tx.inputs[0].sig_count > 0 {
-        log!("[SIGN-TEST] OK — {} signature(s), response {} bytes", tx.inputs[0].sig_count, signed_len);
+    if !tx.inputs[0].sigs.is_empty() {
+        log!("[SIGN-TEST] OK — {} signature(s), response {} bytes", tx.inputs[0].sigs.len(), signed_len);
         true
     } else {
         log!("[SIGN-TEST] FAIL: no signature on input[0]");

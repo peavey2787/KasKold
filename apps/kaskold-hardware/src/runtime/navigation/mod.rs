@@ -223,7 +223,7 @@ pub(crate) fn begin_add_wallet(ad: &mut AppData, action: u8) -> bool {
         ad.wallet.seeds.clear_pending_add_wallet();
         return false;
     };
-    ad.wallet.seeds.pending_add_wallet_slot = slot as u8;
+    ad.wallet.seeds.pending_add_wallet_slot = u8::try_from(slot).unwrap_or(u8::MAX);
     let destination = if action == 2 {
         ad.storage.persistence.onboarding_imported_mnemonic = false;
         ad.navigation.production.restore_menu.reset();

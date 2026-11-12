@@ -35,6 +35,17 @@ FEATURE_MATRIX = (
     # Runtime-HIL images drive production screens and the real card on hardware.
     FirmwareBuild("m5stack,workflow-runtime-auto"),
     FirmwareBuild("m5stack,workflow-hil-auto"),
+    # The on-device hardware-test image that `make test-hardware` flashes.
+    FirmwareBuild("m5stack,hardware-tests"),
+    # Owner and provisioning images are compile-tested here; building one never
+    # burns eFuses, which only the bootloader does after an explicit request.
+    FirmwareBuild("m5stack,owner-firmware"),
+    FirmwareBuild("m5stack,secure-provisioning"),
+    FirmwareBuild("m5stack,secure-owner-only"),
+    # Developer tooling: the display mirror (which implies screenshot) and the
+    # boot image without known-answer tests.
+    FirmwareBuild("m5stack,mirror"),
+    FirmwareBuild("m5stack,skip-tests"),
     FirmwareBuild("qemu"),
     FirmwareBuild("qemu-tests"),
 )

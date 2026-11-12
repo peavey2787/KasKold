@@ -12,7 +12,7 @@ fn externally_controlled_container_parsers_are_total_over_truncated_and_noise_in
             seed = seed
                 .wrapping_mul(6364136223846793005)
                 .wrapping_add(1442695040888963407);
-            *byte = (seed >> 32) as u8;
+            *byte = (seed >> 32).to_le_bytes()[0];
         }
         let data = bytes.as_slice();
         let result = std::panic::catch_unwind(|| {

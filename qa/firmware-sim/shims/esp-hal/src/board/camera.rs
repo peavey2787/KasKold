@@ -50,7 +50,7 @@ impl Scene {
             self.noise ^= self.noise << 13;
             self.noise ^= self.noise >> 17;
             self.noise ^= self.noise << 5;
-            *pixel = self.noise as u8;
+            *pixel = self.noise.to_le_bytes()[0];
         }
     }
 }

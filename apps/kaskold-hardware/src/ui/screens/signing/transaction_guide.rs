@@ -6,6 +6,7 @@ use super::super::{
     measure_title, BootDisplay, CornerRadii, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle,
     RoundedRectangle, Size, COLOR_BG, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_TEAL,
 };
+use crate::ui::coordinates::coord;
 
 impl<'a> BootDisplay<'a> {
     /// Explain the second Companion -> KasKold anti-klepto handoff before
@@ -25,7 +26,7 @@ impl<'a> BootDisplay<'a> {
         let lines = ["Companion should now show", "the next signing QR.", "Press OK, then scan it", "with KasKold."];
         for (index, line) in lines.iter().enumerate() {
             let width = measure_18(line);
-            draw_lato_18(&mut self.display, line, (320 - width) / 2, 70 + index as i32 * 24, COLOR_TEXT);
+            draw_lato_18(&mut self.display, line, (320 - width) / 2, 70 + coord(index) * 24, COLOR_TEXT);
         }
 
         let hint = "Signing session stays active";

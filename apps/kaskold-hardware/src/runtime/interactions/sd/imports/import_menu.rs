@@ -7,7 +7,7 @@ use crate::runtime::interactions::menu_selection::{handle_paged_menu_touch, Page
 use kaskold_hardware_core::storage::routing::{import_scan_plan, ImportScanPlan};
 const WALLET_BACKUP_RULE: ImportScanRule = ImportScanRule {
     extensions: &[*b"KAS"],
-    max_size: crate::services::backup::MAX_XPRV_BACKUP_SIZE as u32,
+    max_size: shared_signer::narrow!(u32, crate::services::backup::MAX_XPRV_BACKUP_SIZE),
     exclude_hidden: true,
     next_state: crate::runtime::navigation::continuation!(SdWalletBackupFileList),
     empty_message: "No current .KAS backups found",

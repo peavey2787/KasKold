@@ -44,7 +44,7 @@ impl<'a> BootDisplay<'a> {
         let width = measure_header(title);
         draw_oswald_header(&mut self.display, title, (320 - width) / 2, 32, KASPA_TEAL);
         for (index, line) in lines.iter().enumerate() {
-            let y = 72 + index as i32 * 27;
+            let y = 72 + crate::ui::coordinates::coord(index) * 27;
             let line_width = measure_body(line);
             let color = if irreversible && index == 2 { COLOR_DANGER } else { COLOR_TEXT };
             draw_lato_body(&mut self.display, line, ((320 - line_width) / 2).max(2), y, color);

@@ -32,7 +32,7 @@ pub(super) fn process(
     let response = match offline_signer::privacy_pairing::respond_with_progress(&account, input, |completed, total| {
         liveness();
         if let Some(percent) = (completed * 90).checked_div(total) {
-            boot_display.update_progress_bar(percent.min(90) as u8);
+            boot_display.update_progress_bar(u8::try_from(percent.min(90)).unwrap_or(u8::MAX));
         }
     }) {
         Ok(response) => response,

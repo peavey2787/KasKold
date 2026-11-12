@@ -20,3 +20,6 @@ k256 = { version = "0.14", default-features = false, features = ["arithmetic", "
 aes-gcm = { version = "0.10.3", default-features = false, features = ["aes"] }
 zeroize = { version = "1.8.2", default-features = false, features = ["derive"] }
 argon2 = { version = "=0.5.3", default-features = false, features = ["zeroize"] }
+
+[lints]
+workspace = true

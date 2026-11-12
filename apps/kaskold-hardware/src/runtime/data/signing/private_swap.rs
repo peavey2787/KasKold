@@ -1,9 +1,14 @@
 //! Isolated runtime state for Private Swap v2 adaptor-signature authorization.
+//!
+//! The phase alone says which request is in flight: a key handout, or one of
+//! the three owner-approved actions. Only a pre-signature waits for a host
+//! reveal, so that wait carries whether its nonce QR was shown.
 
+use offline_signer::crypto::adaptor::AdaptorPreSignature;
+
+/// An action the owner approves on the review screen.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PrivateSwapMode {
-    None,
-    KeyInfo,
+pub enum PrivateSwapAction {
     Bind,
     PreSign,
     Complete,
@@ -12,13 +17,34 @@ pub enum PrivateSwapMode {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrivateSwapPhase {
     Idle,
-    Prepared,
-    AwaitingReveal,
-    FinalResponse,
+    /// A fresh swap key's details are ready to show.
+    KeyReady,
+    /// An action waits for the owner's approval.
+    Prepared(PrivateSwapAction),
+    /// The pre-signature nonce is committed; the host's reveal is due once
+    /// its QR has been shown.
+    AwaitingReveal {
+        nonce_shown: bool,
+    },
+    /// The action's response is ready to show.
+    FinalResponse(PrivateSwapAction),
 }
 
+impl PrivateSwapPhase {
+    /// The approved action this phase belongs to, if any.
+    #[must_use]
+    pub const fn action(self) -> Option<PrivateSwapAction> {
+        match self {
+            Self::Prepared(action) | Self::FinalResponse(action) => Some(action),
+            Self::AwaitingReveal { .. } => Some(PrivateSwapAction::PreSign),
+            Self::Idle | Self::KeyReady => None,
+        }
+    }
+}
+
+const NO_PRESIGNATURE: AdaptorPreSignature = AdaptorPreSignature { bytes: [0; 64], negated: false };
+
 pub struct PrivateSwapState {
-    pub mode: PrivateSwapMode,
     pub phase: PrivateSwapPhase,
     pub session_id: [u8; 16],
     pub host_commitment: [u8; 32],
@@ -30,8 +56,7 @@ pub struct PrivateSwapState {
     pub sighash: [u8; 32],
     pub nonce_point: [u8; 33],
     pub aux_rand: [u8; 32],
-    pub presignature: [u8; 64],
-    pub presignature_negated: bool,
+    pub presignature: AdaptorPreSignature,
     pub completed_signature: [u8; 64],
     pub input_amount: u64,
     pub output_amount: u64,
@@ -40,7 +65,6 @@ pub struct PrivateSwapState {
     pub destination_hash: [u8; 32],
     pub response: [u8; shared_signer::covenant_sign::private_swap::RESPONSE_LEN],
     pub response_len: usize,
-    pub nonce_qr_shown: bool,
     /// One fresh, device-allocated swap covenant key waiting to be bound.
     pub pending_key_id: [u8; 32],
     pub pending_pubkey: [u8; 32],
@@ -48,9 +72,8 @@ pub struct PrivateSwapState {
 }
 
 impl PrivateSwapState {
-    pub(super) fn new() -> Self {
+    pub(super) const fn new() -> Self {
         Self {
-            mode: PrivateSwapMode::None,
             phase: PrivateSwapPhase::Idle,
             session_id: [0; 16],
             host_commitment: [0; 32],
@@ -62,8 +85,7 @@ impl PrivateSwapState {
             sighash: [0; 32],
             nonce_point: [0; 33],
             aux_rand: [0; 32],
-            presignature: [0; 64],
-            presignature_negated: false,
+            presignature: NO_PRESIGNATURE,
             completed_signature: [0; 64],
             input_amount: 0,
             output_amount: 0,
@@ -72,7 +94,6 @@ impl PrivateSwapState {
             destination_hash: [0; 32],
             response: [0; shared_signer::covenant_sign::private_swap::RESPONSE_LEN],
             response_len: 0,
-            nonce_qr_shown: false,
             pending_key_id: [0; 32],
             pending_pubkey: [0; 32],
             pending_adaptor_point: [0; 32],
@@ -90,19 +111,17 @@ impl PrivateSwapState {
         shared_signer::bytes::zeroize_bytes(&mut self.sighash);
         shared_signer::bytes::zeroize_bytes(&mut self.nonce_point);
         shared_signer::bytes::zeroize_bytes(&mut self.aux_rand);
-        shared_signer::bytes::zeroize_bytes(&mut self.presignature);
+        shared_signer::bytes::zeroize_bytes(&mut self.presignature.bytes);
         shared_signer::bytes::zeroize_bytes(&mut self.completed_signature);
         shared_signer::bytes::zeroize_bytes(&mut self.destination_hash);
         shared_signer::bytes::zeroize_bytes(&mut self.response);
-        self.mode = PrivateSwapMode::None;
         self.phase = PrivateSwapPhase::Idle;
-        self.presignature_negated = false;
+        self.presignature.negated = false;
         self.input_amount = 0;
         self.output_amount = 0;
         self.fee = 0;
         self.refund_locktime_daa = 0;
         self.response_len = 0;
-        self.nonce_qr_shown = false;
     }
 
     pub fn replace_pending(&mut self, key_id: [u8; 32], pubkey: [u8; 32], adaptor: [u8; 32]) {

@@ -63,19 +63,9 @@ fn assert_same_semantic_model(vault: &Transaction, relayed: &Transaction) {
             "input[{index}] redeem drift"
         );
         assert_eq!(
-            left.covenant_execution_present, right.covenant_execution_present,
-            "input[{index}] covenant proof presence drift"
+            left.covenant_execution, right.covenant_execution,
+            "input[{index}] covenant execution drift"
         );
-        if left.covenant_execution_present {
-            assert_eq!(
-                left.covenant_execution_mask, right.covenant_execution_mask,
-                "input[{index}] covenant proof mask drift"
-            );
-            assert_eq!(
-                left.covenant_execution_true_mask, right.covenant_execution_true_mask,
-                "input[{index}] covenant proof truth drift"
-            );
-        }
     }
 
     for index in 0..vault.num_outputs {
@@ -92,19 +82,9 @@ fn assert_same_semantic_model(vault: &Transaction, relayed: &Transaction) {
             "output[{index}] script drift"
         );
         assert_eq!(
-            left.has_covenant, right.has_covenant,
-            "output[{index}] covenant-presence drift"
+            left.covenant, right.covenant,
+            "output[{index}] covenant binding drift"
         );
-        if left.has_covenant {
-            assert_eq!(
-                left.covenant_auth_input, right.covenant_auth_input,
-                "output[{index}] covenant auth-input drift"
-            );
-            assert_eq!(
-                left.covenant_id, right.covenant_id,
-                "output[{index}] covenant id drift"
-            );
-        }
     }
 }
 

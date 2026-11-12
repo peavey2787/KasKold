@@ -3,7 +3,10 @@ use crate::{HotWalletError, OutputOwnership};
 use offline_signer::{
     address::{p2pk_script, p2sh_script, script_hash, KaspaNetwork},
     derivation::kip22::{self, Chain},
-    transaction::{kspt::serialize_compact_kspt_vec, model::Transaction},
+    transaction::{
+        kspt::serialize_compact_kspt_vec,
+        model::{CovenantExecution, Transaction},
+    },
 };
 
 fn wallet_key(chain: Chain, index: u32) -> [u8; 32] {
@@ -39,7 +42,10 @@ fn spend_from(coin: &[u8], redeem: &[u8], change: &[u8]) -> Vec<u8> {
     transaction.inputs[0].previous_outpoint.transaction_id = [0x11; 32];
     transaction.inputs[0].sequence = u64::MAX;
     transaction.inputs[0].sig_op_count = 1;
-    transaction.inputs[0].covenant_execution_present = true;
+    transaction.inputs[0].covenant_execution = Some(CovenantExecution {
+        supplied_mask: 0,
+        supplied_true_mask: 0,
+    });
     transaction.inputs[0].utxo_entry.amount = 100_000;
     set_script(
         &mut transaction.inputs[0].utxo_entry.script_public_key,

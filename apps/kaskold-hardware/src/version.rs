@@ -38,8 +38,7 @@ const fn parse_u8_const(s: &str) -> u8 {
         acc = acc * 10 + (b - b'0') as u32;
         i += 1;
     }
-    assert!(acc <= 255, "version component > 255");
-    acc as u8
+    shared_signer::numeric::to_u8(acc as u64)
 }
 
 /// Major version (e.g. `1` for 1.2.3).

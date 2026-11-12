@@ -6,7 +6,8 @@ use kaspa_portal::primitives::address::{encode_p2pk, KaspaNetwork, MAX_ADDR_LEN}
 use kaspa_portal::primitives::hash::blake2b_256;
 use kaspa_portal::transaction::interchange::kspt::serialize_compact_kspt_vec;
 use kaspa_portal::transaction::model::{
-    Ms45Hint, ScriptPublicKey, SigHashType, Transaction, OP_BLAKE2B, OP_DATA_32, OP_EQUAL,
+    Derivation, Ms45Derivation, ScriptPublicKey, SigHashType, Transaction, OP_BLAKE2B, OP_DATA_32,
+    OP_EQUAL,
 };
 use kaspa_portal::wallet::derivation::bip32::{
     derive_account_key, derive_address_key, derive_change_key, derive_child, ExtendedPrivKey,
@@ -84,7 +85,7 @@ pub(super) fn multisig_seed_of(words: &[&str]) -> Seed {
 }
 
 /// A spend of a shared wallet's coins paying a stranger, naming where the signers' keys are.
-fn transaction_spending_redeem(redeem: &[u8], hint: Ms45Hint) -> Transaction {
+fn transaction_spending_redeem(redeem: &[u8], hint: Option<Ms45Derivation>) -> Transaction {
     let mut tx = Transaction::try_new().expect("transaction");
     tx.version = 0;
     tx.network = KaspaNetwork::Mainnet;
@@ -109,7 +110,7 @@ fn transaction_spending_redeem(redeem: &[u8], hint: Ms45Hint) -> Transaction {
     tx
 }
 
-pub(super) fn transaction_spending_shared(redeem: &[u8], hint: Ms45Hint) -> Vec<u8> {
+pub(super) fn transaction_spending_shared(redeem: &[u8], hint: Option<Ms45Derivation>) -> Vec<u8> {
     let mut tx = transaction_spending_redeem(redeem, hint);
     tx.outputs[0].value = 99_000_000;
     serialize_compact_kspt_vec(&tx).expect("serialize")
@@ -117,7 +118,7 @@ pub(super) fn transaction_spending_shared(redeem: &[u8], hint: Ms45Hint) -> Vec<
 
 /// The one-input, one-output claim of a private swap whose covenant pays [`STRANGER_KEY`].
 pub(super) fn transaction_claiming_a_swap(covenant: &[u8]) -> Vec<u8> {
-    let mut tx = transaction_spending_redeem(covenant, Ms45Hint::none());
+    let mut tx = transaction_spending_redeem(covenant, None);
     tx.outputs[0].value = 99_999_000;
     serialize_compact_kspt_vec(&tx).expect("serialize")
 }
@@ -206,16 +207,17 @@ fn transaction_spending(coins: [[u8; 32]; 2], change: [u8; 32]) -> Vec<u8> {
     set_p2pk(&mut tx.outputs[0].script_public_key, STRANGER_KEY);
     tx.outputs[1].value = 49_000_000;
     set_p2pk(&mut tx.outputs[1].script_public_key, change);
-    tx.outputs[1].has_derivation_hint = true;
-    tx.outputs[1].derivation_branch = 1;
-    tx.outputs[1].derivation_index = 1;
+    tx.outputs[1].derivation_hint = Some(Derivation {
+        branch: 1,
+        index: 1,
+    });
     serialize_compact_kspt_vec(&tx).expect("serialize")
 }
 
 fn spend(tx: &mut Transaction, index: usize, key: [u8; 32], txid: [u8; 32], amount: u64) {
     let input = &mut tx.inputs[index];
     input.previous_outpoint.transaction_id = txid;
-    input.previous_outpoint.index = index as u32;
+    input.previous_outpoint.index = u32::try_from(index).unwrap();
     input.utxo_entry.amount = amount;
     input.sequence = u64::MAX;
     input.sig_op_count = 1;

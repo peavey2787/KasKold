@@ -117,7 +117,7 @@ pub fn test_seed_manager_store_delete() -> bool {
 pub fn test_account_key_slot_roundtrip() -> bool {
     let mut raw = [0u8; 65];
     for (index, byte) in raw.iter_mut().enumerate() {
-        *byte = index as u8;
+        *byte = u8::try_from(index).unwrap();
     }
 
     let mut manager = SeedManager::new();
@@ -160,13 +160,13 @@ pub fn test_transient_seed_manager_is_persistence_neutral() -> bool {
     if !manager.set_slot_name(transient, b"One Time")
         || manager.name_revision() != saved_name_revision
         || !manager.set_active(transient)
-        || manager.persistent_active() != saved as u8
+        || manager.persistent_active() != u8::try_from(saved).unwrap()
         || manager.revision() != saved_revision
     {
         return false;
     }
     manager.delete(transient);
-    manager.persistent_active() == saved as u8
+    manager.persistent_active() == u8::try_from(saved).unwrap()
         && manager.revision() == saved_revision
         && manager.name_revision() == saved_name_revision
 }

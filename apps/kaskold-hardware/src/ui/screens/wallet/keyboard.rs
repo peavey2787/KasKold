@@ -15,6 +15,7 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use super::{WORD_COUNT_12_Y, WORD_COUNT_24_Y, WORD_COUNT_BUTTON_HEIGHT, WORD_COUNT_BUTTON_WIDTH, WORD_COUNT_BUTTON_X};
+use crate::ui::coordinates::coord;
 
 use super::super::{
     draw_lato_18, draw_lato_22_opaque, draw_lato_body, draw_lato_hint, draw_lato_title, draw_oswald_header, measure_18,
@@ -93,7 +94,7 @@ impl<'a> BootDisplay<'a> {
             let chip_corner = CornerRadii::new(Size::new(5, 5));
             for i in 0..(word_input.num_suggestions as usize).min(3) {
                 let w = offline_signer::derivation::bip39::index_to_word(word_input.suggestions[i]);
-                let sx = 4 + (i as i32) * 106;
+                let sx = 4 + coord(i) * 106;
                 let chip_rect = Rectangle::new(Point::new(sx, chip_y), Size::new(102, 24));
                 RoundedRectangle::new(chip_rect, chip_corner)
                     .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))

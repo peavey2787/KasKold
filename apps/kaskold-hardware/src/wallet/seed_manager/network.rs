@@ -85,7 +85,7 @@ impl SeedManager {
             return;
         }
         self.selected_network = network;
-        if self.active < MAX_SLOTS as u8 && !self.slot_visible(self.active as usize) {
+        if usize::from(self.active) < MAX_SLOTS && !self.slot_visible(usize::from(self.active)) {
             self.active = u8::MAX;
         }
     }

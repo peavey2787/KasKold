@@ -6,6 +6,7 @@ use super::{
     CornerRadii, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle, RoundedRectangle, Size, COLOR_BG,
     COLOR_CARD, COLOR_TEXT, KASPA_ACCENT, KASPA_TEAL,
 };
+use crate::ui::coordinates::coord;
 
 fn format_small(prefix: &str, value: u32) -> heapless::String<12> {
     let mut text = heapless::String::new();
@@ -45,7 +46,7 @@ impl<'a> BootDisplay<'a> {
         let total_len = bytes.len();
         let chars_per_line: usize = 25;
         let line_h: i32 = 26;
-        let num_lines = total_len.div_ceil(chars_per_line) as i32;
+        let num_lines = coord(total_len.div_ceil(chars_per_line));
         let text_block_h = num_lines * line_h;
         let avail_top: i32 = 60;
         let avail_bottom: i32 = 195; // was 225; shrunk to reserve y=210..238 for nav
@@ -214,7 +215,7 @@ impl<'a> BootDisplay<'a> {
         }
 
         for (row, config) in configs.iter().take(2).enumerate() {
-            let y = 68 + row as i32 * 70;
+            let y = 68 + coord(row) * 70;
             let rect = Rectangle::new(Point::new(24, y), Size::new(272, 54));
             RoundedRectangle::new(rect, CornerRadii::new(Size::new(8, 8)))
                 .into_styled(PrimitiveStyle::with_fill(COLOR_CARD))

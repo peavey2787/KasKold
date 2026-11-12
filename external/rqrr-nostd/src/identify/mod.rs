@@ -10,3 +10,13 @@ pub struct Point {
     pub x: i32,
     pub y: i32,
 }
+
+impl Point {
+    /// The point at pixel `(x, y)`, each axis saturating at `MAX_COORDINATE`.
+    pub(crate) fn at(x: usize, y: usize) -> Self {
+        Self {
+            x: crate::geometry::coordinate(x),
+            y: crate::geometry::coordinate(y),
+        }
+    }
+}

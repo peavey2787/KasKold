@@ -19,6 +19,7 @@ use super::super::super::{
     measure_title, BootDisplay, CornerRadii, Drawable, Line, Point, Primitive, PrimitiveStyle, Rectangle,
     RoundedRectangle, Size, COLOR_BG, COLOR_CARD, COLOR_DANGER, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_TEAL,
 };
+use crate::ui::coordinates::coord;
 
 impl<'a> BootDisplay<'a> {
     /// Draw a derived address with its chain and index controls.
@@ -186,7 +187,7 @@ impl<'a> BootDisplay<'a> {
         const CHARS_PER_LINE: usize = 25;
         const LINE_HEIGHT: i32 = 26;
         let bytes = address.as_bytes();
-        let line_count = bytes.len().div_ceil(CHARS_PER_LINE) as i32;
+        let line_count = coord(bytes.len().div_ceil(CHARS_PER_LINE));
         let mut y = top + (bottom - top - line_count * LINE_HEIGHT) / 2;
         let mut offset = 0usize;
         while offset < bytes.len() && y < bottom {

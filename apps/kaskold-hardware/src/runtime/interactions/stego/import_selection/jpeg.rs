@@ -24,10 +24,10 @@ pub(super) fn handle(
     }
 
     let scroll = (ad.stego.import.jpeg_selected / 4) * 4;
-    let Some(slot) = list_zones.iter().position(|zone| zone.contains(x, y)) else {
+    let Some(slot) = list_zones.iter().zip(0u8..).find_map(|(zone, slot)| zone.contains(x, y).then_some(slot)) else {
         return false;
     };
-    let selected = scroll + slot as u8;
+    let selected = scroll + slot;
     if selected >= ad.stego.import.jpeg_count {
         return false;
     }

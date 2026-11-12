@@ -37,12 +37,18 @@ fn next_noise() -> u32 {
     value
 }
 
+/// The low 32 bits of a 64-bit counter, as a 32-bit hardware counter wraps.
+pub fn low_word(value: u64) -> u32 {
+    let [b0, b1, b2, b3, ..] = value.to_le_bytes();
+    u32::from_le_bytes([b0, b1, b2, b3])
+}
+
 /// # Safety
 /// Matches the firmware boundary; the model accepts every address.
 pub unsafe fn read(address: u32) -> u32 {
     match address {
         RNG_DATA | ADC_NOISE => next_noise(),
-        SYSTIMER_UNIT0_VALUE_LO => (clock::read_micros() * SYSTIMER_TICKS_PER_MICRO) as u32,
+        SYSTIMER_UNIT0_VALUE_LO => low_word(clock::read_micros() * SYSTIMER_TICKS_PER_MICRO),
         _ => with_registers(|registers| registers.get(&address).copied().unwrap_or(0)),
     }
 }

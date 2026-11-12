@@ -1,6 +1,6 @@
 use crate::runtime::data::AppData;
 use alloc::vec::Vec;
-use offline_signer::transaction::model::{SigHashType, Transaction};
+use offline_signer::transaction::model::{Derivation, SigHashType, Transaction};
 
 #[derive(Clone, Copy)]
 pub(in crate::runtime::workflow_tests::connected) enum WireFormat {
@@ -41,7 +41,13 @@ fn transaction(ad: &AppData) -> Option<Transaction> {
     configure_input(&mut tx, 0, ad.wallet.addresses.pubkey_cache[0], [0x41; 32], 0, 100_000_000);
     configure_input(&mut tx, 1, ad.wallet.addresses.change_pubkey_cache[0], [0x42; 32], 1, 100_000_000);
     configure_output(&mut tx, 0, ad.wallet.addresses.pubkey_cache[2], 150_000_000, None);
-    configure_output(&mut tx, 1, ad.wallet.addresses.change_pubkey_cache[1], 49_000_000, Some((1, 1)));
+    configure_output(
+        &mut tx,
+        1,
+        ad.wallet.addresses.change_pubkey_cache[1],
+        49_000_000,
+        Some(Derivation { branch: 1, index: 1 }),
+    );
     Some(tx)
 }
 
@@ -56,15 +62,11 @@ fn configure_input(tx: &mut Transaction, index: usize, pubkey: [u8; 32], txid: [
     set_p2pk(&mut input.utxo_entry.script_public_key, pubkey);
 }
 
-fn configure_output(tx: &mut Transaction, index: usize, pubkey: [u8; 32], value: u64, hint: Option<(u8, u32)>) {
+fn configure_output(tx: &mut Transaction, index: usize, pubkey: [u8; 32], value: u64, hint: Option<Derivation>) {
     let output = &mut tx.outputs[index];
     output.value = value;
     set_p2pk(&mut output.script_public_key, pubkey);
-    if let Some((branch, derivation_index)) = hint {
-        output.has_derivation_hint = true;
-        output.derivation_branch = branch;
-        output.derivation_index = derivation_index;
-    }
+    output.derivation_hint = hint;
 }
 
 fn set_p2pk(script: &mut offline_signer::transaction::model::ScriptPublicKey, pubkey: [u8; 32]) {

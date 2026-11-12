@@ -150,8 +150,8 @@ impl Screen {
             for left in 0..=WIDTH.checked_sub(glyphs.width)? {
                 if self.matches_at(&glyphs, left, top) {
                     return Some((
-                        (left + glyphs.width / 2) as u16,
-                        (top + glyphs.height / 2) as u16,
+                        u16::try_from(left + glyphs.width / 2).unwrap(),
+                        u16::try_from(top + glyphs.height / 2).unwrap(),
                     ));
                 }
             }
@@ -172,8 +172,11 @@ impl Screen {
 
     pub(crate) fn save(&self, path: &str) {
         let file = std::fs::File::create(path).expect("screen file");
-        let mut encoder =
-            png::Encoder::new(std::io::BufWriter::new(file), WIDTH as u32, HEIGHT as u32);
+        let mut encoder = png::Encoder::new(
+            std::io::BufWriter::new(file),
+            shared_signer::narrow!(u32, WIDTH),
+            shared_signer::narrow!(u32, HEIGHT),
+        );
         encoder.set_color(png::ColorType::Rgb);
         encoder.set_depth(png::BitDepth::Eight);
         let mut writer = encoder.write_header().expect("png header");

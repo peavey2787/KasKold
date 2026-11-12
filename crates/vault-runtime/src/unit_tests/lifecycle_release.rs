@@ -45,11 +45,15 @@ static ALLOCATOR: CountingAllocator = CountingAllocator;
 fn restored_handle_lifetime() {
     let handle = kaskold_vault_new();
     assert_eq!(
+        // SAFETY: the handle is live (or null, which every export rejects) and each
+        // pointer/length pair borrows a buffer that outlives the call.
         unsafe {
             kaskold_vault_restore(handle, MNEMONIC.as_ptr(), MNEMONIC.len(), b"".as_ptr(), 0)
         },
         0
     );
+    // SAFETY: the handle is live (or null, which every export rejects) and each
+    // pointer/length pair borrows a buffer that outlives the call.
     unsafe { kaskold_vault_destroy(handle) };
 }
 

@@ -82,7 +82,9 @@ impl SeedManager {
         if !self.slot_visible(slot_idx) {
             return false;
         }
-        let next = slot_idx as u8;
+        let Ok(next) = u8::try_from(slot_idx) else {
+            return false;
+        };
         self.active = next;
         if !self.slots[slot_idx].transient && self.persistent_active != next {
             self.persistent_active = next;
@@ -160,7 +162,7 @@ impl SeedManager {
 
     /// Get the currently active slot, if any
     pub fn active_slot(&self) -> Option<&SeedSlot> {
-        if self.active < MAX_SLOTS as u8 && self.slot_visible(self.active as usize) {
+        if usize::from(self.active) < MAX_SLOTS && self.slot_visible(usize::from(self.active)) {
             return Some(&self.slots[self.active as usize]);
         }
         None
@@ -173,10 +175,10 @@ impl SeedManager {
         let was_transient = self.slots[slot_idx].transient;
         let had_name = self.slots[slot_idx].name_len != 0;
         self.slots[slot_idx].zeroize();
-        if self.active == slot_idx as u8 {
+        if u8::try_from(slot_idx) == Ok(self.active) {
             self.active = 0xFF;
         }
-        if self.persistent_active == slot_idx as u8 {
+        if u8::try_from(slot_idx) == Ok(self.persistent_active) {
             self.persistent_active = 0xFF;
         }
         if !was_transient {

@@ -3,7 +3,7 @@
 use offline_signer::{
     address::{script_to_p2sh_address, KaspaNetwork, MAX_ADDR_LEN},
     derivation::xpub::{self, KpubParts},
-    transaction::model::{MultisigConfig, MAX_MULTISIG_KEYS},
+    transaction::model::{MultisigConfig, MultisigFamily, MAX_MULTISIG_KEYS},
 };
 use zeroize::Zeroize;
 
@@ -31,10 +31,8 @@ impl HotWallet {
     ) -> Result<MultisigView, HotWalletError> {
         let participant_count = cosigner_kpubs.len() + 1;
         validate_multisig_request(threshold, participant_count, network, chain, index)?;
-        let own = xpub::derive_multisig_account_parts(self.seed_bytes()?, 0)?;
-        let mut config = build_hd45_config(threshold, participant_count, chain, index, &own)?;
-        add_cosigners(&mut config, cosigner_kpubs)?;
-        finalize_owned_config(&mut config, &own)?;
+        let config = self.owned_hd45_config(threshold, cosigner_kpubs, chain, index)?;
+        let participants = config.n;
         let descriptor = descriptor_text(&config)?;
         let address = config_address(&config, network)?;
         self.remember_multisig(config)?;
@@ -42,10 +40,26 @@ impl HotWallet {
             descriptor,
             address,
             threshold,
-            participants: participant_count as u8,
+            participants,
             chain,
             index,
         })
+    }
+
+    /// The sorted, scripted `multi_hd45` config of this wallet and its cosigners.
+    fn owned_hd45_config(
+        &self,
+        threshold: u8,
+        cosigner_kpubs: &[&str],
+        chain: u8,
+        index: u32,
+    ) -> Result<MultisigConfig, HotWalletError> {
+        let own = xpub::derive_multisig_account_parts(self.seed_bytes()?, 0)?;
+        let mut config =
+            build_hd45_config(threshold, cosigner_kpubs.len() + 1, chain, index, &own)?;
+        add_cosigners(&mut config, cosigner_kpubs)?;
+        finalize_owned_config(&mut config, &own)?;
+        Ok(config)
     }
 
     /// Import any supported hardware descriptor and reproduce its address.
@@ -86,13 +100,17 @@ impl HotWallet {
         index: u32,
     ) -> Result<String, HotWalletError> {
         let mut config = MultisigConfig::from_descriptor(parsed);
-        config.chain = chain;
+        if let MultisigFamily::Hd45 {
+            chain: selected, ..
+        } = &mut config.family
+        {
+            *selected = chain;
+        }
         config.addr_index = index;
         self.resolve_imported_cosigner(&mut config)?;
         if config.build_script() == 0 {
             return Err(HotWalletError::MultisigInvalid);
         }
-        config.active = true;
         let address = config_address(&config, network)?;
         self.remember_multisig(config)?;
         Ok(address)
@@ -112,19 +130,18 @@ impl HotWallet {
 
 impl HotWallet {
     fn remember_multisig(&mut self, config: MultisigConfig) -> Result<(), HotWalletError> {
-        if let Some(existing) = self
+        let slot = self
             .multisig_store
             .configs
-            .iter_mut()
-            .find(|existing| existing.active && existing.same_wallet_as(&config))
-        {
-            *existing = config;
-            return Ok(());
-        }
-        let Some(index) = self.multisig_store.find_free() else {
-            return Err(HotWalletError::MultisigInvalid);
-        };
-        self.multisig_store.configs[index] = config;
+            .iter()
+            .position(|stored| {
+                stored
+                    .as_ref()
+                    .is_some_and(|wallet| wallet.same_wallet_as(&config))
+            })
+            .or_else(|| self.multisig_store.find_free())
+            .ok_or(HotWalletError::MultisigInvalid)?;
+        self.multisig_store.configs[slot] = Some(config);
         Ok(())
     }
 }
@@ -165,9 +182,11 @@ fn build_hd45_config(
 ) -> Result<MultisigConfig, HotWalletError> {
     let mut config = MultisigConfig::new();
     config.m = threshold;
-    config.n = participant_count as u8;
-    config.v45 = true;
-    config.chain = chain;
+    config.n = u8::try_from(participant_count).map_err(|_| HotWalletError::InvalidToolInput)?;
+    config.family = MultisigFamily::Hd45 {
+        cosigner_index: 0,
+        chain,
+    };
     config.addr_index = index;
     if !config.set_cosigner(0, own) {
         return Err(HotWalletError::MultisigInvalid);
@@ -200,7 +219,6 @@ fn finalize_owned_config(
     if config.build_script() == 0 {
         return Err(HotWalletError::MultisigInvalid);
     }
-    config.active = true;
     Ok(())
 }
 

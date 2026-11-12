@@ -41,5 +41,10 @@ pub(crate) fn validate_host_time(now_unix: f64) -> Result<u64, &'static str> {
     if !now_unix.is_finite() || now_unix < 0.0 || now_unix > u64::MAX as f64 {
         return Err("Current UTC time is invalid.");
     }
-    Ok(now_unix as u64)
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "checked finite and within 0..=u64::MAX above; dropping the fraction is intended"
+    )]
+    let seconds = now_unix as u64;
+    Ok(seconds)
 }

@@ -5,8 +5,9 @@
 //! entropy. The thresholds intentionally retain the original hardware-tested
 //! floor until SP 800-90B characterization data is available.
 
-pub const NOISE_SAMPLES: usize = 256;
-pub const MIN_CHANGED_FOR_ENTROPY: u32 = (NOISE_SAMPLES / 16) as u32;
+pub const NOISE_SAMPLES: usize = NOISE_SAMPLE_COUNT as usize;
+const NOISE_SAMPLE_COUNT: u16 = 256;
+pub const MIN_CHANGED_FOR_ENTROPY: u32 = NOISE_SAMPLE_COUNT as u32 / 16;
 pub const MIN_AC_FOR_ENTROPY_X100: u32 = 20;
 pub const MIN_CAPTURED_FRAMES: u8 = 6;
 pub const MIN_LIVE_DELTAS: u8 = 5;
@@ -104,10 +105,10 @@ impl CameraEntropyTracker {
             return None;
         }
 
-        let mad_x100 = absdiff * 100 / NOISE_SAMPLES as u32;
-        let mean_shift_x100 = signdiff * 100 / NOISE_SAMPLES as i32;
+        let mad_x100 = absdiff * 100 / u32::from(NOISE_SAMPLE_COUNT);
+        let mean_shift_x100 = signdiff * 100 / i32::from(NOISE_SAMPLE_COUNT);
         let noise = FrameNoise {
-            sampled: NOISE_SAMPLES as u32,
+            sampled: u32::from(NOISE_SAMPLE_COUNT),
             changed,
             mad_x100,
             distinct,

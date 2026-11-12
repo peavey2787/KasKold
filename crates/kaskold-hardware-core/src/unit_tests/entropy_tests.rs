@@ -10,7 +10,7 @@ use crate::entropy::{
 fn noisy_frame(seed: u8) -> [u8; 256] {
     let mut frame = [0u8; 256];
     for (index, value) in frame.iter_mut().enumerate() {
-        let x = index as u8;
+        let x = u8::try_from(index).unwrap();
         *value = x
             .wrapping_mul(73)
             .wrapping_add(seed.wrapping_mul(x.rotate_left(3)))
@@ -157,8 +157,9 @@ fn rng_health_rejects_repetition_low_diversity_bias_stuck_bits_and_counters() {
     }
     assert_eq!(inspect(&stuck_bit), Err(RngHealthError::StuckBits));
 
-    let counter =
-        core::array::from_fn(|index| 0x1357_2468u32.wrapping_add((index as u32) * 0x0101_0101));
+    let counter = core::array::from_fn(|index| {
+        0x1357_2468u32.wrapping_add(u32::try_from(index).unwrap() * 0x0101_0101)
+    });
     assert_eq!(inspect(&counter), Err(RngHealthError::CounterPattern));
 
     let monotonic = [
@@ -254,7 +255,7 @@ fn camera_health_window_retry_policy_is_bounded_and_never_accepts_unhealthy_evid
 #[test]
 fn camera_tracker_reports_exact_distinct_change_and_shift_statistics() {
     let baseline = [0u8; 256];
-    let current = core::array::from_fn::<u8, 256, _>(|index| index as u8);
+    let current = core::array::from_fn::<u8, 256, _>(|index| u8::try_from(index).unwrap());
     let mut tracker = CameraEntropyTracker::new();
     assert_eq!(tracker.observe(&baseline), None);
     let noise = tracker.observe(&current).expect("second frame delta");
@@ -274,7 +275,7 @@ fn camera_tracker_reports_exact_distinct_change_and_shift_statistics() {
 #[test]
 fn camera_tracker_counts_repeated_sample_values_once() {
     let baseline = [0u8; 256];
-    let current = core::array::from_fn::<u8, 256, _>(|index| (index % 4) as u8);
+    let current = core::array::from_fn::<u8, 256, _>(|index| u8::try_from(index % 4).unwrap());
 
     let mut tracker = CameraEntropyTracker::new();
     assert_eq!(tracker.observe(&baseline), None);
@@ -289,7 +290,7 @@ fn camera_tracker_samples_the_declared_stride_and_rejects_short_followup_frames(
     let baseline = [0u8; 512];
     let mut current = [0xffu8; 512];
     for index in 0..256 {
-        current[index * 2] = index as u8;
+        current[index * 2] = u8::try_from(index).unwrap();
     }
 
     let mut tracker = CameraEntropyTracker::new();

@@ -34,7 +34,9 @@ pub(super) fn process(data: &[u8], length: usize, ad: &mut AppData, checkpoint: 
         return;
     }
 
-    if ad.signing.multisig.creating.n > 0 && !ad.signing.multisig.creating.active {
+    if ad.signing.multisig.creating.n > 0
+        && ad.signing.multisig.draft == crate::runtime::data::MultisigDraft::Assembling
+    {
         import_multisig_cosigner(&payload, ad, checkpoint);
     } else {
         store_scanned_account_key(&payload, ad);

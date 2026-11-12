@@ -116,21 +116,23 @@ fn finish_copyforward(
 ) -> usize {
     let layout = entry_layout(host, description.len(), user_comment.len(), tiff_output, position);
     let required = tiff_output + layout.comment_offset + layout.comment_length;
-    if required > output.len() || layout.total_entries > u16::MAX as usize {
+    let Ok(total_entries) = u16::try_from(layout.total_entries) else {
+        return 0;
+    };
+    if required > output.len() {
         return 0;
     }
-    write_u16(&mut output[position..], layout.total_entries as u16, host.little_endian);
+    write_u16(&mut output[position..], total_entries, host.little_endian);
     position += 2;
     position = write_copyforward_entries(host, &layout, description, output, position);
     output[position..position + 4].copy_from_slice(&host.tiff[host.entries_end..host.entries_end + 4]);
     position += 4;
     position = write_copyforward_values(output, position, description, layout.description_length, user_comment);
-    write_u32(&mut output[tiff_output + 4..], layout.new_ifd0 as u32, host.little_endian);
-    let app1_length = position - 2;
-    if app1_length > u16::MAX as usize {
+    let (Ok(new_ifd0), Ok(app1_length)) = (u32::try_from(layout.new_ifd0), u16::try_from(position - 2)) else {
         return 0;
-    }
-    output[2..4].copy_from_slice(&(app1_length as u16).to_be_bytes());
+    };
+    write_u32(&mut output[tiff_output + 4..], new_ifd0, host.little_endian);
+    output[2..4].copy_from_slice(&app1_length.to_be_bytes());
     position
 }
 
@@ -185,8 +187,8 @@ fn write_copyforward_entries(
                 &mut output[position..position + 12],
                 TAG_USER_COMMENT,
                 7,
-                layout.comment_length as u32,
-                layout.comment_offset as u32,
+                u32::try_from(layout.comment_length).unwrap_or(u32::MAX),
+                u32::try_from(layout.comment_offset).unwrap_or(u32::MAX),
                 host.little_endian,
             );
             comment_written = true;
@@ -247,12 +249,12 @@ fn write_description_entry(
 ) {
     write_u16(entry, TAG_IMAGE_DESCRIPTION, little_endian);
     write_u16(&mut entry[2..], 2, little_endian);
-    write_u32(&mut entry[4..], stored_length as u32, little_endian);
+    write_u32(&mut entry[4..], u32::try_from(stored_length).unwrap_or(u32::MAX), little_endian);
     if stored_length <= 4 {
         entry[8..12].fill(0);
         entry[8..8 + description.len()].copy_from_slice(description);
     } else {
-        write_u32(&mut entry[8..], offset as u32, little_endian);
+        write_u32(&mut entry[8..], u32::try_from(offset).unwrap_or(u32::MAX), little_endian);
     }
 }
 

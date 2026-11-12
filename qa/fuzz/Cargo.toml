@@ -15,7 +15,7 @@ shared-signer = { path = "../../crates/shared-signer" }
 kaskold-hardware-core = { path = "../../crates/kaskold-hardware-core" }
 kaskold-protocol = { path = "../../crates/kaskold-protocol", features = ["host", "companion"] }
 offline-signer = { path = "../../crates/offline-signer" }
-online-watcher = { path = "../../crates/online-watcher", default-features = false }
+online-watcher = { path = "../../crates/online-watcher" }
 rqrr = { path = "../../external/rqrr-nostd" }
 
 [[bin]]
@@ -139,3 +139,9 @@ path = "covenant_invite_json.rs"
 test = false
 doc = false
 bench = false
+
+[lints.clippy]
+cast_possible_truncation = "deny"
+fn_params_excessive_bools = "deny"
+struct_excessive_bools = "deny"
+undocumented_unsafe_blocks = "deny"

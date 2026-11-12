@@ -4,6 +4,7 @@ pub mod spiflash {
     /// # Safety
     /// `data` must be valid for `len` bytes.
     pub unsafe fn esp_rom_spiflash_read(address: u32, data: *const u32, len: u32) -> i32 {
+        // SAFETY: the caller upholds this function's contract that `data` is valid for `len` bytes.
         let out = unsafe { core::slice::from_raw_parts_mut(data as *mut u8, len as usize) };
         flash::read(address, out)
     }
@@ -23,6 +24,7 @@ pub mod spiflash {
     /// # Safety
     /// `data` must be valid for `len` bytes.
     pub unsafe fn esp_rom_spiflash_write(address: u32, data: *const u32, len: u32) -> i32 {
+        // SAFETY: the caller upholds this function's contract that `data` is valid for `len` bytes.
         let input = unsafe { core::slice::from_raw_parts(data as *const u8, len as usize) };
         flash::write(address, input)
     }

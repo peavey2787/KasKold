@@ -97,11 +97,11 @@ fn refuse_another_secret() {
     device.wait_for_text("Anti-klepto request rejected");
     lower_qr();
     assert_eq!(
-        app_state().signing.anti_klepto.phase,
+        app_state().signing.anti_klepto.phase(),
         AntiKleptoPhase::Inactive
     );
     assert_eq!(
-        app_state().signing.transaction.active.inputs[0].sig_count,
+        app_state().signing.transaction.active.inputs[0].sigs.len(),
         0
     );
     device.tap("BACK");
@@ -117,11 +117,11 @@ fn cancel_the_session() {
     device.tap("OK");
     device.wait_for_text("Scan QR");
     assert_eq!(
-        app_state().signing.anti_klepto.phase,
+        app_state().signing.anti_klepto.phase(),
         AntiKleptoPhase::Inactive
     );
     assert_eq!(
-        app_state().signing.transaction.active.inputs[0].sig_count,
+        app_state().signing.transaction.active.inputs[0].sigs.len(),
         0
     );
 }

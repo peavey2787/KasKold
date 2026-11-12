@@ -96,7 +96,7 @@ pub fn build_template(
     let tiff_start = 10usize;
     output[tiff_start..tiff_start + 2].copy_from_slice(b"II");
     output[tiff_start + 2..tiff_start + 4].copy_from_slice(&[0x2A, 0]);
-    write_u32(&mut output[tiff_start + 4..], ifd0_offset as u32, true);
+    write_u32(&mut output[tiff_start + 4..], u32::try_from(ifd0_offset).unwrap_or(u32::MAX), true);
     let mut data_position = data_offset;
     let description_offset = if external_description_length > 0 {
         let offset = data_position;
@@ -115,17 +115,31 @@ pub fn build_template(
     data_position += 20;
     let comment_offset = data_position;
     let mut entry_position = tiff_start + ifd0_offset;
-    write_u16(&mut output[entry_position..], ifd0_entries as u16, true);
+    write_u16(&mut output[entry_position..], u16::try_from(ifd0_entries).unwrap_or(u16::MAX), true);
     entry_position += 2;
     write_description_entry(output, &mut entry_position, description, description_length, description_offset);
     write_entry(output, &mut entry_position, 0x0112, 3, 1, 1);
-    write_entry(output, &mut entry_position, 0x011A, 5, 1, x_resolution_offset as u32);
-    write_entry(output, &mut entry_position, 0x011B, 5, 1, y_resolution_offset as u32);
+    write_entry(output, &mut entry_position, 0x011A, 5, 1, u32::try_from(x_resolution_offset).unwrap_or(u32::MAX));
+    write_entry(output, &mut entry_position, 0x011B, 5, 1, u32::try_from(y_resolution_offset).unwrap_or(u32::MAX));
     write_entry(output, &mut entry_position, 0x0128, 3, 1, 2);
-    write_entry(output, &mut entry_position, 0x0131, 2, software_length as u32, software_offset as u32);
-    write_entry(output, &mut entry_position, 0x0132, 2, 20, datetime_offset as u32);
-    write_entry(output, &mut entry_position, 0x8769, 4, 1, exif_offset as u32);
-    write_entry(output, &mut entry_position, TAG_USER_COMMENT, 7, comment_length as u32, comment_offset as u32);
+    write_entry(
+        output,
+        &mut entry_position,
+        0x0131,
+        2,
+        u32::try_from(software_length).unwrap_or(u32::MAX),
+        u32::try_from(software_offset).unwrap_or(u32::MAX),
+    );
+    write_entry(output, &mut entry_position, 0x0132, 2, 20, u32::try_from(datetime_offset).unwrap_or(u32::MAX));
+    write_entry(output, &mut entry_position, 0x8769, 4, 1, u32::try_from(exif_offset).unwrap_or(u32::MAX));
+    write_entry(
+        output,
+        &mut entry_position,
+        TAG_USER_COMMENT,
+        7,
+        u32::try_from(comment_length).unwrap_or(u32::MAX),
+        u32::try_from(comment_offset).unwrap_or(u32::MAX),
+    );
     write_u32(&mut output[entry_position..], 0, true);
     if external_description_length > 0 {
         let start = tiff_start + description_offset;
@@ -141,7 +155,7 @@ pub fn build_template(
     output[comment_start..comment_start + user_comment.len()].copy_from_slice(user_comment);
     write_exif_ifd(output, tiff_start + exif_offset, width, height, exif_entries);
     let app1_length = total - 2;
-    output[2..4].copy_from_slice(&(app1_length as u16).to_be_bytes());
+    output[2..4].copy_from_slice(&u16::try_from(app1_length).unwrap_or(u16::MAX).to_be_bytes());
     total
 }
 
@@ -167,12 +181,12 @@ fn write_description_entry(
 ) {
     write_u16(&mut output[*position..], TAG_IMAGE_DESCRIPTION, true);
     write_u16(&mut output[*position + 2..], 2, true);
-    write_u32(&mut output[*position + 4..], stored_length as u32, true);
+    write_u32(&mut output[*position + 4..], u32::try_from(stored_length).unwrap_or(u32::MAX), true);
     if stored_length <= 4 {
         output[*position + 8..*position + 12].fill(0);
         output[*position + 8..*position + 8 + description.len()].copy_from_slice(description);
     } else {
-        write_u32(&mut output[*position + 8..], offset as u32, true);
+        write_u32(&mut output[*position + 8..], u32::try_from(offset).unwrap_or(u32::MAX), true);
     }
     *position += 12;
 }
@@ -183,7 +197,7 @@ fn write_rational(output: &mut [u8], position: usize, numerator: u32, denominato
 }
 
 fn write_exif_ifd(output: &mut [u8], mut position: usize, width: u16, height: u16, entry_count: usize) {
-    write_u16(&mut output[position..], entry_count as u16, true);
+    write_u16(&mut output[position..], u16::try_from(entry_count).unwrap_or(u16::MAX), true);
     position += 2;
     write_inline_ascii(output, &mut position, 0x9000, b"0232");
     write_inline_ascii(output, &mut position, 0xA000, b"0100");

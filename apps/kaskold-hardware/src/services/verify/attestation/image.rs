@@ -18,7 +18,7 @@ pub(super) fn verify_running_image() -> Result<[u8; 32], AttestationError> {
 fn parse_image_end() -> Result<u32, AttestationError> {
     let header = read_fixed::<{ layout::ESP_IMAGE_HEADER_SIZE }>(APP_FLASH_OFFSET)?;
     let parsed = layout::parse_image_header(&header.0).map_err(|_| AttestationError::ImageLayout)?;
-    let mut cursor = layout::ESP_IMAGE_HEADER_SIZE as u32;
+    let mut cursor = shared_signer::narrow!(u32, layout::ESP_IMAGE_HEADER_SIZE);
     for _ in 0..parsed.segment_count {
         cursor = advance_segment(cursor)?;
         if cursor > MAX_APP_IMAGE_SPAN {

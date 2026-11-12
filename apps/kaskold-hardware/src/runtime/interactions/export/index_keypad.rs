@@ -27,7 +27,7 @@ pub(super) fn hit(x: u16, y: u16) -> Option<IndexKey> {
         return None;
     };
     match row * 3 + column {
-        value @ 0..=8 => Some(IndexKey::Digit((value + 1) as u8)),
+        value @ 0..=8 => u8::try_from(value + 1).ok().map(IndexKey::Digit),
         9 => Some(IndexKey::Clear),
         10 => Some(IndexKey::Digit(0)),
         11 => Some(IndexKey::Submit),

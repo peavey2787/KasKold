@@ -389,7 +389,8 @@ fn validate_sweep_totals(
     if total < goal {
         return Err("Crowdfunding goal has not been reached".to_string());
     }
-    if input_count == 0 || input_count > CROWDFUND_MAX_TX_INPUTS as usize {
+    if !u64::try_from(input_count).is_ok_and(|count| (1..=CROWDFUND_MAX_TX_INPUTS).contains(&count))
+    {
         return Err(format!(
             "Crowdfunding sweep supports at most {CROWDFUND_MAX_TX_INPUTS} transaction inputs"
         ));

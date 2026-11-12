@@ -66,7 +66,7 @@ impl SeedSlot {
         }
         shared_signer::bytes::zeroize_bytes(&mut self.name);
         self.name[..value.len()].copy_from_slice(value);
-        self.name_len = value.len() as u8;
+        self.name_len = u8::try_from(value.len()).unwrap_or(u8::MAX);
         true
     }
 

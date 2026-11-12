@@ -277,15 +277,15 @@ pub(crate) fn decode_recovery(input: &[u8]) -> Result<Option<RecoveryMaterial>, 
     if !matches!(word_count, 12 | 24) {
         return Err(HotWalletError::InvalidSealedWallet);
     }
-    let passphrase_len = usize::from(input[1]);
-    if passphrase_len > MAX_BIP39_PASSPHRASE_LEN {
+    let passphrase_len = input[1];
+    if usize::from(passphrase_len) > MAX_BIP39_PASSPHRASE_LEN {
         return Err(HotWalletError::InvalidSealedWallet);
     }
     let mut indices = decode_recovery_indices(input);
     validate_recovery_indices(&indices, word_count)?;
     let mut passphrase = [0u8; MAX_BIP39_PASSPHRASE_LEN];
     passphrase.copy_from_slice(&input[50..]);
-    if !valid_recovery_passphrase(&passphrase, passphrase_len) {
+    if !valid_recovery_passphrase(&passphrase, usize::from(passphrase_len)) {
         passphrase.zeroize();
         indices.zeroize();
         return Err(HotWalletError::InvalidSealedWallet);
@@ -294,7 +294,7 @@ pub(crate) fn decode_recovery(input: &[u8]) -> Result<Option<RecoveryMaterial>, 
         word_count,
         indices,
         passphrase,
-        passphrase_len: passphrase_len as u8,
+        passphrase_len,
     }))
 }
 

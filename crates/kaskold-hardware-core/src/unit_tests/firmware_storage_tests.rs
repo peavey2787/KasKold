@@ -81,7 +81,12 @@ fn descriptor_parser_rejects_invalid_shapes_and_data() {
         Some("InvalidHex")
     );
     let entries: Vec<_> = (0..=MAX_DESCRIPTOR_PARTICIPANTS)
-        .map(|index| participant(if index.is_multiple_of(2) { 2 } else { 3 }, index as u8))
+        .map(|index| {
+            participant(
+                if index.is_multiple_of(2) { 2 } else { 3 },
+                u8::try_from(index).unwrap(),
+            )
+        })
         .collect();
     assert_eq!(
         parse_multisig_descriptor(&descriptor(1, &entries))

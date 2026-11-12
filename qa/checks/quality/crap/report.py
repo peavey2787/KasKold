@@ -271,7 +271,7 @@ def apply_coverage_unavailable_source_policy(
     return replace(report, entries=tuple(entries))
 
 def parse_report(path: Path) -> CrapReport:
-    text = path.read_text(errors="replace")
+    text = path.read_text(encoding="utf-8", errors="replace")
     if path.suffix.lower() == ".json" or text.lstrip().startswith("{"):
         return parse_report_json(text)
     return parse_report_text(text)

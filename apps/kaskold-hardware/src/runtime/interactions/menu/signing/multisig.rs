@@ -127,7 +127,10 @@ fn route_back(ad: &mut AppData) -> bool {
 fn start_multisig_creation(ad: &mut AppData) -> bool {
     ad.signing.multisig.threshold = 2;
     ad.signing.multisig.participant_count = 3;
-    ad.signing.multisig.creating = offline_signer::transaction::model::MultisigConfig::new();
+    ad.signing.multisig.begin(
+        offline_signer::transaction::model::MultisigConfig::new(),
+        crate::runtime::data::MultisigDraft::Assembling,
+    );
     ad.signing.multisig.descriptor_save_prompted = false;
     let _ = crate::runtime::effects::menu_select(ad, 0);
     true

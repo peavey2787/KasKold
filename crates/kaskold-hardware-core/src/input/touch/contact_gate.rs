@@ -9,16 +9,32 @@ use super::{TouchAction, TouchEventType, TouchPoint, TouchState};
 const RELEASE_CONFIRM_SAMPLES: u8 = 2;
 const MISSED_RELEASE_DISTANCE: u16 = 24;
 
+/// How far a release barrier has got towards confirming the finger lifted.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum BarrierStage {
+    /// No contact has been seen since the barrier began.
+    AwaitingRelease,
+    /// A contact was seen, so one confirmed NoTouch run is only a probe.
+    ContactSeen,
+    /// The probe passed; the next confirmed NoTouch run ends the barrier.
+    ReleaseProbe,
+}
+
+/// A screen change that must see the old finger lift before a new tap counts.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct ReleaseBarrier {
+    /// A strict barrier never infers a release from a moved PressDown.
+    strict: bool,
+    stage: BarrierStage,
+}
+
 pub struct ContactGate {
     is_down: bool,
     release_samples: u8,
     last_x: u16,
     last_y: u16,
-    release_required: bool,
-    barrier_contact_seen: bool,
-    barrier_release_probe: bool,
+    barrier: Option<ReleaseBarrier>,
     inferred_release_guard: bool,
-    strict_release: bool,
 }
 
 impl ContactGate {
@@ -28,17 +44,14 @@ impl ContactGate {
             release_samples: 0,
             last_x: 0,
             last_y: 0,
-            release_required: false,
-            barrier_contact_seen: false,
-            barrier_release_probe: false,
+            barrier: None,
             inferred_release_guard: false,
-            strict_release: false,
         }
     }
 
     pub fn update(&mut self, state: TouchState) -> TouchAction {
-        if self.release_required {
-            return self.update_release_barrier(state);
+        if let Some(barrier) = self.barrier {
+            return self.update_release_barrier(barrier, state);
         }
         match state {
             TouchState::NoTouch => self.observe_release(),
@@ -62,25 +75,29 @@ impl ContactGate {
     }
 
     fn begin_release_barrier(&mut self, strict: bool) {
-        self.release_required = true;
         self.release_samples = 0;
-        self.barrier_contact_seen = false;
-        self.barrier_release_probe = false;
-        self.strict_release = strict;
+        self.barrier = Some(ReleaseBarrier {
+            strict,
+            stage: BarrierStage::AwaitingRelease,
+        });
     }
 
     pub const fn release_required(&self) -> bool {
-        self.release_required
+        self.barrier.is_some()
     }
 
-    fn update_release_barrier(&mut self, state: TouchState) -> TouchAction {
+    fn update_release_barrier(
+        &mut self,
+        barrier: ReleaseBarrier,
+        state: TouchState,
+    ) -> TouchAction {
         match state {
-            TouchState::NoTouch => self.confirm_barrier_no_touch(),
+            TouchState::NoTouch => self.confirm_barrier_no_touch(barrier),
             TouchState::One(point) if point.event == TouchEventType::LiftUp => {
                 self.finish_release_barrier(false)
             }
             TouchState::One(point)
-                if !self.strict_release
+                if !barrier.strict
                     && point.event == TouchEventType::PressDown
                     && (moved_far(self.last_x, point.x) || moved_far(self.last_y, point.y)) =>
             {
@@ -98,19 +115,27 @@ impl ContactGate {
             }
             TouchState::One(_) => {
                 self.release_samples = 0;
-                self.barrier_contact_seen = true;
+                if barrier.stage == BarrierStage::AwaitingRelease {
+                    self.barrier = Some(ReleaseBarrier {
+                        stage: BarrierStage::ContactSeen,
+                        ..barrier
+                    });
+                }
                 TouchAction::None
             }
         }
     }
 
-    fn confirm_barrier_no_touch(&mut self) -> TouchAction {
+    fn confirm_barrier_no_touch(&mut self, barrier: ReleaseBarrier) -> TouchAction {
         self.release_samples = self.release_samples.saturating_add(1);
         if self.release_samples < RELEASE_CONFIRM_SAMPLES {
             return TouchAction::None;
         }
-        if self.barrier_contact_seen && !self.barrier_release_probe {
-            self.barrier_release_probe = true;
+        if barrier.stage == BarrierStage::ContactSeen {
+            self.barrier = Some(ReleaseBarrier {
+                stage: BarrierStage::ReleaseProbe,
+                ..barrier
+            });
             self.release_samples = 0;
             return TouchAction::None;
         }
@@ -119,11 +144,8 @@ impl ContactGate {
 
     fn finish_release_barrier(&mut self, inferred_from_no_touch: bool) -> TouchAction {
         self.confirm_release();
-        self.release_required = false;
-        self.barrier_contact_seen = false;
-        self.barrier_release_probe = false;
+        self.barrier = None;
         self.inferred_release_guard = inferred_from_no_touch;
-        self.strict_release = false;
         TouchAction::None
     }
 

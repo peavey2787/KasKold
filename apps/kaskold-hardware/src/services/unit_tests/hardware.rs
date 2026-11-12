@@ -120,5 +120,6 @@ fn test_psram() -> bool {
 
 #[cfg(feature = "test-psram")]
 fn psram_probe_pattern(index: usize) -> u8 {
-    (index as u8).wrapping_mul(0x63) ^ ((index >> 8) as u8).wrapping_add(0x5a)
+    let [low, high, ..] = index.to_le_bytes();
+    low.wrapping_mul(0x63) ^ high.wrapping_add(0x5a)
 }

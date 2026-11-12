@@ -30,7 +30,7 @@ class AndroidGradleBootstrapTests(unittest.TestCase):
             ],
         )
         self.assertIn("ReviewIncomplete", requirement["terms"])
-        self.assertIn("review_authorized", requirement["terms"])
+        self.assertIn("review_approved", requirement["terms"])
 
     def test_mixed_qr_quality_evidence_includes_canonical_protocol_decoder(self) -> None:
         policy = json.loads((ROOT / "qa/checks/security/policy.json").read_text())

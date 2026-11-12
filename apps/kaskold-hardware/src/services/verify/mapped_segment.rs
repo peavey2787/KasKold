@@ -46,6 +46,7 @@ impl FirmwareInfo {
             let mut offset: usize = 0;
             while offset < scan_limit {
                 let addr = code_start as usize + offset;
+                // SAFETY: the scan stays below `scan_limit`, within the flash segment the MMU maps at `code_start`, on 4-byte boundaries.
                 let word = unsafe { core::ptr::read_volatile(addr as *const u32) };
 
                 if word == 0xFFFF_FFFF {
@@ -72,12 +73,14 @@ impl FirmwareInfo {
         };
 
         // ── Sanity check ────────────────────────────────────────
+        // SAFETY: the MMU maps `code_size` bytes of this segment at `code_start` for the whole verification.
         let data: &[u8] = unsafe { core::slice::from_raw_parts(code_start as *const u8, code_size) };
 
         // Verify not all zeros
         let mut all_00 = true;
         let check_len = core::cmp::min(256, data.len());
         for byte in &data[..check_len] {
+            // SAFETY: `byte` is a reference into the mapped segment slice, so the pointer is valid.
             let val = unsafe { core::ptr::read_volatile(byte as *const u8) };
             if val != 0x00 {
                 all_00 = false;

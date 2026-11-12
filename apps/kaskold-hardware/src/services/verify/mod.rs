@@ -24,6 +24,8 @@ pub(super) fn embedded_expected_hash() -> [u8; 32] {
     unsafe { core::ptr::read_volatile(core::ptr::addr_of!(firmware_hash::EXPECTED_FIRMWARE_HASH)) }
 }
 
+// Owner builds trust hardware Secure Boot instead of the embedded release signature.
+#[cfg(not(any(feature = "owner-firmware", feature = "secure-owner-only")))]
 #[inline(never)]
 pub(super) fn embedded_firmware_signature() -> [u8; 64] {
     // SAFETY: FIRMWARE_SIGNATURE is an immutable, aligned, generated static
@@ -65,6 +67,7 @@ use types::{CANARY_PRE_VERIFY, DRAM_FLASH_BASE, IRAM_FLASH_BASE};
 
 mod mapped_segment;
 
+#[cfg(not(any(feature = "owner-firmware", feature = "secure-owner-only")))]
 mod signature;
 
 mod format;

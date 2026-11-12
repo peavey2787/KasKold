@@ -2,121 +2,121 @@
   "sites": [
     {
       "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
-      "line": 59,
+      "line": 60,
       "source": "unsafe {",
-      "fingerprint": "3d80b368831cf9bd57cf64b309b8c2e7419029a36e103e56dd48ed49f8d070ef",
+      "fingerprint": "56acedd49a88ffdb6d7a7284e3f017092f7270df6ed8bdd1c725592b51ec6f81",
       "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
-      "line": 62,
+      "line": 64,
       "source": "unsafe {",
-      "fingerprint": "fc28ccb5d3fea2a98f8d20df88fa00c2618855d7436d686c0f87a917a7421427",
+      "fingerprint": "c689e02b8229ee5c3ede6870b955b4ae7dd302ee13117a812186ea00e4077d3a",
       "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
-      "line": 65,
+      "line": 68,
       "source": "unsafe {",
-      "fingerprint": "d13619c85fcc7b73bfb308a198f2adb79057c82140e08e14e53022399563f4af",
+      "fingerprint": "2a7445a7fe1c4e3f6190096980c19398fd39c347dab5b0f933c65918290294b3",
       "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
-      "line": 71,
+      "line": 75,
       "source": "unsafe {",
-      "fingerprint": "86529ffcd2c9c6a1ee20289f6b99c8046f48abe5e7709483137b66bc5ac7ecaf",
+      "fingerprint": "a2b076f18c911212d8c9f65a3f2b113e2752898f62efcf8f39bf9426b50dfd8b",
       "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
-      "line": 76,
+      "line": 81,
       "source": "let observed = unsafe { core::ptr::read_volatile(scratch.as_ptr().add(1664)) };",
-      "fingerprint": "083afc17a53d4ac303aa5a271f539c2e8eaca9195e32c099e39697694972bc8d",
+      "fingerprint": "5e1b2cbdcddff00e5d4b698decb0a1b76c4703450303d488ba7dafe4781d5c1c",
       "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
-      "line": 119,
+      "line": 126,
       "source": "let stack_byte = unsafe { core::ptr::read_volatile((address + index) as *const u8) };",
-      "fingerprint": "b2ceee0bf10d2d28f92c53e114231bfd67b1bb630106cd0a2842b2de8818ca44",
+      "fingerprint": "b6d8e08ba8909142f99cc1aec4be815f4733348f46c72156e686ecb9ee4e57e0",
       "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
-      "line": 120,
+      "line": 128,
       "source": "let marker_byte = unsafe { core::ptr::read_volatile(SENTINEL.as_ptr().add(index)) };",
-      "fingerprint": "2033b4e038decef1bd40e40c59109a031cf996c3f4d44b97ec4ce4d901af26ae",
+      "fingerprint": "77ff359121c134b7098dc69ccda9419ae3232f0b6a3732a13e9e73fa2b9295a6",
       "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/diagnostics/sentinel_scan.rs",
-      "line": 134,
+      "line": 144,
       "source": "unsafe {",
-      "fingerprint": "7c981c10e0a7aae82c610f62d929aad90f61272b0efb6cf93951fabf8d296997",
+      "fingerprint": "066b5f8dadc6d082ef7ed05896aeb4fdbd53b4271aa16464fa62fee72445406a",
       "rationale": "Reviewed developer-only synthetic-remanence boundary: raw volatile accesses are confined to the owned 2048-byte stack probe or to the exact retired probe interval recorded from that object. Fixed offsets plus the 32-byte public sentinel stay in-bounds; remanence_bounds clips the retired interval below the current stack pointer by STACK_LIVE_MARGIN before scan/wipe. No wallet-derived sentinel or unrelated RAM range is used.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/gpio35.rs",
-      "line": 17,
+      "line": 18,
       "source": "unsafe {",
-      "fingerprint": "d97de5e39f1371b520b5b2f5740728dc3412633cbdce5e2fc7569e75fb92b85e",
+      "fingerprint": "17eeff42b598f3a8454b9bd4977c9e6ae50dce04264a5344f2fc730e9715f6fa",
       "rationale": "Reviewed CoreS3 GPIO35 multiplexing boundary: fixed ESP32-S3 GPIO-matrix/enable/data registers switch only GPIO35 between LCD D/C output and SD FSPIQ/MISO. The SD handoff restores the official FSPIQ selector before disabling GPIO35 output; the single shared SPI2 owner serializes every LCD/SD transition.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/gpio35.rs",
-      "line": 24,
+      "line": 26,
       "source": "unsafe {",
-      "fingerprint": "404e63a5fbe8c6b5528d3f65f1a6b48846537e4e9e1fe59985d9c66e554380d3",
+      "fingerprint": "7a713d341e03b8c2dc85abed13163cb369bc05344bc2d73facf27332680e520d",
       "rationale": "Reviewed CoreS3 GPIO35 multiplexing boundary: fixed ESP32-S3 GPIO-matrix/enable/data registers switch only GPIO35 between LCD D/C output and SD FSPIQ/MISO. The SD handoff restores the official FSPIQ selector before disabling GPIO35 output; the single shared SPI2 owner serializes every LCD/SD transition.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/gpio35.rs",
-      "line": 31,
+      "line": 34,
       "source": "unsafe {",
-      "fingerprint": "1eb3c4f17dd5dc29f0ff37ad70533061746dec02010291b3d73ac24a89d5f181",
+      "fingerprint": "5aa6455945771a0a422eac56439b8ae8c62cd6b49f87f4d93fd3a6be0951cf97",
       "rationale": "Reviewed CoreS3 GPIO35 multiplexing boundary: fixed ESP32-S3 GPIO-matrix/enable/data registers switch only GPIO35 between LCD D/C output and SD FSPIQ/MISO. The SD handoff restores the official FSPIQ selector before disabling GPIO35 output; the single shared SPI2 owner serializes every LCD/SD transition.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/gpio35.rs",
-      "line": 40,
+      "line": 44,
       "source": "unsafe {",
-      "fingerprint": "0f63a611d3705b3ece3ebb30dc45be4dfad482a127356b19472b3efbc072e128",
+      "fingerprint": "5440faae5853b5132e91db75505510b3dd6d210dc906556910b971983c46da60",
       "rationale": "Reviewed CoreS3 GPIO35 multiplexing boundary: fixed ESP32-S3 GPIO-matrix/enable/data registers switch only GPIO35 between LCD D/C output and SD FSPIQ/MISO. The SD handoff restores the official FSPIQ selector before disabling GPIO35 output; the single shared SPI2 owner serializes every LCD/SD transition.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/sd_power_lines.rs",
-      "line": 25,
+      "line": 26,
       "source": "unsafe {",
-      "fingerprint": "fec4187182c9784ba9f31d4ea784cebbb5dacb8fb83ae6f6abc0c3356187c2e8",
+      "fingerprint": "822062996ba7b87d78c1ce738da64f1813cf975aaeeaa1fba38859a5202e842f",
       "rationale": "Reviewed CoreS3 microSD electrical-reset boundary: fixed ESP32-S3 GPIO output, enable, and matrix registers affect only card-facing GPIO4/35/36/37. The shared SPI2 owner flushes and deselects the card before these lines are clamped low during ALDO4-off, then restores GPIO36 FSPICLK, GPIO37 FSPID, GPIO35 FSPIQ/input, and GPIO4 high CS immediately after rail enable.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/sd_power_lines.rs",
-      "line": 37,
+      "line": 39,
       "source": "unsafe {",
-      "fingerprint": "219e01c45750d6f57394edb156b1fc716f37c06e3920a3d4cf36b8b25ab49d1e",
+      "fingerprint": "10831e5daa68fb47ef4db58c894be4397fd42657987abb6d94df7c8be097cca8",
       "rationale": "Reviewed CoreS3 microSD electrical-reset boundary: fixed ESP32-S3 GPIO output, enable, and matrix registers affect only card-facing GPIO4/35/36/37. The shared SPI2 owner flushes and deselects the card before these lines are clamped low during ALDO4-off, then restores GPIO36 FSPICLK, GPIO37 FSPID, GPIO35 FSPIQ/input, and GPIO4 high CS immediately after rail enable.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/m5stack/spi_bus/state.rs",
-      "line": 156,
+      "line": 157,
       "source": "Ok(unsafe { &*pointer })",
-      "fingerprint": "70e269691e1e65290f31ba0fa1cc1808e044b72d1c8f1498eef7674ca84131b1",
+      "fingerprint": "c7b1170cd46cf2377cf586bd4bfd1a843b646c00d5b84b62931d39af99f2057a",
       "rationale": "Reviewed one-time CoreS3 SPI2 publication boundary: the pointer is produced only from the StaticCell allocation during boot, checked non-null before dereference, never replaced after publication, and all mutable SPI2/SD-CS access is mediated by RefCell re-entry checks; architecture policy forbids interrupt handlers from accessing this shared bus.",
       "reviewed": true
     },
@@ -178,33 +178,33 @@
     },
     {
       "path": "apps/kaskold-hardware/src/hw/shared/lockdown.rs",
-      "line": 40,
+      "line": 41,
       "source": "unsafe {",
-      "fingerprint": "98489413912904842245f33671f60d8858c107b15ad3ebf1fabd359f182a84ee",
+      "fingerprint": "ea87b2a895915001ce6ec51cac982de1c3a1d38012fe657863e30bc6ed628e08",
       "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/shared/lockdown.rs",
-      "line": 53,
+      "line": 55,
       "source": "let power = unsafe { read(RTC_CNTL_DIG_PWC) };",
-      "fingerprint": "f7c4ab28000d1ce3479a165866c21ae351446298992187c7dfcad770b41956e5",
+      "fingerprint": "f3d94fa8b8fbc8ac27bc0b40e0d9ce16925b75c26c26b2dd0eff4a0a98c03c99",
       "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/shared/lockdown.rs",
-      "line": 70,
+      "line": 73,
       "source": "unsafe {",
-      "fingerprint": "0cd658d372632ad9e93aec7882e671928807e7ee4ef5c9e25524f6b2b3ad3104",
+      "fingerprint": "ea87b2a895915001ce6ec51cac982de1c3a1d38012fe657863e30bc6ed628e08",
       "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/shared/lockdown.rs",
-      "line": 89,
+      "line": 93,
       "source": "unsafe {",
-      "fingerprint": "ee462d8fcc25f48786eaab65ee674ad1cf36e26dbadc42d8a252411fd48ec55e",
+      "fingerprint": "a0db1ccfe7d6210bcacfaa0627ed46ca5a687d7dd5e7844dd431b39e1dc974a5",
       "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     },
@@ -212,63 +212,63 @@
       "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
       "line": 7,
       "source": "pub(crate) unsafe fn read(address: u32) -> u32 {",
-      "fingerprint": "3903e72bd51742b8118e401975b3858ffd0a10447887ad15d1e06c1c574e67b1",
+      "fingerprint": "57d73d02c7178eb869a4a6cb5ce29248fded551d39a6d0a46161008b0ca5bdec",
       "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
-      "line": 8,
+      "line": 9,
       "source": "unsafe { core::ptr::read_volatile(address as *const u32) }",
-      "fingerprint": "b921f178f941433386ed20e3d2d58e18fa09be5d8d5d76f03d6119849fa7a4dc",
-      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
-      "reviewed": true
-    },
-    {
-      "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
-      "line": 13,
-      "source": "pub(crate) unsafe fn write(address: u32, value: u32) {",
-      "fingerprint": "4937cf74a322e3e3ca4caf9c8a707cb68091b3d855dba56f917e387d4c16ce01",
+      "fingerprint": "a166e8dc039051005440f74245a37a6c3a9073df821386da2773086afb6107e7",
       "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
       "line": 14,
+      "source": "pub(crate) unsafe fn write(address: u32, value: u32) {",
+      "fingerprint": "e793cc933a71eff33a6278c91fcb735d499f30385d9e99edbe16451bcb5cdc42",
+      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
+      "line": 16,
       "source": "unsafe { core::ptr::write_volatile(address as *mut u32, value) };",
-      "fingerprint": "197a92022cf1780e9c208da06ad07a1bdd72dd17446e509e17af97d0ef186325",
+      "fingerprint": "6e647fd333eab35785a9e5942c0f8b055f7d4e077132580f9bcf963df971a559",
       "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
-      "line": 22,
+      "line": 24,
       "source": "pub(crate) unsafe fn set_bits(address: u32, mask: u32) {",
-      "fingerprint": "1b6970a89a8f7add165446560bdde62a12b4b506132e391e2198d6b3d88a3588",
+      "fingerprint": "60e2c1d960561409ac8610d640dd07b24c5616040d913cbae2202c5b0c683be7",
       "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
-      "line": 23,
+      "line": 26,
       "source": "unsafe { write(address, read(address) | mask) };",
-      "fingerprint": "44c8d82a5a5e5cdd83e808ac17caa8bb3a43e77896895210a23c16d293dd054e",
+      "fingerprint": "f5e143f6576828f7013a5483d2eca0e83da6778863d1b8ad68c63c479b4845ec",
       "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
-      "line": 27,
+      "line": 30,
       "source": "pub(crate) unsafe fn clear_bits(address: u32, mask: u32) {",
-      "fingerprint": "44db90651ed4c4c1a9ca33c5f6702a628bd1461fd15bda7e6a25c2114904fe76",
+      "fingerprint": "e00ff7cd4cd282714695b4f6e8b568b426bc720e131721fbdfcb91060318de12",
       "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/shared/mmio.rs",
-      "line": 28,
+      "line": 32,
       "source": "unsafe { write(address, read(address) & !mask) };",
-      "fingerprint": "e58228d21b7c36b5ebd1d84f62a34cb54398534f1fcbaebafee7a09d371cf8d8",
+      "fingerprint": "d8d7d951bb04bf762816df2a23578a55fbe50e535bda67aa18869002a09293a1",
       "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     },
@@ -276,39 +276,39 @@
       "path": "apps/kaskold-hardware/src/hw/shared/screenshot.rs",
       "line": 49,
       "source": "let candidate = unsafe { alloc::alloc::alloc_zeroed(layout) };",
-      "fingerprint": "27d6ec9f387b2812d29c9922c4083839690965aa0acb01bebc932a17714bbaf2",
-      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "fingerprint": "b8092e90fc03d30d2b73e096e33474007dae4d12beacb4968990bbbddb04558d",
+      "rationale": "Reviewed developer framebuffer allocation (screenshot/mirror builds only): the Layout is the fixed non-zero 320x240x2 buffer; a null result disables the shadow instead of being dereferenced.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/shared/screenshot.rs",
-      "line": 57,
+      "line": 58,
       "source": "unsafe { alloc::alloc::dealloc(candidate, layout) };",
-      "fingerprint": "425614dfa53baec0385208eea0282f5ee05b5862fd790ce29883627ca1e6a38e",
-      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "fingerprint": "60644a297c56a844e2cfc693044588827d6195518a1a97f1249ea88fb4c11ffc",
+      "rationale": "Reviewed developer framebuffer race loser: candidate came from alloc_zeroed with this same Layout and was never published, so freeing it cannot affect the winning buffer.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/shared/screenshot.rs",
-      "line": 70,
+      "line": 73,
       "source": "let framebuffer = unsafe { core::slice::from_raw_parts_mut(pointer, BUF_SIZE) };",
-      "fingerprint": "aee106c8fc8398b4e03143e9835113cbc84b79ac084fc657f01938c62ab5d64d",
-      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "fingerprint": "22cc9ca8b14b0ca6bf3a94f3342841b06a7f15e60163cba7fdf3e431954ed5d7",
+      "rationale": "Reviewed developer framebuffer view: pointer is the never-freed BUF_SIZE allocation published in FRAMEBUFFER, and FramebufferGuard holds the spin lock so this is the only view until the scoped callback returns.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/hw/shared/screenshot.rs",
-      "line": 80,
+      "line": 95,
       "source": "let framebuffer = unsafe { core::slice::from_raw_parts(pointer, BUF_SIZE) };",
-      "fingerprint": "b58001aef58069405d1965f51b52580d2f39fac2b9abd7f8d4ae833397ecd1c2",
-      "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
+      "fingerprint": "e7ab1327734d28f19cfeb7c0de0e8947a46d8f3d8e7e007a6152f958c63d3809",
+      "rationale": "Reviewed developer mirror read: pointer is the never-freed BUF_SIZE allocation published in FRAMEBUFFER, and FramebufferGuard holds the spin lock so no writer runs until the scoped callback returns.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/qemu/allocator.rs",
       "line": 24,
       "source": "unsafe {",
-      "fingerprint": "2102b9a9d9fb335a5826010df75318f2f59d0a08b58a93d20d36f1ae9df03920",
+      "fingerprint": "591210c19a199f5b019307cf1a0a2f66632c8ca97f67f99e0a97c7b3d11e04e6",
       "rationale": "Reviewed raw-memory boundary: pointer/slice construction is confined to a locally validated allocation or mapped region whose length/alignment/lifetime invariants are checked by the surrounding safe wrapper.",
       "reviewed": true
     },
@@ -450,7 +450,7 @@
     },
     {
       "path": "apps/kaskold-hardware/src/runtime/data/signing.rs",
-      "line": 119,
+      "line": 136,
       "source": "pub(super) unsafe fn initialize_in_place(target: *mut Self, transaction: TransactionSigningState) {",
       "fingerprint": "c9285522dcf340ff0c21e787ee93672242e4a9e3c9c6c85358c3a307c868efe3",
       "rationale": "Reviewed signing-state placement boundary: the pointer targets an exclusively owned, uninitialized SigningState field inside the claimed AppData slot. Each child is written exactly once, the only fallible transaction allocation is completed before StaticCell claim, and no signing state is read until every child has been initialized. The no-inline boundary prevents aggregate stack temporaries.",
@@ -521,98 +521,74 @@
       "reviewed": true
     },
     {
-      "path": "apps/kaskold-hardware/src/runtime/interactions/camera_loop/cycle.rs",
-      "line": 100,
-      "source": "unsafe {",
-      "fingerprint": "ce04a7757dfca1d9cb9944b4ec67790a762f98f71a32f157d0a97f187cf11ed3",
-      "rationale": "Reviewed DVP capture call: prepare_cycle has just returned the camera-loop-owned decode (320x240) and crop (240x180) scratch buffers for this cycle, which satisfies run_capture's contract of valid, non-overlapping, exclusively owned storage for the capture.",
-      "reviewed": true
-    },
-    {
-      "path": "apps/kaskold-hardware/src/runtime/interactions/camera_loop/dvp_capture.rs",
-      "line": 95,
-      "source": "unsafe fn render_captured_frame(",
-      "fingerprint": "842e1c1889a045679490e75e28f7a35b7c66fc74b26cd9c55214d29f52987f92",
-      "rationale": "Reviewed camera scratch-buffer boundary: the camera loop owns independent decode (320x240) and crop (240x180) allocations for the capture lifetime; this function converts those caller-provided raw pointers once into fixed-size exclusive mutable slices that end when it returns, before safe rendering helpers use them.",
-      "reviewed": true
-    },
-    {
-      "path": "apps/kaskold-hardware/src/runtime/interactions/camera_loop/dvp_capture.rs",
-      "line": 135,
-      "source": "unsafe fn decode_captured_frame(",
-      "fingerprint": "f9d2a8aa4975f91af4dfafd74671b5abb81f282469586017922427fb966b2681",
-      "rationale": "Reviewed camera decode boundary: re-forms the same fixed-size decode slice only after render_captured_frame has returned and the camera has released its DMA frame, so it is the sole live view; all compaction and QR decoding stay within the 320x240 bounds.",
-      "reviewed": true
-    },
-    {
-      "path": "apps/kaskold-hardware/src/runtime/interactions/camera_loop/dvp_capture.rs",
-      "line": 166,
-      "source": "pub(super) unsafe fn run_capture(",
-      "fingerprint": "d7332e0a644ab63affa85aa579d07f2dca553e0a16902f18a2982bb45c6a4419",
-      "rationale": "Reviewed DVP capture boundary: callers provide the camera-loop-owned decode/crop scratch pointers with their fixed allocation sizes, non-overlap, validity, and exclusive-access lifetime; the raw pointers are forwarded only to the bounded conversion boundary after DMA ownership is recovered.",
-      "reviewed": true
-    },
-    {
       "path": "apps/kaskold-hardware/src/runtime/interactions/camera_loop/timing.rs",
-      "line": 24,
+      "line": 25,
       "source": "unsafe {",
-      "fingerprint": "0c4f4549cbd6199d16bad85bf22c0930112bbbfb52753b1e87bbaae72700e1aa",
+      "fingerprint": "c64ef610c630b3d968805f6b55ca7e00fbf8dc9e8811956ca4998fd90cef98e8",
       "rationale": "Reviewed unsafe boundary: required for embedded FFI/raw hardware interaction; the surrounding safe wrapper establishes pointer validity, bounds, lifetime, and exclusive-access invariants before entry.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/runtime/secret_state.rs",
-      "line": 44,
-      "source": "unsafe { root.as_mut() }",
-      "fingerprint": "607d57d9cac5adfe8a497b9bf2714742de220e91417e0c274b0d44af00b230c2",
-      "rationale": "Reviewed fault-path handoff: FAULT_ROOT is null or the 'static StaticCell root stored once by initialize. AtomicPtr::swap hands it out at most once, and only the panic handler (which esp-hal also routes CPU exceptions into) calls take_for_fault; it never returns to the code holding the root, so the abandoned &mut is never used again. A fault during the wipe sees null and resets.",
+      "line": 46,
+      "source": "let Some(data) = (unsafe { root.as_mut() }) else {",
+      "fingerprint": "9c44933c266c22265ec9c465c799481532c4bc6807ebd2f513773fa28fb07d30",
+      "rationale": "Reviewed fault-path handoff: FAULT_ROOT is null or the 'static StaticCell root stored once by initialize. AtomicPtr::swap hands it out at most once, and only a panic or CPU exception calls wipe_for_fault; neither returns to the code holding the root, so the abandoned &mut is never used again. A fault during the wipe sees null and resets.",
+      "reviewed": true
+    },
+    {
+      "path": "apps/kaskold-hardware/src/runtime/secret_state.rs",
+      "line": 55,
+      "source": "unsafe { bytes.add(offset).write_volatile(0) };",
+      "fingerprint": "930f93083ee7d17351491791701b2f9d19ee3d65bb2325e67fa862b1e9ebaa6f",
+      "rationale": "Reviewed fault-path byte wipe: root is the exclusively held AppData obtained by the swap above, so each offset below size_of::<AppData>() is in bounds and writable. The &mut from as_mut is not used after zeroize returns, volatile writes keep the stores from being elided, and the following compiler_fence orders them before the reset; nothing reads the root again.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/self_test/memory.rs",
-      "line": 41,
+      "line": 42,
       "source": "let observed = unsafe { core::ptr::read_volatile(byte as *const u8) };",
-      "fingerprint": "4ada88fbf9c0ba678e971ccb9669f6ff8e4fdde334716a7b24f797ac9006002d",
+      "fingerprint": "5d51286552ec1680f989f829ded9ca5b8768388a9c57f39d88d8e1d0c5c03241",
       "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/self_test/memory.rs",
-      "line": 50,
+      "line": 52,
       "source": "let data = unsafe { core::slice::from_raw_parts(DATA_SEGMENT_BASE as *const u8, FLASH_TEST_READ_SIZE) };",
-      "fingerprint": "0caecbf0022a25811ca1b1123eef7d7f48afbac88623acca34dfa694f1384613",
+      "fingerprint": "8ac2bf8b6fd507e538bdfe886a565c3e48d9534a7abc41f49ceea9989e731948",
       "rationale": "Reviewed unsafe boundary: required for embedded FFI/raw hardware interaction; the surrounding safe wrapper establishes pointer validity, bounds, lifetime, and exclusive-access invariants before entry.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/self_test/memory.rs",
-      "line": 57,
+      "line": 60,
       "source": "let value = unsafe { core::ptr::read_volatile(byte as *const u8) };",
-      "fingerprint": "6354311bcab03bdd2c6b937aeb6f0d25b7c642722cd118de6718f14e631bc281",
+      "fingerprint": "b6781c21ac39a616fd5a1b5cb2f90c23c9c740090043a4406d8f2f4a46831034",
       "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/services/entropy/platform.rs",
-      "line": 62,
+      "line": 63,
       "source": "let value = unsafe { crate::hw::shared::mmio::read(0x6004_0868) };",
-      "fingerprint": "586f7cb4a1c2549f4e7cac2bd297d2cee1d12392b7ae1b41c3d87ed28a437def",
+      "fingerprint": "ab0dc3aea2f7a65ee691224f07a664c2be7a40584ad5b8be44bf6d4022b74c00",
       "rationale": "Reviewed hardware boundary: a fixed read-only ESP32-S3 register is read through the shared volatile MMIO helper; the address is a constant from the technical reference and the read has no side effect on signing state.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/services/entropy/trng.rs",
-      "line": 15,
+      "line": 16,
       "source": "unsafe {",
-      "fingerprint": "7e791466c1db9d07921b00f37253c475b6c666561243c142f98ce60537a0ff5e",
+      "fingerprint": "cf01743e9e275aabbe227f0493a0c912aaedb48a4940b4f88e8bef81d8984698",
       "rationale": "Reviewed unsafe boundary: required for embedded FFI/raw hardware interaction; the surrounding safe wrapper establishes pointer validity, bounds, lifetime, and exclusive-access invariants before entry.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/services/entropy/trng.rs",
-      "line": 36,
+      "line": 38,
       "source": "unsafe { crate::hw::shared::mmio::read(RNG_DATA_REG) }",
-      "fingerprint": "fb36b3431a73277856b4517c14aa8b1627e00e1effe124279b224b3ad8db9628",
+      "fingerprint": "62f7a373f88b026cce1fccb40b6c6b314e1a45d81b068c31ce3dbd2374bc0ec7",
       "rationale": "Reviewed hardware boundary: a fixed read-only ESP32-S3 register is read through the shared volatile MMIO helper; the address is a constant from the technical reference and the read has no side effect on signing state.",
       "reviewed": true
     },
@@ -621,22 +597,22 @@
       "line": 47,
       "source": "unsafe {",
       "fingerprint": "9fca258016cc09585d91ed4a2a458cdb07cd96c20b1bbf02b124a32d953fab20",
-      "rationale": "Reviewed Argon2 workspace cast: PsramAllocation now validates the requested PasswordKdfBlock alignment and runtime PSRAM provenance and zero-initializes the complete raw allocation before any reference is exposed. All-zero bytes are a valid argon2::Block representation, and the exact block-count × block-size length is checked before forming the exclusive typed slice.",
+      "rationale": "Reviewed Argon2 workspace cast: PsramAllocation now validates the requested PasswordKdfBlock alignment and runtime PSRAM provenance and zero-initializes the complete raw allocation before any reference is exposed. All-zero bytes are a valid argon2::Block representation, and the exact block-count \u00d7 block-size length is checked before forming the exclusive typed slice.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/services/memory/password_kdf.rs",
-      "line": 78,
+      "line": 79,
       "source": "unsafe { core::ptr::write_volatile(byte, expected) };",
-      "fingerprint": "607dda839a09167145c41e050b1f47c4c342d5c9c90919023333cd07f278b133",
+      "fingerprint": "3873238fc45bc4ddcf9eec91286a51df08d37e897d41e6eb4322785db690c0ed",
       "rationale": "Reviewed developer-only PSRAM integrity probe: the allocation is already initialized and bounded by PsramAllocation; volatile access intentionally forces the physical pattern write during the non-secret benchmark integrity test, which zeroizes afterward.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/services/memory/password_kdf.rs",
-      "line": 83,
+      "line": 85,
       "source": "let observed = unsafe { core::ptr::read_volatile(byte) };",
-      "fingerprint": "9213568dda884a4260b05aaa7e2a7e7765b07beb867971ac438cf6e10d023836",
+      "fingerprint": "5d4a346bb71f62060b1a9e710cfe5761844c734e7736e3886e6424755e55e640",
       "rationale": "Reviewed developer-only PSRAM integrity probe: the allocation is initialized and the byte reference is within its exact bounded slice; volatile read verifies physical PSRAM contents during the non-secret benchmark integrity test.",
       "reviewed": true
     },
@@ -644,13 +620,13 @@
       "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
       "line": 61,
       "source": "unsafe {",
-      "fingerprint": "fb50bb2ce004de7c02b38c55f7c8ca3a025d181fe906cdcfd123d8c09941da77",
+      "fingerprint": "724270f0113535d132f1ec073fd82681dcdc980fbae76fb1d55eb06cee4486ed",
       "rationale": "Reviewed PSRAM registration boundary: ESP-HAL supplies the runtime-mapped external memory base/length; KasKold validates non-null, non-zero, checked bounds before registering exactly that region with esp-alloc as External for the program lifetime.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
-      "line": 74,
+      "line": 75,
       "source": "let peripheral = unsafe { esp_hal::peripherals::PSRAM::steal() };",
       "fingerprint": "97a9e7b8ccc29925d451596ed36cf1a205fefb19fcd5391a9c9004276e185b48",
       "rationale": "Reviewed test-only boundary: compiled solely under cfg(test) for the host build, where the unit-test process owns the only handle to the virtual PSRAM peripheral and a failed mapping must stop the test.",
@@ -658,97 +634,97 @@
     },
     {
       "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
-      "line": 131,
+      "line": 142,
       "source": "let ptr = unsafe { HEAP.alloc_caps(MemoryCapability::External.into(), layout) };",
-      "fingerprint": "d3a1b9da79158c0fd2789c13aadb570ea43f7c55cbc70fcb7573236a25336a8e",
+      "fingerprint": "acd98678f9d155e7c0f2c0fbbeaa82749ab4f117dee05ca637e1e035cd4e89fa",
       "rationale": "Reviewed PSRAM allocation boundary: allocation is capability-constrained to External memory with a checked non-zero Layout; the returned pointer is rejected unless its full range lies inside the retained ESP-HAL PSRAM region, and production allocations also verify the requested alignment before exposure.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
-      "line": 137,
+      "line": 149,
       "source": "unsafe { HEAP.dealloc(ptr, layout) };",
-      "fingerprint": "1e89f6d971db30e77e6c3d545e3648eac684f6b414e47120d32280acb5825ca8",
+      "fingerprint": "502a8be70657248b7d74da581bf9009274a2d268019ed354c54ecb158f5a0080",
       "rationale": "Reviewed fail-closed allocation cleanup: ptr/layout are the exact pair returned by the immediately preceding esp-alloc allocation and have not been exposed to callers; the same Layout is used to release a provenance- or alignment-rejected allocation.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
-      "line": 141,
+      "line": 154,
       "source": "unsafe { HEAP.dealloc(ptr, layout) };",
-      "fingerprint": "6814dbed2ec110e5db234bf28a641702e1c8efb20d3ba02b82b6bfc809f42036",
+      "fingerprint": "4d54e4b4d30e27960769f833abc82a44821e1d163510f21824d6bc6506432fc2",
       "rationale": "Reviewed fail-closed allocation cleanup: ptr/layout are the exact pair returned by the immediately preceding esp-alloc allocation and have not been exposed to callers; the same Layout is used to release a provenance- or alignment-rejected allocation.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
-      "line": 150,
+      "line": 164,
       "source": "unsafe { core::ptr::write_bytes(ptr, 0, layout.size()) };",
-      "fingerprint": "5dfa3293bdec3e8dbadb6393506e96f87a22f1e2206fc20bff97b08e9f272db1",
+      "fingerprint": "24f86fc0c5e333c01b2e00a396b835b1e11420c39f80674e6b21e0bfce90cf59",
       "rationale": "Reviewed raw-initialization boundary: after non-null, full-range PSRAM provenance and alignment checks, the uniquely owned raw allocation is zero-filled through its raw u8 pointer before any Rust reference is constructed. This establishes initialized storage for byte slices and for the later zero-valid argon2::Block reinterpretation.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
-      "line": 167,
+      "line": 182,
       "source": "unsafe { core::slice::from_raw_parts(self.ptr, self.layout.size()) }",
-      "fingerprint": "cb2f8f5ee58f5cbf43a452b8804d5ee678ed8fcf19366eb16a03fb52a4869c8a",
+      "fingerprint": "124d6b6469f6c19894f62a026129d0660d1da1896e31ae1cc43ebafe54a6b71c",
       "rationale": "Reviewed PSRAM shared-slice boundary: PsramAllocation uniquely owns a validated external allocation and zero-initializes the complete region before returning, so the bounded byte slice is both in-range and initialized for its entire lifetime.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
-      "line": 171,
+      "line": 187,
       "source": "unsafe { core::slice::from_raw_parts_mut(self.ptr, self.layout.size()) }",
-      "fingerprint": "3a973996c3aedd604df6d8ca0ced3983f4d8da02ddecf85a596dd92ce870c395",
+      "fingerprint": "867a9336aa53fd2fd74f86632f05d25ea5537c11e1cd130c1ee5779a9a7e1f13",
       "rationale": "Reviewed PSRAM mutable-slice boundary: PsramAllocation uniquely owns a validated external allocation and zero-initializes it before exposure; the exclusive byte slice is bounded to the exact Layout and cannot outlive the owner.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
-      "line": 178,
+      "line": 195,
       "source": "unsafe { HEAP.dealloc(self.ptr, self.layout) };",
-      "fingerprint": "96eecca8ae01a4626a63a1af99ae9216e3c8cb4cb775cd7b5d8dd0967f859efc",
+      "fingerprint": "8495ae4e0be6be3272988de17cd50aed9b9a8f431747d89b952681e29d8523b8",
       "rationale": "Reviewed PSRAM owner teardown: ptr/layout are the exact allocation pair retained by PsramAllocation; Drop volatile-zeroizes the initialized byte region before deallocating with the same Layout.",
       "reviewed": true
     },
     {
-      "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
-      "line": 209,
+      "path": "apps/kaskold-hardware/src/services/memory/psram_probe.rs",
+      "line": 33,
       "source": "let ptr = unsafe { HEAP.alloc_caps(MemoryCapability::External.into(), layout) };",
-      "fingerprint": "1cc066cd94bdd5bed2f41069e5a9a784560ddb07404cc818bf74b3f61fbba8a4",
-      "rationale": "Reviewed PSRAM allocation boundary: allocation is capability-constrained to External memory with a checked non-zero Layout; the returned pointer is rejected unless its full range lies inside the retained ESP-HAL PSRAM region, and production allocations also verify the requested alignment before exposure.",
+      "fingerprint": "f701908a85a66fcbcfd4487de28b31487fc3b04703ba84aae314e88e8eae3395",
+      "rationale": "Reviewed bench-only PSRAM probe allocation: the request is capability-constrained to External memory with a checked non-zero Layout, and the pointer is only tested against the retained ESP-HAL PSRAM region before being released.",
       "reviewed": true
     },
     {
-      "path": "apps/kaskold-hardware/src/services/memory/psram.rs",
-      "line": 214,
+      "path": "apps/kaskold-hardware/src/services/memory/psram_probe.rs",
+      "line": 39,
       "source": "unsafe { HEAP.dealloc(ptr, layout) };",
-      "fingerprint": "881a6faa08105de72f372344bdad95a95a3bdacae1b9bd2d3010e21d49303597",
+      "fingerprint": "9f3ae328868692ad4e9b1b7dcd4f5a36a3f53e8ce8b7c53f462fcbd0fd87758d",
       "rationale": "Reviewed PSRAM probe cleanup: ptr/layout are the exact pair returned by the temporary capability-constrained allocation probe and are released immediately with the same Layout.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/services/verify/mapped_segment.rs",
-      "line": 49,
+      "line": 50,
       "source": "let word = unsafe { core::ptr::read_volatile(addr as *const u32) };",
-      "fingerprint": "86c60a69fc04bf727f7643e8b85150811235629fed9545df8c5bb156cbf28b9d",
+      "fingerprint": "e49d9c4f647aee917ccf900031b7ca214fa272137602fed911c2b28d6201da24",
       "rationale": "Reviewed unsafe boundary: required for embedded FFI/raw hardware interaction; the surrounding safe wrapper establishes pointer validity, bounds, lifetime, and exclusive-access invariants before entry.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/services/verify/mapped_segment.rs",
-      "line": 75,
+      "line": 77,
       "source": "let data: &[u8] = unsafe { core::slice::from_raw_parts(code_start as *const u8, code_size) };",
-      "fingerprint": "6943e8de4304996f5d0b118c377986aa069b2b15a0cdf10e532a169897ab453e",
+      "fingerprint": "9eacfd4ec409651821048394c51060d0a88bb83ed7309bbd32435afa2299b283",
       "rationale": "Reviewed unsafe boundary: required for embedded FFI/raw hardware interaction; the surrounding safe wrapper establishes pointer validity, bounds, lifetime, and exclusive-access invariants before entry.",
       "reviewed": true
     },
     {
       "path": "apps/kaskold-hardware/src/services/verify/mapped_segment.rs",
-      "line": 81,
+      "line": 84,
       "source": "let val = unsafe { core::ptr::read_volatile(byte as *const u8) };",
-      "fingerprint": "36d1d541d5590a64c005242f2fc0ec7edc24ac1c443f55e4193ecabb4052ebb7",
+      "fingerprint": "fa9d34c7889f75cfd3c00ef18dc3a305c3785b3ab3d175e6100ee558c630b95c",
       "rationale": "Reviewed hardware boundary: volatile/MMIO or peripheral singleton access is required by the ESP32-S3 HAL/ROM contract; caller constrains the fixed register/peripheral and surrounding safe API owns sequencing.",
       "reviewed": true
     },
@@ -762,7 +738,7 @@
     },
     {
       "path": "apps/kaskold-hardware/src/services/verify/mod.rs",
-      "line": 31,
+      "line": 33,
       "source": "unsafe { core::ptr::read_volatile(core::ptr::addr_of!(firmware_hash::FIRMWARE_SIGNATURE)) }",
       "fingerprint": "1e9877e364afc950c296e6a943761fbb37a3cfe13b2a43348adfd92a6a91da8c",
       "rationale": "Reviewed firmware-identity load boundary: the source is an immutable, aligned, generated static forced into flash rodata with process lifetime; read_volatile copies the fixed-size initialized value so LLVM cannot constant-fold generated identity metadata into the executable segment whose hash is being verified.",
@@ -770,7 +746,7 @@
     },
     {
       "path": "apps/kaskold-hardware/src/services/verify/mod.rs",
-      "line": 37,
+      "line": 39,
       "source": "unsafe { core::ptr::read_volatile(core::ptr::addr_of!(firmware_hash::FIRMWARE_SIGNED)) }",
       "fingerprint": "f192c1a8b78a4f81ce3975f55a7b07615930cba5fcbdd37aba1ede1437e5aa42",
       "rationale": "Reviewed firmware-identity load boundary: the source is an immutable, aligned, generated static forced into flash rodata with process lifetime; read_volatile copies the fixed-size initialized value so LLVM cannot constant-fold generated identity metadata into the executable segment whose hash is being verified.",
@@ -778,7 +754,7 @@
     },
     {
       "path": "apps/kaskold-hardware/src/services/verify/mod.rs",
-      "line": 43,
+      "line": 45,
       "source": "unsafe { core::ptr::read_volatile(core::ptr::addr_of!(firmware_hash::FIRMWARE_SIZE)) }",
       "fingerprint": "8e453c3223ecb1b7784a9f1e3aad1c42117d697c178192077c7471f6973040f5",
       "rationale": "Reviewed firmware-identity load boundary: the source is an immutable, aligned, generated static forced into flash rodata with process lifetime; read_volatile copies the fixed-size initialized value so LLVM cannot constant-fold generated identity metadata into the executable segment whose hash is being verified.",
@@ -786,7 +762,7 @@
     },
     {
       "path": "apps/kaskold-hardware/src/services/verify/mod.rs",
-      "line": 49,
+      "line": 51,
       "source": "unsafe { core::ptr::read_volatile(core::ptr::addr_of!(firmware_hash::FIRMWARE_IADDR)) }",
       "fingerprint": "ee2c4f7d48d50deab0dd6e94d41fc064ea81b432508d53e7827b8351fa1b0412",
       "rationale": "Reviewed firmware-identity load boundary: the source is an immutable, aligned, generated static forced into flash rodata with process lifetime; read_volatile copies the fixed-size initialized value so LLVM cannot constant-fold generated identity metadata into the executable segment whose hash is being verified.",

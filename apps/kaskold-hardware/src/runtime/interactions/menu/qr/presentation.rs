@@ -23,11 +23,7 @@ pub(super) fn handle(ad: &mut AppData, input: TouchInput) -> Option<bool> {
 /// A cancelled transaction is over; a refused scan goes back to the camera for another try.
 fn dismiss_rejection(ad: &mut AppData) {
     if ad.navigation.history.peek() == Some(AppState::ConfirmTx) {
-        let initial_counts = ad.signing.anti_klepto.initial_sig_counts;
-        if ad.signing.anti_klepto.phase != crate::runtime::data::AntiKleptoPhase::Inactive {
-            crate::runtime::signing::rollback_added_signatures(ad, &initial_counts);
-        }
-        ad.signing.anti_klepto.reset();
+        crate::runtime::signing::abandon_anti_klepto(ad);
         crate::runtime::effects::home(ad);
     } else if !crate::runtime::effects::back(ad) {
         crate::runtime::effects::home(ad);
@@ -43,7 +39,7 @@ fn advance_or_close(ad: &mut AppData) {
             return;
         }
     }
-    match ad.signing.anti_klepto.phase {
+    match ad.signing.anti_klepto.phase() {
         AntiKleptoPhase::AwaitingReveal => {
             ad.qr.outgoing.frame_count = 0;
             ad.qr.outgoing.frame = 0;

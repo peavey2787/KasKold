@@ -54,8 +54,10 @@ pub fn write(address: u8, bytes: &[u8]) -> Result<(), Error> {
         };
         bus.pointers.insert(address, *register);
         for (offset, value) in values.iter().enumerate() {
-            bus.registers
-                .insert((address, register.wrapping_add(offset as u8)), *value);
+            bus.registers.insert(
+                (address, register.wrapping_add(offset.to_le_bytes()[0])),
+                *value,
+            );
         }
     });
     Ok(())
@@ -77,7 +79,7 @@ impl Bus {
     fn read(&mut self, address: u8, buffer: &mut [u8]) {
         let start = self.pointers.get(&address).copied().unwrap_or(0);
         for (offset, slot) in buffer.iter_mut().enumerate() {
-            let register = start.wrapping_add(offset as u8);
+            let register = start.wrapping_add(offset.to_le_bytes()[0]);
             *slot = self.register_value(address, register);
         }
     }

@@ -59,6 +59,7 @@ pub(crate) fn initialize(peripheral: &esp_hal::peripherals::PSRAM<'_>) -> Result
     }
     PSRAM_LEN.store(len, Ordering::SeqCst);
     unsafe {
+        // SAFETY: the region comes straight from esp-hal's PSRAM mapping, and the compare-exchange above admits it to the heap exactly once.
         HEAP.add_region(HeapRegion::new(start, len, MemoryCapability::External.into()));
     }
     Ok(PsramRegion { start: start_addr, len })
@@ -76,6 +77,15 @@ fn initialize_for_unit_test() {
             let _ = initialize(&peripheral);
         }
     });
+}
+
+/// Claims the PSRAM heap for one test. The device runs one Argon2 workspace
+/// at a time; tests that allocate one hold this so parallel tests cannot
+/// split the heap and fail each other's allocations.
+#[cfg(test)]
+pub(crate) fn exclusive_for_unit_test() -> std::sync::MutexGuard<'static, ()> {
+    static HELD: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    HELD.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
 pub(crate) fn initialize_or_halt(peripheral: &esp_hal::peripherals::PSRAM<'_>) -> PsramRegion {
@@ -128,16 +138,19 @@ impl PsramAllocation {
         if layout.size() == 0 {
             return Err(PsramError::InvalidLayout);
         }
+        // SAFETY: `layout` was checked non-zero-sized above.
         let ptr = unsafe { HEAP.alloc_caps(MemoryCapability::External.into(), layout) };
         if ptr.is_null() {
             return Err(PsramError::AllocationFailed);
         }
         let allocation = Self { ptr, layout };
         if !allocation.has_valid_provenance() {
+            // SAFETY: `ptr` was just returned by `HEAP.alloc_caps` with this same `layout` and is not yet shared.
             unsafe { HEAP.dealloc(ptr, layout) };
             return Err(PsramError::ProvenanceFailed);
         }
         if !allocation.start().is_multiple_of(layout.align()) {
+            // SAFETY: `ptr` was just returned by `HEAP.alloc_caps` with this same `layout` and is not yet shared.
             unsafe { HEAP.dealloc(ptr, layout) };
             return Err(PsramError::MisalignedAllocation);
         }
@@ -147,6 +160,7 @@ impl PsramAllocation {
         // or stronger typed reference. This is a Rust validity boundary, not
         // merely a confidentiality wipe: callers such as Argon2 may only form
         // references to initialized values.
+        // SAFETY: `ptr` owns `layout.size()` freshly allocated bytes that nothing else references yet.
         unsafe { core::ptr::write_bytes(ptr, 0, layout.size()) };
         core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
         Ok(allocation)
@@ -164,10 +178,12 @@ impl PsramAllocation {
     }
 
     pub(crate) fn as_bytes(&self) -> &[u8] {
+        // SAFETY: `ptr` owns `layout.size()` bytes, zero-initialized in `allocate_with_reserve` and freed only on drop.
         unsafe { core::slice::from_raw_parts(self.ptr, self.layout.size()) }
     }
 
     pub(crate) fn as_mut_bytes(&mut self) -> &mut [u8] {
+        // SAFETY: `ptr` owns `layout.size()` initialized bytes and `&mut self` makes this view exclusive.
         unsafe { core::slice::from_raw_parts_mut(self.ptr, self.layout.size()) }
     }
 }
@@ -175,42 +191,7 @@ impl PsramAllocation {
 impl Drop for PsramAllocation {
     fn drop(&mut self) {
         shared_signer::bytes::zeroize_bytes(self.as_mut_bytes());
+        // SAFETY: `ptr` was allocated by `HEAP` with `self.layout`, and drop runs once.
         unsafe { HEAP.dealloc(self.ptr, self.layout) };
     }
-}
-
-#[cfg(feature = "argon2-bench")]
-pub(crate) fn probe_largest_allocatable(cap: usize, granularity: usize) -> usize {
-    if granularity == 0 {
-        return 0;
-    }
-    let upper = free_bytes().min(cap) / granularity;
-    let mut low = 0usize;
-    let mut high = upper;
-    while low < high {
-        let mid = (low + high).div_ceil(2);
-        if can_allocate(mid * granularity) {
-            low = mid;
-        } else {
-            high = mid - 1;
-        }
-    }
-    low * granularity
-}
-
-#[cfg(feature = "argon2-bench")]
-fn can_allocate(size: usize) -> bool {
-    if size == 0 {
-        return true;
-    }
-    let Ok(layout) = Layout::from_size_align(size, 8) else {
-        return false;
-    };
-    let ptr = unsafe { HEAP.alloc_caps(MemoryCapability::External.into(), layout) };
-    if ptr.is_null() {
-        return false;
-    }
-    let provenance_ok = region().is_ok_and(|psram| psram.contains(ptr as usize, size));
-    unsafe { HEAP.dealloc(ptr, layout) };
-    provenance_ok
 }

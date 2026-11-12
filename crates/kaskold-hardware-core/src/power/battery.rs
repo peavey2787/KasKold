@@ -3,7 +3,7 @@
 /// Convert one 12-bit ADC sample into the battery voltage after the 3:1 divider.
 pub fn raw_to_voltage_mv(raw: u16) -> u16 {
     let vadc_mv = (u32::from(raw) * 2500) / 4095;
-    (vadc_mv * 3) as u16
+    u16::try_from(vadc_mv * 3).unwrap_or(u16::MAX)
 }
 
 const BATTERY_PERCENT_STEPS: [(u16, u8); 11] = [
@@ -43,7 +43,7 @@ pub struct Axp2101BatteryReading {
 }
 
 /// Decode AXP2101 charge status and VBAT registers without performing I/O.
-pub const fn decode_axp2101_battery(
+pub fn decode_axp2101_battery(
     status: u8,
     voltage_high: u8,
     voltage_low: u8,
@@ -64,12 +64,7 @@ pub const fn decode_axp2101_battery(
 }
 
 /// Map the CoreS3's observed battery range to a bounded percentage.
-pub const fn axp2101_voltage_to_percent(voltage_mv: u16) -> u8 {
-    if voltage_mv <= 3200 {
-        0
-    } else if voltage_mv >= 4100 {
-        100
-    } else {
-        ((voltage_mv - 3200) as u32 * 100 / 900) as u8
-    }
+pub fn axp2101_voltage_to_percent(voltage_mv: u16) -> u8 {
+    let above_floor = u32::from(voltage_mv.clamp(3200, 4100) - 3200);
+    u8::try_from(above_floor * 100 / 900).unwrap_or(100)
 }

@@ -10,7 +10,7 @@ use offline_signer::{
     derivation::{bip32, kip22},
     transaction::{
         kspt,
-        model::{ScriptPublicKey, ScriptType, Transaction},
+        model::{Derivation, ScriptPublicKey, ScriptType, Transaction},
         std_pskt,
     },
 };
@@ -153,7 +153,10 @@ impl HotWallet {
         for (index, output) in transaction.outputs().iter().enumerate() {
             let script = output.script_public_key.script_bytes();
             if let Some((chain, _)) = kip22::find_owned_script(&account, script, &mut || {}) {
-                ownership[index] = ownership_from_branch(chain.index() as u8);
+                ownership[index] = match chain {
+                    kip22::Chain::Change => OutputOwnership::Change,
+                    kip22::Chain::Receive => OutputOwnership::Receive,
+                };
             }
         }
         account.zeroize();
@@ -234,7 +237,7 @@ fn validate_generic_input_fields(
 
 fn validate_generic_outputs(transaction: &Transaction) -> Result<(), HotWalletError> {
     for output in transaction.outputs() {
-        if output.has_covenant || !generic_output_script_supported(output) {
+        if output.covenant.is_some() || !generic_output_script_supported(output) {
             return Err(HotWalletError::InvalidToolInput);
         }
     }
@@ -287,11 +290,11 @@ fn verify_raw_output_hints(
 ) -> Result<(), HotWalletError> {
     let xonly = bip32::pubkey_from_raw_key(raw_key)?;
     for (index, output) in transaction.outputs().iter().enumerate() {
-        if !output.has_derivation_hint {
-            continue;
-        }
-        if output.derivation_branch == 0
-            && output.derivation_index == 0
+        if output.derivation_hint
+            == Some(Derivation {
+                branch: 0,
+                index: 0,
+            })
             && p2pk_matches(&output.script_public_key, &xonly)
         {
             ownership[index] = OutputOwnership::Receive;
@@ -306,13 +309,13 @@ fn verify_account_hints(
     ownership: &mut [OutputOwnership],
 ) -> Result<(), HotWalletError> {
     for (index, output) in transaction.outputs().iter().enumerate() {
-        if !output.has_derivation_hint {
+        let Some(hint) = output.derivation_hint else {
             continue;
-        }
-        if output.derivation_branch <= 1 {
-            if let Ok(xonly) = hinted_output_xonly(account, output) {
+        };
+        if hint.branch <= 1 {
+            if let Ok(xonly) = hinted_output_xonly(account, hint) {
                 if p2pk_matches(&output.script_public_key, &xonly) {
-                    ownership[index] = ownership_from_branch(output.derivation_branch);
+                    ownership[index] = ownership_from_branch(hint.branch);
                     continue;
                 }
             }
@@ -332,12 +335,12 @@ fn verify_account_hints(
 
 fn hinted_output_xonly(
     account: &bip32::ExtendedPrivKey,
-    output: &offline_signer::transaction::model::TransactionOutput,
+    hint: Derivation,
 ) -> Result<[u8; 32], HotWalletError> {
-    let child = if output.derivation_branch == 1 {
-        bip32::derive_change_key(account, output.derivation_index)?
+    let child = if hint.branch == 1 {
+        bip32::derive_change_key(account, hint.index)?
     } else {
-        bip32::derive_address_key(account, output.derivation_index)?
+        bip32::derive_address_key(account, hint.index)?
     };
     child.public_key_x_only().map_err(HotWalletError::Bip32)
 }

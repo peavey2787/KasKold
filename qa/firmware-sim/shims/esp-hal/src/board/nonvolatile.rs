@@ -20,7 +20,8 @@ pub fn load(path: &Path) -> io::Result<()> {
     let file = fs::read(path)?;
     let (clock, rest) = file.split_at(rtc::IMAGE_BYTES);
     let (length, rest) = rest.split_at(8);
-    let length = u64::from_le_bytes(length.try_into().expect("eight bytes")) as usize;
+    let length = usize::try_from(u64::from_le_bytes(length.try_into().expect("eight bytes")))
+        .map_err(io::Error::other)?;
     let (image, card) = rest.split_at(length);
     rtc::restore(clock);
     flash::restore(image);

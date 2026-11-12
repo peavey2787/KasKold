@@ -36,8 +36,8 @@ pub(super) fn sign_and_present(ctx: &mut SigningContext<'_, '_, '_>, expected_ma
     if !crate::runtime::signing::workflow_signing_step(ctx.ad)
         || ctx.ad.navigation.app.state != AppState::ShowQR
         || ctx.ad.qr.outgoing.length == 0
-        || ctx.ad.signing.transaction.active.inputs[0].sig_count == 0
-        || ctx.ad.signing.transaction.active.inputs[1].sig_count == 0
+        || ctx.ad.signing.transaction.active.inputs[0].sigs.is_empty()
+        || ctx.ad.signing.transaction.active.inputs[1].sigs.is_empty()
         || ctx.ad.qr.outgoing.buffer.get(..4) != Some(&expected_magic[..])
     {
         return false;

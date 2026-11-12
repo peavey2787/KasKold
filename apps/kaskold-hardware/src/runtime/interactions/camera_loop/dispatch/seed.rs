@@ -56,7 +56,7 @@ pub(super) fn process_plain_words(data: &[u8], ad: &mut AppData) -> bool {
     if !matches!(count, 12 | 24) {
         return false;
     }
-    let word_count = count as u8;
+    let word_count = u8::try_from(count).unwrap_or(u8::MAX);
     if !validate_mnemonic(&indices, word_count) {
         return false;
     }

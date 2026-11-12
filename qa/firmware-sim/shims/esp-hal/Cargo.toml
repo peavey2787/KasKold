@@ -10,3 +10,9 @@ esp-hal-macros = { path = "../esp-hal-macros" }
 embedded-hal = "1.0"
 nb = "1"
 sha2 = "0.10"
+
+[lints.clippy]
+cast_possible_truncation = "deny"
+fn_params_excessive_bools = "deny"
+struct_excessive_bools = "deny"
+undocumented_unsafe_blocks = "deny"

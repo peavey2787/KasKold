@@ -5,7 +5,7 @@
 //! Kaspa transaction sighash and require a two-round host-committed nonce
 //! contribution. Ordinary wallet spending keys never sign this surface.
 
-use crate::runtime::data::{AppData, PrivateSwapMode, PrivateSwapPhase};
+use crate::runtime::data::{AppData, PrivateSwapAction, PrivateSwapPhase};
 use sha2::{Digest, Sha256};
 use shared_signer::covenant_sign::private_swap::{self as wire, PrivateSwapResponse, RequestKind, ResponseKind};
 
@@ -75,7 +75,7 @@ fn prepare_key_info(ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Sized)) 
     crate::services::wallet_keys::zeroize_seed(&mut seed.bytes);
     let state = &mut ad.signing.private_swap;
     state.reset();
-    state.mode = PrivateSwapMode::KeyInfo;
+    state.phase = PrivateSwapPhase::KeyReady;
     state.key_id = key_id;
     state.claim_pubkey = pubkey;
     state.adaptor_point = adaptor;
@@ -95,8 +95,7 @@ fn prepare_bind(ad: &mut AppData, request: &wire::PrivateSwapRequest<'_>) -> Res
     }
     let state = &mut ad.signing.private_swap;
     state.reset();
-    state.mode = PrivateSwapMode::Bind;
-    state.phase = PrivateSwapPhase::Prepared;
+    state.phase = PrivateSwapPhase::Prepared(PrivateSwapAction::Bind);
     state.key_id = request.key_id;
     state.claim_pubkey = policy.claimer_pubkey;
     state.adaptor_point = request.adaptor_point;
@@ -108,10 +107,7 @@ fn prepare_bind(ad: &mut AppData, request: &wire::PrivateSwapRequest<'_>) -> Res
 
 pub fn complete_binding(ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Sized)) -> Result<(), PrivateSwapError> {
     let state = &ad.signing.private_swap;
-    if state.mode != PrivateSwapMode::Bind
-        || state.phase != PrivateSwapPhase::Prepared
-        || state.key_id != state.pending_key_id
-    {
+    if state.phase != PrivateSwapPhase::Prepared(PrivateSwapAction::Bind) || state.key_id != state.pending_key_id {
         return Err(PrivateSwapError::BindingRequired);
     }
     let mut seed = crate::services::wallet_keys::derive_active_seed_with_checkpoint(ad, checkpoint)
@@ -125,7 +121,7 @@ pub fn complete_binding(ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Size
     crate::services::wallet_keys::zeroize_seed(&mut seed.bytes);
     let state = &mut ad.signing.private_swap;
     state.binding_token = token;
-    state.phase = PrivateSwapPhase::FinalResponse;
+    state.phase = PrivateSwapPhase::FinalResponse(PrivateSwapAction::Bind);
     state.clear_pending();
     build_response(ad, ResponseKind::Binding, [0; 64], false)
 }
@@ -172,8 +168,7 @@ fn prepare_presign(
     let output_amount = ad.signing.transaction.active.outputs[0].value;
     let state = &mut ad.signing.private_swap;
     state.reset();
-    state.mode = PrivateSwapMode::PreSign;
-    state.phase = PrivateSwapPhase::Prepared;
+    state.phase = PrivateSwapPhase::Prepared(PrivateSwapAction::PreSign);
     state.session_id = request.session_id;
     state.host_commitment = request.host_commitment;
     state.key_id = request.key_id;
@@ -194,10 +189,10 @@ fn prepare_presign(
 
 pub fn begin_presign(ad: &mut AppData) -> Result<(), PrivateSwapError> {
     let state = &mut ad.signing.private_swap;
-    if state.mode != PrivateSwapMode::PreSign || state.phase != PrivateSwapPhase::Prepared {
+    if state.phase != PrivateSwapPhase::Prepared(PrivateSwapAction::PreSign) {
         return Err(PrivateSwapError::InvalidTransaction);
     }
-    state.phase = PrivateSwapPhase::AwaitingReveal;
+    state.phase = PrivateSwapPhase::AwaitingReveal { nonce_shown: false };
     build_response(ad, ResponseKind::Nonce, [0; 64], false)
 }
 
@@ -208,8 +203,7 @@ pub fn finalize_reveal(
 ) -> Result<(), PrivateSwapError> {
     let mut reveal = wire::parse_reveal(input).map_err(|_| PrivateSwapError::InvalidEnvelope)?;
     let state = &ad.signing.private_swap;
-    let reveal_matches = state.mode == PrivateSwapMode::PreSign
-        && state.phase == PrivateSwapPhase::AwaitingReveal
+    let reveal_matches = matches!(state.phase, PrivateSwapPhase::AwaitingReveal { .. })
         && reveal.session_id == state.session_id
         && reveal.key_id == state.key_id
         && reveal.sighash == state.sighash
@@ -244,9 +238,8 @@ pub fn finalize_reveal(
     shared_signer::bytes::zeroize_bytes(&mut reveal.host_secret);
     relation.map_err(|_| PrivateSwapError::AntiKleptoFailed)?;
     let state = &mut ad.signing.private_swap;
-    state.presignature = presig.bytes;
-    state.presignature_negated = presig.negated;
-    state.phase = PrivateSwapPhase::FinalResponse;
+    state.presignature = presig;
+    state.phase = PrivateSwapPhase::FinalResponse(PrivateSwapAction::PreSign);
     build_response(ad, ResponseKind::PreSignature, presig.bytes, presig.negated)
 }
 
@@ -298,16 +291,14 @@ fn prepare_complete(
     let output_amount = ad.signing.transaction.active.outputs[0].value;
     let state = &mut ad.signing.private_swap;
     state.reset();
-    state.mode = PrivateSwapMode::Complete;
-    state.phase = PrivateSwapPhase::Prepared;
+    state.phase = PrivateSwapPhase::Prepared(PrivateSwapAction::Complete);
     state.key_id = request.key_id;
     state.claim_pubkey = pubkey;
     state.binding_token = request.binding_token;
     state.adaptor_point = request.adaptor_point;
     state.script_hash = script_hash;
     state.sighash = sighash;
-    state.presignature = request.presignature;
-    state.presignature_negated = request.presignature_negated;
+    state.presignature = presig;
     state.input_amount = input_amount;
     state.output_amount = output_amount;
     state.fee = input_amount - output_amount;
@@ -318,13 +309,10 @@ fn prepare_complete(
 
 pub fn complete_claim(ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Sized)) -> Result<(), PrivateSwapError> {
     let state = &ad.signing.private_swap;
-    if state.mode != PrivateSwapMode::Complete || state.phase != PrivateSwapPhase::Prepared {
+    if state.phase != PrivateSwapPhase::Prepared(PrivateSwapAction::Complete) {
         return Err(PrivateSwapError::InvalidTransaction);
     }
-    let presig = offline_signer::crypto::adaptor::AdaptorPreSignature {
-        bytes: state.presignature,
-        negated: state.presignature_negated,
-    };
+    let presig = state.presignature;
     let mut seed = crate::services::wallet_keys::derive_active_seed_with_checkpoint(ad, checkpoint)
         .map_err(|_| PrivateSwapError::MnemonicRequired)?;
     let completed = offline_signer::derivation::covenant::complete_private_swap_adaptor_presignature(
@@ -340,7 +328,7 @@ pub fn complete_claim(ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Sized)
     }
     let state = &mut ad.signing.private_swap;
     state.completed_signature = completed;
-    state.phase = PrivateSwapPhase::FinalResponse;
+    state.phase = PrivateSwapPhase::FinalResponse(PrivateSwapAction::Complete);
     build_response(ad, ResponseKind::Completed, completed, false)
 }
 

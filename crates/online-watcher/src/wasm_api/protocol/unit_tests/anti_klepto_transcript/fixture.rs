@@ -6,7 +6,7 @@ use offline_signer::{
             parse_compact_kspt, proof_records, serialize_compact_kspt_vec,
             sign_transaction_in_place_with_entropy,
         },
-        model::{SigHashType, Transaction},
+        model::{InputSig, SigHashType, Transaction},
         sighash::sign_input_with_entropy,
     },
 };
@@ -43,7 +43,7 @@ impl TranscriptFixture {
         let added_key = [2u8; 32];
         let host_secret = [0x42u8; 32];
         let mut original = anti_klepto_transaction(&first_key, InputScript::P2shMultisig, 1);
-        add_existing_signature(&mut original, &first_key, SigHashType::All);
+        push_signature(&mut original, &first_key, SigHashType::All, 0);
         let original_wire = serialize_compact_kspt_vec(&original).expect("original compact KSPT");
         let begin = crate::wasm_api::protocol::anti_klepto::anti_klepto_begin_with_secret_string(
             &hex::encode(&original_wire),
@@ -59,7 +59,7 @@ impl TranscriptFixture {
         parse_compact_kspt(request.transaction, &mut signed).expect("request transaction");
         let initial_counts = initial_signature_counts(&signed);
         assert_eq!(&initial_counts[..signed.num_inputs], &[1]);
-        add_provisional_signature(&mut signed, &added_key, SigHashType::All);
+        push_signature(&mut signed, &added_key, SigHashType::All, 1);
         let commitment_records =
             nonce_commitment_records(&signed, &initial_counts).expect("nonce commitments");
         assert_eq!(commitment_records.len(), 1);
@@ -263,35 +263,24 @@ impl TranscriptFixture {
     }
 }
 
-fn add_existing_signature(tx: &mut Transaction, private_key: &[u8; 32], sighash_type: SigHashType) {
-    let signature = sign_input_with_entropy(tx, 0, private_key, sighash_type, &[0x61; 32])
-        .expect("existing signature");
-    let compressed = compressed_pubkey_from_raw_key(private_key).expect("existing public key");
-    let input = &mut tx.inputs[0];
-    input.sigs[0].signature = signature.bytes;
-    input.sigs[0].sighash_type = sighash_type.to_byte();
-    input.sigs[0].pubkey_pos = 0;
-    input.sigs[0].present = true;
-    input.sigs[0].pubkey_compressed = compressed;
-    input.sig_count = 1;
-    input.sighash_type = sighash_type.to_byte();
-}
-
-fn add_provisional_signature(
+/// Append the signature of `private_key` at multisig position `pubkey_pos`.
+fn push_signature(
     tx: &mut Transaction,
     private_key: &[u8; 32],
     sighash_type: SigHashType,
+    pubkey_pos: u8,
 ) {
-    let signature = sign_input_with_entropy(tx, 0, private_key, sighash_type, &[0x72; 32])
-        .expect("provisional signature");
-    let compressed = compressed_pubkey_from_raw_key(private_key).expect("provisional public key");
+    let entropy = [0x61 + pubkey_pos; 32];
+    let signature =
+        sign_input_with_entropy(tx, 0, private_key, sighash_type, &entropy).expect("signature");
+    let pubkey_compressed = compressed_pubkey_from_raw_key(private_key).expect("public key");
     let input = &mut tx.inputs[0];
-    input.sigs[1].signature = signature.bytes;
-    input.sigs[1].sighash_type = sighash_type.to_byte();
-    input.sigs[1].pubkey_pos = 1;
-    input.sigs[1].present = true;
-    input.sigs[1].pubkey_compressed = compressed;
-    input.sig_count = 2;
+    assert!(input.sigs.push(InputSig {
+        signature: signature.bytes,
+        sighash_type: sighash_type.to_byte(),
+        pubkey_pos,
+        pubkey_compressed,
+    }));
     input.sighash_type = sighash_type.to_byte();
 }
 
@@ -322,8 +311,9 @@ fn anti_klepto_transaction(
     for input_index in 0..input_count {
         {
             let input = &mut tx.inputs[input_index];
-            input.previous_outpoint.transaction_id = [0x11u8.wrapping_add(input_index as u8); 32];
-            input.previous_outpoint.index = 7 + input_index as u32;
+            input.previous_outpoint.transaction_id =
+                [0x11u8.wrapping_add(u8::try_from(input_index).unwrap()); 32];
+            input.previous_outpoint.index = 7 + u32::try_from(input_index).unwrap();
             input.utxo_entry.amount = 100_000 + input_index as u64;
             input.sequence = u64::MAX - input_index as u64;
             input.sig_op_count = 1;
@@ -402,7 +392,7 @@ pub(super) fn minimal_compact_transaction(
     wire.extend_from_slice(&0u64.to_le_bytes());
     wire.extend_from_slice(&0u32.to_le_bytes());
     for index in 0..input_count {
-        wire.extend_from_slice(&[0x10u8.wrapping_add(index as u8); 32]);
+        wire.extend_from_slice(&[0x10u8.wrapping_add(u8::try_from(index).unwrap()); 32]);
         wire.extend_from_slice(&index.to_le_bytes());
         wire.extend_from_slice(&100u64.to_le_bytes());
         wire.extend_from_slice(&u64::MAX.to_le_bytes());

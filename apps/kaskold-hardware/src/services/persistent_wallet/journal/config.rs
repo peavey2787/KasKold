@@ -171,7 +171,7 @@ pub(super) fn encode_wallet_labels(labels: WalletLabels, out: &mut [u8; CONFIG_S
     for index in 0..MAX_SLOTS {
         let base = WALLET_LABELS_OFFSET + index * WALLET_LABEL_RECORD_SIZE;
         let len = usize::from(labels.lengths[index]).min(WALLET_NAME_MAX);
-        out[base] = len as u8;
+        out[base] = u8::try_from(len).unwrap_or(u8::MAX);
         out[base + 1..base + 1 + len].copy_from_slice(&labels.names[index][..len]);
     }
 }
@@ -188,7 +188,7 @@ pub(super) fn decode_wallet_labels(record: &[u8; CONFIG_SIZE]) -> Option<WalletL
         if name[len..].iter().any(|byte| *byte != 0) || core::str::from_utf8(&name[..len]).is_err() {
             return None;
         }
-        labels.lengths[index] = len as u8;
+        labels.lengths[index] = u8::try_from(len).unwrap_or(u8::MAX);
         labels.names[index][..len].copy_from_slice(&name[..len]);
     }
     Some(labels)
@@ -197,13 +197,12 @@ pub(super) fn decode_wallet_labels(record: &[u8; CONFIG_SIZE]) -> Option<WalletL
 pub(super) fn encode_wallet_activation(records: WalletActivationRecords, out: &mut [u8; CONFIG_SIZE]) {
     for index in 0..MAX_SLOTS {
         let base = WALLET_ACTIVATION_OFFSET + index * WALLET_ACTIVATION_RECORD_SIZE;
-        if !records.present[index] {
+        let Some(entry) = records.get(index) else {
             continue;
-        }
+        };
         out[base] = 1;
-        out[base + 1..base + 1 + SALT_SIZE].copy_from_slice(&records.records[index].salt);
-        out[base + 1 + SALT_SIZE..base + WALLET_ACTIVATION_RECORD_SIZE]
-            .copy_from_slice(&records.records[index].verifier);
+        out[base + 1..base + 1 + SALT_SIZE].copy_from_slice(&entry.salt);
+        out[base + 1 + SALT_SIZE..base + WALLET_ACTIVATION_RECORD_SIZE].copy_from_slice(&entry.verifier);
     }
 }
 
@@ -222,8 +221,7 @@ pub(super) fn decode_wallet_activation(record: &[u8; CONFIG_SIZE]) -> Option<Wal
                 salt.copy_from_slice(&record[base + 1..base + 1 + SALT_SIZE]);
                 let mut verifier = [0u8; 32];
                 verifier.copy_from_slice(&record[base + 1 + SALT_SIZE..base + WALLET_ACTIVATION_RECORD_SIZE]);
-                records.present[index] = true;
-                records.records[index] = WalletActivationRecord { salt, verifier };
+                records.set(index, WalletActivationRecord { salt, verifier });
             }
             _ => return None,
         }

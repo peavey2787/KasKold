@@ -171,7 +171,8 @@ fn write_picture(
     fat32: &sdcard::Fat32Info,
     filename: &[u8; 11],
 ) -> Result<usize, &'static str> {
-    let required_bits = (payload.len() + 2).checked_mul(8).ok_or("Payload too large")? as u32;
+    let required_bits =
+        (payload.len() + 2).checked_mul(8).and_then(|bits| u32::try_from(bits).ok()).ok_or("Payload too large")?;
     let capacity = stego::capacity_bits(jpeg, description)?;
     if capacity < required_bits {
         return Err("Photo has insufficient capacity");

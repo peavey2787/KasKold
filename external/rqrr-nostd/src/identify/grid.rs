@@ -1,3 +1,4 @@
+use crate::geometry::coordinate;
 use core::{cmp, mem};
 
 use crate::{
@@ -90,7 +91,7 @@ impl SkewedGridLocation {
                 (align.x as usize, align.y as usize),
                 PixelColor::Alignment,
                 finder,
-            );
+            )?;
             align = found.best;
         }
 
@@ -171,8 +172,7 @@ fn rotate_capstone(cap: &mut CapStone, h0: &Point, hd: &Point) -> Option<()> {
         .corners
         .iter()
         .enumerate()
-        .min_by_key(|(_, a)| (a.x - h0.x) * (-hd.y) + (a.y - h0.y) * hd.x)
-        .expect("corners cannot be empty");
+        .min_by_key(|(_, a)| (a.x - h0.x) * (-hd.y) + (a.y - h0.y) * hd.x)?;
 
     /* Rotate the capstone */
     cap.corners.rotate_left(best_idx);
@@ -210,7 +210,7 @@ where
         return None;
     }
     let size = scan + 13;
-    let ver = ((size as f64 - 15.0) as usize) / 4;
+    let ver = size.saturating_sub(15) / 4;
     Some(ver * 4 + 17)
 }
 
@@ -277,7 +277,7 @@ where
             if x < img.width() && y < img.height() && PixelColor::White != img.get_pixel_at(x, y) {
                 let region = img.get_region((x, y));
                 let count = match region {
-                    ColoredRegion::Unclaimed { pixel_count, .. } => pixel_count,
+                    Some(ColoredRegion::Unclaimed { pixel_count, .. }) => pixel_count,
                     _ => continue,
                 };
 
@@ -308,19 +308,17 @@ struct LeftMostFinder {
 
 impl AreaFiller for LeftMostFinder {
     fn update(&mut self, row: Row) {
-        let left_d = -self.line_p.y * (row.left as i32) + self.line_p.x * row.y as i32;
-        let right_d = -self.line_p.y * (row.right as i32) + self.line_p.x * row.y as i32;
+        let left_d = -self.line_p.y * coordinate(row.left) + self.line_p.x * coordinate(row.y);
+        let right_d = -self.line_p.y * coordinate(row.right) + self.line_p.x * coordinate(row.y);
 
         if left_d < self.score {
             self.score = left_d;
-            self.best.x = row.left as i32;
-            self.best.y = row.y as i32;
+            self.best = Point::at(row.left, row.y);
         }
 
         if right_d < self.score {
             self.score = right_d;
-            self.best.x = row.right as i32;
-            self.best.y = row.y as i32;
+            self.best = Point::at(row.right, row.y);
         }
     }
 }
@@ -386,7 +384,7 @@ where
     let mut score = 0;
 
     /* Check the timing pattern */
-    for i in 0..(grid_size as i32 - 14) {
+    for i in 0..(coordinate(grid_size) - 14) {
         let expect = if 0 != i & 1 { 1 } else { -1 };
         score += fitness_cell(img, perspective, i + 7, 6) * expect;
         score += fitness_cell(img, perspective, 6, i + 7) * expect;
@@ -394,8 +392,8 @@ where
 
     /* Check capstones */
     score += fitness_capstone(img, perspective, 0, 0);
-    score += fitness_capstone(img, perspective, grid_size as i32 - 7, 0);
-    score += fitness_capstone(img, perspective, 0, grid_size as i32 - 7);
+    score += fitness_capstone(img, perspective, coordinate(grid_size) - 7, 0);
+    score += fitness_capstone(img, perspective, 0, coordinate(grid_size) - 7);
 
     /* Check alignment patterns */
     let mut ap_count = 0;
@@ -403,12 +401,17 @@ where
         ap_count += 1
     }
     for i in 1..(ap_count.saturating_sub(1)) {
-        score += fitness_apat(img, perspective, 6, info.apat[i] as i32);
-        score += fitness_apat(img, perspective, info.apat[i] as i32, 6);
+        score += fitness_apat(img, perspective, 6, coordinate(info.apat[i]));
+        score += fitness_apat(img, perspective, coordinate(info.apat[i]), 6);
     }
     for i in 1..ap_count {
         for j in 1..ap_count {
-            score += fitness_apat(img, perspective, info.apat[i] as i32, info.apat[j] as i32);
+            score += fitness_apat(
+                img,
+                perspective,
+                coordinate(info.apat[i]),
+                coordinate(info.apat[j]),
+            );
         }
     }
     score

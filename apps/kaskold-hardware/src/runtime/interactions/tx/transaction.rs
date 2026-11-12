@@ -41,14 +41,12 @@ fn handle_anti_klepto_reveal_guide(ad: &mut AppData, input: TouchInput) -> bool 
     let TouchInput { x, y, is_back } = input;
     use crate::runtime::data::AntiKleptoPhase;
 
-    if ad.signing.anti_klepto.phase != AntiKleptoPhase::AwaitingReveal {
+    if ad.signing.anti_klepto.phase() != AntiKleptoPhase::AwaitingReveal {
         crate::runtime::effects::home(ad);
         return true;
     }
     if is_back {
-        let initial_counts = ad.signing.anti_klepto.initial_sig_counts;
-        crate::runtime::signing::rollback_added_signatures(ad, &initial_counts);
-        ad.signing.anti_klepto.reset();
+        crate::runtime::signing::abandon_anti_klepto(ad);
         ad.qr.outgoing.length = 0;
         crate::runtime::effects::home(ad);
         return true;
@@ -70,7 +68,9 @@ fn transaction_screen(ad: &AppData) -> Option<TransactionScreen> {
 }
 
 fn scan_return(ad: &AppData) -> ScanReturn {
-    if ad.signing.multisig.creating.n > 0 && !ad.signing.multisig.creating.active {
+    if ad.signing.multisig.creating.n > 0
+        && ad.signing.multisig.draft == crate::runtime::data::MultisigDraft::Assembling
+    {
         ScanReturn::MultisigAddKey(first_empty_multisig_slot(ad))
     } else {
         ScanReturn::MainMenu
@@ -105,7 +105,7 @@ fn apply_decision(
             if cursor == 0 {
                 if let Some(output) = offline_signer::transaction::model::find_forged_change(
                     &ad.signing.transaction.active,
-                    &ad.signing.multisig.store.configs,
+                    &ad.signing.multisig.store,
                 ) {
                     crate::log!(
                         "   REFUSED: output {} claims multisig change not produced by trusted descriptor",
@@ -333,11 +333,7 @@ fn begin_import_review_with_checkpoint(ad: &mut AppData, checkpoint: &mut (impl 
     }
     checkpoint();
     crate::log!("   TX import ownership verification DONE");
-    crate::runtime::effects::start_review(
-        ad,
-        ad.signing.transaction.active.num_outputs as u8,
-        ad.signing.transaction.active.num_inputs,
-    );
+    crate::runtime::effects::start_review(ad);
     crate::runtime::effects::redraw(ad);
 }
 

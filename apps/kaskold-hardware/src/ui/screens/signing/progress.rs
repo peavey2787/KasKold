@@ -18,6 +18,7 @@ use super::super::{
     draw_lato_body, draw_oswald_header, measure_body, measure_header, BootDisplay, DrawTarget, Drawable, Line, Point,
     Primitive, PrimitiveStyle, Rectangle, Size, COLOR_BG, COLOR_TEXT, COLOR_TEXT_DIM, KASPA_ACCENT, KASPA_TEAL,
 };
+use crate::ui::coordinates::extent;
 
 impl<'a> BootDisplay<'a> {
     /// Draw a loading surface for work that has no honest incremental progress.
@@ -54,7 +55,7 @@ impl<'a> BootDisplay<'a> {
         draw_lato_body(&mut self.display, progress.as_str(), (320 - pw) / 2, 100, COLOR_TEXT);
 
         // Progress bar
-        let bar_width = (240 * (current_input + 1)).checked_div(total_inputs).unwrap_or(0) as u32;
+        let bar_width = extent((240 * (current_input + 1)).checked_div(total_inputs).unwrap_or(0));
         Rectangle::new(Point::new(40, 130), Size::new(240, 20))
             .into_styled(PrimitiveStyle::with_stroke(COLOR_TEXT, 1))
             .draw(&mut self.display)

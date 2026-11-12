@@ -26,8 +26,14 @@ pub(crate) fn hold_up_frames(payload: &[u8]) {
         .enumerate()
         .map(|(index, fragment)| {
             let mut wire = [0u8; FRAME_FRAGMENT + FRAME_HEADER_LEN];
-            let length = encode_frame(&session, index as u8, total as u8, fragment, &mut wire)
-                .expect("a QR frame");
+            let length = encode_frame(
+                &session,
+                u8::try_from(index).unwrap(),
+                u8::try_from(total).unwrap(),
+                fragment,
+                &mut wire,
+            )
+            .expect("a QR frame");
             qr_picture(&wire[..length])
         })
         .collect();
@@ -83,9 +89,10 @@ fn paint_module(picture: &mut [u8], x: usize, y: usize, scale: usize) {
 /// Everything readable from the QR code on the panel, as another device's camera sees it.
 pub(crate) fn read_qr_on_screen() -> Option<Vec<u8>> {
     let pixels = lcd::snapshot();
-    let mut image = rqrr::PreparedImage::prepare_from_greyscale(lcd::WIDTH, lcd::HEIGHT, |x, y| {
-        luma(pixels[y * lcd::WIDTH + x])
-    });
+    let mut image =
+        rqrr::PreparedImage::prepare_from_greyscale(lcd::WIDTH, lcd::HEIGHT, |x, y| {
+            luma(pixels[y * lcd::WIDTH + x])
+        })?;
     image.detect_grids().into_iter().find_map(|grid| {
         let mut payload = Vec::new();
         grid.decode_to(&mut payload).ok().map(|_| payload)
@@ -96,5 +103,5 @@ fn luma(rgb565: u16) -> u8 {
     let red = (rgb565 >> 11) & 0x1F;
     let green = (rgb565 >> 5) & 0x3F;
     let blue = rgb565 & 0x1F;
-    ((red * 2 + green * 2 + blue * 2) * 255 / (31 * 2 + 63 * 2 + 31 * 2)) as u8
+    u8::try_from((red * 2 + green * 2 + blue * 2) * 255 / (31 * 2 + 63 * 2 + 31 * 2)).unwrap()
 }

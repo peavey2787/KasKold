@@ -35,7 +35,7 @@ impl<const N: usize> AlignedBytes<N> {
 
 pub(crate) fn read_into<const N: usize>(address: u32, out: &mut AlignedBytes<N>) -> Result<(), FlashIoError> {
     validate_word_access::<N>(address)?;
-    rom_read(address, out.0.as_mut_ptr().cast::<u32>(), N as u32)
+    rom_read(address, out.0.as_mut_ptr().cast::<u32>(), shared_signer::narrow!(u32, N))
 }
 
 #[cfg(feature = "production")]
@@ -55,7 +55,7 @@ pub(crate) fn erase_sector(sector: u32) -> Result<(), FlashIoError> {
 
 pub(crate) fn write<const N: usize>(address: u32, data: &AlignedBytes<N>) -> Result<(), FlashIoError> {
     validate_word_access::<N>(address)?;
-    rom_write(address, data.0.as_ptr().cast::<u32>(), N as u32)
+    rom_write(address, data.0.as_ptr().cast::<u32>(), shared_signer::narrow!(u32, N))
 }
 
 pub(crate) fn with_other_core_parked<T>(operation: impl FnOnce() -> T) -> T {

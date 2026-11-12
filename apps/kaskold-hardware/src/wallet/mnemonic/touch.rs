@@ -84,7 +84,7 @@ impl TouchEntropyCollector {
             return None;
         }
         let mut hasher = self.hasher.take()?;
-        hasher.update((self.count as u32).to_le_bytes());
+        hasher.update((u32::try_from(self.count).unwrap_or(u32::MAX)).to_le_bytes());
         hasher.update(self.polls.to_le_bytes());
         let digest: [u8; 32] = hasher.finalize().into();
         self.reset();

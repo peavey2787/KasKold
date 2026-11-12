@@ -267,7 +267,7 @@ fn compact_sign(ctx: &mut SigningContext<'_, '_, '_>) -> bool {
     if !process(ctx, &wire, false) || !review::confirm(ctx) {
         return false;
     }
-    ctx.ad.navigation.app.review_authorized = false;
+    ctx.ad.navigation.app.end_review();
     if !ctx.activate_signing_operation()
         || crate::runtime::signing::workflow_signing_step(ctx.ad)
         || ctx.ad.navigation.app.state != AppState::Rejected

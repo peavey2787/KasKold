@@ -1,6 +1,6 @@
 //! Shared multisig descriptor/state installation and persistence helpers.
 
-use crate::runtime::data::AppData;
+use crate::runtime::data::{AppData, MultisigDraft};
 use kaskold_protocol::wire::multisig_descriptor::ParsedMultisigDescriptor;
 use offline_signer::transaction::model::MultisigConfig;
 
@@ -11,18 +11,15 @@ pub(crate) fn review_descriptor(
     descriptor: &ParsedMultisigDescriptor,
     checkpoint: &mut (impl FnMut() + ?Sized),
 ) {
-    let mut config = MultisigConfig::from_descriptor(descriptor);
-    config.active = false;
-    ad.signing.multisig.creating = config;
+    ad.signing.multisig.begin(MultisigConfig::from_descriptor(descriptor), MultisigDraft::Reviewing { own: false });
     let _ = crate::runtime::interactions::tx::resolve_loaded_cosigner_index(ad, checkpoint);
     ad.signing.multisig.creating.build_script();
-    let mut candidate = ad.signing.multisig.creating.clone();
-    candidate.active = true;
-    ad.signing.multisig.reviewing_own_descriptor = belongs_to_active_wallet(ad, &candidate, checkpoint);
+    let own = belongs_to_active_wallet(ad, &ad.signing.multisig.creating, checkpoint);
+    ad.signing.multisig.draft = MultisigDraft::Reviewing { own };
 }
 
 pub(crate) fn can_keep_reviewed_descriptor(ad: &AppData) -> bool {
-    !ad.signing.multisig.creating.active && ad.signing.multisig.reviewing_own_descriptor
+    ad.signing.multisig.draft == MultisigDraft::Reviewing { own: true }
 }
 
 /// An address from outside the device names no wallet it knows, so it is only shown.
@@ -38,21 +35,28 @@ pub(crate) fn show_foreign_address(ad: &mut AppData, address: &[u8]) -> bool {
     ad.qr.outgoing.frame = 0;
     ad.qr.outgoing.frame_count = 0;
     ad.qr.presentation.large = false;
-    ad.signing.multisig.creating.active = false;
+    ad.signing.multisig.draft = MultisigDraft::Assembling;
     true
 }
 
 /// Persist the currently edited config back to its matching stored wallet.
 /// Wallet identity is centralized in `MultisigConfig::same_wallet_as`.
 pub(crate) fn persist_creating_config(ad: &mut AppData) -> bool {
-    let creating = ad.signing.multisig.creating.clone();
-    let Some(config) =
-        ad.signing.multisig.store.configs.iter_mut().find(|config| config.active && config.same_wallet_as(&creating))
-    else {
+    let Some(slot) = stored_slot_of(ad, &ad.signing.multisig.creating) else {
         return false;
     };
-    *config = creating;
+    ad.signing.multisig.store.configs[slot] = Some(ad.signing.multisig.creating.clone());
     true
+}
+
+/// The store slot already holding the same wallet as `config`.
+fn stored_slot_of(ad: &AppData, config: &MultisigConfig) -> Option<usize> {
+    ad.signing
+        .multisig
+        .store
+        .configs
+        .iter()
+        .position(|stored| stored.as_ref().is_some_and(|wallet| wallet.same_wallet_as(config)))
 }
 
 /// Return whether a persisted current-format descriptor actually contains the
@@ -64,7 +68,7 @@ pub(crate) fn belongs_to_active_wallet(
     config: &MultisigConfig,
     checkpoint: &mut (impl FnMut() + ?Sized),
 ) -> bool {
-    if !config.active || !config.v45 {
+    if !config.family.is_hd45() {
         return false;
     }
     let active = usize::from(ad.wallet.seeds.seed_mgr.active);
@@ -98,20 +102,20 @@ pub(crate) fn visible_descriptor_indices(
     let mut indices = [u8::MAX; offline_signer::transaction::model::MAX_MULTISIG_WALLETS];
     let mut count = 0usize;
     for (index, config) in ad.signing.multisig.store.configs.iter().enumerate() {
+        let Some(config) = config else {
+            continue;
+        };
         if ad.signing.multisig.descriptor_persisted[index] && belongs_to_active_wallet(ad, config, checkpoint) {
-            indices[count] = index as u8;
+            indices[count] = u8::try_from(index).unwrap_or(u8::MAX);
             count += 1;
         }
     }
-    (indices, count as u8)
+    (indices, u8::try_from(count).unwrap_or(u8::MAX))
 }
 
 pub(crate) fn save_creating_descriptor(ad: &mut AppData) -> Option<usize> {
-    let creating = ad.signing.multisig.creating.clone();
-    let existing =
-        ad.signing.multisig.store.configs.iter().position(|config| config.active && config.same_wallet_as(&creating));
-    let slot = existing.or_else(|| ad.signing.multisig.store.find_free())?;
-    ad.signing.multisig.store.configs[slot] = creating;
+    let slot = stored_slot_of(ad, &ad.signing.multisig.creating).or_else(|| ad.signing.multisig.store.find_free())?;
+    ad.signing.multisig.store.configs[slot] = Some(ad.signing.multisig.creating.clone());
     ad.signing.multisig.descriptor_persisted[slot] = true;
     Some(slot)
 }
@@ -120,7 +124,7 @@ pub(crate) fn delete_descriptor(ad: &mut AppData, slot: usize) -> bool {
     if slot >= ad.signing.multisig.store.configs.len() || !ad.signing.multisig.descriptor_persisted[slot] {
         return false;
     }
-    ad.signing.multisig.store.configs[slot] = MultisigConfig::new();
+    ad.signing.multisig.store.configs[slot] = None;
     ad.signing.multisig.descriptor_persisted[slot] = false;
     true
 }

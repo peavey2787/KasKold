@@ -51,7 +51,11 @@ pub fn confirmation_digest(kind: CredentialPolicyKind, secret: &[u8]) -> [u8; 32
     let mut hasher = Sha256::new();
     hasher.update(CONFIRM_DOMAIN);
     hasher.update([confirmation_tag(kind)]);
-    hasher.update((secret.len() as u16).to_le_bytes());
+    hasher.update(
+        u16::try_from(secret.len())
+            .unwrap_or(u16::MAX)
+            .to_le_bytes(),
+    );
     hasher.update(secret);
     hasher.finalize().into()
 }

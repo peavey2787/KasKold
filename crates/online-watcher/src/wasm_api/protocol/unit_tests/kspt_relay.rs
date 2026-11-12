@@ -123,7 +123,7 @@ fn signed_relay_flags_match_hardware_import_completeness() {
         offline_signer::transaction::model::Transaction::try_new().expect("hardware transaction");
     offline_signer::transaction::kspt::parse_compact_kspt(&signed_p2pk_bytes, &mut p2pk_hardware)
         .expect("fully signed host relay must import on KasKold");
-    assert_eq!(p2pk_hardware.inputs[0].sig_count, 1);
+    assert_eq!(p2pk_hardware.inputs[0].sigs.len(), 1);
 
     let first = test_compressed_key(0x31);
     let second = test_compressed_key(0x32);
@@ -163,8 +163,8 @@ fn signed_relay_flags_match_hardware_import_completeness() {
         offline_signer::transaction::model::Transaction::try_new().expect("hardware transaction");
     offline_signer::transaction::kspt::parse_compact_kspt(&partial_bytes, &mut partial_hardware)
         .expect("partially signed host relay must import on KasKold");
-    assert_eq!(partial_hardware.inputs[0].sig_count, 1);
-    assert!(partial_hardware.inputs[0].ms45_hint.present);
+    assert_eq!(partial_hardware.inputs[0].sigs.len(), 1);
+    assert!(partial_hardware.inputs[0].ms45_hint.is_some());
 
     let (_, complete_pskb, _) = sign_first_input_document(document, &[0x31, 0x32]);
     let complete_relay = relay_pskb_as_kspt_hex_for_network(&complete_pskb, "mainnet")
@@ -178,7 +178,7 @@ fn signed_relay_flags_match_hardware_import_completeness() {
         offline_signer::transaction::model::Transaction::try_new().expect("hardware transaction");
     offline_signer::transaction::kspt::parse_compact_kspt(&complete_bytes, &mut complete_hardware)
         .expect("complete host multisig relay must import on KasKold");
-    assert_eq!(complete_hardware.inputs[0].sig_count, 2);
+    assert_eq!(complete_hardware.inputs[0].sigs.len(), 2);
 }
 
 fn pskb_wire(signed: bool) -> String {

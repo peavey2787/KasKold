@@ -31,7 +31,7 @@ fn boot_level_prefers_hardware_enforcement() {
 fn flash_encryption_follows_crypt_count_parity() {
     let enabled: [bool; 8] = core::array::from_fn(|count| {
         LockFuses {
-            spi_boot_crypt_cnt: count as u8,
+            spi_boot_crypt_cnt: u8::try_from(count).unwrap(),
             ..LOCKED
         }
         .flash_encryption_enabled()

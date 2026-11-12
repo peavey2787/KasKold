@@ -82,23 +82,12 @@ fn multisig_requests_bound_participants_and_threshold() {
 #[test]
 fn imported_hd_descriptors_are_remembered_once_per_wallet_up_to_capacity() {
     let mut wallet = wallet();
-    assert!(wallet
-        .multisig_store
-        .configs
-        .iter()
-        .all(|config| !config.active));
+    assert_eq!(wallet.multisig_store.wallets().count(), 0);
     let descriptor = format!("multi_hd45(1,{KPUB_A},{KPUB_B})");
     let first = wallet
         .import_multisig_descriptor(&descriptor, KaspaNetwork::Mainnet, 0, 0)
         .unwrap();
-    let active = |wallet: &HotWallet| {
-        wallet
-            .multisig_store
-            .configs
-            .iter()
-            .filter(|config| config.active)
-            .count()
-    };
+    let active = |wallet: &HotWallet| wallet.multisig_store.wallets().count();
     assert_eq!(active(&wallet), 1);
     // Re-importing the same multisig updates its slot instead of adding one.
     let again = wallet

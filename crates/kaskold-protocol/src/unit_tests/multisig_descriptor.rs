@@ -26,7 +26,7 @@ fn signer_binding_enforces_kaskold_capacity_thresholds_and_duplicates() {
         .map(|index| {
             hd44_participant(
                 if index.is_multiple_of(2) { 0x02 } else { 0x03 },
-                index as u8 + 1,
+                u8::try_from(index).unwrap() + 1,
             )
         })
         .collect::<Vec<_>>()

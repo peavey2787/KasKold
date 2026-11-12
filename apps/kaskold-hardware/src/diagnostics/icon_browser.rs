@@ -20,8 +20,8 @@ pub(crate) fn draw<D: DrawTarget<Color = Rgb565>>(display: &mut D) {
     use embedded_graphics::geometry::Point;
     let _ = display.clear(crate::ui::display::COLOR_BG);
     for (index, label) in LABELS.iter().enumerate() {
-        let x = 18 + (index % 5) as i32 * 60;
-        let y = 22 + (index / 5) as i32 * 54;
+        let x = 18 + crate::ui::coordinates::coord(index % 5) * 60;
+        let y = 22 + crate::ui::coordinates::coord(index / 5) * 54;
         crate::ui::display::draw_menu_icon(display, label, Point::new(x, y));
     }
     crate::log!("[icon-browser] rendered {} current application icons", LABELS.len());

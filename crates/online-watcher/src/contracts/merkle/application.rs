@@ -6,7 +6,7 @@ pub(crate) fn root_from_addresses(addresses_json: &str) -> Result<String, String
     let addresses: Vec<String> =
         serde_json::from_str(addresses_json).map_err(|error| format!("Bad JSON: {error}"))?;
     let leaves = leaves_from_addresses(&addresses)?;
-    let depth = (leaves.len() as f64).log2().ceil() as u8;
+    let depth = leaves.len().next_power_of_two().trailing_zeros();
     let root = crate::contracts::merkle::script::compute_merkle_root(&leaves);
     Ok(serde_json::json!({
         "root": hex::encode(root),

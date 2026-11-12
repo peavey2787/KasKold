@@ -80,7 +80,7 @@ fn finish_recovery(
         &ad.wallet.seeds.mnemonic_indices,
         ad.wallet.seeds.word_count,
         passphrase,
-        passphrase.len() as u8,
+        u8::try_from(passphrase.len()).unwrap_or(u8::MAX),
     );
     ad.wallet.seeds.pp_input.reset();
     shared_signer::bytes::zeroize_bytes(&mut ad.stego.import.recovered_hint);

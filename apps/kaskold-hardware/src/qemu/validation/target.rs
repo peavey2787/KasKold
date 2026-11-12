@@ -23,7 +23,7 @@ pub(crate) fn run(report: &mut Report) {
     report.counted("KSPT vectors", passed, total);
 
     let (passed, total) = offline_signer::self_test::address::run_address_tests();
-    report.counted("Kaspa address vectors", passed as u32, total as u32);
+    report.counted("Kaspa address vectors", passed, total);
 
     let (passed, total) = offline_signer::self_test::xpub::run_xpub_tests();
     report.counted("kpub/xpub vectors", passed, total);

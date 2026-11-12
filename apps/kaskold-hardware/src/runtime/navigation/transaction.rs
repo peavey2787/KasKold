@@ -1,5 +1,7 @@
 //! Transaction-review route events owned by the stage-2 navigation authority.
 
+use kaskold_hardware_core::security::TransactionReview;
+
 use crate::runtime::{
     data::AppData,
     input::{AppState, Menu, CONFIRM_MENU_ITEMS},
@@ -7,10 +9,13 @@ use crate::runtime::{
 
 use super::{dispatch, kernel, reconcile, route, UiEvent};
 
-pub(crate) fn start_review(ad: &mut AppData, num_outputs: u8, num_inputs: usize) {
-    ad.navigation.app.review_pages = 1 + num_outputs;
-    ad.navigation.app.total_inputs = num_inputs;
-    ad.navigation.app.review_authorized = false;
+/// Show the loaded transaction for review, remembering exactly what is shown.
+pub(crate) fn start_review(ad: &mut AppData) {
+    let transaction = &ad.signing.transaction.active;
+    let outputs = u8::try_from(transaction.num_outputs).unwrap_or(u8::MAX);
+    ad.navigation.app.review_pages = outputs.saturating_add(1);
+    ad.navigation.app.total_inputs = transaction.num_inputs;
+    ad.navigation.app.review = TransactionReview::Showing(transaction.review_digest());
     ad.navigation.app.menu = Menu::from_items(CONFIRM_MENU_ITEMS);
     let _ = dispatch(ad, UiEvent::Route(route!(ConfirmTx)));
 }
@@ -74,12 +79,12 @@ pub(crate) fn confirm_transaction(ad: &mut AppData, cursor: u8) -> bool {
 }
 
 fn authorize_signing(ad: &mut AppData) {
-    ad.navigation.app.review_authorized = true;
+    ad.navigation.app.review = ad.navigation.app.review.approve();
     let _ = dispatch(ad, UiEvent::MenuSelect(0));
 }
 
 fn reject_signing(ad: &mut AppData) {
-    ad.navigation.app.review_authorized = false;
+    ad.navigation.app.end_review();
     let _ = dispatch(ad, UiEvent::Route(route!(Rejected)));
 }
 
@@ -92,7 +97,7 @@ pub(crate) fn advance_signing(ad: &mut AppData) -> bool {
     let input_idx = crate::runtime::presentation::operation_cursor(ad);
     let next = input_idx + 1;
     if next >= ad.navigation.app.total_inputs {
-        ad.navigation.app.review_authorized = false;
+        ad.navigation.app.end_review();
         crate::runtime::presentation::finish_success(ad);
         ad.qr.presentation.large = false;
         ad.qr.presentation.mode = 0;
@@ -115,7 +120,7 @@ pub(crate) fn reject_active_signing(ad: &mut AppData) -> bool {
     {
         return false;
     }
-    ad.navigation.app.review_authorized = false;
+    ad.navigation.app.end_review();
     crate::runtime::presentation::clear_operation(ad);
     dispatch(ad, UiEvent::Route(route!(Rejected)))
 }

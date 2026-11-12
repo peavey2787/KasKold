@@ -35,3 +35,6 @@ k256 = { version = "0.14", default-features = false, features = ["arithmetic", "
 # with their own wasm-bindgen family; KasKold's lockfiles still resolve 0.2.120.
 wasm-bindgen = { version = "0.2.108", optional = true }
 js-sys = { version = "0.3.85", optional = true }
+
+[lints]
+workspace = true

@@ -280,8 +280,7 @@ pub fn begin_signing(ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Sized))
     let nonce_point = offline_signer::crypto::anti_klepto::provisional_nonce_point(&provisional);
     ad.signing.covenant.provisional_signature = provisional.bytes;
     ad.signing.covenant.nonce_point = nonce_point;
-    ad.signing.covenant.phase = CovenantSigningPhase::AwaitingReveal;
-    ad.signing.covenant.nonce_qr_shown = false;
+    ad.signing.covenant.phase = CovenantSigningPhase::AwaitingReveal { nonce_shown: false };
     build_response(ad, ResponseKind::NonceCommitment, [0u8; 64])
 }
 
@@ -298,7 +297,7 @@ pub fn finalize_reveal(
 
 fn validate_reveal(ad: &AppData, reveal: &covenant_sign::CovenantSignReveal) -> Result<(), CovenantSignError> {
     let state = &ad.signing.covenant;
-    let identity_matches = state.phase == CovenantSigningPhase::AwaitingReveal
+    let identity_matches = state.phase.awaiting_reveal()
         && state.session_id == reveal.session_id
         && state.key_id == reveal.key_id
         && state.commitment == reveal.commitment;

@@ -1,7 +1,7 @@
 //! Private Swap v2 QR request/reveal dispatch.
 
 use super::super::AppData;
-use crate::runtime::data::PrivateSwapMode;
+use crate::runtime::data::PrivateSwapPhase;
 
 pub(super) fn process_raw(data: &[u8], len: usize, ad: &mut AppData, liveness: &mut (impl FnMut() + ?Sized)) {
     process(&data[..len.min(data.len())], ad, liveness);
@@ -35,14 +35,12 @@ fn process(wire: &[u8], ad: &mut AppData, liveness: &mut (impl FnMut() + ?Sized)
 
     match crate::services::private_swap::prepare_request(ad, wire, liveness) {
         Ok(()) => {
-            let route = match ad.signing.private_swap.mode {
-                PrivateSwapMode::KeyInfo => {
-                    crate::runtime::navigation::route!(PrivateSwapKeyResult)
-                }
-                PrivateSwapMode::Bind | PrivateSwapMode::PreSign | PrivateSwapMode::Complete => {
-                    crate::runtime::navigation::route!(PrivateSwapReview)
-                }
-                PrivateSwapMode::None => {
+            let route = match ad.signing.private_swap.phase {
+                PrivateSwapPhase::KeyReady => crate::runtime::navigation::route!(PrivateSwapKeyResult),
+                PrivateSwapPhase::Prepared(_) => crate::runtime::navigation::route!(PrivateSwapReview),
+                PrivateSwapPhase::Idle
+                | PrivateSwapPhase::AwaitingReveal { .. }
+                | PrivateSwapPhase::FinalResponse(_) => {
                     reject(ad, "Invalid Private Swap request");
                     return;
                 }

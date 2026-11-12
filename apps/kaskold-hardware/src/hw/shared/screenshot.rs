@@ -2,21 +2,18 @@
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
 // License: GPL-3.0
 
-//! Development-only screen capture and UART mirror support.
+//! Development-only shadow framebuffer and its UART mirror.
 //!
-//! The framebuffer is allocated once in PSRAM and accessed only through
-//! scoped callbacks. No mutable reference or raw pointer can escape the
-//! storage facade, which keeps the screenshot and display paths from
-//! creating long-lived aliases.
+//! The framebuffer is allocated once and accessed only through scoped
+//! callbacks. No mutable reference or raw pointer can escape the storage
+//! facade, which keeps the display and mirror paths from creating long-lived
+//! aliases. `tools/dev/firmware_mirror.rs` reads the mirror's hex rows.
 
 use core::ptr;
 use core::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 
-use embedded_graphics::pixelcolor::Rgb565;
-use embedded_graphics::prelude::*;
-
-const W: usize = 320;
-const H: usize = 240;
+pub(crate) const W: usize = 320;
+pub(crate) const H: usize = 240;
 const BUF_SIZE: usize = W * H * 2;
 
 static FRAMEBUFFER: AtomicPtr<u8> = AtomicPtr::new(ptr::null_mut());
@@ -45,7 +42,10 @@ fn ensure_framebuffer() -> *mut u8 {
         return existing;
     }
 
-    let layout = alloc::alloc::Layout::from_size_align(BUF_SIZE, 4).expect("screenshot framebuffer layout");
+    let Ok(layout) = alloc::alloc::Layout::from_size_align(BUF_SIZE, 4) else {
+        return ptr::null_mut();
+    };
+    // SAFETY: `layout` has the non-zero size `BUF_SIZE`.
     let candidate = unsafe { alloc::alloc::alloc_zeroed(layout) };
     if candidate.is_null() {
         return ptr::null_mut();
@@ -54,120 +54,72 @@ fn ensure_framebuffer() -> *mut u8 {
     match FRAMEBUFFER.compare_exchange(ptr::null_mut(), candidate, Ordering::AcqRel, Ordering::Acquire) {
         Ok(_) => candidate,
         Err(winner) => {
+            // SAFETY: `candidate` came from `alloc_zeroed` with this `layout` and lost the race, so nothing else holds it.
             unsafe { alloc::alloc::dealloc(candidate, layout) };
             winner
         }
     }
 }
 
-/// Access the screenshot framebuffer for the duration of one callback.
+/// Access the shadow framebuffer for the duration of one callback.
 pub(crate) fn with_framebuffer_mut<R>(f: impl FnOnce(&mut [u8]) -> R) -> Option<R> {
     let pointer = ensure_framebuffer();
     if pointer.is_null() {
         return None;
     }
     let _guard = FramebufferGuard::acquire();
+    // SAFETY: `pointer` is the never-freed `BUF_SIZE` allocation published in FRAMEBUFFER, and the held
+    // lock makes this the only view of it until the callback returns.
     let framebuffer = unsafe { core::slice::from_raw_parts_mut(pointer, BUF_SIZE) };
     Some(f(framebuffer))
-}
-
-fn with_framebuffer<R>(f: impl FnOnce(&[u8]) -> R) -> Option<R> {
-    let pointer = FRAMEBUFFER.load(Ordering::Acquire);
-    if pointer.is_null() {
-        return None;
-    }
-    let _guard = FramebufferGuard::acquire();
-    let framebuffer = unsafe { core::slice::from_raw_parts(pointer, BUF_SIZE) };
-    Some(f(framebuffer))
-}
-
-/// A minimal DrawTarget backed by the scoped singleton framebuffer.
-pub struct ScreenshotBuffer;
-
-impl ScreenshotBuffer {
-    pub fn get() -> Self {
-        let _ = ensure_framebuffer();
-        Self
-    }
-}
-
-impl DrawTarget for ScreenshotBuffer {
-    type Color = Rgb565;
-    type Error = core::convert::Infallible;
-
-    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
-    where
-        I: IntoIterator<Item = Pixel<Self::Color>>,
-    {
-        let _ = with_framebuffer_mut(|framebuffer| {
-            for Pixel(point, color) in pixels {
-                if (0..W as i32).contains(&point.x) && (0..H as i32).contains(&point.y) {
-                    let index = (point.y as usize * W + point.x as usize) * 2;
-                    let raw = embedded_graphics::pixelcolor::raw::RawU16::from(color).into_inner();
-                    framebuffer[index] = (raw >> 8) as u8;
-                    framebuffer[index + 1] = raw as u8;
-                }
-            }
-        });
-        Ok(())
-    }
-}
-
-impl OriginDimensions for ScreenshotBuffer {
-    fn size(&self) -> Size {
-        Size::new(W as u32, H as u32)
-    }
-}
-
-fn print_rows(framebuffer: &[u8], start_row: usize, end_row: usize) {
-    const HEX: &[u8; 16] = b"0123456789abcdef";
-    for row in start_row..end_row {
-        let row_start = row * W * 2;
-        let row_data = &framebuffer[row_start..row_start + W * 2];
-        let mut position = 0;
-        while position < row_data.len() {
-            let chunk_end = (position + 64).min(row_data.len());
-            let chunk = &row_data[position..chunk_end];
-            let mut hex = [0u8; 128];
-            for (index, byte) in chunk.iter().copied().enumerate() {
-                hex[index * 2] = HEX[(byte >> 4) as usize];
-                hex[index * 2 + 1] = HEX[(byte & 0x0f) as usize];
-            }
-            if let Ok(text) = core::str::from_utf8(&hex[..chunk.len() * 2]) {
-                esp_println::print!("{}", text);
-            }
-            position = chunk_end;
-        }
-        esp_println::println!();
-    }
-}
-
-pub fn dump_uart() {
-    let Some(()) = with_framebuffer(|framebuffer| {
-        esp_println::println!("SCREENSHOT_BEGIN {} {}", W, H);
-        print_rows(framebuffer, 0, H);
-        esp_println::println!("SCREENSHOT_END");
-    }) else {
-        esp_println::println!("SCREENSHOT_ERROR: buffer not allocated");
-        return;
-    };
 }
 
 #[cfg(feature = "mirror")]
 mod mirror_state {
     use core::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 
-    use super::{print_rows, with_framebuffer, FRAMEBUFFER, H, W};
+    use super::{FramebufferGuard, BUF_SIZE, FRAMEBUFFER, H, W};
 
-    const ROWS_PER_CHUNK: u16 = 4;
+    const ROWS_PER_CHUNK: usize = 4;
     static ROW: AtomicU16 = AtomicU16::new(0);
     static PENDING: AtomicBool = AtomicBool::new(false);
+
+    fn with_framebuffer<R>(f: impl FnOnce(&[u8]) -> R) -> Option<R> {
+        let pointer = FRAMEBUFFER.load(Ordering::Acquire);
+        if pointer.is_null() {
+            return None;
+        }
+        let _guard = FramebufferGuard::acquire();
+        // SAFETY: `pointer` is the never-freed `BUF_SIZE` allocation published in FRAMEBUFFER, and the held
+        // lock keeps writers out until the callback returns.
+        let framebuffer = unsafe { core::slice::from_raw_parts(pointer, BUF_SIZE) };
+        Some(f(framebuffer))
+    }
+
+    fn print_rows(framebuffer: &[u8], start_row: usize, end_row: usize) {
+        const HEX: &[u8; 16] = b"0123456789abcdef";
+        for row in start_row..end_row {
+            let row_start = row * W * 2;
+            for chunk in framebuffer[row_start..row_start + W * 2].chunks(64) {
+                let mut hex = [0u8; 128];
+                for (index, byte) in chunk.iter().copied().enumerate() {
+                    hex[index * 2] = HEX[usize::from(byte >> 4)];
+                    hex[index * 2 + 1] = HEX[usize::from(byte & 0x0f)];
+                }
+                if let Ok(text) = core::str::from_utf8(&hex[..chunk.len() * 2]) {
+                    esp_println::print!("{}", text);
+                }
+            }
+            esp_println::println!();
+        }
+    }
 
     pub fn request_frame() {
         PENDING.store(true, Ordering::Release);
         ROW.store(0, Ordering::Release);
     }
 
+    /// Print the next rows of a requested frame; `true` once no frame is in flight.
     pub fn pump_rows() -> bool {
         if FRAMEBUFFER.load(Ordering::Acquire).is_null() {
             return true;
@@ -183,8 +135,8 @@ mod mirror_state {
             return true;
         }
 
-        let start = (row - 1) as usize;
-        let end = (start + ROWS_PER_CHUNK as usize).min(H);
+        let start = usize::from(row - 1);
+        let end = (start + ROWS_PER_CHUNK).min(H);
         let _ = with_framebuffer(|framebuffer| print_rows(framebuffer, start, end));
 
         if end >= H {
@@ -192,7 +144,8 @@ mod mirror_state {
             ROW.store(0, Ordering::Release);
             true
         } else {
-            ROW.store(end as u16 + 1, Ordering::Release);
+            // `end` is below `H`, so the next row always fits; 0 would only end the frame.
+            ROW.store(u16::try_from(end + 1).unwrap_or(0), Ordering::Release);
             false
         }
     }
@@ -200,11 +153,3 @@ mod mirror_state {
 
 #[cfg(feature = "mirror")]
 pub use mirror_state::{pump_rows, request_frame};
-
-#[cfg(feature = "mirror")]
-pub fn mirror_flush() {
-    dump_uart();
-}
-
-#[cfg(not(feature = "mirror"))]
-pub fn mirror_flush() {}

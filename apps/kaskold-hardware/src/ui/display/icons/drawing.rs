@@ -54,30 +54,8 @@ pub(super) fn draw_wallet_asset_icon<D: DrawTarget<Color = Rgb565>>(
     let Some(raw) = icon else {
         return false;
     };
-    draw_rgb565_black_transparent(display, raw, 24, 24, position);
+    crate::ui::display::draw_icon_over(display, raw, 24, position);
     true
-}
-
-fn draw_rgb565_black_transparent<D: DrawTarget<Color = Rgb565>>(
-    display: &mut D,
-    bytes: &[u8],
-    width: u32,
-    height: u32,
-    top_left: Point,
-) {
-    use embedded_graphics::Pixel;
-
-    let pixels = bytes.chunks_exact(2).enumerate().filter_map(|(index, chunk)| {
-        let raw = u16::from_le_bytes([chunk[0], chunk[1]]);
-        if raw == 0 {
-            return None;
-        }
-        let color = Rgb565::new(((raw >> 11) & 0x1f) as u8, ((raw >> 5) & 0x3f) as u8, (raw & 0x1f) as u8);
-        let x = (index as u32 % width) as i32;
-        let y = (index as u32 / width) as i32;
-        (y < height as i32).then_some(Pixel(Point::new(top_left.x + x, top_left.y + y), color))
-    });
-    display.draw_iter(pixels).ok();
 }
 
 fn draw_action_icon<D: DrawTarget<Color = Rgb565>>(display: &mut D, position: Point, icon: ActionIcon) {

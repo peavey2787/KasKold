@@ -75,11 +75,13 @@ impl Argon2Workspace {
         let bytes = self.allocation.as_mut_bytes();
         for (index, byte) in bytes.iter_mut().enumerate() {
             let expected = integrity_pattern(index);
+            // SAFETY: `byte` is a live `&mut u8` into the exclusively borrowed workspace.
             unsafe { core::ptr::write_volatile(byte, expected) };
         }
         core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
         let mut valid = true;
         for (index, byte) in bytes.iter().enumerate() {
+            // SAFETY: `byte` is a live `&u8` into the workspace written above.
             let observed = unsafe { core::ptr::read_volatile(byte) };
             valid &= observed == integrity_pattern(index);
         }
@@ -90,7 +92,8 @@ impl Argon2Workspace {
 
 #[cfg(feature = "argon2-bench")]
 fn integrity_pattern(index: usize) -> u8 {
-    (index as u8).wrapping_mul(0x5d) ^ ((index >> 8) as u8).wrapping_add(0xa7)
+    let [low, high, ..] = index.to_le_bytes();
+    low.wrapping_mul(0x5d) ^ high.wrapping_add(0xa7)
 }
 
 fn map_psram_error(_: PsramError) -> PasswordKdfError {

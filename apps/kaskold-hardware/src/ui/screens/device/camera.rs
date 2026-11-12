@@ -18,6 +18,7 @@ use super::super::{
     draw_oswald_header, measure_header, BootDisplay, DrawTarget, Drawable, Line, Point, Primitive, PrimitiveStyle,
     Rectangle, Rgb565, Size, COLOR_BG, COLOR_TEXT, KASPA_TEAL,
 };
+use crate::ui::coordinates::{coord, extent};
 
 fn clear_camera_surface(display: &mut impl DrawTarget<Color = Rgb565>) {
     Rectangle::new(Point::new(0, 0), Size::new(320, 240))
@@ -100,19 +101,19 @@ impl<'a> BootDisplay<'a> {
                 break;
             }
 
-            let area = Rectangle::new(Point::new(vf_x, vf_y + vy as i32), Size::new(dw as u32, 1));
+            let area = Rectangle::new(Point::new(vf_x, vf_y + coord(vy)), Size::new(extent(dw), 1));
 
-            let abs_y = vf_y + vy as i32;
+            let abs_y = vf_y + coord(vy);
             let on_top_border = abs_y < vf_y + border_w;
-            let on_bot_border = abs_y >= vf_y + vf_h as i32 - border_w;
+            let on_bot_border = abs_y >= vf_y + coord(vf_h) - border_w;
 
             let row_start = src_y * width;
             let _ = self.display.fill_contiguous(
                 &area,
                 (0..dw).map(move |vx| {
-                    let abs_x = vf_x + vx as i32;
+                    let abs_x = vf_x + coord(vx);
                     let on_left = abs_x < vf_x + border_w;
-                    let on_right = abs_x >= vf_x + vf_w as i32 - border_w;
+                    let on_right = abs_x >= vf_x + coord(vf_w) - border_w;
                     if on_top_border || on_bot_border || on_left || on_right {
                         return border_color;
                     }

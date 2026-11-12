@@ -7,7 +7,7 @@ use offline_signer::{
     derivation::bip32::{derive_account_key, derive_address_key, derive_change_key},
     transaction::{
         kspt::{parse_compact_kspt, serialize_compact_kspt_vec},
-        model::Transaction,
+        model::{Covenant, Derivation, MultisigFamily, Transaction},
     },
 };
 
@@ -49,9 +49,10 @@ fn compact_kspt_spending(script: &[u8]) -> Vec<u8> {
     transaction.inputs[0].sequence = u64::MAX;
     transaction.inputs[0].sig_op_count = 1;
     transaction.inputs[0].utxo_entry.amount = 100_000;
-    transaction.inputs[0].has_derivation_hint = true;
-    transaction.inputs[0].derivation_branch = 0;
-    transaction.inputs[0].derivation_index = 0;
+    transaction.inputs[0].derivation_hint = Some(Derivation {
+        branch: 0,
+        index: 0,
+    });
     {
         let spk = &mut transaction.inputs[0].utxo_entry.script_public_key;
         spk.script[..script.len()].copy_from_slice(script);
@@ -218,7 +219,7 @@ fn recovery_record_decoder_covers_valid_empty_and_rejected_records() {
     );
 
     let mut long_passphrase = record;
-    long_passphrase[1] = (MAX_BIP39_PASSPHRASE_LEN + 1) as u8;
+    long_passphrase[1] = u8::try_from(MAX_BIP39_PASSPHRASE_LEN + 1).unwrap();
     assert_eq!(
         decode_recovery(&long_passphrase)
             .err()
@@ -304,8 +305,7 @@ fn review_and_sign_owned_compact_kspt() {
         .expect("owned compact KSPT signs");
     let mut parsed = Transaction::try_new().expect("transaction allocation");
     parse_compact_kspt(&signed, &mut parsed).expect("signed compact KSPT parses");
-    assert_eq!(parsed.inputs[0].sig_count, 1);
-    assert!(parsed.inputs[0].sigs[0].present);
+    assert_eq!(parsed.inputs[0].sigs.len(), 1);
 }
 
 #[test]
@@ -354,9 +354,10 @@ fn generic_vault_review_sign_and_serialize_reject_hidden_sighash_committed_seman
     ));
 
     reject(|tx| {
-        tx.outputs[0].has_covenant = true;
-        tx.outputs[0].covenant_auth_input = 0;
-        tx.outputs[0].covenant_id = [0x55; 32];
+        tx.outputs[0].covenant = Some(Covenant {
+            authorizing_input: 0,
+            id: [0x55; 32],
+        });
     });
     reject(|tx| tx.subnetwork_id[0] = 1);
 }
@@ -376,7 +377,7 @@ fn multisig_inputs_sign_at_the_wallet_cosigner_position() {
         .expect("multisig KSPT signs");
     let mut parsed = Transaction::try_new().expect("transaction allocation");
     parse_compact_kspt(&signed, &mut parsed).expect("signed compact KSPT parses");
-    assert_eq!(parsed.inputs[0].sig_count, 1);
+    assert_eq!(parsed.inputs[0].sigs.len(), 1);
     assert_eq!(parsed.inputs[0].sigs[0].pubkey_pos, 1);
 }
 
@@ -711,7 +712,7 @@ fn imported_source_types_sign_only_with_their_real_key_material() {
         .expect("account XPrv signs account input");
     let mut parsed = Transaction::try_new().expect("transaction allocation");
     parse_compact_kspt(&signed, &mut parsed).expect("signed account transaction parses");
-    assert_eq!(parsed.inputs[0].sig_count, 1);
+    assert_eq!(parsed.inputs[0].sigs.len(), 1);
 
     let private_key = [1u8; 32];
     let raw_text = hex_string(&private_key);
@@ -722,7 +723,7 @@ fn imported_source_types_sign_only_with_their_real_key_material() {
         .expect("raw key signs matching P2PK input");
     let mut parsed_raw = Transaction::try_new().expect("transaction allocation");
     parse_compact_kspt(&raw_signed, &mut parsed_raw).expect("signed raw transaction parses");
-    assert_eq!(parsed_raw.inputs[0].sig_count, 1);
+    assert_eq!(parsed_raw.inputs[0].sigs.len(), 1);
 
     assert_eq!(
         raw.sign_transaction(&wire)
@@ -847,9 +848,10 @@ fn review_owned_receive_hint_covers_verified_output_derivation() {
     let account = derive_account_key(&wallet.seed.bytes).expect("account derivation");
     let child = derive_address_key(&account, 1).expect("receive derivation");
     let xonly = child.public_key_x_only().expect("x-only public key");
-    transaction.outputs[0].has_derivation_hint = true;
-    transaction.outputs[0].derivation_branch = 0;
-    transaction.outputs[0].derivation_index = 1;
+    transaction.outputs[0].derivation_hint = Some(Derivation {
+        branch: 0,
+        index: 1,
+    });
     transaction.outputs[0].script_public_key.script[0] = 0x20;
     transaction.outputs[0].script_public_key.script[1..33].copy_from_slice(&xonly);
     transaction.outputs[0].script_public_key.script[33] = 0xac;
@@ -888,9 +890,10 @@ fn review_raw_output_hints_cover_absent_valid_and_rejected_shapes() {
     };
 
     let mut valid = parse_fixture();
-    valid.outputs[0].has_derivation_hint = true;
-    valid.outputs[0].derivation_branch = 0;
-    valid.outputs[0].derivation_index = 0;
+    valid.outputs[0].derivation_hint = Some(Derivation {
+        branch: 0,
+        index: 0,
+    });
     valid.outputs[0].script_public_key.script[0] = 0x20;
     valid.outputs[0].script_public_key.script[1..33].copy_from_slice(&xonly);
     valid.outputs[0].script_public_key.script[33] = 0xac;
@@ -901,9 +904,10 @@ fn review_raw_output_hints_cover_absent_valid_and_rejected_shapes() {
     assert_eq!(review.outputs[0].ownership, super::OutputOwnership::Receive);
 
     let mut wrong_branch = parse_fixture();
-    wrong_branch.outputs[0].has_derivation_hint = true;
-    wrong_branch.outputs[0].derivation_branch = 1;
-    wrong_branch.outputs[0].derivation_index = 0;
+    wrong_branch.outputs[0].derivation_hint = Some(Derivation {
+        branch: 1,
+        index: 0,
+    });
     wrong_branch.outputs[0].script_public_key.script[0] = 0x20;
     wrong_branch.outputs[0].script_public_key.script[1..33].copy_from_slice(&xonly);
     wrong_branch.outputs[0].script_public_key.script[33] = 0xac;
@@ -919,9 +923,10 @@ fn review_raw_output_hints_cover_absent_valid_and_rejected_shapes() {
     );
 
     let mut wrong_index = parse_fixture();
-    wrong_index.outputs[0].has_derivation_hint = true;
-    wrong_index.outputs[0].derivation_branch = 0;
-    wrong_index.outputs[0].derivation_index = 1;
+    wrong_index.outputs[0].derivation_hint = Some(Derivation {
+        branch: 0,
+        index: 1,
+    });
     wrong_index.outputs[0].script_public_key.script[0] = 0x20;
     wrong_index.outputs[0].script_public_key.script[1..33].copy_from_slice(&xonly);
     wrong_index.outputs[0].script_public_key.script[33] = 0xac;
@@ -937,9 +942,10 @@ fn review_raw_output_hints_cover_absent_valid_and_rejected_shapes() {
     );
 
     let mut wrong_script = parse_fixture();
-    wrong_script.outputs[0].has_derivation_hint = true;
-    wrong_script.outputs[0].derivation_branch = 0;
-    wrong_script.outputs[0].derivation_index = 0;
+    wrong_script.outputs[0].derivation_hint = Some(Derivation {
+        branch: 0,
+        index: 0,
+    });
     wrong_script.outputs[0].script_public_key.script[0] = 0x20;
     wrong_script.outputs[0].script_public_key.script[1..33].fill(0x7a);
     wrong_script.outputs[0].script_public_key.script[33] = 0xac;
@@ -972,9 +978,10 @@ fn review_account_hint_fallback_scans_receive_change_and_missing_targets() {
         .public_key_x_only()
         .expect("receive x-only key");
     let mut receive_fallback = parse_fixture();
-    receive_fallback.outputs[0].has_derivation_hint = true;
-    receive_fallback.outputs[0].derivation_branch = 0;
-    receive_fallback.outputs[0].derivation_index = 7;
+    receive_fallback.outputs[0].derivation_hint = Some(Derivation {
+        branch: 0,
+        index: 7,
+    });
     receive_fallback.outputs[0].script_public_key.script[0] = 0x20;
     receive_fallback.outputs[0].script_public_key.script[1..33].copy_from_slice(&receive);
     receive_fallback.outputs[0].script_public_key.script[33] = 0xac;
@@ -991,9 +998,10 @@ fn review_account_hint_fallback_scans_receive_change_and_missing_targets() {
         .public_key_x_only()
         .expect("change x-only key");
     let mut change_fallback = parse_fixture();
-    change_fallback.outputs[0].has_derivation_hint = true;
-    change_fallback.outputs[0].derivation_branch = 1;
-    change_fallback.outputs[0].derivation_index = 7;
+    change_fallback.outputs[0].derivation_hint = Some(Derivation {
+        branch: 1,
+        index: 7,
+    });
     change_fallback.outputs[0].script_public_key.script[0] = 0x20;
     change_fallback.outputs[0].script_public_key.script[1..33].copy_from_slice(&change);
     change_fallback.outputs[0].script_public_key.script[33] = 0xac;
@@ -1006,9 +1014,10 @@ fn review_account_hint_fallback_scans_receive_change_and_missing_targets() {
     assert_eq!(review.outputs[0].ownership, super::OutputOwnership::Change);
 
     let mut missing = parse_fixture();
-    missing.outputs[0].has_derivation_hint = true;
-    missing.outputs[0].derivation_branch = 0;
-    missing.outputs[0].derivation_index = 7;
+    missing.outputs[0].derivation_hint = Some(Derivation {
+        branch: 0,
+        index: 7,
+    });
     missing.outputs[0].script_public_key.script[0] = 0x20;
     missing.outputs[0].script_public_key.script[1..33].fill(0x99);
     missing.outputs[0].script_public_key.script[33] = 0xac;
@@ -1035,7 +1044,7 @@ fn swap_push_int(script: &mut Vec<u8>, value: u64) {
         return;
     }
     if value <= 16 {
-        script.push(0x50 + value as u8);
+        script.push(0x50 + u8::try_from(value).unwrap());
         return;
     }
     let mut bytes = value.to_le_bytes().to_vec();
@@ -1746,11 +1755,13 @@ fn imported_hd45_descriptors_record_each_wallets_own_position() {
     let position = |wallet: &HotWallet| {
         wallet
             .multisig_store
-            .configs
-            .iter()
-            .find(|config| config.active && config.addr_index == 1)
-            .expect("remembered descriptor")
-            .cosigner_index
+            .wallets()
+            .find(|config| config.addr_index == 1)
+            .and_then(|config| match config.family {
+                MultisigFamily::Hd45 { cosigner_index, .. } => Some(cosigner_index),
+                MultisigFamily::Legacy44 => None,
+            })
+            .expect("remembered 45' descriptor")
     };
     let mut positions = [position(&first), position(&second)];
     positions.sort_unstable();

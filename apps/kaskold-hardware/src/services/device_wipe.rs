@@ -24,7 +24,7 @@ pub fn zeroize_volatile(ad: &mut AppData) {
     ad.storage.clear_transient();
 
     // Review authorization must never survive a duress/device wipe.
-    ad.navigation.app.review_authorized = false;
+    ad.navigation.app.end_review();
 }
 
 #[cfg(feature = "m5stack")]

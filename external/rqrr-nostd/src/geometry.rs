@@ -9,6 +9,11 @@ use crate::identify::Point;
 /// perspective transforms cannot overflow downstream arithmetic.
 pub const MAX_COORDINATE: i32 = 1 << 13;
 
+/// A pixel index as a coordinate, saturating at `MAX_COORDINATE`.
+pub(crate) fn coordinate(value: usize) -> i32 {
+    i32::try_from(value).map_or(MAX_COORDINATE, |value| value.min(MAX_COORDINATE))
+}
+
 /// Round half away from zero and clamp into `±MAX_COORDINATE`.
 ///
 /// A non-finite value (from a degenerate perspective) maps to the positive
@@ -23,8 +28,13 @@ pub fn clamp_coordinate(value: f64) -> i32 {
     } else {
         value - 0.5
     };
-    // The clamp bounds the value, so the truncating cast is exact and lossless.
-    rounded.clamp(-bound, bound) as i32
+    let clamped = rounded.clamp(-bound, bound);
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "clamped to ±MAX_COORDINATE, so the value fits in i32 exactly"
+    )]
+    let coordinate = clamped as i32;
+    coordinate
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -134,9 +144,10 @@ pub fn line_intersect(p0: &Point, p1: &Point, q0: &Point, q1: &Point) -> Option<
         i64::from(f),
     );
     let bound = i64::from(MAX_COORDINATE);
+    let axis = |value: i64| i32::try_from(value.clamp(-bound, bound)).unwrap_or(MAX_COORDINATE);
     Some(Point {
-        x: ((d * e - b * f) / det).clamp(-bound, bound) as i32,
-        y: ((-c * e + a * f) / det).clamp(-bound, bound) as i32,
+        x: axis((d * e - b * f) / det),
+        y: axis((-c * e + a * f) / det),
     })
 }
 

@@ -92,13 +92,12 @@ pub fn run_camera_cycle(
         let mut platform = super::session::CyclePlatform::new(ad);
         prepare_cycle(session, &mut platform, io.boot_display, &mut camera.status, reset_entry)
     };
-    let Some(buffers) = buffers else {
+    let Some(mut buffers) = buffers else {
         latch_fault(ad, CameraScanFault::MemoryUnavailable);
         return;
     };
 
-    unsafe {
-        let outcome = super::dvp_capture::run_capture(session, ad, io, camera, &buffers);
-        handle_m5_outcome(session, ad, outcome);
-    }
+    let outcome = super::dvp_capture::run_capture(session, ad, io, camera, &mut buffers);
+    session.frame.return_buffers(buffers);
+    handle_m5_outcome(session, ad, outcome);
 }

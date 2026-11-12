@@ -2,6 +2,7 @@
 // Copyright (C) 2025-2026 KasSigner Project (kassigner@proton.me)
 // License: GPL-3.0
 
+use crate::ui::coordinates::coord;
 use embedded_graphics::{
     image::{Image, ImageRawLE},
     pixelcolor::Rgb565,
@@ -153,7 +154,7 @@ where
 {
     Rectangle::new(
         Point::new(x_origin, SECURITY_BADGE_Y),
-        Size::new(SECURITY_BADGE_SIZE as u32, SECURITY_BADGE_SIZE as u32),
+        Size::new(shared_signer::narrow!(u32, SECURITY_BADGE_SIZE), shared_signer::narrow!(u32, SECURITY_BADGE_SIZE)),
     )
     .into_styled(PrimitiveStyle::with_fill(COLOR_BG))
     .draw(display)
@@ -195,7 +196,7 @@ where
             }
             let value = u16::from(raw[index]) | (u16::from(raw[index + 1]) << 8);
             let color = Rgb565::new(((value >> 11) & 0x1f) as u8, ((value >> 5) & 0x3f) as u8, (value & 0x1f) as u8);
-            Pixel(Point::new(x_origin + x as i32, SECURITY_BADGE_Y + y as i32), color).draw(display).ok();
+            Pixel(Point::new(x_origin + coord(x), SECURITY_BADGE_Y + coord(y)), color).draw(display).ok();
         }
     }
 }
@@ -205,10 +206,9 @@ pub(crate) fn draw_icon_over<D>(display: &mut D, raw: &[u8], width: u32, origin:
 where
     D: DrawTarget<Color = Rgb565>,
 {
-    let pixels = raw.chunks_exact(2).enumerate().filter_map(|(index, bytes)| {
+    let pixels = raw.chunks_exact(2).zip(0u32..).filter_map(|(bytes, index)| {
         let value = u16::from_le_bytes([bytes[0], bytes[1]]);
         (value != 0).then(|| {
-            let index = index as u32;
             let at = origin + Point::new((index % width) as i32, (index / width) as i32);
             Pixel(at, Rgb565::new((value >> 11) as u8, ((value >> 5) & 0x3f) as u8, (value & 0x1f) as u8))
         })

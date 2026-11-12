@@ -51,7 +51,11 @@ pub fn dev_pop_it_indicator_demo_active() -> bool {
     DEV_POP_IT_INDICATOR_DEMO.load(AtomicOrdering::Relaxed)
 }
 
-#[cfg(all(feature = "provisioning-ui", not(all(feature = "m5stack", not(feature = "production")))))]
+#[cfg(all(
+    feature = "provisioning-ui",
+    feature = "developer-ui",
+    not(all(feature = "m5stack", not(feature = "production")))
+))]
 pub const fn dev_pop_it_indicator_demo_active() -> bool {
     false
 }

@@ -79,3 +79,9 @@ members = ["shims/*"]
 [profile.dev]
 opt-level = 1
 overflow-checks = true
+
+[lints.clippy]
+cast_possible_truncation = "deny"
+fn_params_excessive_bools = "deny"
+struct_excessive_bools = "deny"
+undocumented_unsafe_blocks = "deny"

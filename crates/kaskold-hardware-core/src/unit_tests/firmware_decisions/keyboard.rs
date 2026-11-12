@@ -4,7 +4,7 @@ use crate::input::keyboard::{
 };
 
 fn center(start: i32) -> u16 {
-    (start + KEY_WIDTH as i32 / 2) as u16
+    u16::try_from(start + KEY_WIDTH as i32 / 2).unwrap()
 }
 
 #[test]
@@ -12,13 +12,18 @@ fn keyboard_hits_characters_pages_and_disabled_keys() {
     let alpha = keyboard_layout(KeyboardMode::Alpha);
     let first = row_start(9);
     assert_eq!(
-        hit_test(center(first), alpha.row_y[0] as u16, KeyboardMode::Alpha, 0),
+        hit_test(
+            center(first),
+            u16::try_from(alpha.row_y[0]).unwrap(),
+            KeyboardMode::Alpha,
+            0
+        ),
         KeyAction::Char(b'a')
     );
     assert_eq!(
         hit_test(
             center(third_row_start(8)),
-            alpha.row_y[2] as u16,
+            u16::try_from(alpha.row_y[2]).unwrap(),
             KeyboardMode::Alpha,
             0
         ),
@@ -29,7 +34,7 @@ fn keyboard_hits_characters_pages_and_disabled_keys() {
     assert_eq!(
         hit_test(
             center(third_row_start(8)),
-            full.row_y[2] as u16,
+            u16::try_from(full.row_y[2]).unwrap(),
             KeyboardMode::Full,
             0
         ),
@@ -38,7 +43,7 @@ fn keyboard_hits_characters_pages_and_disabled_keys() {
     assert_eq!(
         hit_test(
             center(row_start(9)),
-            full.row_y[0] as u16,
+            u16::try_from(full.row_y[0]).unwrap(),
             KeyboardMode::Full,
             1
         ),
@@ -51,7 +56,7 @@ fn keyboard_hits_characters_pages_and_disabled_keys() {
     assert_eq!(
         hit_test(
             center(second_start),
-            hex.row_y[1] as u16,
+            u16::try_from(hex.row_y[1]).unwrap(),
             KeyboardMode::Hex,
             0
         ),
@@ -60,7 +65,7 @@ fn keyboard_hits_characters_pages_and_disabled_keys() {
     assert_eq!(
         hit_test(
             center(second_start + (KEY_WIDTH as i32 + KEY_GAP)),
-            hex.row_y[1] as u16,
+            u16::try_from(hex.row_y[1]).unwrap(),
             KeyboardMode::Hex,
             0
         ),
@@ -71,26 +76,46 @@ fn keyboard_hits_characters_pages_and_disabled_keys() {
 #[test]
 fn keyboard_action_row_is_half_open_and_mode_aware() {
     let row = action_row();
-    let y = keyboard_layout(KeyboardMode::Full).action_y as u16;
+    let y = u16::try_from(keyboard_layout(KeyboardMode::Full).action_y).unwrap();
     assert_eq!(hit_test(0, y, KeyboardMode::Full, 0), KeyAction::Backspace);
     assert_eq!(
-        hit_test(row.left_arrow_x as u16, y, KeyboardMode::Full, 0),
+        hit_test(
+            u16::try_from(row.left_arrow_x).unwrap(),
+            y,
+            KeyboardMode::Full,
+            0
+        ),
         KeyAction::CursorLeft
     );
     assert_eq!(
-        hit_test(row.space_x as u16, y, KeyboardMode::Full, 0),
+        hit_test(
+            u16::try_from(row.space_x).unwrap(),
+            y,
+            KeyboardMode::Full,
+            0
+        ),
         KeyAction::Space
     );
     assert_eq!(
-        hit_test(row.space_x as u16, y, KeyboardMode::Alpha, 0),
+        hit_test(
+            u16::try_from(row.space_x).unwrap(),
+            y,
+            KeyboardMode::Alpha,
+            0
+        ),
         KeyAction::None
     );
     assert_eq!(
-        hit_test(row.right_arrow_x as u16, y, KeyboardMode::Full, 0),
+        hit_test(
+            u16::try_from(row.right_arrow_x).unwrap(),
+            y,
+            KeyboardMode::Full,
+            0
+        ),
         KeyAction::CursorRight
     );
     assert_eq!(
-        hit_test(row.ok_x as u16, y, KeyboardMode::Full, 0),
+        hit_test(u16::try_from(row.ok_x).unwrap(), y, KeyboardMode::Full, 0),
         KeyAction::Ok
     );
     assert_eq!(hit_test(319, 0, KeyboardMode::Full, 0), KeyAction::None);
@@ -128,22 +153,27 @@ fn keyboard_hit_testing_covers_third_row_letters_and_action_gaps() {
     assert_eq!(
         hit_test(
             center(letters_start),
-            full.row_y[2] as u16,
+            u16::try_from(full.row_y[2]).unwrap(),
             KeyboardMode::Full,
             0
         ),
         KeyAction::Char(b's'),
     );
     assert_eq!(
-        hit_test(0, full.row_y[2] as u16, KeyboardMode::Full, 0),
+        hit_test(
+            0,
+            u16::try_from(full.row_y[2]).unwrap(),
+            KeyboardMode::Full,
+            0
+        ),
         KeyAction::None,
     );
 
     let first_start = row_start(9);
     assert_eq!(
         hit_test(
-            (first_start + KEY_WIDTH as i32) as u16,
-            full.row_y[0] as u16,
+            u16::try_from(first_start + KEY_WIDTH as i32).unwrap(),
+            u16::try_from(full.row_y[0]).unwrap(),
             KeyboardMode::Full,
             0,
         ),
@@ -151,10 +181,10 @@ fn keyboard_hit_testing_covers_third_row_letters_and_action_gaps() {
     );
 
     let row = action_row();
-    let y = full.action_y as u16;
+    let y = u16::try_from(full.action_y).unwrap();
     assert_eq!(
         hit_test(
-            (row.left_arrow_x + ARROW_WIDTH as i32) as u16,
+            u16::try_from(row.left_arrow_x + ARROW_WIDTH as i32).unwrap(),
             y,
             KeyboardMode::Full,
             0
@@ -163,7 +193,7 @@ fn keyboard_hit_testing_covers_third_row_letters_and_action_gaps() {
     );
     assert_eq!(
         hit_test(
-            (row.space_x + row.space_width) as u16,
+            u16::try_from(row.space_x + row.space_width).unwrap(),
             y,
             KeyboardMode::Full,
             0
@@ -172,7 +202,7 @@ fn keyboard_hit_testing_covers_third_row_letters_and_action_gaps() {
     );
     assert_eq!(
         hit_test(
-            (row.right_arrow_x + ARROW_WIDTH as i32) as u16,
+            u16::try_from(row.right_arrow_x + ARROW_WIDTH as i32).unwrap(),
             y,
             KeyboardMode::Full,
             0
@@ -180,7 +210,12 @@ fn keyboard_hit_testing_covers_third_row_letters_and_action_gaps() {
         KeyAction::None,
     );
     assert_eq!(
-        hit_test(0, (full.action_y - 5) as u16, KeyboardMode::Full, 0),
+        hit_test(
+            0,
+            u16::try_from(full.action_y - 5).unwrap(),
+            KeyboardMode::Full,
+            0
+        ),
         KeyAction::None,
     );
 }

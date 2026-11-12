@@ -88,7 +88,7 @@ def check_critical_memory_shapes(errors: list[str]) -> None:
     require(
         errors,
         "pub const MAX_INPUTS: u32 = 32;" in kspt_model
-        and "max_inputs: crate::wire::kspt::MAX_INPUTS as u16" in capabilities
+        and "max_inputs: shared_signer::narrow!(u16, crate::wire::kspt::MAX_INPUTS)" in capabilities
         and "SIGNER_MAX_INPUTS: usize = crate::wire::kspt::MAX_INPUTS as usize" in capabilities,
         "reference signer input capability must remain 32",
     )

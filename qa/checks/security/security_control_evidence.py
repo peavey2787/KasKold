@@ -116,8 +116,8 @@ CONTROLS: list[dict[str, Any]] = [
                 "authorize_transaction_signing"
             ],
             "apps/kaskold-hardware/src/runtime/input/wallet_app.rs": [
-                "review_authorized = true",
-                "review_authorized = false",
+                "self.review = self.review.approve()",
+                "self.review = TransactionReview::Idle",
             ],
         },
     },

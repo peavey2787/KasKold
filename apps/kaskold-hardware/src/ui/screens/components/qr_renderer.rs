@@ -86,11 +86,11 @@ impl<'a> BootDisplay<'a> {
         .draw(&mut self.display)
         .ok();
 
-        for y in 0..qr_size {
-            for x in 0..qr_size {
-                if qr.get(x as u8, y as u8) {
+        for y in 0..qr.size {
+            for x in 0..qr.size {
+                if qr.get(x, y) {
                     Rectangle::new(
-                        Point::new(offset_x + x * scale, offset_y + y * scale),
+                        Point::new(offset_x + i32::from(x) * scale, offset_y + i32::from(y) * scale),
                         Size::new(scale as u32, scale as u32),
                     )
                     .into_styled(PrimitiveStyle::with_fill(COLOR_BG))

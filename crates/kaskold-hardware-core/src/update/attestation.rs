@@ -49,8 +49,9 @@ pub fn segment_data_len(header: &[u8; ESP_SEGMENT_HEADER_SIZE]) -> Result<u32, I
 }
 
 pub fn advance_segment(cursor: u32, data_len: u32) -> Result<u32, ImageLayoutError> {
-    cursor
-        .checked_add(ESP_SEGMENT_HEADER_SIZE as u32)
+    u32::try_from(ESP_SEGMENT_HEADER_SIZE)
+        .ok()
+        .and_then(|header| cursor.checked_add(header))
         .and_then(|value| value.checked_add(data_len))
         .ok_or(ImageLayoutError::Overflow)
 }

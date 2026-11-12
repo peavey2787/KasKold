@@ -134,7 +134,7 @@ fn service_multisig_kpub_m5stack(ad: &mut AppData, boot_display: &mut crate::hw:
                 return;
             };
             let seed = work.advance(KPUB_PBKDF2_ROUNDS_PER_STEP);
-            let progress = ((u16::from(work.progress_percent()) * 88) / 100) as u8;
+            let progress = u8::try_from((u16::from(work.progress_percent()) * 88) / 100).unwrap_or(u8::MAX);
             (seed, progress)
         };
         update_progress(ad, boot_display, progress);
@@ -227,7 +227,7 @@ fn advance_m5stack_seed(ad: &mut AppData, boot_display: &mut crate::hw::display:
             return;
         };
         let seed = work.advance(KPUB_PBKDF2_ROUNDS_PER_STEP);
-        let progress = ((u16::from(work.progress_percent()) * 88) / 100) as u8;
+        let progress = u8::try_from((u16::from(work.progress_percent()) * 88) / 100).unwrap_or(u8::MAX);
         (seed, progress)
     };
     update_progress(ad, boot_display, progress);

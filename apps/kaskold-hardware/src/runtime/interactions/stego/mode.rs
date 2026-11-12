@@ -136,6 +136,9 @@ pub(crate) fn workflow_select_security_with_jpegs(
     if names.is_empty() || names.len() > ad.stego.export_flow.jpeg_file_names.len() {
         return false;
     }
+    let Ok(count) = u8::try_from(names.len()) else {
+        return false;
+    };
     ad.stego.export_flow.security = security;
     ad.stego.export_flow.clear_portable_confirmation();
     ad.stego.session.portable.clear();
@@ -146,9 +149,9 @@ pub(crate) fn workflow_select_security_with_jpegs(
         ad.stego.export_flow.jpeg_file_names[index] = *name;
         let end = name.iter().position(|byte| *byte == b' ').unwrap_or(name.len());
         ad.stego.export_flow.jpeg_display_names[index][..end].copy_from_slice(&name[..end]);
-        ad.stego.export_flow.jpeg_display_lens[index] = end as u8;
+        ad.stego.export_flow.jpeg_display_lens[index] = u8::try_from(end).unwrap_or(u8::MAX);
     }
-    ad.stego.export_flow.jpeg_file_count = names.len() as u8;
+    ad.stego.export_flow.jpeg_file_count = count;
     ad.stego.export_flow.jpeg_selected = 0;
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(StegoJpegPick));
     true

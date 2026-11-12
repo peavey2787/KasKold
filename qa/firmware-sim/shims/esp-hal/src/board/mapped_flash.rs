@@ -3,7 +3,8 @@
 use sha2::{Digest, Sha256};
 
 const FIRMWARE_SEGMENTS: [(usize, usize); 2] = [(0x3C00_0000, 0x20_0000), (0x4200_0000, 0x20_0000)];
-const CODE_SEGMENT: usize = 0x4206_0020;
+const CODE_SEGMENT_ADDRESS: u32 = 0x4206_0020;
+const CODE_SEGMENT: usize = CODE_SEGMENT_ADDRESS as usize;
 /// Both buses read the same flash through one MMU table, so one flash byte has two addresses.
 const CODE_SEGMENT_ON_DATA_BUS: usize = 0x3C06_0020;
 
@@ -11,7 +12,7 @@ pub static mut EXPECTED_FIRMWARE_HASH: [u8; 32] = [0; 32];
 pub static mut FIRMWARE_SIGNATURE: [u8; 64] = [0; 64];
 pub static FIRMWARE_SIGNED: bool = true;
 pub static FIRMWARE_SIZE: usize = 426_204;
-pub static FIRMWARE_IADDR: u32 = CODE_SEGMENT as u32;
+pub static FIRMWARE_IADDR: u32 = CODE_SEGMENT_ADDRESS;
 
 #[cfg(windows)]
 mod platform {
@@ -69,9 +70,8 @@ pub fn install() {
         // SAFETY: the range was just mapped read-write for exactly `size` bytes.
         let bytes = unsafe { core::slice::from_raw_parts_mut(mapped, size) };
         for (index, byte) in bytes.iter_mut().enumerate() {
-            *byte = (index as u8)
-                .wrapping_mul(31)
-                .wrapping_add((index >> 8) as u8);
+            let [low, high, ..] = index.to_le_bytes();
+            *byte = low.wrapping_mul(31).wrapping_add(high);
         }
     }
     // SAFETY: the code segment lies inside the mapping above, and no firmware runs yet.

@@ -35,7 +35,7 @@ pub(crate) fn prepare_navigation(ad: &mut AppData) {
         return;
     }
     ad.qr.outgoing.frame = 0;
-    ad.qr.outgoing.frame_count = frame_count as u8;
+    ad.qr.outgoing.frame_count = u8::try_from(frame_count).unwrap_or(u8::MAX);
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ShowQrModeChoice));
 }
 
@@ -49,7 +49,7 @@ pub(crate) fn present_anti_klepto_final(ad: &mut AppData) -> bool {
 
     if ad.navigation.app.state != AppState::ScanQR
         || ad.navigation.owner != NavigationOwner::Signing
-        || ad.signing.anti_klepto.phase != AntiKleptoPhase::FinalResponse
+        || ad.signing.anti_klepto.phase() != AntiKleptoPhase::FinalResponse
         || ad.qr.outgoing.length == 0
     {
         return false;
@@ -71,7 +71,7 @@ pub(crate) fn present_anti_klepto_final(ad: &mut AppData) -> bool {
         // Preserve the existing renderer-owned oversized-payload error surface.
         return crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ShowQR));
     }
-    ad.qr.outgoing.frame_count = frame_count as u8;
+    ad.qr.outgoing.frame_count = u8::try_from(frame_count).unwrap_or(u8::MAX);
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(ShowQrModeChoice))
 }
 

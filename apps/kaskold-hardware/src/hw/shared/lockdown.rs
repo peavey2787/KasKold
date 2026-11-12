@@ -37,6 +37,7 @@ use super::mmio::{clear_bits, read, set_bits, write};
 /// Disable modem clocks, power down the wireless digital domain, and disable
 /// USB OTG. Returns `false` if register read-back does not confirm the policy.
 pub fn early_lockdown() -> bool {
+    // SAFETY: every address is a documented ESP32-S3 system/RTC/USB control register, accessed as an aligned 32-bit word.
     unsafe {
         let wifi_clock = read(APB_CTRL_WIFI_CLK_EN);
         write(APB_CTRL_WIFI_CLK_EN, wifi_clock & APB_CTRL_WIFI_CLK_RNG_EN);
@@ -50,6 +51,7 @@ pub fn early_lockdown() -> bool {
     }
 
     let verified = radio_power_is_off();
+    // SAFETY: every address is a documented ESP32-S3 system/RTC/USB control register, accessed as an aligned 32-bit word.
     let power = unsafe { read(RTC_CNTL_DIG_PWC) };
     log!(
         "   [SEC] wireless lockdown: verified={} DIG_PWC=0x{:08X} FORCE_PD={} FORCE_PU={}",
@@ -67,6 +69,7 @@ pub fn early_lockdown() -> bool {
 /// gated, the Bluetooth low-power divider must be zero, and the wireless
 /// digital power domain must be forced down rather than forced up.
 pub fn radio_power_is_off() -> bool {
+    // SAFETY: every address is a documented ESP32-S3 system/RTC/USB control register, accessed as an aligned 32-bit word.
     unsafe {
         let wifi_clock = read(APB_CTRL_WIFI_CLK_EN);
         let power = read(RTC_CNTL_DIG_PWC);
@@ -86,6 +89,7 @@ pub fn radio_power_is_off() -> bool {
 /// Disable the USB/JTAG bridge after firmware verification.
 #[cfg(not(any(feature = "hardware-tests", feature = "workflow-test-auto")))]
 pub fn post_boot_lockdown() {
+    // SAFETY: every address is a documented ESP32-S3 system/RTC/USB control register, accessed as an aligned 32-bit word.
     unsafe {
         let conf0 = read(USB_SERIAL_JTAG_CONF0);
         write(USB_SERIAL_JTAG_CONF0, conf0 & !(0x3 << 3));

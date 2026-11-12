@@ -10,11 +10,11 @@ pub(crate) enum PagedMenuAction {
 }
 
 pub(crate) fn selected_visible_item(menu: &Menu, zones: &[touch::TouchZone; 4], x: u16, y: u16) -> Option<u8> {
-    zones.iter().enumerate().find_map(|(slot, zone)| {
+    zones.iter().zip(0u8..).find_map(|(zone, slot)| {
         if !zone.contains(x, y) {
             return None;
         }
-        let index = menu.visible_to_absolute(slot as u8);
+        let index = menu.visible_to_absolute(slot);
         (index < menu.count).then_some(index)
     })
 }

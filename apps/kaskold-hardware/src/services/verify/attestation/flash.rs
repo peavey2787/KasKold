@@ -22,11 +22,12 @@ pub(super) fn hash_flash(start: u32, length: u32) -> Result<[u8; 32], Attestatio
     let mut buffer = raw_flash::AlignedBytes::<HASH_CHUNK_SIZE>::zeroed();
     let mut offset = 0u32;
     while offset < length {
-        let take = core::cmp::min((length - offset) as usize, HASH_CHUNK_SIZE);
+        let take = (length - offset).min(shared_signer::narrow!(u32, HASH_CHUNK_SIZE));
         let address = start.checked_add(offset).ok_or(AttestationError::ImageLayout)?;
-        read_chunk(address, &mut buffer, take)?;
-        hasher.update(&buffer.0[..take]);
-        offset += take as u32;
+        let bytes = take as usize;
+        read_chunk(address, &mut buffer, bytes)?;
+        hasher.update(&buffer.0[..bytes]);
+        offset += take;
     }
     Ok(hasher.finalize().into())
 }

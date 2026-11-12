@@ -6,6 +6,7 @@ extern crate std;
 pub mod covenant_backup;
 pub mod creation_flow;
 pub mod credential_policy;
+pub mod numeric;
 pub mod pairing;
 pub mod seed_entropy;
 
@@ -79,7 +80,7 @@ pub mod seed_qr {
             }
             indices[position] = value;
         }
-        count as u8
+        u8::try_from(count).unwrap_or(0)
     }
 
     /// Encode CompactSeedQR entropy. Returns zero for invalid/short mnemonic input.
@@ -140,7 +141,7 @@ pub mod seed_qr {
             }
             *output = value;
         }
-        count as u8
+        u8::try_from(count).unwrap_or(0)
     }
 }
 

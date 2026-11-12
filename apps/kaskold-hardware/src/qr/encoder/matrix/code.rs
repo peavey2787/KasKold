@@ -91,6 +91,13 @@ impl QrCode {
         }
     }
 
+    /// The module at signed coordinates `(x, y)`, or `None` off the symbol.
+    fn module(&self, x: i16, y: i16) -> Option<(u8, u8)> {
+        let x = u8::try_from(x).ok().filter(|x| *x < self.size)?;
+        let y = u8::try_from(y).ok().filter(|y| *y < self.size)?;
+        Some((x, y))
+    }
+
     pub(super) fn place_data(&mut self, data: &[u8]) {
         let size = self.size as i16;
         let mut bit_index = 0usize;
@@ -106,11 +113,10 @@ impl QrCode {
             for row_index in 0..size {
                 let y = if upward { size - 1 - row_index } else { row_index };
                 for delta_x in 0..2i16 {
-                    let x = right - delta_x;
-                    if x < 0 || x >= size || y < 0 || y >= size {
+                    let Some((x, y)) = self.module(right - delta_x, y) else {
                         continue;
-                    }
-                    if self.is_function(x as u8, y as u8) {
+                    };
+                    if self.is_function(x, y) {
                         continue;
                     }
 
@@ -122,7 +128,7 @@ impl QrCode {
                     } else {
                         false
                     };
-                    self.set(x as u8, y as u8, dark);
+                    self.set(x, y, dark);
                 }
             }
             right -= 2;
@@ -132,13 +138,11 @@ impl QrCode {
     fn draw_finder(&mut self, center_x: i16, center_y: i16) {
         for delta_y in -4i16..=4 {
             for delta_x in -4i16..=4 {
-                let x = center_x + delta_x;
-                let y = center_y + delta_y;
-                if x < 0 || y < 0 || x >= self.size as i16 || y >= self.size as i16 {
+                let Some((x, y)) = self.module(center_x + delta_x, center_y + delta_y) else {
                     continue;
-                }
+                };
                 let distance = delta_x.abs().max(delta_y.abs());
-                self.set_function(x as u8, y as u8, distance != 2 && distance != 4);
+                self.set_function(x, y, distance != 2 && distance != 4);
             }
         }
     }
