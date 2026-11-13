@@ -23,7 +23,7 @@ const NEEDS_A_NODE = new Set([
     'create_multisig_pskb_multi_js', 'create_multisig_pskb_selected', 'create_oracle_mb_publish', 'create_send_pskb',
     'create_send_pskb_limited', 'create_send_pskb_selected', 'create_stealth_spend', 'fetch_balance', 'fetch_utxos',
     'fetch_utxos_complete', 'fetch_utxos_for_address_js', 'get_fee_estimate',
-    'get_virtual_daa_score', 'inspect_crowdfund_contributions', 'pskt_finalize_and_broadcast',
+    'get_virtual_daa_score', 'inspect_crowdfund_contributions', 'pskt_finalize_and_broadcast', 'pskt_finalize_and_replace',
     'scan_multisig_branch_js', 'split_vault_genesis_pskb', 'split_vault_spend_pskb', 'stealth_create_payment_lane',
     'tagged_vault_genesis_pskb', 'tagged_vault_spend_pskb',
 ]);

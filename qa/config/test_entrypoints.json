@@ -1621,6 +1621,22 @@
       "commands": [
         "make qa"
       ],
+      "path": "qa/tests/tooling/build/test_hash_builder.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
+      "path": "qa/tests/tooling/build/test_pinned_esptool.py",
+      "role": "test",
+      "step": "unit.repository-python-qa"
+    },
+    {
+      "commands": [
+        "make qa"
+      ],
       "path": "qa/tests/tooling/build/test_reproducible_build_runner.py",
       "role": "test",
       "step": "unit.repository-python-qa"

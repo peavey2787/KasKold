@@ -25,24 +25,16 @@ foreach ($required in @('KASKOLD_ESPTOOL_VERSION','KASKOLD_UPDATE_SEQUENCE','KAS
 }
 
 $python = Get-KasKoldPython
-$toolRoot = Join-Path $root ('target/qa/state/tools/esptool-' + $policy.KASKOLD_ESPTOOL_VERSION)
-$venvPython = Join-Path $toolRoot 'Scripts/python.exe'
-$esptool = Join-Path $toolRoot 'Scripts/esptool.exe'
+$pinned = Join-Path $root 'tools/build/firmware/pinned_esptool.py'
+function Get-PinnedEsptoolCommand([string]$Name) {
+    $path = & $python $pinned $Name
+    if ($LASTEXITCODE -ne 0) { throw "pinned esptool bootstrap failed with exit code $LASTEXITCODE" }
+    return $path
+}
+$venvPython = Get-PinnedEsptoolCommand 'python'
+$esptool = Get-PinnedEsptoolCommand 'esptool'
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
-New-Item -ItemType Directory -Force -Path (Split-Path -Parent $toolRoot) | Out-Null
-
-if (-not (Test-Path -LiteralPath $venvPython -PathType Leaf)) {
-    Write-Host "==> Bootstrapping pinned esptool $($policy.KASKOLD_ESPTOOL_VERSION) into repository QA state"
-    Invoke-KasKoldCommand -Command $python -Arguments @('-m','venv',$toolRoot) -WorkingDirectory $root | Out-Null
-    Invoke-KasKoldCommand -Command $venvPython -Arguments @(
-        '-m','pip','install','--disable-pip-version-check',('esptool==' + $policy.KASKOLD_ESPTOOL_VERSION)
-    ) -WorkingDirectory $root | Out-Null
-}
-
 $version = (Invoke-KasKoldCapture -Command $esptool -Arguments @('version') -WorkingDirectory $root)
-if ($version.ExitCode -ne 0 -or $version.Output -notmatch [regex]::Escape($policy.KASKOLD_ESPTOOL_VERSION)) {
-    throw "Pinned esptool version mismatch: $($version.Output)"
-}
 
 $humanReport = Join-Path $OutputDir 'get-security-info.txt'
 & $esptool --chip esp32s3 --port $Port get-security-info 2>&1 | Tee-Object -FilePath $humanReport

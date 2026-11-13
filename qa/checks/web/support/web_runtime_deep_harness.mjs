@@ -112,7 +112,7 @@ export async function setupDeepHarness() {
     decode_qr_frame: () => '', reset_qr_decoder: () => '', decoder_progress: () => JSON.stringify({ total:3, count:2, bits:[true,false,true] }),
     pskt_detect: input => String(input).startsWith('50534b42') ? 'pskb' : String(input).startsWith('4b535054') ? 'kspt' : 'pskb',
     kspt_signature_status: hex => String(hex).startsWith('4b535054') ? (String(hex).slice(10, 12) === '01' ? 'signed' : 'unsigned') : 'unknown',
-    pskt_summary: () => JSON.stringify(psktSummary()), pskt_relay_to_kspt: () => KSPT,     pskt_finalize_and_broadcast: () => TXID, broadcast_signed: () => TXID,
+    pskt_summary: () => JSON.stringify(psktSummary()), pskt_relay_to_kspt: () => KSPT,     pskt_finalize_and_broadcast: () => TXID, pskt_finalize_and_replace: () => TXID2, broadcast_signed: () => TXID,
     create_send_pskb: () => PSKB, create_send_pskb_limited: () => PSKB, create_send_pskb_selected: () => PSKB, create_send_pskb_with_utxos: () => PSKB,
     create_consolidate_pskb: () => PSKB, create_multisig_pskb: () => PSKB, create_multisig_pskb_selected: () => PSKB,
     create_covenant_pskb: () => PSKB, create_covenant_pskb_with_payload: () => PSKB,

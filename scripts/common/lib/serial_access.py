@@ -31,14 +31,29 @@ else:
 
 DIALOUT = "dialout"
 SERIAL_GLOBS = ("/dev/ttyACM*", "/dev/ttyUSB*")
+FLASH_MONITOR_ARGS = ("monitor", "--chip", "esp32s3", "--before", "no-reset-no-sync")
+MONITOR_LISTING = (
+    "$ErrorActionPreference='Stop';"
+    "Get-CimInstance Win32_Process -Filter \"Name='espflash.exe'\" | "
+    "ForEach-Object { [string]$_.ProcessId + \"`t\" + [string]$_.CommandLine }"
+)
 
 
 class SerialAccessError(RuntimeError):
     """Serial selection or permission remediation could not be completed safely."""
 
 
-def _windows_serial_ports() -> tuple[tuple[str, str], ...]:
-    """Enumerate Windows COM ports and PnP identity without opening a device."""
+def windows_host() -> bool:
+    return os.name == "nt" or sys.platform.startswith("win")
+
+
+def flash_monitor_command(elf: Path, port: str) -> list[str]:
+    """Attach to a freshly flashed device without resetting or resynchronizing it."""
+    return ["espflash", *FLASH_MONITOR_ARGS, "--elf", str(elf), "--port", port]
+
+
+def _powershell(script: str, unavailable: str) -> str:
+    """Run one PowerShell script and return its standard output."""
     shell = next(
         (
             path
@@ -48,18 +63,7 @@ def _windows_serial_ports() -> tuple[tuple[str, str], ...]:
         None,
     )
     if shell is None:
-        raise SerialAccessError(
-            "PowerShell is required to auto-detect the CoreS3 serial port on Windows; "
-            "set PORT explicitly instead"
-        )
-    script = (
-        "$ErrorActionPreference='Stop';"
-        "[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new();"
-        "Get-CimInstance Win32_PnPEntity | "
-        "Where-Object { $_.Name -match '\\(COM[0-9]+\\)' } | "
-        "ForEach-Object { if ($_.Name -match '\\((COM[0-9]+)\\)') { "
-        "$Matches[1] + \"`t\" + [string]$_.PNPDeviceID + \"`t\" + [string]$_.Name } }"
-    )
+        raise SerialAccessError(f"PowerShell is required to {unavailable} on Windows")
     try:
         result = subprocess.run(
             [shell, "-NoProfile", "-Command", script],
@@ -69,14 +73,63 @@ def _windows_serial_ports() -> tuple[tuple[str, str], ...]:
             stderr=subprocess.PIPE,
         )
     except OSError as exc:
-        raise SerialAccessError(f"could not enumerate Windows serial ports: {exc}") from exc
+        raise SerialAccessError(f"could not {unavailable}: {exc}") from exc
     if result.returncode != 0:
         detail = (result.stderr or result.stdout).strip()
         suffix = f": {detail}" if detail else ""
-        raise SerialAccessError(f"Windows serial-port enumeration failed{suffix}")
+        raise SerialAccessError(f"could not {unavailable}{suffix}")
+    return result.stdout
+
+
+def _flash_monitor_pids(listing: str, port: str) -> list[int]:
+    """Process ids in a ``pid<TAB>command line`` listing that run the flash monitor on *port*."""
+    signature = " ".join(FLASH_MONITOR_ARGS)
+    suffix = f"--port {port}".lower()
+    pids: list[int] = []
+    for line in listing.splitlines():
+        pid, _, command = line.strip().partition("\t")
+        lowered = command.strip().lower()
+        if pid.isdigit() and signature in lowered and lowered.endswith(suffix):
+            pids.append(int(pid))
+    return pids
+
+
+def release_flash_monitor(port: str) -> None:
+    """Close the UART monitor console an earlier ``make flash`` left open on *port*.
+
+    A managed ``make flash`` on Windows opens espflash's monitor in its own
+    console. Windows grants a COM port to one process, so until that console is
+    closed every later serial command fails with "Serial port not found".
+    """
+    if not windows_host():
+        return
+    listing = _powershell(MONITOR_LISTING, "list the UART monitors holding a serial port")
+    pids = _flash_monitor_pids(listing, port)
+    if not pids:
+        return
+    ids = ",".join(str(pid) for pid in pids)
+    print(f"Closing the KasKold UART monitor (PID {ids}) that holds {port}", flush=True)
+    _powershell(
+        f"Stop-Process -Id {ids} -Force -ErrorAction SilentlyContinue; "
+        f"Wait-Process -Id {ids} -Timeout 10 -ErrorAction SilentlyContinue",
+        f"close the UART monitor holding {port}",
+    )
+
+
+def _windows_serial_ports() -> tuple[tuple[str, str], ...]:
+    """Enumerate Windows COM ports and PnP identity without opening a device."""
+    script = (
+        "$ErrorActionPreference='Stop';"
+        "[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new();"
+        "Get-CimInstance Win32_PnPEntity | "
+        "Where-Object { $_.Name -match '\\(COM[0-9]+\\)' } | "
+        "ForEach-Object { if ($_.Name -match '\\((COM[0-9]+)\\)') { "
+        "$Matches[1] + \"`t\" + [string]$_.PNPDeviceID + \"`t\" + [string]$_.Name } }"
+    )
+    stdout = _powershell(script, "auto-detect the CoreS3 serial port (set PORT explicitly instead)")
 
     entries: list[tuple[str, str]] = []
-    for line in result.stdout.splitlines():
+    for line in stdout.splitlines():
         fields = line.strip().split("\t", 2)
         if not fields or not fields[0].strip():
             continue
@@ -112,7 +165,7 @@ def _posix_serial_ports() -> tuple[tuple[str, str], ...]:
 
 
 def _enumerate_serial_ports() -> tuple[tuple[str, str], ...]:
-    if os.name == "nt" or sys.platform.startswith("win"):
+    if windows_host():
         return _windows_serial_ports()
     if os.name == "posix":
         return _posix_serial_ports()

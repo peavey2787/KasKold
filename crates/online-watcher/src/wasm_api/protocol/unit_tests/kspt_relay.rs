@@ -3,7 +3,7 @@
 use serde_json::{json, Map, Value};
 
 use crate::wasm_api::protocol::pskt::{
-    pskt_finalize_and_broadcast_string,
+    pskt_finalize_and_broadcast_string, pskt_finalize_and_replace_string,
     pskt_relay_to_kspt_string as relay_pskb_as_kspt_hex_for_network,
 };
 use crate::wasm_api::test_support::{canonical_test_pskt, decode_pskb_document, ready};
@@ -95,6 +95,19 @@ fn only_a_fully_verified_envelope_reaches_the_node_transport() {
     );
     let refused = ready(pskt_finalize_and_broadcast_string(&unsigned, "ws://unused"))
         .expect_err("an unsigned envelope is refused");
+    assert!(
+        refused.starts_with("PSKT cryptographic verification failed"),
+        "{refused}"
+    );
+
+    let replacement = ready(pskt_finalize_and_replace_string(&signed, "ws://unused"))
+        .expect_err("native builds have no node transport");
+    assert!(
+        replacement.contains("browser WebSocket transport is unavailable"),
+        "{replacement}"
+    );
+    let refused = ready(pskt_finalize_and_replace_string(&unsigned, "ws://unused"))
+        .expect_err("an unsigned replacement is refused");
     assert!(
         refused.starts_with("PSKT cryptographic verification failed"),
         "{refused}"

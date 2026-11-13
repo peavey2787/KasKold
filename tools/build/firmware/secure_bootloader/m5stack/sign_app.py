@@ -5,12 +5,14 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
-import shutil
 import subprocess
 import sys
 import tempfile
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[5]
+sys.path.insert(0, str(ROOT / "tools/build/firmware"))
+import pinned_esptool  # noqa: E402
+
 SIGNATURE_SECTOR_SIZE = 4096
 
 
@@ -40,14 +42,14 @@ def main() -> int:
         parser.error(f"application image not found: {args.input}")
     if not key.is_file():
         parser.error(f"Secure Boot RSA-3072 key not found: {key}")
-    espsecure = shutil.which("espsecure")
-    if espsecure is None:
-        parser.error("espsecure is required")
+    espsecure = str(pinned_esptool.ensure("espsecure"))
+    # The padder imports esptool itself, so it runs on the pinned environment's interpreter.
+    pinned_python = str(pinned_esptool.ensure("python"))
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="kaskold-secure-sign-") as directory:
         padded = Path(directory) / "app-secure-pad-v2.bin"
-        run([sys.executable, str(ROOT / "tools/build/firmware/secure_pad_v2.py"), str(args.input), str(padded)])
+        run([pinned_python, str(ROOT / "tools/build/firmware/secure_pad_v2.py"), str(args.input), str(padded)])
         run([
             sys.executable,
             str(ROOT / "tools/build/firmware/verify_image_hash.py"),

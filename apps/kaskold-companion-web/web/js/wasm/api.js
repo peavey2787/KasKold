@@ -39,6 +39,7 @@ const GENERATED_WASM_EXPORTS = Object.freeze([
     'script_public_key_address',
     'pskt_summary',
     'pskt_finalize_and_broadcast',
+    'pskt_finalize_and_replace',
     'pskt_relay_to_kspt',
     'kaskold_sdk_limits',
     'kaskold_sdk_prepare',
@@ -201,6 +202,7 @@ export function redeem_script_address(/** @type {any[]} */ ...args) { return inv
 export function script_public_key_address(/** @type {any[]} */ ...args) { return invoke('script_public_key_address', args); }
 export function pskt_summary(/** @type {any[]} */ ...args) { return invoke('pskt_summary', args); }
 export function pskt_finalize_and_broadcast(/** @type {any[]} */ ...args) { return invoke('pskt_finalize_and_broadcast', args); }
+export function pskt_finalize_and_replace(/** @type {any[]} */ ...args) { return invoke('pskt_finalize_and_replace', args); }
 export function pskt_relay_to_kspt(/** @type {any[]} */ ...args) { return invoke('pskt_relay_to_kspt', args); }
 export function kaskold_sdk_limits(/** @type {any[]} */ ...args) { return invoke('kaskold_sdk_limits', args); }
 export function kaskold_sdk_prepare(/** @type {any[]} */ ...args) { return invoke('kaskold_sdk_prepare', args); }

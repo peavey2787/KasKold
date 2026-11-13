@@ -8,12 +8,16 @@ from portal_source import portal_text  # noqa: E402
 
 class OnlineWatcherTransactionFixturePolicyTests(unittest.TestCase):
     def test_standard_send_fixture_preserves_non_dust_change(self) -> None:
-        source = portal_text("transaction/builder/unit_tests/mod.rs")
+        source = portal_text("transaction/builder/unit_tests/priced.rs")
         test = source.split(
-            "fn standard_send_preparation_and_utxo_paths_are_host_testable()", 1
+            "fn a_small_automatic_send_pays_the_feerate_on_its_storage_mass()", 1
         )[1].split("\n#[test]", 1)[0]
-        self.assertIn("utxo(0xb2, 1, 40_000_000)", test)
-        self.assertNotIn("utxo(0xb2, 1, 30_000_000)", test)
+        # The 0.2 KAS payment is funded by the 91.7 KAS funded-wallet UTXO, so
+        # its change stays far above dust whatever the mass fee.
+        self.assertIn("const FUNDED_UTXO: u64 = 9_172_200_000;", source)
+        self.assertIn("const SMALL_PAYMENT: u64 = 20_000_000;", source)
+        self.assertIn("prepared(SMALL_PAYMENT, 300_000)", test)
+        self.assertIn("vec![utxo(0xb1, 0, FUNDED_UTXO)]", test)
 
 
 if __name__ == "__main__":

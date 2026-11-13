@@ -43,7 +43,7 @@ use shared::sd_file_exists;
 
 pub use common::routing::handle_sd_touch;
 
-#[cfg(all(feature = "workflow-test-auto", not(feature = "workflow-hil-auto")))]
+#[cfg(feature = "workflow-test-auto")]
 pub(crate) use backup::seed::workflow_prepare_seed_backup_filename;
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) use backup::workflow_import_backup_payload;

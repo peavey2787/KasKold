@@ -11,6 +11,25 @@ pub enum SigningIdentity {
     Development,
 }
 
+/// The firmware crate's rustfmt `max_width`, its array indent, and one `0x00, ` item.
+const FIRMWARE_MAX_WIDTH: usize = 120;
+const ARRAY_INDENT: &str = "    ";
+const BYTE_ITEM_WIDTH: usize = "0x00, ".len();
+/// The most byte literals rustfmt places on one row (the last one drops its trailing space).
+const BYTES_PER_ROW: usize = (FIRMWARE_MAX_WIDTH - ARRAY_INDENT.len() + 1) / BYTE_ITEM_WIDTH;
+
+/// Lay out an array body exactly as rustfmt does, so a build leaves `firmware_hash.rs` format-clean.
+fn byte_rows(bytes: &[u8]) -> String {
+    bytes
+        .chunks(BYTES_PER_ROW)
+        .map(|row| {
+            let items: Vec<String> = row.iter().map(|byte| format!("0x{byte:02x},")).collect();
+            format!("{ARRAY_INDENT}{}", items.join(" "))
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 // ─── Code segment hash ──────────────────────────────────────
 //
 // Hashes exactly seg_size bytes from the code segment.
@@ -113,17 +132,8 @@ pub(super) fn hash_code_segment(
     }
 
     // ── Generate firmware_hash.rs ────────────────────────────────
-    let hash_array: String = hash
-        .iter()
-        .map(|b| format!("0x{:02x}", b))
-        .collect::<Vec<_>>()
-        .join(", ");
-
-    let sig_array: String = sig_bytes
-        .iter()
-        .map(|b| format!("0x{:02x}", b))
-        .collect::<Vec<_>>()
-        .join(", ");
+    let hash_array = byte_rows(&hash_bytes);
+    let sig_array = byte_rows(&sig_bytes);
 
     let output_path = Path::new("apps/kaskold-hardware/src/firmware_hash.rs");
     let rust_code = format!(
@@ -138,7 +148,7 @@ pub(super) fn hash_code_segment(
 #[used]
 #[link_section = ".rodata.kaskold_firmware_identity"]
 pub static EXPECTED_FIRMWARE_HASH: [u8; 32] = [
-    {hash_array}
+{hash_array}
 ];
 
 /// Schnorr signature of EXPECTED_FIRMWARE_HASH (signed by developer key)
@@ -146,7 +156,7 @@ pub static EXPECTED_FIRMWARE_HASH: [u8; 32] = [
 #[used]
 #[link_section = ".rodata.kaskold_firmware_identity"]
 pub static FIRMWARE_SIGNATURE: [u8; 64] = [
-    {sig_array}
+{sig_array}
 ];
 
 /// Whether this build was signed with a developer key. Stored in rodata so the
@@ -196,3 +206,7 @@ pub static FIRMWARE_IADDR: u32 = 0x{load_addr:08X};
     }
     println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 }
+
+#[cfg(test)]
+#[path = "unit_tests/output_tests.rs"]
+mod unit_tests;

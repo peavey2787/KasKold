@@ -2,12 +2,32 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 import os
 from pathlib import Path
 import shutil
 
 FIRMWARE_TOOLS = Path(__file__).resolve().parent
+HASH_SOURCE = FIRMWARE_TOOLS.parents[2] / "apps" / "kaskold-hardware" / "src" / "firmware_hash.rs"
 POWERSHELL_HOSTS = ("pwsh.exe", "pwsh", "powershell.exe", "powershell")
+
+
+@contextmanager
+def preserved_hash_source(source: Path = HASH_SOURCE) -> Iterator[None]:
+    """Put the committed firmware_hash.rs back once a hash-converging build ends.
+
+    The build rewrites it so the image embeds its own hash, and steps inside the
+    block (signing, verification) may read the generated value. Afterwards the
+    checkout returns to its committed bytes whether the build passed or failed;
+    an untouched file is left alone so its timestamp does not force a rebuild.
+    """
+    committed = source.read_bytes()
+    try:
+        yield
+    finally:
+        if source.read_bytes() != committed:
+            source.write_bytes(committed)
 
 
 def _powershell() -> str:

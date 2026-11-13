@@ -24,6 +24,7 @@ TEST_PROFILES = COVERAGE / "profiles"
 COVERAGE_FLOOR = ROOT / "qa/baselines/firmware_coverage.json"
 WORKFLOW_TIERS = ("workflow-test-auto", "workflow-runtime-auto", "workflow-hil-auto")
 WORKFLOW_GATE = "every_connected"
+HIL_WITHOUT_CARD = "hil_without_a_card"
 RETAIL_FEATURE = "production"
 OWNER_FEATURE = "provisioning-ui"
 OWNER_JOURNEYS = "owner_firmware"
@@ -34,7 +35,8 @@ def commands() -> list[list[str]]:
     retail = [*journeys, "--features", RETAIL_FEATURE]
     owner = [*journeys, "--features", OWNER_FEATURE, OWNER_JOURNEYS]
     tiers = [[*journeys, "--features", tier, WORKFLOW_GATE] for tier in WORKFLOW_TIERS]
-    return [journeys, retail, owner, *tiers]
+    hil_without_card = [*journeys, "--features", WORKFLOW_TIERS[-1], HIL_WITHOUT_CARD]
+    return [journeys, retail, owner, *tiers, hil_without_card]
 
 
 def environment(profiles: Path) -> dict[str, str]:

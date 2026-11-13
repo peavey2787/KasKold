@@ -83,6 +83,10 @@ class Runner(unittest.TestCase):
         environment = runner.environment(runner.TEST_PROFILES)
         self.assertEqual(environment["RUSTUP_TOOLCHAIN"], runner.load_toolchains()["KASKOLD_STABLE_RUST"])
 
+    def test_the_hil_image_runs_both_with_and_without_a_card(self) -> None:
+        hil = [command[-2:] for command in runner.commands() if "workflow-hil-auto" in command]
+        self.assertEqual(hil, [["workflow-hil-auto", "every_connected"], ["workflow-hil-auto", "hil_without_a_card"]])
+
 
 if __name__ == "__main__":
     unittest.main()

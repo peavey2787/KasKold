@@ -818,6 +818,7 @@ D	tools/build/web
 D	tools/dev
 D	tools/firmware
 D	tools/firmware/gen_hash
+D	tools/firmware/gen_hash/unit_tests
 D	tools/firmware/qemu
 F	.cargo/mutants.toml
 F	.dockerignore
@@ -1305,6 +1306,7 @@ F	apps/kaskold-companion-web/web/js/features/transactions/send/compose/send_form
 F	apps/kaskold-companion-web/web/js/features/transactions/send/compose/send_max.js
 F	apps/kaskold-companion-web/web/js/features/transactions/send/compose/transaction_building.js
 F	apps/kaskold-companion-web/web/js/features/transactions/send/receive.js
+F	apps/kaskold-companion-web/web/js/features/transactions/send/replacement.js
 F	apps/kaskold-companion-web/web/js/features/transactions/send/review.js
 F	apps/kaskold-companion-web/web/js/features/transactions/send/signed_qr_image_import.js
 F	apps/kaskold-companion-web/web/js/features/transactions/shared/signer_limits.js
@@ -3331,7 +3333,9 @@ F	qa/tests/regression/release/test_release_readiness_gate.py
 F	qa/tests/regression/release/test_release_version.py
 F	qa/tests/tooling/build/test_compiled_stack_budget.py
 F	qa/tests/tooling/build/test_firmware_board_layout.py
+F	qa/tests/tooling/build/test_hash_builder.py
 F	qa/tests/tooling/build/test_lockfile_policy.py
+F	qa/tests/tooling/build/test_pinned_esptool.py
 F	qa/tests/tooling/build/test_reproducible_build_runner.py
 F	qa/tests/tooling/build/test_toolchain_policy.py
 F	qa/tests/tooling/build/test_vendored_jsqr.py
@@ -3486,6 +3490,7 @@ F	tools/build/firmware/hash_builder.py
 F	tools/build/firmware/lib/release_policy.sh
 F	tools/build/firmware/matrix_runner.py
 F	tools/build/firmware/owner_authority.py
+F	tools/build/firmware/pinned_esptool.py
 F	tools/build/firmware/prepare_m5stack_secure_release.ps1
 F	tools/build/firmware/prepare_m5stack_secure_release.sh
 F	tools/build/firmware/reconcile_tools_lock.py
@@ -3519,6 +3524,7 @@ F	tools/dev/setup_check.rs
 F	tools/firmware/gen_hash.rs
 F	tools/firmware/gen_hash/image.rs
 F	tools/firmware/gen_hash/output.rs
+F	tools/firmware/gen_hash/unit_tests/output_tests.rs
 F	tools/firmware/gen_keypair.rs
 F	tools/firmware/gen_update_manifest.rs
 F	tools/firmware/lib.rs

@@ -40,13 +40,13 @@ fn prepare_seed_backup_filename(ad: &mut crate::runtime::data::AppData, next: u3
     crate::runtime::effects::route(ad, crate::runtime::navigation::route!(SdSeedFilename));
 }
 
-#[cfg(all(feature = "workflow-test-auto", not(feature = "workflow-hil-auto")))]
+#[cfg(feature = "workflow-test-auto")]
 pub(crate) fn workflow_prepare_seed_backup_filename(ad: &mut crate::runtime::data::AppData) -> bool {
     if ad.navigation.app.state != AppState::SdBackupWarning {
         return false;
     }
     // Controller E2E validates the media-present transition without probing a
-    // removable card. The physical filename scan belongs to workflow-hil.
+    // removable card. The physical filename scan belongs to a HIL run on its QA card.
     prepare_seed_backup_filename(ad, 0);
     ad.navigation.app.state == AppState::SdSeedFilename && crate::runtime::navigation::reconcile(ad)
 }

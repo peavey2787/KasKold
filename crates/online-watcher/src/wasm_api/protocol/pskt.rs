@@ -92,6 +92,25 @@ pub async fn pskt_finalize_and_broadcast(wire_hex: &str, ws_url: &str) -> Result
         .map_err(js_error)
 }
 
+/// Finalize like `pskt_finalize_and_broadcast`, then submit the transaction
+/// in place of the unconfirmed transaction it double-spends. The node accepts
+/// it only when it pays a higher feerate.
+pub(super) async fn pskt_finalize_and_replace_string(
+    wire_hex: &str,
+    ws_url: &str,
+) -> Result<String, String> {
+    WatchWallet::new()
+        .finalize_and_replace(wire_hex, ws_url)
+        .await
+}
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen::prelude::wasm_bindgen)]
+pub async fn pskt_finalize_and_replace(wire_hex: &str, ws_url: &str) -> Result<String, JsValue> {
+    pskt_finalize_and_replace_string(wire_hex, ws_url)
+        .await
+        .map_err(js_error)
+}
+
 /// Wrap one PSKT JSON document in the canonical PSKB wire through Portal,
 /// which checks its exact u64 fields first.
 /// Append a plain output paying `amount` to a version-0 script public key

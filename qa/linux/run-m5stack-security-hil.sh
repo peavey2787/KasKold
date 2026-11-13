@@ -12,14 +12,7 @@ OUT=${2:-"$ROOT/target/qa/state/m5stack-security-hil"}
 [[ -n "$PORT" ]] || { echo "usage: $(basename "$0") <serial-port> [output-dir]" >&2; exit 2; }
 # shellcheck source=../../tools/build/firmware/lib/release_policy.sh
 source "$ROOT/tools/build/firmware/lib/release_policy.sh"
-mkdir -p "$OUT" "$ROOT/target/qa/state/tools"
-
-python_version_ok() {
-  python3 - <<'PY'
-import sys
-raise SystemExit(0 if sys.version_info >= (3, 10) else 1)
-PY
-}
+mkdir -p "$OUT"
 
 install_venv_support() {
   if command -v apt-get >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
@@ -33,26 +26,11 @@ install_venv_support() {
 }
 
 ensure_esptool() {
-  python_version_ok || { echo "ERROR: esptool $KASKOLD_ESPTOOL_VERSION requires Python 3.10 or newer." >&2; exit 2; }
-  local venv="$ROOT/target/qa/state/tools/esptool-$KASKOLD_ESPTOOL_VERSION"
-  local tool="$venv/bin/esptool"
-  if [[ ! -x "$tool" ]]; then
-    echo "==> Bootstrapping pinned esptool $KASKOLD_ESPTOOL_VERSION into repository QA state"
-    if ! python3 -m venv "$venv" >/dev/null 2>&1; then
-      rm -rf "$venv"
-      install_venv_support
-      python3 -m venv "$venv"
-    fi
-    "$venv/bin/python" -m pip install --disable-pip-version-check "esptool==$KASKOLD_ESPTOOL_VERSION"
-  fi
-  local version
-  version=$($tool version 2>&1)
-  [[ "$version" == *"$KASKOLD_ESPTOOL_VERSION"* ]] || {
-    echo "ERROR: pinned esptool version mismatch: $version" >&2
-    exit 2
-  }
-  ESPTOOL="$tool"
-  ESPTOOL_VERSION_TEXT="$version"
+  python3 -m ensurepip --version >/dev/null 2>&1 || install_venv_support
+  local pinned="$ROOT/tools/build/firmware/pinned_esptool.py"
+  ESPTOOL_PYTHON=$(python3 "$pinned" python)
+  ESPTOOL=$(python3 "$pinned" esptool)
+  ESPTOOL_VERSION_TEXT=$("$ESPTOOL" version 2>&1)
 }
 
 ensure_esptool
@@ -65,7 +43,7 @@ ensure_esptool
 "$ESPTOOL" --chip esp32s3 --port "$PORT" get-security-info \
     | tee "$OUT/get-security-info.txt"
 
-"$ROOT/target/qa/state/tools/esptool-$KASKOLD_ESPTOOL_VERSION/bin/python" \
+"$ESPTOOL_PYTHON" \
   "$ROOT/qa/linux/lib/collect_esptool_security.py" \
   "$PORT" "$OUT/security-state.json" "$OUT/security-info-raw.json"
 

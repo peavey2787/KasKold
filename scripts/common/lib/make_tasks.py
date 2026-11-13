@@ -14,14 +14,17 @@ import sys
 from pathlib import Path
 from typing import Callable
 LIB_DIR = Path(__file__).resolve().parent
-if str(LIB_DIR) not in sys.path:
-    sys.path.insert(0, str(LIB_DIR))
+FIRMWARE_TOOLS_DIR = LIB_DIR.parents[2] / "tools" / "build" / "firmware"
+for helper_dir in (LIB_DIR, FIRMWARE_TOOLS_DIR):
+    if str(helper_dir) not in sys.path:
+        sys.path.insert(0, str(helper_dir))
 
 from esp_toolchain import prepare_esp_build_environment
 from make_public import release_build, run_all_profile, test_hardware
 from make_clean import clean_workspace
 from make_firmware_profiles import owner_firmware_profile, secure_release_profile
 from make_flash import flash_firmware as run_flash_firmware, flash_release as run_flash_release
+from hash_builder import preserved_hash_source
 from python_encoding import use_utf8_python_children
 ROOT = Path(__file__).resolve().parents[3]
 IS_WINDOWS = os.name == "nt" or sys.platform.startswith("win")
@@ -174,8 +177,6 @@ def build_firmware(board: str) -> tuple[int, Path | None]:
     else:
         print(f"ERROR: unsupported development firmware board: {board}", file=sys.stderr)
         return 2, None
-    hash_source = ROOT / "apps/kaskold-hardware/src/firmware_hash.rs"
-    original_hash_source = hash_source.read_bytes()
     if IS_WINDOWS:
         build_args = [
             f"{board}-development", "-Board", board,
@@ -186,10 +187,8 @@ def build_firmware(board: str) -> tuple[int, Path | None]:
             "--board", board, f"{board}-development",
             "--no-default-features", "--features", features,
         ]
-    try:
+    with preserved_hash_source():
         rc = platform("firmware-build", build_args, env=env)
-    finally:
-        hash_source.write_bytes(original_hash_source)
     if rc != 0:
         return rc, None
     elf = ROOT / "apps/kaskold-hardware/target/xtensa-esp32s3-none-elf/release/kaskold-hardware"

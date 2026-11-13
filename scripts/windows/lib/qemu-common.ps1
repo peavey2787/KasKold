@@ -154,7 +154,15 @@ function Install-KasKoldEspressifQemu {
     # otherwise-correct QEMU installation as unusable.
     Ensure-KasKoldQemuWindowsRuntime | Out-Null
     Write-Host "==> QEMU setup: installing/verifying qemu-xtensa under $($env:IDF_TOOLS_PATH)"
-    Invoke-KasKoldStreamingCommand -Command $python -Arguments @((Join-Path $idf 'tools/idf_tools.py'),'install','qemu-xtensa') -WorkingDirectory $script:RootDir
+    # idf_tools.py refuses to run while MSYSTEM is set, even under this native
+    # Windows Python, so make launched from Git Bash or an MSYS2 shell would stop here.
+    $msystem = $env:MSYSTEM
+    Remove-Item Env:MSYSTEM -ErrorAction SilentlyContinue
+    try {
+        Invoke-KasKoldStreamingCommand -Command $python -Arguments @((Join-Path $idf 'tools/idf_tools.py'),'install','qemu-xtensa') -WorkingDirectory $script:RootDir
+    } finally {
+        if ($null -ne $msystem) { $env:MSYSTEM = $msystem }
+    }
     $qemu = Find-KasKoldQemuBinary
     if (-not $qemu) { throw "Espressif QEMU was installed, but qemu-system-xtensa.exe could not be located under $($env:IDF_TOOLS_PATH)." }
     Write-Host "==> QEMU setup: probing $qemu"

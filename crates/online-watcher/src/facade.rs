@@ -144,12 +144,19 @@ impl WatchWallet {
         signed_envelope_hex: &str,
         websocket_url: &str,
     ) -> Result<String, String> {
-        let transaction = kaskold_protocol::companion::verify_complete_pskt(
-            signed_envelope_hex,
-            kaskold_protocol::Network::Mainnet,
-        )
-        .map_err(|error| format!("PSKT cryptographic verification failed: {error}"))?;
+        let transaction = verified_pskt(signed_envelope_hex)?;
         self.submit_verified(&transaction, websocket_url).await
+    }
+
+    /// Finalize a signed PSKT/PSKB and submit it in place of the unconfirmed
+    /// transaction it double-spends.
+    pub async fn finalize_and_replace(
+        &self,
+        signed_envelope_hex: &str,
+        websocket_url: &str,
+    ) -> Result<String, String> {
+        let transaction = verified_pskt(signed_envelope_hex)?;
+        submission::replace(websocket_url, &transaction.to_consensus()?).await
     }
 
     pub async fn broadcast(
@@ -191,6 +198,18 @@ impl WatchWallet {
     ) -> Result<String, String> {
         submission::submit(websocket_url, &transaction.to_consensus()?).await
     }
+}
+
+/// Verify every signature of a complete PSKT/PSKB before any consensus bytes
+/// leave the Companion.
+fn verified_pskt(
+    signed_envelope_hex: &str,
+) -> Result<kaskold_protocol::companion::VerifiedTransaction, String> {
+    kaskold_protocol::companion::verify_complete_pskt(
+        signed_envelope_hex,
+        kaskold_protocol::Network::Mainnet,
+    )
+    .map_err(|error| format!("PSKT cryptographic verification failed: {error}"))
 }
 
 #[cfg(test)]

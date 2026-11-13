@@ -317,15 +317,13 @@ fn encrypted_sd_entry(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
     true
 }
 
-/// HIL images continue through the real card; controller catalogs prepare the filename directly.
-#[cfg(feature = "workflow-hil-auto")]
+/// A HIL run on its QA card continues through the real card; other runs prepare the filename directly.
 fn continue_seed_backup_without_scope_leak(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
-    let (x, y) = crate::ui::layout::zone_center(crate::ui::layout::MODAL_LEFT_BUTTON_ZONE);
-    crate::services::storage_device::known_card().is_some() && ctx.sd_touch(TouchInput::new(x, y, false)) == Some(true)
-}
-
-#[cfg(not(feature = "workflow-hil-auto"))]
-fn continue_seed_backup_without_scope_leak(ctx: &mut BackupContext<'_, '_, '_>) -> bool {
+    if crate::services::storage_device::workflow_view::physical_media() {
+        let (x, y) = crate::ui::layout::zone_center(crate::ui::layout::MODAL_LEFT_BUTTON_ZONE);
+        return crate::services::storage_device::known_card().is_some()
+            && ctx.sd_touch(TouchInput::new(x, y, false)) == Some(true);
+    }
     crate::runtime::interactions::sd::workflow_prepare_seed_backup_filename(ctx.ad)
 }
 

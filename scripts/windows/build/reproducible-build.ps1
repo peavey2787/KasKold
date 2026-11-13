@@ -17,9 +17,12 @@ $required=@(
     'kaskold-m5stack-unsigned.bin','kaskold-m5stack-unsigned-full.bin','kaskold-m5stack-unsigned.codehash',
     'kaskold-m5stack-partitions.csv'
 )
-foreach($c in @('docker','rustup','cargo')){Require-KasKoldCommand $c|Out-Null}
+foreach($c in @('rustup','cargo')){Require-KasKoldCommand $c|Out-Null}
 
 function Ensure-Docker {
+    if(-not(Get-Command docker -ErrorAction SilentlyContinue)){
+        throw 'Docker is required for reproducible builds, but the docker command is not installed. Install Docker Desktop with the WSL 2 engine, start it once, then rerun make release.'
+    }
     $p=Invoke-KasKoldCapture -Command 'docker' -Arguments @('info')
     if($p.ExitCode -eq 0){return}
     $desktop=Join-Path $env:ProgramFiles 'Docker/Docker/Docker Desktop.exe'

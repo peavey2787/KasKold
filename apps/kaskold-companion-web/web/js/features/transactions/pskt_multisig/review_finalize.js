@@ -13,6 +13,7 @@ import { hideLoading, showLoading, showScreen } from '../../../app/navigation.js
 import { toast } from '../../../core/ui/toast.js';
 import { covShowPanel } from '../../covenants/generation/panel_keys.js';
 import { showBroadcastError, showBroadcastSuccess } from '../send/broadcast.js';
+import { broadcastOrReplace, confirmReplacement } from '../send/replacement.js';
 import { withNodeRetry } from '../../wallet/core.js';
 import { hexToBytes } from '../../../core/bytes.js';
 import {
@@ -160,7 +161,9 @@ async function finalizeStandardPskt() {
   logPsktOutputs();
   showLoading('Broadcasting...');
   try {
-    const txId = await withNodeRetry(wsUrl => pskt_finalize_and_broadcast(transactionState._psktReviewHex, wsUrl));
+    const txId = await withNodeRetry(
+      wsUrl => broadcastOrReplace(transactionState._psktReviewHex, wsUrl, confirmReplacement),
+    );
     transactionState._lastBroadcastTime = Date.now();
     transactionState._psktReviewHex = null;
     hideLoading();

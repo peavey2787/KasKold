@@ -56,6 +56,15 @@ def bash_path(path: Path) -> str:
 
 class QemuScriptTests(unittest.TestCase):
 
+    def test_windows_idf_tools_runs_without_an_inherited_msystem(self) -> None:
+        source = (ROOT / "scripts/windows/lib/qemu-common.ps1").read_text(encoding="utf-8")
+        install = source.split("function Install-KasKoldEspressifQemu", 1)[1].split("\nfunction ", 1)[0]
+        cleared = install.index("Remove-Item Env:MSYSTEM")
+        tools = install.index("tools/idf_tools.py")
+        restored = install.index("$env:MSYSTEM = $msystem")
+        self.assertLess(cleared, tools)
+        self.assertLess(tools, install.index("} finally {"))
+        self.assertLess(install.index("} finally {"), restored)
 
     @unittest.skipUnless(os.name == "posix", "Espressif QEMU setup execution is POSIX-specific")
     def test_espressif_setup_resolves_qemu_without_idf_activation(self) -> None:

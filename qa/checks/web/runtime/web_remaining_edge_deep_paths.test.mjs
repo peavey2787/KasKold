@@ -88,6 +88,18 @@ try {
   setOracleRoll(); setFetchHook(async()=>({ok:true,status:200,async json(){return {sealed:PSKB}}})); stubs.pskt_finalize_and_broadcast=()=>{throw new Error('node unavailable')}; await finalizer(); assert.match(element('toast').textContent,/could not be broadcast/);
   stubs.pskt_finalize_and_broadcast=()=>TXID;
 
+  // A send whose coins an unconfirmed transaction already spends replaces it
+  // only once the user agrees; any other rejection never asks.
+  const pendingSpend=`Rejected transaction ${TXID}: output ${TXID}:0 already spent by transaction ${TXID2} in the mempool`;
+  const asked=[]; const previousConfirm=globalThis.confirm; let replacedWire='';
+  stubs.pskt_finalize_and_broadcast=()=>{throw new Error(pendingSpend)};
+  stubs.pskt_finalize_and_replace=wire=>{replacedWire=wire; return TXID2;};
+  globalThis.confirm=message=>{asked.push(message); return true;};
+  state.transactionState._psktReviewHex=PSKB; await finalizer(); assert.equal(element('broadcast-result-txid').textContent,TXID2); assert.equal(replacedWire,PSKB); assert.match(asked[0],/never be sent/);
+  replacedWire=''; globalThis.confirm=()=>false; state.transactionState._psktReviewHex=PSKB; await finalizer(); assert.equal(replacedWire,''); assert.match(element('broadcast-result-txid').textContent,/already spent by transaction/);
+  asked.length=0; globalThis.confirm=message=>{asked.push(message); return true;}; stubs.pskt_finalize_and_broadcast=()=>{throw new Error('Rejected transaction: fee too low')}; state.transactionState._psktReviewHex=PSKB; await finalizer(); assert.equal(asked.length,0); assert.equal(replacedWire,''); assert.match(element('broadcast-result-txid').textContent,/fee too low/);
+  globalThis.confirm=previousConfirm; stubs.pskt_finalize_and_broadcast=()=>TXID; stubs.pskt_finalize_and_replace=()=>TXID2;
+
   // Broadcast renderer invokes and clears a one-shot post-broadcast hook.
   let postBroadcast=''; state.covenantState._kasFreezePathCPostBroadcast=id=>{postBroadcast=id;}; broadcast.showBroadcastSuccess(TXID2); assert.equal(postBroadcast,TXID2); assert.equal(state.covenantState._kasFreezePathCPostBroadcast,null);
 

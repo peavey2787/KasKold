@@ -26,11 +26,24 @@ pub(crate) fn known_card() -> Option<SdCardType> {
 #[cfg(feature = "workflow-test-auto")]
 pub(crate) mod workflow_view {
     use super::SdCardType;
-    use core::sync::atomic::{AtomicU8, Ordering};
+    use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 
     const REAL: u8 = 0;
     const EMPTY: u8 = 1;
     static VIEW: AtomicU8 = AtomicU8::new(REAL);
+    static PHYSICAL: AtomicBool = AtomicBool::new(false);
+
+    /// Drive the real card for the rest of this run. Only a HIL image that
+    /// found a card at boot does this; every other run keeps controller media.
+    #[cfg(feature = "workflow-hil-auto")]
+    pub(crate) fn drive_physical_media() {
+        PHYSICAL.store(true, Ordering::Relaxed);
+    }
+
+    /// Whether this run reads and writes the real card.
+    pub(crate) fn physical_media() -> bool {
+        PHYSICAL.load(Ordering::Relaxed)
+    }
 
     /// What controllers see: the real slot, or a stated card or empty slot.
     #[derive(Clone, Copy)]

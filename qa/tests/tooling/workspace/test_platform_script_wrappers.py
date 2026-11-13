@@ -37,9 +37,20 @@ def _load_module(name: str, path: Path) -> Any:
     spec = importlib.util.spec_from_file_location(name, path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
-    with mock.patch.dict(sys.modules, {name: module}):
+    with mock.patch.dict(sys.modules, {name: module}), mock.patch.object(sys, "path", [str(path.parent), *sys.path]):
         spec.loader.exec_module(module)
     return module
+
+
+def _repository_powershell() -> list[Path]:
+    """PowerShell the repository owns, never ignored build or tool state such as a venv."""
+    listed = subprocess.run(
+        ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "*.ps1"],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout.decode("utf-8")
+    return sorted(path for name in listed.split("\0") if name and (path := ROOT / name).is_file())
 
 
 def _record(log: list[Any], item: Any, result: Any) -> Any:
@@ -367,7 +378,8 @@ class PlatformScriptWrapperTests(unittest.TestCase):
             self.assertFalse((WINDOWS / "lib" / name).exists())
         helper_source = helper.read_text(encoding="utf-8")
         flash_source = (COMMON / "lib/make_flash.py").read_text(encoding="utf-8")
-        self.assertIn('return resolve_serial_port(port)', flash_source)
+        self.assertIn("selected = resolve_serial_port(port)", flash_source)
+        self.assertIn("release_flash_monitor(selected)", flash_source)
         self.assertIn("prepare_serial_command", flash_source)
         self.assertIn('DEFAULT_SCRIPT_ROOT = ROOT / "scripts" / ("windows" if IS_WINDOWS else "linux")', helper_source)
         self.assertIn('MAC_NATIVE_ENTRYPOINTS = {"ios-runtime-sync", "ios-build"}', helper_source)
@@ -584,7 +596,8 @@ class PlatformScriptWrapperTests(unittest.TestCase):
         with mock.patch.object(module.subprocess, "run", side_effect=board_results), \
              mock.patch.object(module.subprocess, "Popen", monitor), \
              mock.patch.object(module.shutil, "which", return_value=r"C:\tools\espflash.exe"), \
-             mock.patch.object(module.sys, "platform", "win32"), \
+             mock.patch.object(module, "windows_host", return_value=True), \
+             mock.patch.object(module, "release_flash_monitor") as release, \
              mock.patch.object(module, "resolve_serial_port", return_value="COM11"), \
              mock.patch.object(module, "prepare_serial_command", side_effect=lambda command, _port: command):
             self.assertEqual(
@@ -594,6 +607,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
                 ),
                 0,
             )
+        release.assert_called_once_with("COM11")
         self.assertEqual(len(flashed), 1)
         command = flashed[0]
         self.assertEqual(command[:2], ["espflash", "flash"])
@@ -630,6 +644,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
         build = mock.Mock(return_value=(0, Path("firmware.elf")))
         execute = lambda command: _record(flashed, command, 130)
         with mock.patch.object(module.subprocess, "run", side_effect=board_results), \
+             mock.patch.object(module, "release_flash_monitor"), \
              mock.patch.object(module, "resolve_serial_port", return_value="COM11"), \
              mock.patch.object(module, "prepare_serial_command", side_effect=lambda command, _port: command):
             self.assertEqual(
@@ -664,6 +679,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
             stderr = io.StringIO()
             execute = lambda command: _record(flashed, command, 0)
             with mock.patch.object(module.subprocess, "run", return_value=board_result), \
+                 mock.patch.object(module, "release_flash_monitor") as freed, \
                  mock.patch.object(module, "prepare_serial_command", side_effect=lambda command, _port: command):
                 self.assertEqual(
                     module.flash_release(
@@ -673,6 +689,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
                     0,
                 )
 
+            freed.assert_called_once_with("COM7")
             self.assertEqual(len(flashed), 1)
             command = flashed[0]
             self.assertEqual(command[0:2], ["espflash", "write-bin"])
@@ -1299,7 +1316,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
             r"[A-Za-z_][A-Za-z0-9_]*:"
         )
         failures: list[str] = []
-        for path in ROOT.rglob("*.ps1"):
+        for path in _repository_powershell():
             for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
                 if invalid.search(line):
                     failures.append(f"{path.relative_to(ROOT)}:{line_number}: {line.strip()}")
@@ -1312,7 +1329,7 @@ class PlatformScriptWrapperTests(unittest.TestCase):
         )
         if not powershell:
             self.skipTest("PowerShell parser is not installed on this host")
-        sources = sorted(str(path) for path in ROOT.rglob("*.ps1"))
+        sources = [str(path) for path in _repository_powershell()]
         parser = (
             "$paths=Get-Content -LiteralPath $env:KASKOLD_PS1_PARSE_LIST -Encoding UTF8; "
             "$failed=$false; foreach($path in $paths){"

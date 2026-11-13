@@ -1,6 +1,7 @@
 import * as wasm from '/target/kaskold-companion-web/site/js/wasm/api.js';
 import { networkState } from '/target/kaskold-companion-web/site/js/app/state/index.js';
 import { withNodeRetry } from '/target/kaskold-companion-web/site/js/features/wallet/core.js';
+import { broadcastOrReplace } from '/target/kaskold-companion-web/site/js/features/transactions/send/replacement.js';
 
 const SUPPORTED_NETWORKS = new Set(['testnet-10', 'testnet-12']);
 const SEND_AMOUNT_SOMPI = 20_000_000n;
@@ -181,8 +182,11 @@ async function broadcastCase(input) {
         throw new Error('KasKold SDK completion did not return merged PSKT/PSKB wire hex');
     }
     const summary = JSON.parse(wasm.pskt_summary(merged, input.network));
+    // A send an earlier run left unconfirmed still holds the wallet's coins;
+    // this signed send replaces it, the way the Companion offers to.
+    let replacedPending = false;
     const txid = await withFundedNodeRetry(
-        wsUrl => wasm.pskt_finalize_and_broadcast(merged, wsUrl),
+        wsUrl => broadcastOrReplace(merged, wsUrl, () => { replacedPending = true; return true; }),
     );
     if (!/^[0-9a-f]{64}$/i.test(txid)) throw new Error(`node returned invalid txid: ${String(txid)}`);
     await finish('pass', {
@@ -190,6 +194,7 @@ async function broadcastCase(input) {
         network: input.network,
         ...nodeEvidence(),
         txid,
+        replaced_pending_transaction: replacedPending,
         merged_pskb_wire_hex: merged,
         summary,
     });

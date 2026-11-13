@@ -267,9 +267,11 @@ def _check_wasm_exports(root: Path) -> list[str]:
     # kspt_signature_status replaces the JavaScript KSPT parser with Portal's;
     # spend-path, reveal, shipment-terms and script-address readers replace
     # their JavaScript script parsers; covenant_script_terms verifies invite
-    # and loaded-covenant terms against the redeem script.
-    expected_count = 121
-    expected_digest = "ae2b20e6b0e903789665847fc16e7cedba0fccacf9ce47b847f843dbab24bd45"
+    # and loaded-covenant terms against the redeem script;
+    # pskt_finalize_and_replace submits a send in place of the unconfirmed
+    # transaction it double-spends.
+    expected_count = 122
+    expected_digest = "b48433741ca18c69ff17cf5970dd65f71abc6997a643902e907541019efa563c"
     export_digest = hashlib.sha256("\n".join(sorted(wasm_exports)).encode()).hexdigest()
     if (
         len(wasm_exports) != expected_count

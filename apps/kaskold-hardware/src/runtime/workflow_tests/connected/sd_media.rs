@@ -3,7 +3,9 @@
 //! Normal `workflow-e2e` validates controller/state-machine behavior without
 //! mutating removable media. Destructive lock recovery, FAT32 formatting, and
 //! the physical create/read/compare/delete tranche are restricted to the
-//! explicit `workflow-hil` profile, which requires a disposable QA card.
+//! explicit `workflow-hil` profile, which requires a disposable QA card. With no
+//! card at boot, `workflow-hil` says so, skips that tranche and runs the rest on
+//! controller media; a card that is present must pass it.
 
 #[cfg(feature = "workflow-hil-auto")]
 use crate::hw::sdcard::SdCardType;
@@ -40,10 +42,11 @@ pub(super) fn prepare_controller_e2e() {
 #[cfg(feature = "workflow-hil-auto")]
 fn prepare_hil_media(i2c: &mut I2c<'_, Blocking>, delay: &mut Delay) -> bool {
     let Some(card_type) = known_card() else {
-        log!("KASKOLD_WORKFLOW_TESTS: SD MEDIA HIL FAIL - BOOT SD INITIALIZATION RETURNED NONE; SEE BOOT PHASE sd DIAGNOSTICS ABOVE");
-        return false;
+        log!("KASKOLD_WORKFLOW_HIL: SD MEDIA ABSENT - PHYSICAL SD TRANCHE SKIPPED; INSERT A DISPOSABLE QA CARD TO RUN IT");
+        return true;
     };
     log!("KASKOLD_WORKFLOW_TESTS: SD MEDIA CARD DETECTED {:?}", card_type);
+    crate::services::storage_device::workflow_view::drive_physical_media();
 
     if !prepare_lock_state(card_type, i2c, delay) {
         return false;

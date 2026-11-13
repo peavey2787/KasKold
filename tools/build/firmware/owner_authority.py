@@ -9,11 +9,13 @@ from __future__ import annotations
 import argparse, hashlib, subprocess, tempfile
 from pathlib import Path
 
+import pinned_esptool
+
 MAGIC=b"KSOWNR01"
 FORMAT_VERSION=1
 RECORD_SIZE=76
 
-def secure_boot_digest(key: Path, espsecure: str='espsecure') -> bytes:
+def secure_boot_digest(key: Path, espsecure: str) -> bytes:
     with tempfile.TemporaryDirectory() as td:
         out=Path(td)/'digest.bin'
         subprocess.run([espsecure,'digest-sbv2-public-key','--keyfile',str(key),'--output',str(out)],check=True)
@@ -39,9 +41,9 @@ def main() -> None:
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--key',type=Path,required=True,help='owner RSA-3072 private key')
     ap.add_argument('--output',type=Path,default=Path('OWNERKEY.KAS'))
-    ap.add_argument('--espsecure',default='espsecure')
+    ap.add_argument('--espsecure',default=None,help='espsecure to use; defaults to the release-pinned one')
     args=ap.parse_args()
-    digest=secure_boot_digest(args.key,args.espsecure)
+    digest=secure_boot_digest(args.key,args.espsecure or str(pinned_esptool.ensure('espsecure')))
     args.output.write_bytes(encode(digest))
     print(f'Wrote {args.output} (owner digest {digest.hex()})')
 if __name__=='__main__': main()

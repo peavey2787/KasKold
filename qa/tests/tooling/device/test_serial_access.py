@@ -192,5 +192,62 @@ class SerialAccessTests(unittest.TestCase):
             self.assertEqual(SERIAL.prepare_serial_command(command), command)
 
 
+class FlashMonitorReleaseTests(unittest.TestCase):
+    """`make flash` leaves a UART monitor holding the port; later serial commands close it."""
+
+    @staticmethod
+    def monitor(pid: int, port: str) -> str:
+        command = " ".join(SERIAL.flash_monitor_command(Path("C:/kaskold/kaskold-hardware"), port))
+        return f"{pid}\tC:\\cargo\\bin\\espflash.EXE{command.removeprefix('espflash')}"
+
+    def test_only_the_flash_monitor_on_that_exact_port_is_matched(self) -> None:
+        listing = "\n".join(
+            (
+                self.monitor(11, "COM3"),
+                self.monitor(12, "COM30"),
+                "13\tC:\\cargo\\bin\\espflash.EXE flash --chip esp32s3 --port COM3 image.elf",
+                "\tC:\\cargo\\bin\\espflash.EXE monitor",
+                self.monitor(14, "com3"),
+            )
+        )
+        self.assertEqual(SERIAL._flash_monitor_pids(listing, "COM3"), [11, 14])
+
+    def test_a_held_port_is_released_before_returning(self) -> None:
+        listing = subprocess.CompletedProcess(args=[], returncode=0, stdout=self.monitor(4242, "COM3"), stderr="")
+        stopped = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
+        with mock.patch.object(SERIAL, "windows_host", return_value=True), \
+             mock.patch.object(SERIAL.shutil, "which", return_value="powershell.exe"), \
+             mock.patch.object(SERIAL.subprocess, "run", side_effect=[listing, stopped]) as run, \
+             mock.patch("sys.stdout", io.StringIO()) as output:
+            SERIAL.release_flash_monitor("COM3")
+        self.assertIn("Win32_Process", run.call_args_list[0].args[0][3])
+        stop = run.call_args_list[1].args[0][3]
+        self.assertIn("Stop-Process -Id 4242", stop)
+        self.assertIn("Wait-Process -Id 4242", stop)
+        self.assertIn("PID 4242", output.getvalue())
+
+    def test_a_free_port_stops_nothing(self) -> None:
+        listing = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
+        with mock.patch.object(SERIAL, "windows_host", return_value=True), \
+             mock.patch.object(SERIAL.shutil, "which", return_value="powershell.exe"), \
+             mock.patch.object(SERIAL.subprocess, "run", return_value=listing) as run:
+            SERIAL.release_flash_monitor("COM3")
+        run.assert_called_once()
+
+    def test_hosts_without_a_detached_monitor_are_untouched(self) -> None:
+        with mock.patch.object(SERIAL, "windows_host", return_value=False), \
+             mock.patch.object(SERIAL.subprocess, "run") as run:
+            SERIAL.release_flash_monitor("/dev/ttyACM0")
+        run.assert_not_called()
+
+    def test_a_failed_listing_is_reported_not_ignored(self) -> None:
+        failed = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="access denied")
+        with mock.patch.object(SERIAL, "windows_host", return_value=True), \
+             mock.patch.object(SERIAL.shutil, "which", return_value="powershell.exe"), \
+             mock.patch.object(SERIAL.subprocess, "run", return_value=failed):
+            with self.assertRaisesRegex(SERIAL.SerialAccessError, "access denied"):
+                SERIAL.release_flash_monitor("COM3")
+
+
 if __name__ == "__main__":
     unittest.main()

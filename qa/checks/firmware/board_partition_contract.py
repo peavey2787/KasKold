@@ -117,8 +117,7 @@ def _check_hil_runner(root: Path, errors: list[str]) -> None:
             "command = hash_builder_command(\n        board,",
             "layout.espflash_args()",
             "validate_layout(layout)",
-            "original_hash_source = HASH_SOURCE.read_bytes()",
-            "HASH_SOURCE.write_bytes(original_hash_source)",
+            "with preserved_hash_source():\n        subprocess.run(command, cwd=ROOT, env=env, check=True)",
         ),
         "HIL runner must bind build/flash to board layout and converged hash: missing {fragment!r}",
     )

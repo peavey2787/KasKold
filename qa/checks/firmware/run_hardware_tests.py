@@ -15,6 +15,7 @@ import subprocess
 import sys
 import threading
 import time
+from collections.abc import Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import TextIO
@@ -22,7 +23,6 @@ from typing import TextIO
 ROOT = Path(__file__).resolve().parents[3]
 FIRMWARE = ROOT / "apps" / "kaskold-hardware"
 TARGET = FIRMWARE / "target" / "xtensa-esp32s3-none-elf" / "release"
-HASH_SOURCE = FIRMWARE / "src" / "firmware_hash.rs"
 BOARD_HELPER_DIR = ROOT / "tools" / "build" / "firmware"
 if str(BOARD_HELPER_DIR) not in sys.path:
     sys.path.insert(0, str(BOARD_HELPER_DIR))
@@ -34,10 +34,11 @@ if str(SERIAL_HELPER_DIR) not in sys.path:
     sys.path.insert(0, str(SERIAL_HELPER_DIR))
 
 from board_layout import layout_for, validate_layout  # noqa: E402
-from hash_builder import hash_builder_command  # noqa: E402
+from hash_builder import hash_builder_command, preserved_hash_source  # noqa: E402
 from serial_access import (  # noqa: E402
     SerialAccessError,
     prepare_serial_command,
+    release_flash_monitor,
     resolve_serial_port,
 )
 from hil_evidence import HilEvidence, reportable_interruptions  # noqa: E402
@@ -90,20 +91,15 @@ def build(board: str) -> Path:
         raise RuntimeError(f"HIL development signing key is missing or invalid: {hil_signing_key}")
     env["KASKOLD_SIGNING_KEY"] = str(hil_signing_key)
     feature = board
-    original_hash_source = HASH_SOURCE.read_bytes()
     command = hash_builder_command(
         board,
         f"{board}-hardware-tests",
         ["--no-default-features", "--features", f"{feature},hardware-tests"],
     )
     print("  +", " ".join(command), flush=True)
-    try:
+    # HIL executes the ELF holding the converged hash; the checkout keeps its committed source.
+    with preserved_hash_source():
         subprocess.run(command, cwd=ROOT, env=env, check=True)
-    finally:
-        # The generated hash is a build artifact. HIL must execute the ELF
-        # containing the converged value, but QA must not leave the source
-        # checkout dirty after the test completes or fails.
-        HASH_SOURCE.write_bytes(original_hash_source)
     image = TARGET / "kaskold-hardware"
     if not image.is_file():
         raise RuntimeError(f"firmware ELF was not produced: {image}")
@@ -495,6 +491,19 @@ def print_failure_context(output: list[str], prefixes: tuple[str, ...] | None) -
 
 
 @dataclass(frozen=True)
+class MarkerWaiver:
+    """Required markers the device may waive by announcing `marker`.
+
+    The device states the waiver itself, so a run without it still needs
+    every marker, and the pass line names what was skipped.
+    """
+
+    marker: str
+    waived: tuple[str, ...]
+    skipped: str
+
+
+@dataclass(frozen=True)
 class _MonitorConfig:
     """Immutable settings for one supervised flash or monitor attempt."""
 
@@ -509,8 +518,7 @@ class _MonitorConfig:
     phase_start_marker: str | None
     phase_end_marker: str | None
     phase_timeout: int | None
-    deadline_extension_marker: str | None
-    deadline_extension_seconds: int | None
+    deadline_extensions: Mapping[str, int]
     required_markers: tuple[str, ...]
     ordered_markers: tuple[str, ...] | None
     failure_context_prefixes: tuple[str, ...] | None
@@ -520,6 +528,7 @@ class _MonitorConfig:
     operation_timeouts: dict[str, int] | None
     runtime_state_prefix: str | None
     required_runtime_states: tuple[str, ...]
+    marker_waiver: MarkerWaiver | None
     uart_log: TextIO | None
 
 
@@ -795,9 +804,21 @@ class _FlashMonitorAttempt:
             timers.active_operation_timeout = None
 
     def _record_required_markers(self, line: str) -> None:
-        for marker in self._config.required_markers:
+        waiver = self._config.marker_waiver
+        watched = (*self._config.required_markers, *((waiver.marker,) if waiver else ()))
+        for marker in watched:
             if marker in line:
                 self._seen_markers.add(marker)
+
+    def _announced_waiver(self) -> MarkerWaiver | None:
+        waiver = self._config.marker_waiver
+        if waiver is None or waiver.marker not in self._seen_markers:
+            return None
+        return waiver
+
+    def _waived_markers(self) -> frozenset[str]:
+        waiver = self._announced_waiver()
+        return frozenset(waiver.waived) if waiver else frozenset()
 
     def _check_ordered_markers(self, line: str) -> _Outcome | None:
         ordered = self._config.ordered_markers
@@ -822,12 +843,19 @@ class _FlashMonitorAttempt:
         blocked = self._pass_blocker()
         if blocked is not None:
             return blocked
+        waiver = self._announced_waiver()
+        if waiver is not None:
+            print(f"SKIPPED: {waiver.skipped}")
         print(f"PASS: connected ESP device completed {self._config.success_label}")
         return 0, False, self._flash_complete, True
 
     def _pass_blocker(self) -> _Outcome | None:
         config = self._config
-        missing = [marker for marker in config.required_markers if marker not in self._seen_markers]
+        waived = self._waived_markers()
+        missing = [
+            marker for marker in config.required_markers
+            if marker not in self._seen_markers and marker not in waived
+        ]
         if missing:
             _report_missing(
                 "FAIL: connected ESP device emitted the terminal pass marker but "
@@ -862,10 +890,12 @@ class _FlashMonitorAttempt:
         return None
 
     def _extend_deadline(self, line: str) -> None:
-        marker = self._config.deadline_extension_marker
-        seconds = self._config.deadline_extension_seconds
         timers = self._timers
-        if timers.deadline is None or not marker or marker not in line or not seconds or seconds <= 0:
+        seconds = max(
+            (window for marker, window in self._config.deadline_extensions.items() if marker in line),
+            default=0,
+        )
+        if timers.deadline is None or seconds <= 0:
             return
         extended = time.monotonic() + seconds
         if extended > timers.deadline:
@@ -951,8 +981,7 @@ def _run_flash_monitor_attempt(
     phase_start_marker: str | None,
     phase_end_marker: str | None,
     phase_timeout: int | None,
-    deadline_extension_marker: str | None,
-    deadline_extension_seconds: int | None,
+    deadline_extensions: Mapping[str, int] | None,
     required_markers: tuple[str, ...] | None = None,
     seen_markers: set[str] | None = None,
     ordered_markers: tuple[str, ...] | None = None,
@@ -965,6 +994,7 @@ def _run_flash_monitor_attempt(
     runtime_state_prefix: str | None = None,
     required_runtime_states: tuple[str, ...] | None = None,
     seen_runtime_states: set[str] | None = None,
+    marker_waiver: MarkerWaiver | None = None,
     uart_log: TextIO | None = None,
 ) -> tuple[int, bool, bool, bool]:
     """Run one supervised process; return code/retry/flash-complete/terminal-result."""
@@ -980,8 +1010,7 @@ def _run_flash_monitor_attempt(
         phase_start_marker=phase_start_marker,
         phase_end_marker=phase_end_marker,
         phase_timeout=phase_timeout,
-        deadline_extension_marker=deadline_extension_marker,
-        deadline_extension_seconds=deadline_extension_seconds,
+        deadline_extensions=deadline_extensions or {},
         required_markers=required_markers or (),
         ordered_markers=ordered_markers,
         failure_context_prefixes=failure_context_prefixes,
@@ -991,6 +1020,7 @@ def _run_flash_monitor_attempt(
         operation_timeouts=operation_timeouts,
         runtime_state_prefix=runtime_state_prefix,
         required_runtime_states=required_runtime_states or (),
+        marker_waiver=marker_waiver,
         uart_log=uart_log,
     )
     monitor = _FlashMonitorAttempt(
@@ -1055,8 +1085,7 @@ def reconnect_monitor(
     phase_start_marker: str | None,
     phase_end_marker: str | None,
     phase_timeout: int | None,
-    deadline_extension_marker: str | None,
-    deadline_extension_seconds: int | None,
+    deadline_extensions: Mapping[str, int] | None,
     required_markers: tuple[str, ...] | None = None,
     seen_markers: set[str] | None = None,
     ordered_markers: tuple[str, ...] | None = None,
@@ -1069,6 +1098,7 @@ def reconnect_monitor(
     runtime_state_prefix: str | None = None,
     required_runtime_states: tuple[str, ...] | None = None,
     seen_runtime_states: set[str] | None = None,
+    marker_waiver: MarkerWaiver | None = None,
     uart_log: TextIO | None = None,
 ) -> int:
     """Recover a dropped post-flash monitor without ever reflashing the device."""
@@ -1107,8 +1137,7 @@ def reconnect_monitor(
             phase_start_marker=phase_start_marker,
             phase_end_marker=phase_end_marker,
             phase_timeout=phase_timeout,
-            deadline_extension_marker=deadline_extension_marker,
-            deadline_extension_seconds=deadline_extension_seconds,
+            deadline_extensions=deadline_extensions,
             required_markers=required_markers,
             seen_markers=seen_markers,
             ordered_markers=ordered_markers,
@@ -1121,6 +1150,7 @@ def reconnect_monitor(
             runtime_state_prefix=runtime_state_prefix,
             required_runtime_states=required_runtime_states,
             seen_runtime_states=seen_runtime_states,
+            marker_waiver=marker_waiver,
             uart_log=uart_log,
         )
         if code == 0 or terminal_result or not retryable:
@@ -1133,6 +1163,7 @@ def reconnect_monitor(
 def _resolve_flash_port(port: str | None) -> tuple[str | None, int]:
     try:
         resolved = resolve_serial_port(port)
+        release_flash_monitor(resolved)
         ensure_serial_port_available(resolved)
     except RuntimeError as error:
         print(f"ERROR: {error}", file=sys.stderr)
@@ -1184,8 +1215,7 @@ def flash_and_monitor(
     phase_start_marker: str | None = None,
     phase_end_marker: str | None = None,
     phase_timeout: int | None = None,
-    deadline_extension_marker: str | None = None,
-    deadline_extension_seconds: int | None = None,
+    deadline_extensions: Mapping[str, int] | None = None,
     required_markers: tuple[str, ...] | None = None,
     ordered_markers: tuple[str, ...] | None = None,
     failure_context_prefixes: tuple[str, ...] | None = None,
@@ -1195,6 +1225,7 @@ def flash_and_monitor(
     operation_timeouts: dict[str, int] | None = None,
     runtime_state_prefix: str | None = None,
     required_runtime_states: tuple[str, ...] | None = None,
+    marker_waiver: MarkerWaiver | None = None,
     uart_log: TextIO | None = None,
     connected_transport: bool = True,
 ) -> int:
@@ -1243,8 +1274,7 @@ def flash_and_monitor(
             phase_start_marker=phase_start_marker,
             phase_end_marker=phase_end_marker,
             phase_timeout=phase_timeout,
-            deadline_extension_marker=deadline_extension_marker,
-            deadline_extension_seconds=deadline_extension_seconds,
+            deadline_extensions=deadline_extensions,
             required_markers=required_markers,
             seen_markers=seen_markers,
             ordered_markers=ordered_markers,
@@ -1257,6 +1287,7 @@ def flash_and_monitor(
             runtime_state_prefix=runtime_state_prefix,
             required_runtime_states=required_runtime_states,
             seen_runtime_states=seen_runtime_states,
+            marker_waiver=marker_waiver,
             uart_log=uart_log,
         )
         if code == 0 or terminal_result:
@@ -1282,8 +1313,7 @@ def flash_and_monitor(
                 phase_start_marker=phase_start_marker,
                 phase_end_marker=phase_end_marker,
                 phase_timeout=phase_timeout,
-                deadline_extension_marker=deadline_extension_marker,
-                deadline_extension_seconds=deadline_extension_seconds,
+                deadline_extensions=deadline_extensions,
                 required_markers=required_markers,
                 seen_markers=seen_markers,
                 ordered_markers=ordered_markers,
@@ -1296,6 +1326,7 @@ def flash_and_monitor(
                 runtime_state_prefix=runtime_state_prefix,
                 required_runtime_states=required_runtime_states,
                 seen_runtime_states=seen_runtime_states,
+                marker_waiver=marker_waiver,
                 uart_log=uart_log,
             )
         if not retryable:

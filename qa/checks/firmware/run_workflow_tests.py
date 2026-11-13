@@ -17,13 +17,12 @@ from contextlib import nullcontext
 ROOT = Path(__file__).resolve().parents[3]
 FIRMWARE = ROOT / "apps" / "kaskold-hardware"
 TARGET = FIRMWARE / "target" / "xtensa-esp32s3-none-elf" / "release"
-HASH_SOURCE = FIRMWARE / "src" / "firmware_hash.rs"
 CHECKS_DIR = Path(__file__).resolve().parent
 if str(CHECKS_DIR) not in sys.path:
     sys.path.insert(0, str(CHECKS_DIR))
 
-from run_hardware_tests import flash_and_monitor, wait_for_explicit_port  # noqa: E402
-from hash_builder import hash_builder_command  # noqa: E402
+from run_hardware_tests import MarkerWaiver, flash_and_monitor, wait_for_explicit_port  # noqa: E402
+from hash_builder import hash_builder_command, preserved_hash_source  # noqa: E402
 from hil_evidence import HilEvidence, reportable_interruptions  # noqa: E402
 
 PASS_MARKER = "KASKOLD_WORKFLOW_TESTS: PASS ALL"
@@ -34,6 +33,7 @@ MANIFEST = ROOT / "qa" / "config" / "workflow" / "production_e2e_manifest.json"
 RUNTIME_QUALIFICATION = ROOT / "qa" / "config" / "workflow" / "production_runtime_qualification.json"
 LOCKED_SD_ERASE_MARKER = "KASKOLD_WORKFLOW_TESTS: SD MEDIA QA CARD-LOCK FORCE ERASE BEGIN - DESTRUCTIVE"
 LOCKED_SD_RECOVERY_WINDOW_SECONDS = 720
+HIL_SD_ABSENT_MARKER = "KASKOLD_WORKFLOW_HIL: SD MEDIA ABSENT - PHYSICAL SD TRANCHE SKIPPED"
 CONNECTED_TRANCHE_DEADLINE_MARKER = "KASKOLD_WORKFLOW_TESTS: CONNECTED TRANCHE DEADLINE REFRESH"
 CONNECTED_TRANCHE_WINDOW_SECONDS = 480
 RUNTIME_ACTION_START_PREFIX = "KASKOLD_WORKFLOW_RUNTIME: ACTION BEGIN "
@@ -271,6 +271,31 @@ def required_connected_markers(*, include_hil_only: bool = False) -> tuple[str, 
     return tuple(sorted(markers))
 
 
+def hil_sd_waiver() -> MarkerWaiver:
+    """With no card at boot, the HIL image skips only its physical SD tranche."""
+    physical = set(required_connected_markers(include_hil_only=True))
+    controller = set(required_connected_markers())
+    return MarkerWaiver(
+        marker=HIL_SD_ABSENT_MARKER,
+        waived=tuple(sorted(physical - controller)),
+        skipped="physical SD tranche (no SD card at boot); insert a disposable QA card to run it",
+    )
+
+
+def deadline_extensions(*, hil: bool) -> dict[str, int]:
+    """Every tranche refreshes the deadline; HIL also allows for a locked card's forced erase."""
+    extensions = {CONNECTED_TRANCHE_DEADLINE_MARKER: CONNECTED_TRANCHE_WINDOW_SECONDS}
+    if hil:
+        extensions[LOCKED_SD_ERASE_MARKER] = LOCKED_SD_RECOVERY_WINDOW_SECONDS
+    return extensions
+
+
+def physical_sd_tranche(uart_log: Path) -> str:
+    """How a finished HIL run treated the physical SD tranche, for its report."""
+    text = uart_log.read_text(encoding="utf-8", errors="replace") if uart_log.is_file() else ""
+    return "skipped-no-card" if HIL_SD_ABSENT_MARKER in text else "run"
+
+
 def firmware_package_version() -> str:
     manifest = tomllib.loads((FIRMWARE / "Cargo.toml").read_text(encoding="utf-8"))
     return manifest["package"]["version"]
@@ -453,7 +478,6 @@ def build(
     env["KASKOLD_SIGNING_KEY"] = str(ROOT / "tools" / "build" / "firmware" / "dev_test_signing_key.bin")
     env["KASKOLD_WORKFLOW_E2E_FROM"] = str(resume_from)
     feature = board
-    original_hash_source = HASH_SOURCE.read_bytes()
     command = hash_builder_command(
         board,
         f"{board}-workflow-tests",
@@ -461,7 +485,7 @@ def build(
     )
     print("  +", " ".join(command), flush=True)
     print(f"  Full compiler log: {BUILD_LOG}", flush=True)
-    try:
+    with preserved_hash_source():
         returncode, warning_headers = run_logged_build(command, env, evidence_build_log)
         if warning_headers:
             unique_warnings = list(dict.fromkeys(warning_headers))
@@ -480,8 +504,6 @@ def build(
             print_compiler_error_summary()
             print(f"ERROR: workflow firmware build failed; complete log: {BUILD_LOG}", file=sys.stderr)
             raise subprocess.CalledProcessError(returncode, command)
-    finally:
-        HASH_SOURCE.write_bytes(original_hash_source)
     image = TARGET / "kaskold-hardware"
     if not image.is_file():
         raise RuntimeError(f"firmware ELF was not produced: {image}")
@@ -589,14 +611,7 @@ def main() -> int:
                 phase_start_marker="BOOT PHASE startup-ui DONE:",
                 phase_end_marker="KASKOLD_WORKFLOW_TESTS: CONNECTED GATE BEGIN",
                 phase_timeout=15 if not args.hil else 45,
-                deadline_extension_marker=(
-                    LOCKED_SD_ERASE_MARKER if args.hil else CONNECTED_TRANCHE_DEADLINE_MARKER
-                ),
-                deadline_extension_seconds=(
-                    LOCKED_SD_RECOVERY_WINDOW_SECONDS
-                    if args.hil
-                    else CONNECTED_TRANCHE_WINDOW_SECONDS
-                ),
+                deadline_extensions=deadline_extensions(hil=args.hil),
                 required_markers=runtime_markers,
                 ordered_markers=PIN_FLOW_ORDERED_MARKERS if args.board in {"m5stack", "m5stack-lite"} else None,
                 failure_context_prefixes=WORKFLOW_FAILURE_CONTEXT_PREFIXES,
@@ -606,9 +621,11 @@ def main() -> int:
                 operation_timeouts=RUNTIME_ACTION_TIMEOUTS if args.board in {"m5stack", "m5stack-lite"} else None,
                 runtime_state_prefix="KASKOLD_UI_RUNTIME: RENDER " if args.board in {"m5stack", "m5stack-lite"} else None,
                 required_runtime_states=physical_states or None,
+                marker_waiver=hil_sd_waiver() if args.hil else None,
                 uart_log=uart_log,
             )
         if evidence is not None:
+            evidence.update_details(physical_sd_tranche=physical_sd_tranche(evidence.uart_log))
             evidence.set_phase("complete" if code == 0 else "flash-and-uart")
     except subprocess.CalledProcessError as error:
         code = error.returncode or 1

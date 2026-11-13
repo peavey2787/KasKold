@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import hashlib
-import os
 import shutil
 import subprocess
 import sys
@@ -10,7 +9,14 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TextIO
 
-from serial_access import SerialAccessError, prepare_serial_command, resolve_serial_port
+from serial_access import (
+    SerialAccessError,
+    flash_monitor_command,
+    prepare_serial_command,
+    release_flash_monitor,
+    resolve_serial_port,
+    windows_host,
+)
 
 BuildFirmware = Callable[[str], tuple[int, Path | None]]
 RunCommand = Callable[[list[str]], int]
@@ -29,8 +35,11 @@ def _board_args(root: Path, board: str, mode: str) -> tuple[int, list[str]]:
 
 
 def _selected_port(port: str, stderr: TextIO) -> str | None:
+    """Resolve the port and free it from a monitor an earlier flash left open."""
     try:
-        return resolve_serial_port(port)
+        selected = resolve_serial_port(port)
+        release_flash_monitor(selected)
+        return selected
     except SerialAccessError as error:
         print(f"ERROR: {error}", file=stderr)
         return None
@@ -44,25 +53,9 @@ def _serial_command(command: list[str], port: str, stderr: TextIO) -> list[str] 
         return None
 
 
-def _monitor_command(elf: Path, port: str) -> list[str]:
-    """Attach to the freshly flashed device without resetting or resynchronizing it."""
-    return [
-        "espflash",
-        "monitor",
-        "--chip",
-        "esp32s3",
-        "--before",
-        "no-reset-no-sync",
-        "--elf",
-        str(elf),
-        "--port",
-        port,
-    ]
-
-
 def _spawn_windows_monitor(root: Path, elf: Path, port: str, stdout: TextIO, stderr: TextIO) -> int:
     """Open espflash's interactive monitor in an independent Windows console."""
-    command = _monitor_command(elf, port)
+    command = flash_monitor_command(elf, port)
     resolved = shutil.which(command[0])
     if resolved:
         command[0] = resolved
@@ -132,7 +125,7 @@ def flash_firmware(
     if interactive_monitor:
         print("Flash will remain in the interactive UART monitor; press CTRL+C to exit.", file=stdout, flush=True)
     else:
-        if os.name == "nt" or sys.platform.startswith("win"):
+        if windows_host():
             print(
                 "Managed/non-terminal launcher detected; flashing first, then opening the "
                 "interactive UART monitor in a separate console window.",
@@ -153,7 +146,7 @@ def flash_firmware(
         return 0
     if rc != 0 or interactive_monitor:
         return rc
-    if os.name == "nt" or sys.platform.startswith("win"):
+    if windows_host():
         return _spawn_windows_monitor(root, elf, selected_port, stdout, stderr)
     print(
         f"Flash completed successfully on {selected_port}. Start `espflash monitor --port {selected_port}` "

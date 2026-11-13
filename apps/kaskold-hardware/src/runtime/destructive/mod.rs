@@ -307,7 +307,7 @@ pub(crate) fn workflow_fast_forward_active_hold(ad: &mut AppData, delay: &mut es
     // destructive service path deterministically. The physical-media tier runs
     // the production hold, which only time can complete, so it really waits.
     hold.progress_step = PROGRESS_STEPS;
-    if cfg!(feature = "workflow-hil-auto") {
+    if crate::services::storage_device::workflow_view::physical_media() {
         delay.delay_millis(shared_signer::narrow!(u32, HOLD_MILLIS));
     }
     true
@@ -326,7 +326,7 @@ pub(crate) fn workflow_service_step(
     if action == DestructiveAction::None {
         return false;
     }
-    if cfg!(feature = "workflow-hil-auto") {
+    if crate::services::storage_device::workflow_view::physical_media() {
         return service_step(touch, ad, display, delay, i2c, liveness);
     }
     ad.runtime.destructive.prompt_drawn = true;

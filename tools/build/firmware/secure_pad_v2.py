@@ -11,7 +11,8 @@ import argparse
 import importlib
 from pathlib import Path
 
-EXPECTED_ESPTOOL_VERSION = "5.3.1"
+from pinned_esptool import pinned_version
+
 MMU_PAGE_SIZE = 64 * 1024
 
 
@@ -26,15 +27,20 @@ def secure_pad(input_path: Path, output_path: Path) -> None:
         ) from error
 
     version = getattr(esptool, "__version__", "")
-    if version != EXPECTED_ESPTOOL_VERSION:
+    expected = pinned_version()
+    if version != expected:
         raise SystemExit(
-            f"esptool {EXPECTED_ESPTOOL_VERSION} is required for deterministic Secure Boot padding; got {version or 'unknown'}"
+            f"esptool {expected} is required for deterministic Secure Boot padding; got {version or 'unknown'}"
         )
 
     data = input_path.read_bytes()
     image = bin_image.LoadFirmwareImage("esp32s3", data)
     if not getattr(image, "append_digest", False):
         raise SystemExit("ESP32-S3 application image must contain its normal SHA-256 image digest")
+    # esptool names segments in its padding diagnostics, and only ELF sections carry a name;
+    # label the segments read back from the image by their load address.
+    for segment in image.segments:
+        segment.name = f"{segment.addr:#010x}"
     image.secure_pad = "2"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     image.save(str(output_path))

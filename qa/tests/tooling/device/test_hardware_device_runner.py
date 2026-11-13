@@ -184,6 +184,43 @@ class HardwareDeviceRunnerTests(unittest.TestCase):
                 )
             self.assertEqual(result, 0)
 
+    def run_with_waiver(self, device_lines: str) -> tuple[int, str]:
+        waiver = HARDWARE_RUNNER.MarkerWaiver(
+            marker="MEDIA ABSENT", waived=("MEDIA-EVIDENCE",), skipped="media tranche"
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            executable = root / "espflash"
+            executable.write_text(
+                "#!/usr/bin/env bash\n"
+                f"printf 'Flashing has completed!\\nREQUIRED-EVIDENCE\\n{device_lines}KASKOLD_HARDWARE_TESTS: PASS\\n'\n"
+            )
+            executable.chmod(0o755)
+            image = root / "firmware"
+            image.write_bytes(b"ELF")
+            output = io.StringIO()
+            with mock.patch.dict(os.environ, {"PATH": f"{root}{os.pathsep}{os.environ.get('PATH', '')}"}):
+                with redirect_stdout(output), redirect_stderr(io.StringIO()):
+                    result = simulated_flash_and_monitor(
+                        "m5stack-lite", image, None, 3,
+                        required_markers=("REQUIRED-EVIDENCE", "MEDIA-EVIDENCE"),
+                        marker_waiver=waiver,
+                    )
+            return result, output.getvalue()
+
+    def test_announced_waiver_skips_only_its_markers_and_says_so(self) -> None:
+        result, output = self.run_with_waiver("MEDIA ABSENT\\n")
+        self.assertEqual(result, 0)
+        self.assertIn("SKIPPED: media tranche", output)
+
+    def test_waivable_markers_stay_required_without_the_announcement(self) -> None:
+        self.assertEqual(self.run_with_waiver("")[0], 1)
+
+    def test_waivable_markers_satisfy_the_gate_when_the_tranche_runs(self) -> None:
+        result, output = self.run_with_waiver("MEDIA-EVIDENCE\\n")
+        self.assertEqual(result, 0)
+        self.assertNotIn("SKIPPED", output)
+
     def test_ordered_runtime_evidence_accepts_exact_sequence(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -395,8 +432,7 @@ class HardwareDeviceRunnerTests(unittest.TestCase):
                     image,
                     None,
                     1,
-                    deadline_extension_marker=marker,
-                    deadline_extension_seconds=3,
+                    deadline_extensions={"UNRELATED-MARKER": 1, marker: 3},
                 )
             self.assertEqual(result, 0)
 
@@ -584,8 +620,7 @@ class HardwareDeviceRunnerTests(unittest.TestCase):
                 phase_start_marker=None,
                 phase_end_marker=None,
                 phase_timeout=None,
-                deadline_extension_marker=None,
-                deadline_extension_seconds=None,
+                deadline_extensions=None,
             )
 
         self.assertEqual(result, 0)

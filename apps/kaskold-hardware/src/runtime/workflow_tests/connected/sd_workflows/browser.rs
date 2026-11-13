@@ -9,19 +9,15 @@ pub(super) fn exercise(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool {
     paging_and_delete_cancel(ctx)
 }
 
-#[cfg(feature = "workflow-hil-auto")]
+/// Only a HIL run on its QA card scans the real card; other runs leave it to that run.
 fn physical_card_scan_when_hil(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool {
-    import_menu_card_scan(ctx)
-}
-
-#[cfg(not(feature = "workflow-hil-auto"))]
-fn physical_card_scan_when_hil(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool {
-    let _ = ctx;
+    if crate::services::storage_device::workflow_view::physical_media() {
+        return import_menu_card_scan(ctx);
+    }
     log!("KASKOLD_WORKFLOW_TESTS: SD IMPORT MENU PHYSICAL CARD SCAN DEFERRED TO workflow-hil");
     true
 }
 
-#[cfg(feature = "workflow-hil-auto")]
 fn import_menu_card_scan(ctx: &mut SdWorkflowContext<'_, '_, '_>) -> bool {
     if crate::services::storage_device::known_card().is_none() {
         return false;

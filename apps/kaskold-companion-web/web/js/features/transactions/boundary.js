@@ -29,6 +29,7 @@ export {
     multisig_descriptor_summary,
     pskt_detect,
     pskt_finalize_and_broadcast,
+    pskt_finalize_and_replace,
     pskt_relay_to_kspt,
     pskt_summary,
     reset_qr_decoder,

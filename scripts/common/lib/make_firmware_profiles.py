@@ -6,7 +6,12 @@ import shutil
 import sys
 from typing import Callable
 
-from esp_toolchain import prepare_esp_build_environment
+FIRMWARE_TOOLS_DIR = Path(__file__).resolve().parents[3] / "tools" / "build" / "firmware"
+if str(FIRMWARE_TOOLS_DIR) not in sys.path:
+    sys.path.insert(0, str(FIRMWARE_TOOLS_DIR))
+
+from esp_toolchain import prepare_esp_build_environment  # noqa: E402
+from hash_builder import preserved_hash_source  # noqa: E402
 
 RunCommand = Callable[..., int]
 PlatformCommand = Callable[..., int]
@@ -155,7 +160,8 @@ def secure_release_profile(
     command = _release_command(root, is_windows, mode, destination)
     if command is None:
         return 127
-    return run_command(command, env=env)
+    with preserved_hash_source():
+        return run_command(command, env=env)
 
 
 def owner_firmware_profile(
@@ -185,4 +191,5 @@ def owner_firmware_profile(
     env["KASKOLD_OWNER_SECURE_BOOT_KEY"] = str(key_path)
     env.pop("KASKOLD_SIGNING_KEY", None)
     destination = _resolve_output(root, output_dir, "target/owner-firmware")
-    return platform_command("firmware-owner-build", [str(destination)], env=env)
+    with preserved_hash_source():
+        return platform_command("firmware-owner-build", [str(destination)], env=env)

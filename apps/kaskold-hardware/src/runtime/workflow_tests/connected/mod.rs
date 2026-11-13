@@ -131,17 +131,7 @@ pub(super) fn run(
         return false;
     }
 
-    // Controller E2E is intentionally media-independent.  Keep the real boot
-    // probe above for hardware diagnostics, but do not let an inserted, flaky,
-    // or half-initialized card redirect controller-only tests into physical I/O.
-    // workflow-hil-auto keeps the real slot and remains the authority for
-    // scans, read/write/delete, format, lock recovery, and other SD HIL.
-    #[cfg(not(feature = "workflow-hil-auto"))]
-    {
-        use crate::services::storage_device::workflow_view::{show, CardView};
-        show(CardView::Shown(None));
-        log!("KASKOLD_WORKFLOW_TESTS: CONTROLLER SD VIEW FORCED UNAVAILABLE; PHYSICAL SD REMAINS HIL-ONLY");
-    }
+    select_sd_media();
 
     if !run_all_connected_tranches(ad, boot_display, i2c, delay) {
         return false;
@@ -339,6 +329,21 @@ fn configured_start_index() -> usize {
         "11" => 10,
         _ => 0,
     }
+}
+
+/// Controller E2E is intentionally media-independent. Keep the real boot probe
+/// for hardware diagnostics, but do not let an inserted, flaky or
+/// half-initialized card redirect controller-only tests into physical I/O. A HIL
+/// run that found its QA card keeps the real slot and remains the authority for
+/// scans, read/write/delete, format, lock recovery and other SD HIL.
+fn select_sd_media() {
+    use crate::services::storage_device::workflow_view::{physical_media, show, CardView};
+    if physical_media() {
+        log!("KASKOLD_WORKFLOW_HIL: PHYSICAL SD TRANCHE ENABLED ON THE REAL CARD");
+        return;
+    }
+    show(CardView::Shown(None));
+    log!("KASKOLD_WORKFLOW_TESTS: CONTROLLER SD VIEW FORCED UNAVAILABLE; PHYSICAL SD REMAINS HIL-ONLY");
 }
 
 #[cfg(feature = "workflow-hil-auto")]
