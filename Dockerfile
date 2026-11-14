@@ -18,7 +18,8 @@
 # The qualified CoreS3 release target produces four firmware images:
 # signed/unsigned x app-only/full-flash. CoreS3 Lite remains build-supported
 # but is intentionally excluded from production artifacts until HIL-qualified.
-FROM --platform=linux/amd64 kaskold-toolchain:v3 AS builder
+# The platform comes from `docker build --platform linux/amd64`; a constant here only draws a BuildKit warning.
+FROM kaskold-toolchain:v3 AS builder
 
 SHELL ["/bin/bash", "-c"]
 WORKDIR /build/KasKold

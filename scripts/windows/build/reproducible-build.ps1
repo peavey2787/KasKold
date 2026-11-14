@@ -8,7 +8,6 @@ $root=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../..'))
 . (Join-Path $root 'scripts/windows/lib/common.ps1')
 . (Join-Path $root 'scripts/windows/lib/cargo_locks.ps1')
 Import-KasKoldToolchains $root
-$python=Get-KasKoldPython
 if(-not$OutputDir){$OutputDir=Join-Path $root 'release'}
 $toolchainImage='kaskold-toolchain:v3';$ubuntuImage='kaskold-ubuntu-rootfs:v1';$platform='linux/amd64';$prefetch=Join-Path $root 'target/qa/state/reproducible-build-inputs'
 $required=@(
@@ -19,17 +18,49 @@ $required=@(
 )
 foreach($c in @('rustup','cargo')){Require-KasKoldCommand $c|Out-Null}
 
+# Docker Desktop installs machine-wide under Program Files or per user under LocalAppData.
+function Get-DockerDesktopDir {
+    foreach($dir in @((Join-Path $env:ProgramFiles 'Docker/Docker'),(Join-Path $env:LOCALAPPDATA 'Programs/DockerDesktop'))){
+        if(Test-Path (Join-Path $dir 'Docker Desktop.exe')){return $dir}
+    }
+    return $null
+}
+
+function Wait-DockerEngine([string]$desktopDir) {
+    Write-Host 'Docker Desktop is installed but its engine is unavailable. Starting Docker Desktop...'
+    Start-Process -FilePath (Join-Path $desktopDir 'Docker Desktop.exe')|Out-Null
+    for($i=0;$i -lt 180;$i++){
+        Start-Sleep -Seconds 1
+        $p=Invoke-KasKoldCapture -Command 'docker' -Arguments @('info')
+        if($p.ExitCode -eq 0){return $p}
+    }
+    return $p
+}
+
 function Ensure-Docker {
+    $desktopDir=Get-DockerDesktopDir
+    # A shell opened before Docker Desktop was installed lacks its CLI on PATH.
+    if($desktopDir -and -not(Get-Command docker -ErrorAction SilentlyContinue)){$env:Path="$(Join-Path $desktopDir 'resources/bin');$env:Path"}
     if(-not(Get-Command docker -ErrorAction SilentlyContinue)){
         throw 'Docker is required for reproducible builds, but the docker command is not installed. Install Docker Desktop with the WSL 2 engine, start it once, then rerun make release.'
     }
     $p=Invoke-KasKoldCapture -Command 'docker' -Arguments @('info')
+    if($p.ExitCode -ne 0 -and $desktopDir){$p=Wait-DockerEngine $desktopDir}
     if($p.ExitCode -eq 0){return}
-    $desktop=Join-Path $env:ProgramFiles 'Docker/Docker/Docker Desktop.exe'
-    if(Test-Path $desktop){Write-Host 'Docker Desktop is installed but its engine is unavailable. Starting Docker Desktop...';Start-Process -FilePath $desktop|Out-Null;for($i=0;$i -lt 120;$i++){Start-Sleep -Seconds 1;$p=Invoke-KasKoldCapture -Command 'docker' -Arguments @('info');if($p.ExitCode -eq 0){return}}}
     throw "Docker Desktop/Linux containers are required for the reproducible build.`n$($p.Output)"
 }
 Ensure-Docker
+
+# The Windows counterpart of `sha256sum -c`: every "<sha256>  <file>" line must match the staged file.
+function Assert-Sha256Manifest([string]$dir,[string]$manifest) {
+    foreach($line in Get-Content -LiteralPath (Join-Path $dir $manifest)){
+        if(-not $line.Trim()){continue}
+        $expected,$file=$line.Trim() -split '\s+',2
+        $file=$file.TrimStart(' ','*')
+        $actual=(Get-FileHash -LiteralPath (Join-Path $dir $file) -Algorithm SHA256).Hash.ToLowerInvariant()
+        if($actual -ne $expected.ToLowerInvariant()){throw "${manifest}: hash mismatch for $file"}
+    }
+}
 
 # Native Windows inter-process lock: FileShare.None is the Windows equivalent of flock for this workflow.
 $state=Join-Path $root 'target/qa/state';New-Item -ItemType Directory -Force -Path $state|Out-Null;$lockPath=Join-Path $state 'release-workflow.lock';$lock=$null
@@ -56,7 +87,7 @@ try {
     function Invoke-ReproPrefetch([switch]$Finalize) {
         $inner = @('python3','/workspace/scripts/linux/build/reproducible/prefetch.py','--root','/workspace','--output','/state/reproducible-build-inputs')
         if ($Finalize) { $inner += '--finalize-context-manifests' } elseif ($RefreshInputs) { $inner += '--refresh' }
-        $bootstrap = 'export DEBIAN_FRONTEND=noninteractive; apt-get update >/dev/null; apt-get install -y --no-install-recommends python3 ca-certificates git curl build-essential pkg-config unzip xz-utils >/dev/null; exec "$@"'
+        $bootstrap = 'export DEBIAN_FRONTEND=noninteractive; apt-get update >/dev/null; apt-get install -y --no-install-recommends python3 ca-certificates git curl build-essential pkg-config libudev-dev unzip xz-utils >/dev/null; exec "$@"'
         $dockerArgs = @(
             'run','--rm','--platform',$platform,
             '--mount',"type=bind,source=$root,target=/workspace",
@@ -90,8 +121,9 @@ try {
     Invoke-ReproPrefetch -Finalize
 
     Write-Host "`n==> Host network phase complete; all Docker operations are networkless";$env:DOCKER_BUILDKIT='1'
-    & docker image rm --force $ubuntuImage *> $null
-    & docker import --platform $platform (Join-Path $prefetch 'ubuntu-rootfs-layer.tar.gz') $ubuntuImage *> $null;if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+    # The image is absent on a first build; a capture keeps docker's "No such image" stderr from terminating the script.
+    Invoke-KasKoldCapture -Command 'docker' -Arguments @('image','rm','--force',$ubuntuImage)|Out-Null
+    Invoke-KasKoldCommand -Command 'docker' -Arguments @('import','--platform',$platform,(Join-Path $prefetch 'ubuntu-rootfs-layer.tar.gz'),$ubuntuImage) -WorkingDirectory $root|Out-Null
     Write-Host '==> Building pinned KasKold toolchain image with Docker networking disabled'
     Invoke-KasKoldCommand -Command 'docker' -Arguments @('build','--network=none','--pull=false','--platform',$platform,'--file',(Join-Path $root 'Dockerfile.base'),'--tag',$toolchainImage,(Join-Path $prefetch 'context')) -WorkingDirectory $root|Out-Null
     $stage=if($OutputDir.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)){Join-Path $root ('target/qa/state/reproducible-release-stage.'+$PID)}else{$OutputDir+'.tmp.'+$PID};Remove-KasKoldPath $stage;New-Item -ItemType Directory -Force -Path $stage|Out-Null
@@ -101,25 +133,8 @@ try {
         if($commit){$build+=@('--build-arg',"KASKOLD_GIT_COMMIT=$commit")};if($SigningKey){$build+=@('--secret',"id=signkey,src=$SigningKey")};$build+=$root
         Invoke-KasKoldCommand -Command 'docker' -Arguments $build -WorkingDirectory $root|Out-Null
         foreach($name in $required){if(-not(Test-Path (Join-Path $stage $name))){throw "Docker build did not export required artifact: $name"}}
-        $verify = @'
-import hashlib
-import sys
-from pathlib import Path
-
-root = Path(sys.argv[1])
-for manifest_name in ("MANIFEST-SHA256SUMS", "SHA256SUMS"):
-    for line in (root / manifest_name).read_text().splitlines():
-        if not line.strip():
-            continue
-        expected, name = line.split(None, 1)
-        name = name.lstrip(" *")
-        candidate = root / name
-        actual = hashlib.sha256(candidate.read_bytes()).hexdigest()
-        if actual != expected:
-            raise SystemExit(f"ERROR: {manifest_name}: hash mismatch for {name}")
-print("SHA-256 manifests verified")
-'@
-        & $python -c $verify $stage;if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+        foreach($manifest in @('MANIFEST-SHA256SUMS','SHA256SUMS')){Assert-Sha256Manifest $stage $manifest}
+        Write-Host 'SHA-256 manifests verified'
         Remove-KasKoldPath $OutputDir;Move-Item -LiteralPath $stage -Destination $OutputDir
     }finally{Remove-KasKoldPath $stage}
     $count=(Get-ChildItem -LiteralPath $OutputDir -File -Filter '*.bin').Count

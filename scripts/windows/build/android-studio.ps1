@@ -2,7 +2,6 @@ $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../..'))
 $android = Join-Path $root 'apps/kaskold-companion-android'
 . (Join-Path $root 'scripts/windows/lib/common.ps1')
 Import-KasKoldToolchains $root
-$python = Get-KasKoldPython
 Require-KasKoldCommand rustup 'Install Rustup for Windows and reopen PowerShell.' | Out-Null
 
 function Find-AndroidStudio {
@@ -76,8 +75,11 @@ Write-Host '==> Building KasKold Companion Android (Companion runtime is built a
 & (Join-Path $root 'scripts/windows/build/android-runtime-sync.ps1');if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
 Invoke-KasKoldCommand -Command $gradle -Arguments @('--project-dir',$android,'--no-daemon',':app:assembleDebug') -WorkingDirectory $root|Out-Null
 $apk=Join-Path $android 'app/build/outputs/apk/debug/app-debug.apk';if(-not(Test-Path $apk)-or(Get-Item $apk).Length -eq 0){throw "Gradle reported success but debug APK is missing: $apk"}
-$verify='import sys,zipfile; z=zipfile.ZipFile(sys.argv[1]); req={"assets/companion/index.html","assets/companion/css/app.css","assets/companion/js/main.js","assets/companion/pkg/companion_web.js","assets/companion/pkg/companion_web_bg.wasm"}; m=sorted(req-set(z.namelist())); assert not m, "debug APK is missing Companion assets: "+", ".join(m); print("==> APK Companion asset verification: PASS")'
-& $python -c $verify $apk;if($LASTEXITCODE -ne 0){exit $LASTEXITCODE}
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$archive=[IO.Compression.ZipFile]::OpenRead($apk);try{$entries=@($archive.Entries|ForEach-Object{$_.FullName})}finally{$archive.Dispose()}
+$requiredAssets=@('assets/companion/index.html','assets/companion/css/app.css','assets/companion/js/main.js','assets/companion/pkg/companion_web.js','assets/companion/pkg/companion_web_bg.wasm')
+$missing=@($requiredAssets|Where-Object{$entries -notcontains $_}|Sort-Object);if($missing.Count){throw "debug APK is missing Companion assets: $($missing -join ', ')"}
+Write-Host '==> APK Companion asset verification: PASS'
 Write-Host "==> Debug APK ready: $apk";$env:STUDIO_GRADLE_JDK=$env:JAVA_HOME;Write-Host "==> Android Studio Gradle JDK: $env:STUDIO_GRADLE_JDK";Write-Host '==> Opening Android Studio'
 Start-Process -FilePath $studio -ArgumentList @($android)
 Write-Host 'KasKold Companion Android is built and Android Studio is starting.'
