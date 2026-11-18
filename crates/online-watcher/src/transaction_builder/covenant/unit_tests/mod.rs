@@ -3,8 +3,8 @@ mod typed_spend_paths;
 mod wire_vectors;
 
 #[test]
-fn covenant_dust_policy_maps_only_explicit_fold_types() {
-    use super::{dust_policy_for, CovenantDustPolicy};
+fn covenant_funding_policy_maps_only_explicit_exact_and_fold_types() {
+    use super::{funding_policy_for, CovenantFundingPolicy};
 
     for covenant_type in [
         "additive",
@@ -14,17 +14,30 @@ fn covenant_dust_policy_maps_only_explicit_fold_types() {
         "global-allowance",
     ] {
         assert_eq!(
-            dust_policy_for(covenant_type),
-            CovenantDustPolicy::FoldSubKip9Change,
+            funding_policy_for(covenant_type),
+            CovenantFundingPolicy::FoldSubKip9Change,
             "{covenant_type} must fold sub-KIP-9 manual change"
         );
     }
 
-    for covenant_type in ["", "allowance", "crowdfund", "private-swap", "unknown"] {
+    assert_eq!(
+        funding_policy_for("ship-escrow"),
+        CovenantFundingPolicy::Exact,
+        "a shipment escrow must be funded with exactly its total"
+    );
+
+    for covenant_type in [
+        "",
+        "allowance",
+        "crowdfund",
+        "private-swap",
+        "escrow",
+        "unknown",
+    ] {
         assert_eq!(
-            dust_policy_for(covenant_type),
-            CovenantDustPolicy::Preserve,
-            "{covenant_type} must preserve explicit change"
+            funding_policy_for(covenant_type),
+            CovenantFundingPolicy::AdjustToSelection,
+            "{covenant_type} must adjust to the selection and keep explicit change"
         );
     }
 }

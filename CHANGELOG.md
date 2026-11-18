@@ -1,5 +1,8 @@
 <!-- KasKold: Kaspa signing and wallet platform -->
 
+- Companion: a shipment escrow is funded with exactly its total, or not at all. Before, hand-picked UTXOs a little short of the total plus fee funded it with whatever they held, less the fee. The escrow's script dispatches on its exact amount, so such a deposit could never be spent and was lost. The deposit is now refused, through Kaspa Portal's new `CovenantFundingPolicy::Exact`. Other families keep their behaviour.
+- The funded testnet E2E funds each covenant with automatic coin selection. Before, it used only the wallet's largest coin. Earlier runs had split the test wallet into coins of a few KAS, so its six shipment deposits came up 0.014 KAS short.
+- The dependency gate accepts RUSTSEC-2026-0543 (chrono unmaintained). chrono is locked only as an optional dependency of `serde_with` under `ark-serialize`, and no build compiles it.
 - Companion: every standard send pays the node's feerate on its full mass, through Kaspa Portal's mass-priced planner. Before, a 0.2 KAS payment paid 300,000 sompi on about 50,000 grams of storage mass (6 sompi/gram), and it sat unmined.
 - Companion: an earlier unconfirmed send no longer blocks its coins. When a new signed send double-spends that pending transaction, Finalize + broadcast asks whether to replace it, warning that the earlier one will then never be sent. The node accepts the replacement only at a higher feerate. The watcher exports `pskt_finalize_and_replace` for this. The funded testnet E2E replaces a send that an earlier run left unconfirmed, and records `replaced_pending_transaction`.
 - On Windows, `make release` builds and verifies the reproducible release end to end. Before, it could not complete:

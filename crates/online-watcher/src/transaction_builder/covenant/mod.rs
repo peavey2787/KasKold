@@ -12,13 +12,16 @@ pub(crate) mod sweeps;
 pub(crate) mod vault;
 
 pub(crate) use kaspa_portal::transaction::builder::{
-    CovenantBuildRequest, CovenantDustPolicy, CovenantEncoding,
+    CovenantBuildRequest, CovenantEncoding, CovenantFundingPolicy,
 };
 pub(crate) use kaspa_portal::transaction::mass::CovenantFeeShape;
 
-/// Covenant families whose manual sends fold sub-KIP-9 change into the
-/// covenant output; every other family keeps explicit change.
-pub(crate) fn dust_policy_for(covenant_type: &str) -> CovenantDustPolicy {
+/// How each family's manual deposit may differ from the amount asked for.
+/// A shipment escrow dispatches on its exact amount, so it is funded exactly
+/// or not at all. The fold families put sub-KIP-9 change into the covenant
+/// output; every other family keeps explicit change.
+pub(crate) fn funding_policy_for(covenant_type: &str) -> CovenantFundingPolicy {
+    const EXACT_TYPES: [&str; 1] = ["ship-escrow"];
     const FOLD_SUB_KIP9_TYPES: [&str; 5] = [
         "additive",
         "timelocked-savings",
@@ -26,10 +29,12 @@ pub(crate) fn dust_policy_for(covenant_type: &str) -> CovenantDustPolicy {
         "global-spending-limit",
         "global-allowance",
     ];
-    if FOLD_SUB_KIP9_TYPES.contains(&covenant_type) {
-        CovenantDustPolicy::FoldSubKip9Change
+    if EXACT_TYPES.contains(&covenant_type) {
+        CovenantFundingPolicy::Exact
+    } else if FOLD_SUB_KIP9_TYPES.contains(&covenant_type) {
+        CovenantFundingPolicy::FoldSubKip9Change
     } else {
-        CovenantDustPolicy::Preserve
+        CovenantFundingPolicy::AdjustToSelection
     }
 }
 

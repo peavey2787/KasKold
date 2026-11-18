@@ -13,8 +13,10 @@ const KAS = 100_000_000n;
 const FEE = 1_000_000n;
 const THREAD_FEE_FLOOR = 300_000n;
 const FUNDING = 3n * KAS;
-// The builder counts the wallet's coins largest first.
-const LARGEST_COIN = '0';
+// Empty: the builder adds the wallet's largest coins until they cover the
+// deposit and its fee. Runs leave the wallet in many coins of a few KAS, so a
+// single coin cannot be relied on to cover a deposit.
+const AUTOMATIC_SELECTION = '';
 const POLL_MS = 2_000;
 const COIN_TIMEOUT_MS = 120_000;
 const CASE_TIMEOUT_MS = 300_000;
@@ -95,7 +97,7 @@ async function fund(address, covenantType, amount = FUNDING) {
         send_amount: String(amount),
         fee: String(FEE),
         change_address: wallet.change_addresses[0],
-        utxo_indices_csv: LARGEST_COIN,
+        utxo_indices_csv: AUTOMATIC_SELECTION,
         ws_url: wsUrl,
     })));
     return coinFrom(address, await broadcast(document_));

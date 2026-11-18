@@ -4,7 +4,7 @@ use crate::{
     account::{address::network_prefix, bip32::WalletData},
     serialization::input::{decode_pubkey32, parse_json},
     transaction_builder::covenant::{
-        build_with_binding, dust_policy_for, CovenantBuildRequest, CovenantEncoding,
+        build_with_binding, funding_policy_for, CovenantBuildRequest, CovenantEncoding,
     },
 };
 
@@ -100,7 +100,7 @@ async fn build_vault_genesis_wire(
             fee,
             change_address: &prepared.change_address,
             utxo_indices_csv: "",
-            dust_policy: dust_policy_for("vault"),
+            funding_policy: funding_policy_for("vault"),
             encoding: CovenantEncoding::BoundGenesis,
         },
     )

@@ -25,6 +25,10 @@ ACCEPTED_ADVISORIES = {
     # instant (unmaintained) reaches only minifb in the desktop firmware
     # mirror developer tool, never a shipped binary.
     "RUSTSEC-2024-0384",
+    # chrono (unmaintained) is locked only as an optional dependency of
+    # serde_with under ark-serialize, behind a feature no build enables;
+    # `cargo tree -i chrono --all-features --target all` is empty.
+    "RUSTSEC-2026-0543",
 }
 
 

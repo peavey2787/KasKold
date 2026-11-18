@@ -885,7 +885,7 @@ dependencies = [
 [[package]]
 name = "kaspa-portal"
 version = "1.4.0"
-source = "git+https://github.com/peavey2787/kaspa-portal.git#4caf2f90930e7c9ea31ec9e304eba97e57a87872"
+source = "git+https://github.com/peavey2787/kaspa-portal.git#92d8362698302bf03daeaf971e90228e28a3dec6"
 dependencies = [
  "aes-gcm",
  "argon2",
