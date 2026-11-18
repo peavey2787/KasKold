@@ -144,6 +144,20 @@ class QaOrchestrationCatalogTests(unittest.TestCase):
             self.assertIn("make test STRICT_LOCKFILES=1", output)
             self.assertNotIn("[unit.shared-signer]", output)
 
+    def test_linux_and_windows_skip_mutation_leaves_only_the_mutation_section(self) -> None:
+        for flags, expect_mutation in ((("--skip-mutation", "--skip-fuzz", "--skip-qemu"), False), (("--category", "mutation"), True)):
+            commands = (
+                [qa_bash_executable(), LINUX_RUN_ALL, "--profile", "full", "--dry-run", *flags],
+                [sys.executable, str(ROOT / "qa/windows/runner/run_all.py"), "--profile", "full", "--dry-run", *flags],
+            )
+            for command in commands:
+                output = run_linux_qa(*command[2:]) if command[0] == qa_bash_executable() else subprocess.run(command, cwd=ROOT, text=True, capture_output=True, check=True).stdout
+                selected = [line[1:line.index("]")] for line in output.splitlines() if line.startswith("[") and "]" in line]
+                mutation = [step for step in selected if step.startswith("mutation.")]
+                self.assertEqual(mutation, ["mutation.repository-security-fresh", "mutation.repository-crypto-certification"] if expect_mutation else [])
+                self.assertEqual(len(selected) == len(mutation), expect_mutation)
+                self.assertEqual("integration.funded-testnet-e2e" in selected, not expect_mutation)
+
 
     def test_core_ci_reuses_complete_local_pinned_toolchain_before_installing(self) -> None:
         linux = (ROOT / "qa/linux/runner/commands.sh").read_text(encoding="utf-8")

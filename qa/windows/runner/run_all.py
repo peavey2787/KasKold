@@ -826,7 +826,7 @@ def parser() -> argparse.ArgumentParser:
     p=argparse.ArgumentParser(description="Run the complete KasKold test catalog in a stable, resumable order.")
     p.add_argument("--profile",choices=("full","test"),default="full"); p.add_argument("--list",action="store_true",dest="list_only"); p.add_argument("--resume-from","--from",dest="resume_from",default=""); p.add_argument("--only","--section",dest="only",default="")
     p.add_argument("--category"); p.add_argument("--workspace"); p.add_argument("--test",dest="test_filter",default=""); p.add_argument("--exact",action="store_true")
-    p.add_argument("--fuzz-passes",type=int,default=100000); p.add_argument("--fuzz-target",default=""); p.add_argument("--skip-fuzz",action="store_true"); p.add_argument("--skip-qemu",action="store_true")
+    p.add_argument("--fuzz-passes",type=int,default=100000); p.add_argument("--fuzz-target",default=""); p.add_argument("--skip-fuzz",action="store_true"); p.add_argument("--skip-mutation",action="store_true"); p.add_argument("--skip-qemu",action="store_true")
     p.add_argument("--hardware",choices=("m5stack","m5stack-lite"),default=""); p.add_argument("--hardware-port",default=""); p.add_argument("--hardware-timeout",type=int,default=240)
     p.add_argument("--dry-run",action="store_true"); p.add_argument("--strict-lockfiles",action="store_false",dest="repair_lockfiles",default=True); p.add_argument("--pause",action="store_true")
     return p
@@ -941,6 +941,10 @@ def _passes_profile(scope: str, ns: argparse.Namespace) -> bool:
     return True
 
 
+# Each --skip-* option and the catalog category it leaves out.
+SKIP_OPTION_BY_CATEGORY = {"fuzz": "skip_fuzz", "mutation": "skip_mutation", "emulation": "skip_qemu"}
+
+
 def _passes_step_filters(record: tuple[str, ...], ns: argparse.Namespace) -> bool:
     c,w,i,_d=record
     if ns.only and i!=ns.only: return False
@@ -948,8 +952,7 @@ def _passes_step_filters(record: tuple[str, ...], ns: argparse.Namespace) -> boo
     if ns.workspace and w!=ns.workspace: return False
     if ns.test_filter and i not in TEST_FILTER_STEPS: return False
     if c=="hardware" and not ns.hardware: return False
-    if c=="fuzz" and ns.skip_fuzz: return False
-    if c=="emulation" and ns.skip_qemu: return False
+    if c in SKIP_OPTION_BY_CATEGORY and getattr(ns, SKIP_OPTION_BY_CATEGORY[c]): return False
     return True
 
 

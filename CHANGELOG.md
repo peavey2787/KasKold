@@ -1,5 +1,6 @@
 <!-- KasKold: Kaspa signing and wallet platform -->
 
+- The qa workflow runs the mutation section as its own parallel job, as it already did for fuzz. A slow runner had pushed the full catalog past the hosted runner's six-hour limit, which cancelled the job during mutation. Both run-all scripts gain `--skip-mutation` for this.
 - Companion: a shipment escrow is funded with exactly its total, or not at all. Before, hand-picked UTXOs a little short of the total plus fee funded it with whatever they held, less the fee. The escrow's script dispatches on its exact amount, so such a deposit could never be spent and was lost. The deposit is now refused, through Kaspa Portal's new `CovenantFundingPolicy::Exact`. Other families keep their behaviour.
 - The funded testnet E2E funds each covenant with automatic coin selection. Before, it used only the wallet's largest coin. Earlier runs had split the test wallet into coins of a few KAS, so its six shipment deposits came up 0.014 KAS short.
 - The dependency gate accepts RUSTSEC-2026-0543 (chrono unmaintained). chrono is locked only as an optional dependency of `serde_with` under `ark-serialize`, and no build compiles it.

@@ -4,8 +4,8 @@ name: qa
 # static, security, firmware builds/lints, QEMU emulation, real-node
 # integration, benchmarks, mutation and fuzzing). The funded testnet E2E needs
 # an interactive maintainer terminal and reports itself as skipped here.
-# The catalog outlasts one hosted runner's six hours, so its fuzz section runs
-# as a parallel job with the same pass count `make qa` uses.
+# The catalog outlasts one hosted runner's six hours, so its mutation and fuzz
+# sections run as parallel jobs, fuzz with the same pass count `make qa` uses.
 
 on:
   push:
@@ -60,13 +60,38 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libudev-dev pkg-config
       - name: make qa without its fuzz section
         shell: bash
-        run: bash run-all-linux.sh --profile full --skip-fuzz --strict-lockfiles
+        run: bash run-all-linux.sh --profile full --skip-mutation --skip-fuzz --strict-lockfiles
       - name: Upload QA evidence
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: make-qa-evidence
           path: target/qa
+          if-no-files-found: warn
+
+  make-qa-mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v6
+      - name: Export pinned toolchain policy
+        shell: bash
+        run: grep -E '^[A-Za-z_][A-Za-z0-9_]*=' qa/config/toolchains.env >> "$GITHUB_ENV"
+      - name: Install pinned stable Rust
+        shell: bash
+        run: rustup toolchain install "$KASKOLD_STABLE_RUST" --profile minimal
+      - name: Install host build libraries
+        shell: bash
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libudev-dev pkg-config
+      - name: make qa mutation section
+        shell: bash
+        run: bash run-all-linux.sh --profile full --category mutation --strict-lockfiles
+      - name: Upload mutation evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: make-qa-mutation-evidence
+          path: target/qa/mutation
           if-no-files-found: warn
 
   make-qa-fuzz:

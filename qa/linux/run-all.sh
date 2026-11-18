@@ -22,6 +22,7 @@ EXACT_TEST=false
 DRY_RUN=false
 LIST_ONLY=false
 SKIP_FUZZ=false
+SKIP_MUTATION=false
 SKIP_QEMU=false
 PAUSE_ON_EXIT=false
 REPAIR_LOCKFILES=true
@@ -67,6 +68,7 @@ Fuzz:
   --fuzz-passes COUNT           libFuzzer run count per target (default: 100000).
   --fuzz-target NAME            Run one registered fuzz target.
   --skip-fuzz                   Skip fuzzing while retaining all prior sections.
+  --skip-mutation               Skip the mutation section (CI runs it as its own job).
   --skip-qemu                   Skip the ESP32-S3 QEMU execution stage.
 
 Hardware (opt-in):
@@ -162,6 +164,7 @@ parse_arguments() {
                 (($# >= 2)) || fail_usage "--fuzz-target requires a target name"
                 FUZZ_TARGET="$2"; shift 2 ;;
             --skip-fuzz) SKIP_FUZZ=true; shift ;;
+            --skip-mutation) SKIP_MUTATION=true; shift ;;
             --skip-qemu) SKIP_QEMU=true; shift ;;
             --hardware)
                 (($# >= 2)) || fail_usage "--hardware requires m5stack or m5stack-lite"
@@ -266,6 +269,9 @@ step_selected() {
     if $SKIP_FUZZ && [[ "$category" == "fuzz" ]]; then
         return 1
     fi
+    if $SKIP_MUTATION && [[ "$category" == "mutation" ]]; then
+        return 1
+    fi
     if $SKIP_QEMU && [[ "$category" == "emulation" ]]; then
         return 1
     fi
@@ -286,6 +292,7 @@ print_resume_command() {
     $EXACT_TEST && command+=(--exact)
     [[ -z "$FUZZ_TARGET" ]] || command+=(--fuzz-target "$FUZZ_TARGET")
     $SKIP_FUZZ && command+=(--skip-fuzz)
+    $SKIP_MUTATION && command+=(--skip-mutation)
     $SKIP_QEMU && command+=(--skip-qemu)
     $PAUSE_ON_EXIT && command+=(--pause)
     $REPAIR_LOCKFILES || command+=(--strict-lockfiles)
