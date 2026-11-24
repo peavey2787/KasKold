@@ -1338,6 +1338,19 @@ class SecurityHardeningTests(unittest.TestCase):
                 self.assertEqual(mutation_support.reconcile_root_lock("1.95.0"), 2)
             self.assertEqual(lockfile.read_bytes(), b"original-lock")
 
+    def test_heapless_advisories_are_accepted_only_for_the_firmware_lockfiles(self) -> None:
+        advisories = load_module("dependency_advisories_under_test", "qa/checks/security/dependency_advisories.py")
+        heapless = advisories.HEAPLESS_0_8_ADVISORIES
+        self.assertEqual(len(heapless), 9)
+        for firmware_lock in ("apps/kaskold-hardware/Cargo.lock", "qa/firmware-sim/Cargo.lock"):
+            accepted = advisories.accepted_for(firmware_lock)
+            self.assertTrue(heapless <= set(accepted))
+            self.assertTrue(advisories.ACCEPTED_ADVISORIES <= set(accepted))
+            self.assertEqual(accepted, sorted(accepted))
+        for host_lock in ("Cargo.lock", "apps/kaskold-companion-web/Cargo.lock", "qa/Cargo.lock", "tools/Cargo.lock"):
+            self.assertEqual(advisories.accepted_for(host_lock), sorted(advisories.ACCEPTED_ADVISORIES))
+        self.assertEqual(set(advisories.ACCEPTED_BY_LOCKFILE), {"apps/kaskold-hardware/Cargo.lock", "qa/firmware-sim/Cargo.lock"})
+
 
 if __name__ == "__main__":
     unittest.main()

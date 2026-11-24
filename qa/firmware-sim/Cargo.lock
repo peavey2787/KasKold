@@ -738,6 +738,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "heapless"
+version = "0.9.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "411fdef4df93751117bd9ef8caa0e7f99c65dafec5bd84313eb8e2fdd75e32f2"
+dependencies = [
+ "hash32",
+ "stable_deref_trait",
+]
+
+[[package]]
 name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -850,7 +860,7 @@ dependencies = [
  "esp-hal",
  "esp-println",
  "firmware-tools",
- "heapless",
+ "heapless 0.9.4",
  "k256",
  "kaskold-hardware-core",
  "kaskold-protocol",
@@ -1048,7 +1058,7 @@ checksum = "9ba34dcbf61182ffa6992b5a4d9b566d5a99df127fd93f6d314213347329e92f"
 dependencies = [
  "embedded-graphics-core",
  "embedded-hal",
- "heapless",
+ "heapless 0.8.0",
  "nb",
 ]
 

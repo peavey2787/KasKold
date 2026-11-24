@@ -31,6 +31,33 @@ ACCEPTED_ADVISORIES = {
     "RUSTSEC-2026-0543",
 }
 
+# heapless 0.8.0 has nine advisories fixed only in 0.9.4. KasKold's own code
+# uses 0.9.4. The latest esp-hal (through embassy-sync 0.6/0.7 and usb-device),
+# mipidsi and usb-device releases still require ^0.8, so 0.8.0 stays locked
+# beside 0.9.4 in the two firmware lockfiles. Those crates use only `Vec`,
+# `String`, `Deque` and `BinaryHeap`. None of them uses the affected `IndexMap`,
+# `HistoryBuf`, `SortedLinkedList`, `spsc`, the pools,
+# `Deque::make_contiguous` or `Deque::try_from`. They do use `Deque::clear` and
+# `Vec`'s by-value iterator, which RUSTSEC-2026-0577 makes unsound only while
+# unwinding through an element's panicking `Drop`. The firmware target aborts
+# on panic. In the host simulator, only mipidsi's `Vec` uses 0.8.0, and it
+# holds colour values, which have no `Drop`.
+HEAPLESS_0_8_ADVISORIES = frozenset({
+    "RUSTSEC-2026-0574", "RUSTSEC-2026-0575", "RUSTSEC-2026-0576",
+    "RUSTSEC-2026-0577", "RUSTSEC-2026-0578", "RUSTSEC-2026-0579",
+    "RUSTSEC-2026-0580", "RUSTSEC-2026-0581", "RUSTSEC-2026-0582",
+})
+ACCEPTED_BY_LOCKFILE = {
+    "apps/kaskold-hardware/Cargo.lock": HEAPLESS_0_8_ADVISORIES,
+    "qa/firmware-sim/Cargo.lock": HEAPLESS_0_8_ADVISORIES,
+}
+
+
+def accepted_for(relative_lockfile: str) -> list[str]:
+    """Advisories accepted everywhere, plus those accepted for this lockfile only."""
+    scoped = ACCEPTED_BY_LOCKFILE.get(relative_lockfile, frozenset())
+    return sorted(ACCEPTED_ADVISORIES | scoped)
+
 
 def installed_version() -> str:
     if shutil.which("cargo-audit") is None:
@@ -66,10 +93,11 @@ def lockfiles() -> list[Path]:
 
 
 def audit(lockfile: Path) -> bool:
+    relative = lockfile.relative_to(ROOT).as_posix()
     command = ["cargo", "audit", "--deny", "warnings", "--file", str(lockfile)]
-    for advisory in sorted(ACCEPTED_ADVISORIES):
+    for advisory in accepted_for(relative):
         command += ["--ignore", advisory]
-    print(f"==> cargo audit {lockfile.relative_to(ROOT).as_posix()}", flush=True)
+    print(f"==> cargo audit {relative}", flush=True)
     return subprocess.run(command, cwd=ROOT).returncode == 0
 
 
