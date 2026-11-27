@@ -3,7 +3,7 @@ use crate::runtime::interactions::feedback::{show_rejection, show_success, Error
 use shared_signer::bytes::zeroize_bytes;
 
 use super::super::super::common::context::SdIoContext;
-use super::super::super::{run_filename_workflow, sd_backup, write_file_to_sd, zeroize_buf, FilenameWorkflow};
+use super::super::super::{run_filename_workflow, sd_backup, write_file_to_sd, FilenameWorkflow};
 
 pub(crate) fn handle_sd_xprv_filename(ctx: SdIoContext<'_, '_, '_>) -> bool {
     run_filename_workflow(
@@ -66,7 +66,7 @@ fn export_xprv(
         zeroize_bytes(&mut encrypted);
         operation
     })();
-    zeroize_buf(&mut xprv);
+    zeroize_bytes(&mut xprv);
     zeroize_bytes(&mut password);
 
     match result {

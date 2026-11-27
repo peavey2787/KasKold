@@ -4,7 +4,7 @@
 //! source complexity when host coverage is unavailable.
 
 use crate::runtime::data::AppData;
-use offline_signer::derivation::hmac::zeroize_buf;
+use shared_signer::bytes::zeroize_bytes;
 
 use super::{
     crypto::{RecordHeader, RECORD_SIZE},
@@ -124,15 +124,15 @@ impl PersistentWallet<'_> {
         for address in order.into_iter().flatten() {
             let mut record = AlignedBytes::<RECORD_SIZE>::zeroed();
             let Some(header) = journal::read_wallet(&mut self.flash, address, &mut record)? else {
-                zeroize_buf(&mut record.0);
+                zeroize_bytes(&mut record.0);
                 continue;
             };
             if !header.device_only {
-                zeroize_buf(&mut record.0);
+                zeroize_bytes(&mut record.0);
                 continue;
             }
             let restored = self.restore_record_with_key(&record, &key, ad);
-            zeroize_buf(&mut record.0);
+            zeroize_bytes(&mut record.0);
             if let Err(error) = restored {
                 if first_error.is_none() {
                     first_error = Some(error);

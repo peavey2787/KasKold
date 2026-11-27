@@ -136,7 +136,7 @@ fn validate_inputs(password: &[u8], parameters: PasswordKdfParams) -> Result<(),
     if password.is_empty() || password.len() > MAX_PASSWORD_SIZE {
         return Err(PasswordKdfError::InvalidPasswordLength);
     }
-    if !parameters.is_current() || !parameters.meets_v1_minimum() {
+    if !parameters.is_current() {
         return Err(PasswordKdfError::UnsupportedParameters);
     }
     Ok(())

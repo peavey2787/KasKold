@@ -22,6 +22,17 @@ pub(super) const CONFIG_B: u32 = STATE_BASE + SECTOR_SIZE;
 pub(super) const WALLET_A: u32 = STATE_BASE + 2 * SECTOR_SIZE;
 pub(super) const WALLET_B: u32 = STATE_BASE + 3 * SECTOR_SIZE;
 
+// The input-claim ledger journals in its own two sectors below the QA region.
+// The auto-run CoreS3 workflow image uses the pair below production's, so
+// connected tests never touch the owner's ledger.
+#[cfg(all(feature = "m5stack", feature = "workflow-runtime-auto"))]
+const CLAIMS_BASE: u32 = FLASH_SIZE - 12 * SECTOR_SIZE;
+#[cfg(not(all(feature = "m5stack", feature = "workflow-runtime-auto")))]
+const CLAIMS_BASE: u32 = FLASH_SIZE - 10 * SECTOR_SIZE;
+
+pub(super) const CLAIMS_A: u32 = CLAIMS_BASE;
+pub(super) const CLAIMS_B: u32 = CLAIMS_BASE + SECTOR_SIZE;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum FlashError {
     Alignment,

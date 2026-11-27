@@ -5,8 +5,8 @@
 //! production device binding. Production firmware does not compile this module and
 //! rejects its reserved record key-slot marker.
 
-use offline_signer::derivation::hmac::zeroize_buf;
 use sha2::{Digest, Sha256};
+use shared_signer::bytes::zeroize_bytes;
 
 pub(super) const KEY_SLOT: u8 = 0xFE;
 const KEY_DOMAIN: &[u8] = b"KasSigner/CoreS3/dev-storage-test-key/v1";
@@ -35,8 +35,8 @@ pub(super) fn hmac(parts: &[&[u8]]) -> [u8; 32] {
     outer.update(inner_hash);
     let result = outer.finalize().into();
 
-    zeroize_buf(&mut key);
-    zeroize_buf(&mut inner_pad);
-    zeroize_buf(&mut outer_pad);
+    zeroize_bytes(&mut key);
+    zeroize_bytes(&mut inner_pad);
+    zeroize_bytes(&mut outer_pad);
     result
 }

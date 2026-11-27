@@ -183,7 +183,7 @@ test('an offline spend travels PSKB to summary to KSPT to QR frames and back', a
     assert.ok(frames.length > 1);
     for (const frame of frames) decoded = real.decode_qr_frame(frame.frame_hex);
     assert.equal(decoded, kspt);
-    assert.equal(real.decoder_progress(), '0/0');
+    assert.deepEqual(JSON.parse(real.decoder_progress()), { total: 0, count: 0, bits: [] });
 
     const fee = `20${JSON.parse(real.decode_address(KEY_1G_ADDRESS)).payload}ac`;
     const appended = real.pskb_append_output(pskb, 1000n, `0000${fee}`);

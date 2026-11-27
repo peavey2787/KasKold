@@ -91,13 +91,10 @@ pub fn reset_decoder() {
     DECODER.with(|cell| cell.borrow_mut().reset());
 }
 
-/// Returns "0/0" while idle; otherwise the progress as JSON.
+/// The progress as JSON, `{"total":0,"count":0,"bits":[]}` while idle.
 pub fn decoder_progress() -> String {
     DECODER.with(|cell| {
         let progress = cell.borrow().progress();
-        if progress.total == 0 {
-            return "0/0".into();
-        }
         let bits = progress
             .bits
             .iter()

@@ -5,7 +5,7 @@ use crate::scenarios::journeys::known::{self, PIN};
 use crate::scenarios::journeys::walk::{self, restore_the_known_wallet};
 use kaskold_hardware_core::input::keyboard::{KeyAction, KeyboardMode};
 use kaskold_protocol::wire::qr_payload::PAYLOAD_V1_RAW;
-use kaspa_portal::primitives::address::{encode_p2pk, MAX_ADDR_LEN};
+use kaspa_portal::primitives::address::encode_p2pk_address;
 use kaspa_portal::wallet::account::derivation::import_kpub;
 use offline_signer::derivation::xpub::{decode_kpub_or_xpub, XPUB_PAYLOAD_LEN};
 use sha2::{Digest, Sha256};
@@ -77,11 +77,7 @@ pub(super) fn address_of_raw_key() -> String {
     let secret: [u8; 32] = secret.try_into().expect("32 bytes");
     let key = k256::schnorr::SigningKey::from_bytes((&secret).into()).expect("a valid key");
     let public: [u8; 32] = key.verifying_key().to_bytes().into();
-    let mut address = [0u8; MAX_ADDR_LEN];
-    let length = encode_p2pk(&public, &mut address);
-    core::str::from_utf8(&address[..length])
-        .expect("text")
-        .to_string()
+    encode_p2pk_address(&public, "kaspa")
 }
 
 fn type_a_raw_key_at_restore() {

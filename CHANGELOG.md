@@ -1,5 +1,14 @@
 <!-- KasKold: Kaspa signing and wallet platform -->
 
+- Device: a host can no longer hide a fee by signing one transaction in two sessions. Kaspa's sighash commits only to the amount of the input being signed, so each session could understate a different input. The device now journals the amount every signed transaction claimed for each input, through Kaspa Portal's `InputClaimLedger`. A later transaction that contradicts one is refused with `SIGN-CLAIM-01`, and nothing is signed when the journal cannot be read or saved (`SIGN-CLAIM-02`).
+  - The journal is A/B in two sectors of a new 16 KiB `kaskold_claims` partition at `0xFF4000`, below `kaskold_qa`. The auto-run workflow image uses the other two sectors, so device tests never touch the owner's journal. Wiping the device erases it.
+  - It holds tags keyed by the active wallet's secret, never outpoints or amounts, and keeps the newest 128 claims.
+  - Runtime-HIL gains `input-claim-ledger-flash`, which journals a fresh claim on real flash and checks that a contradicting one is refused after reloading.
+- Every anti-klepto nonce now depends on the host's commitment as well as the device RNG. Transaction, covenant and Private Swap adaptor signing, on the device and in the hot wallet, hash the device sample with the full 32-byte host commitment (Kaspa Portal's `session_signing_entropy`). Before, a repeated RNG output reused a nonce across sessions with different commitments, which reveals the key. `HotWallet::covenant_begin_signature` takes the host commitment.
+- Password-protected device storage uses Kaspa Portal's v3 KDF profile: Argon2id 6 MiB with six passes instead of three. A PIN or password unlock takes about 21 seconds on a CoreS3. Wallets saved under the old profile do not open; re-import them from the recovery words.
+- The watcher's `decoder_progress` always returns JSON; before the first frame it is `{"total":0,"count":0,"bits":[]}`.
+- Firmware clears secrets through `shared_signer::bytes::zeroize_bytes` alone; Kaspa Portal removed `zeroize_buf`.
+
 - The root and Companion Web lockfiles take `url` 2.5.9, which fixes RUSTSEC-2026-0592: `Url::origin()` overflowed the stack on nested `blob:` URLs.
 - Firmware and the firmware simulator use `heapless` 0.9.4, which fixes nine unsoundness advisories (RUSTSEC-2026-0574 to 0582). The latest esp-hal, mipidsi and usb-device still require heapless 0.8, so 0.8.0 stays in those two lockfiles. The dependency gate accepts its nine advisories there only. None of those crates calls an affected function, apart from drops during unwinding, which the firmware never does because it aborts on panic.
 - The qa workflow runs the mutation section as its own parallel job, as it already did for fuzz. A slow runner had pushed the full catalog past the hosted runner's six-hour limit, which cancelled the job during mutation. Both run-all scripts gain `--skip-mutation` for this.

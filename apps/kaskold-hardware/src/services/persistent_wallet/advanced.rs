@@ -5,7 +5,7 @@ use kaskold_hardware_core::advanced_policy::SigningPolicy;
 #[cfg(feature = "m5stack")]
 use kaskold_hardware_core::advanced_policy::{SigningWindow, MAX_WEEKLY_WINDOWS};
 use offline_signer::crypto::password_kdf::PasswordKdfPurpose;
-use offline_signer::derivation::hmac::zeroize_buf;
+use shared_signer::bytes::zeroize_bytes;
 
 use crate::{
     runtime::data::{AdvancedAvailability, AppData, DuressActivation, PersistenceBackendState, PolicyIntegrity},
@@ -154,8 +154,8 @@ impl<'d> PersistentWallet<'d> {
         self.build_record_into(manager, 1, &mut record)?;
         let credential = super::crypto::WalletCredential { kind, key: &key, salt: &self.credential_salt };
         let write = super::sd_backend::write_slot(&mut self.crypto, credential, 0, &record, i2c, delay);
-        zeroize_buf(&mut key);
-        zeroize_buf(&mut record.0);
+        zeroize_bytes(&mut key);
+        zeroize_bytes(&mut record.0);
         write?;
         journal::write_sd_anchor(
             &mut self.flash,
@@ -217,7 +217,7 @@ impl<'d> PersistentWallet<'d> {
                 }
                 _ => false,
             };
-            zeroize_buf(&mut record.0);
+            zeroize_bytes(&mut record.0);
             if matched {
                 return Ok(true);
             }
@@ -239,7 +239,7 @@ impl<'d> PersistentWallet<'d> {
                 DecodeResult::Corrupt => integrity_ok = false,
                 DecodeResult::Valid(candidate) => merge_security_policy(&mut merged, candidate, &mut integrity_ok),
             }
-            zeroize_buf(&mut record.0);
+            zeroize_bytes(&mut record.0);
         }
         self.security_policy = merged.unwrap_or_else(SecurityPolicy::disabled);
         self.security_integrity_ok = integrity_ok;
@@ -342,7 +342,7 @@ impl<'d> PersistentWallet<'d> {
         let (salt, verifier) = self.wallet_activation_material(slot)?;
         let mut stretched = self.derive_wallet_activation_key(secret, &salt, &mut || {})?;
         let actual = self.make_wallet_activation_verifier(slot, kind, &salt, &stretched)?;
-        zeroize_buf(&mut stretched);
+        zeroize_bytes(&mut stretched);
         Ok(shared_signer::bytes::constant_time_eq_32(&verifier, &actual))
     }
 
@@ -359,7 +359,7 @@ impl<'d> PersistentWallet<'d> {
             &mut || {},
         )?;
         let matches = shared_signer::bytes::constant_time_eq_32(expected, &stretched);
-        zeroize_buf(&mut stretched);
+        zeroize_bytes(&mut stretched);
         Ok(matches)
     }
 }

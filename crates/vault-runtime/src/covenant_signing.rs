@@ -209,7 +209,11 @@ impl VaultRuntime {
         require_covenant_phase(self.covenant.phase, CovenantPhase::Prepared)?;
         let provisional = self
             .active_wallet()?
-            .covenant_begin_signature(&self.covenant.key_id, &self.covenant.commitment)
+            .covenant_begin_signature(
+                &self.covenant.key_id,
+                &self.covenant.commitment,
+                &self.covenant.host_commitment,
+            )
             .map_err(VaultRuntimeError::Custody)?;
         self.covenant.provisional_signature = provisional.signature;
         self.covenant.nonce_point = provisional.nonce_point;

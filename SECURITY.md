@@ -24,6 +24,10 @@ Email **kaskold@proton.me** with subject `[SECURITY]` and include the affected v
 
 The firmware does not operate a wallet network stack. Transaction/watch data is exchanged through QR and SD workflows; touch/display is the human approval boundary. Development/provisioning USB/serial paths are separate from normal wallet operation and production policy restricts diagnostic/debug combinations.
 
+Kaspa's sighash commits only to the amount of the input being signed, so a host could understate a different input in each of two signing sessions and combine the signatures into a transaction whose fee the user never saw. The device journals the amount every signed transaction claimed for each input in its own flash sectors (`kaskold_claims`), and refuses with `SIGN-CLAIM-01` any later transaction that contradicts one. The journal holds only tags keyed by the active wallet's secret. If it cannot be read or saved, nothing is signed (`SIGN-CLAIM-02`).
+
+Anti-klepto nonces depend on the host as well as the device. Every provisional nonce (transaction, covenant and Private Swap adaptor) draws its entropy from the device RNG hashed with the host's full 32-byte commitment, so a repeated RNG output cannot reuse a nonce across sessions with different commitments.
+
 ### Layer 2 - Wallet key lifecycle
 
 Users choose one of two hardware wallet-session modes:
@@ -109,6 +113,7 @@ Private Swap v2 restores the adaptor-signature privacy goal without restoring hi
 - A compromised compiler/toolchain that still reproduces across all builders used by the user.
 - Weak Portable-backup passwords. A self-contained Portable JPEG necessarily permits offline password guesses; Argon2id makes each guess more expensive but password strength still matters.
 - Social engineering or disclosure of mnemonic/passphrase/PIN/password.
+- A split-session fee attack on an outpoint whose claim has left the input-claim journal. The journal keeps the newest 128 outpoint claims; an older outpoint can be claimed afresh. The hot wallet keeps no journal, because it runs beside the host that would mount the attack.
 - A compromised companion browser/OS before the signer parses and the user reviews the actual transaction.
 - Bugs in hardware variants that have not yet completed physical qualification, or mobile behavior not covered by the signed physical-device release-evidence matrix.
 

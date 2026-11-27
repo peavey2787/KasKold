@@ -36,6 +36,10 @@ pub(crate) const SIGN_INPUT: ErrorSpec = ErrorSpec { message: "Input signing fai
 pub(crate) const SIGN_REVIEW: ErrorSpec = ErrorSpec { message: "Review authorization failed", code: "SIGN-REVIEW-01" };
 pub(crate) const SIGN_KEY: ErrorSpec = ErrorSpec { message: "Wallet key unavailable", code: "SIGN-KEY-01" };
 pub(crate) const SIGN_POLICY: ErrorSpec = ErrorSpec { message: "Signing policy rejected", code: "SIGN-POLICY-01" };
+pub(crate) const SIGN_CLAIM_CONFLICT: ErrorSpec =
+    ErrorSpec { message: "Input amounts conflict", code: "SIGN-CLAIM-01" };
+pub(crate) const SIGN_CLAIM_STORE: ErrorSpec =
+    ErrorSpec { message: "Input claim record failed", code: "SIGN-CLAIM-02" };
 pub(crate) const SIGN_NOT_OURS: ErrorSpec =
     ErrorSpec { message: "This wallet cannot sign this", code: "SIGN-NOKEY-01" };
 pub(crate) const SIGN_FINALIZE: ErrorSpec =

@@ -13,7 +13,7 @@ use aes_gcm::{
 };
 use sha2::{Digest, Sha256};
 
-use crate::derivation::hmac::zeroize_buf;
+use kaspa_portal::primitives::bytes::zeroize_bytes;
 
 pub const FORMAT_VERSION: u8 = 3;
 pub const KDF_ID_DEVICE_HMAC_SHA256: u8 = 2;
@@ -95,13 +95,13 @@ pub fn generate_fresh_material(
     nonce: &mut [u8; NONCE_SIZE],
 ) -> Result<(), DeviceBoundError> {
     if entropy.fill(salt).is_err() || entropy.fill(nonce).is_err() {
-        zeroize_buf(salt);
-        zeroize_buf(nonce);
+        zeroize_bytes(salt);
+        zeroize_bytes(nonce);
         return Err(DeviceBoundError::EntropyUnavailable);
     }
     if salt.iter().all(|byte| *byte == 0) || nonce.iter().all(|byte| *byte == 0) {
-        zeroize_buf(salt);
-        zeroize_buf(nonce);
+        zeroize_bytes(salt);
+        zeroize_bytes(nonce);
         return Err(DeviceBoundError::EntropyUnavailable);
     }
     Ok(())
@@ -126,10 +126,10 @@ pub fn derive_aes_key(
 
     let mut device_mix = [0u8; KEY_SIZE];
     let hmac_result = hmac.hmac_sha256_with_domain(HMAC_DOMAIN, &challenge, &mut device_mix);
-    zeroize_buf(&mut challenge);
+    zeroize_bytes(&mut challenge);
     if let Err(error) = hmac_result {
-        zeroize_buf(&mut context);
-        zeroize_buf(&mut device_mix);
+        zeroize_bytes(&mut context);
+        zeroize_bytes(&mut device_mix);
         return Err(error);
     }
 
@@ -139,12 +139,12 @@ pub fn derive_aes_key(
     hasher.update(stretched_credential);
     hasher.update(device_mix);
     let mut key: [u8; KEY_SIZE] = hasher.finalize().into();
-    zeroize_buf(&mut context);
-    zeroize_buf(&mut device_mix);
+    zeroize_bytes(&mut context);
+    zeroize_bytes(&mut device_mix);
     // Prevent an optimizer from treating the returned value as derived from a
     // mutable alias that remains live in this frame.
     let result = key;
-    zeroize_buf(&mut key);
+    zeroize_bytes(&mut key);
     Ok(result)
 }
 
@@ -182,7 +182,7 @@ pub fn seal_in_place(
     let mut key = match envelope.aes_key(hmac, parameters) {
         Ok(key) => key,
         Err(error) => {
-            zeroize_buf(plaintext);
+            zeroize_bytes(plaintext);
             return Err(error);
         }
     };
@@ -192,7 +192,7 @@ pub fn seal_in_place(
         envelope.authenticated_header,
         plaintext,
     );
-    zeroize_buf(&mut key);
+    zeroize_bytes(&mut key);
     match result {
         Ok(tag) => {
             let mut output = [0u8; TAG_SIZE];
@@ -200,7 +200,7 @@ pub fn seal_in_place(
             Ok(output)
         }
         Err(_) => {
-            zeroize_buf(plaintext);
+            zeroize_bytes(plaintext);
             Err(DeviceBoundError::EncryptionFailed)
         }
     }
@@ -216,7 +216,7 @@ pub fn open_in_place(
     let mut key = match envelope.aes_key(hmac, parameters) {
         Ok(key) => key,
         Err(error) => {
-            zeroize_buf(ciphertext);
+            zeroize_bytes(ciphertext);
             return Err(error);
         }
     };
@@ -227,9 +227,9 @@ pub fn open_in_place(
         ciphertext,
         GenericArray::from_slice(tag),
     );
-    zeroize_buf(&mut key);
+    zeroize_bytes(&mut key);
     if result.is_err() {
-        zeroize_buf(ciphertext);
+        zeroize_bytes(ciphertext);
         return Err(DeviceBoundError::AuthenticationFailed);
     }
     Ok(())
@@ -275,7 +275,7 @@ trait DomainSeparatedHmac: HardwareHmac {
         digest.update(message);
         let mut request: [u8; 32] = digest.finalize().into();
         let result = self.hmac_sha256(&request, output);
-        zeroize_buf(&mut request);
+        zeroize_bytes(&mut request);
         result
     }
 }

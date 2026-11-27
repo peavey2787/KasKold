@@ -9,7 +9,10 @@ use offline_signer::{
 };
 use zeroize::Zeroize;
 
-use crate::{entropy::fill_random, HotWallet, HotWalletError};
+use crate::{
+    entropy::{fill_random, fill_random_bound_to},
+    HotWallet, HotWalletError,
+};
 
 pub struct CovenantProvisional {
     pub signature: [u8; 64],
@@ -58,9 +61,9 @@ impl HotWallet {
         &self,
         key_id: &[u8; 32],
         commitment: &[u8; 32],
+        host_commitment: &[u8; 32],
     ) -> Result<CovenantProvisional, HotWalletError> {
-        let mut aux = [0u8; 32];
-        fill_random(&mut aux)?;
+        let mut aux = fill_random_bound_to(host_commitment)?;
         let provisional =
             covenant::provisional_covenant_signature(self.seed_bytes()?, key_id, commitment, &aux)
                 .map_err(|_| HotWalletError::CryptoOperationFailed);

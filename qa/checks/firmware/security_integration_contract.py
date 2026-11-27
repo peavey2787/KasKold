@@ -215,8 +215,11 @@ def check_security_integration_contract(root: Path, errors: list[str]) -> None:
     )
 
     workflow = read("apps/kaskold-hardware/src/runtime/signing/workflow.rs")
-    require("signing_entropy" in workflow and "entropy::fill" in workflow,
-            "security integration: signing must obtain checked auxiliary entropy")
+    signing_entropy = read("apps/kaskold-hardware/src/runtime/signing/workflow/entropy.rs")
+    require("entropy::input_signing_entropy(ad)" in workflow
+            and "entropy::fill(&mut device)?" in signing_entropy
+            and "entropy::fill_bound_to(&session.host_commitment)" in signing_entropy,
+            "security integration: signing must obtain checked auxiliary entropy, bound to the host commitment under anti-klepto")
     require("kspt::sign_input(ad, signing_strategy, input_idx, &signing_entropy, liveness)" in workflow
             and "shared_signer::bytes::zeroize_bytes(&mut signing_entropy)" in workflow,
             "security integration: firmware per-input signing does not use the fail-closed entropy path")

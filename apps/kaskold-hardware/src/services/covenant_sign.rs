@@ -259,8 +259,8 @@ pub fn begin_signing(ad: &mut AppData, checkpoint: &mut (impl FnMut() + ?Sized))
         return Err(CovenantSignError::InvalidEnvelope);
     }
 
-    let mut aux = [0u8; 32];
-    crate::crypto::entropy::fill(&mut aux).map_err(|_| CovenantSignError::EntropyUnavailable)?;
+    let mut aux = crate::crypto::entropy::fill_bound_to(&ad.signing.covenant.host_commitment)
+        .map_err(|_| CovenantSignError::EntropyUnavailable)?;
     let mut seed = match crate::services::wallet_keys::derive_active_seed_with_checkpoint(ad, checkpoint) {
         Ok(seed) => seed,
         Err(_) => {

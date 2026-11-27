@@ -19,7 +19,6 @@ use crate::{
     runtime::data::AppData,
     services::{audio as sound, backup as sd_backup, storage_device as sdcard},
 };
-use offline_signer::derivation::hmac::zeroize_buf;
 
 mod backup;
 mod common;

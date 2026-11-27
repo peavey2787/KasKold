@@ -24,7 +24,7 @@ fn sign_with_entropy(ad: &AppData, signing_entropy: &[u8; 32], checkpoint: &mut 
             .map(|signature| signature.bytes)
             .map_err(|_| ())
     })();
-    offline_signer::derivation::hmac::zeroize_buf(&mut private_key);
+    shared_signer::bytes::zeroize_bytes(&mut private_key);
     result
 }
 
@@ -32,7 +32,7 @@ pub(super) fn sign_reviewed_message(ad: &AppData, checkpoint: &mut dyn FnMut()) 
     let mut signing_entropy = [0u8; 32];
     crate::crypto::entropy::fill(&mut signing_entropy).map_err(|_| ())?;
     let result = sign_with_entropy(ad, &signing_entropy, checkpoint);
-    offline_signer::derivation::hmac::zeroize_buf(&mut signing_entropy);
+    shared_signer::bytes::zeroize_bytes(&mut signing_entropy);
     result
 }
 

@@ -3,7 +3,8 @@
 
 use crate::services::credential_policy::{self, CredentialKind, SALT_SIZE};
 use kaskold_hardware_core::advanced_policy::{SigningPolicy, SigningWindow, MAX_WEEKLY_WINDOWS};
-use offline_signer::{crypto::password_kdf::PasswordKdfPurpose, derivation::hmac::zeroize_buf};
+use offline_signer::crypto::password_kdf::PasswordKdfPurpose;
+use shared_signer::bytes::zeroize_bytes;
 
 use super::{
     crypto::{DeviceCrypto, RecordHeader, POLICY_START, RECORD_SIZE},
@@ -220,7 +221,7 @@ pub(super) fn create_duress(
     let mut stretched =
         kdf::derive(CredentialKdf::current(), PasswordKdfPurpose::PersistentWallet, secret, &salt, &mut || {})?;
     let verifier_result = crypto.duress_verifier(key_slot, kind, &salt, &stretched);
-    zeroize_buf(&mut stretched);
+    zeroize_bytes(&mut stretched);
     let verifier = verifier_result?;
     Ok(DuressPolicy { enabled: true, kind, key_slot, salt, verifier })
 }
@@ -241,7 +242,7 @@ pub(super) fn duress_matches(
         return false;
     };
     let actual = crypto.duress_verifier(policy.key_slot, policy.kind, &policy.salt, &stretched);
-    zeroize_buf(&mut stretched);
+    zeroize_bytes(&mut stretched);
     match actual {
         Ok(value) => shared_signer::bytes::constant_time_eq(&value, &policy.verifier),
         Err(_) => false,

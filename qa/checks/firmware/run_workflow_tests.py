@@ -64,6 +64,7 @@ RUNTIME_ACTIONS = (
     "multisig-kpub-real-derivation",
     "pin-unlock-loading-order",
     "persistent-pin-storage-round-trip",
+    "input-claim-ledger-flash",
     "recoverable-operation-timeout",
     "argon2-persistent-wallet-kdf",
 )

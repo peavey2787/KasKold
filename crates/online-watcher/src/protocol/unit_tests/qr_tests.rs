@@ -92,7 +92,7 @@ fn qr_progress_and_plain_text_svg_boundaries_are_covered() {
     use crate::protocol::qr::{decoder_progress, generate_svg_from_text};
 
     reset_decoder();
-    assert_eq!(decoder_progress(), "0/0");
+    assert_eq!(decoder_progress(), r#"{"total":0,"count":0,"bits":[]}"#);
     let svg = generate_svg_from_text("KasKold recovery").expect("plain text QR");
     assert!(svg.starts_with("<svg"));
     assert!(svg.contains("fill=\"black\""));

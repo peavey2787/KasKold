@@ -8,6 +8,9 @@ use kaskold_hardware_core::security::{authorize_transaction_signing, SigningAuth
 
 use super::{kspt, output, pskt, strategy};
 
+mod claims;
+mod entropy;
+
 pub(super) fn prepare_anti_klepto_commitment(ad: &mut AppData) {
     use crate::runtime::data::AntiKleptoPhase;
     let Some(session) = ad.signing.anti_klepto.session_in(AntiKleptoPhase::Reviewing) else {
@@ -80,6 +83,12 @@ pub fn handle_signing_operation_step(
         return;
     }
     if input_idx == 0 {
+        if let Err(error) = claims::admit(ad, persistence) {
+            log!("   ✗ Input claims refused: {}", error.code);
+            reject_signing_with(ad, error);
+            rollback_session(ad);
+            return;
+        }
         let counts = offline_signer::transaction::kspt::initial_signature_counts(&ad.signing.transaction.active);
         ad.signing.transaction.initial_signature_counts.clear();
         ad.signing
@@ -136,12 +145,14 @@ fn sign_one_input(ad: &mut AppData, input_idx: usize, liveness: &mut (impl FnMut
         reject_signing(ad);
         return false;
     };
-    let mut signing_entropy = [0u8; 32];
-    if let Err(error) = crate::crypto::entropy::fill(&mut signing_entropy) {
-        log!("   ✗ Signing entropy refused: {}", error.message());
-        reject_signing_with(ad, crate::runtime::presentation::SIGN_ENTROPY);
-        return false;
-    }
+    let mut signing_entropy = match entropy::input_signing_entropy(ad) {
+        Ok(entropy) => entropy,
+        Err(error) => {
+            log!("   ✗ Signing entropy refused: {}", error.message());
+            reject_signing_with(ad, crate::runtime::presentation::SIGN_ENTROPY);
+            return false;
+        }
+    };
     liveness();
     log!("   Signing input {} crypto BEGIN", input_idx + 1);
     let result = kspt::sign_input(ad, signing_strategy, input_idx, &signing_entropy, liveness);

@@ -53,6 +53,7 @@ class FirmwareBoardLayoutTests(unittest.TestCase):
         self.assertEqual(by_name["otadata"], ("otadata", "data", "ota", 0xD000, 0x2000))
         self.assertEqual(by_name["ota_0"], ("ota_0", "app", "ota_0", 0x10000, 0x200000))
         self.assertEqual(by_name["ota_1"], ("ota_1", "app", "ota_1", 0x210000, 0x200000))
+        self.assertEqual(by_name["kaskold_claims"], ("kaskold_claims", "data", "undefined", 0xFF4000, 0x4000))
         self.assertNotIn("factory", by_name)
 
     def test_cores3_lite_shares_qualified_cores3_flash_geometry(self) -> None:

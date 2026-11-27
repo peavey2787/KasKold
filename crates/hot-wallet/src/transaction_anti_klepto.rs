@@ -11,7 +11,7 @@ use offline_signer::{
 };
 use zeroize::Zeroize;
 
-use crate::{entropy::fill_random, HotWallet, HotWalletError};
+use crate::{entropy::fill_random_bound_to, HotWallet, HotWalletError};
 
 pub struct AntiKleptoSession {
     session_id: [u8; shared_signer::anti_klepto::SESSION_ID_LEN],
@@ -43,8 +43,7 @@ impl HotWallet {
         kspt::validate_transaction_for_review(&transaction)?;
 
         let initial_counts = kspt::initial_signature_counts(&transaction);
-        let mut signing_entropy = [0u8; 32];
-        fill_random(&mut signing_entropy)?;
+        let mut signing_entropy = fill_random_bound_to(&request.host_commitment)?;
         let sign_result = self.sign_transaction_model(&mut transaction, &signing_entropy);
         signing_entropy.zeroize();
         sign_result?;

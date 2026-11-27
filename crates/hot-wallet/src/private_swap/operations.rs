@@ -15,7 +15,10 @@ use zeroize::Zeroize;
 use super::{
     PrivateSwapMode, PrivateSwapPhase, PrivateSwapPrepared, PrivateSwapReview, PrivateSwapSession,
 };
-use crate::{entropy::fill_random, HotWallet, HotWalletError, WalletKind};
+use crate::{
+    entropy::{fill_random, fill_random_bound_to},
+    HotWallet, HotWalletError, WalletKind,
+};
 
 impl PrivateSwapSession {
     pub fn prepare_request(
@@ -199,8 +202,7 @@ impl PrivateSwapSession {
         {
             return Err(HotWalletError::CryptoOperationFailed);
         }
-        let mut aux = [0u8; 32];
-        fill_random(&mut aux)?;
+        let aux = fill_random_bound_to(&request.host_commitment)?;
         let nonce = covenant::private_swap_adaptor_base_nonce_point(
             seed,
             &request.key_id,

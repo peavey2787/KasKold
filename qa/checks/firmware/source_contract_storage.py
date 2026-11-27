@@ -129,8 +129,8 @@ def check_sd_persistence_security_contract(errors: list[str]) -> None:
         "HardwareHmacUnavailable",
         "seal_in_place",
         "open_in_place",
-        "zeroize_buf(plaintext)",
-        "zeroize_buf(ciphertext)",
+        "zeroize_bytes(plaintext)",
+        "zeroize_bytes(ciphertext)",
     ):
         require(errors, contract in core, f"device-bound storage core missing: {contract}")
     for forbidden in ("raw_hmac_key", "read_hmac_key", "export_hmac_key", "device_secret("):

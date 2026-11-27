@@ -28,7 +28,8 @@ pub(crate) use unlock::asynchronous::{AsyncUnlockApply, AsyncUnlockSession, Unlo
 pub use crate::services::credential_policy::CredentialKind;
 use crate::services::credential_policy::{self, SALT_SIZE};
 use esp_hal::peripherals::{FLASH, HMAC};
-use offline_signer::derivation::hmac::zeroize_buf;
+pub(crate) use journal::ClaimRefusal;
+use shared_signer::bytes::zeroize_bytes;
 
 use crate::{runtime::data::AppData, services::wallet_session, wallet::seed_manager::SeedManager};
 
@@ -382,9 +383,9 @@ impl<'d> PersistentWallet<'d> {
 
     fn clear_credential(&mut self) {
         if let Some(mut key) = self.credential_key.take() {
-            zeroize_buf(&mut key);
+            zeroize_bytes(&mut key);
         }
-        zeroize_buf(&mut self.credential_salt);
+        zeroize_bytes(&mut self.credential_salt);
         self.credential_kind = None;
         self.device_only = false;
         self.credential_kdf = kdf::CredentialKdf::current();

@@ -152,8 +152,8 @@ fn prepare_presign(
         crate::services::wallet_keys::zeroize_seed(&mut seed.bytes);
         return Err(PrivateSwapError::BindingMismatch);
     }
-    let mut aux = [0u8; 32];
-    crate::crypto::entropy::fill(&mut aux).map_err(|_| PrivateSwapError::EntropyUnavailable)?;
+    let aux = crate::crypto::entropy::fill_bound_to(&request.host_commitment)
+        .map_err(|_| PrivateSwapError::EntropyUnavailable)?;
     let nonce = offline_signer::derivation::covenant::private_swap_adaptor_base_nonce_point(
         &seed.bytes,
         &request.key_id,

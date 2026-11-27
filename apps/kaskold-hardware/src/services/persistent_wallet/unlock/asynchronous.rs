@@ -1,7 +1,8 @@
 //! Event-loop-friendly persistent-wallet unlock transaction.
 
 use crate::services::credential_policy::{CredentialKind, SALT_SIZE};
-use offline_signer::{crypto::password_kdf::PasswordKdfPurpose, derivation::hmac::zeroize_buf};
+use offline_signer::crypto::password_kdf::PasswordKdfPurpose;
+use shared_signer::bytes::zeroize_bytes;
 
 use crate::{runtime::data::AppData, services::wallet_session};
 
@@ -37,7 +38,7 @@ impl core::ops::DerefMut for SecretKey {
 
 impl Drop for SecretKey {
     fn drop(&mut self) {
-        zeroize_buf(&mut self.0);
+        zeroize_bytes(&mut self.0);
     }
 }
 
@@ -170,7 +171,7 @@ impl PersistentWallet<'_> {
             session.wallet_index = session.wallet_index.saturating_add(1);
             let mut record = AlignedBytes::<RECORD_SIZE>::zeroed();
             let header = journal::read_wallet(&mut self.flash, address, &mut record)?;
-            zeroize_buf(&mut record.0);
+            zeroize_bytes(&mut record.0);
             let Some(header) = header else {
                 continue;
             };
@@ -210,7 +211,7 @@ impl PersistentWallet<'_> {
         delay: &mut esp_hal::delay::Delay,
     ) -> Result<AsyncUnlockApply, PersistError> {
         let actual = self.crypto.duress_verifier(policy.key_slot, policy.kind, &policy.salt, &key);
-        zeroize_buf(&mut *key);
+        zeroize_bytes(&mut *key);
         let matched =
             actual.map(|value| shared_signer::bytes::constant_time_eq(&value, &policy.verifier)).unwrap_or(false);
         if !matched {
@@ -235,9 +236,9 @@ impl PersistentWallet<'_> {
         } else {
             Err(PersistError::InvalidWallet)
         };
-        zeroize_buf(&mut record.0);
+        zeroize_bytes(&mut record.0);
         if let Err(error) = result {
-            zeroize_buf(&mut *key);
+            zeroize_bytes(&mut *key);
             if session.first_error.is_none() {
                 session.first_error = Some(error);
             }
@@ -261,17 +262,17 @@ impl PersistentWallet<'_> {
         let (header, policy) = match validated {
             Ok(value) => value,
             Err(error) => {
-                zeroize_buf(&mut record.0);
+                zeroize_bytes(&mut record.0);
                 return Ok(complete_apply_error(session, error));
             }
         };
         let restored = self.restore_record_with_key(&record, &key, ad);
-        zeroize_buf(&mut record.0);
+        zeroize_bytes(&mut record.0);
         if let Err(error) = restored {
             return Ok(complete_apply_error(session, error));
         }
         if let Err(error) = journal::erase_wallet(&mut self.flash) {
-            zeroize_buf(&mut *key);
+            zeroize_bytes(&mut *key);
             ad.wallet.seeds.seed_mgr.zeroize_all();
             wallet_session::clear_active_wallet(ad);
             return Ok(complete_apply_error(session, error.into()));

@@ -168,6 +168,8 @@ impl DeviceFlags {
         self
     }
 }
+mod input_claims;
+pub(crate) use input_claims::ClaimRefusal;
 mod preferences;
 pub(super) use preferences::DevicePreferences;
 mod config;
@@ -246,7 +248,9 @@ pub(super) fn erase_wallet(device: &mut DeviceFlash<'_>) -> Result<(), FlashErro
 pub(super) fn erase_all_user_data(device: &mut DeviceFlash<'_>) -> Result<(), FlashError> {
     let device_flags = read_device_flags(device)?;
     let mut first_error = None;
-    for address in [flash::CONFIG_A, flash::CONFIG_B, flash::WALLET_A, flash::WALLET_B] {
+    for address in
+        [flash::CONFIG_A, flash::CONFIG_B, flash::WALLET_A, flash::WALLET_B, flash::CLAIMS_A, flash::CLAIMS_B]
+    {
         if let Err(error) = erase_wallet_sector_if_used(device, address) {
             if first_error.is_none() {
                 first_error = Some(error);
@@ -282,6 +286,6 @@ fn newest_wallet(a: Option<RecordHeader>, b: Option<RecordHeader>) -> Option<(u3
     }
 }
 
-const fn is_newer(left: u32, right: u32) -> bool {
+pub(super) const fn is_newer(left: u32, right: u32) -> bool {
     left != right && left.wrapping_sub(right) < 0x8000_0000
 }

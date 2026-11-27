@@ -40,7 +40,9 @@ pub use privacy::stealth;
 pub mod transaction {
     pub use kaspa_portal::transaction::{
         interchange::{kspt, pskt::standard as std_pskt},
-        model, sighash,
+        model,
+        policy::input_claims,
+        sighash,
         signing::private_swap,
     };
 }

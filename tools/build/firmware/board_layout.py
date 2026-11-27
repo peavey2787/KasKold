@@ -119,7 +119,7 @@ def _read_partitions(path: Path) -> list[tuple[str, str, str, int, int]]:
 _CORES3_BOARDS = frozenset({"m5stack", "m5stack-lite"})
 _CORES3_PARTITION_NAMES = frozenset({
     "nvs", "otadata", "phy_init", "ota_0", "ota_1", "owner_stage",
-    "kaskold_bootctl", "kaskold_qa", "kaskold_state",
+    "kaskold_bootctl", "kaskold_claims", "kaskold_qa", "kaskold_state",
 })
 _CORES3_FIXED_PARTITIONS = (
     (("nvs", "data", "nvs", 0x9000, 0x4000), "NVS layout"),
@@ -216,6 +216,12 @@ def validate_layout(layout: BoardLayout) -> None:
     if cores3:
         qa = by_name.get("kaskold_qa")
         _require(qa == ("kaskold_qa", "data", "undefined", 0xFF8000, 0x4000), board, "kaskold_qa must reserve 16 KiB at 0x00FF8000")
+        claims = by_name.get("kaskold_claims")
+        _require(
+            claims == ("kaskold_claims", "data", "undefined", 0xFF4000, 0x4000),
+            board,
+            "kaskold_claims must reserve 16 KiB at 0x00FF4000",
+        )
     _validate_state_reservation(layout, app, by_name)
 
 

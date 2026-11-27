@@ -81,7 +81,7 @@ def _check_partition_table(root: Path, errors: list[str]) -> None:
     _require_fragments(
         errors,
         partition_text,
-        ("otadata", "ota_0", "ota_1", "kaskold_qa", "0xFF8000"),
+        ("otadata", "ota_0", "ota_1", "kaskold_claims", "0xFF4000", "kaskold_qa", "0xFF8000"),
         "M5Stack anti-rollback partition contract missing {fragment}",
     )
     if "app,  factory" in partition_text or "app,  test" in partition_text:
@@ -102,6 +102,10 @@ def _check_flash_reservation(root: Path, errors: list[str]) -> None:
             "pub(super) const CONFIG_B: u32 = STATE_BASE + SECTOR_SIZE;",
             "pub(super) const WALLET_A: u32 = STATE_BASE + 2 * SECTOR_SIZE;",
             "pub(super) const WALLET_B: u32 = STATE_BASE + 3 * SECTOR_SIZE;",
+            "const CLAIMS_BASE: u32 = FLASH_SIZE - 12 * SECTOR_SIZE;",
+            "const CLAIMS_BASE: u32 = FLASH_SIZE - 10 * SECTOR_SIZE;",
+            "pub(super) const CLAIMS_A: u32 = CLAIMS_BASE;",
+            "pub(super) const CLAIMS_B: u32 = CLAIMS_BASE + SECTOR_SIZE;",
         ),
         "persistent-wallet flash reservation drifted: missing {fragment}",
     )

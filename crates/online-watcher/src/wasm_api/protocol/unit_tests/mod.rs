@@ -7,7 +7,7 @@ fn wasm_qr_boundaries_cover_generation_decoding_progress_and_version() {
     };
 
     reset_qr_decoder();
-    assert_eq!(decoder_progress(), "0/0");
+    assert_eq!(decoder_progress(), r#"{"total":0,"count":0,"bits":[]}"#);
     assert_eq!(version(), "KasKold Companion Web");
 
     let frames = crate::wasm_api::test_support::expect_js(
@@ -37,7 +37,7 @@ fn wasm_qr_boundaries_cover_generation_decoding_progress_and_version() {
         ),
         hex::encode(raw_single),
     );
-    assert_eq!(decoder_progress(), "0/0");
+    assert_eq!(decoder_progress(), r#"{"total":0,"count":0,"bits":[]}"#);
 
     let payload = b"two-frame-boundary";
     let session = shared_signer::qr_frame::session_id(payload);
@@ -62,7 +62,7 @@ fn wasm_qr_boundaries_cover_generation_decoding_progress_and_version() {
         ),
         hex::encode(payload),
     );
-    assert_eq!(decoder_progress(), "0/0");
+    assert_eq!(decoder_progress(), r#"{"total":0,"count":0,"bits":[]}"#);
 }
 
 #[test]

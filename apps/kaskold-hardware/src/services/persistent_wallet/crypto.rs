@@ -10,10 +10,10 @@ use esp_hal::{
     hmac::{Hmac, HmacPurpose, KeyId},
     peripherals::HMAC,
 };
-use offline_signer::{
-    crypto::device_bound_storage::{self as bound, DeviceBoundError, HardwareHmac, KdfParameters, StoragePurpose},
-    derivation::hmac::zeroize_buf,
+use offline_signer::crypto::device_bound_storage::{
+    self as bound, DeviceBoundError, HardwareHmac, KdfParameters, StoragePurpose,
 };
+use shared_signer::bytes::zeroize_bytes;
 
 use super::{codec::PAYLOAD_SIZE, flash::AlignedBytes, kdf::CredentialKdf, PersistError};
 
@@ -131,9 +131,9 @@ impl<'d> DeviceCrypto<'d> {
         )
         .map_err(map_bound_error)?;
         record.0[CURRENT_AAD_SIZE..CURRENT_CIPHERTEXT_START].copy_from_slice(&tag);
-        zeroize_buf(&mut nonce);
-        zeroize_buf(&mut aad);
-        zeroize_buf(&mut tag);
+        zeroize_bytes(&mut nonce);
+        zeroize_bytes(&mut aad);
+        zeroize_bytes(&mut tag);
         Ok(())
     }
 
@@ -159,7 +159,7 @@ impl<'d> DeviceCrypto<'d> {
                 plaintext,
             )
         };
-        zeroize_buf(&mut tag);
+        zeroize_bytes(&mut tag);
         result.map_err(map_bound_error)?;
         Ok(header)
     }
@@ -291,7 +291,7 @@ impl<'d> DeviceCrypto<'d> {
         self.update_all(message)?;
         let result = self.finalize_into(output);
         if result.is_err() {
-            zeroize_buf(output);
+            zeroize_bytes(output);
         }
         result
     }

@@ -1,6 +1,6 @@
 //! Snapshot encoding/restore shared by flash and SD persistence backends.
 
-use offline_signer::derivation::hmac::zeroize_buf;
+use shared_signer::bytes::zeroize_bytes;
 
 use crate::{
     runtime::data::AppData,
@@ -31,11 +31,11 @@ impl PersistentWallet<'_> {
         let mut payload = [0u8; PAYLOAD_SIZE];
         let opened = self.crypto.open(record, credential_key, &mut payload);
         if let Err(error) = opened {
-            zeroize_buf(&mut payload);
+            zeroize_bytes(&mut payload);
             return Err(error);
         }
         let decoded = codec::decode(&payload, &mut ad.wallet.seeds.seed_mgr);
-        zeroize_buf(&mut payload);
+        zeroize_bytes(&mut payload);
         decoded.map_err(|_| PersistError::InvalidWallet)?;
         journal::read_wallet_labels(&mut self.flash)?.apply(&mut ad.wallet.seeds.seed_mgr);
         ad.signing.multisig.store = journal::read_multisig_store(&mut self.flash)?;
@@ -77,7 +77,7 @@ impl PersistentWallet<'_> {
         let mut record = AlignedBytes::<RECORD_SIZE>::zeroed();
         self.build_record_into(manager, sequence, &mut record)?;
         let result = self.flash.replace_sector(target, &record).map_err(PersistError::from);
-        zeroize_buf(&mut record.0);
+        zeroize_bytes(&mut record.0);
         result?;
         journal::write_wallet_labels(&mut self.flash, journal::WalletLabels::from_manager(manager))?;
         self.accept_revision(manager);
@@ -105,8 +105,8 @@ impl PersistentWallet<'_> {
         let mut key = *self.credential_key.as_ref().ok_or(PersistError::CredentialRequired)?;
         let credential = WalletCredential { kind, key: &key, salt: &self.credential_salt };
         let result = super::sd_backend::write_slot(&mut self.crypto, credential, next_slot, &record, i2c, delay);
-        zeroize_buf(&mut key);
-        zeroize_buf(&mut record.0);
+        zeroize_bytes(&mut key);
+        zeroize_bytes(&mut record.0);
         result?;
         journal::write_sd_anchor(
             &mut self.flash,
@@ -145,7 +145,7 @@ impl PersistentWallet<'_> {
             let header = crypto::parse_header(record).ok_or(PersistError::InvalidWallet)?;
             security_policy::encode(&mut self.crypto, header, self.security_policy, record)
         })();
-        zeroize_buf(&mut payload);
+        zeroize_bytes(&mut payload);
         result?;
         Ok(())
     }

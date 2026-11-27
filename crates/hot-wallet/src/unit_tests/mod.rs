@@ -758,7 +758,7 @@ fn covenant_custody_tools_cover_allocation_binding_and_anti_klepto_finalize() {
 
     let commitment = [0x42u8; 32];
     let provisional = wallet
-        .covenant_begin_signature(&key_id, &commitment)
+        .covenant_begin_signature(&key_id, &commitment, &[0x75u8; 32])
         .expect("provisional covenant signature");
     assert_eq!(provisional.nonce_point[0], 0x02);
     let final_signature = wallet
@@ -1827,5 +1827,16 @@ fn stego_permutation_key_matches_its_published_derivation() {
             0xb9, 0x89, 0x47, 0x8e, 0x57, 0x08, 0x61, 0x0b, 0xf9, 0x5e, 0xad, 0x70, 0x5b, 0xbd,
             0x60, 0xe2, 0xd1, 0x3d,
         ]
+    );
+}
+
+#[test]
+fn host_bound_nonce_entropy_is_fresh_on_every_draw() {
+    let commitment = [0x33; 32];
+    let first = crate::entropy::fill_random_bound_to(&commitment).expect("entropy");
+    let second = crate::entropy::fill_random_bound_to(&commitment).expect("entropy");
+    assert_ne!(
+        first, second,
+        "one host commitment must never repeat a nonce"
     );
 }

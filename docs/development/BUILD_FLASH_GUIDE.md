@@ -76,7 +76,7 @@ usb-reset`. It flashes the development ELF and immediately enters espflash's liv
 monitor so the complete ROM/bootloader/KasKold startup log is visible. Press `CTRL+C` to
 leave the monitor after the device reaches the expected screen.
 
-M5Stack CoreS3 does **not** use espflash's generic application layout. Its repository-owned 16 MiB table is `apps/kaskold-hardware/partitions/m5stack-cores3.csv`. It contains two 2 MiB OTA application slots (`ota_0` at `0x10000`, `ota_1` at `0x210000`), a 2 MiB owner-firmware staging partition at `0x410000`, the one-sector `kaskold_bootctl` handoff at `0x610000`, and the QA/persistent-state sectors at the top of flash. Anti-rollback intentionally uses OTA slots rather than a factory application partition.
+M5Stack CoreS3 does **not** use espflash's generic application layout. Its repository-owned 16 MiB table is `apps/kaskold-hardware/partitions/m5stack-cores3.csv`. It contains two 2 MiB OTA application slots (`ota_0` at `0x10000`, `ota_1` at `0x210000`), a 2 MiB owner-firmware staging partition at `0x410000`, the one-sector `kaskold_bootctl` handoff at `0x610000`, and at the top of flash the input-claim journal (`kaskold_claims`, `0xFF4000`), the QA sectors (`kaskold_qa`, `0xFF8000`) and the persistent state (`kaskold_state`, `0xFFC000`). Anti-rollback intentionally uses OTA slots rather than a factory application partition.
 
 The development firmware exposes `Settings -> Developer -> Argon2 Bench` for a manual
 Argon2/PSRAM benchmark. It runs only when selected; hardware-test profiles may exercise the

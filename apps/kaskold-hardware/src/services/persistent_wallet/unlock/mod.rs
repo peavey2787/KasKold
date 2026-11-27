@@ -12,7 +12,9 @@ use crate::services::credential_policy::SALT_SIZE;
 #[cfg(feature = "workflow-test-auto")]
 use crate::services::wallet_session;
 #[cfg(feature = "workflow-test-auto")]
-use offline_signer::{crypto::password_kdf::PasswordKdfPurpose, derivation::hmac::zeroize_buf};
+use offline_signer::crypto::password_kdf::PasswordKdfPurpose;
+#[cfg(feature = "workflow-test-auto")]
+use shared_signer::bytes::zeroize_bytes;
 
 impl PersistentWallet<'_> {
     pub(crate) fn trigger_duress(
@@ -84,41 +86,41 @@ impl PersistentWallet<'_> {
             delay,
         );
         if let Err(error) = read {
-            zeroize_buf(&mut key);
-            zeroize_buf(&mut record.0);
+            zeroize_bytes(&mut key);
+            zeroize_bytes(&mut record.0);
             return Err(error);
         }
         let Some(header) = crypto::parse_header(&record) else {
-            zeroize_buf(&mut key);
-            zeroize_buf(&mut record.0);
+            zeroize_bytes(&mut key);
+            zeroize_bytes(&mut record.0);
             return Err(PersistError::SdStorageCorrupt);
         };
         if !sd_header_matches(self, header, kind) {
-            zeroize_buf(&mut key);
-            zeroize_buf(&mut record.0);
+            zeroize_bytes(&mut key);
+            zeroize_bytes(&mut record.0);
             return Err(PersistError::SdStorageCorrupt);
         }
         let policy = match security_policy::decode(&mut self.crypto, header, &record) {
             security_policy::DecodeResult::Valid(policy) => policy,
             _ => {
-                zeroize_buf(&mut key);
-                zeroize_buf(&mut record.0);
+                zeroize_bytes(&mut key);
+                zeroize_bytes(&mut record.0);
                 return Err(PersistError::SdStorageCorrupt);
             }
         };
         if policy.duress != self.security_policy.duress {
-            zeroize_buf(&mut key);
-            zeroize_buf(&mut record.0);
+            zeroize_bytes(&mut key);
+            zeroize_bytes(&mut record.0);
             return Err(PersistError::SdStorageCorrupt);
         }
         let restored = self.restore_record_with_key(&record, &key, ad);
-        zeroize_buf(&mut record.0);
+        zeroize_bytes(&mut record.0);
         if let Err(error) = restored {
-            zeroize_buf(&mut key);
+            zeroize_bytes(&mut key);
             return Err(error);
         }
         if let Err(error) = journal::erase_wallet(&mut self.flash) {
-            zeroize_buf(&mut key);
+            zeroize_bytes(&mut key);
             ad.wallet.seeds.seed_mgr.zeroize_all();
             wallet_session::clear_active_wallet(ad);
             return Err(error.into());
@@ -168,16 +170,16 @@ impl PersistentWallet<'_> {
         let mut record = AlignedBytes::<RECORD_SIZE>::zeroed();
         let header = journal::read_wallet(&mut self.flash, address, &mut record)?.ok_or(PersistError::InvalidWallet)?;
         if header.credential_kind != kind {
-            zeroize_buf(&mut record.0);
+            zeroize_bytes(&mut record.0);
             return Ok(UnlockAttempt::Skipped);
         }
         let mut key = derive_unlock_key(header.credential_kdf, secret, &header.salt, liveness)?;
         let restored = self.restore_record_with_key(&record, &key, ad);
-        zeroize_buf(&mut record.0);
+        zeroize_bytes(&mut record.0);
         match restored {
             Ok(()) => self.finish_flash_unlock(header, kind, key, ad),
             Err(error) => {
-                zeroize_buf(&mut key);
+                zeroize_bytes(&mut key);
                 Ok(UnlockAttempt::Failed(error))
             }
         }

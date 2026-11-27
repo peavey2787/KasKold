@@ -2,7 +2,7 @@
 //!
 //! The addresses come from a separate stdlib-only derivation of BIP39, BIP32 and
 //! the Kaspa address format at m/44'/111111'/0'/chain/index.
-use kaspa_portal::primitives::address::{encode_p2pk, KaspaNetwork, MAX_ADDR_LEN};
+use kaspa_portal::primitives::address::{encode_p2pk_address, KaspaNetwork};
 use kaspa_portal::primitives::hash::blake2b_256;
 use kaspa_portal::transaction::interchange::kspt::serialize_compact_kspt_vec;
 use kaspa_portal::transaction::model::{
@@ -139,9 +139,7 @@ pub(super) fn address_with_passphrase(words: &str, passphrase: &str) -> String {
     let account = derive_account_key(&seed_of(&words, passphrase).bytes).expect("account key");
     let key = derive_address_key(&account, 0).expect("address key");
     let public_key = key.public_key_x_only().expect("public key");
-    let mut text = [0u8; MAX_ADDR_LEN];
-    let length = encode_p2pk(&public_key, &mut text);
-    String::from_utf8(text[..length].to_vec()).expect("ascii address")
+    encode_p2pk_address(&public_key, "kaspa")
 }
 
 /// The public scan key a sender pays, and the account key the payment is spent with.

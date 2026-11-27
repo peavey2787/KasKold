@@ -5,11 +5,9 @@
 //! retired pre-production PBKDF2 SD-slot layouts are intentionally unsupported.
 
 use crate::services::credential_policy::SALT_SIZE;
-use offline_signer::{
-    crypto::password_kdf::{self, METADATA_SIZE},
-    derivation::hmac::zeroize_buf,
-};
+use offline_signer::crypto::password_kdf::{self, METADATA_SIZE};
 use sha2::{Digest, Sha256};
+use shared_signer::bytes::zeroize_bytes;
 
 use crate::hw::sdcard;
 
@@ -50,15 +48,15 @@ pub(super) fn write_slot(
         Ok(())
     });
     if write_result.is_err() {
-        zeroize_buf(&mut envelope.0);
+        zeroize_bytes(&mut envelope.0);
         return Err(PersistError::SdStorageWrite);
     }
 
-    zeroize_buf(&mut envelope.0);
+    zeroize_bytes(&mut envelope.0);
     read_raw_exact(index, &mut envelope.0, i2c, delay)?;
     let actual = Sha256::digest(envelope.0);
     let verified = expected[..] == actual[..];
-    zeroize_buf(&mut envelope.0);
+    zeroize_bytes(&mut envelope.0);
     if verified {
         Ok(())
     } else {
@@ -80,7 +78,7 @@ pub(super) fn read_slot(
     let mut envelope = AlignedBytes::<CURRENT_ENVELOPE_SIZE>::zeroed();
     read_raw_exact(index, &mut envelope.0, i2c, delay)?;
     let result = open_current(crypto, credential, credential_kdf.parameters(), index, &mut envelope, out);
-    zeroize_buf(&mut envelope.0);
+    zeroize_bytes(&mut envelope.0);
     result
 }
 
@@ -149,8 +147,8 @@ fn seal_current(
     let mut tag =
         crypto.seal_sd(credential.kind, credential.envelope(&nonce, &aad), &mut envelope.0[CURRENT_HEADER_SIZE..])?;
     envelope.0[44..60].copy_from_slice(&tag);
-    zeroize_buf(&mut nonce);
-    zeroize_buf(&mut tag);
+    zeroize_bytes(&mut nonce);
+    zeroize_bytes(&mut tag);
     Ok(())
 }
 
@@ -181,8 +179,8 @@ fn open_current(
         &mut envelope.0[CURRENT_HEADER_SIZE..],
         &tag,
     );
-    zeroize_buf(&mut nonce);
-    zeroize_buf(&mut tag);
+    zeroize_bytes(&mut nonce);
+    zeroize_bytes(&mut tag);
     if result.is_err() {
         out.0.fill(0);
         return Err(PersistError::SdStorageCorrupt);
